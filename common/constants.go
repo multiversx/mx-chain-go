@@ -474,6 +474,35 @@ const (
 	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
 )
 
+// TODO: add comments
+const (
+	MetricRatingsGeneralStartRating           = "erd_ratings_general_start_rating"
+	MetricRatingsGeneralMaxRating             = "erd_ratings_general_max_rating"
+	MetricRatingsGeneralMinRating             = "erd_ratings_general_min_rating"
+	MetricRatingsGeneralSignedBlocksThreshold = "erd_ratings_general_signed_blocks_threshold"
+	MetricRatingsGeneralSelectionChances      = "erd_ratings_general_selection_chances"
+
+	MetricRatingsShardChain                                = "erd_ratings_general_selection_chances"
+	MetricRatingsShardChainHoursToMaxRatingFromStartRating = "erd_ratings_shardchain_hours_to_max_rating_from_start_rating"
+	MetricRatingsShardChainProposerValidatorImportance     = "erd_ratings_shardchain_proposer_validator_importance"
+	MetricRatingsShardChainProposerDecreaseFactor          = "erd_ratings_shardchain_proposer_decrease_factor"
+	MetricRatingsShardChainValidatorDecreaseFactor         = "erd_ratings_shardchain_validator_decrease_factor"
+	MetricRatingsShardChainConsecutiveMissedBlocksPenalty  = "erd_ratings_shardchain_consecutive_missed_blocks_penalty"
+
+	MetricRatingsMetaChainHoursToMaxRatingFromStartRating = "erd_ratings_metachain_hours_to_max_rating_from_start_rating"
+	MetricRatingsMetaChainProposerValidatorImportance     = "erd_ratings_metachain_proposer_validator_importance"
+	MetricRatingsMetaChainProposerDecreaseFactor          = "erd_ratings_metachain_proposer_decrease_factor"
+	MetricRatingsMetaChainValidatorDecreaseFactor         = "erd_ratings_metachain_validator_decrease_factor"
+	MetricRatingsMetaChainConsecutiveMissedBlocksPenalty  = "erd_ratings_metachain_consecutive_missed_blocks_penalty"
+
+	MetricRatingsPeerHonestyDecayCoefficient             = "erd_ratings_peerhonesty_decay_coefficient"
+	MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds = "erd_ratings_peerhonesty_decay_update_interval_inseconds"
+	MetricRatingsPeerHonestyMaxScore                     = "erd_ratings_peerhonesty_max_score"
+	MetricRatingsPeerHonestyMinScore                     = "erd_ratings_peerhonesty_min_score"
+	MetricRatingsPeerHonestyBadPeerThreshold             = "erd_ratings_peerhonesty_bad_peer_threshold"
+	MetricRatingsPeerHonestyUnitValue                    = "erd_ratings_peerhonesty_unit_value"
+)
+
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota

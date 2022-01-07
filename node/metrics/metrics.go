@@ -121,6 +121,45 @@ func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig confi
 	return nil
 }
 
+// InitRatingsMetrics will init the ratings configuration metrics
+func InitRatingsMetrics(statusHandlerUtils StatusHandlersUtils, ratingsConfig config.RatingsConfig) error {
+	if check.IfNil(statusHandlerUtils) {
+		return ErrNilStatusHandlerUtils
+	}
+
+	appStatusHandler := statusHandlerUtils.StatusHandler()
+
+	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralStartRating, uint64(ratingsConfig.General.StartRating))
+	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralMaxRating, uint64(ratingsConfig.General.MaxRating))
+	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralMinRating, uint64(ratingsConfig.General.MinRating))
+	appStatusHandler.SetStringValue(common.MetricRatingsGeneralSignedBlocksThreshold, fmt.Sprintf("%f", ratingsConfig.General.SignedBlocksThreshold))
+	for i, selectionChance := range ratingsConfig.General.SelectionChances {
+		appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"MaxThreshold", uint64(selectionChance.MaxThreshold))
+		appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"ChancePercent", uint64(selectionChance.ChancePercent))
+	}
+
+	appStatusHandler.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.ShardChain.HoursToMaxRatingFromStartRating))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.ShardChain.ProposerValidatorImportance))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainProposerDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.ShardChain.ProposerDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainValidatorDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.ShardChain.ValidatorDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty))
+
+	appStatusHandler.SetUInt64Value(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating, uint64(ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainProposerValidatorImportance, fmt.Sprintf("%f", ratingsConfig.MetaChain.ProposerValidatorImportance))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainProposerDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.MetaChain.ProposerDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainValidatorDecreaseFactor, fmt.Sprintf("%f", ratingsConfig.MetaChain.ValidatorDecreaseFactor))
+	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty))
+
+	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyDecayCoefficient, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.DecayCoefficient))
+	appStatusHandler.SetUInt64Value(common.MetricRatingsPeerHonestyDecayCoefficient, uint64(ratingsConfig.PeerHonesty.DecayUpdateIntervalInSeconds))
+	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyMaxScore, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.MaxScore))
+	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyMinScore, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.MinScore))
+	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyBadPeerThreshold, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.BadPeerThreshold))
+	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyUnitValue, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.UnitValue))
+
+	return nil
+}
+
 // InitMetrics will init metrics for status handler
 func InitMetrics(
 	statusHandlerUtils StatusHandlersUtils,

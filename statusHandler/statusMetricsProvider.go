@@ -245,6 +245,41 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	return networkMetrics
 }
 
+// RatingsMetrics will return metrics related to current configuration
+func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
+	ratingsMetrics := make(map[string]interface{})
+
+	ratingsMetrics[common.MetricRatingsGeneralStartRating] = sm.loadUint64Metric(common.MetricRatingsGeneralStartRating)
+	ratingsMetrics[common.MetricRatingsGeneralMaxRating] = sm.loadUint64Metric(common.MetricRatingsGeneralMaxRating)
+	ratingsMetrics[common.MetricRatingsGeneralMinRating] = sm.loadUint64Metric(common.MetricRatingsGeneralMinRating)
+	ratingsMetrics[common.MetricRatingsGeneralSignedBlocksThreshold] = sm.loadStringMetric(common.MetricRatingsGeneralSignedBlocksThreshold)
+	// for i, selectionChance := range ratingsConfig.General.SelectionChances {
+	// 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"MaxThreshold", uint64(selectionChance.MaxThreshold))
+	// 	appStatusHandler.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+string(i)+"ChancePercent", uint64(selectionChance.ChancePercent))
+	// }
+
+	ratingsMetrics[common.MetricRatingsShardChainHoursToMaxRatingFromStartRating] = sm.loadUint64Metric(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating)
+	ratingsMetrics[common.MetricRatingsShardChainProposerValidatorImportance] = sm.loadStringMetric(common.MetricRatingsShardChainProposerValidatorImportance)
+	ratingsMetrics[common.MetricRatingsShardChainProposerDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsShardChainProposerDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsShardChainValidatorDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsShardChainValidatorDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty] = sm.loadStringMetric(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty)
+
+	ratingsMetrics[common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating] = sm.loadUint64Metric(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating)
+	ratingsMetrics[common.MetricRatingsMetaChainProposerValidatorImportance] = sm.loadStringMetric(common.MetricRatingsMetaChainProposerValidatorImportance)
+	ratingsMetrics[common.MetricRatingsMetaChainProposerDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsMetaChainProposerDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsMetaChainValidatorDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsMetaChainValidatorDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty] = sm.loadStringMetric(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty)
+
+	ratingsMetrics[common.MetricRatingsPeerHonestyDecayCoefficient] = sm.loadStringMetric(common.MetricRatingsPeerHonestyDecayCoefficient)
+	ratingsMetrics[common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds] = sm.loadUint64Metric(common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds)
+	ratingsMetrics[common.MetricRatingsPeerHonestyMaxScore] = sm.loadStringMetric(common.MetricRatingsPeerHonestyMaxScore)
+	ratingsMetrics[common.MetricRatingsPeerHonestyMinScore] = sm.loadStringMetric(common.MetricRatingsPeerHonestyMinScore)
+	ratingsMetrics[common.MetricRatingsPeerHonestyBadPeerThreshold] = sm.loadStringMetric(common.MetricRatingsPeerHonestyBadPeerThreshold)
+	ratingsMetrics[common.MetricRatingsPeerHonestyUnitValue] = sm.loadStringMetric(common.MetricRatingsPeerHonestyUnitValue)
+
+	return ratingsMetrics
+}
+
 func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
 	metricObj, ok := sm.nodeMetrics.Load(metric)
 	if !ok {
