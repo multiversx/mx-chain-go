@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -36,8 +37,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]da
 	return make(map[block.Type][]data.TransactionHandler)
 }
 
-// SetScheduledRootHashAndSCRs does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashAndSCRs(_ []byte, _ map[block.Type][]data.TransactionHandler) {
+// SetScheduledRootHasSCRsAndGas does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHasSCRsAndGas(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
 }
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
@@ -59,6 +60,7 @@ func (steh *ScheduledTxsExecutionHandler) SaveState(
 	_ []byte,
 	_ []byte,
 	_ map[block.Type][]data.TransactionHandler,
+	_ scheduled.GasAndFees,
 ) {
 }
 
@@ -69,6 +71,10 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
 
 // SetScheduledRootHash does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
+}
+
+// SetScheduledGasAndFeeMetrics does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFeeMetrics(_ scheduled.GasAndFees) {
 }
 
 // SetTransactionProcessor does nothing as it is a disabled component

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -1203,7 +1204,14 @@ func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
+		gasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+			GasProvided:     0,
+			GasPenalized:    0,
+			GasRefunded:     0,
+		}
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 }
 
@@ -1559,6 +1567,26 @@ func (bp *baseProcessor) Close() error {
 	return nil
 }
 
+func (bp *baseProcessor) getFeesAndGasMetrics() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
+		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
+		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
+		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
+		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
+	}
+}
+
+func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0).Sub(finalMetrics.AccumulatedFees, initialMetrics.AccumulatedFees),
+		DeveloperFees:   big.NewInt(0).Sub(finalMetrics.DeveloperFees, initialMetrics.DeveloperFees),
+		GasProvided:     finalMetrics.GasProvided - initialMetrics.GasProvided,
+		GasPenalized:    finalMetrics.GasPenalized - initialMetrics.GasPenalized,
+		GasRefunded:     finalMetrics.GasRefunded - initialMetrics.GasRefunded,
+	}
+}
+
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
@@ -1569,6 +1597,8 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	}()
 
 	startTime := time.Now()
+
+	normalProcessingGasMetrics := bp.getFeesAndGasMetrics()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1582,8 +1612,10 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	if err != nil {
 		return err
 	}
-
+	finalGasMetrics := bp.getFeesAndGasMetrics()
+	scheduledProcessingGasMetrics := feeAndGasMetricsDelta(normalProcessingGasMetrics, finalGasMetrics)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
+	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFeeMetrics(scheduledProcessingGasMetrics)
 
 	return nil
 }
