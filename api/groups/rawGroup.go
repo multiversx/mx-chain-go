@@ -3,7 +3,6 @@ package groups
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -31,8 +30,6 @@ const (
 	getInternalMiniBlockByHashPath   = "/json/miniblock/by-hash/:hash"
 )
 
-// TODO: comments update
-
 // rawBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type rawBlockFacadeHandler interface {
 	GetRawMetaBlockByHash(hash string) ([]byte, error)
@@ -58,7 +55,7 @@ type rawBlockGroup struct {
 	mutFacade sync.RWMutex
 }
 
-// NewBlockGroup returns a new instance of blockGroup
+// NewRawBlockGroup returns a new instance of rawBlockGroup
 func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 	if check.IfNil(facade) {
 		return nil, fmt.Errorf("%w for raw block group", errors.ErrNilFacadeHandler)
@@ -146,8 +143,6 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 	return rb, nil
 }
 
-// ---- Raw Blocks
-
 func (rb *rawBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
@@ -225,8 +220,6 @@ func (rb *rawBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
-
-// --------------------------- shard block -----------------------------
 
 func (rb *rawBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
@@ -306,8 +299,6 @@ func (rb *rawBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-// ---- Json Blocks
-
 func (rb *rawBlockGroup) getInternalMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
@@ -385,8 +376,6 @@ func (rb *rawBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
-
-// --------------------------- shard block -----------------------------
 
 func (rb *rawBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
@@ -466,8 +455,6 @@ func (rb *rawBlockGroup) getInternalShardBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-// ---- Raw MiniBlock
-
 func (rb *rawBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
@@ -505,7 +492,7 @@ func (rb *rawBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	miniBlock, err := rb.getFacade().GetInternalMiniBlockByHash(hash)
-	log.Debug(fmt.Sprintf("GetRawMiniBlockByHash took %s", time.Since(start)))
+	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -525,15 +512,6 @@ func (rb *rawBlockGroup) getFacade() rawBlockFacadeHandler {
 	defer rb.mutFacade.RUnlock()
 
 	return rb.facade
-}
-
-func getQueryParamAsJSON(c *gin.Context) (bool, error) {
-	asJsonStr := c.Request.URL.Query().Get("asJSON")
-	if asJsonStr == "" {
-		return false, nil
-	}
-
-	return strconv.ParseBool(asJsonStr)
 }
 
 // UpdateFacade will update the facade
