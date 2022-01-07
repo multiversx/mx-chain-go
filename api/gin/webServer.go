@@ -154,7 +154,7 @@ func (ws *webServer) createGroups() error {
 	if err != nil {
 		return err
 	}
-	groupsMap["raw"] = rawBlockGroup
+	groupsMap["internal"] = rawBlockGroup
 
 	hardforkGroup, err := groups.NewHardforkGroup(ws.facade)
 	if err != nil {

@@ -176,29 +176,29 @@
         { Name = "/by-round/:round", Open = true },
     ]
 
-[APIPackages.raw]
+[APIPackages.internal]
     Routes = [
         # TODO: comments update
 
-        # /raw/metablock/by-nonce/:nonce will return the block in JSON format based on its nonce
+        # /internal/metablock/by-nonce/:nonce will return the block in JSON format based on its nonce
         { Name = "/metablock/by-nonce/:nonce", Open = true },
 
-        # /raw/metablock/by-hash/:hash will return the block in JSON format based on its hash
+        # /internal/metablock/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/metablock/by-hash/:hash", Open = true },
 
-        # /raw/metablock/by-round/:round will return the block in JSON format based on round
+        # /internal/metablock/by-round/:round will return the block in JSON format based on round
         { Name = "/metablock/by-round/:round", Open = true },
 
-        # /raw/shardblock/by-nonce/:nonce will return the block in JSON format based on its nonce
+        # /internal/shardblock/by-nonce/:nonce will return the block in JSON format based on its nonce
         { Name = "/shardblock/by-nonce/:nonce", Open = true },
 
-        # /raw/shardblock/by-hash/:hash will return the block in JSON format based on its hash
+        # /internal/shardblock/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/shardblock/by-hash/:hash", Open = true },
 
-        # /raw/shardblock/by-round/:round will return the block in JSON format based on round
+        # /internal/shardblock/by-round/:round will return the block in JSON format based on round
         { Name = "/shardblock/by-round/:round", Open = true },
 
-        # /raw/miniblock/by-hash/:hash will return the block in JSON format based on its hash
+        # /internal/miniblock/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/miniblock/by-hash/:hash", Open = true },
     ]
 
