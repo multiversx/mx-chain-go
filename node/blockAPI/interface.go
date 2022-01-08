@@ -2,7 +2,7 @@ package blockAPI
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // APIBlockHandler defines the behavior of a component able to return api blocks
@@ -13,16 +13,10 @@ type APIBlockHandler interface {
 }
 
 type APIRawBlockHandler interface {
-	GetRawShardBlockByNonce(nonce uint64) ([]byte, error)
-	GetRawShardBlockByHash(hash []byte) ([]byte, error)
-	GetRawShardBlockByRound(round uint64) ([]byte, error)
-	GetRawMetaBlockByNonce(nonce uint64) ([]byte, error)
-	GetRawMetaBlockByHash(hash []byte) ([]byte, error)
-	GetRawMetaBlockByRound(round uint64) ([]byte, error)
-	GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error)
-	GetInternalShardBlockByHash(hash []byte) (*block.Header, error)
-	GetInternalShardBlockByRound(round uint64) (*block.Header, error)
-	GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error)
-	GetInternalMetaBlockByHash(hash []byte) (*block.MetaBlock, error)
-	GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error)
+	GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error)
+	GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error)
+	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
 }

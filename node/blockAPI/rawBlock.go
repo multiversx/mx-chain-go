@@ -1,9 +1,15 @@
 package blockAPI
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
+
+// ErrInvalidOutportFormat signals that the outport format type is not valid
+var ErrInvalidOutportFormat = errors.New("the outport format type is invalid")
 
 type rawBlockProcessor struct {
 	*baseAPIBlockProcessor
@@ -27,84 +33,8 @@ func NewRawBlockProcessor(arg *APIBlockProcessorArg) *rawBlockProcessor {
 	}
 }
 
-// GetRawShardBlockByNonce wil return a shard block by nonce as raw data
-func (rbp *rawBlockProcessor) GetRawShardBlockByNonce(nonce uint64) ([]byte, error) {
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(rbp.selfShardID)
-
-	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	headerHash, err := rbp.store.Get(storerUnit, nonceToByteSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	blockBytes, err := rbp.getFromStorer(dataRetriever.BlockHeaderUnit, headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
-// GetRawShardBlockByHash wil return a shard block by hash as raw data
-func (rbp *rawBlockProcessor) GetRawShardBlockByHash(hash []byte) ([]byte, error) {
-	blockBytes, err := rbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
-// GetRawShardBlockByRoud wil return a shard block by round as raw data
-func (rbp *rawBlockProcessor) GetRawShardBlockByRound(round uint64) ([]byte, error) {
-	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
-// GetRawMetaBlockByNonce wil return a meta block by nonce as raw data
-func (rbp *rawBlockProcessor) GetRawMetaBlockByNonce(nonce uint64) ([]byte, error) {
-	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
-
-	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	headerHash, err := rbp.store.Get(storerUnit, nonceToByteSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	blockBytes, err := rbp.getFromStorer(dataRetriever.MetaBlockUnit, headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
-// GetRawMetaBlockByHash wil return a meta block by hash as raw data
-func (rbp *rawBlockProcessor) GetRawMetaBlockByHash(hash []byte) ([]byte, error) {
-	blockBytes, err := rbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
-// GetRawMetaBlockByRound wil return a meta block by round as raw data
-func (rbp *rawBlockProcessor) GetRawMetaBlockByRound(round uint64) ([]byte, error) {
-	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
 // GetInternalShardBlockByNonce wil return a shard block by nonce
-func (rbp *rawBlockProcessor) GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error) {
+func (rbp *rawBlockProcessor) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(rbp.selfShardID)
 
 	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -118,27 +48,27 @@ func (rbp *rawBlockProcessor) GetInternalShardBlockByNonce(nonce uint64) (*block
 		return nil, err
 	}
 
-	return rbp.convertShardBlockBytesToInternalBlock(blockBytes)
+	return rbp.convertShardBlockBytesByOutportFormat(format, blockBytes)
 }
 
 // GetInternalShardBlockByHash wil return a shard block by hash
-func (rbp *rawBlockProcessor) GetInternalShardBlockByHash(hash []byte) (*block.Header, error) {
+func (rbp *rawBlockProcessor) GetInternalShardBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error) {
 	blockBytes, err := rbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return rbp.convertShardBlockBytesToInternalBlock(blockBytes)
+	return rbp.convertShardBlockBytesByOutportFormat(format, blockBytes)
 }
 
 // GetInternalShardBlockByRound wil return a shard block by round
-func (rbp *rawBlockProcessor) GetInternalShardBlockByRound(round uint64) (*block.Header, error) {
+func (rbp *rawBlockProcessor) GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
 	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return rbp.convertShardBlockBytesToInternalBlock(blockBytes)
+	return rbp.convertShardBlockBytesByOutportFormat(format, blockBytes)
 }
 
 func (rbp *rawBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (*block.Header, error) {
@@ -151,8 +81,19 @@ func (rbp *rawBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes [
 	return blockHeader, nil
 }
 
+func (rbp *rawBlockProcessor) convertShardBlockBytesByOutportFormat(format common.OutportFormat, blockBytes []byte) (interface{}, error) {
+	switch format {
+	case common.Internal:
+		return rbp.convertShardBlockBytesToInternalBlock(blockBytes)
+	case common.Proto:
+		return blockBytes, nil
+	default:
+		return nil, ErrInvalidOutportFormat
+	}
+}
+
 // GetInternalMetaBlockByNonce wil return a meta block by nonce
-func (rbp *rawBlockProcessor) GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error) {
+func (rbp *rawBlockProcessor) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := rbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -166,27 +107,27 @@ func (rbp *rawBlockProcessor) GetInternalMetaBlockByNonce(nonce uint64) (*block.
 		return nil, err
 	}
 
-	return rbp.convertMetaBlockBytesToInternalBlock(blockBytes)
+	return rbp.convertMetaBlockBytesByOutportFormat(format, blockBytes)
 }
 
 // GetInternalMetaBlockByHash wil return a meta block by hash
-func (rbp *rawBlockProcessor) GetInternalMetaBlockByHash(hash []byte) (*block.MetaBlock, error) {
+func (rbp *rawBlockProcessor) GetInternalMetaBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error) {
 	blockBytes, err := rbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return rbp.convertMetaBlockBytesToInternalBlock(blockBytes)
+	return rbp.convertMetaBlockBytesByOutportFormat(format, blockBytes)
 }
 
 // GetInternalMetaBlockByRound wil return a meta block by round
-func (rbp *rawBlockProcessor) GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error) {
+func (rbp *rawBlockProcessor) GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
 	_, blockBytes, err := rbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return rbp.convertMetaBlockBytesToInternalBlock(blockBytes)
+	return rbp.convertMetaBlockBytesByOutportFormat(format, blockBytes)
 }
 
 func (rbp *rawBlockProcessor) convertMetaBlockBytesToInternalBlock(blockBytes []byte) (*block.MetaBlock, error) {
@@ -197,4 +138,15 @@ func (rbp *rawBlockProcessor) convertMetaBlockBytesToInternalBlock(blockBytes []
 	}
 
 	return blockHeader, nil
+}
+
+func (rbp *rawBlockProcessor) convertMetaBlockBytesByOutportFormat(format common.OutportFormat, blockBytes []byte) (interface{}, error) {
+	switch format {
+	case common.Internal:
+		return rbp.convertMetaBlockBytesToInternalBlock(blockBytes)
+	case common.Proto:
+		return blockBytes, nil
+	default:
+		return nil, ErrInvalidOutportFormat
+	}
 }

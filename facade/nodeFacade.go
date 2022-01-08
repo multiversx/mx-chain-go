@@ -383,64 +383,34 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 	return nf.node.GetBlockByRound(round, withTxs)
 }
 
-// GetRawMetaBlockByHash return the meta block as raw data for a given hash
-func (nf *nodeFacade) GetRawMetaBlockByHash(hash string) ([]byte, error) {
-	return nf.node.GetRawMetaBlockByHash(hash)
-}
-
-// GetRawMetaBlockByNonce returns the meta block as raw data for a given nonce
-func (nf *nodeFacade) GetRawMetaBlockByNonce(nonce uint64) ([]byte, error) {
-	return nf.node.GetRawMetaBlockByNonce(nonce)
-}
-
-// GetRawMetaBlockByRound returns the meta block as raw data for a given round
-func (nf *nodeFacade) GetRawMetaBlockByRound(round uint64) ([]byte, error) {
-	return nf.node.GetRawMetaBlockByRound(round)
-}
-
-// GetRawShardBlockByHash return the shard block as raw data for a given hash
-func (nf *nodeFacade) GetRawShardBlockByHash(hash string) ([]byte, error) {
-	return nf.node.GetRawShardBlockByHash(hash)
-}
-
-// GetRawShardBlockByNonce returns the shard block as raw data for a given nonce
-func (nf *nodeFacade) GetRawShardBlockByNonce(nonce uint64) ([]byte, error) {
-	return nf.node.GetRawShardBlockByNonce(nonce)
-}
-
-// GetRawShardBlockByRound returns the shard block as raw data for a given round
-func (nf *nodeFacade) GetRawShardBlockByRound(round uint64) ([]byte, error) {
-	return nf.node.GetRawShardBlockByRound(round)
-}
-
 // GetInternalMetaBlockByHash return the meta block for a given hash
-func (nf *nodeFacade) GetInternalMetaBlockByHash(hash string) (*block.MetaBlock, error) {
-	return nf.node.GetInternalMetaBlockByHash(hash)
+func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+	return nf.node.GetInternalMetaBlockByHash(format, hash)
 }
 
 // GetInternalMetaBlockByNonce returns the meta block for a given nonce
-func (nf *nodeFacade) GetInternalMetaBlockByNonce(nonce uint64) (*block.MetaBlock, error) {
-	return nf.node.GetInternalMetaBlockByNonce(nonce)
+func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+	return nf.node.GetInternalMetaBlockByNonce(format, nonce)
 }
 
 // GetInternalMetaBlockByRound returns the meta block for a given round
-func (nf *nodeFacade) GetInternalMetaBlockByRound(round uint64) (*block.MetaBlock, error) {
-	return nf.node.GetInternalMetaBlockByRound(round)
+func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+	return nf.node.GetInternalMetaBlockByRound(format, round)
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash
-func (nf *nodeFacade) GetInternalShardBlockByHash(hash string) (*block.Header, error) {
-	return nf.node.GetInternalShardBlockByHash(hash)
+func (nf *nodeFacade) GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+	return nf.node.GetInternalShardBlockByHash(format, hash)
 }
 
 // GetInternalShardBlockByNonce returns the shard block for a given nonce
-func (nf *nodeFacade) GetInternalShardBlockByNonce(nonce uint64) (*block.Header, error) {
-	return nf.node.GetInternalShardBlockByNonce(nonce)
+func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+	return nf.node.GetInternalShardBlockByNonce(format, nonce)
 }
 
 // GetInternalShardBlockByRound returns the shard block for a given round
-func (nf *nodeFacade) GetInternalShardBlockByRound(round uint64) (*block.Header, error) {
-	return nf.node.GetInternalShardBlockByRound(round)
+func (nf *nodeFacade) GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+	return nf.node.GetInternalShardBlockByRound(format, round)
 }
 
 // GetRawMiniBlock return the miniblock as raw data for a given hash
