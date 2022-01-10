@@ -1188,7 +1188,7 @@ func (bp *baseProcessor) updateStateStorage(
 // RevertCurrentBlock reverts the current block for cleanup failed process
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
-	bp.revertScheduledRootHashAndSCRs()
+	bp.revertScheduledRootHashSCRsAndGas()
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1200,7 +1200,7 @@ func (bp *baseProcessor) revertAccountState() {
 	}
 }
 
-func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
+func (bp *baseProcessor) revertScheduledRootHashSCRsAndGas() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
@@ -1567,26 +1567,6 @@ func (bp *baseProcessor) Close() error {
 	return nil
 }
 
-func (bp *baseProcessor) getFeesAndGasMetrics() scheduled.GasAndFees {
-	return scheduled.GasAndFees{
-		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
-		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
-		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
-		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
-		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
-	}
-}
-
-func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
-	return scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(0).Sub(finalMetrics.AccumulatedFees, initialMetrics.AccumulatedFees),
-		DeveloperFees:   big.NewInt(0).Sub(finalMetrics.DeveloperFees, initialMetrics.DeveloperFees),
-		GasProvided:     finalMetrics.GasProvided - initialMetrics.GasProvided,
-		GasPenalized:    finalMetrics.GasPenalized - initialMetrics.GasPenalized,
-		GasRefunded:     finalMetrics.GasRefunded - initialMetrics.GasRefunded,
-	}
-}
-
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
@@ -1618,6 +1598,79 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFeeMetrics(scheduledProcessingGasMetrics)
 
 	return nil
+}
+
+func (bp *baseProcessor) getFeesAndGasMetrics() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
+		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
+		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
+		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
+		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
+	}
+}
+
+func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
+	zero := big.NewInt(0)
+	result := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+
+	deltaAccumulatedFees := big.NewInt(0).Sub(finalMetrics.AccumulatedFees, initialMetrics.AccumulatedFees)
+	if deltaAccumulatedFees.Cmp(zero) < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial accumulatedFees", initialMetrics.AccumulatedFees.String(),
+			"final accumulatedFees", finalMetrics.AccumulatedFees.String(),
+			"error", data.ErrNegativeValue)
+		return result
+	}
+
+	deltaDevFees := big.NewInt(0).Sub(finalMetrics.DeveloperFees, initialMetrics.DeveloperFees)
+	if deltaDevFees.Cmp(zero) < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial devFees", initialMetrics.DeveloperFees.String(),
+			"final devFees", finalMetrics.DeveloperFees.String(),
+			"error", data.ErrNegativeValue)
+		return result
+	}
+
+	deltaGasProvided := int64(finalMetrics.GasProvided) - int64(initialMetrics.GasProvided)
+	if deltaGasProvided < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial gasProvided", initialMetrics.GasProvided,
+			"final gasProvided", finalMetrics.GasProvided,
+			"error", data.ErrNegativeValue)
+		return result
+	}
+
+	deltaGasPenalized := int64(finalMetrics.GasPenalized) - int64(initialMetrics.GasPenalized)
+	if deltaGasPenalized < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial gasPenalized", initialMetrics.GasPenalized,
+			"final gasPenalized", finalMetrics.GasPenalized,
+			"error", data.ErrNegativeValue)
+		return result
+	}
+	deltaGasRefunded := int64(finalMetrics.GasRefunded) - int64(initialMetrics.GasRefunded)
+	if deltaGasRefunded < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial gasRefunded", initialMetrics.GasPenalized,
+			"final gasRefunded", finalMetrics.GasPenalized,
+			"error", data.ErrNegativeValue)
+		return result
+	}
+
+	return scheduled.GasAndFees{
+		AccumulatedFees: deltaAccumulatedFees,
+		DeveloperFees:   deltaDevFees,
+		GasProvided:     uint64(deltaGasProvided),
+		GasPenalized:    uint64(deltaGasPenalized),
+		GasRefunded:     uint64(deltaGasRefunded),
+	}
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

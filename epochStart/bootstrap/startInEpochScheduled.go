@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -218,7 +219,14 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 
 	additionalData := header.GetAdditionalData()
 	if additionalData != nil {
-		ses.saveScheduledSCRs(scheduledSCRs, header.GetAdditionalData().GetScheduledRootHash(), header.GetPrevHash())
+		gasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: additionalData.GetScheduledAccumulatedFees(),
+			DeveloperFees:   additionalData.GetScheduledDeveloperFees(),
+			GasProvided:     additionalData.GetScheduledGasProvided(),
+			GasPenalized:    additionalData.GetScheduledGasPenalized(),
+			GasRefunded:     additionalData.GetScheduledGasRefunded(),
+		}
+		ses.saveScheduledSCRs(scheduledSCRs, header.GetAdditionalData().GetScheduledRootHash(), header.GetPrevHash(), gasAndFees)
 	}
 
 	return nil
@@ -248,6 +256,7 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
 	scheduledSCRs map[string]data.TransactionHandler,
 	scheduledRootHash []byte,
 	headerHash []byte,
+	gasAndFees scheduled.GasAndFees,
 ) {
 	if len(scheduledRootHash) == 0 {
 		return
@@ -265,7 +274,7 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
 		scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
 	}
 	mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
-	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs)
+	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs, gasAndFees)
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getAllTransactionsForMiniBlocks(miniBlocks map[string]*block.MiniBlock, epoch uint32) (map[string]data.TransactionHandler, error) {
