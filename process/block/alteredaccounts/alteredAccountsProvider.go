@@ -170,7 +170,7 @@ func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
 	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	storageKey = append(storageKey, tokenKey...)
 
-	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(tokenKey)
+	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(storageKey)
 	if err != nil {
 		return err
 	}
