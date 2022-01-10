@@ -103,7 +103,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeployNoChecks(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -170,7 +170,7 @@ func TestAsyncESDTTransfer(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	tx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), 0, 0)

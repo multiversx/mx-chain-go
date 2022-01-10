@@ -480,6 +480,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
 		BuiltInFunctionsEnableEpoch:    argEnableEpoch.BuiltinEnableEpoch,
 		SCDeployEnableEpoch:            argEnableEpoch.DeployEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch: 1000,
 	}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,

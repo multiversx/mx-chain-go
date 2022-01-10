@@ -12,11 +12,22 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
+
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
 
 func TestAsyncESDTCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
@@ -46,7 +57,7 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit := uint64(500000)
@@ -107,7 +118,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	require.Equal(t, big.NewInt(0), testContext.TxFeeHandler.GetAccumulatedFees())
 
@@ -169,7 +180,7 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit := uint64(2000)

@@ -38,7 +38,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInner, pathToContract)
-	testContextInner.TxFeeHandler.CreateBlockStarted()
+	testContextInner.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextInner)
 
 	require.Equal(t, uint32(1), testContextInner.ShardCoordinator.ComputeId(scAddr))

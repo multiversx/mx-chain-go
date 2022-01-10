@@ -11,11 +11,22 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
+
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
 
 func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
@@ -55,12 +66,12 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	secondContractOwnerAcc, _ := testContextSecondContract.Accounts.LoadAccount(secondContractOwner)
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
 	secondSCAddress := utils.DoDeploySecond(t, testContextSecondContract, "../../esdt/testdata/second-contract.wasm", secondContractOwnerAcc, gasPrice, gasLimitDeploy, argsSecond, big.NewInt(0))
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	firstContractOwnerAcc, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	firstSCAddress := utils.DoDeploySecond(t, testContextFirstContract, "../../esdt/testdata/first-contract.wasm", firstContractOwnerAcc, gasPrice, gasLimitDeploy, args, big.NewInt(0))
-	testContextFirstContract.TxFeeHandler.CreateBlockStarted()
+	testContextFirstContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	require.Equal(t, uint32(1), testContextSender.ShardCoordinator.ComputeId(firstSCAddress))
 	require.Equal(t, uint32(2), testContextSender.ShardCoordinator.ComputeId(secondSCAddress))
@@ -173,12 +184,12 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	secondContractOwnerAcc, _ := testContextSecondContract.Accounts.LoadAccount(secondContractOwner)
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(append(token, []byte("aaa")...)))}
 	secondSCAddress := utils.DoDeploySecond(t, testContextSecondContract, "../../esdt/testdata/second-contract.wasm", secondContractOwnerAcc, gasPrice, gasLimitDeploy, argsSecond, big.NewInt(0))
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	firstContractOwnerAcc, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	firstSCAddress := utils.DoDeploySecond(t, testContextFirstContract, "../../esdt/testdata/first-contract.wasm", firstContractOwnerAcc, gasPrice, gasLimitDeploy, args, big.NewInt(0))
-	testContextFirstContract.TxFeeHandler.CreateBlockStarted()
+	testContextFirstContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	require.Equal(t, uint32(1), testContextSender.ShardCoordinator.ComputeId(firstSCAddress))
 	require.Equal(t, uint32(2), testContextSender.ShardCoordinator.ComputeId(secondSCAddress))
