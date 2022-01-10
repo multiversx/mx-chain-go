@@ -735,7 +735,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 }
 
 func (txs *transactions) getRemainingGasPerBlock() uint64 {
-	gasConsumed := txs.getTotalGasConsumed()
+	gasConsumed := txs.gasHandler.TotalGasConsumed()
 	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	gasBandwidth := uint64(0)
 	if gasConsumed < maxGasPerBlock {
@@ -887,7 +887,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			break
 		}
 
-		if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) {
+		if isShardStuck != nil && isShardStuck(receiverShardID) {
 			log.Trace("shard is stuck", "shard", receiverShardID)
 			continue
 		}
