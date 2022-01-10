@@ -164,14 +164,14 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
 
 	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage)
-	userAccountsUnit, err = psf.createPruningPersister(userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePruningPersister(userAccountsUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
 
 	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage)
-	peerAccountsUnit, err = psf.createPruningPersister(peerAccountsUnitArgs)
+	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -349,14 +349,14 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
 
 	userAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieStorage)
-	userAccountsUnit, err = psf.createPruningPersister(userAccountsUnitArgs)
+	userAccountsUnit, err = psf.createTriePruningPersister(userAccountsUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
 
 	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage)
-	peerAccountsUnit, err = psf.createPruningPersister(peerAccountsUnitArgs)
+	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -680,6 +680,22 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 	}
 
 	return trieEpochRootHashStorageUnit, nil
+}
+
+func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
+	isFullArchive := psf.prefsConfig.FullArchive
+	isDBLookupExtenstion := psf.generalConfig.DbLookupExtensions.Enabled
+	if !isFullArchive && !isDBLookupExtenstion {
+		return pruning.NewTriePruningStorer(arg)
+	}
+
+	numOldActivePersisters := psf.getNumActivePersistersForFullHistoryStorer(isFullArchive, isDBLookupExtenstion)
+	historyArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               arg,
+		NumOfOldActivePersisters: numOldActivePersisters,
+	}
+
+	return pruning.NewFullHistoryPruningStorer(historyArgs)
 }
 
 func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {

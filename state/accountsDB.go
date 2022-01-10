@@ -60,6 +60,11 @@ func (lm *loadingMeasurements) resetAndPrint() {
 	)
 }
 
+type snapshotInfo struct {
+	rootHash []byte
+	epoch    uint32
+}
+
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
 	mainTrie               common.Trie
@@ -69,6 +74,7 @@ type AccountsDB struct {
 	storagePruningManager  StoragePruningManager
 	obsoleteDataTrieHashes map[string][][]byte
 
+	lastSnapshot *snapshotInfo
 	lastRootHash []byte
 	dataTries    common.TriesHolder
 	entries      []JournalEntry
@@ -124,6 +130,7 @@ func NewAccountsDB(
 			identifier: "load code",
 		},
 		processingMode: processingMode,
+		lastSnapshot:   &snapshotInfo{},
 	}, nil
 }
 
@@ -1024,10 +1031,25 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	trieStorageManager := adb.mainTrie.GetStorageManager()
-	if !trieStorageManager.ShouldTakeSnapshot() {
-		log.Debug("skipping snapshot for rootHash", "hash", rootHash)
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("SnapshotState error", "err", err.Error())
 		return
 	}
+
+	snapshotAlreadyTaken := bytes.Equal(adb.lastSnapshot.rootHash, rootHash) && adb.lastSnapshot.epoch == epoch
+	if !trieStorageManager.ShouldTakeSnapshot() || snapshotAlreadyTaken {
+		log.Debug("skipping snapshot",
+			"last snapshot rootHash", adb.lastSnapshot.rootHash,
+			"rootHash", rootHash,
+			"last snapshot epoch", adb.lastSnapshot.epoch,
+			"epoch", epoch,
+		)
+		return
+	}
+
+	adb.lastSnapshot.rootHash = rootHash
+	adb.lastSnapshot.epoch = epoch
 
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
@@ -1036,8 +1058,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
-		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, stats)
-		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, stats)
+		trieStorageManager.TakeSnapshot(rootHash, rootHash, leavesChannel, stats, epoch)
+		adb.snapshotUserAccountDataTrie(true, rootHash, leavesChannel, stats, epoch)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
@@ -1047,7 +1069,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		printStats(stats, "snapshotState user trie", rootHash)
 
-		err := trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		err := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		if err != nil {
 			log.Warn("error while putting active DB value into main storer", "error", err)
 		}
@@ -1074,7 +1096,13 @@ func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
 	)
 }
 
-func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, mainTrieRootHash []byte, leavesChannel chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (adb *AccountsDB) snapshotUserAccountDataTrie(
+	isSnapshot bool,
+	mainTrieRootHash []byte,
+	leavesChannel chan core.KeyValueHolder,
+	stats common.SnapshotStatisticsHandler,
+	epoch uint32,
+) {
 	for leaf := range leavesChannel {
 		account := &userAccount{}
 		err := adb.marshalizer.Unmarshal(account, leaf.Value())
@@ -1091,7 +1119,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, mainTrieRoot
 		stats.NewDataTrie()
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, stats)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, mainTrieRootHash, nil, stats, epoch)
 			continue
 		}
 
@@ -1117,7 +1145,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		stats.NewSnapshotStarted()
 		trieStorageManager.SetCheckpoint(rootHash, rootHash, leavesChannel, stats)
-		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, stats)
+		adb.snapshotUserAccountDataTrie(false, rootHash, leavesChannel, stats, 0)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()

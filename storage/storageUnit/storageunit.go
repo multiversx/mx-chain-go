@@ -146,6 +146,7 @@ func (u *Unit) GetOldestEpoch() (uint32, error) {
 
 // Close will close unit
 func (u *Unit) Close() error {
+	//TODO clear the cache and bloom filter
 	err := u.persister.Close()
 	if err != nil {
 		log.Error("cannot close storage unit persister", "error", err)

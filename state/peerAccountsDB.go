@@ -61,6 +61,12 @@ func NewPeerAccountsDB(
 func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("SnapshotState error", "err", err.Error())
+		return
+	}
+
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot for rootHash", "hash", rootHash)
 		return
@@ -70,13 +76,13 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats)
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats, epoch)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go func() {
 		printStats(stats, "snapshotState peer trie", rootHash)
 
-		err := trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		err := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		if err != nil {
 			log.Warn("error while putting active DB value into main storer", "error", err)
 		}

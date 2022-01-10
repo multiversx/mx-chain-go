@@ -143,7 +143,9 @@ func initPruningStorer(
 		return nil, err
 	}
 
-	persisters, persistersMapByEpoch, err := initPersistersInEpoch(args, shardIDStr)
+	pdb := &PruningStorer{}
+
+	err = pdb.initPersistersInEpoch(args, shardIDStr)
 	if err != nil {
 		return nil, err
 	}
@@ -153,23 +155,19 @@ func initPruningStorer(
 		identifier += shardIDStr
 	}
 
-	pdb := &PruningStorer{
-		pruningEnabled:         args.PruningEnabled,
-		identifier:             identifier,
-		activePersisters:       persisters,
-		persisterFactory:       args.PersisterFactory,
-		shardCoordinator:       args.ShardCoordinator,
-		persistersMapByEpoch:   persistersMapByEpoch,
-		cacher:                 cache,
-		epochPrepareHdr:        &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr},
-		bloomFilter:            nil,
-		epochForPutOperation:   args.StartingEpoch,
-		pathManager:            args.PathManager,
-		dbPath:                 args.DbPath,
-		numOfEpochsToKeep:      args.NumOfEpochsToKeep,
-		numOfActivePersisters:  args.NumOfActivePersisters,
-		oldDataCleanerProvider: args.OldDataCleanerProvider,
-	}
+	pdb.pruningEnabled = args.PruningEnabled
+	pdb.identifier = identifier
+	pdb.persisterFactory = args.PersisterFactory
+	pdb.shardCoordinator = args.ShardCoordinator
+	pdb.cacher = cache
+	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
+	pdb.bloomFilter = nil
+	pdb.epochForPutOperation = args.StartingEpoch
+	pdb.pathManager = args.PathManager
+	pdb.dbPath = args.DbPath
+	pdb.numOfEpochsToKeep = args.NumOfEpochsToKeep
+	pdb.numOfActivePersisters = args.NumOfActivePersisters
+	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
 
 	if args.BloomFilterConf.Size != 0 { // if size is 0, that means an empty config was used so bloom filter will be nil
 		bf, err = storageUnit.NewBloomFilter(args.BloomFilterConf)
@@ -185,24 +183,27 @@ func initPruningStorer(
 	return pdb, nil
 }
 
-func initPersistersInEpoch(
+func (ps *PruningStorer) initPersistersInEpoch(
 	args *StorerArgs,
 	shardIDStr string,
-) ([]*persisterData, map[uint32]*persisterData, error) {
+) error {
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
 	if !args.PruningEnabled {
 		p, err := createPersisterDataForEpoch(args, 0, shardIDStr)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		persisters = append(persisters, p)
-		return persisters, persistersMapByEpoch, nil
+
+		ps.activePersisters = persisters
+		ps.persistersMapByEpoch = persistersMapByEpoch
+		return nil
 	}
 
 	if args.NumOfEpochsToKeep < args.NumOfActivePersisters {
-		return nil, nil, fmt.Errorf("invalid epochs configuration")
+		return fmt.Errorf("invalid epochs configuration")
 	}
 
 	oldestEpochKeep := int64(args.StartingEpoch) - int64(args.NumOfEpochsToKeep) + 1
@@ -222,16 +223,21 @@ func initPersistersInEpoch(
 		"oldestEpochActive", oldestEpochActive,
 	)
 
+	closeOldPersisters := false
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
 		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if epoch < oldestEpochActive {
+		if !closeOldPersisters {
+			closeOldPersisters = ps.shouldCloseOldPersisters(p)
+		}
+
+		if epoch < oldestEpochActive && closeOldPersisters {
 			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
@@ -242,7 +248,13 @@ func initPersistersInEpoch(
 		}
 	}
 
-	return persisters, persistersMapByEpoch, nil
+	ps.activePersisters = persisters
+	ps.persistersMapByEpoch = persistersMapByEpoch
+	return nil
+}
+
+func (ps *PruningStorer) shouldCloseOldPersisters(_ *persisterData) bool {
+	return true
 }
 
 // Put adds data to both cache and persistence medium and updates the bloom filter
@@ -251,22 +263,6 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	persisterToUse := ps.getPersisterToUse()
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
-}
-
-// PutWithoutCache adds data to persistence medium and updates the bloom filter
-func (ps *PruningStorer) PutWithoutCache(key, data []byte) error {
-	persisterToUse := ps.getPersisterToUse()
-
-	err := persisterToUse.getPersister().Put(key, data)
-	if err != nil {
-		return err
-	}
-
-	if ps.bloomFilter != nil {
-		ps.bloomFilter.Add(key)
-	}
-
-	return nil
 }
 
 func (ps *PruningStorer) getPersisterToUse() *persisterData {
@@ -395,43 +391,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-}
-
-// GetFromOldEpochsWithoutCache searches the old epochs for the given key without updating the cache
-func (ps *PruningStorer) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	for idx := uint32(1); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
-		val, err := ps.activePersisters[idx].persister.Get(key)
-		if err != nil {
-			continue
-		}
-
-		return val, nil
-	}
-
-	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-}
-
-// GetFromLastEpoch searches only the last epoch storer for the given key
-func (ps *PruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	if len(ps.activePersisters) < 2 {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	return ps.activePersisters[1].persister.Get(key)
 }
 
 // Close will close PruningStorer
@@ -807,6 +766,10 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 		return true
 	}
 
+	return ps.persisterNeeded()
+}
+
+func (ps *PruningStorer) persisterNeeded() bool {
 	return false
 }
 

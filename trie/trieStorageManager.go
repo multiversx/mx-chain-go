@@ -55,6 +55,7 @@ type snapshotsQueueEntry struct {
 	mainTrieRootHash []byte
 	leavesChan       chan core.KeyValueHolder
 	stats            common.SnapshotStatisticsHandler
+	epoch            uint32
 }
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
@@ -366,6 +367,24 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 	return tsm.mainStorer.Put(key, val)
 }
 
+// PutInEpoch adds the given value to the main storer in the specified epoch
+func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	if tsm.closed {
+		log.Debug("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
+		return ErrContextClosing
+	}
+
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("invalid storer type for PutInEpoch")
+	}
+
+	return storer.PutInEpochWithoutCache(key, val, epoch)
+}
+
 // EnterPruningBufferingMode increases the counter that tracks how many operations
 // that block the pruning process are in progress
 func (tsm *trieStorageManager) EnterPruningBufferingMode() {
@@ -393,9 +412,28 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 	log.Trace("exit pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
 }
 
+// GetLatestStorageEpoch returns the epoch for the latest opened persister
+func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return 0, fmt.Errorf("invalid storer type for GetLatestStorageEpoch")
+	}
+
+	return storer.GetLatestStorageEpoch()
+}
+
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
-func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManager) TakeSnapshot(
+	rootHash []byte,
+	mainTrieRootHash []byte,
+	leavesChan chan core.KeyValueHolder,
+	stats common.SnapshotStatisticsHandler,
+	epoch uint32,
+) {
 	if tsm.isClosed() {
 		tsm.safelyCloseChan(leavesChan)
 		stats.SnapshotFinished()
@@ -417,6 +455,7 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, mainTrieRootHash []
 		mainTrieRootHash: mainTrieRootHash,
 		leavesChan:       leavesChan,
 		stats:            stats,
+		epoch:            epoch,
 	}
 	select {
 	case tsm.snapshotReq <- snapshotEntry:
@@ -495,7 +534,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	stsm, err := newSnapshotTrieStorageManager(tsm)
+	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
 		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager",
 			"rootHash", snapshotEntry.rootHash,
@@ -673,7 +712,7 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 
 // ShouldTakeSnapshot returns true if the conditions for a new snapshot are met
 func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
-	stsm, err := newSnapshotTrieStorageManager(tsm)
+	stsm, err := newSnapshotTrieStorageManager(tsm, 0)
 	if err != nil {
 		log.Error("shouldTakeSnapshot error", "err", err.Error())
 		return false
