@@ -212,12 +212,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:       tpn.BlockTracker,
-		BlockSizeThrottler: TestBlockSizeThrottler,
-		HistoryRepository:  tpn.HistoryRepository,
-		EpochNotifier:      tpn.EpochNotifier,
-		RoundNotifier:      coreComponents.RoundNotifier(),
-		GasHandler:         tpn.GasHandler,
+		BlockTracker:            tpn.BlockTracker,
+		BlockSizeThrottler:      TestBlockSizeThrottler,
+		HistoryRepository:       tpn.HistoryRepository,
+		EpochNotifier:           tpn.EpochNotifier,
+		RoundNotifier:           coreComponents.RoundNotifier(),
+		GasHandler:              tpn.GasHandler,
 		AlteredAccountsProvider: &testscommon.AlteredAccountsProviderStub{},
 	}
 

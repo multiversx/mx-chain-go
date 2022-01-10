@@ -2,6 +2,7 @@ package alteredaccounts
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -19,16 +20,21 @@ var (
 	zeroBigInt = big.NewInt(0)
 )
 
+const (
+	idxTokenIDInTopics    = 0
+	idxTokenNonceInTopics = 1
+)
+
 type markedAlteredAccountToken struct {
 	identifier string
 	nonce      uint64
 }
 
 type markedAlteredAccount struct {
-	tokens  []*markedAlteredAccountToken
+	tokens map[string]*markedAlteredAccountToken
 }
 
-// ArgsAlteredAccountsProvider
+// ArgsAlteredAccountsProvider holds the arguments needed for creating a new instance of alteredAccountsProvider
 type ArgsAlteredAccountsProvider struct {
 	ShardCoordinator sharding.Coordinator
 	AddressConverter core.PubkeyConverter
@@ -43,21 +49,22 @@ type alteredAccountsProvider struct {
 	marshalizer                 marshal.Marshalizer
 	fungibleTokensIdentifier    map[string]struct{}
 	nonFungibleTokensIdentifier map[string]struct{}
+	mutExtractAccounts          sync.Mutex
 }
 
 // NewAlteredAccountsProvider returns a new instance of alteredAccountsProvider
 func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccountsProvider, error) {
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, errNilShardCoordinator
 	}
 	if check.IfNil(args.AddressConverter) {
-		return nil, ErrNilPubKeyConverter
+		return nil, errNilPubKeyConverter
 	}
 	if check.IfNil(args.AccountsDB) {
-		return nil, ErrNilAccountsDB
+		return nil, errNilAccountsDB
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, ErrNilMarshalizer
+		return nil, errNilMarshalizer
 	}
 
 	return &alteredAccountsProvider{
@@ -85,8 +92,11 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 
 // ExtractAlteredAccountsFromPool will extract and return altered accounts from the pool
 func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *indexer.Pool) (map[string]*indexer.AlteredAccount, error) {
+	aap.mutExtractAccounts.Lock()
+	defer aap.mutExtractAccounts.Unlock()
+
 	markedAccounts := make(map[string]*markedAlteredAccount)
-	aap.extractMoveBalanceAddresses(txPool, markedAccounts)
+	aap.extractAddressesWithBalanceChange(txPool, markedAccounts)
 	err := aap.extractESDTAccounts(txPool, markedAccounts)
 	if err != nil {
 		return nil, err
@@ -109,27 +119,24 @@ func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts ma
 }
 
 func (aap *alteredAccountsProvider) processMarkedAccountData(
-	encodedAddress string,
-	markedAccountTokens []*markedAlteredAccountToken,
+	addressStr string,
+	markedAccountTokens map[string]*markedAlteredAccountToken,
 	alteredAccounts map[string]*indexer.AlteredAccount,
 ) error {
-	addressBytes, err := aap.addressConverter.Decode(encodedAddress)
-	if err != nil {
-		log.Warn("cannot decode marked altered account address", "error", err)
-		return err
-	}
+	addressBytes := []byte(addressStr)
+	encodedAddress := aap.addressConverter.Encode(addressBytes)
 
 	account, err := aap.accountsDB.LoadAccount(addressBytes)
 	if err != nil {
 		log.Warn("cannot load account when computing altered accounts",
-			"address", encodedAddress,
+			"address", addressBytes,
 			"error", err)
 		return err
 	}
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", encodedAddress)
+		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", addressBytes)
 		return err
 	}
 
@@ -139,13 +146,11 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 		Nonce:   userAccount.GetNonce(),
 	}
 
-	if len(markedAccountTokens) > 0 {
-		for _, tokenData := range markedAccountTokens {
-			err = aap.fetchTokensDataForMarkedAccount(encodedAddress, tokenData, alteredAccounts)
-			if err != nil {
-				log.Warn("cannot fetch token data for marked account", "error", err)
-				return err
-			}
+	for tokenKey, tokenData := range markedAccountTokens {
+		err = aap.fetchTokensDataForMarkedAccount([]byte(tokenKey), encodedAddress, userAccount, tokenData, alteredAccounts)
+		if err != nil {
+			log.Warn("cannot fetch token data for marked account", "error", err)
+			return err
 		}
 	}
 
@@ -153,38 +158,19 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 }
 
 func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
+	tokenKey []byte,
 	encodedAddress string,
+	userAccount state.UserAccountHandler,
 	markedAccountToken *markedAlteredAccountToken,
 	alteredAccounts map[string]*indexer.AlteredAccount,
 ) error {
 	nonce := markedAccountToken.nonce
-	nonceBigInt := big.NewInt(0).SetUint64(nonce)
-
 	tokenID := markedAccountToken.identifier
 
 	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
-	storageKey = append(storageKey, []byte(tokenID)...)
-	if nonce > 0 {
-		storageKey = append(storageKey, nonceBigInt.Bytes()...)
-	}
+	storageKey = append(storageKey, tokenKey...)
 
-	address, err := aap.addressConverter.Decode(encodedAddress)
-	if err != nil {
-		log.Warn("cannot decode encoded address", "error", err)
-		return err
-	}
-
-	account, err := aap.accountsDB.LoadAccount(address)
-	if err != nil {
-		return err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil
-	}
-
-	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(storageKey)
+	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(tokenKey)
 	if err != nil {
 		return err
 	}
@@ -196,10 +182,6 @@ func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
 	}
 
 	alteredAccount := alteredAccounts[encodedAddress]
-
-	if alteredAccount.Tokens == nil {
-		alteredAccount.Tokens = make([]*indexer.AccountTokenData, 0)
-	}
 
 	alteredAccount.Tokens = append(alteredAccount.Tokens, &indexer.AccountTokenData{
 		Identifier: tokenID,
@@ -213,38 +195,46 @@ func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
 	return nil
 }
 
-func (aap *alteredAccountsProvider) extractMoveBalanceAddresses(
+func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
 	txPool *indexer.Pool,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
 	selfShardID := aap.shardCoordinator.SelfId()
-	for _, regularTx := range txPool.Txs {
-		senderShardID := aap.shardCoordinator.ComputeId(regularTx.GetSndAddr())
-		receiverShardID := aap.shardCoordinator.ComputeId(regularTx.GetRcvAddr())
-		if senderShardID != selfShardID && receiverShardID != selfShardID {
-			continue
-		}
+
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Txs, markedAlteredAccounts)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Scrs, markedAlteredAccounts)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Rewards, markedAlteredAccounts)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Invalid, markedAlteredAccounts)
+}
+
+func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
+	selfShardID uint32,
+	txsHandlers map[string]data.TransactionHandler,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) {
+	for _, txHandler := range txsHandlers {
+		senderShardID := aap.shardCoordinator.ComputeId(txHandler.GetSndAddr())
+		receiverShardID := aap.shardCoordinator.ComputeId(txHandler.GetRcvAddr())
 
 		if senderShardID == selfShardID {
-			aap.addMoveBalanceAddressInMap(regularTx.GetSndAddr(), markedAlteredAccounts)
+			aap.addAddressWithBalanceChangeInMap(txHandler.GetSndAddr(), markedAlteredAccounts)
 		}
 		if receiverShardID == selfShardID {
-			aap.addMoveBalanceAddressInMap(regularTx.GetRcvAddr(), markedAlteredAccounts)
+			aap.addAddressWithBalanceChangeInMap(txHandler.GetRcvAddr(), markedAlteredAccounts)
 		}
 	}
 }
 
-func (aap *alteredAccountsProvider) addMoveBalanceAddressInMap(
+func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 	address []byte,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
-	encodedAddress := aap.addressConverter.Encode(address)
-	_, addressAlreadySelected := markedAlteredAccounts[encodedAddress]
+	_, addressAlreadySelected := markedAlteredAccounts[string(address)]
 	if addressAlreadySelected {
 		return
 	}
 
-	markedAlteredAccounts[encodedAddress] = &markedAlteredAccount{}
+	markedAlteredAccounts[string(address)] = &markedAlteredAccount{}
 }
 
 func (aap *alteredAccountsProvider) extractESDTAccounts(
@@ -275,6 +265,8 @@ func (aap *alteredAccountsProvider) processEvent(
 			log.Debug("cannot extract esdt data", "error", err)
 			return err
 		}
+
+		return nil
 	}
 
 	_, isNftOperation := aap.nonFungibleTokensIdentifier[string(event.GetIdentifier())]
@@ -284,13 +276,15 @@ func (aap *alteredAccountsProvider) processEvent(
 			return nil
 		}
 
-		nonce := topics[1]
+		nonce := topics[idxTokenNonceInTopics]
 		nonceBigInt := big.NewInt(0).SetBytes(nonce)
 		err := aap.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
 		if err != nil {
 			log.Debug("cannot extract nft data", "error", err)
 			return nil
 		}
+
+		return nil
 	}
 
 	return nil
@@ -302,44 +296,37 @@ func (aap *alteredAccountsProvider) extractEsdtData(
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
 	address := event.GetAddress()
+	addressStr := string(address)
 	topics := event.GetTopics()
 	if len(topics) == 0 {
 		return nil
 	}
 
-	tokenID := topics[0]
+	// TODO: treat destination as well (for NFT and Multi transfers - topics[3] is the receiver address)
+	tokenID := topics[idxTokenIDInTopics]
 
-	encodedAddress := aap.addressConverter.Encode(address)
-	_, exists := markedAlteredAccounts[encodedAddress]
+	_, exists := markedAlteredAccounts[addressStr]
 	if !exists {
-		markedAlteredAccounts[encodedAddress] = &markedAlteredAccount{}
+		markedAlteredAccounts[addressStr] = &markedAlteredAccount{}
 	}
 
-	markedAccount := markedAlteredAccounts[encodedAddress]
-	if len(markedAccount.tokens) == 0 {
-		markedAccount.tokens = make([]*markedAlteredAccountToken, 0)
+	markedAccount := markedAlteredAccounts[addressStr]
+	if markedAccount.tokens == nil {
+		markedAccount.tokens = make(map[string]*markedAlteredAccountToken)
 	}
 
-	if aap.isTokenAlreadyMarked(markedAccount, string(tokenID), nonce.Uint64()) {
+	tokenKey := string(tokenID) + string(nonce.Bytes())
+	_, alreadyExists := markedAccount.tokens[tokenKey]
+	if alreadyExists {
 		return nil
 	}
 
-	markedAccount.tokens = append(markedAccount.tokens, &markedAlteredAccountToken{
+	markedAccount.tokens[tokenKey] = &markedAlteredAccountToken{
 		identifier: string(tokenID),
 		nonce:      nonce.Uint64(),
-	})
-
-	return nil
-}
-
-func (aap *alteredAccountsProvider) isTokenAlreadyMarked(markedAccount *markedAlteredAccount, identifier string, nonce uint64) bool {
-	for _, tokenData := range markedAccount.tokens {
-		if tokenData.identifier == identifier && tokenData.nonce == nonce {
-			return true
-		}
 	}
 
-	return false
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
