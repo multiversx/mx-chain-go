@@ -509,8 +509,10 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
-	bp.txCoordinator.CreateBlockStarted()
-	bp.feeHandler.CreateBlockStarted()
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFee()
+
+	bp.txCoordinator.CreateBlockStarted(scheduledGasAndFees)
+	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
 	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
 	if err != nil {
@@ -1625,7 +1627,7 @@ func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) sc
 		log.Error("feeAndGasMetricsDelta",
 			"initial accumulatedFees", initialMetrics.AccumulatedFees.String(),
 			"final accumulatedFees", finalMetrics.AccumulatedFees.String(),
-			"error", data.ErrNegativeValue)
+			"error", process.ErrNegativeValue)
 		return result
 	}
 
@@ -1634,7 +1636,7 @@ func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) sc
 		log.Error("feeAndGasMetricsDelta",
 			"initial devFees", initialMetrics.DeveloperFees.String(),
 			"final devFees", finalMetrics.DeveloperFees.String(),
-			"error", data.ErrNegativeValue)
+			"error", process.ErrNegativeValue)
 		return result
 	}
 
@@ -1643,7 +1645,7 @@ func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) sc
 		log.Error("feeAndGasMetricsDelta",
 			"initial gasProvided", initialMetrics.GasProvided,
 			"final gasProvided", finalMetrics.GasProvided,
-			"error", data.ErrNegativeValue)
+			"error", process.ErrNegativeValue)
 		return result
 	}
 
@@ -1652,7 +1654,7 @@ func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) sc
 		log.Error("feeAndGasMetricsDelta",
 			"initial gasPenalized", initialMetrics.GasPenalized,
 			"final gasPenalized", finalMetrics.GasPenalized,
-			"error", data.ErrNegativeValue)
+			"error", process.ErrNegativeValue)
 		return result
 	}
 	deltaGasRefunded := int64(finalMetrics.GasRefunded) - int64(initialMetrics.GasRefunded)
@@ -1660,7 +1662,7 @@ func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) sc
 		log.Error("feeAndGasMetricsDelta",
 			"initial gasRefunded", initialMetrics.GasPenalized,
 			"final gasRefunded", finalMetrics.GasPenalized,
-			"error", data.ErrNegativeValue)
+			"error", process.ErrNegativeValue)
 		return result
 	}
 

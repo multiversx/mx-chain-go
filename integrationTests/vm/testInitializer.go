@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
@@ -136,9 +137,20 @@ func (vmTestContext *VMTestContext) GetLatestError() error {
 	return vmTestContext.ScProcessor.GetLatestTestError()
 }
 
+
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
+
 // CreateBlockStarted -
 func (vmTestContext *VMTestContext) CreateBlockStarted() {
-	vmTestContext.TxFeeHandler.CreateBlockStarted()
+	vmTestContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	vmTestContext.ScForwarder.CreateBlockStarted()
 	vmTestContext.ScProcessor.CleanGasRefunded()
 }

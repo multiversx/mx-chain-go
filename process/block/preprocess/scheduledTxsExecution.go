@@ -255,6 +255,14 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 	return mapScheduledSCRs
 }
 
+// GetScheduledGasAndFee returns the scheduled SC calls gas and fee
+func (ste *scheduledTxsExecution) GetScheduledGasAndFee() scheduled.GasAndFees {
+	ste.mutScheduledTxs.RLock()
+	defer ste.mutScheduledTxs.RUnlock()
+
+	return ste.gasAndFees
+}
+
 // SetScheduledRootHasSCRsAndGas sets the resulted scheduled root hash, SCRs and gas after the execution of scheduled transactions
 func (ste *scheduledTxsExecution) SetScheduledRootHasSCRsAndGas(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
 	ste.mutScheduledTxs.Lock()

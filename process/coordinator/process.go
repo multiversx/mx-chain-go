@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -29,6 +30,8 @@ import (
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
 
 var log = logger.GetOrCreate("process/coordinator")
+
+const prevScheduledTxs = "prevScheduledTxs"
 
 // ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
 type ArgTransactionCoordinator struct {
@@ -799,9 +802,17 @@ func (tc *transactionCoordinator) CreatePostProcessMiniBlocks() block.MiniBlockS
 	return miniBlocks
 }
 
+func (tc *transactionCoordinator) addGasForScheduled(gasAndFees scheduled.GasAndFees) {
+	tc.gasHandler.SetGasRefunded(gasAndFees.GasRefunded, []byte(prevScheduledTxs))
+	tc.gasHandler.SetGasConsumed(gasAndFees.GasProvided, []byte(prevScheduledTxs))
+	tc.gasHandler.SetGasPenalized(gasAndFees.GasRefunded, []byte(prevScheduledTxs))
+}
+
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
-func (tc *transactionCoordinator) CreateBlockStarted() {
+func (tc *transactionCoordinator) CreateBlockStarted(gasAndFees scheduled.GasAndFees) {
 	tc.gasHandler.Init()
+	tc.addGasForScheduled(gasAndFees)
+
 	tc.blockSizeComputation.Init()
 	tc.balanceComputation.Init()
 

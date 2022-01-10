@@ -2,6 +2,7 @@ package testscommon
 
 import (
 	"errors"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -21,6 +22,7 @@ type ScheduledTxsExecutionStub struct {
 	GetScheduledRootHashForHeaderCalled  func(headerHash []byte) ([]byte, error)
 	RollBackToBlockCalled                func(headerHash []byte) error
 	GetScheduledRootHashCalled           func() []byte
+	GetScheduledGasAndFeeCalled          func() scheduled.GasAndFees
 	SetScheduledRootHashCalled           func([]byte)
 	SetScheduledGasAndFeeMetricsCalled   func(gasAndFees scheduled.GasAndFees)
 	SetTransactionProcessorCalled        func(process.TransactionProcessor)
@@ -28,8 +30,8 @@ type ScheduledTxsExecutionStub struct {
 	HaveScheduledTxsCalled               func() bool
 	SaveStateIfNeededCalled              func(headerHash []byte)
 	SaveStateCalled                      func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
-	LoadStateCalled                     func(headerHash []byte)
-	IsScheduledTxCalled                 func([]byte) bool
+	LoadStateCalled                      func(headerHash []byte)
+	IsScheduledTxCalled                  func([]byte) bool
 }
 
 // Init -
@@ -69,6 +71,20 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledSCRs() map[block.Type][]data.
 		return stes.GetScheduledSCRsCalled()
 	}
 	return nil
+}
+
+// GetScheduledGasAndFee returns the scheduled SC calls gas and fee
+func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFee() scheduled.GasAndFees {
+	if stes.GetScheduledGasAndFeeCalled != nil {
+		return stes.GetScheduledGasAndFeeCalled()
+	}
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
 }
 
 // SetScheduledRootHasSCRsAndGas -

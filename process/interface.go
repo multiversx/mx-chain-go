@@ -135,7 +135,7 @@ type TransactionCoordinator interface {
 
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
-	CreateBlockStarted()
+	CreateBlockStarted(scheduledGasAndFees scheduled.GasAndFees)
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
@@ -189,7 +189,7 @@ type TransactionVerifier interface {
 
 // TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
-	CreateBlockStarted()
+	CreateBlockStarted(gasAndFees scheduled.GasAndFees)
 	GetAccumulatedFees() *big.Int
 	GetDeveloperFees() *big.Int
 	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
@@ -1131,6 +1131,7 @@ type ScheduledTxsExecutionHandler interface {
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
+	GetScheduledGasAndFee() scheduled.GasAndFees
 	SetScheduledRootHasSCRsAndGas(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error

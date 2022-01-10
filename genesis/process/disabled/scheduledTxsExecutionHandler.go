@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -35,6 +36,18 @@ func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration) err
 // GetScheduledSCRs does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
 	return make(map[block.Type][]data.TransactionHandler)
+}
+
+
+// GetScheduledGasAndFee returns an zero value structure for the gas and fees
+func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFee() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
 }
 
 // SetScheduledRootHasSCRsAndGas does nothing as it is disabled
