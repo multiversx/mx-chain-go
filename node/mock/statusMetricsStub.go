@@ -35,6 +35,11 @@ func (sms *StatusMetricsStub) EconomicsMetrics() map[string]interface{} {
 	return sms.EconomicsMetricsCalled()
 }
 
+// RatingsMetrics -
+func (sms *StatusMetricsStub) RatingsMetrics() map[string]interface{} {
+	return sms.EconomicsMetricsCalled()
+}
+
 // StatusMetricsMapWithoutP2P -
 func (sms *StatusMetricsStub) StatusMetricsMapWithoutP2P() map[string]interface{} {
 	return sms.StatusMetricsMapWithoutP2PCalled()
