@@ -10,8 +10,8 @@ func NewSnapshotPruningStorerMock() *SnapshotPruningStorerMock {
 	return &SnapshotPruningStorerMock{NewMemDbMock()}
 }
 
-// GetFromOldEpochsWithoutCache -
-func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
+// GetFromOldEpochsWithoutAddingToCache -
+func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
 	return spsm.Get(key)
 }
 
