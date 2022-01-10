@@ -218,7 +218,7 @@
         { Name = "/raw/miniblock/by-hash/:hash", Open = true },
 
         # /internal/json/miniblock/by-hash/:hash will return the miniblock in JSON format based on its hash
-        { Name = "/json/miniblock/by-hash/:hash", Open = true },
+        { Name = "/json/miniblock/by-hash/:hash", Open = true }
     ]
 
 [APIPackages.proof]

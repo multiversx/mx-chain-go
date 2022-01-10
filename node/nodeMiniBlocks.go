@@ -8,22 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-// GetRawMiniBlock will return MiniBlock as byte array by hash
-func (n *Node) GetRawMiniBlock(txHash string) ([]byte, error) {
-	hash, err := hex.DecodeString(txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	blockBytes, err := n.getFromStorer(dataRetriever.MiniBlockUnit, hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockBytes, nil
-}
-
-// GetInternalMiniBlock will MiniBlock by hash
+// GetInternalMiniBlock will return the miniblock based on the hash
 func (n *Node) GetInternalMiniBlock(format common.OutportFormat, txHash string) (interface{}, error) {
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {

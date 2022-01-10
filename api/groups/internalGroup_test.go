@@ -10,6 +10,7 @@ import (
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestGetRawMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -58,7 +59,7 @@ func TestGetRawMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -91,7 +92,7 @@ func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
 	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
@@ -127,7 +128,7 @@ func TestGetRawMetaBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawMetaBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
@@ -160,7 +161,7 @@ func TestGetRawShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawShardBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -183,7 +184,7 @@ func TestGetRawShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawShardBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -216,7 +217,7 @@ func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
 	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawShardBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
@@ -252,7 +253,7 @@ func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	// require.NoError(t, err)
 
 	facade := mock.FacadeStub{
-		GetRawShardBlockByNonceCalled: func(_ uint64, _ bool) ([]byte, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
 			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
@@ -285,7 +286,7 @@ func TestGetRawMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawMiniBlockByHashCalled: func(_ string) ([]byte, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -308,7 +309,7 @@ func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetRawMiniBlockByHashCalled: func(_ string) ([]byte, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
