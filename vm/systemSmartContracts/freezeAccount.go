@@ -109,6 +109,8 @@ func (fa *freezeAccount) Execute(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 }
 
+// todo; check if guardian is already stored?
+
 // 1. User does NOT have any guardian => set guardian
 // 2. User has ONE guardian pending => does not set, wait until first one is set
 // 3. User has ONE guardian enabled => add it
@@ -137,7 +139,7 @@ func (fa *freezeAccount) setGuardian(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
-	guardians, err := fa.getGuardians(args.CallerAddr)
+	guardians, err := fa.guardians(args.CallerAddr)
 	if err != nil {
 		fa.systemEI.AddReturnMessage(err.Error())
 		return vmcommon.ExecutionFailed
@@ -180,14 +182,19 @@ func (fa *freezeAccount) setGuardian(args *vmcommon.ContractCallInput) vmcommon.
 	} else {
 		return vmcommon.UserError
 	}
-
-	return vmcommon.Ok
 }
 
 func (fa *freezeAccount) pending(guardian *Guardian) bool {
 	currEpoch := fa.systemEI.BlockChainHook().CurrentEpoch()
-	remaining := currEpoch - guardian.ActivationEpoch // any edge case here for which we should use abs?
+	remaining := absDiff(currEpoch, guardian.ActivationEpoch) // any edge case here for which we should use abs?
 	return remaining < fa.guardianEnableEpochs
+}
+
+func absDiff(a, b uint32) uint32 {
+	if a < b {
+		return b - a
+	}
+	return a - b
 }
 
 func (fa *freezeAccount) addGuardian(address []byte, guardianAddress []byte, guardians Guardians) error {
@@ -207,17 +214,17 @@ func (fa *freezeAccount) addGuardian(address []byte, guardianAddress []byte, gua
 		return err
 	}
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
+	key := calcProtectedPrefixedKey(GuardiansKey)
 	return account.AccountDataHandler().SaveKeyValue(key, marshalledData)
 }
 
-func (fa *freezeAccount) getGuardians(address []byte) (Guardians, error) {
+func (fa *freezeAccount) guardians(address []byte) (Guardians, error) {
 	account, err := fa.systemEI.BlockChainHook().GetUserAccount(address)
 	if err != nil {
 		return Guardians{}, err
 	}
 
-	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(GuardiansKey)...)
+	key := calcProtectedPrefixedKey(GuardiansKey)
 	marshalledData, err := account.AccountDataHandler().RetrieveValue(key)
 	if err != nil {
 		return Guardians{}, err
@@ -229,12 +236,16 @@ func (fa *freezeAccount) getGuardians(address []byte) (Guardians, error) {
 	}
 
 	guardians := Guardians{}
-	err = fa.marshaller.Unmarshal(guardians, marshalledData)
+	err = fa.marshaller.Unmarshal(&guardians, marshalledData)
 	if err != nil {
 		return Guardians{}, err
 	}
 
 	return guardians, nil
+}
+
+func calcProtectedPrefixedKey(key string) []byte {
+	return append([]byte(core.ElrondProtectedKeyPrefix), []byte(key)...)
 }
 
 func isZero(n *big.Int) bool {
