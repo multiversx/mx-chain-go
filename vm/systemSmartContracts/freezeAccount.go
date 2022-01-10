@@ -144,44 +144,42 @@ func (fa *freezeAccount) setGuardian(args *vmcommon.ContractCallInput) vmcommon.
 		fa.systemEI.AddReturnMessage(err.Error())
 		return vmcommon.ExecutionFailed
 	}
-	// Case 1
-	if len(guardians.Data) == 0 {
-		err = fa.addGuardian(args.CallerAddr, args.Arguments[0], guardians)
-		if err != nil {
-			fa.systemEI.AddReturnMessage(err.Error())
-			return vmcommon.ExecutionFailed
-		}
-		return vmcommon.Ok
+
+	switch len(guardians.Data) {
+	case 0:
+		// Case 1
+		return fa.tryAddGuardian(args.CallerAddr, args.Arguments[0], guardians)
+	case 1:
 		// Case 2
-	} else if len(guardians.Data) == 1 && fa.pending(guardians.Data[0]) {
-		fa.systemEI.AddReturnMessage(fmt.Sprintf("owner already has one guardian pending: %s",
-			fa.pubKeyConverter.Encode(guardians.Data[0].Address)))
-		return vmcommon.UserError
+		if fa.pending(guardians.Data[0]) {
+			fa.systemEI.AddReturnMessage(fmt.Sprintf("owner already has one guardian pending: %s",
+				fa.pubKeyConverter.Encode(guardians.Data[0].Address)))
+			return vmcommon.UserError
+		}
 		// Case 3
-	} else if len(guardians.Data) == 1 && !fa.pending(guardians.Data[0]) {
-		err = fa.addGuardian(args.CallerAddr, args.Arguments[0], guardians)
-		if err != nil {
-			fa.systemEI.AddReturnMessage(err.Error())
-			return vmcommon.ExecutionFailed
-		}
-		return vmcommon.Ok
+		return fa.tryAddGuardian(args.CallerAddr, args.Arguments[0], guardians)
+	case 2:
 		// Case 4
-	} else if len(guardians.Data) == 2 && fa.pending(guardians.Data[1]) {
-		fa.systemEI.AddReturnMessage(fmt.Sprintf("owner already has one guardian pending: %s",
-			fa.pubKeyConverter.Encode(guardians.Data[1].Address)))
-		return vmcommon.UserError
-		// Case 5
-	} else if len(guardians.Data) == 2 && !fa.pending(guardians.Data[1]) {
-		guardians.Data = guardians.Data[1:] // remove oldest guardian
-		err = fa.addGuardian(args.CallerAddr, args.Arguments[0], guardians)
-		if err != nil {
-			fa.systemEI.AddReturnMessage(err.Error())
-			return vmcommon.ExecutionFailed
+		if fa.pending(guardians.Data[1]) {
+			fa.systemEI.AddReturnMessage(fmt.Sprintf("owner already has one guardian pending: %s",
+				fa.pubKeyConverter.Encode(guardians.Data[1].Address)))
+			return vmcommon.UserError
 		}
-		return vmcommon.Ok
-	} else {
+		// Case 5
+		guardians.Data = guardians.Data[1:] // remove oldest guardian
+		return fa.tryAddGuardian(args.CallerAddr, args.Arguments[0], guardians)
+	default:
 		return vmcommon.UserError
 	}
+}
+
+func (fa *freezeAccount) tryAddGuardian(address []byte, guardianAddress []byte, guardians Guardians) vmcommon.ReturnCode {
+	err := fa.addGuardian(address, guardianAddress, guardians)
+	if err != nil {
+		fa.systemEI.AddReturnMessage(err.Error())
+		return vmcommon.ExecutionFailed
+	}
+	return vmcommon.Ok
 }
 
 func (fa *freezeAccount) pending(guardian *Guardian) bool {
