@@ -42,7 +42,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
-			remainingTxs = append(remainingTxs, sortedTxs[index])
 			continue
 		}
 
@@ -61,11 +60,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", mbInfo.processingInfo.numTxsAdded,
 				"total txs", len(sortedTxs))
-			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
 
-		err := txs.processTransaction(
+		shouldAddToRemaining, err := txs.processTransaction(
 			tx,
 			txMbInfo.txType,
 			txHash,
@@ -73,7 +71,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
-			remainingTxs = append(remainingTxs, sortedTxs[index])
+			if shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[index])
+			}
 			continue
 		}
 
@@ -131,7 +131,7 @@ func (txs *transactions) processTransaction(
 	senderShardID uint32,
 	receiverShardID uint32,
 	mbInfo *createAndProcessMiniBlocksInfo,
-) error {
+) (bool, error) {
 	snapshot := txs.accounts.JournalLen()
 
 	mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
@@ -155,8 +155,9 @@ func (txs *transactions) processTransaction(
 			mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas++
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 			txs.txPool.RemoveData(txHash, strCache)
+			return false, err
 		}
-		return err
+		return true, err
 	}
 
 	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
@@ -198,7 +199,7 @@ func (txs *transactions) processTransaction(
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
-		return err
+		return false, err
 	}
 
 	if senderShardID == receiverShardID {
@@ -225,7 +226,7 @@ func (txs *transactions) processTransaction(
 		mbInfo.processingInfo.numTxsFailed++
 	}
 
-	return err
+	return false, err
 }
 
 func (txs *transactions) getMiniBlockSliceFromMapV2(

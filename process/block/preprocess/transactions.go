@@ -1031,20 +1031,23 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {
-		canAddTx, canContinue, tx := mbBuilder.checkAddTransaction(wtx)
+		canAddTx, canContinue, shouldAddToRemaining, tx := mbBuilder.checkAddTransaction(wtx)
 		if !canContinue {
-			remainingTxs = append(remainingTxs, sortedTxs[idx:]...)
+			if shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[idx:]...)
+			}
 			break
 		}
 
 		if !canAddTx {
-			remainingTxs = append(remainingTxs, sortedTxs[idx])
+			if shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[idx])
+			}
 			continue
 		}
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
-			remainingTxs = append(remainingTxs, sortedTxs[idx])
 			continue
 		}
 
