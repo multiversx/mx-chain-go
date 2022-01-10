@@ -372,11 +372,11 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 		SnapshotsGoroutineNum: 1,
 	}
 
-	mainStorer, err := createPruningStorer(coordinator, notifier)
+	mainStorer, err := createTriePruningStorer(coordinator, notifier)
 	if err != nil {
 		fmt.Println("err creating main storer" + err.Error())
 	}
-	checkpointsStorer, err := createPruningStorer(coordinator, notifier)
+	checkpointsStorer, err := createTriePruningStorer(coordinator, notifier)
 	if err != nil {
 		fmt.Println("err creating checkpoints storer" + err.Error())
 	}
@@ -429,7 +429,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	return trieStorageManager, store
 }
 
-func createPruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, error) {
+func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, error) {
 	cacheConf, dbConf, blConf := getDummyConfig()
 
 	lockPersisterMap := sync.Mutex{}
