@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -102,8 +101,7 @@ type NodeHandler interface {
 	GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
 
-	GetRawMiniBlock(txHash string) ([]byte, error)
-	GetInternalMiniBlock(txHash string) (*block.MiniBlock, error)
+	GetInternalMiniBlock(format common.OutportFormat, txHash string) (interface{}, error)
 
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)

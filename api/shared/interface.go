@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -80,8 +79,7 @@ type FacadeHandler interface {
 	GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
-	GetRawMiniBlockByHash(hash string) ([]byte, error)
-	GetInternalMiniBlockByHash(hash string) (*block.MiniBlock, error)
+	GetInternalMiniBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

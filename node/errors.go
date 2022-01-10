@@ -150,3 +150,6 @@ var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on met
 
 // ErrShardchainOnlyEndpoint signals that an endpoint was called, but it is only available for shardchain nodes
 var ErrShardchainOnlyEndpoint = errors.New("the endpoint is only available on shardchain nodes")
+
+// ErrInvalidOutportFormat signals that the outport format type is not valid
+var ErrInvalidOutportFormat = errors.New("the outport format type is invalid")

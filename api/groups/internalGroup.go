@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -39,8 +38,7 @@ type rawBlockFacadeHandler interface {
 	GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
-	GetRawMiniBlockByHash(hash string) ([]byte, error)
-	GetInternalMiniBlockByHash(hash string) (*block.MiniBlock, error)
+	GetInternalMiniBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -460,7 +458,7 @@ func (rb *rawBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	miniBlock, err := rb.getFacade().GetRawMiniBlockByHash(hash)
+	miniBlock, err := rb.getFacade().GetInternalMiniBlockByHash(common.Proto, hash)
 	log.Debug(fmt.Sprintf("GetRawMiniBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -486,7 +484,7 @@ func (rb *rawBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	miniBlock, err := rb.getFacade().GetInternalMiniBlockByHash(hash)
+	miniBlock, err := rb.getFacade().GetInternalMiniBlockByHash(common.Internal, hash)
 	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(

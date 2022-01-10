@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -282,13 +281,8 @@ func (inf *initialNodeFacade) GetInternalShardBlockByRound(_ common.OutportForma
 	return nil, errNodeStarting
 }
 
-// GetRawMiniBlockByHash return nil and error
-func (inf *initialNodeFacade) GetRawMiniBlockByHash(_ string) ([]byte, error) {
-	return nil, errNodeStarting
-}
-
 // GetInternalMiniBlockByHash return nil and error
-func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ string) (*block.MiniBlock, error) {
+func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ common.OutportFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
 }
 

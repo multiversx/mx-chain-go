@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	apiData "github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
@@ -413,14 +412,9 @@ func (nf *nodeFacade) GetInternalShardBlockByRound(format common.OutportFormat, 
 	return nf.node.GetInternalShardBlockByRound(format, round)
 }
 
-// GetRawMiniBlock return the miniblock as raw data for a given hash
-func (nf *nodeFacade) GetRawMiniBlockByHash(txHash string) ([]byte, error) {
-	return nf.node.GetRawMiniBlock(txHash)
-}
-
 // GetInternalMiniBlock return the miniblock for a given hash
-func (nf *nodeFacade) GetInternalMiniBlockByHash(txHash string) (*block.MiniBlock, error) {
-	return nf.node.GetInternalMiniBlock(txHash)
+func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.OutportFormat, txHash string) (interface{}, error) {
+	return nf.node.GetInternalMiniBlock(format, txHash)
 }
 
 // Close will cleanup started go routines
