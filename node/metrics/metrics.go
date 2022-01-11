@@ -154,7 +154,7 @@ func InitRatingsMetrics(statusHandlerUtils StatusHandlersUtils, ratingsConfig co
 	appStatusHandler.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, fmt.Sprintf("%f", ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty))
 
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyDecayCoefficient, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.DecayCoefficient))
-	appStatusHandler.SetUInt64Value(common.MetricRatingsPeerHonestyDecayCoefficient, uint64(ratingsConfig.PeerHonesty.DecayUpdateIntervalInSeconds))
+	appStatusHandler.SetUInt64Value(common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds, uint64(ratingsConfig.PeerHonesty.DecayUpdateIntervalInSeconds))
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyMaxScore, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.MaxScore))
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyMinScore, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.MinScore))
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyBadPeerThreshold, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.BadPeerThreshold))
