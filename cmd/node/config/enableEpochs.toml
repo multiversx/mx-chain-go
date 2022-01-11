@@ -145,37 +145,37 @@
     RemoveNonUpdatedStorageEnableEpoch = 1
 
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
-    OptimizeNFTStoreEnableEpoch = 1
+    OptimizeNFTStoreEnableEpoch = 3
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
-    CreateNFTThroughExecByCallerEnableEpoch = 1
+    CreateNFTThroughExecByCallerEnableEpoch = 3
 
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
-    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 1
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
 
     # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
-    FrontRunningProtectionEnableEpoch = 1
+    FrontRunningProtectionEnableEpoch = 4
 
     # DisableOldTrieStorageEpoch represents the epoch when the old trie storage implementation will be disabled
-    DisableOldTrieStorageEpoch = 1
+    DisableOldTrieStorageEpoch = 4
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 1
+    IsPayableBySCEnableEpoch = 3
 
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
-    CleanUpInformativeSCRsEnableEpoch = 1
+    CleanUpInformativeSCRsEnableEpoch = 3
 
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
-    StorageAPICostOptimizationEnableEpoch = 1
+    StorageAPICostOptimizationEnableEpoch = 3
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 1
+    TransformToMultiShardCreateEnableEpoch = 3
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 1
+    ESDTRegisterAndSetAllRolesEnableEpoch = 3
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 1
+    ScheduledMiniBlocksEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -186,5 +186,6 @@
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV4.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV5.toml" },
     ]
