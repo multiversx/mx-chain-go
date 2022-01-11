@@ -106,7 +106,7 @@ func (tp *tokensProcessor) extractEsdtData(
 		return nil
 	}
 
-	// in case of esdt, nft or multi esdt transfera, the 3rd index of the topics contains the destination address
+	// in case of esdt, nft or multi esdt transfers, the 3rd index of the topics contains the destination address
 	tokenID := topics[idxTokenIDInTopics]
 	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts)
 	if err != nil {
