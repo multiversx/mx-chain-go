@@ -110,7 +110,7 @@ type Node struct {
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 
-	internalBlockProcessor blockAPI.APIRawBlockHandler
+	internalBlockProcessor blockAPI.APIInternalBlockHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

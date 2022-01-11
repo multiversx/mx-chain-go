@@ -15,7 +15,7 @@ type internalBlockProcessor struct {
 	*baseAPIBlockProcessor
 }
 
-// NewInternalBlockProcessor will create a new instance of raw block processor
+// NewInternalBlockProcessor will create a new instance of internal block processor
 func NewInternalBlockProcessor(arg *APIBlockProcessorArg) *internalBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 

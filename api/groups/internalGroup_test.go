@@ -20,13 +20,13 @@ func TestNewRawBlockGroup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil facade", func(t *testing.T) {
-		hg, err := groups.NewRawBlockGroup(nil)
+		hg, err := groups.NewInternalBlockGroup(nil)
 		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
 		require.Nil(t, hg)
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewRawBlockGroup(&mock.FacadeStub{})
+		hg, err := groups.NewInternalBlockGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -41,7 +41,7 @@ func TestGetRawMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -64,7 +64,7 @@ func TestGetRawMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -97,7 +97,7 @@ func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -133,7 +133,7 @@ func TestGetRawMetaBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -166,7 +166,7 @@ func TestGetRawShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -189,7 +189,7 @@ func TestGetRawShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -222,7 +222,7 @@ func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -258,7 +258,7 @@ func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -291,7 +291,7 @@ func TestGetRawMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
@@ -314,7 +314,7 @@ func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())

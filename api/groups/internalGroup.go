@@ -30,8 +30,8 @@ const (
 	getInternalMiniBlockByHashPath   = "/json/miniblock/by-hash/:hash"
 )
 
-// rawBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
-type rawBlockFacadeHandler interface {
+// internalBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
+type internalBlockFacadeHandler interface {
 	GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
@@ -42,19 +42,19 @@ type rawBlockFacadeHandler interface {
 	IsInterfaceNil() bool
 }
 
-type rawBlockGroup struct {
+type internalBlockGroup struct {
 	*baseGroup
-	facade    rawBlockFacadeHandler
+	facade    internalBlockFacadeHandler
 	mutFacade sync.RWMutex
 }
 
-// NewRawBlockGroup returns a new instance of rawBlockGroup
-func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
+// NewInternalBlockGroup returns a new instance of rawBlockGroup
+func NewInternalBlockGroup(facade internalBlockFacadeHandler) (*internalBlockGroup, error) {
 	if check.IfNil(facade) {
-		return nil, fmt.Errorf("%w for raw block group", errors.ErrNilFacadeHandler)
+		return nil, fmt.Errorf("%w for internal block group", errors.ErrNilFacadeHandler)
 	}
 
-	rb := &rawBlockGroup{
+	rb := &internalBlockGroup{
 		facade:    facade,
 		baseGroup: &baseGroup{},
 	}
@@ -136,7 +136,7 @@ func NewRawBlockGroup(facade rawBlockFacadeHandler) (*rawBlockGroup, error) {
 	return rb, nil
 }
 
-func (rb *rawBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
+func (rb *internalBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -162,7 +162,7 @@ func (rb *rawBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
+func (rb *internalBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -188,7 +188,7 @@ func (rb *rawBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
+func (rb *internalBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -214,7 +214,7 @@ func (rb *rawBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
+func (rb *internalBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -240,7 +240,7 @@ func (rb *rawBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getRawShardBlockByHash(c *gin.Context) {
+func (rb *internalBlockGroup) getRawShardBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -266,7 +266,7 @@ func (rb *rawBlockGroup) getRawShardBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getRawShardBlockByRound(c *gin.Context) {
+func (rb *internalBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -292,7 +292,7 @@ func (rb *rawBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalMetaBlockByNonce(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalMetaBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -318,7 +318,7 @@ func (rb *rawBlockGroup) getInternalMetaBlockByNonce(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalMetaBlockByHash(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalMetaBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -344,7 +344,7 @@ func (rb *rawBlockGroup) getInternalMetaBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -370,7 +370,7 @@ func (rb *rawBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -396,7 +396,7 @@ func (rb *rawBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalShardBlockByHash(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalShardBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -422,7 +422,7 @@ func (rb *rawBlockGroup) getInternalShardBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalShardBlockByRound(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalShardBlockByRound(c *gin.Context) {
 	round, err := getQueryParamRound(c)
 	if err != nil {
 		shared.RespondWithValidationError(
@@ -448,7 +448,7 @@ func (rb *rawBlockGroup) getInternalShardBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
+func (rb *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -474,7 +474,7 @@ func (rb *rawBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"miniblock": miniBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
+func (rb *internalBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 	hash := c.Param("hash")
 	if hash == "" {
 		shared.RespondWithValidationError(
@@ -500,7 +500,7 @@ func (rb *rawBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"miniblock": miniBlock}, "", shared.ReturnCodeSuccess)
 }
 
-func (rb *rawBlockGroup) getFacade() rawBlockFacadeHandler {
+func (rb *internalBlockGroup) getFacade() internalBlockFacadeHandler {
 	rb.mutFacade.RLock()
 	defer rb.mutFacade.RUnlock()
 
@@ -508,11 +508,11 @@ func (rb *rawBlockGroup) getFacade() rawBlockFacadeHandler {
 }
 
 // UpdateFacade will update the facade
-func (rb *rawBlockGroup) UpdateFacade(newFacade interface{}) error {
+func (rb *internalBlockGroup) UpdateFacade(newFacade interface{}) error {
 	if newFacade == nil {
 		return errors.ErrNilFacadeHandler
 	}
-	castFacade, ok := newFacade.(rawBlockFacadeHandler)
+	castFacade, ok := newFacade.(internalBlockFacadeHandler)
 	if !ok {
 		return errors.ErrFacadeWrongTypeAssertion
 	}
@@ -525,6 +525,6 @@ func (rb *rawBlockGroup) UpdateFacade(newFacade interface{}) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rb *rawBlockGroup) IsInterfaceNil() bool {
+func (rb *internalBlockGroup) IsInterfaceNil() bool {
 	return rb == nil
 }
