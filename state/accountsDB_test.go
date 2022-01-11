@@ -1077,6 +1077,7 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	rootHash1 := []byte("rootHash1")
 	rootHash2 := []byte("rootHash2")
 	latestEpoch := uint32(0)
+	snapshotMutex := sync.RWMutex{}
 	takeSnapshotCalled := 0
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
@@ -1085,7 +1086,9 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 					return latestEpoch, nil
 				},
 				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					snapshotMutex.Lock()
 					takeSnapshotCalled++
+					snapshotMutex.Unlock()
 				},
 			}
 		},
@@ -1096,41 +1099,55 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	// snapshot rootHash1 and epoch 0
 	adb.SnapshotState(rootHash1)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 1, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 
 	// snapshot rootHash1 and epoch 1
 	latestEpoch = 1
 	adb.SnapshotState(rootHash1)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 2, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 
 	// snapshot rootHash1 and epoch 0 again
 	latestEpoch = 0
 	adb.SnapshotState(rootHash1)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 3, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 
 	// snapshot rootHash1 and epoch 0 again
 	adb.SnapshotState(rootHash1)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 3, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 
 	// snapshot rootHash2 and epoch 0
 	adb.SnapshotState(rootHash2)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 4, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 
 	// snapshot rootHash2 and epoch 1
 	latestEpoch = 1
 	adb.SnapshotState(rootHash2)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 5, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 
 	// snapshot rootHash2 and epoch 1 again
 	latestEpoch = 1
 	adb.SnapshotState(rootHash2)
 	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
 	assert.Equal(t, 5, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 }
 
 func TestAccountsDB_SetStateCheckpointWithDataTries(t *testing.T) {
