@@ -20,13 +20,13 @@ func TestNewRawBlockGroup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil facade", func(t *testing.T) {
-		hg, err := groups.NewRawBlockGroup(nil)
+		hg, err := groups.NewInternalBlockGroup(nil)
 		require.True(t, errors.Is(err, apiErrors.ErrNilFacadeHandler))
 		require.Nil(t, hg)
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		hg, err := groups.NewRawBlockGroup(&mock.FacadeStub{})
+		hg, err := groups.NewInternalBlockGroup(&mock.FacadeStub{})
 		require.NoError(t, err)
 		require.NotNil(t, hg)
 	})
@@ -41,12 +41,12 @@ func TestGetRawMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/metablock/by-nonce", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -64,12 +64,12 @@ func TestGetRawMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/metablock/by-nonce/invalid", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce/invalid", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -97,12 +97,12 @@ func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/metablock/by-nonce/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce/15", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -133,12 +133,12 @@ func TestGetRawMetaBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/metablock/by-nonce/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce/15", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -166,12 +166,12 @@ func TestGetRawShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/shardblock/by-nonce", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -189,16 +189,16 @@ func TestGetRawShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/shardblock/by-nonce/invalid", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce/invalid", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := blockResponse{}
+	response := rawBlockResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
@@ -222,12 +222,12 @@ func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/shardblock/by-nonce/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce/15", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -258,12 +258,12 @@ func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/shardblock/by-nonce/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce/15", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -282,6 +282,16 @@ func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 
 // ---- MiniBlock
 
+type rawMiniBlockResponseData struct {
+	Block []byte `json:"miniblock"`
+}
+
+type rawMiniBlockResponse struct {
+	Data  rawMiniBlockResponseData `json:"data"`
+	Error string                   `json:"error"`
+	Code  string                   `json:"code"`
+}
+
 func TestGetRawMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -291,12 +301,12 @@ func TestGetRawMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
 	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/miniblock/by-hash", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -310,38 +320,45 @@ func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 
 	facade := mock.FacadeStub{
 		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
-			return []byte{}, nil
+			return bytes.Repeat([]byte("1"), 10), nil
 		},
 	}
 
-	blockGroup, err := groups.NewRawBlockGroup(&facade)
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
 	require.NoError(t, err)
 
-	ws := startWebServer(blockGroup, "raw", getRawBlockRoutesConfig())
+	ws := startWebServer(blockGroup, "internal", getRawBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/raw/miniblock/by-hash/dummyhash", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash/dummyhash", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := rawBlockResponse{}
+	response := rawMiniBlockResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, []byte{}, response.Data.Block)
+	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
 }
 
 func getRawBlockRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
-			"raw": {
+			"internal": {
 				Routes: []config.RouteConfig{
-					{Name: "/metablock/by-nonce/:nonce", Open: true},
-					{Name: "/metablock/by-hash/:hash", Open: true},
-					{Name: "/metablock/by-round/:round", Open: true},
-					{Name: "/shardblock/by-nonce/:nonce", Open: true},
-					{Name: "/shardblock/by-hash/:hash", Open: true},
-					{Name: "/shardblock/by-round/:round", Open: true},
-					{Name: "/miniblock/by-hash/:hash", Open: true},
+					{Name: "/raw/metablock/by-nonce/:nonce", Open: true},
+					{Name: "/raw/metablock/by-hash/:hash", Open: true},
+					{Name: "/raw/metablock/by-round/:round", Open: true},
+					{Name: "/raw/shardblock/by-nonce/:nonce", Open: true},
+					{Name: "/raw/shardblock/by-hash/:hash", Open: true},
+					{Name: "/raw/shardblock/by-round/:round", Open: true},
+					{Name: "/raw/miniblock/by-hash/:hash", Open: true},
+					{Name: "/json/metablock/by-nonce/:nonce", Open: true},
+					{Name: "/json/metablock/by-hash/:hash", Open: true},
+					{Name: "/json/metablock/by-round/:round", Open: true},
+					{Name: "/json/shardblock/by-nonce/:nonce", Open: true},
+					{Name: "/json/shardblock/by-hash/:hash", Open: true},
+					{Name: "/json/shardblock/by-round/:round", Open: true},
+					{Name: "/json/miniblock/by-hash/:hash", Open: true},
 				},
 			},
 		},

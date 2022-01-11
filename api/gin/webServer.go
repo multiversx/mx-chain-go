@@ -150,11 +150,11 @@ func (ws *webServer) createGroups() error {
 	}
 	groupsMap["block"] = blockGroup
 
-	rawBlockGroup, err := groups.NewRawBlockGroup(ws.facade)
+	internalBlockGroup, err := groups.NewInternalBlockGroup(ws.facade)
 	if err != nil {
 		return err
 	}
-	groupsMap["internal"] = rawBlockGroup
+	groupsMap["internal"] = internalBlockGroup
 
 	hardforkGroup, err := groups.NewHardforkGroup(ws.facade)
 	if err != nil {

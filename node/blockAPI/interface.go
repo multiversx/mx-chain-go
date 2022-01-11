@@ -12,8 +12,8 @@ type APIBlockHandler interface {
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 }
 
-// APIRawBlockHandler defines the behaviour of a component able to return internal blocks
-type APIRawBlockHandler interface {
+// APIInternalBlockHandler defines the behaviour of a component able to return internal blocks
+type APIInternalBlockHandler interface {
 	GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error)
 	GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
