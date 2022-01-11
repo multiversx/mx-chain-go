@@ -419,6 +419,7 @@ func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
+		log.Debug("GetLatestStorageEpoch", "error", fmt.Sprintf("%T", tsm.mainStorer))
 		return 0, fmt.Errorf("invalid storer type for GetLatestStorageEpoch")
 	}
 

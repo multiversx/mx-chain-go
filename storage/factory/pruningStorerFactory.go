@@ -686,6 +686,7 @@ func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.Storer
 	isFullArchive := psf.prefsConfig.FullArchive
 	isDBLookupExtenstion := psf.generalConfig.DbLookupExtensions.Enabled
 	if !isFullArchive && !isDBLookupExtenstion {
+		log.Debug("createTriePruningPersister")
 		return pruning.NewTriePruningStorer(arg)
 	}
 
@@ -695,6 +696,7 @@ func (psf *StorageServiceFactory) createTriePruningPersister(arg *pruning.Storer
 		NumOfOldActivePersisters: numOldActivePersisters,
 	}
 
+	log.Debug("createTriePruningPersister - full history")
 	return pruning.NewFullHistoryPruningStorer(historyArgs)
 }
 
