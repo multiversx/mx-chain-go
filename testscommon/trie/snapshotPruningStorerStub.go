@@ -4,7 +4,7 @@ import "github.com/ElrondNetwork/elrond-go/storage/memorydb"
 
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
-	memorydb.DB
+	*memorydb.DB
 	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, error)
 	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
 	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error

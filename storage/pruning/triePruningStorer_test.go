@@ -1,6 +1,7 @@
 package pruning_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"strings"
 	"testing"
 
@@ -115,4 +116,63 @@ func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
+}
+
+func TestTriePruningStorer_OpenMoreDbsIfNecessary(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	tps, _ := pruning.NewTriePruningStorer(args)
+
+	_ = tps.ChangeEpochSimple(1)
+
+	tps.SetEpochForPutOperation(1)
+	err := tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.Nil(t, err)
+
+	_ = tps.ChangeEpochSimple(2)
+	_ = tps.ChangeEpochSimple(3)
+	_ = tps.ChangeEpochSimple(4)
+
+	err = tps.Close()
+	assert.Nil(t, err)
+
+	args.StartingEpoch = 4
+	args.NumOfEpochsToKeep = 5
+	ps, _ := pruning.NewPruningStorer(args)
+	assert.Equal(t, 2, ps.GetNumActivePersisters())
+	tps, _ = pruning.NewTriePruningStorer(args)
+	assert.Equal(t, 4, tps.GetNumActivePersisters())
+}
+
+func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	tps, _ := pruning.NewTriePruningStorer(args)
+
+	assert.Equal(t, 1, tps.GetNumActivePersisters())
+	_ = tps.ChangeEpochSimple(1)
+
+	tps.SetEpochForPutOperation(1)
+	err := tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.Nil(t, err)
+
+	assert.Equal(t, 2, tps.GetNumActivePersisters())
+	_ = tps.ChangeEpochSimple(2)
+	assert.Equal(t, 2, tps.GetNumActivePersisters())
+	_ = tps.ChangeEpochSimple(3)
+	assert.Equal(t, 3, tps.GetNumActivePersisters())
+	_ = tps.ChangeEpochSimple(4)
+	assert.Equal(t, 4, tps.GetNumActivePersisters())
+
+	tps.SetEpochForPutOperation(4)
+	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.Nil(t, err)
+
+	_ = tps.ChangeEpochSimple(5)
+	assert.Equal(t, 2, tps.GetNumActivePersisters())
+
+	err = tps.Close()
+	assert.Nil(t, err)
 }

@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -133,6 +134,35 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 
 	adb.SnapshotState([]byte("rootHash"))
 	assert.True(t, snapshotCalled)
+}
+
+func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(t *testing.T) {
+	t.Parallel()
+
+	snapshotCalled := false
+	adb, err := state.NewPeerAccountsDB(
+		&trieMock.TrieStub{
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &testscommon.StorageManagerStub{
+					GetLatestStorageEpochCalled: func() (uint32, error) {
+						return 0, fmt.Errorf("new error")
+					},
+					TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+						snapshotCalled = true
+					},
+				}
+			},
+		},
+		&testscommon.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&stateMock.AccountsFactoryStub{},
+		disabled.NewDisabledStoragePruningManager(),
+	)
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(adb))
+
+	adb.SnapshotState([]byte("rootHash"))
+	assert.False(t, snapshotCalled)
 }
 
 func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {

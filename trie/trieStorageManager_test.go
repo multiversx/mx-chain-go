@@ -1,8 +1,11 @@
 package trie_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -277,6 +280,125 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 	ok = args.CheckpointHashesHolder.ShouldCommit(key)
+	assert.False(t, ok)
+}
+
+func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	key := []byte("key")
+	value := []byte("value")
+	err := ts.PutInEpoch(key, value, 0)
+	assert.Equal(t, trie.ErrContextClosing, err)
+}
+
+func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	key := []byte("key")
+	value := []byte("value")
+	err := ts.PutInEpoch(key, value, 0)
+	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
+}
+
+func TestTrieStorageManager_PutInEpoch(t *testing.T) {
+	t.Parallel()
+
+	putInEpochCalled := false
+	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: memorydb.New(),
+		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+			putInEpochCalled = true
+			return nil
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	key := []byte("key")
+	value := []byte("value")
+	err := ts.PutInEpoch(key, value, 0)
+	assert.Nil(t, err)
+	assert.True(t, putInEpochCalled)
+}
+
+func TestTrieStorageManager_GetLatestStorageEpochInvalidStorer(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	val, err := ts.GetLatestStorageEpoch()
+	assert.Equal(t, uint32(0), val)
+	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
+}
+
+func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
+	t.Parallel()
+
+	getLatestSorageCalled := false
+	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: memorydb.New(),
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			getLatestSorageCalled = true
+			return 4, nil
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	val, err := ts.GetLatestStorageEpoch()
+	assert.Equal(t, uint32(4), val)
+	assert.Nil(t, err)
+	assert.True(t, getLatestSorageCalled)
+}
+
+func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
+func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	rootHash := make([]byte, 32)
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
+func TestTrieStorageManager_TakeSnapshot(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	_, ok := <-leavesChan
 	assert.False(t, ok)
 }
 

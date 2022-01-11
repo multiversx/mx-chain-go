@@ -752,6 +752,10 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 
 // should be called under mutex protection
 func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bool {
+	if ps.extendPersisterLifeHandler() {
+		return true
+	}
+
 	epoch := header.GetEpoch()
 	metaBlock, mbOk := header.(*block.MetaBlock)
 	if !mbOk {
@@ -783,7 +787,7 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 		return true
 	}
 
-	return ps.extendPersisterLifeHandler()
+	return false
 }
 
 // should be called under mutex protection

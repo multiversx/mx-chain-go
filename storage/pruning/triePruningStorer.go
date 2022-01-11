@@ -37,7 +37,11 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 }
 
 func (ps *triePruningStorer) extendPersisterLife() bool {
-	for i := 0; i < len(ps.activePersisters); i++ {
+	for i := 0; i < int(ps.numOfActivePersisters); i++ {
+		if i >= len(ps.activePersisters) {
+			continue
+		}
+
 		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey))
 		if err != nil {
 			continue
@@ -77,10 +81,6 @@ func initTriePersisterInEpoch(
 
 		persistersMapByEpoch[uint32(epoch)] = p
 
-		if !closeOldPersisters {
-			closeOldPersisters = shouldCloseOldPersisters(p)
-		}
-
 		if epoch < oldestEpochActive && closeOldPersisters {
 			err = p.Close()
 			if err != nil {
@@ -89,6 +89,10 @@ func initTriePersisterInEpoch(
 		} else {
 			persisters = append(persisters, p)
 			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
+		}
+
+		if !closeOldPersisters {
+			closeOldPersisters = shouldCloseOldPersisters(p)
 		}
 	}
 
