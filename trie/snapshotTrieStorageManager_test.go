@@ -28,7 +28,7 @@ func TestNewSnapshotTrieStorageManager_GetFromOldEpochsWithoutCache(t *testing.T
 	_, trieStorage := newEmptyTrie()
 	getFromOldEpochsWithoutCacheCalled := false
 	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		GetFromOldEpochsWithoutCacheCalled: func(_ []byte) ([]byte, error) {
+		GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, error) {
 			getFromOldEpochsWithoutCacheCalled = true
 			return nil, nil
 		},
