@@ -410,48 +410,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
-// GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *PruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
-	v, ok := ps.cacher.Get(key)
-	if ok {
-		return v.([]byte), nil
-	}
-
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	for idx := uint32(1); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
-		val, err := ps.activePersisters[idx].persister.Get(key)
-		if err != nil {
-			continue
-		}
-
-		return val, nil
-	}
-
-	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-}
-
-// GetFromLastEpoch searches only the last epoch storer for the given key
-func (ps *PruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	if len(ps.activePersisters) < 2 {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	return ps.activePersisters[1].persister.Get(key)
-}
-
 // Close will close PruningStorer
 func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
