@@ -380,12 +380,18 @@ func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, er
 
 // GetInternalMetaBlockByNonce -
 func (f *FacadeStub) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
-	return f.GetInternalMetaBlockByNonceCalled(format, nonce)
+	if f.GetInternalMetaBlockByNonceCalled != nil {
+		return f.GetInternalMetaBlockByNonceCalled(format, nonce)
+	}
+	return nil, nil
 }
 
 // GetInternalMetaBlockByHash -
 func (f *FacadeStub) GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
-	return f.GetInternalMetaBlockByHashCalled(format, hash)
+	if f.GetInternalMetaBlockByHashCalled != nil {
+		return f.GetInternalMetaBlockByHashCalled(format, hash)
+	}
+	return nil, nil
 }
 
 // GetInternalMetaBlockByRound -
@@ -398,12 +404,18 @@ func (f *FacadeStub) GetInternalMetaBlockByRound(format common.OutportFormat, ro
 
 // GetInternalShardBlockByNonce -
 func (f *FacadeStub) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
-	return f.GetInternalShardBlockByNonceCalled(format, nonce)
+	if f.GetInternalShardBlockByNonceCalled != nil {
+		return f.GetInternalShardBlockByNonceCalled(format, nonce)
+	}
+	return nil, nil
 }
 
 // GetInternalShardBlockByHash -
 func (f *FacadeStub) GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
-	return f.GetInternalShardBlockByHashCalled(format, hash)
+	if f.GetInternalShardBlockByHashCalled != nil {
+		return f.GetInternalShardBlockByHashCalled(format, hash)
+	}
+	return nil, nil
 }
 
 // GetInternalShardBlockByRound -
@@ -416,7 +428,10 @@ func (f *FacadeStub) GetInternalShardBlockByRound(format common.OutportFormat, r
 
 // GetInternalMiniBlockByHash -
 func (f *FacadeStub) GetInternalMiniBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
-	return f.GetInternalMiniBlockByHashCalled(format, hash)
+	if f.GetInternalMiniBlockByHashCalled != nil {
+		return f.GetInternalMiniBlockByHashCalled(format, hash)
+	}
+	return nil, nil
 }
 
 // Trigger -
