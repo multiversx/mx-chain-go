@@ -398,11 +398,11 @@ func TestPruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *test
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromOldEpochsWithoutCache(testKey1)
+	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromOldEpochsWithoutCache(testKey2)
+	res, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -414,9 +414,9 @@ func TestPruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(
 	args := getDefaultArgs()
 	ps, _ := pruning.NewPruningStorer(args)
 	cacher := testscommon.NewCacherStub()
-	cacher.GetCalled = func(_ []byte) (interface{}, bool) {
+	cacher.PutCalled = func(_ []byte, _ interface{}, _ int) bool {
 		require.Fail(t, "this should not be called")
-		return nil, false
+		return false
 	}
 	ps.SetCacher(cacher)
 	testKey1 := []byte("key1")
@@ -426,7 +426,7 @@ func TestPruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(
 	assert.Nil(t, err)
 	ps.ClearCache()
 
-	res, err := ps.GetFromOldEpochsWithoutCache(testKey1)
+	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
