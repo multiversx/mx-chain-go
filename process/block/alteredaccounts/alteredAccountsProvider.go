@@ -43,13 +43,12 @@ type ArgsAlteredAccountsProvider struct {
 }
 
 type alteredAccountsProvider struct {
-	shardCoordinator            sharding.Coordinator
-	addressConverter            core.PubkeyConverter
-	accountsDB                  state.AccountsAdapter
-	marshalizer                 marshal.Marshalizer
-	fungibleTokensIdentifier    map[string]struct{}
-	nonFungibleTokensIdentifier map[string]struct{}
-	mutExtractAccounts          sync.Mutex
+	shardCoordinator   sharding.Coordinator
+	addressConverter   core.PubkeyConverter
+	accountsDB         state.AccountsAdapter
+	marshalizer        marshal.Marshalizer
+	tokensProc         *tokensProcessor
+	mutExtractAccounts sync.Mutex
 }
 
 // NewAlteredAccountsProvider returns a new instance of alteredAccountsProvider
@@ -72,21 +71,7 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 		addressConverter: args.AddressConverter,
 		accountsDB:       args.AccountsDB,
 		marshalizer:      args.Marshalizer,
-		fungibleTokensIdentifier: map[string]struct{}{
-			core.BuiltInFunctionESDTTransfer:         {},
-			core.BuiltInFunctionESDTBurn:             {},
-			core.BuiltInFunctionESDTLocalMint:        {},
-			core.BuiltInFunctionESDTLocalBurn:        {},
-			core.BuiltInFunctionESDTWipe:             {},
-			core.BuiltInFunctionMultiESDTNFTTransfer: {},
-		},
-		nonFungibleTokensIdentifier: map[string]struct{}{
-			core.BuiltInFunctionESDTNFTTransfer:      {},
-			core.BuiltInFunctionESDTNFTBurn:          {},
-			core.BuiltInFunctionESDTNFTAddQuantity:   {},
-			core.BuiltInFunctionESDTNFTCreate:        {},
-			core.BuiltInFunctionMultiESDTNFTTransfer: {},
-		},
+		tokensProc:       newTokensProcessor(),
 	}, nil
 }
 
@@ -97,7 +82,7 @@ func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *index
 
 	markedAccounts := make(map[string]*markedAlteredAccount)
 	aap.extractAddressesWithBalanceChange(txPool, markedAccounts)
-	err := aap.extractESDTAccounts(txPool, markedAccounts)
+	err := aap.tokensProc.extractESDTAccounts(txPool, markedAccounts)
 	if err != nil {
 		return nil, err
 	}
@@ -235,98 +220,6 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 	}
 
 	markedAlteredAccounts[string(address)] = &markedAlteredAccount{}
-}
-
-func (aap *alteredAccountsProvider) extractESDTAccounts(
-	txPool *indexer.Pool,
-	markedAlteredAccounts map[string]*markedAlteredAccount,
-) error {
-	var err error
-	for _, txLog := range txPool.Logs {
-		for _, event := range txLog.LogHandler.GetLogEvents() {
-			err = aap.processEvent(event, markedAlteredAccounts)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (aap *alteredAccountsProvider) processEvent(
-	event data.EventHandler,
-	markedAlteredAccounts map[string]*markedAlteredAccount,
-) error {
-	_, isEsdtOperation := aap.fungibleTokensIdentifier[string(event.GetIdentifier())]
-	if isEsdtOperation {
-		err := aap.extractEsdtData(event, zeroBigInt, markedAlteredAccounts)
-		if err != nil {
-			log.Debug("cannot extract esdt data", "error", err)
-			return err
-		}
-
-		return nil
-	}
-
-	_, isNftOperation := aap.nonFungibleTokensIdentifier[string(event.GetIdentifier())]
-	if isNftOperation {
-		topics := event.GetTopics()
-		if len(topics) == 0 {
-			return nil
-		}
-
-		nonce := topics[idxTokenNonceInTopics]
-		nonceBigInt := big.NewInt(0).SetBytes(nonce)
-		err := aap.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
-		if err != nil {
-			log.Debug("cannot extract nft data", "error", err)
-			return nil
-		}
-
-		return nil
-	}
-
-	return nil
-}
-
-func (aap *alteredAccountsProvider) extractEsdtData(
-	event data.EventHandler,
-	nonce *big.Int,
-	markedAlteredAccounts map[string]*markedAlteredAccount,
-) error {
-	address := event.GetAddress()
-	addressStr := string(address)
-	topics := event.GetTopics()
-	if len(topics) == 0 {
-		return nil
-	}
-
-	// TODO: treat destination as well (for NFT and Multi transfers - topics[3] is the receiver address)
-	tokenID := topics[idxTokenIDInTopics]
-
-	_, exists := markedAlteredAccounts[addressStr]
-	if !exists {
-		markedAlteredAccounts[addressStr] = &markedAlteredAccount{}
-	}
-
-	markedAccount := markedAlteredAccounts[addressStr]
-	if markedAccount.tokens == nil {
-		markedAccount.tokens = make(map[string]*markedAlteredAccountToken)
-	}
-
-	tokenKey := string(tokenID) + string(nonce.Bytes())
-	_, alreadyExists := markedAccount.tokens[tokenKey]
-	if alreadyExists {
-		return nil
-	}
-
-	markedAccount.tokens[tokenKey] = &markedAlteredAccountToken{
-		identifier: string(tokenID),
-		nonce:      nonce.Uint64(),
-	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
