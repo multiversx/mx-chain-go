@@ -33,10 +33,22 @@ func NewShardedFullHistoryPruningStorer(
 }
 
 func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (*FullHistoryPruningStorer, error) {
-	ps, err := initPruningStorer(args.StorerArgs, shardId)
+	err := checkArgs(args.StorerArgs)
 	if err != nil {
 		return nil, err
 	}
+
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args.StorerArgs, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	ps, err := initPruningStorer(args.StorerArgs, shardId, activePersisters, persistersMapByEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	ps.registerHandler(args.Notifier)
 
 	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
 		return nil, storage.ErrInvalidNumberOfOldPersisters

@@ -43,8 +43,8 @@ type StorageManager interface {
 	Get(key []byte) ([]byte, error)
 	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot([]byte, []byte, chan core.KeyValueHolder, SnapshotStatisticsHandler, uint32)
-	SetCheckpoint([]byte, []byte, chan core.KeyValueHolder, SnapshotStatisticsHandler)
+	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler, epoch uint32)
+	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *testing.T) {
+func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
@@ -44,7 +44,7 @@ func TestPruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *test
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 }
 
-func TestPruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {
+func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
@@ -68,7 +68,7 @@ func TestPruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 }
 
-func TestPruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
+func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()

@@ -464,7 +464,7 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 		MaxBatchSize:           10,
 	}
 
-	return pruning.NewPruningStorer(args)
+	return pruning.NewTriePruningStorer(args)
 }
 
 func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
