@@ -8,6 +8,7 @@ type StatusMetricsStub struct {
 	NetworkMetricsCalled                          func() map[string]interface{}
 	EconomicsMetricsCalled                        func() map[string]interface{}
 	EnableEpochsMetricsCalled                     func() map[string]interface{}
+	RatingsMetricsCalled                          func() map[string]interface{}
 	StatusMetricsWithoutP2PPrometheusStringCalled func() string
 }
 
@@ -37,7 +38,7 @@ func (sms *StatusMetricsStub) EconomicsMetrics() map[string]interface{} {
 
 // RatingsMetrics -
 func (sms *StatusMetricsStub) RatingsMetrics() map[string]interface{} {
-	return sms.EconomicsMetricsCalled()
+	return sms.RatingsMetricsCalled()
 }
 
 // StatusMetricsMapWithoutP2P -
