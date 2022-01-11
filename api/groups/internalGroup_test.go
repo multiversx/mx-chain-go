@@ -81,19 +81,11 @@ func TestGetRawMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	// metaBlock := block.MetaBlock{
-	// 	Nonce: 15,
-	// 	Round: 17,
-	// }
-
-	// marshalizer := mock.MarshalizerStub{}
-
-	// expectedBlock, err := marshalizer.Marshal(metaBlock)
-	// require.NoError(t, err)
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
 		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
-			return bytes.Repeat([]byte("1"), 10), nil
+			return expectedOutput, nil
 		},
 	}
 
@@ -110,26 +102,17 @@ func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
+	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
 func TestGetRawMetaBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	// metaBlock := block.MetaBlock{
-	// 	Nonce: 15,
-	// 	Round: 17,
-	// }
-
-	// 	marshalizer, err := marshalizerFactory.NewMarshalizer("gogo protobuf")
-	// 	require.NoError(t, err)
-
-	// expectedBlock, err := marshalizer.Marshal(metaBlock)
-	// require.NoError(t, err)
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
 		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
-			return bytes.Repeat([]byte("1"), 10), nil
+			return expectedOutput, nil
 		},
 	}
 
@@ -146,13 +129,7 @@ func TestGetRawMetaBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	// blockHeader := &block.MetaBlock{}
-	// err = marshalizer.Unmarshal(blockHeader, response.Data.Block)
-	// require.NoError(t, err)
-
-	// assert.Equal(t, metaBlock, blockHeader)
-
-	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
+	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
 // ----------------- Shard Block ---------------
@@ -206,19 +183,11 @@ func TestGetRawShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	// metaBlock := block.ShardBlock{
-	// 	Nonce: 15,
-	// 	Round: 17,
-	// }
-
-	// marshalizer := mock.MarshalizerStub{}
-
-	// expectedBlock, err := marshalizer.Marshal(metaBlock)
-	// require.NoError(t, err)
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
 		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
-			return bytes.Repeat([]byte("1"), 10), nil
+			return expectedOutput, nil
 		},
 	}
 
@@ -235,26 +204,17 @@ func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
+	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
 func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	// metaBlock := block.ShardBlock{
-	// 	Nonce: 15,
-	// 	Round: 17,
-	// }
-
-	// 	marshalizer, err := marshalizerFactory.NewMarshalizer("gogo protobuf")
-	// 	require.NoError(t, err)
-
-	// expectedBlock, err := marshalizer.Marshal(metaBlock)
-	// require.NoError(t, err)
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
 		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
-			return bytes.Repeat([]byte("1"), 10), nil
+			return expectedOutput, nil
 		},
 	}
 
@@ -271,13 +231,7 @@ func TestGetRawShardBlockByNonceMetaBlockCheck_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	// blockHeader := &block.ShardBlock{}
-	// err = marshalizer.Unmarshal(blockHeader, response.Data.Block)
-	// require.NoError(t, err)
-
-	// assert.Equal(t, metaBlock, blockHeader)
-
-	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
+	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
 // ---- MiniBlock
@@ -318,9 +272,11 @@ func TestGetRawMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
 func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
+
 	facade := mock.FacadeStub{
 		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
-			return bytes.Repeat([]byte("1"), 10), nil
+			return expectedOutput, nil
 		},
 	}
 
@@ -337,7 +293,7 @@ func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, bytes.Repeat([]byte("1"), 10), response.Data.Block)
+	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
 func getRawBlockRoutesConfig() config.ApiRoutesConfig {
