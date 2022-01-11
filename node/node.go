@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -35,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -107,6 +109,8 @@ type Node struct {
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
+
+	internalBlockProcessor blockAPI.APIRawBlockHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -1398,6 +1402,27 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+func (n *Node) createInternalBlockProcessor() error {
+	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	if err != nil {
+		return errors.New("error creating transaction status computer " + err.Error())
+	}
+
+	blockApiArgs := &blockAPI.APIBlockProcessorArg{
+		SelfShardID:              n.processComponents.ShardCoordinator().SelfId(),
+		Store:                    n.dataComponents.StorageService(),
+		Marshalizer:              n.coreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:              n.processComponents.HistoryRepository(),
+		UnmarshalTx:              n.unmarshalTransaction,
+		StatusComputer:           statusComputer,
+	}
+
+	n.internalBlockProcessor = blockAPI.NewInternalBlockProcessor(blockApiArgs)
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
