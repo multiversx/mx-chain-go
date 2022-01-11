@@ -158,13 +158,13 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.epochNotifier.CheckEpoch(headerHandler)
+	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
 	err = sp.checkScheduledRootHash(headerHandler)
 	if err != nil {
 		return err
 	}
-
-	sp.epochNotifier.CheckEpoch(headerHandler)
-	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
 		"epoch", headerHandler.GetEpoch(),
