@@ -88,6 +88,7 @@ func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Run("should check data from trie", testExtractAlteredAccountsFromPoolTrieDataChecks)
 	t.Run("should include esdt data", testExtractAlteredAccountsFromPoolShouldIncludeESDT)
 	t.Run("should include nft data", testExtractAlteredAccountsFromPoolShouldIncludeNFT)
+	t.Run("should include receiver from tokens logs", testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTopics)
 	t.Run("should work when an address has balance changes, esdt and nft", testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft)
 	t.Run("should work when an address has multiple nfts with different nonces", testExtractAlteredAccountsFromPoolAddressHasMultipleNfts)
 }
@@ -427,6 +428,58 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 		Nonce:      expectedToken.TokenMetaData.Nonce,
 		MetaData:   expectedToken.TokenMetaData,
 	}, res[encodedAddr].Tokens[0])
+}
+
+func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTopics(t *testing.T) {
+	t.Parallel()
+
+	receiverOnDestination := []byte("receiver on destination shard")
+	expectedToken := esdt.ESDigitalToken{
+		Value: big.NewInt(37),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: 38,
+		},
+	}
+	args := getMockArgs()
+	args.AccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &state.UserAccountStub{
+				RetrieveValueFromDataTrieTrackerCalled: func(_ []byte) ([]byte, error) {
+					tokenBytes, _ := args.Marshalizer.Marshal(expectedToken)
+					return tokenBytes, nil
+				},
+			}, nil
+		},
+	}
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+		Logs: []*data.LogData{
+			{
+				LogHandler: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(38).Bytes(),
+								nil,
+								receiverOnDestination,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, res, 2)
+
+	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
+	require.Contains(t, res, mapKeyToSearch)
 }
 
 func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *testing.T) {

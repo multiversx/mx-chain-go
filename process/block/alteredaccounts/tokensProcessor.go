@@ -6,14 +6,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+)
+
+const (
+	idxTokenIDInTopics         = 0
+	idxTokenNonceInTopics      = 1
+	idxReceiverAddressInTopics = 3
 )
 
 type tokensProcessor struct {
-	fungibleTokensIdentifiers map[string]struct{}
+	shardCoordinator            sharding.Coordinator
+	fungibleTokensIdentifiers   map[string]struct{}
 	nonFungibleTokensIdentifier map[string]struct{}
 }
 
-func newTokensProcessor() *tokensProcessor {
+func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor {
 	return &tokensProcessor{
 		fungibleTokensIdentifiers: map[string]struct{}{
 			core.BuiltInFunctionESDTTransfer:         {},
@@ -30,6 +38,7 @@ func newTokensProcessor() *tokensProcessor {
 			core.BuiltInFunctionESDTNFTCreate:        {},
 			core.BuiltInFunctionMultiESDTNFTTransfer: {},
 		},
+		shardCoordinator: shardCoordinator,
 	}
 }
 
@@ -92,15 +101,40 @@ func (tp *tokensProcessor) extractEsdtData(
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
 	address := event.GetAddress()
-	addressStr := string(address)
 	topics := event.GetTopics()
 	if len(topics) == 0 {
 		return nil
 	}
 
-	// TODO: treat destination as well (for NFT and Multi transfers - topics[3] is the receiver address)
+	// in case of esdt, nft or multi esdt transfera, the 3rd index of the topics contains the destination address
 	tokenID := topics[idxTokenIDInTopics]
+	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts)
+	if err != nil {
+		return err
+	}
 
+	if len(topics) > idxReceiverAddressInTopics {
+		destinationAddress := topics[idxReceiverAddressInTopics]
+		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (tp *tokensProcessor) processEsdtDataForAddress(
+	address []byte,
+	nonce *big.Int,
+	tokenID string,
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) error {
+	if !tp.isSameShard(address) {
+		return nil
+	}
+
+	addressStr := string(address)
 	_, exists := markedAlteredAccounts[addressStr]
 	if !exists {
 		markedAlteredAccounts[addressStr] = &markedAlteredAccount{}
@@ -111,16 +145,20 @@ func (tp *tokensProcessor) extractEsdtData(
 		markedAccount.tokens = make(map[string]*markedAlteredAccountToken)
 	}
 
-	tokenKey := string(tokenID) + string(nonce.Bytes())
+	tokenKey := tokenID + string(nonce.Bytes())
 	_, alreadyExists := markedAccount.tokens[tokenKey]
 	if alreadyExists {
 		return nil
 	}
 
 	markedAccount.tokens[tokenKey] = &markedAlteredAccountToken{
-		identifier: string(tokenID),
+		identifier: tokenID,
 		nonce:      nonce.Uint64(),
 	}
 
 	return nil
+}
+
+func (tp *tokensProcessor) isSameShard(address []byte) bool {
+	return tp.shardCoordinator.SelfId() == tp.shardCoordinator.ComputeId(address)
 }

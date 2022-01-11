@@ -20,11 +20,6 @@ var (
 	zeroBigInt = big.NewInt(0)
 )
 
-const (
-	idxTokenIDInTopics    = 0
-	idxTokenNonceInTopics = 1
-)
-
 type markedAlteredAccountToken struct {
 	identifier string
 	nonce      uint64
@@ -71,7 +66,7 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 		addressConverter: args.AddressConverter,
 		accountsDB:       args.AccountsDB,
 		marshalizer:      args.Marshalizer,
-		tokensProc:       newTokensProcessor(),
+		tokensProc:       newTokensProcessor(args.ShardCoordinator),
 	}, nil
 }
 
