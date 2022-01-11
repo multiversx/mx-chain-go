@@ -331,14 +331,12 @@ func TestNodeFacade_GetHeartbeats(t *testing.T) {
 				{
 					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
 					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},

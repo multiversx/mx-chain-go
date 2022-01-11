@@ -107,14 +107,10 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	mockTimer.IncrementSeconds(1)
 
 	expectedTime := time.Unix(1, 0)
-	expectedUptime := time.Duration(0)
-	expectedDownTime := 1 * time.Second
 	nonce := uint64(4455)
 	hbmi.HeartbeatReceived(uint32(0), uint32(3), "v0.1", dummyNodeDisplayName, dummyIdentity, dummyPeerType, nonce, 1, 0, "")
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 	assert.Equal(t, true, hbmi.GetIsActive())
-	assert.Equal(t, expectedUptime, hbmi.GetTotalUpTime())
-	assert.Equal(t, expectedDownTime, hbmi.GetTotalDownTime())
 	assert.Equal(t, nonce, hbmi.GetNonce())
 }
 
@@ -138,10 +134,6 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", dummyNodeDisplayName, dummyIdentity, dummyPeerType, 0, 1, 0, "")
 
-	expectedDownDuration := 1 * time.Second
-	expectedUpDuration := 1 * time.Second
-	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime())
-	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime())
 	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
@@ -167,10 +159,6 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", dummyNodeDisplayName, dummyIdentity, dummyPeerType, 0, 1, 0, "")
 
-	expectedDownDuration := 1500 * time.Millisecond
-	expectedUpDuration := maxUnresponsiveTime
-	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime())
-	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime())
 	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
@@ -195,9 +183,6 @@ func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t 
 	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", dummyNodeDisplayName, dummyIdentity, dummyPeerType, 0, 1, 0, "")
 
-	expectedDuration := time.Duration(0)
-	assert.Equal(t, expectedDuration, hbmi.GetTotalDownTime())
-	assert.Equal(t, expectedDuration, hbmi.GetTotalUpTime())
 	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
@@ -218,9 +203,6 @@ func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *t
 	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", dummyNodeDisplayName, dummyIdentity, dummyPeerType, 0, 1, 0, "")
 
-	expectedDuration := time.Duration(0)
-	assert.Equal(t, expectedDuration, hbmi.GetTotalUpTime())
-	assert.Equal(t, expectedDuration, hbmi.GetTotalDownTime())
 	expectedTime := time.Unix(1, 0)
 	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }

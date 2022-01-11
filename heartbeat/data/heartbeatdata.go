@@ -11,12 +11,9 @@ import (
 type PubKeyHeartbeat struct {
 	PublicKey       string    `json:"publicKey"`
 	TimeStamp       time.Time `json:"timeStamp"`
-	MaxInactiveTime Duration  `json:"maxInactiveTime"`
 	IsActive        bool      `json:"isActive"`
 	ReceivedShardID uint32    `json:"receivedShardID"`
 	ComputedShardID uint32    `json:"computedShardID"`
-	TotalUpTime     int64     `json:"totalUpTimeSec"`
-	TotalDownTime   int64     `json:"totalDownTimeSec"`
 	VersionNumber   string    `json:"versionNumber"`
 	NodeDisplayName string    `json:"nodeDisplayName"`
 	Identity        string    `json:"identity"`
