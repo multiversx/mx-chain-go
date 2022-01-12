@@ -1,13 +1,10 @@
 package process
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -105,13 +102,7 @@ func (b *baseProcessor) getTxsInfoFromMiniBlock(
 // CreatePostMiniBlocks will create all the post miniBlocks from the given miniBlocks info
 func (b *baseProcessor) CreatePostMiniBlocks(mbsInfo []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
 	// TODO: need to add scheduled component for hardfork as well
-	gasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		GasProvided:     0,
-		GasPenalized:    0,
-		GasRefunded:     0,
-	}
+	gasAndFees := process.GetZeroGasAndFees()
 	b.txCoordinator.CreateBlockStarted(gasAndFees)
 
 	body := &block.Body{

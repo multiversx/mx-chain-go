@@ -290,7 +290,9 @@ func TestStartInEpochWithScheduledDataSyncer_GetRootHashToSyncWithScheduled(t *t
 			RootHash: blockRootHash,
 			Reserved: nil,
 		},
-		ScheduledRootHash: expectedRootHash,
+		ScheduledRootHash:        expectedRootHash,
+		ScheduledAccumulatedFees: big.NewInt(0),
+		ScheduledDeveloperFees:   big.NewInt(0),
 	}
 
 	rootHash := ds.GetRootHashToSync(notarizedHeader)
@@ -391,7 +393,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRs(t *testing.T) {
 				require.Equal(t, expectedHeaderHash, headerHash)
 				require.Equal(t, expectedScheduledRootHash, scheduledRootHash)
 				require.Equal(t, expectedGasAndFees, gasAndFees)
-				for i, v := range mapScheduledSCRs{
+				for i, v := range mapScheduledSCRs {
 					require.Equal(t, len(expectedScheduledSCRsMap[i]), len(v))
 					for j := range v {
 						require.Contains(t, expectedScheduledSCRsMap[i], v[j])

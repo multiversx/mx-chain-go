@@ -91,6 +91,7 @@ type ArgEnableEpoch struct {
 	UnbondTokensV2EnableEpoch           uint32
 	BackwardCompSaveKeyValueEnableEpoch uint32
 	CleanUpInformativeSCRsEnableEpoch   uint32
+	ScheduledMiniBlocksEnableEpoch      uint32
 }
 
 // VMTestAccount -
@@ -136,7 +137,6 @@ func (vmTestContext *VMTestContext) Close() {
 func (vmTestContext *VMTestContext) GetLatestError() error {
 	return vmTestContext.ScProcessor.GetLatestTestError()
 }
-
 
 func getZeroGasAndFees() scheduled.GasAndFees {
 	return scheduled.GasAndFees{

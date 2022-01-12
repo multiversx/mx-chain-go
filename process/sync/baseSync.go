@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"math"
-	"math/big"
 	"sync"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -769,14 +767,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 		if err != nil {
-			gasAndFees := scheduled.GasAndFees{
-				AccumulatedFees: big.NewInt(0),
-				DeveloperFees:   big.NewInt(0),
-				GasProvided:     0,
-				GasPenalized:    0,
-				GasRefunded:     0,
-			}
-			boot.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+			gasAndFees := process.GetZeroGasAndFees()
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
@@ -920,14 +912,8 @@ func (boot *baseBootstrap) restoreState(
 
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
-		gasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(0),
-			DeveloperFees:   big.NewInt(0),
-			GasProvided:     0,
-			GasPenalized:    0,
-			GasRefunded:     0,
-		}
-		boot.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		gasAndFees := process.GetZeroGasAndFees()
+		boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())

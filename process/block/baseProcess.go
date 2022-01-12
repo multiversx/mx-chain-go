@@ -509,8 +509,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
-	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFee()
-
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFeesMetrics()
 	bp.txCoordinator.CreateBlockStarted(scheduledGasAndFees)
 	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
@@ -1190,7 +1189,7 @@ func (bp *baseProcessor) updateStateStorage(
 // RevertCurrentBlock reverts the current block for cleanup failed process
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
-	bp.revertScheduledRootHashSCRsAndGas()
+	bp.revertScheduledRootHashSCRsGasAndFees()
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1202,18 +1201,12 @@ func (bp *baseProcessor) revertAccountState() {
 	}
 }
 
-func (bp *baseProcessor) revertScheduledRootHashSCRsAndGas() {
+func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		gasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(0),
-			DeveloperFees:   big.NewInt(0),
-			GasProvided:     0,
-			GasPenalized:    0,
-			GasRefunded:     0,
-		}
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		gasAndFees := process.GetZeroGasAndFees()
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 }
 
@@ -1580,7 +1573,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 
 	startTime := time.Now()
 
-	normalProcessingGasMetrics := bp.getFeesAndGasMetrics()
+	normalProcessingGasAndFeesMetrics := bp.getGasAndFeesMetrics()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1594,15 +1587,15 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	if err != nil {
 		return err
 	}
-	finalGasMetrics := bp.getFeesAndGasMetrics()
-	scheduledProcessingGasMetrics := feeAndGasMetricsDelta(normalProcessingGasMetrics, finalGasMetrics)
+	finalProcessingGasAndFeesMetrics := bp.getGasAndFeesMetrics()
+	scheduledProcessingGasAndFeesMetrics := gasAndFeesMetricsDelta(normalProcessingGasAndFeesMetrics, finalProcessingGasAndFeesMetrics)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
-	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFeeMetrics(scheduledProcessingGasMetrics)
+	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFeesMetrics(scheduledProcessingGasAndFeesMetrics)
 
 	return nil
 }
 
-func (bp *baseProcessor) getFeesAndGasMetrics() scheduled.GasAndFees {
+func (bp *baseProcessor) getGasAndFeesMetrics() scheduled.GasAndFees {
 	return scheduled.GasAndFees{
 		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
 		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
@@ -1612,15 +1605,9 @@ func (bp *baseProcessor) getFeesAndGasMetrics() scheduled.GasAndFees {
 	}
 }
 
-func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
+func gasAndFeesMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
 	zero := big.NewInt(0)
-	result := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		GasProvided:     0,
-		GasPenalized:    0,
-		GasRefunded:     0,
-	}
+	result := process.GetZeroGasAndFees()
 
 	deltaAccumulatedFees := big.NewInt(0).Sub(finalMetrics.AccumulatedFees, initialMetrics.AccumulatedFees)
 	if deltaAccumulatedFees.Cmp(zero) < 0 {
