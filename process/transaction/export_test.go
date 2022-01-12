@@ -84,5 +84,5 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 }
 
 func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
-	txProc.flagBuiltInFunction.SetValue(set)
+	txProc.flagBuiltInFunction.Toggle(set)
 }

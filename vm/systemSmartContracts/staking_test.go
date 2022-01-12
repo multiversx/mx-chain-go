@@ -2054,7 +2054,7 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 
-	stakingSmartContract.flagCorrectLastUnjailed.Reset()
+	stakingSmartContract.flagCorrectLastUnjailed.Unset()
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
@@ -2119,14 +2119,14 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("thirddKey"))
 
-	sc.flagValidatorToDelegation.Reset()
+	sc.flagValidatorToDelegation.Unset()
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "changeOwnerAndRewardAddress"
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 
-	_ = sc.flagValidatorToDelegation.SetReturningPrevious()
+	_ = sc.flagValidatorToDelegation.Set()
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -2222,9 +2222,9 @@ func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 			args.Eei = eei
 			sc, _ := NewStakingSmartContract(args)
 			if tt.flag {
-				_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+				_ = sc.flagCorrectFirstQueued.Set()
 			} else {
-				sc.flagCorrectFirstQueued.Reset()
+				sc.flagCorrectFirstQueued.Unset()
 			}
 			err := sc.removeFromWaitingList(firstBLS)
 
@@ -2272,7 +2272,7 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstBeforeFix(t *tes
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	sc, _ := NewStakingSmartContract(args)
-	sc.flagCorrectFirstQueued.Reset()
+	sc.flagCorrectFirstQueued.Unset()
 
 	err := sc.removeFromWaitingList(secondBLS)
 	assert.Nil(t, err)
@@ -2323,7 +2323,7 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstAfterFix(t *test
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	sc, _ := NewStakingSmartContract(args)
-	_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+	_ = sc.flagCorrectFirstQueued.Set()
 
 	err := sc.removeFromWaitingList(secondBLS)
 	assert.Nil(t, err)
@@ -2379,7 +2379,7 @@ func TestStakingSc_RemoveFromWaitingListNotFoundPreviousShouldErrAndFinish(t *te
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	sc, _ := NewStakingSmartContract(args)
-	_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+	_ = sc.flagCorrectFirstQueued.Set()
 
 	err := sc.removeFromWaitingList(thirdBLS)
 	assert.Equal(t, vm.ErrElementNotFound, err)
@@ -2416,7 +2416,7 @@ func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	sc, _ := NewStakingSmartContract(args)
-	sc.flagCorrectFirstQueued.Reset()
+	sc.flagCorrectFirstQueued.Unset()
 	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
 	assert.Nil(t, err)
 
@@ -2474,7 +2474,7 @@ func TestStakingSc_InsertAfterLastJailedAfterFix(t *testing.T) {
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	sc, _ := NewStakingSmartContract(args)
-	_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+	_ = sc.flagCorrectFirstQueued.Set()
 	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
 	assert.Nil(t, err)
 
@@ -2529,7 +2529,7 @@ func TestStakingSc_InsertAfterLastJailedAfterFixWithEmptyQueue(t *testing.T) {
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	sc, _ := NewStakingSmartContract(args)
-	_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+	_ = sc.flagCorrectFirstQueued.Set()
 	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
 	assert.Nil(t, err)
 
@@ -2582,7 +2582,7 @@ func TestStakingSc_fixWaitingListQueueSize(t *testing.T) {
 		}
 		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
 		alterWaitingListLength(t, eei, marshalizer)
-		sc.flagCorrectFirstQueued.Reset()
+		sc.flagCorrectFirstQueued.Unset()
 		eei.SetGasProvided(500000000)
 
 		arguments := CreateVmContractCallInput()
@@ -2834,7 +2834,7 @@ func makeWrongConfigForWaitingBlsKeysListWithLastJailed(t *testing.T, waitingBls
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	args.GasCost.MetaChainSystemSCsCost.FixWaitingListSize = 500000000
 	sc, _ := NewStakingSmartContract(args)
-	_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+	_ = sc.flagCorrectFirstQueued.Set()
 	stakerAddress := []byte("stakerAddr")
 
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("eligibleBlsKey1"))
@@ -3029,13 +3029,13 @@ func TestStakingSc_fixMissingNodeOnQueue(t *testing.T) {
 	arguments.Arguments = make([][]byte, 0)
 
 	eei.returnMessage = ""
-	sc.flagCorrectFirstQueued.Reset()
+	sc.flagCorrectFirstQueued.Unset()
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 	assert.Equal(t, "invalid method to call", eei.returnMessage)
 
 	eei.returnMessage = ""
-	_ = sc.flagCorrectFirstQueued.SetReturningPrevious()
+	_ = sc.flagCorrectFirstQueued.Set()
 	arguments.CallValue = big.NewInt(10)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)

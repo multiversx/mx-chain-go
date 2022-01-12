@@ -1043,7 +1043,7 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNoncesWithFrontRunnin
 	}
 
 	var frontRunProtection atomic.Flag
-	_ = frontRunProtection.SetReturningPrevious()
+	_ = frontRunProtection.Set()
 	txpreproc := &transactions{
 		basePreProcess: &basePreProcess{
 			hasher:                     hasher,

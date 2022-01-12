@@ -1590,6 +1590,6 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
+	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

@@ -1246,11 +1246,11 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
-	vs.flagJailedEnabled.SetValue(epoch >= vs.jailedEnableEpoch)
+	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
-	vs.flagStakingV2Enabled.SetValue(epoch > vs.stakingV2EnableEpoch)
+	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)
 	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
-	vs.flagStopDecreasingValidatorRatingEnabled.SetValue(epoch >= vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
+	vs.flagStopDecreasingValidatorRatingEnabled.Toggle(epoch >= vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
 	log.Debug("validatorStatistics: stop decreasing validator rating",
 		"is enabled", vs.flagStopDecreasingValidatorRatingEnabled.IsSet(),
 		"max consecutive rounds of rating decrease", vs.maxConsecutiveRoundsOfRatingDecrease)

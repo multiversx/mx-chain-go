@@ -215,7 +215,7 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (tth *txTypeHandler) EpochConfirmed(epoch uint32, _ uint64) {
-	tth.flagRelayedTxV2.SetValue(epoch >= tth.relayedTxV2EnableEpoch)
+	tth.flagRelayedTxV2.Toggle(epoch >= tth.relayedTxV2EnableEpoch)
 	log.Debug("txTypeHandler: relayed transactions v2", "enabled", tth.flagRelayedTxV2.IsSet())
 }
 

@@ -1449,16 +1449,16 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch)
+	s.flagSwitchJailedWaiting.Toggle(epoch >= s.switchEnableEpoch)
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
-	s.flagHystNodesEnabled.SetValue(epoch == s.hystNodesEnableEpoch)
+	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 
-	s.flagChangeMaxNodesEnabled.SetValue(false)
+	s.flagChangeMaxNodesEnabled.Toggle(false)
 	for _, maxNodesConfig := range s.maxNodesEnableConfig {
 		if epoch == maxNodesConfig.EpochEnable {
-			s.flagChangeMaxNodesEnabled.SetValue(true)
+			s.flagChangeMaxNodesEnabled.Toggle(true)
 			s.maxNodes = maxNodesConfig.MaxNumNodes
 			break
 		}
@@ -1468,11 +1468,11 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 		"enabled", epoch >= s.hystNodesEnableEpoch)
 
 	// only toggle on exact epoch as init should be called only once
-	s.flagDelegationEnabled.SetValue(epoch == s.delegationEnableEpoch)
+	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
 	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
-	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
-	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch)
+	s.flagSetOwnerEnabled.Toggle(epoch == s.stakingV2EnableEpoch)
+	s.flagStakingV2Enabled.Toggle(epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
@@ -1480,18 +1480,18 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 		"maxNodes", s.maxNodes,
 	)
 
-	s.flagCorrectLastUnjailedEnabled.SetValue(epoch == s.correctLastUnJailEpoch)
+	s.flagCorrectLastUnjailedEnabled.Toggle(epoch == s.correctLastUnJailEpoch)
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
 
-	s.flagCorrectNumNodesToStake.SetValue(epoch >= s.correctLastUnJailEpoch)
+	s.flagCorrectNumNodesToStake.Toggle(epoch >= s.correctLastUnJailEpoch)
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
-	s.flagESDTEnabled.SetValue(epoch == s.esdtEnableEpoch)
+	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
 	log.Debug("systemSCProcessor: ESDT initialization", "enabled", s.flagESDTEnabled.IsSet())
 
-	s.flagSaveJailedAlwaysEnabled.SetValue(epoch >= s.saveJailedAlwaysEnableEpoch)
+	s.flagSaveJailedAlwaysEnabled.Toggle(epoch >= s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
 
-	s.flagGovernanceEnabled.SetValue(epoch == s.governanceEnableEpoch)
+	s.flagGovernanceEnabled.Toggle(epoch == s.governanceEnableEpoch)
 	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
 }

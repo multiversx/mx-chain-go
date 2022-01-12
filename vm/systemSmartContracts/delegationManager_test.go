@@ -203,7 +203,7 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
-	dm.delegationMgrEnabled.Reset()
+	dm.delegationMgrEnabled.Unset()
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
 
 	output := dm.Execute(vmInput)
@@ -772,12 +772,12 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
-	d.flagValidatorToDelegation.Reset()
+	d.flagValidatorToDelegation.Unset()
 	returnCode := d.checkValidatorToDelegationInput(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	_ = d.flagValidatorToDelegation.Set()
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.checkValidatorToDelegationInput(vmInput)
@@ -820,12 +820,12 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	d.flagValidatorToDelegation.Reset()
+	d.flagValidatorToDelegation.Unset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	_ = d.flagValidatorToDelegation.Set()
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -864,12 +864,12 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	d.flagValidatorToDelegation.Reset()
+	d.flagValidatorToDelegation.Unset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	_ = d.flagValidatorToDelegation.Set()
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -950,7 +950,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	serviceFee := []byte{10}
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
-	d.flagValidatorToDelegation.Reset()
+	d.flagValidatorToDelegation.Unset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
@@ -958,7 +958,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 
 func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvalidNumArgs(t *testing.T) {
 	d, eei := createTestEEIAndDelegationFormMergeValidator()
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	_ = d.flagValidatorToDelegation.Set()
 
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
@@ -1013,7 +1013,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListMissin
 
 func prepareVmInputContextAndDelegationManager(d *delegationManager, eei *vmContext) *vmcommon.ContractCallInput {
 	eei.returnMessage = ""
-	_ = d.flagValidatorToDelegation.SetReturningPrevious()
+	_ = d.flagValidatorToDelegation.Set()
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", make([][]byte, 0))
 	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
 	vmInput.CallValue.SetUint64(0)

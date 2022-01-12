@@ -232,11 +232,11 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	gsc.flagEnabled.Reset()
+	gsc.flagEnabled.Unset()
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	_ = gsc.flagEnabled.SetReturningPrevious()
+	_ = gsc.flagEnabled.Set()
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)

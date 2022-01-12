@@ -59,7 +59,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	defer rc.mutRewardsData.Unlock()
 
 	rc.clean()
-	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
+	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
 
 	economicsData := metaBlock.GetEpochStartHandler().GetEconomicsHandler()
 	log.Debug("rewardsCreator.CreateRewardsMiniBlocks",

@@ -649,7 +649,7 @@ func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
-	bh.flagIsPayableBySC.SetValue(epoch >= bh.isPayableBySCEnableEpoch)
+	bh.flagIsPayableBySC.Toggle(epoch >= bh.isPayableBySCEnableEpoch)
 	log.Debug("blockchainHookImpl is payable by SC", "enabled", bh.flagIsPayableBySC.IsSet())
 }
 

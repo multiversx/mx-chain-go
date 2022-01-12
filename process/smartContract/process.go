@@ -2733,52 +2733,52 @@ func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, e
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	sc.flagDeploy.SetValue(epoch >= sc.deployEnableEpoch)
+	sc.flagDeploy.Toggle(epoch >= sc.deployEnableEpoch)
 	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
 
-	sc.flagBuiltin.SetValue(epoch >= sc.builtinEnableEpoch)
+	sc.flagBuiltin.Toggle(epoch >= sc.builtinEnableEpoch)
 	log.Debug("scProcessor: built in functions", "enabled", sc.flagBuiltin.IsSet())
 
-	sc.flagPenalizedTooMuchGas.SetValue(epoch >= sc.penalizedTooMuchGasEnableEpoch)
+	sc.flagPenalizedTooMuchGas.Toggle(epoch >= sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("scProcessor: penalized too much gas", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
 
-	sc.flagRepairCallBackData.SetValue(epoch >= sc.repairCallBackEnableEpoch)
+	sc.flagRepairCallBackData.Toggle(epoch >= sc.repairCallBackEnableEpoch)
 	log.Debug("scProcessor: repair call back", "enabled", sc.flagRepairCallBackData.IsSet())
 
-	sc.flagStakingV2.SetValue(epoch > sc.stakingV2EnableEpoch)
+	sc.flagStakingV2.Toggle(epoch > sc.stakingV2EnableEpoch)
 	log.Debug("scProcessor: staking v2", "enabled", sc.flagStakingV2.IsSet())
 
-	sc.flagReturnDataToLastTransfer.SetValue(epoch > sc.returnDataToLastTransferEnableEpoch)
+	sc.flagReturnDataToLastTransfer.Toggle(epoch > sc.returnDataToLastTransferEnableEpoch)
 	log.Debug("scProcessor: return data to last transfer", "enabled", sc.flagReturnDataToLastTransfer.IsSet())
 
-	sc.flagSenderInOutTransfer.SetValue(epoch >= sc.senderInOutTransferEnableEpoch)
+	sc.flagSenderInOutTransfer.Toggle(epoch >= sc.senderInOutTransferEnableEpoch)
 	log.Debug("scProcessor: sender in output transfer", "enabled", sc.flagSenderInOutTransfer.IsSet())
 
-	sc.flagIncrementSCRNonceInMultiTransfer.SetValue(epoch >= sc.incrementSCRNonceInMultiTransferEnableEpoch)
+	sc.flagIncrementSCRNonceInMultiTransfer.Toggle(epoch >= sc.incrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug("scProcessor: increment SCR nonce in multi transfer", "enabled", sc.flagIncrementSCRNonceInMultiTransfer.IsSet())
 
-	sc.flagBuiltInFunctionOnMetachain.SetValue(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
+	sc.flagBuiltInFunctionOnMetachain.Toggle(epoch >= sc.builtInFunctionOnMetachainEnableEpoch)
 	log.Debug("scProcessor: built in functions on metachain", "enabled", sc.flagBuiltInFunctionOnMetachain.IsSet())
 
-	sc.flagSCRSizeInvariantCheck.SetValue(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
+	sc.flagSCRSizeInvariantCheck.Toggle(epoch >= sc.scrSizeInvariantCheckEnableEpoch)
 	log.Debug("scProcessor: scr size invariant check", "enabled", sc.flagSCRSizeInvariantCheck.IsSet())
 
-	sc.flagBackwardCompOnSaveKeyValue.SetValue(epoch < sc.backwardCompSaveKeyValueEnableEpoch)
+	sc.flagBackwardCompOnSaveKeyValue.Toggle(epoch < sc.backwardCompSaveKeyValueEnableEpoch)
 	log.Debug("scProcessor: backward compatibility on save key value", "enabled", sc.flagBackwardCompOnSaveKeyValue.IsSet())
 
-	sc.flagCreatedCallBackCrossShardOnly.SetValue(epoch >= sc.createdCallBackCrossShardOnlyEnableEpoch)
+	sc.flagCreatedCallBackCrossShardOnly.Toggle(epoch >= sc.createdCallBackCrossShardOnlyEnableEpoch)
 	log.Debug("scProcessor: created callback cross shard only", "enabled", sc.flagCreatedCallBackCrossShardOnly.IsSet())
 
-	sc.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	sc.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("scProcessor: optimize gas used in cross mini blocks", "enabled", sc.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 
-	sc.flagSaveKeyValueUnderProtectedError.SetValue(epoch >= sc.saveKeyValueUnderProtectedErrorEnableEpoch)
+	sc.flagSaveKeyValueUnderProtectedError.Toggle(epoch >= sc.saveKeyValueUnderProtectedErrorEnableEpoch)
 	log.Debug("scProcessor: return failure when saving under protected key", "enabled", sc.flagSaveKeyValueUnderProtectedError.IsSet())
 
-	sc.flagOptimizeNFTStore.SetValue(epoch >= sc.optimizeNFTStoreEnableEpoch)
+	sc.flagOptimizeNFTStore.Toggle(epoch >= sc.optimizeNFTStoreEnableEpoch)
 	log.Debug("scProcessor: optimize nft store", "enabled", sc.flagOptimizeNFTStore.IsSet())
 
-	sc.flagCleanUpInformativeSCRs.SetValue(epoch >= sc.cleanUpInformativeSCRsEnableEpoch)
+	sc.flagCleanUpInformativeSCRs.Toggle(epoch >= sc.cleanUpInformativeSCRsEnableEpoch)
 	log.Debug("scProcessor: cleanup scr data", "enabled", sc.flagCleanUpInformativeSCRs.IsSet())
 }
 

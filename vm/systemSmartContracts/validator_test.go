@@ -439,7 +439,7 @@ func TestStakingValidatorSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	_ = validatorSc.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
 	assert.Equal(t, 2, len(registeredData.BlsPubKeys))
 
-	_ = validatorSc.flagDoubleKey.SetReturningPrevious()
+	_ = validatorSc.flagDoubleKey.Set()
 	arguments.Function = "cleanRegisteredData"
 	arguments.CallValue = big.NewInt(0)
 	arguments.Arguments = [][]byte{}
@@ -4578,7 +4578,7 @@ func TestValidatorSC_getUnStakedTokensList_InvalidArgumentsCountShouldErr(t *tes
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 
-	_ = stakingValidatorSc.flagEnableTopUp.SetReturningPrevious()
+	_ = stakingValidatorSc.flagEnableTopUp.Set()
 
 	arguments.Function = "getUnStakedTokensList"
 	arguments.CallValue = big.NewInt(10)
@@ -4607,7 +4607,7 @@ func TestValidatorSC_getUnStakedTokensList_CallValueNotZeroShouldErr(t *testing.
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 
-	_ = stakingValidatorSc.flagEnableTopUp.SetReturningPrevious()
+	_ = stakingValidatorSc.flagEnableTopUp.Set()
 
 	arguments.Function = "getUnStakedTokensList"
 	arguments.CallValue = big.NewInt(10)
@@ -4671,7 +4671,7 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 
 	stakingValidatorSc.unBondPeriodInEpochs = unBondPeriod
-	_ = stakingValidatorSc.flagEnableTopUp.SetReturningPrevious()
+	_ = stakingValidatorSc.flagEnableTopUp.Set()
 
 	arguments.Function = "getUnStakedTokensList"
 	arguments.CallValue = big.NewInt(0)
@@ -4746,12 +4746,12 @@ func TestStakingValidatorSC_checkInputArgsForValidatorToDelegationErrors(t *test
 	sc, _ := NewValidatorSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	sc.flagValidatorToDelegation.Reset()
+	sc.flagValidatorToDelegation.Unset()
 	returnCode := sc.checkInputArgsForValidatorToDelegation(arguments)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid method to call")
 
-	_ = sc.flagValidatorToDelegation.SetReturningPrevious()
+	_ = sc.flagValidatorToDelegation.Set()
 	eei.returnMessage = ""
 	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
 	assert.Equal(t, vmcommon.UserError, returnCode)

@@ -18,8 +18,8 @@ func (cache *TxCache) doEviction() {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
-	_ = cache.isEvictionInProgress.SetReturningPrevious()
-	defer cache.isEvictionInProgress.Reset()
+	_ = cache.isEvictionInProgress.Set()
+	defer cache.isEvictionInProgress.Unset()
 
 	if !cache.isCapacityExceeded() {
 		return

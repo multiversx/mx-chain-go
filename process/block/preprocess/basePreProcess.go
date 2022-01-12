@@ -503,8 +503,8 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
-	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	bpp.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
+	bpp.flagFrontRunningProtection.Toggle(epoch >= bpp.frontRunningProtectionEnableEpoch)
 	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
 }

@@ -2140,22 +2140,22 @@ func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (v *validatorSC) EpochConfirmed(epoch uint32, _ uint64) {
-	v.flagEnableStaking.SetValue(epoch >= v.enableStakingEpoch)
+	v.flagEnableStaking.Toggle(epoch >= v.enableStakingEpoch)
 	log.Debug("validatorSC: stake/unstake/unbond", "enabled", v.flagEnableStaking.IsSet())
 
-	v.flagEnableTopUp.SetValue(epoch >= v.stakingV2Epoch)
+	v.flagEnableTopUp.Toggle(epoch >= v.stakingV2Epoch)
 	log.Debug("validatorSC: top up mechanism", "enabled", v.flagEnableTopUp.IsSet())
 
-	v.flagDoubleKey.SetValue(epoch >= v.enableDoubleKeyEpoch)
+	v.flagDoubleKey.Toggle(epoch >= v.enableDoubleKeyEpoch)
 	log.Debug("validatorSC: doubleKeyProtection", "enabled", v.flagDoubleKey.IsSet())
 
-	v.flagDelegationMgr.SetValue(epoch >= v.enableDelegationMgrEpoch)
+	v.flagDelegationMgr.Toggle(epoch >= v.enableDelegationMgrEpoch)
 	log.Debug("validatorSC: delegation manager", "enabled", v.flagDelegationMgr.IsSet())
 
-	v.flagValidatorToDelegation.SetValue(epoch >= v.validatorToDelegationEnableEpoch)
+	v.flagValidatorToDelegation.Toggle(epoch >= v.validatorToDelegationEnableEpoch)
 	log.Debug("validatorSC: validator to delegation", "enabled", v.flagValidatorToDelegation.IsSet())
 
-	v.flagUnbondTokensV2.SetValue(epoch >= v.enableUnbondTokensV2Epoch)
+	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2Epoch)
 	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
 }
 

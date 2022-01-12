@@ -777,9 +777,9 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
 
-	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.balanceWaitingListsEnableEpoch)
+	rhs.flagBalanceWaitingLists.Toggle(epoch >= rhs.balanceWaitingListsEnableEpoch)
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-	rhs.flagWaitingListFix.SetValue(epoch >= rhs.waitingListFixEnableEpoch)
+	rhs.flagWaitingListFix.Toggle(epoch >= rhs.waitingListFixEnableEpoch)
 	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 

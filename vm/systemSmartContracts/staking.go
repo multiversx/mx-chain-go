@@ -2073,19 +2073,19 @@ func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmco
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
-	s.flagEnableStaking.SetValue(epoch >= s.enableStakingEpoch)
+	s.flagEnableStaking.Toggle(epoch >= s.enableStakingEpoch)
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", s.flagEnableStaking.IsSet())
 
-	s.flagStakingV2.SetValue(epoch >= s.stakingV2Epoch)
+	s.flagStakingV2.Toggle(epoch >= s.stakingV2Epoch)
 	log.Debug("stakingSC: set owner", "enabled", s.flagStakingV2.IsSet())
 
-	s.flagCorrectLastUnjailed.SetValue(epoch >= s.correctLastUnjailedEpoch)
+	s.flagCorrectLastUnjailed.Toggle(epoch >= s.correctLastUnjailedEpoch)
 	log.Debug("stakingSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailed.IsSet())
 
-	s.flagValidatorToDelegation.SetValue(epoch >= s.validatorToDelegationEnableEpoch)
+	s.flagValidatorToDelegation.Toggle(epoch >= s.validatorToDelegationEnableEpoch)
 	log.Debug("stakingSC: validator to delegation", "enabled", s.flagValidatorToDelegation.IsSet())
 
-	s.flagCorrectFirstQueued.SetValue(epoch >= s.correctFirstQueuedEpoch)
+	s.flagCorrectFirstQueued.Toggle(epoch >= s.correctFirstQueuedEpoch)
 	log.Debug("stakingSC: correct first queued", "enabled", s.flagCorrectFirstQueued.IsSet())
 }
 

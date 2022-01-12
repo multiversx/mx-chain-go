@@ -2994,7 +2994,7 @@ func TestNode_DirectTrigger(t *testing.T) {
 		TriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
 			wasCalled = true
 			atomic.StoreUint32(&recoveredEpoch, epoch)
-			recoveredWithEarlyEndOfEpoch.SetValue(withEarlyEndOfEpoch)
+			recoveredWithEarlyEndOfEpoch.Toggle(withEarlyEndOfEpoch)
 
 			return nil
 		},

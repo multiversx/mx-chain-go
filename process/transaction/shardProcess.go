@@ -940,16 +940,16 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txProc *txProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	txProc.flagRelayedTx.SetValue(epoch >= txProc.relayedTxEnableEpoch)
+	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
 	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
 
-	txProc.flagRelayedTxV2.SetValue(epoch >= txProc.relayedTxV2EnableEpoch)
+	txProc.flagRelayedTxV2.Toggle(epoch >= txProc.relayedTxV2EnableEpoch)
 	log.Debug("txProcessor: relayed transactions v2", "enabled", txProc.flagRelayedTxV2.IsSet())
 
-	txProc.flagPenalizedTooMuchGas.SetValue(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
+	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
 
-	txProc.flagMetaProtection.SetValue(epoch >= txProc.metaProtectionEnableEpoch)
+	txProc.flagMetaProtection.Toggle(epoch >= txProc.metaProtectionEnableEpoch)
 	log.Debug("txProcessor: meta protection", "enabled", txProc.flagMetaProtection.IsSet())
 }
 

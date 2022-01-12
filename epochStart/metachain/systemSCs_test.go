@@ -1083,7 +1083,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	_ = s.flagDelegationEnabled.SetReturningPrevious()
+	_ = s.flagDelegationEnabled.Set()
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
@@ -1372,7 +1372,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 	}
 
-	s.flagSetOwnerEnabled.Reset()
+	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
@@ -1424,7 +1424,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWor
 		AccumulatedFees: big.NewInt(0),
 	})
 
-	s.flagSetOwnerEnabled.Reset()
+	s.flagSetOwnerEnabled.Unset()
 
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
@@ -1514,7 +1514,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 	}
 
-	s.flagSetOwnerEnabled.Reset()
+	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
@@ -1606,7 +1606,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 	}
 
-	s.flagSetOwnerEnabled.Reset()
+	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
@@ -1699,7 +1699,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 		peerAcc, _ := args.PeerAccountsDB.LoadAccount(vInfo.PublicKey)
 		_ = args.PeerAccountsDB.SaveAccount(peerAcc)
 	}
-	s.flagSetOwnerEnabled.Reset()
+	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
@@ -1869,7 +1869,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 	}
 
-	s.flagSetOwnerEnabled.Reset()
+	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 

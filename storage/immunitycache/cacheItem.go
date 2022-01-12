@@ -24,5 +24,5 @@ func (item *cacheItem) isImmuneToEviction() bool {
 }
 
 func (item *cacheItem) immunizeAgainstEviction() {
-	_ = item.isImmune.SetReturningPrevious()
+	_ = item.isImmune.Set()
 }

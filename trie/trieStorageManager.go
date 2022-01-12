@@ -673,7 +673,7 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (tsm *trieStorageManager) EpochConfirmed(epoch uint32, _ uint64) {
-	tsm.flagDisableOldStorage.SetValue(epoch >= tsm.disableOldStorageEpoch)
+	tsm.flagDisableOldStorage.Toggle(epoch >= tsm.disableOldStorageEpoch)
 	log.Debug("old trie storage", "disabled", tsm.flagDisableOldStorage.IsSet())
 
 	if tsm.flagDisableOldStorage.IsSet() && !tsm.oldStorageClosed {

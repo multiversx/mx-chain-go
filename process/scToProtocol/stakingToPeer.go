@@ -423,10 +423,10 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (stp *stakingToPeer) EpochConfirmed(epoch uint32, _ uint64) {
-	stp.flagStaking.SetValue(epoch >= stp.stakeEnableEpoch)
+	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
 
-	stp.flagValidatorToDelegation.SetValue(epoch >= stp.validatorToDelegationEnableEpoch)
+	stp.flagValidatorToDelegation.Toggle(epoch >= stp.validatorToDelegationEnableEpoch)
 	log.Debug("stakingToPeer: validator to delegation", "enabled", stp.flagValidatorToDelegation.IsSet())
 }
 
