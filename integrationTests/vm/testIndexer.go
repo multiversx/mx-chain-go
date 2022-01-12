@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/operations"
 	"sync"
 	"testing"
 	"time"
@@ -125,6 +126,7 @@ func (ti *testIndexer) createElasticProcessor(
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()
 	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
+	op, _ := operations.NewOperationsProcessor(false, shardCoordinator)
 	args := &logsevents.ArgsLogsAndEventsProcessor{
 		ShardCoordinator: shardCoordinator,
 		PubKeyConverter:  pubkeyConv,
@@ -149,6 +151,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorsProc:    vp,
 		LogsAndEventsProc: lp,
 		DBClient:          databaseClient,
+		OperationsProc:    op,
 	}
 
 	esProcessor, _ := elasticProcessor.NewElasticProcessor(esIndexerArgs)

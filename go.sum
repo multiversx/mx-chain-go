@@ -26,6 +26,8 @@ github.com/ElrondNetwork/covalent-indexer-go v1.0.6 h1:+LNKItUc+Pb7WuTbil3VuiLMm
 github.com/ElrondNetwork/covalent-indexer-go v1.0.6/go.mod h1:j3h2g96vqhJAuj3aEX2PWhomae2/o7YfXGEfweNXEeQ=
 github.com/ElrondNetwork/elastic-indexer-go v1.1.32 h1:R4mTyNKzw5VXtGnH/gVCqP5P6NnY1aZMeYOIG6GBBJg=
 github.com/ElrondNetwork/elastic-indexer-go v1.1.32/go.mod h1:k12hnUEjW8ZhYy4hC8RpsrAIiOxioVZOrLSUpgsEgFA=
+github.com/ElrondNetwork/elastic-indexer-go v1.2.0 h1:UT4CIfztBR3QVrDyt9PUKCM8V7ldCT4NIT00KK/NwXA=
+github.com/ElrondNetwork/elastic-indexer-go v1.2.0/go.mod h1:k12hnUEjW8ZhYy4hC8RpsrAIiOxioVZOrLSUpgsEgFA=
 github.com/ElrondNetwork/elrond-go-core v1.0.0/go.mod h1:FQMem7fFF4+8pQ6lVsBZq6yO+smD0nV23P4bJpmPjTo=
 github.com/ElrondNetwork/elrond-go-core v1.1.6/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.1.7 h1:pusBmtsS7lUzrDovW7XKWwhXIt3xRQg5hsB5bV8GkZQ=
