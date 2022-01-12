@@ -67,13 +67,13 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 	return fhps, nil
 }
 
-func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface{}) {
+func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 	pd, ok := value.(*persisterData)
 	if ok {
 		//since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
 		// the same mutex again here. It is safe to proceed without lock.
 
-		for _, active := range fhps.activePersisters {
+		for _, active := range ps.activePersisters {
 			if active.epoch == pd.epoch {
 				return
 			}
