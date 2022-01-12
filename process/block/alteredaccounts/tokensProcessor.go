@@ -135,12 +135,12 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 	}
 
 	addressStr := string(address)
-	_, exists := markedAlteredAccounts[addressStr]
+	markedAccount, exists := markedAlteredAccounts[addressStr]
 	if !exists {
-		markedAlteredAccounts[addressStr] = &markedAlteredAccount{}
+		markedAccount = &markedAlteredAccount{}
+		markedAlteredAccounts[addressStr] = markedAccount
 	}
 
-	markedAccount := markedAlteredAccounts[addressStr]
 	if markedAccount.tokens == nil {
 		markedAccount.tokens = make(map[string]*markedAlteredAccountToken)
 	}

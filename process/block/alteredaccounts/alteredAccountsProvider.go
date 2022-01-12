@@ -109,14 +109,14 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	account, err := aap.accountsDB.LoadAccount(addressBytes)
 	if err != nil {
 		log.Warn("cannot load account when computing altered accounts",
-			"address", addressBytes,
+			"address", encodedAddress,
 			"error", err)
 		return err
 	}
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", addressBytes)
+		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", encodedAddress)
 		return err
 	}
 
