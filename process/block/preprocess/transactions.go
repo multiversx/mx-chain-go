@@ -1096,6 +1096,13 @@ func (txs *transactions) processMiniBlockBuilderTx(
 	wtx *txcache.WrappedTransaction,
 	tx *transaction.Transaction,
 ) error {
+	defer func(mb *miniBlocksBuilder) {
+		log.Trace("transactions.processMiniBlockBuilderTx",
+			"gasInfo", mb.gasInfo,
+			"gasConsumedInReceiverShard", mb.gasConsumedInReceiverShard,
+		)
+	}(mb)
+
 	snapshot := mb.accounts.JournalLen()
 	startTime := time.Now()
 	err := txs.processAndRemoveBadTransaction(

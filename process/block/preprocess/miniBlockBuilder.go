@@ -270,6 +270,10 @@ func (mbb *miniBlocksBuilder) accountHasEnoughBalance(tx *transaction.Transactio
 }
 
 func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) error {
+	log.Trace("miniBlocksBuilder.accountGasForTx",
+			"gasInfo", mbb.gasInfo,
+			"gasConsumedInReceiverShard", mbb.gasConsumedInReceiverShard,
+		)
 	mbb.prevGasInfo = mbb.gasInfo
 	mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
 	startTime := time.Now()
