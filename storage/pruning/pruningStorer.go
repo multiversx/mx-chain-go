@@ -274,6 +274,29 @@ func computeOldestEpochActiveAndToKeep(args *StorerArgs) (int64, int64) {
 	return oldestEpochActive, oldestEpochKeep
 }
 
+func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
+	pd, ok := value.(*persisterData)
+	if ok {
+		//since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
+		// the same mutex again here. It is safe to proceed without lock.
+
+		for _, active := range ps.activePersisters {
+			if active.epoch == pd.epoch {
+				return
+			}
+		}
+
+		if pd.getIsClosed() {
+			return
+		}
+
+		err := pd.Close()
+		if err != nil {
+			log.Warn("initFullHistoryPruningStorer - onEvicted", "key", key, "err", err.Error())
+		}
+	}
+}
+
 // Put adds data to both cache and persistence medium and updates the bloom filter
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
