@@ -273,7 +273,7 @@ func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
 	}
 	wg.Wait()
 
-	val, _ := sm.StatusMetricsMap()[testKey]
+	val := sm.StatusMetricsMap()[testKey]
 	require.Equal(t, uint64(numIterations), val.(uint64))
 }
 
@@ -304,7 +304,7 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	}
 	wg.Wait()
 
-	val, _ := sm.StatusMetricsMap()[testKey]
+	val := sm.StatusMetricsMap()[testKey]
 	// we started with a value of initialValue (5000). after X + 1 increments and X decrements, the final
 	// value should be the original value, plus one (5001)
 
