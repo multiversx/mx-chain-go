@@ -10,14 +10,22 @@ import (
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers
 type statusMetrics struct {
-	nodeMetrics   map[string]interface{}
-	mutOperations sync.RWMutex
+	uint64Metrics       map[string]uint64
+	mutUint64Operations sync.RWMutex
+
+	stringMetrics       map[string]string
+	mutStringOperations sync.RWMutex
+
+	int64Metrics       map[string]int64
+	mutInt64Operations sync.RWMutex
 }
 
 // NewStatusMetrics will return an instance of the struct
 func NewStatusMetrics() *statusMetrics {
 	return &statusMetrics{
-		nodeMetrics: make(map[string]interface{}),
+		uint64Metrics: make(map[string]uint64),
+		stringMetrics: make(map[string]string),
+		int64Metrics:  make(map[string]int64),
 	}
 }
 
@@ -28,86 +36,72 @@ func (sm *statusMetrics) IsInterfaceNil() bool {
 
 // Increment method increment a metric
 func (sm *statusMetrics) Increment(key string) {
-	sm.mutOperations.Lock()
-	defer sm.mutOperations.Unlock()
+	sm.mutUint64Operations.Lock()
+	defer sm.mutUint64Operations.Unlock()
 
-	keyValueI, ok := sm.nodeMetrics[key]
+	value, ok := sm.uint64Metrics[key]
 	if !ok {
 		return
 	}
 
-	keyValue, ok := keyValueI.(uint64)
-	if !ok {
-		return
-	}
-
-	keyValue++
-	sm.nodeMetrics[key] = keyValue
+	value++
+	sm.uint64Metrics[key] = value
 }
 
 // AddUint64 method increase a metric with a specific value
 func (sm *statusMetrics) AddUint64(key string, val uint64) {
-	sm.mutOperations.Lock()
-	defer sm.mutOperations.Unlock()
+	sm.mutUint64Operations.Lock()
+	defer sm.mutUint64Operations.Unlock()
 
-	keyValueI, ok := sm.nodeMetrics[key]
+	value, ok := sm.uint64Metrics[key]
 	if !ok {
 		return
 	}
 
-	keyValue, ok := keyValueI.(uint64)
-	if !ok {
-		return
-	}
-
-	keyValue += val
-	sm.nodeMetrics[key] = keyValue
+	value += val
+	sm.uint64Metrics[key] = value
 }
 
 // Decrement method - decrement a metric
 func (sm *statusMetrics) Decrement(key string) {
-	sm.mutOperations.Lock()
-	defer sm.mutOperations.Unlock()
+	sm.mutUint64Operations.Lock()
+	defer sm.mutUint64Operations.Unlock()
 
-	keyValueI, ok := sm.nodeMetrics[key]
+	value, ok := sm.uint64Metrics[key]
 	if !ok {
 		return
 	}
 
-	keyValue, ok := keyValueI.(uint64)
-	if !ok {
-		return
-	}
-	if keyValue == 0 {
+	if value == 0 {
 		return
 	}
 
-	keyValue--
-	sm.nodeMetrics[key] = keyValue
+	value--
+	sm.uint64Metrics[key] = value
 }
 
 // SetInt64Value method - sets an int64 value for a key
 func (sm *statusMetrics) SetInt64Value(key string, value int64) {
-	sm.mutOperations.Lock()
-	defer sm.mutOperations.Unlock()
+	sm.mutInt64Operations.Lock()
+	defer sm.mutInt64Operations.Unlock()
 
-	sm.nodeMetrics[key] = value
+	sm.int64Metrics[key] = value
 }
 
 // SetUInt64Value method - sets an uint64 value for a key
 func (sm *statusMetrics) SetUInt64Value(key string, value uint64) {
-	sm.mutOperations.Lock()
-	defer sm.mutOperations.Unlock()
+	sm.mutUint64Operations.Lock()
+	defer sm.mutUint64Operations.Unlock()
 
-	sm.nodeMetrics[key] = value
+	sm.uint64Metrics[key] = value
 }
 
 // SetStringValue method - sets a string value for a key
 func (sm *statusMetrics) SetStringValue(key string, value string) {
-	sm.mutOperations.Lock()
-	defer sm.mutOperations.Unlock()
+	sm.mutStringOperations.Lock()
+	defer sm.mutStringOperations.Unlock()
 
-	sm.nodeMetrics[key] = value
+	sm.stringMetrics[key] = value
 }
 
 // Close method - won't do anything
@@ -116,29 +110,48 @@ func (sm *statusMetrics) Close() {
 
 // StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
 func (sm *statusMetrics) StatusMetricsMapWithoutP2P() map[string]interface{} {
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
+	return sm.getMetricsWithKeyFilterMutexProtected(func(input string) bool {
+		return !strings.Contains(input, "_p2p_")
+	})
+}
+
+// StatusP2pMetricsMap will return the p2p metrics in a map
+func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
+	return sm.getMetricsWithKeyFilterMutexProtected(func(input string) bool {
+		return strings.Contains(input, "_p2p_")
+	})
+}
+
+func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(input string) bool) map[string]interface{} {
+	sm.mutUint64Operations.RLock()
+	uint64Metrics := sm.uint64Metrics
+	sm.mutUint64Operations.RUnlock()
+
+	sm.mutStringOperations.RLock()
+	stringMetrics := sm.stringMetrics
+	sm.mutStringOperations.RUnlock()
+
+	sm.mutInt64Operations.RLock()
+	int64Metrics := sm.int64Metrics
+	sm.mutInt64Operations.RUnlock()
 
 	statusMetricsMap := make(map[string]interface{})
-	for key, value := range sm.nodeMetrics {
-		if strings.Contains(key, "_p2p_") {
+	for key, value := range uint64Metrics {
+		if !filterFunc(key) {
 			continue
 		}
 
 		statusMetricsMap[key] = value
 	}
+	for key, value := range stringMetrics {
+		if !filterFunc(key) {
+			continue
+		}
 
-	return statusMetricsMap
-}
-
-// StatusP2pMetricsMap will return the p2p metrics in a map
-func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
-
-	statusMetricsMap := make(map[string]interface{})
-	for key, value := range sm.nodeMetrics {
-		if strings.Contains(key, "_p2p_") {
+		statusMetricsMap[key] = value
+	}
+	for key, value := range int64Metrics {
+		if !filterFunc(key) {
 			continue
 		}
 
@@ -152,10 +165,11 @@ func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
 func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 	metrics := sm.StatusMetricsMapWithoutP2P()
 
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
+	sm.mutUint64Operations.RLock()
+	shardID := sm.uint64Metrics[common.MetricShardId]
+	sm.mutUint64Operations.RUnlock()
 
-	shardID := sm.loadUint64Metric(common.MetricShardId)
+
 	stringBuilder := strings.Builder{}
 	for key, value := range metrics {
 		_, isUint64 := value.(uint64)
@@ -171,27 +185,27 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 
 // EconomicsMetrics returns the economics related metrics
 func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
-
 	economicsMetrics := make(map[string]interface{})
 
+	sm.mutStringOperations.RLock()
 	economicsMetrics[common.MetricTotalSupply] = sm.loadStringMetric(common.MetricTotalSupply)
 	economicsMetrics[common.MetricTotalFees] = sm.loadStringMetric(common.MetricTotalFees)
 	economicsMetrics[common.MetricDevRewardsInEpoch] = sm.loadStringMetric(common.MetricDevRewardsInEpoch)
 	economicsMetrics[common.MetricInflation] = sm.loadStringMetric(common.MetricInflation)
+	sm.mutStringOperations.RUnlock()
+
+	sm.mutUint64Operations.RLock()
 	economicsMetrics[common.MetricEpochForEconomicsData] = sm.loadUint64Metric(common.MetricEpochForEconomicsData)
+	sm.mutUint64Operations.RUnlock()
 
 	return economicsMetrics
 }
 
 // ConfigMetrics will return metrics related to current configuration
 func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
-
 	configMetrics := make(map[string]interface{})
 
+	sm.mutUint64Operations.RLock()
 	configMetrics[common.MetricNumShardsWithoutMetachain] = sm.loadUint64Metric(common.MetricNumShardsWithoutMetachain)
 	configMetrics[common.MetricNumNodesPerShard] = sm.loadUint64Metric(common.MetricNumNodesPerShard)
 	configMetrics[common.MetricNumMetachainNodes] = sm.loadUint64Metric(common.MetricNumMetachainNodes)
@@ -199,29 +213,31 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[common.MetricMetaConsensusGroupSize] = sm.loadUint64Metric(common.MetricMetaConsensusGroupSize)
 	configMetrics[common.MetricMinGasPrice] = sm.loadUint64Metric(common.MetricMinGasPrice)
 	configMetrics[common.MetricMinGasLimit] = sm.loadUint64Metric(common.MetricMinGasLimit)
-	configMetrics[common.MetricRewardsTopUpGradientPoint] = sm.loadStringMetric(common.MetricRewardsTopUpGradientPoint)
-	configMetrics[common.MetricGasPerDataByte] = sm.loadUint64Metric(common.MetricGasPerDataByte)
-	configMetrics[common.MetricChainId] = sm.loadStringMetric(common.MetricChainId)
 	configMetrics[common.MetricMaxGasPerTransaction] = sm.loadUint64Metric(common.MetricMaxGasPerTransaction)
 	configMetrics[common.MetricRoundDuration] = sm.loadUint64Metric(common.MetricRoundDuration)
 	configMetrics[common.MetricStartTime] = sm.loadUint64Metric(common.MetricStartTime)
-	configMetrics[common.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(common.MetricLatestTagSoftwareVersion)
 	configMetrics[common.MetricDenomination] = sm.loadUint64Metric(common.MetricDenomination)
 	configMetrics[common.MetricMinTransactionVersion] = sm.loadUint64Metric(common.MetricMinTransactionVersion)
+	configMetrics[common.MetricRoundsPerEpoch] = sm.loadUint64Metric(common.MetricRoundsPerEpoch)
+	configMetrics[common.MetricGasPerDataByte] = sm.loadUint64Metric(common.MetricGasPerDataByte)
+	sm.mutUint64Operations.RUnlock()
+
+	sm.mutStringOperations.RLock()
+	configMetrics[common.MetricRewardsTopUpGradientPoint] = sm.loadStringMetric(common.MetricRewardsTopUpGradientPoint)
+	configMetrics[common.MetricChainId] = sm.loadStringMetric(common.MetricChainId)
+	configMetrics[common.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(common.MetricLatestTagSoftwareVersion)
 	configMetrics[common.MetricTopUpFactor] = sm.loadStringMetric(common.MetricTopUpFactor)
 	configMetrics[common.MetricGasPriceModifier] = sm.loadStringMetric(common.MetricGasPriceModifier)
-	configMetrics[common.MetricRoundsPerEpoch] = sm.loadUint64Metric(common.MetricRoundsPerEpoch)
+	sm.mutStringOperations.RUnlock()
 
 	return configMetrics
 }
 
 // EnableEpochsMetrics will return metrics related to activation epochs
 func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
-
 	enableEpochsMetrics := make(map[string]interface{})
 
+	sm.mutUint64Operations.RLock()
 	enableEpochsMetrics[common.MetricScDeployEnableEpoch] = sm.loadUint64Metric(common.MetricScDeployEnableEpoch)
 	enableEpochsMetrics[common.MetricBuiltInFunctionsEnableEpoch] = sm.loadUint64Metric(common.MetricBuiltInFunctionsEnableEpoch)
 	enableEpochsMetrics[common.MetricRelayedTransactionsEnableEpoch] = sm.loadUint64Metric(common.MetricRelayedTransactionsEnableEpoch)
@@ -243,14 +259,15 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[common.MetricDelegationManagerEnableEpoch] = sm.loadUint64Metric(common.MetricDelegationManagerEnableEpoch)
 	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.loadUint64Metric(common.MetricDelegationSmartContractEnableEpoch)
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.loadUint64Metric(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch)
+	sm.mutUint64Operations.RUnlock()
 
 	return enableEpochsMetrics
 }
 
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
-	sm.mutOperations.RLock()
-	defer sm.mutOperations.RUnlock()
+	sm.mutUint64Operations.RLock()
+	defer sm.mutUint64Operations.RUnlock()
 
 	networkMetrics := make(map[string]interface{})
 
@@ -284,28 +301,20 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 
 // must be called under mutex protection
 func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
-	metricObj, ok := sm.nodeMetrics[metric]
-	if !ok {
-		return 0
-	}
-	metricAsUint64, ok := metricObj.(uint64)
+	uint64Val, ok := sm.uint64Metrics[metric]
 	if !ok {
 		return 0
 	}
 
-	return metricAsUint64
+	return uint64Val
 }
 
 // must be called under mutex protection
 func (sm *statusMetrics) loadStringMetric(metric string) string {
-	metricObj, ok := sm.nodeMetrics[metric]
-	if !ok {
-		return ""
-	}
-	metricAsString, ok := metricObj.(string)
+	stringVal, ok := sm.stringMetrics[metric]
 	if !ok {
 		return ""
 	}
 
-	return metricAsString
+	return stringVal
 }

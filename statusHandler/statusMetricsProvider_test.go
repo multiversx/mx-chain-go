@@ -197,6 +197,35 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
+func TestStatusMetrics_NetworkMetrics(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricCurrentRound, 200)
+	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
+	sm.SetUInt64Value(common.MetricNonce, 180)
+	sm.SetUInt64Value(common.MetricHighestFinalBlock, 181)
+	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 95)
+	sm.SetUInt64Value(common.MetricEpochNumber, 1)
+	sm.SetUInt64Value(common.MetricRoundsPerEpoch, 50)
+
+	expectedConfig := map[string]interface{}{
+		"erd_current_round":                  uint64(200),
+		"erd_round_at_epoch_start":           uint64(100),
+		"erd_nonce":                          uint64(180),
+		"erd_highest_final_nonce":            uint64(181),
+		"erd_nonce_at_epoch_start":           uint64(95),
+		"erd_epoch_number":                   uint64(1),
+		"erd_rounds_per_epoch":               uint64(50),
+		"erd_rounds_passed_in_current_epoch": uint64(100),
+		"erd_nonces_passed_in_current_epoch": uint64(85),
+	}
+
+	configMetrics := sm.NetworkMetrics()
+	assert.Equal(t, expectedConfig, configMetrics)
+}
+
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	t.Parallel()
 
@@ -265,7 +294,7 @@ func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations)
 
-	for i:=0;i<numIterations;i++{
+	for i := 0; i < numIterations; i++ {
 		go func() {
 			sm.Increment(testKey)
 			wg.Done()
@@ -291,9 +320,9 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations)
 
-	for i:=0;i<numIterations;i++{
+	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			if idx%2==0 {
+			if idx%2 == 0 {
 				sm.Increment(testKey)
 			} else {
 				sm.Decrement(testKey)
@@ -308,5 +337,5 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	// we started with a value of initialValue (5000). after X + 1 increments and X decrements, the final
 	// value should be the original value, plus one (5001)
 
-	require.Equal(t, initialValue + 1, val.(uint64))
+	require.Equal(t, initialValue+1, val.(uint64))
 }
