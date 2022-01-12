@@ -10,13 +10,14 @@ import (
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers
 type statusMetrics struct {
-	nodeMetrics *sync.Map
+	nodeMetrics   map[string]interface{}
+	mutOperations sync.RWMutex
 }
 
 // NewStatusMetrics will return an instance of the struct
 func NewStatusMetrics() *statusMetrics {
 	return &statusMetrics{
-		nodeMetrics: &sync.Map{},
+		nodeMetrics: make(map[string]interface{}),
 	}
 }
 
@@ -27,7 +28,10 @@ func (sm *statusMetrics) IsInterfaceNil() bool {
 
 // Increment method increment a metric
 func (sm *statusMetrics) Increment(key string) {
-	keyValueI, ok := sm.nodeMetrics.Load(key)
+	sm.mutOperations.Lock()
+	defer sm.mutOperations.Unlock()
+
+	keyValueI, ok := sm.nodeMetrics[key]
 	if !ok {
 		return
 	}
@@ -38,12 +42,15 @@ func (sm *statusMetrics) Increment(key string) {
 	}
 
 	keyValue++
-	sm.nodeMetrics.Store(key, keyValue)
+	sm.nodeMetrics[key] = keyValue
 }
 
 // AddUint64 method increase a metric with a specific value
 func (sm *statusMetrics) AddUint64(key string, val uint64) {
-	keyValueI, ok := sm.nodeMetrics.Load(key)
+	sm.mutOperations.Lock()
+	defer sm.mutOperations.Unlock()
+
+	keyValueI, ok := sm.nodeMetrics[key]
 	if !ok {
 		return
 	}
@@ -54,12 +61,15 @@ func (sm *statusMetrics) AddUint64(key string, val uint64) {
 	}
 
 	keyValue += val
-	sm.nodeMetrics.Store(key, keyValue)
+	sm.nodeMetrics[key] = keyValue
 }
 
 // Decrement method - decrement a metric
 func (sm *statusMetrics) Decrement(key string) {
-	keyValueI, ok := sm.nodeMetrics.Load(key)
+	sm.mutOperations.Lock()
+	defer sm.mutOperations.Unlock()
+
+	keyValueI, ok := sm.nodeMetrics[key]
 	if !ok {
 		return
 	}
@@ -73,22 +83,31 @@ func (sm *statusMetrics) Decrement(key string) {
 	}
 
 	keyValue--
-	sm.nodeMetrics.Store(key, keyValue)
+	sm.nodeMetrics[key] = keyValue
 }
 
 // SetInt64Value method - sets an int64 value for a key
 func (sm *statusMetrics) SetInt64Value(key string, value int64) {
-	sm.nodeMetrics.Store(key, value)
+	sm.mutOperations.Lock()
+	defer sm.mutOperations.Unlock()
+
+	sm.nodeMetrics[key] = value
 }
 
 // SetUInt64Value method - sets an uint64 value for a key
 func (sm *statusMetrics) SetUInt64Value(key string, value uint64) {
-	sm.nodeMetrics.Store(key, value)
+	sm.mutOperations.Lock()
+	defer sm.mutOperations.Unlock()
+
+	sm.nodeMetrics[key] = value
 }
 
 // SetStringValue method - sets a string value for a key
 func (sm *statusMetrics) SetStringValue(key string, value string) {
-	sm.nodeMetrics.Store(key, value)
+	sm.mutOperations.Lock()
+	defer sm.mutOperations.Unlock()
+
+	sm.nodeMetrics[key] = value
 }
 
 // Close method - won't do anything
@@ -97,40 +116,46 @@ func (sm *statusMetrics) Close() {
 
 // StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
 func (sm *statusMetrics) StatusMetricsMapWithoutP2P() map[string]interface{} {
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
 	statusMetricsMap := make(map[string]interface{})
-	sm.nodeMetrics.Range(func(key, value interface{}) bool {
-		keyString := key.(string)
-		if strings.Contains(keyString, "_p2p_") {
-			return true
+	for key, value := range sm.nodeMetrics {
+		if strings.Contains(key, "_p2p_") {
+			continue
 		}
 
-		statusMetricsMap[key.(string)] = value
-		return true
-	})
+		statusMetricsMap[key] = value
+	}
 
 	return statusMetricsMap
 }
 
 // StatusP2pMetricsMap will return the p2p metrics in a map
 func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
 	statusMetricsMap := make(map[string]interface{})
-	sm.nodeMetrics.Range(func(key, value interface{}) bool {
-		keyString := key.(string)
-		if !strings.Contains(keyString, "_p2p_") {
-			return true
+	for key, value := range sm.nodeMetrics {
+		if strings.Contains(key, "_p2p_") {
+			continue
 		}
 
-		statusMetricsMap[key.(string)] = value
-		return true
-	})
+		statusMetricsMap[key] = value
+	}
 
 	return statusMetricsMap
 }
 
 // StatusMetricsWithoutP2PPrometheusString returns the metrics in a string format which respects prometheus style
 func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
-	shardID := sm.loadUint64Metric(common.MetricShardId)
 	metrics := sm.StatusMetricsMapWithoutP2P()
+
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
+	shardID := sm.loadUint64Metric(common.MetricShardId)
 	stringBuilder := strings.Builder{}
 	for key, value := range metrics {
 		_, isUint64 := value.(uint64)
@@ -146,6 +171,9 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 
 // EconomicsMetrics returns the economics related metrics
 func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
 	economicsMetrics := make(map[string]interface{})
 
 	economicsMetrics[common.MetricTotalSupply] = sm.loadStringMetric(common.MetricTotalSupply)
@@ -159,6 +187,9 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 
 // ConfigMetrics will return metrics related to current configuration
 func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
 	configMetrics := make(map[string]interface{})
 
 	configMetrics[common.MetricNumShardsWithoutMetachain] = sm.loadUint64Metric(common.MetricNumShardsWithoutMetachain)
@@ -186,6 +217,9 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 
 // EnableEpochsMetrics will return metrics related to activation epochs
 func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
 	enableEpochsMetrics := make(map[string]interface{})
 
 	enableEpochsMetrics[common.MetricScDeployEnableEpoch] = sm.loadUint64Metric(common.MetricScDeployEnableEpoch)
@@ -215,6 +249,9 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
+	sm.mutOperations.RLock()
+	defer sm.mutOperations.RUnlock()
+
 	networkMetrics := make(map[string]interface{})
 
 	currentRound := sm.loadUint64Metric(common.MetricCurrentRound)
@@ -245,8 +282,9 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	return networkMetrics
 }
 
+// must be called under mutex protection
 func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
-	metricObj, ok := sm.nodeMetrics.Load(metric)
+	metricObj, ok := sm.nodeMetrics[metric]
 	if !ok {
 		return 0
 	}
@@ -258,8 +296,9 @@ func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
 	return metricAsUint64
 }
 
+// must be called under mutex protection
 func (sm *statusMetrics) loadStringMetric(metric string) string {
-	metricObj, ok := sm.nodeMetrics.Load(metric)
+	metricObj, ok := sm.nodeMetrics[metric]
 	if !ok {
 		return ""
 	}

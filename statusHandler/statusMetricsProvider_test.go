@@ -3,11 +3,13 @@ package statusHandler_test
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewStatusMetricsProvider(t *testing.T) {
@@ -249,4 +251,62 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 
 	epochsMetrics := sm.EnableEpochsMetrics()
 	assert.Equal(t, expectedMetrics, epochsMetrics)
+}
+
+func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	testKey := "test key"
+	sm.SetUInt64Value(testKey, 0)
+
+	numIterations := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+
+	for i:=0;i<numIterations;i++{
+		go func() {
+			sm.Increment(testKey)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	val, _ := sm.StatusMetricsMap()[testKey]
+	require.Equal(t, uint64(numIterations), val.(uint64))
+}
+
+func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	initialValue := uint64(5000)
+
+	testKey := "test key"
+	sm.SetUInt64Value(testKey, initialValue)
+
+	numIterations := 1001
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+
+	for i:=0;i<numIterations;i++{
+		go func(idx int) {
+			if idx%2==0 {
+				sm.Increment(testKey)
+			} else {
+				sm.Decrement(testKey)
+			}
+
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	val, _ := sm.StatusMetricsMap()[testKey]
+	// we started with a value of initialValue (5000). after X + 1 increments and X decrements, the final
+	// value should be the original value, plus one (5001)
+
+	require.Equal(t, initialValue + 1, val.(uint64))
 }
