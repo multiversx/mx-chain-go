@@ -1033,7 +1033,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	epoch, err := trieStorageManager.GetLatestStorageEpoch()
 	if err != nil {
-		log.Error("SnapshotState error", "err", err.Error())
+		log.Error("snapshotState error", "err", err.Error())
 		return
 	}
 

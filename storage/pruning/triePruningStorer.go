@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/storage"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 )
@@ -153,13 +154,22 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	for idx := uint32(1); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
+	numClosedDbs := 0
+	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
+			if err == storage.ErrSerialDBIsClosed {
+				numClosedDbs++
+			}
+
 			continue
 		}
 
 		return val, nil
+	}
+
+	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
+		return nil, storage.ErrSerialDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)

@@ -1,10 +1,12 @@
 package pruning_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -43,6 +45,85 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
+}
+
+func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.NumOfActivePersisters = 2
+	ps, _ := pruning.NewTriePruningStorer(args)
+
+	testKey1 := []byte("key1")
+	testVal1 := []byte("value1")
+
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, ps.GetNumActivePersisters())
+	_ = ps.ChangeEpochSimple(1)
+
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	assert.Nil(t, err)
+	assert.Equal(t, testVal1, val)
+}
+
+func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.NumOfActivePersisters = 2
+	args.NumOfEpochsToKeep = 4
+	ps, _ := pruning.NewTriePruningStorer(args)
+
+	testKey1 := []byte("key1")
+	testVal1 := []byte("value1")
+
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, ps.GetNumActivePersisters())
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
+
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	assert.Nil(t, err)
+	assert.Equal(t, testVal1, val)
+}
+
+func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.NumOfActivePersisters = 2
+	args.NumOfEpochsToKeep = 4
+
+	persistersMap := make(map[string]storage.Persister)
+	persisterFactory := &mock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			persister, exists := persistersMap[path]
+			if !exists {
+				persister = &mock.PersisterStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, storage.ErrSerialDBIsClosed
+					},
+				}
+				persistersMap[path] = persister
+			}
+
+			return persister, nil
+		},
+	}
+	args.PersisterFactory = persisterFactory
+	ps, _ := pruning.NewTriePruningStorer(args)
+
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
+	_ = ps.Close()
+
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
+	assert.Nil(t, val)
+	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {

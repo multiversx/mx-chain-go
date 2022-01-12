@@ -1,9 +1,10 @@
 package pruning
 
 import (
+	"math"
+
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"math"
 )
 
 type fullHistoryTriePruningStorer struct {

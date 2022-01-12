@@ -371,6 +371,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 
 	if tsm.closed {
 		log.Debug("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
