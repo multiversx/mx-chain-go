@@ -234,7 +234,7 @@ func CreateNode(
 		return nil, err
 	}
 
-	err = nd.createInternalBlockProcessor()
+	err = nd.CreateInternalBlockProcessor()
 	if err != nil {
 		return nil, err
 	}
