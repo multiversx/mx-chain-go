@@ -506,7 +506,7 @@ func Test_MiniBlocksBuilderShouldSenderBeSkippedSenderConfiguredToSkip(t *testin
 	require.True(t, shouldSkip)
 }
 
-func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedWithErr(t *testing.T) {
+func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -515,10 +515,10 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedWithErr(t *testing.T
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
 		gasHandler: &testscommon.GasHandlerStub{
-			RemoveGasConsumedCalled:  func(hashes [][]byte) {},
+			RemoveGasProvidedCalled:  func(hashes [][]byte) {},
 			RemoveGasRefundedCalled:  func(hashes [][]byte) {},
 			RemoveGasPenalizedCalled: func(hashes [][]byte) {},
-			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, expectedErr
 			},
 		},
@@ -538,20 +538,20 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedWithErr(t *testing.T
 	require.Equal(t, expectedGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
-func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedOK(t *testing.T) {
+func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
-	gasConsumedByTxInReceiverShard := uint64(20)
-	gasConsumedByTxInSenderShard := uint64(10)
+	gasProvidedByTxInReceiverShard := uint64(20)
+	gasProvidedByTxInSenderShard := uint64(10)
 	args.gasTracker = gasTracker{
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
 		gasHandler: &testscommon.GasHandlerStub{
-			RemoveGasConsumedCalled: func(hashes [][]byte) {},
+			RemoveGasProvidedCalled: func(hashes [][]byte) {},
 			RemoveGasRefundedCalled: func(hashes [][]byte) {},
-			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-				return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, nil
 			},
 		},
 	}
@@ -575,8 +575,8 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasConsumedOK(t *testing.T) {
 
 	err := mbb.accountGasForTx(tx, wtx)
 
-	expectedConsumedReceiverShard := gasConsumedByMiniBlockInReceiverShard + gasConsumedByTxInReceiverShard
-	expectedConsumedSenderShard := gasConsumedByMiniBlocksInSenderShard + gasConsumedByTxInSenderShard
+	expectedConsumedReceiverShard := gasConsumedByMiniBlockInReceiverShard + gasProvidedByTxInReceiverShard
+	expectedConsumedSenderShard := gasConsumedByMiniBlocksInSenderShard + gasProvidedByTxInSenderShard
 	require.Nil(t, err)
 	require.Equal(t, expectedConsumedReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 	require.Equal(t, expectedConsumedReceiverShard, mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
@@ -817,9 +817,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
 		gasHandler: &testscommon.GasHandlerStub{
-			RemoveGasConsumedCalled: func(hashes [][]byte) {},
+			RemoveGasProvidedCalled: func(hashes [][]byte) {},
 			RemoveGasRefundedCalled: func(hashes [][]byte) {},
-			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, expectedErr
 			},
 		},
@@ -866,7 +866,7 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 			},
 			economicsFee: &economicsmocks.EconomicsHandlerStub{},
 			gasHandler: &testscommon.GasHandlerStub{
-				RemoveGasConsumedCalled: func(hashes [][]byte) {
+				RemoveGasProvidedCalled: func(hashes [][]byte) {
 				},
 				RemoveGasRefundedCalled: func(hashes [][]byte) {
 				},

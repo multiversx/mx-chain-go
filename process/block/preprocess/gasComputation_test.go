@@ -44,7 +44,7 @@ func TestNewGasComputation_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestGasConsumed_ShouldWork(t *testing.T) {
+func TestGasProvided_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -54,15 +54,15 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 		0,
 	)
 
-	gc.SetGasConsumed(2, []byte("hash1"))
-	assert.Equal(t, uint64(2), gc.GasConsumed([]byte("hash1")))
+	gc.SetGasProvided(2, []byte("hash1"))
+	assert.Equal(t, uint64(2), gc.GasProvided([]byte("hash1")))
 
-	gc.SetGasConsumed(3, []byte("hash2"))
-	assert.Equal(t, uint64(3), gc.GasConsumed([]byte("hash2")))
+	gc.SetGasProvided(3, []byte("hash2"))
+	assert.Equal(t, uint64(3), gc.GasProvided([]byte("hash2")))
 
 	assert.Equal(t, uint64(5), gc.TotalGasProvided())
 
-	gc.RemoveGasConsumed([][]byte{[]byte("hash1")})
+	gc.RemoveGasProvided([][]byte{[]byte("hash1")})
 	assert.Equal(t, uint64(3), gc.TotalGasProvided())
 
 	gc.Init()
@@ -119,7 +119,7 @@ func TestGasPenalized_ShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), gc.TotalGasPenalized())
 }
 
-func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -129,11 +129,11 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 		0,
 	)
 
-	_, _, err := gc.ComputeGasConsumedByTx(0, 1, nil)
+	_, _, err := gc.ComputeGasProvidedByTx(0, 1, nil)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
-func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContract(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContract(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -149,12 +149,12 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 
 	tx := transaction.Transaction{GasLimit: 7}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
 	assert.Equal(t, uint64(6), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractInShard(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractInShard(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -173,12 +173,12 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 0, &tx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 0, &tx)
 	assert.Equal(t, uint64(7), gasInSnd)
 	assert.Equal(t, uint64(7), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractCrossShard(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractCrossShard(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -197,12 +197,12 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
 	assert.Equal(t, uint64(7), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -221,12 +221,12 @@ func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 0, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &scr)
 	assert.Equal(t, uint64(0), gasInSnd)
 	assert.Equal(t, uint64(0), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -245,12 +245,12 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *tes
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &scr)
 	assert.Equal(t, uint64(3), gasInSnd)
 	assert.Equal(t, uint64(3), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -269,12 +269,12 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &scr)
 	assert.Equal(t, uint64(3), gasInSnd)
 	assert.Equal(t, uint64(3), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -293,12 +293,12 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) 
 
 	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &scr)
 	assert.Equal(t, uint64(3), gasInSnd)
 	assert.Equal(t, uint64(3), gasInRcv)
 }
 
-func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
+func TestComputeGasProvidedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -324,11 +324,11 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 
 	mapHashTx := make(map[string]data.TransactionHandler)
 
-	_, _, err := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
+	_, _, err := gc.ComputeGasProvidedByMiniBlock(&miniBlock, mapHashTx)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
-func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *testing.T) {
+func TestComputeGasProvidedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -356,12 +356,12 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 	mapHashTx["hash1"] = nil
 	mapHashTx["hash2"] = nil
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByMiniBlock(&miniBlock, mapHashTx)
 	assert.Equal(t, uint64(0), gasInSnd)
 	assert.Equal(t, uint64(0), gasInRcv)
 }
 
-func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
+func TestComputeGasProvidedByMiniBlock_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -397,12 +397,12 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 	mapHashTx["hash2"] = &transaction.Transaction{GasLimit: 20, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 	mapHashTx["hash3"] = &transaction.Transaction{GasLimit: 30, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByMiniBlock(&miniBlock, mapHashTx)
 	assert.Equal(t, uint64(18), gasInSnd)
 	assert.Equal(t, uint64(56), gasInRcv)
 }
 
-func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
+func TestComputeGasProvidedByMiniBlock_ShouldWorkV1(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -438,12 +438,12 @@ func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
 	mapHashTx["hash2"] = &transaction.Transaction{GasLimit: 20, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 	mapHashTx["hash3"] = &transaction.Transaction{GasLimit: 30, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByMiniBlock(&miniBlock, mapHashTx)
 	assert.Equal(t, uint64(18), gasInSnd)
 	assert.Equal(t, uint64(44), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContractV1(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContractV1(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -459,12 +459,12 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 
 	tx := transaction.Transaction{GasLimit: 7}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
 	assert.Equal(t, uint64(6), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractInShardV1(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractInShardV1(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -483,12 +483,12 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 0, &tx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 0, &tx)
 	assert.Equal(t, uint64(7), gasInSnd)
 	assert.Equal(t, uint64(7), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractCrossShardV1(t *testing.T) {
+func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractCrossShardV1(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
@@ -507,7 +507,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
-	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
+	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
 	assert.Equal(t, uint64(1), gasInRcv)
 }

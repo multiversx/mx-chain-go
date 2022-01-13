@@ -549,7 +549,7 @@ func TestTransactions_ShouldContinueProcessingTxShouldWork(t *testing.T) {
 func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var gasConsumedByTx uint64
+	var gasProvidedByTx uint64
 	var verifyTransactionErr error
 	preprocessor := createTransactionPreprocessor()
 	preprocessor.txProcessor = &testscommon.TxProcessorMock{
@@ -558,8 +558,8 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 		},
 	}
 	preprocessor.gasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-			return 0, gasConsumedByTx, nil
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, gasProvidedByTx, nil
 		},
 	}
 
@@ -568,9 +568,9 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	senderShardID := uint32(0)
 	receiverShardID := uint32(1)
 
-	// should err when computeGasConsumed method returns err
+	// should err when computeGasProvided method returns err
 	mbInfo := &createScheduledMiniBlocksInfo{}
-	gasConsumedByTx = MaxGasLimitPerBlock + 1
+	gasProvidedByTx = MaxGasLimitPerBlock + 1
 	err := preprocessor.verifyTransaction(tx, scTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
 	assert.Equal(t, 1, mbInfo.schedulingInfo.numCrossShardTxsWithTooMuchGas)
@@ -579,7 +579,7 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	mbInfo = &createScheduledMiniBlocksInfo{
 		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
 	}
-	gasConsumedByTx = MaxGasLimitPerBlock - 1
+	gasProvidedByTx = MaxGasLimitPerBlock - 1
 	verifyTransactionErr = process.ErrLowerNonceInTransaction
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
 	err = preprocessor.verifyTransaction(tx, scTx, txHash, senderShardID, receiverShardID, mbInfo)
@@ -590,7 +590,7 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	mbInfo = &createScheduledMiniBlocksInfo{
 		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
 	}
-	gasConsumedByTx = MaxGasLimitPerBlock - 1
+	gasProvidedByTx = MaxGasLimitPerBlock - 1
 	verifyTransactionErr = nil
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
 	err = preprocessor.verifyTransaction(tx, scTx, txHash, senderShardID, receiverShardID, mbInfo)
@@ -602,11 +602,11 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var gasConsumedByTx uint64
+	var gasProvidedByTx uint64
 	preprocessor := createTransactionPreprocessor()
 	preprocessor.gasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-			return 0, gasConsumedByTx, nil
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, gasProvidedByTx, nil
 		},
 	}
 
@@ -657,7 +657,7 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(mbs))
 
 	// should not create scheduled mini blocks when verifyTransaction returns error
-	gasConsumedByTx = MaxGasLimitPerBlock + 1
+	gasProvidedByTx = MaxGasLimitPerBlock + 1
 	haveTimeMethodReturn = true
 	haveAdditionalTimeMethodReturn = true
 	isShardStuckMethodReturn = false
@@ -673,7 +673,7 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(mbs))
 
 	// should create two scheduled mini blocks
-	gasConsumedByTx = MaxGasLimitPerBlock
+	gasProvidedByTx = MaxGasLimitPerBlock
 	haveTimeMethodReturn = true
 	haveAdditionalTimeMethodReturn = true
 	isShardStuckMethodReturn = false
@@ -731,11 +731,11 @@ func TestTransactions_GetMiniBlockSliceFromMapV2ShouldWork(t *testing.T) {
 func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var gasConsumedByTx uint64
+	var gasProvidedByTx uint64
 	preprocessor := createTransactionPreprocessor()
 	preprocessor.gasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-			return 0, gasConsumedByTx, nil
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, gasProvidedByTx, nil
 		},
 	}
 
@@ -780,7 +780,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	assert.Equal(t, 0, len(mapSCTxs))
 
 	// should not create and process mini blocks when processTransaction returns error
-	gasConsumedByTx = MaxGasLimitPerBlock + 1
+	gasProvidedByTx = MaxGasLimitPerBlock + 1
 	haveTimeMethodReturn = true
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = false
@@ -795,7 +795,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 	assert.Equal(t, 0, len(mapSCTxs))
 
 	// should create and process two mini blocks
-	gasConsumedByTx = MaxGasLimitPerBlock
+	gasProvidedByTx = MaxGasLimitPerBlock
 	haveTimeMethodReturn = true
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = false
@@ -829,7 +829,7 @@ func TestTransactions_CreateAndProcessMiniBlocksFromMeV2ShouldWork(t *testing.T)
 func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var gasConsumedByTx uint64
+	var gasProvidedByTx uint64
 	var processTransactionErr error
 	preprocessor := createTransactionPreprocessor()
 	preprocessor.txProcessor = &testscommon.TxProcessorMock{
@@ -838,8 +838,8 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 		},
 	}
 	preprocessor.gasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-			return 0, gasConsumedByTx, nil
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, gasProvidedByTx, nil
 		},
 	}
 
@@ -848,12 +848,12 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	senderShardID := uint32(0)
 	receiverShardID := uint32(0)
 
-	// should not process transaction when computeGasConsumed method returns error
+	// should not process transaction when computeGasProvided method returns error
 	mbInfo := &createAndProcessMiniBlocksInfo{
 		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
 	}
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
-	gasConsumedByTx = MaxGasLimitPerBlock + 1
+	gasProvidedByTx = MaxGasLimitPerBlock + 1
 	err := preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
 
@@ -862,7 +862,7 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
 	}
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
-	gasConsumedByTx = MaxGasLimitPerBlock - 1
+	gasProvidedByTx = MaxGasLimitPerBlock - 1
 	processTransactionErr = process.ErrHigherNonceInTransaction
 	err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)

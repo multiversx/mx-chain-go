@@ -280,7 +280,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-				gasConsumedByTxInSelfShard, err := scr.computeGasConsumed(
+				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
 					currScr,
@@ -291,7 +291,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 					return err
 				}
 
-				scr.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+				scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 			}
 
 			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
@@ -497,7 +497,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	defer func() {
 		if err != nil {
-			scr.gasHandler.RemoveGasConsumed(processedTxHashes)
+			scr.gasHandler.RemoveGasProvided(processedTxHashes)
 			scr.gasHandler.RemoveGasRefunded(processedTxHashes)
 			scr.gasHandler.RemoveGasPenalized(processedTxHashes)
 		}
@@ -518,7 +518,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
-		gasConsumedByTxInSelfShard, errComputeGas := scr.computeGasConsumed(
+		gasProvidedByTxInSelfShard, errComputeGas := scr.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[index],
@@ -529,7 +529,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, errComputeGas
 		}
 
-		scr.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
+		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {

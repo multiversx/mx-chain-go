@@ -694,24 +694,24 @@ type SCQuery struct {
 // GasHandler is able to perform some gas calculation
 type GasHandler interface {
 	Init()
-	SetGasConsumed(gasConsumed uint64, hash []byte)
-	SetGasConsumedAsScheduled(gasConsumed uint64, hash []byte)
+	SetGasProvided(gasProvided uint64, hash []byte)
+	SetGasProvidedAsScheduled(gasProvided uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
 	SetGasPenalized(gasPenalized uint64, hash []byte)
-	GasConsumed(hash []byte) uint64
-	GasConsumedAsScheduled(hash []byte) uint64
+	GasProvided(hash []byte) uint64
+	GasProvidedAsScheduled(hash []byte) uint64
 	GasRefunded(hash []byte) uint64
 	GasPenalized(hash []byte) uint64
 	TotalGasProvided() uint64
-	TotalGasConsumedAsScheduled() uint64
+	TotalGasProvidedAsScheduled() uint64
 	TotalGasRefunded() uint64
 	TotalGasPenalized() uint64
-	RemoveGasConsumed(hashes [][]byte)
-	RemoveGasConsumedAsScheduled(hashes [][]byte)
+	RemoveGasProvided(hashes [][]byte)
+	RemoveGasProvidedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
 	RemoveGasPenalized(hashes [][]byte)
-	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
-	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
+	ComputeGasProvidedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
+	ComputeGasProvidedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
 }
 

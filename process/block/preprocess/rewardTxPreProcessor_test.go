@@ -726,7 +726,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	totalGasConsumed := uint64(0)
+	totalGasProvided := uint64(0)
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -739,10 +739,10 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		func(shardID uint32, txHashes [][]byte) {},
 		&testscommon.GasHandlerStub{
 			InitCalled: func() {
-				totalGasConsumed = 0
+				totalGasProvided = 0
 			},
 			TotalGasProvidedCalled: func() uint64 {
-				return totalGasConsumed
+				return totalGasProvided
 			},
 		},
 		createMockPubkeyConverter(),

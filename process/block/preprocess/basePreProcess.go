@@ -56,7 +56,7 @@ type processedTxsInfo struct {
 	numCrossShardScCallsOrSpecialTxs   int
 	numCrossShardTxsWithTooMuchGas     int
 	totalTimeUsedForProcess            time.Duration
-	totalTimeUsedForComputeGasConsumed time.Duration
+	totalTimeUsedForComputeGasProvided time.Duration
 }
 
 type createAndProcessMiniBlocksInfo struct {
@@ -82,7 +82,7 @@ type scheduledTxsInfo struct {
 	numScheduledCrossShardScCalls               int
 	numCrossShardTxsWithTooMuchGas              int
 	totalTimeUsedForScheduledVerify             time.Duration
-	totalTimeUsedForScheduledComputeGasConsumed time.Duration
+	totalTimeUsedForScheduledComputeGasProvided time.Duration
 }
 
 type createScheduledMiniBlocksInfo struct {
@@ -383,14 +383,14 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
-func (bpp *basePreProcess) computeGasConsumedByTx(
+func (bpp *basePreProcess) computeGasProvidedByTx(
 	senderShardId uint32,
 	receiverShardId uint32,
 	tx data.TransactionHandler,
 	txHash []byte,
 ) (uint64, uint64, error) {
 
-	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasConsumedByTx(
+	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasProvidedByTx(
 		senderShardId,
 		receiverShardId,
 		tx)

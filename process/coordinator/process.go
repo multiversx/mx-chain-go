@@ -742,7 +742,7 @@ func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {
 		return
 	}
 
-	tc.gasHandler.RemoveGasConsumed(txsToBeReverted)
+	tc.gasHandler.RemoveGasProvided(txsToBeReverted)
 	tc.gasHandler.RemoveGasRefunded(txsToBeReverted)
 	tc.gasHandler.RemoveGasPenalized(txsToBeReverted)
 
@@ -814,7 +814,7 @@ func (tc *transactionCoordinator) CreatePostProcessMiniBlocks() block.MiniBlockS
 
 func (tc *transactionCoordinator) addGasForScheduled(gasAndFees scheduled.GasAndFees) {
 	tc.gasHandler.SetGasRefunded(gasAndFees.GasRefunded, []byte(prevScheduledTxs))
-	tc.gasHandler.SetGasConsumed(gasAndFees.GasProvided, []byte(prevScheduledTxs))
+	tc.gasHandler.SetGasProvided(gasAndFees.GasProvided, []byte(prevScheduledTxs))
 	tc.gasHandler.SetGasPenalized(gasAndFees.GasPenalized, []byte(prevScheduledTxs))
 }
 
@@ -1372,7 +1372,7 @@ func (tc *transactionCoordinator) verifyGasLimit(
 			continue
 		}
 
-		err := tc.checkGasConsumedByMiniBlockInReceiverShard(miniBlock, mapMiniBlockTypeAllTxs[miniBlock.Type])
+		err := tc.checkGasProvidedByMiniBlockInReceiverShard(miniBlock, mapMiniBlockTypeAllTxs[miniBlock.Type])
 		if err != nil {
 			return err
 		}
@@ -1381,33 +1381,33 @@ func (tc *transactionCoordinator) verifyGasLimit(
 	return nil
 }
 
-func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
+func (tc *transactionCoordinator) checkGasProvidedByMiniBlockInReceiverShard(
 	miniBlock *block.MiniBlock,
 	mapHashTx map[string]data.TransactionHandler,
 ) error {
 	var err error
-	var gasConsumedByTxInReceiverShard uint64
-	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	var gasProvidedByTxInReceiverShard uint64
+	gasProvidedByMiniBlockInReceiverShard := uint64(0)
 
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
-			log.Debug("missing transaction in checkGasConsumedByMiniBlockInReceiverShard ", "type", miniBlock.Type, "txHash", txHash)
+			log.Debug("missing transaction in checkGasProvidedByMiniBlockInReceiverShard ", "type", miniBlock.Type, "txHash", txHash)
 			return process.ErrMissingTransaction
 		}
 
 		_, txTypeDstShard := tc.txTypeHandler.ComputeTransactionType(txHandler)
 		moveBalanceGasLimit := tc.economicsFee.ComputeGasLimit(txHandler)
 		if txTypeDstShard == process.MoveBalance {
-			gasConsumedByTxInReceiverShard = moveBalanceGasLimit
+			gasProvidedByTxInReceiverShard = moveBalanceGasLimit
 		} else {
-			gasConsumedByTxInReceiverShard, err = core.SafeSubUint64(txHandler.GetGasLimit(), moveBalanceGasLimit)
+			gasProvidedByTxInReceiverShard, err = core.SafeSubUint64(txHandler.GetGasLimit(), moveBalanceGasLimit)
 			if err != nil {
 				return err
 			}
 		}
 
-		gasConsumedByMiniBlockInReceiverShard, err = core.SafeAddUint64(gasConsumedByMiniBlockInReceiverShard, gasConsumedByTxInReceiverShard)
+		gasProvidedByMiniBlockInReceiverShard, err = core.SafeAddUint64(gasProvidedByMiniBlockInReceiverShard, gasProvidedByTxInReceiverShard)
 		if err != nil {
 			return err
 		}
@@ -1416,7 +1416,7 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 	// the max gas limit to be compared with, should be the maximum value between max gas limit per mini block and max gas limit per tx,
 	// as the mini blocks with only one tx inside could have gas limit higher than gas limit per mini block but lower or equal than max gas limit per tx.
 	// This is done to accept at least one tx in each mini block, if the tx gas limit respects the max gas limit per tx, even if its gas limit is higher than gas limit per mini block.
-	if gasConsumedByMiniBlockInReceiverShard > core.MaxUint64(tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard(), tc.economicsFee.MaxGasLimitPerTx()) {
+	if gasProvidedByMiniBlockInReceiverShard > core.MaxUint64(tc.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard(), tc.economicsFee.MaxGasLimitPerTx()) {
 		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 	}
 
