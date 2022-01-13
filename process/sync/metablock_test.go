@@ -1625,7 +1625,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	bs, _ := sync.NewMetaBootstrap(args)
 	err := bs.SyncBlock()
 
-	assert.Equal(t, errGetNodeFromDB, err)
+	assert.Nil(t, err)
 	assert.True(t, accountsSyncCalled)
 	assert.True(t, validatorSyncCalled)
 }

@@ -141,9 +141,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
 	if isErrGetNodeFromDB {
 		errSync := boot.syncUserAccountsState()
-		if errSync != nil {
-			log.Debug("SyncBlock syncTrie", "error", errSync)
-		}
+		err = errSync
 	}
 
 	return err

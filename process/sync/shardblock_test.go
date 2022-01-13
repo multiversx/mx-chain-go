@@ -2062,7 +2062,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	bs, _ := sync.NewShardBootstrap(args)
 
 	err := bs.SyncBlock()
-	assert.Equal(t, errGetNodeFromDB, err)
+	assert.Nil(t, err)
 	assert.True(t, syncCalled)
 }
 
