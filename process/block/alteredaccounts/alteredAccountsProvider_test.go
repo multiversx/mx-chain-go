@@ -1,7 +1,6 @@
 package alteredaccounts
 
 import (
-	"encoding/hex"
 	"math/big"
 	"strings"
 	"testing"
@@ -229,6 +228,11 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "shard0"))
 	}
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx0")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr 2 - tx0")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr 3 - tx1")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx2")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx3")))
 }
 
 func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
@@ -362,6 +366,13 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 								[]byte("token0"),
 							},
 						},
+						{
+							Address:    []byte("addr"), // other event for the same token, to ensure it isn't added twice
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+							},
+						},
 					},
 				},
 			},
@@ -369,7 +380,10 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	encodedAddr := hex.EncodeToString([]byte("addr"))
+	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
+
+	require.Len(t, res, 1)
+	require.Len(t, res[encodedAddr].Tokens, 1)
 	require.Equal(t, &indexer.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
@@ -421,7 +435,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	encodedAddr := hex.EncodeToString([]byte("addr"))
+	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
 	require.Equal(t, &indexer.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
@@ -537,7 +551,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 	})
 	require.NoError(t, err)
 
-	encodedAddr := hex.EncodeToString([]byte("addr"))
+	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
 	require.Len(t, res[encodedAddr].Tokens, 2)
 }
 
@@ -627,9 +641,10 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	encodedAddr := hex.EncodeToString([]byte("addr"))
+	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
 	require.Len(t, res[encodedAddr].Tokens, 3)
 
+	numChecks := 0
 	for _, token := range res[encodedAddr].Tokens {
 		if token.Identifier == "esdttoken" {
 			require.Equal(t, &indexer.AccountTokenData{
@@ -638,14 +653,16 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				Nonce:      0,
 				MetaData:   nil,
 			}, token)
+			numChecks++
 		}
-		if token.Identifier == "nft-o" {
+		if token.Identifier == "nft-0" {
 			require.Equal(t, &indexer.AccountTokenData{
 				Identifier: "nft-0",
 				Balance:    expectedToken1.Value.String(),
 				Nonce:      expectedToken1.TokenMetaData.Nonce,
 				MetaData:   expectedToken1.TokenMetaData,
 			}, token)
+			numChecks++
 		}
 		if token.Identifier == "nft-1" {
 			require.Equal(t, &indexer.AccountTokenData{
@@ -654,8 +671,11 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				Nonce:      expectedToken2.TokenMetaData.Nonce,
 				MetaData:   expectedToken2.TokenMetaData,
 			}, token)
+			numChecks++
 		}
 	}
+
+	require.Equal(t, 3, numChecks)
 }
 
 func getMockArgs() ArgsAlteredAccountsProvider {

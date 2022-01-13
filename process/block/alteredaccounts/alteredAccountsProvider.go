@@ -127,7 +127,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	}
 
 	for tokenKey, tokenData := range markedAccountTokens {
-		err = aap.fetchTokensDataForMarkedAccount([]byte(tokenKey), encodedAddress, userAccount, tokenData, alteredAccounts)
+		err = aap.addTokensDataForMarkedAccount([]byte(tokenKey), encodedAddress, userAccount, tokenData, alteredAccounts)
 		if err != nil {
 			log.Warn("cannot fetch token data for marked account", "error", err)
 			return err
@@ -137,7 +137,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	return nil
 }
 
-func (aap *alteredAccountsProvider) fetchTokensDataForMarkedAccount(
+func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	tokenKey []byte,
 	encodedAddress string,
 	userAccount state.UserAccountHandler,
@@ -193,14 +193,17 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
 	for _, txHandler := range txsHandlers {
-		senderShardID := aap.shardCoordinator.ComputeId(txHandler.GetSndAddr())
-		receiverShardID := aap.shardCoordinator.ComputeId(txHandler.GetRcvAddr())
+		senderAddress := txHandler.GetSndAddr()
+		receiverAddress := txHandler.GetRcvAddr()
+
+		senderShardID := aap.shardCoordinator.ComputeId(senderAddress)
+		receiverShardID := aap.shardCoordinator.ComputeId(receiverAddress)
 
 		if senderShardID == selfShardID {
-			aap.addAddressWithBalanceChangeInMap(txHandler.GetSndAddr(), markedAlteredAccounts)
+			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts)
 		}
 		if receiverShardID == selfShardID {
-			aap.addAddressWithBalanceChangeInMap(txHandler.GetRcvAddr(), markedAlteredAccounts)
+			aap.addAddressWithBalanceChangeInMap(receiverAddress, markedAlteredAccounts)
 		}
 	}
 }
