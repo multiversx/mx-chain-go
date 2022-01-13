@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// nolint
 func TestIsContextDone(t *testing.T) {
 	t.Parallel()
 
