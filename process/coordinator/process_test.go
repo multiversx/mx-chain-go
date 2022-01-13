@@ -3588,6 +3588,162 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 }
 
+func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhenScheduledFeesAreNotAdded(t *testing.T) {
+	t.Parallel()
+
+	tx1GasLimit := uint64(100)
+
+	dataPool := initDataPool(txHash)
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &hashingMocks.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &testscommon.GasHandlerStub{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.1
+			},
+		},
+		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledGasAndFeesMetricsCalled: func() scheduled.GasAndFees {
+				return scheduled.GasAndFees{
+					AccumulatedFees: big.NewInt(1),
+					DeveloperFees:   big.NewInt(0),
+				}
+			},
+		},
+		ScheduledMiniBlocksEnableEpoch: 2,
+	}
+	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	tx1 := &transaction.Transaction{Nonce: 1, GasLimit: tx1GasLimit, GasPrice: 1}
+	txHash1 := "hash1"
+
+	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+
+	mapAllTxs := make(map[string]data.TransactionHandler)
+	mapAllTxs[txHash1] = tx1
+	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
+
+	header := &block.Header{
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(10),
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				Type: block.PeerBlock,
+			},
+			{
+				Type:            block.TxBlock,
+				TxHashes:        [][]byte{[]byte(txHash1)},
+				ReceiverShardID: 1,
+			},
+		},
+	}
+
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
+
+	tc.EpochConfirmed(2, 0)
+
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	assert.Nil(t, err)
+}
+
+func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenScheduledFeesAreNotAdded(t *testing.T) {
+	t.Parallel()
+
+	tx1GasLimit := uint64(100)
+
+	dataPool := initDataPool(txHash)
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &hashingMocks.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &testscommon.GasHandlerStub{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:   &testscommon.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.1
+			},
+		},
+		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledGasAndFeesMetricsCalled: func() scheduled.GasAndFees {
+				return scheduled.GasAndFees{
+					AccumulatedFees: big.NewInt(0),
+					DeveloperFees:   big.NewInt(1),
+				}
+			},
+		},
+		ScheduledMiniBlocksEnableEpoch: 2,
+	}
+	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	tx1 := &transaction.Transaction{Nonce: 1, GasLimit: tx1GasLimit, GasPrice: 1}
+	txHash1 := "hash1"
+
+	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+
+	mapAllTxs := make(map[string]data.TransactionHandler)
+	mapAllTxs[txHash1] = tx1
+	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
+
+	header := &block.Header{
+		AccumulatedFees: big.NewInt(100),
+		DeveloperFees:   big.NewInt(11),
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				Type: block.PeerBlock,
+			},
+			{
+				Type:            block.TxBlock,
+				TxHashes:        [][]byte{[]byte(txHash1)},
+				ReceiverShardID: 1,
+			},
+		},
+	}
+
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
+
+	tc.EpochConfirmed(2, 0)
+
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	assert.Nil(t, err)
+}
+
 func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -3616,8 +3772,15 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		BlockGasAndFeesReCheckEnableEpoch: 0,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
-		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
-		ScheduledMiniBlocksEnableEpoch:    2,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledGasAndFeesMetricsCalled: func() scheduled.GasAndFees {
+				return scheduled.GasAndFees{
+					AccumulatedFees: big.NewInt(1),
+					DeveloperFees:   big.NewInt(1),
+				}
+			},
+		},
+		ScheduledMiniBlocksEnableEpoch: 2,
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3648,6 +3811,16 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 				ReceiverShardID: 1,
 			},
 		},
+	}
+
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	assert.Nil(t, err)
+
+	tc.EpochConfirmed(2, 0)
+
+	header = &block.Header{
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(11),
 	}
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
