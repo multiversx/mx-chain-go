@@ -502,7 +502,7 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 
 		err := boot.syncStarter.SyncBlock()
 		if err != nil {
-			if common.WasContextClosed(ctx) {
+			if common.IsContextDone(ctx) {
 				log.Debug("SyncBlock finished, bootstrap's go routine is stopping...")
 				return
 			}

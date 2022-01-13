@@ -2,8 +2,12 @@ package common
 
 import "context"
 
-// WasContextClosed will return true if the provided context has been closed
-func WasContextClosed(ctx context.Context) bool {
+// IsContextDone will return true if the provided context signals it is done
+func IsContextDone(ctx context.Context) bool {
+	if ctx == nil {
+		return true
+	}
+
 	select {
 	case <-ctx.Done():
 		return true

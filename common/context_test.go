@@ -7,34 +7,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWasContextClosed(t *testing.T) {
+func TestIsContextDone(t *testing.T) {
 	t.Parallel()
 
-	numTests := 10
-	ctx, cancel := context.WithCancel(context.Background())
-	for i := 0; i < numTests; i++ {
-		assert.False(t, WasContextClosed(ctx))
-	}
-	cancel()
-	for i := 0; i < numTests; i++ {
-		assert.True(t, WasContextClosed(ctx))
-	}
+	t.Run("valid context tests", func(t *testing.T) {
+		numTests := 10
+		ctx, cancel := context.WithCancel(context.Background())
+		for i := 0; i < numTests; i++ {
+			assert.False(t, IsContextDone(ctx))
+		}
+		cancel()
+		for i := 0; i < numTests; i++ {
+			assert.True(t, IsContextDone(ctx))
+		}
+	})
+	t.Run("nil context", func(t *testing.T) {
+		assert.True(t, IsContextDone(nil))
+	})
 }
 
-func BenchmarkWasContextClosed_WhenClosed(b *testing.B) {
+func BenchmarkIsContextDone_WhenDone(b *testing.B) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	for i := 0; i < b.N; i++ {
-		_ = WasContextClosed(ctx)
+		_ = IsContextDone(ctx)
 	}
 }
 
-func BenchmarkWasContextClosed_WhenNotClosed(b *testing.B) {
+func BenchmarkIsContextDone_WhenNotDone(b *testing.B) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	for i := 0; i < b.N; i++ {
-		_ = WasContextClosed(ctx)
+		_ = IsContextDone(ctx)
 	}
 }

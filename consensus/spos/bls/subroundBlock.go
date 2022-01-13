@@ -109,8 +109,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 }
 
 func printLogMessage(ctx context.Context, baseMessage string, err error) {
-	if common.WasContextClosed(ctx) {
-		log.Debug(baseMessage + "context is closing")
+	if common.IsContextDone(ctx) {
+		log.Debug(baseMessage + " context is closing")
 		return
 	}
 
