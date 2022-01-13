@@ -126,7 +126,11 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 
 	round := uint64(100)
 	args := generateMultipleHeaderProposalDetectorArgs()
-	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	args.RoundHandler = &testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return int64(round)
+		},
+	}
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1})
@@ -597,7 +601,7 @@ func generateMultipleHeaderProposalDetectorArgs() *detector.MultipleHeaderPropos
 
 	return &detector.MultipleHeaderProposalDetectorArgs{
 		NodesCoordinator:  nodesCoordinator,
-		RoundHandler:      &mock.RoundHandlerMock{},
+		RoundHandler:      &testscommon.RoundHandlerMock{},
 		Cache:             &slashMocks.RoundDetectorCacheStub{},
 		Hasher:            &hashingMocks.HasherMock{},
 		Marshaller:        &testscommon.MarshalizerMock{},

@@ -281,9 +281,11 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 		return false
 	}
 
+	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
-		if bytes.Equal(validator.PubKey(), pubKey) &&
-			sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) &&
+		currPubKey := validator.PubKey()
+		if bytes.Equal(currPubKey, pubKey) &&
+			sliceUtil.IsIndexSetInBitmap(uint32(idx), bitmap) &&
 			mhs.headerSigVerifier.VerifySignature(header) == nil {
 			return true
 		}
