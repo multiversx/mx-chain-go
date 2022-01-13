@@ -145,54 +145,89 @@ func (mbb *miniBlocksBuilder) updateAccountShardsInfo(tx *transaction.Transactio
 	mbb.accountTxsShards.Unlock()
 }
 
-// function returns through the first parameter if the given transaction can be added to the miniBlock
-// second return values returns an error in case no more transactions can be added to the miniBlocks
-func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransaction) (canAddTx bool, canAddMore bool, shouldAddToRemaining bool, tx *transaction.Transaction) {
+// checkAddTransaction method returns a set of actions which could be done afterwards, by checking the given transaction
+func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransaction) (*processingActions, *transaction.Transaction) {
 	tx, ok := wtx.Tx.(*transaction.Transaction)
 	if !ok {
 		log.Debug("wrong type assertion",
 			"hash", wtx.TxHash,
 			"sender shard", wtx.SenderShardID,
 			"receiver shard", wtx.ReceiverShardID)
-		return false, true, false, nil
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, nil
 	}
 
 	if !mbb.haveTime() {
 		log.Debug("time is out")
-		return false, false, true, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           false,
+			shouldAddToRemaining: true,
+		}, tx
 	}
 
 	receiverShardID := wtx.ReceiverShardID
 	miniBlock, ok := mbb.miniBlocks[receiverShardID]
 	if !ok {
 		log.Debug("mini block is not created", "shard", receiverShardID)
-		return false, true, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if mbb.wouldExceedBlockSizeWithTx(tx, receiverShardID, miniBlock) {
 		log.Debug("max txs accepted in one block is reached", "num txs added", mbb.stats.numTxsAdded)
-		return false, false, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           false,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if mbb.isShardStuck(receiverShardID) {
 		log.Trace("shard is stuck", "shard", receiverShardID)
-		return false, true, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if mbb.shouldSenderBeSkipped(tx.GetSndAddr()) {
-		return false, true, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if !mbb.accountHasEnoughBalance(tx) {
-		return false, true, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	canAddToRemaining, err := mbb.accountGasForTx(tx, wtx)
 	if err != nil {
-		return false, true, canAddToRemaining, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: canAddToRemaining,
+		}, tx
 	}
 
-	return true, true, false, tx
+	return &processingActions{
+		canAddTx:             true,
+		canAddMore:           true,
+		shouldAddToRemaining: false,
+	}, tx
 }
 
 func (mbb *miniBlocksBuilder) wouldExceedBlockSizeWithTx(tx *transaction.Transaction, receiverShardID uint32, miniBlock *block.MiniBlock) bool {
