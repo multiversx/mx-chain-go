@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -306,7 +307,7 @@ func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
 	require.Equal(t, uint64(numIterations), val.(uint64))
 }
 
-func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
+func TestStatusMetrics_ConcurrentIncrementAndDecrement(t *testing.T) {
 	t.Parallel()
 
 	sm := statusHandler.NewStatusMetrics()
@@ -338,4 +339,59 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	// value should be the original value, plus one (5001)
 
 	require.Equal(t, initialValue+1, val.(uint64))
+}
+
+func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	startTime := time.Now()
+
+	defer func() {
+		r := recover()
+		require.Nil(t, r)
+	}()
+	numIterations := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+
+	for i := 0; i < numIterations; i++ {
+		go func(idx int) {
+			switch idx % 13 {
+			case 0:
+				sm.AddUint64("test", uint64(idx))
+			case 1:
+				sm.SetUInt64Value("test", uint64(idx))
+			case 2:
+				sm.Increment("test")
+			case 3:
+				sm.Decrement("test")
+			case 4:
+				sm.SetInt64Value("test i64", int64(idx))
+			case 5:
+				sm.SetStringValue("test str", "test val")
+			case 6:
+				_ = sm.NetworkMetrics()
+			case 7:
+				_ = sm.ConfigMetrics()
+			case 8:
+				_ = sm.EconomicsMetrics()
+			case 9:
+				_ = sm.StatusMetricsMap()
+			case 10:
+				_ = sm.StatusMetricsMapWithoutP2P()
+			case 11:
+				_ = sm.StatusMetricsWithoutP2PPrometheusString()
+			case 12:
+				_ = sm.StatusP2pMetricsMap()
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	elapsedTime := time.Since(startTime)
+	require.True(t, elapsedTime < 10 * time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
 }

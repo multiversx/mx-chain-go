@@ -123,40 +123,37 @@ func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
 }
 
 func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(input string) bool) map[string]interface{} {
+	statusMetricsMap := make(map[string]interface{})
+
 	sm.mutUint64Operations.RLock()
-	uint64Metrics := sm.uint64Metrics
+	for key, value := range sm.uint64Metrics {
+		if !filterFunc(key) {
+			continue
+		}
+
+		statusMetricsMap[key] = value
+	}
 	sm.mutUint64Operations.RUnlock()
 
 	sm.mutStringOperations.RLock()
-	stringMetrics := sm.stringMetrics
+	for key, value := range sm.stringMetrics {
+		if !filterFunc(key) {
+			continue
+		}
+
+		statusMetricsMap[key] = value
+	}
 	sm.mutStringOperations.RUnlock()
 
 	sm.mutInt64Operations.RLock()
-	int64Metrics := sm.int64Metrics
+	for key, value := range sm.int64Metrics {
+		if !filterFunc(key) {
+			continue
+		}
+
+		statusMetricsMap[key] = value
+	}
 	sm.mutInt64Operations.RUnlock()
-
-	statusMetricsMap := make(map[string]interface{})
-	for key, value := range uint64Metrics {
-		if !filterFunc(key) {
-			continue
-		}
-
-		statusMetricsMap[key] = value
-	}
-	for key, value := range stringMetrics {
-		if !filterFunc(key) {
-			continue
-		}
-
-		statusMetricsMap[key] = value
-	}
-	for key, value := range int64Metrics {
-		if !filterFunc(key) {
-			continue
-		}
-
-		statusMetricsMap[key] = value
-	}
 
 	return statusMetricsMap
 }
@@ -168,7 +165,6 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 	sm.mutUint64Operations.RLock()
 	shardID := sm.uint64Metrics[common.MetricShardId]
 	sm.mutUint64Operations.RUnlock()
-
 
 	stringBuilder := strings.Builder{}
 	for key, value := range metrics {
@@ -188,14 +184,14 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 	economicsMetrics := make(map[string]interface{})
 
 	sm.mutStringOperations.RLock()
-	economicsMetrics[common.MetricTotalSupply] = sm.loadStringMetric(common.MetricTotalSupply)
-	economicsMetrics[common.MetricTotalFees] = sm.loadStringMetric(common.MetricTotalFees)
-	economicsMetrics[common.MetricDevRewardsInEpoch] = sm.loadStringMetric(common.MetricDevRewardsInEpoch)
-	economicsMetrics[common.MetricInflation] = sm.loadStringMetric(common.MetricInflation)
+	economicsMetrics[common.MetricTotalSupply] = sm.stringMetrics[common.MetricTotalSupply]
+	economicsMetrics[common.MetricTotalFees] = sm.stringMetrics[common.MetricTotalFees]
+	economicsMetrics[common.MetricDevRewardsInEpoch] = sm.stringMetrics[common.MetricDevRewardsInEpoch]
+	economicsMetrics[common.MetricInflation] = sm.stringMetrics[common.MetricInflation]
 	sm.mutStringOperations.RUnlock()
 
 	sm.mutUint64Operations.RLock()
-	economicsMetrics[common.MetricEpochForEconomicsData] = sm.loadUint64Metric(common.MetricEpochForEconomicsData)
+	economicsMetrics[common.MetricEpochForEconomicsData] = sm.uint64Metrics[common.MetricEpochForEconomicsData]
 	sm.mutUint64Operations.RUnlock()
 
 	return economicsMetrics
@@ -206,28 +202,28 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics := make(map[string]interface{})
 
 	sm.mutUint64Operations.RLock()
-	configMetrics[common.MetricNumShardsWithoutMetachain] = sm.loadUint64Metric(common.MetricNumShardsWithoutMetachain)
-	configMetrics[common.MetricNumNodesPerShard] = sm.loadUint64Metric(common.MetricNumNodesPerShard)
-	configMetrics[common.MetricNumMetachainNodes] = sm.loadUint64Metric(common.MetricNumMetachainNodes)
-	configMetrics[common.MetricShardConsensusGroupSize] = sm.loadUint64Metric(common.MetricShardConsensusGroupSize)
-	configMetrics[common.MetricMetaConsensusGroupSize] = sm.loadUint64Metric(common.MetricMetaConsensusGroupSize)
-	configMetrics[common.MetricMinGasPrice] = sm.loadUint64Metric(common.MetricMinGasPrice)
-	configMetrics[common.MetricMinGasLimit] = sm.loadUint64Metric(common.MetricMinGasLimit)
-	configMetrics[common.MetricMaxGasPerTransaction] = sm.loadUint64Metric(common.MetricMaxGasPerTransaction)
-	configMetrics[common.MetricRoundDuration] = sm.loadUint64Metric(common.MetricRoundDuration)
-	configMetrics[common.MetricStartTime] = sm.loadUint64Metric(common.MetricStartTime)
-	configMetrics[common.MetricDenomination] = sm.loadUint64Metric(common.MetricDenomination)
-	configMetrics[common.MetricMinTransactionVersion] = sm.loadUint64Metric(common.MetricMinTransactionVersion)
-	configMetrics[common.MetricRoundsPerEpoch] = sm.loadUint64Metric(common.MetricRoundsPerEpoch)
-	configMetrics[common.MetricGasPerDataByte] = sm.loadUint64Metric(common.MetricGasPerDataByte)
+	configMetrics[common.MetricNumShardsWithoutMetachain] = sm.uint64Metrics[common.MetricNumShardsWithoutMetachain]
+	configMetrics[common.MetricNumNodesPerShard] = sm.uint64Metrics[common.MetricNumNodesPerShard]
+	configMetrics[common.MetricNumMetachainNodes] = sm.uint64Metrics[common.MetricNumMetachainNodes]
+	configMetrics[common.MetricShardConsensusGroupSize] = sm.uint64Metrics[common.MetricShardConsensusGroupSize]
+	configMetrics[common.MetricMetaConsensusGroupSize] = sm.uint64Metrics[common.MetricMetaConsensusGroupSize]
+	configMetrics[common.MetricMinGasPrice] = sm.uint64Metrics[common.MetricMinGasPrice]
+	configMetrics[common.MetricMinGasLimit] = sm.uint64Metrics[common.MetricMinGasLimit]
+	configMetrics[common.MetricMaxGasPerTransaction] = sm.uint64Metrics[common.MetricMaxGasPerTransaction]
+	configMetrics[common.MetricRoundDuration] = sm.uint64Metrics[common.MetricRoundDuration]
+	configMetrics[common.MetricStartTime] = sm.uint64Metrics[common.MetricStartTime]
+	configMetrics[common.MetricDenomination] = sm.uint64Metrics[common.MetricDenomination]
+	configMetrics[common.MetricMinTransactionVersion] = sm.uint64Metrics[common.MetricMinTransactionVersion]
+	configMetrics[common.MetricRoundsPerEpoch] = sm.uint64Metrics[common.MetricRoundsPerEpoch]
+	configMetrics[common.MetricGasPerDataByte] = sm.uint64Metrics[common.MetricGasPerDataByte]
 	sm.mutUint64Operations.RUnlock()
 
 	sm.mutStringOperations.RLock()
-	configMetrics[common.MetricRewardsTopUpGradientPoint] = sm.loadStringMetric(common.MetricRewardsTopUpGradientPoint)
-	configMetrics[common.MetricChainId] = sm.loadStringMetric(common.MetricChainId)
-	configMetrics[common.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(common.MetricLatestTagSoftwareVersion)
-	configMetrics[common.MetricTopUpFactor] = sm.loadStringMetric(common.MetricTopUpFactor)
-	configMetrics[common.MetricGasPriceModifier] = sm.loadStringMetric(common.MetricGasPriceModifier)
+	configMetrics[common.MetricRewardsTopUpGradientPoint] = sm.stringMetrics[common.MetricRewardsTopUpGradientPoint]
+	configMetrics[common.MetricChainId] = sm.stringMetrics[common.MetricChainId]
+	configMetrics[common.MetricLatestTagSoftwareVersion] = sm.stringMetrics[common.MetricLatestTagSoftwareVersion]
+	configMetrics[common.MetricTopUpFactor] = sm.stringMetrics[common.MetricTopUpFactor]
+	configMetrics[common.MetricGasPriceModifier] = sm.stringMetrics[common.MetricGasPriceModifier]
 	sm.mutStringOperations.RUnlock()
 
 	return configMetrics
@@ -238,27 +234,27 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics := make(map[string]interface{})
 
 	sm.mutUint64Operations.RLock()
-	enableEpochsMetrics[common.MetricScDeployEnableEpoch] = sm.loadUint64Metric(common.MetricScDeployEnableEpoch)
-	enableEpochsMetrics[common.MetricBuiltInFunctionsEnableEpoch] = sm.loadUint64Metric(common.MetricBuiltInFunctionsEnableEpoch)
-	enableEpochsMetrics[common.MetricRelayedTransactionsEnableEpoch] = sm.loadUint64Metric(common.MetricRelayedTransactionsEnableEpoch)
-	enableEpochsMetrics[common.MetricPenalizedTooMuchGasEnableEpoch] = sm.loadUint64Metric(common.MetricPenalizedTooMuchGasEnableEpoch)
-	enableEpochsMetrics[common.MetricSwitchJailWaitingEnableEpoch] = sm.loadUint64Metric(common.MetricSwitchJailWaitingEnableEpoch)
-	enableEpochsMetrics[common.MetricSwitchHysteresisForMinNodesEnableEpoch] = sm.loadUint64Metric(common.MetricSwitchHysteresisForMinNodesEnableEpoch)
-	enableEpochsMetrics[common.MetricBelowSignedThresholdEnableEpoch] = sm.loadUint64Metric(common.MetricBelowSignedThresholdEnableEpoch)
-	enableEpochsMetrics[common.MetricTransactionSignedWithTxHashEnableEpoch] = sm.loadUint64Metric(common.MetricTransactionSignedWithTxHashEnableEpoch)
-	enableEpochsMetrics[common.MetricMetaProtectionEnableEpoch] = sm.loadUint64Metric(common.MetricMetaProtectionEnableEpoch)
-	enableEpochsMetrics[common.MetricAheadOfTimeGasUsageEnableEpoch] = sm.loadUint64Metric(common.MetricAheadOfTimeGasUsageEnableEpoch)
-	enableEpochsMetrics[common.MetricGasPriceModifierEnableEpoch] = sm.loadUint64Metric(common.MetricGasPriceModifierEnableEpoch)
-	enableEpochsMetrics[common.MetricRepairCallbackEnableEpoch] = sm.loadUint64Metric(common.MetricRepairCallbackEnableEpoch)
-	enableEpochsMetrics[common.MetricBlockGasAndFreeRecheckEnableEpoch] = sm.loadUint64Metric(common.MetricBlockGasAndFreeRecheckEnableEpoch)
-	enableEpochsMetrics[common.MetricStakingV2EnableEpoch] = sm.loadUint64Metric(common.MetricStakingV2EnableEpoch)
-	enableEpochsMetrics[common.MetricStakeEnableEpoch] = sm.loadUint64Metric(common.MetricStakeEnableEpoch)
-	enableEpochsMetrics[common.MetricDoubleKeyProtectionEnableEpoch] = sm.loadUint64Metric(common.MetricDoubleKeyProtectionEnableEpoch)
-	enableEpochsMetrics[common.MetricEsdtEnableEpoch] = sm.loadUint64Metric(common.MetricEsdtEnableEpoch)
-	enableEpochsMetrics[common.MetricGovernanceEnableEpoch] = sm.loadUint64Metric(common.MetricGovernanceEnableEpoch)
-	enableEpochsMetrics[common.MetricDelegationManagerEnableEpoch] = sm.loadUint64Metric(common.MetricDelegationManagerEnableEpoch)
-	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.loadUint64Metric(common.MetricDelegationSmartContractEnableEpoch)
-	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.loadUint64Metric(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch)
+	enableEpochsMetrics[common.MetricScDeployEnableEpoch] = sm.uint64Metrics[common.MetricScDeployEnableEpoch]
+	enableEpochsMetrics[common.MetricBuiltInFunctionsEnableEpoch] = sm.uint64Metrics[common.MetricBuiltInFunctionsEnableEpoch]
+	enableEpochsMetrics[common.MetricRelayedTransactionsEnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsEnableEpoch]
+	enableEpochsMetrics[common.MetricPenalizedTooMuchGasEnableEpoch] = sm.uint64Metrics[common.MetricPenalizedTooMuchGasEnableEpoch]
+	enableEpochsMetrics[common.MetricSwitchJailWaitingEnableEpoch] = sm.uint64Metrics[common.MetricSwitchJailWaitingEnableEpoch]
+	enableEpochsMetrics[common.MetricSwitchHysteresisForMinNodesEnableEpoch] = sm.uint64Metrics[common.MetricSwitchHysteresisForMinNodesEnableEpoch]
+	enableEpochsMetrics[common.MetricBelowSignedThresholdEnableEpoch] = sm.uint64Metrics[common.MetricBelowSignedThresholdEnableEpoch]
+	enableEpochsMetrics[common.MetricTransactionSignedWithTxHashEnableEpoch] = sm.uint64Metrics[common.MetricTransactionSignedWithTxHashEnableEpoch]
+	enableEpochsMetrics[common.MetricMetaProtectionEnableEpoch] = sm.uint64Metrics[common.MetricMetaProtectionEnableEpoch]
+	enableEpochsMetrics[common.MetricAheadOfTimeGasUsageEnableEpoch] = sm.uint64Metrics[common.MetricAheadOfTimeGasUsageEnableEpoch]
+	enableEpochsMetrics[common.MetricGasPriceModifierEnableEpoch] = sm.uint64Metrics[common.MetricGasPriceModifierEnableEpoch]
+	enableEpochsMetrics[common.MetricRepairCallbackEnableEpoch] = sm.uint64Metrics[common.MetricRepairCallbackEnableEpoch]
+	enableEpochsMetrics[common.MetricBlockGasAndFreeRecheckEnableEpoch] = sm.uint64Metrics[common.MetricBlockGasAndFreeRecheckEnableEpoch]
+	enableEpochsMetrics[common.MetricStakingV2EnableEpoch] = sm.uint64Metrics[common.MetricStakingV2EnableEpoch]
+	enableEpochsMetrics[common.MetricStakeEnableEpoch] = sm.uint64Metrics[common.MetricStakeEnableEpoch]
+	enableEpochsMetrics[common.MetricDoubleKeyProtectionEnableEpoch] = sm.uint64Metrics[common.MetricDoubleKeyProtectionEnableEpoch]
+	enableEpochsMetrics[common.MetricEsdtEnableEpoch] = sm.uint64Metrics[common.MetricEsdtEnableEpoch]
+	enableEpochsMetrics[common.MetricGovernanceEnableEpoch] = sm.uint64Metrics[common.MetricGovernanceEnableEpoch]
+	enableEpochsMetrics[common.MetricDelegationManagerEnableEpoch] = sm.uint64Metrics[common.MetricDelegationManagerEnableEpoch]
+	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.uint64Metrics[common.MetricDelegationSmartContractEnableEpoch]
+	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
 	sm.mutUint64Operations.RUnlock()
 
 	return enableEpochsMetrics
@@ -271,19 +267,18 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 
 	networkMetrics := make(map[string]interface{})
 
-	currentRound := sm.loadUint64Metric(common.MetricCurrentRound)
-	roundNumberAtEpochStart := sm.loadUint64Metric(common.MetricRoundAtEpochStart)
+	currentRound := sm.uint64Metrics[common.MetricCurrentRound]
+	roundNumberAtEpochStart := sm.uint64Metrics[common.MetricRoundAtEpochStart]
 
-	currentNonce := sm.loadUint64Metric(common.MetricNonce)
-	nonceAtEpochStart := sm.loadUint64Metric(common.MetricNonceAtEpochStart)
-
+	currentNonce := sm.uint64Metrics[common.MetricNonce]
+	nonceAtEpochStart := sm.uint64Metrics[common.MetricNonceAtEpochStart]
 	networkMetrics[common.MetricNonce] = currentNonce
-	networkMetrics[common.MetricHighestFinalBlock] = sm.loadUint64Metric(common.MetricHighestFinalBlock)
+	networkMetrics[common.MetricHighestFinalBlock] = sm.uint64Metrics[common.MetricHighestFinalBlock]
 	networkMetrics[common.MetricCurrentRound] = currentRound
 	networkMetrics[common.MetricRoundAtEpochStart] = roundNumberAtEpochStart
 	networkMetrics[common.MetricNonceAtEpochStart] = nonceAtEpochStart
-	networkMetrics[common.MetricEpochNumber] = sm.loadUint64Metric(common.MetricEpochNumber)
-	networkMetrics[common.MetricRoundsPerEpoch] = sm.loadUint64Metric(common.MetricRoundsPerEpoch)
+	networkMetrics[common.MetricEpochNumber] = sm.uint64Metrics[common.MetricEpochNumber]
+	networkMetrics[common.MetricRoundsPerEpoch] = sm.uint64Metrics[common.MetricRoundsPerEpoch]
 	roundsPassedInEpoch := uint64(0)
 	if currentRound >= roundNumberAtEpochStart {
 		roundsPassedInEpoch = currentRound - roundNumberAtEpochStart
@@ -297,24 +292,4 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
 
 	return networkMetrics
-}
-
-// must be called under mutex protection
-func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
-	uint64Val, ok := sm.uint64Metrics[metric]
-	if !ok {
-		return 0
-	}
-
-	return uint64Val
-}
-
-// must be called under mutex protection
-func (sm *statusMetrics) loadStringMetric(metric string) string {
-	stringVal, ok := sm.stringMetrics[metric]
-	if !ok {
-		return ""
-	}
-
-	return stringVal
 }
