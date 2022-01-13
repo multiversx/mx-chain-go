@@ -81,6 +81,16 @@ var log = logger.GetOrCreate("integrationtests")
 
 const maxTrieLevelInMemory = uint(5)
 
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
+
 // ArgEnableEpoch will specify enable epoch values for certain flags
 type ArgEnableEpoch struct {
 	PenalizedTooMuchGasEnableEpoch      uint32
@@ -136,16 +146,6 @@ func (vmTestContext *VMTestContext) Close() {
 // GetLatestError -
 func (vmTestContext *VMTestContext) GetLatestError() error {
 	return vmTestContext.ScProcessor.GetLatestTestError()
-}
-
-func getZeroGasAndFees() scheduled.GasAndFees {
-	return scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		GasProvided:     0,
-		GasPenalized:    0,
-		GasRefunded:     0,
-	}
 }
 
 // CreateBlockStarted -

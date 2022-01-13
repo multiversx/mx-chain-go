@@ -622,16 +622,6 @@ func createPreProcessorContainerWithDataPool(
 	return container
 }
 
-func getZeroGasAndFees() scheduled.GasAndFees {
-	return scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		GasProvided:     0,
-		GasPenalized:    0,
-		GasRefunded:     0,
-	}
-}
-
 func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 	t.Parallel()
 
@@ -650,7 +640,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	zeroGasAndFees := getZeroGasAndFees()
+	zeroGasAndFees := process.GetZeroGasAndFees()
 	tc.CreateBlockStarted(zeroGasAndFees)
 
 	tc.mutPreProcessor.Lock()

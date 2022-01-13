@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +24,7 @@ func TestFeeHandler_CreateBlockStarted(t *testing.T) {
 	feeHandler, _ := postprocess.NewFeeAccumulator()
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(50), []byte("txhash"))
 
-	zeroGasAndFees := getZeroGasAndFees()
+	zeroGasAndFees := process.GetZeroGasAndFees()
 	feeHandler.CreateBlockStarted(zeroGasAndFees)
 
 	devFees := feeHandler.GetDeveloperFees()
@@ -91,14 +91,4 @@ func TestFeeHandler_IsInterfaceNil(t *testing.T) {
 
 	fee, _ := postprocess.NewFeeAccumulator()
 	require.False(t, check.IfNil(fee))
-}
-
-func getZeroGasAndFees() scheduled.GasAndFees {
-	return scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		GasProvided:     0,
-		GasPenalized:    0,
-		GasRefunded:     0,
-	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -14,6 +15,16 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
+
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
 
 // Test scenario
 // 1. Do a SC deploy on shard 1
