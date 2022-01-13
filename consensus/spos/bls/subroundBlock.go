@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -61,7 +62,7 @@ func checkNewSubroundBlockParams(
 }
 
 // doBlockJob method does the job of the subround Block
-func (sr *subroundBlock) doBlockJob() bool {
+func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
@@ -83,13 +84,13 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 	header, err := sr.createHeader()
 	if err != nil {
-		log.Debug("doBlockJob.createHeader", "error", err.Error())
+		printLogMessage(ctx, "doBlockJob.createHeader", err)
 		return false
 	}
 
 	header, body, err := sr.createBlock(header)
 	if err != nil {
-		log.Debug("doBlockJob.createBlock", "error", err.Error())
+		printLogMessage(ctx, "doBlockJob.createBlock", err)
 		return false
 	}
 
@@ -105,6 +106,15 @@ func (sr *subroundBlock) doBlockJob() bool {
 	}
 
 	return true
+}
+
+func printLogMessage(ctx context.Context, baseMessage string, err error) {
+	if common.WasContextClosed(ctx) {
+		log.Debug(baseMessage + "context is closing")
+		return
+	}
+
+	log.Debug(baseMessage, "error", err.Error())
 }
 
 func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
@@ -532,7 +542,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, metric string) {
 	subRoundDuration := sr.EndTime() - sr.StartTime()
 	if subRoundDuration == 0 {
-		//can not do division by 0
+		// can not do division by 0
 		return
 	}
 
