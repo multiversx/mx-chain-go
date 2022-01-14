@@ -290,6 +290,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	}
 
 	wg.Wait()
+	time.Sleep(time.Second)
 
 	val, err := db.Get(numCheckpointsKey)
 	require.Nil(t, err)
@@ -2351,6 +2352,35 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
 	assert.Equal(t, dataTrie, account.DataTrie())
+}
+
+func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("rootHash")
+	takeSnapshotCalled := false
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetCalled: func(_ []byte) ([]byte, error) {
+					return nil, fmt.Errorf("key not found")
+				},
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					takeSnapshotCalled = true
+				},
+			}
+		},
+	}
+
+	_ = generateAccountDBFromTrie(trieStub)
+	time.Sleep(time.Second)
+	assert.True(t, takeSnapshotCalled)
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {

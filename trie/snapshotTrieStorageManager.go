@@ -52,6 +52,7 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 		return ErrContextClosing
 	}
 
+	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
 	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
 }
 

@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const lastEpochIndex = 1
+
 type triePruningStorer struct {
 	*PruningStorer
 }
@@ -189,7 +191,6 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	lastEpochIndex := 1
 	return ps.activePersisters[lastEpochIndex].persister.Get(key)
 }
 

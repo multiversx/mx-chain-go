@@ -114,8 +114,9 @@ func NewAccountsDB(
 		return nil, ErrNilStoragePruningManager
 	}
 
-	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
-	return &AccountsDB{
+	trieStorageManager := trie.GetStorageManager()
+	numCheckpoints := getNumCheckpoints(trieStorageManager)
+	adb := &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
 		marshalizer:            marshalizer,
@@ -131,7 +132,25 @@ func NewAccountsDB(
 		},
 		processingMode: processingMode,
 		lastSnapshot:   &snapshotInfo{},
-	}, nil
+	}
+
+	val, err := trieStorageManager.Get([]byte(common.ActiveDBKey))
+	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		adb.startSnapshotAfterRestart()
+	}
+
+	return adb, nil
+}
+
+func (adb *AccountsDB) startSnapshotAfterRestart() {
+	rootHash, err := adb.mainTrie.RootHash()
+	if err != nil {
+		log.Error("startSnapshotAfterRestart root hash", "error", err)
+		return
+	}
+
+	log.Debug("startSnapshotAfterRestart")
+	adb.SnapshotState(rootHash)
 }
 
 func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
