@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"reflect"
 	goSync "sync"
@@ -431,7 +432,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, r)
 }
@@ -468,7 +469,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrTimeIsOut, r)
 }
@@ -654,7 +655,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Nil(t, r)
 }
@@ -722,7 +723,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	err := bs.SyncBlock()
+	err := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
@@ -1623,7 +1624,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}}
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	err := bs.SyncBlock()
+	err := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, accountsSyncCalled)

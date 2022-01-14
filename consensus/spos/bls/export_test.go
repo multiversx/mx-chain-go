@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -130,7 +131,7 @@ type SubroundStartRound *subroundStartRound
 
 // DoStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) DoStartRoundJob() bool {
-	return sr.doStartRoundJob()
+	return sr.doStartRoundJob(context.Background())
 }
 
 // DoStartRoundConsensusCheck method checks if the consensus is achieved in the subround StartRound
@@ -160,7 +161,7 @@ func (sr *subroundBlock) BlockChain() data.ChainHandler {
 
 // DoBlockJob method does the job of the subround Block
 func (sr *subroundBlock) DoBlockJob() bool {
-	return sr.doBlockJob()
+	return sr.doBlockJob(context.Background())
 }
 
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
@@ -220,7 +221,7 @@ type SubroundSignature *subroundSignature
 
 // DoSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) DoSignatureJob() bool {
-	return sr.doSignatureJob()
+	return sr.doSignatureJob(context.Background())
 }
 
 // ReceivedSignature method is called when a signature is received through the signature channel
@@ -245,7 +246,7 @@ type SubroundEndRound *subroundEndRound
 
 // DoEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) DoEndRoundJob() bool {
-	return sr.doEndRoundJob()
+	return sr.doEndRoundJob(context.Background())
 }
 
 // DoEndRoundConsensusCheck method checks if the consensus is achieved

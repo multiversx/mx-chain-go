@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -20,7 +22,7 @@ type blockBootstrapper interface {
 
 // syncStarter defines the behavior of component that can start sync-ing blocks
 type syncStarter interface {
-	SyncBlock() error
+	SyncBlock(ctx context.Context) error
 }
 
 // forkDetector is the interface needed by base fork detector to deal with shards and meta nodes

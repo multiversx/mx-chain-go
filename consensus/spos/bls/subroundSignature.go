@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"context"
 	"encoding/hex"
 	"time"
 
@@ -60,7 +61,7 @@ func checkNewSubroundSignatureParams(
 }
 
 // doSignatureJob method does the job of the subround Signature
-func (sr *subroundSignature) doSignatureJob() bool {
+func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 		return true
 	}
@@ -77,7 +78,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
 
 	if !isSelfLeader {
-		//TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
+		// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
 			signatureShare,
