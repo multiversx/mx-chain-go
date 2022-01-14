@@ -719,7 +719,7 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 		return false
 	}
 
-	val, err := stsm.GetFromLastEpoch([]byte(common.ActiveDBKey))
+	val, err := stsm.Get([]byte(common.ActiveDBKey))
 	if err != nil {
 		log.Debug("shouldTakeSnapshot get error", "err", err.Error())
 		return false
