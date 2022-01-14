@@ -494,7 +494,14 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	require.Len(t, res, 2)
 
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
-	require.Contains(t, res, mapKeyToSearch)
+	require.Len(t, res[mapKeyToSearch].Tokens, 1)
+	require.Equal(t, res[mapKeyToSearch].Tokens[0], &indexer.AccountTokenData{
+		Identifier: "token0",
+		Balance:    "37",
+		MetaData:   &esdt.MetaData{
+			Nonce:      38,
+		},
+	})
 }
 
 func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *testing.T) {
