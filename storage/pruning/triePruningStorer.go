@@ -53,6 +53,7 @@ func (ps *triePruningStorer) extendPersisterLife() bool {
 		}
 	}
 
+	log.Debug("extendPersisterLife")
 	return true
 }
 
