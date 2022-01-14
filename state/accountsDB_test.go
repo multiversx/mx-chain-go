@@ -2358,6 +2358,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
+	mutex := sync.RWMutex{}
 	takeSnapshotCalled := false
 	trieStub := &trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
@@ -2372,7 +2373,9 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 					return true
 				},
 				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					mutex.Lock()
 					takeSnapshotCalled = true
+					mutex.Unlock()
 				},
 			}
 		},
@@ -2380,7 +2383,9 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 
 	_ = generateAccountDBFromTrie(trieStub)
 	time.Sleep(time.Second)
+	mutex.RLock()
 	assert.True(t, takeSnapshotCalled)
+	mutex.RUnlock()
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
