@@ -189,7 +189,8 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	return ps.activePersisters[1].persister.Get(key)
+	lastEpochIndex := 1
+	return ps.activePersisters[lastEpochIndex].persister.Get(key)
 }
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister

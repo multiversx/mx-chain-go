@@ -1069,6 +1069,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		printStats(stats, "snapshotState user trie", rootHash)
 
+		log.Debug("set activeDB in epoch", "epoch", epoch)
 		err := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		if err != nil {
 			log.Warn("error while putting active DB value into main storer", "error", err)
