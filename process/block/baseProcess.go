@@ -509,7 +509,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
-	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFeesMetrics()
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 	bp.txCoordinator.CreateBlockStarted(scheduledGasAndFees)
 	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
@@ -1574,7 +1574,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 
 	startTime := time.Now()
 
-	normalProcessingGasAndFeesMetrics := bp.getGasAndFeesMetrics()
+	normalProcessingGasAndFees := bp.getGasAndFees()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1588,15 +1588,15 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	if err != nil {
 		return err
 	}
-	finalProcessingGasAndFeesMetrics := bp.getGasAndFeesMetrics()
-	scheduledProcessingGasAndFeesMetrics := gasAndFeesMetricsDelta(normalProcessingGasAndFeesMetrics, finalProcessingGasAndFeesMetrics)
+	finalProcessingGasAndFees := bp.getGasAndFees()
+	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
-	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFeesMetrics(scheduledProcessingGasAndFeesMetrics)
+	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
 
 	return nil
 }
 
-func (bp *baseProcessor) getGasAndFeesMetrics() scheduled.GasAndFees {
+func (bp *baseProcessor) getGasAndFees() scheduled.GasAndFees {
 	return scheduled.GasAndFees{
 		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
 		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
@@ -1606,50 +1606,50 @@ func (bp *baseProcessor) getGasAndFeesMetrics() scheduled.GasAndFees {
 	}
 }
 
-func gasAndFeesMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
+func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	zero := big.NewInt(0)
 	result := process.GetZeroGasAndFees()
 
-	deltaAccumulatedFees := big.NewInt(0).Sub(finalMetrics.AccumulatedFees, initialMetrics.AccumulatedFees)
+	deltaAccumulatedFees := big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees)
 	if deltaAccumulatedFees.Cmp(zero) < 0 {
-		log.Error("feeAndGasMetricsDelta",
-			"initial accumulatedFees", initialMetrics.AccumulatedFees.String(),
-			"final accumulatedFees", finalMetrics.AccumulatedFees.String(),
+		log.Error("gasAndFeesDelta",
+			"initial accumulatedFees", initialGasAndFees.AccumulatedFees.String(),
+			"final accumulatedFees", initialGasAndFees.AccumulatedFees.String(),
 			"error", process.ErrNegativeValue)
 		return result
 	}
 
-	deltaDevFees := big.NewInt(0).Sub(finalMetrics.DeveloperFees, initialMetrics.DeveloperFees)
+	deltaDevFees := big.NewInt(0).Sub(initialGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees)
 	if deltaDevFees.Cmp(zero) < 0 {
-		log.Error("feeAndGasMetricsDelta",
-			"initial devFees", initialMetrics.DeveloperFees.String(),
-			"final devFees", finalMetrics.DeveloperFees.String(),
+		log.Error("gasAndFeesDelta",
+			"initial devFees", initialGasAndFees.DeveloperFees.String(),
+			"final devFees", initialGasAndFees.DeveloperFees.String(),
 			"error", process.ErrNegativeValue)
 		return result
 	}
 
-	deltaGasProvided := int64(finalMetrics.GasProvided) - int64(initialMetrics.GasProvided)
+	deltaGasProvided := int64(initialGasAndFees.GasProvided) - int64(initialGasAndFees.GasProvided)
 	if deltaGasProvided < 0 {
-		log.Error("feeAndGasMetricsDelta",
-			"initial gasProvided", initialMetrics.GasProvided,
-			"final gasProvided", finalMetrics.GasProvided,
+		log.Error("gasAndFeesDelta",
+			"initial gasProvided", initialGasAndFees.GasProvided,
+			"final gasProvided", initialGasAndFees.GasProvided,
 			"error", process.ErrNegativeValue)
 		return result
 	}
 
-	deltaGasPenalized := int64(finalMetrics.GasPenalized) - int64(initialMetrics.GasPenalized)
+	deltaGasPenalized := int64(initialGasAndFees.GasPenalized) - int64(initialGasAndFees.GasPenalized)
 	if deltaGasPenalized < 0 {
-		log.Error("feeAndGasMetricsDelta",
-			"initial gasPenalized", initialMetrics.GasPenalized,
-			"final gasPenalized", finalMetrics.GasPenalized,
+		log.Error("gasAndFeesDelta",
+			"initial gasPenalized", initialGasAndFees.GasPenalized,
+			"final gasPenalized", initialGasAndFees.GasPenalized,
 			"error", process.ErrNegativeValue)
 		return result
 	}
-	deltaGasRefunded := int64(finalMetrics.GasRefunded) - int64(initialMetrics.GasRefunded)
+	deltaGasRefunded := int64(initialGasAndFees.GasRefunded) - int64(initialGasAndFees.GasRefunded)
 	if deltaGasRefunded < 0 {
-		log.Error("feeAndGasMetricsDelta",
-			"initial gasRefunded", initialMetrics.GasRefunded,
-			"final gasRefunded", finalMetrics.GasRefunded,
+		log.Error("gasAndFeesDelta",
+			"initial gasRefunded", initialGasAndFees.GasRefunded,
+			"final gasRefunded", initialGasAndFees.GasRefunded,
 			"error", process.ErrNegativeValue)
 		return result
 	}

@@ -1131,7 +1131,7 @@ type ScheduledTxsExecutionHandler interface {
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
-	GetScheduledGasAndFeesMetrics() scheduled.GasAndFees
+	GetScheduledGasAndFees() scheduled.GasAndFees
 	SetScheduledRootHashSCRsGasAndFees(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
@@ -1139,7 +1139,7 @@ type ScheduledTxsExecutionHandler interface {
 	SaveState(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
-	SetScheduledGasAndFeesMetrics(gasAndFees scheduled.GasAndFees)
+	SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool

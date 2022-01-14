@@ -38,8 +38,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]da
 	return make(map[block.Type][]data.TransactionHandler)
 }
 
-// GetScheduledGasAndFeesMetrics returns a zero value structure for the gas and fees
-func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFeesMetrics() scheduled.GasAndFees {
+// GetScheduledGasAndFees returns a zero value structure for the gas and fees
+func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFees() scheduled.GasAndFees {
 	return scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
@@ -85,8 +85,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
 func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
 }
 
-// SetScheduledGasAndFeesMetrics does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFeesMetrics(_ scheduled.GasAndFees) {
+// SetScheduledGasAndFees does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFees(_ scheduled.GasAndFees) {
 }
 
 // SetTransactionProcessor does nothing as it is a disabled component

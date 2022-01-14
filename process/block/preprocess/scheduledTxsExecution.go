@@ -288,14 +288,14 @@ func (ste *scheduledTxsExecution) GetScheduledRootHash() []byte {
 	return rootHash
 }
 
-// GetScheduledGasAndFeesMetrics returns the gas and fees metrics for the scheduled transactions in last processed block
+// GetScheduledGasAndFees returns the gas and fees for the scheduled transactions in last processed block
 // if there are no scheduled transactions in the last processed block, the returned struct has zero values
-func (ste *scheduledTxsExecution) GetScheduledGasAndFeesMetrics() scheduled.GasAndFees {
+func (ste *scheduledTxsExecution) GetScheduledGasAndFees() scheduled.GasAndFees {
 	ste.mutScheduledTxs.RLock()
 	gasAndFees := ste.gasAndFees
 	ste.mutScheduledTxs.RUnlock()
 
-	log.Debug("scheduledTxsExecution.GetScheduledGasAndFeesMetrics",
+	log.Debug("scheduledTxsExecution.GetScheduledGasAndFees",
 		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"developerFees", gasAndFees.DeveloperFees.String(),
 		"gasProvided", gasAndFees.GasProvided,
@@ -314,13 +314,13 @@ func (ste *scheduledTxsExecution) SetScheduledRootHash(rootHash []byte) {
 	log.Debug("scheduledTxsExecution.SetScheduledRootHash", "scheduled root hash", rootHash)
 }
 
-// SetScheduledGasAndFeesMetrics sets the gas and fees metrics for the scheduled transactions
-func (ste *scheduledTxsExecution) SetScheduledGasAndFeesMetrics(gasAndFees scheduled.GasAndFees) {
+// SetScheduledGasAndFees sets the gas and fees for the scheduled transactions
+func (ste *scheduledTxsExecution) SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees) {
 	ste.mutScheduledTxs.Lock()
 	ste.gasAndFees = gasAndFees
 	ste.mutScheduledTxs.Unlock()
 
-	log.Debug("scheduledTxsExecution.SetScheduledGasAndFeesMetrics",
+	log.Debug("scheduledTxsExecution.SetScheduledGasAndFees",
 		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"developerFees", gasAndFees.DeveloperFees.String(),
 		"gasProvided", gasAndFees.GasProvided,
@@ -405,7 +405,7 @@ func (ste *scheduledTxsExecution) SaveState(
 	}
 }
 
-// getScheduledRootHashSCRsGasAndFeesForHeader gets scheduled root hash, the SCRs, gas and fees metrics of the given header from storage
+// getScheduledRootHashSCRsGasAndFeesForHeader gets scheduled root hash, the SCRs, gas and fees of the given header from storage
 func (ste *scheduledTxsExecution) getScheduledRootHashSCRsGasAndFeesForHeader(
 	headerHash []byte,
 ) ([]byte, map[block.Type][]data.TransactionHandler, *scheduled.GasAndFees, error) {

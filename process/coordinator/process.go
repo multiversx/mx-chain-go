@@ -1432,7 +1432,7 @@ func (tc *transactionCoordinator) verifyFees(
 	totalMaxDeveloperFees := big.NewInt(0)
 
 	if tc.flagScheduledMiniBlocks.IsSet() {
-		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFeesMetrics()
+		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, scheduledGasAndFees.AccumulatedFees)
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
 	}

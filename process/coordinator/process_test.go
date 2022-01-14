@@ -3607,7 +3607,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
-			GetScheduledGasAndFeesMetricsCalled: func() scheduled.GasAndFees {
+			GetScheduledGasAndFeesCalled: func() scheduled.GasAndFees {
 				return scheduled.GasAndFees{
 					AccumulatedFees: big.NewInt(1),
 					DeveloperFees:   big.NewInt(0),
@@ -3685,7 +3685,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
-			GetScheduledGasAndFeesMetricsCalled: func() scheduled.GasAndFees {
+			GetScheduledGasAndFeesCalled: func() scheduled.GasAndFees {
 				return scheduled.GasAndFees{
 					AccumulatedFees: big.NewInt(0),
 					DeveloperFees:   big.NewInt(1),
@@ -3763,7 +3763,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
-			GetScheduledGasAndFeesMetricsCalled: func() scheduled.GasAndFees {
+			GetScheduledGasAndFeesCalled: func() scheduled.GasAndFees {
 				return scheduled.GasAndFees{
 					AccumulatedFees: big.NewInt(1),
 					DeveloperFees:   big.NewInt(1),

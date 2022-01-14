@@ -22,9 +22,9 @@ type ScheduledTxsExecutionStub struct {
 	GetScheduledRootHashForHeaderCalled      func(headerHash []byte) ([]byte, error)
 	RollBackToBlockCalled                    func(headerHash []byte) error
 	GetScheduledRootHashCalled               func() []byte
-	GetScheduledGasAndFeesMetricsCalled      func() scheduled.GasAndFees
+	GetScheduledGasAndFeesCalled             func() scheduled.GasAndFees
 	SetScheduledRootHashCalled               func([]byte)
-	SetScheduledGasAndFeesMetricsCalled      func(gasAndFees scheduled.GasAndFees)
+	SetScheduledGasAndFeesCalled             func(gasAndFees scheduled.GasAndFees)
 	SetTransactionProcessorCalled            func(process.TransactionProcessor)
 	SetTransactionCoordinatorCalled          func(process.TransactionCoordinator)
 	HaveScheduledTxsCalled                   func() bool
@@ -73,10 +73,10 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledSCRs() map[block.Type][]data.
 	return nil
 }
 
-// GetScheduledGasAndFeesMetrics returns the scheduled SC calls gas and fees
-func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFeesMetrics() scheduled.GasAndFees {
-	if stes.GetScheduledGasAndFeesMetricsCalled != nil {
-		return stes.GetScheduledGasAndFeesMetricsCalled()
+// GetScheduledGasAndFees returns the scheduled SC calls gas and fees
+func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFees() scheduled.GasAndFees {
+	if stes.GetScheduledGasAndFeesCalled != nil {
+		return stes.GetScheduledGasAndFeesCalled()
 	}
 	return scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
@@ -145,10 +145,10 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledRootHash(rootHash []byte) {
 	}
 }
 
-// SetScheduledGasAndFeesMetrics -
-func (stes *ScheduledTxsExecutionStub) SetScheduledGasAndFeesMetrics(gasAndFees scheduled.GasAndFees) {
-	if stes.SetScheduledGasAndFeesMetricsCalled != nil {
-		stes.SetScheduledGasAndFeesMetricsCalled(gasAndFees)
+// SetScheduledGasAndFees -
+func (stes *ScheduledTxsExecutionStub) SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees) {
+	if stes.SetScheduledGasAndFeesCalled != nil {
+		stes.SetScheduledGasAndFeesCalled(gasAndFees)
 	}
 }
 
