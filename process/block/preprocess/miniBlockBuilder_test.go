@@ -429,22 +429,27 @@ func Test_MiniBlocksBuilderHandleBadTransactionWithSkip(t *testing.T) {
 	senderShardID := uint32(0)
 	receiverShardID := uint32(1)
 	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
-	mbb.gasInfo = gasConsumedInfo{
+	gasInfo := gasConsumedInfo{
+		prevGasConsumedInReceiverShard:        15,
 		gasConsumedByMiniBlocksInSenderShard:  10,
 		gasConsumedByMiniBlockInReceiverShard: 20,
 		totalGasConsumedInSelfShard:           30,
 	}
-	mbb.prevGasInfo = gasConsumedInfo{
+	prevGasInfo := gasConsumedInfo{
+		prevGasConsumedInReceiverShard:        5,
 		gasConsumedByMiniBlocksInSenderShard:  5,
 		gasConsumedByMiniBlockInReceiverShard: 10,
 		totalGasConsumedInSelfShard:           20,
 	}
+	mbb.gasInfo = gasInfo
+	mbb.prevGasInfo = prevGasInfo
+
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	mbb.handleBadTransaction(process.ErrHigherNonceInTransaction, wtx, tx)
 
 	require.Equal(t, tx.SndAddr, mbb.senderToSkip)
-	require.Equal(t, mbb.prevGasInfo, mbb.gasInfo)
-	require.Equal(t, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID], mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, prevGasInfo, mbb.gasInfo)
+	require.Equal(t, gasInfo.prevGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
 func Test_MiniBlocksBuilderHandleBadTransactionNoSkip(t *testing.T) {
@@ -458,22 +463,25 @@ func Test_MiniBlocksBuilderHandleBadTransactionNoSkip(t *testing.T) {
 	senderShardID := uint32(0)
 	receiverShardID := uint32(1)
 	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
-	mbb.gasInfo = gasConsumedInfo{
+	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  10,
 		gasConsumedByMiniBlockInReceiverShard: 20,
 		totalGasConsumedInSelfShard:           30,
 	}
-	mbb.prevGasInfo = gasConsumedInfo{
+	prevGasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  5,
 		gasConsumedByMiniBlockInReceiverShard: 10,
 		totalGasConsumedInSelfShard:           20,
 	}
+
+	mbb.prevGasInfo = prevGasInfo
+	mbb.gasInfo = gasInfo
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	mbb.handleBadTransaction(process.ErrAccountNotFound, wtx, tx)
 
 	require.Equal(t, []byte(""), mbb.senderToSkip)
-	require.Equal(t, mbb.prevGasInfo, mbb.gasInfo)
-	require.Equal(t, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID], mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, prevGasInfo, mbb.gasInfo)
+	require.Equal(t, gasInfo.prevGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
 func Test_MiniBlocksBuilderShouldSenderBeSkippedNoConfiguredSenderToSkip(t *testing.T) {

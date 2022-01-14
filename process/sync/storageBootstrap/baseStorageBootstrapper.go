@@ -2,11 +2,13 @@ package storageBootstrap
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -179,9 +181,18 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
 	if err != nil {
-		st.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(
+		gasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+			GasProvided:     0,
+			GasPenalized:    0,
+			GasRefunded:     0,
+		}
+
+		st.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsAndGas(
 			st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
-			make(map[block.Type][]data.TransactionHandler))
+			make(map[block.Type][]data.TransactionHandler),
+			gasAndFees)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce

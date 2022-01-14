@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -508,8 +509,10 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
-	bp.txCoordinator.CreateBlockStarted()
-	bp.feeHandler.CreateBlockStarted()
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFee()
+
+	bp.txCoordinator.CreateBlockStarted(scheduledGasAndFees)
+	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
 	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
 	if err != nil {
@@ -1187,7 +1190,7 @@ func (bp *baseProcessor) updateStateStorage(
 // RevertCurrentBlock reverts the current block for cleanup failed process
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
-	bp.revertScheduledRootHashAndSCRs()
+	bp.revertScheduledRootHashSCRsAndGas()
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1199,11 +1202,19 @@ func (bp *baseProcessor) revertAccountState() {
 	}
 }
 
-func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
+func (bp *baseProcessor) revertScheduledRootHashSCRsAndGas() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
+		log.Warn("baseProcessor.revertScheduledRootHashSCRsAndGas - could not rollback to block, trying recovery", "error", err.Error())
+		gasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+			GasProvided:     0,
+			GasPenalized:    0,
+			GasRefunded:     0,
+		}
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsAndGas(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 }
 
@@ -1569,6 +1580,8 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	}()
 
 	startTime := time.Now()
+
+	normalProcessingGasMetrics := bp.getFeesAndGasMetrics()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1582,10 +1595,85 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	if err != nil {
 		return err
 	}
-
+	finalGasMetrics := bp.getFeesAndGasMetrics()
+	scheduledProcessingGasMetrics := feeAndGasMetricsDelta(normalProcessingGasMetrics, finalGasMetrics)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
+	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFee(scheduledProcessingGasMetrics)
 
 	return nil
+}
+
+func (bp *baseProcessor) getFeesAndGasMetrics() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
+		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
+		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
+		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
+		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
+	}
+}
+
+func feeAndGasMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) scheduled.GasAndFees {
+	zero := big.NewInt(0)
+	result := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+
+	deltaAccumulatedFees := big.NewInt(0).Sub(finalMetrics.AccumulatedFees, initialMetrics.AccumulatedFees)
+	if deltaAccumulatedFees.Cmp(zero) < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial accumulatedFees", initialMetrics.AccumulatedFees.String(),
+			"final accumulatedFees", finalMetrics.AccumulatedFees.String(),
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	deltaDevFees := big.NewInt(0).Sub(finalMetrics.DeveloperFees, initialMetrics.DeveloperFees)
+	if deltaDevFees.Cmp(zero) < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial devFees", initialMetrics.DeveloperFees.String(),
+			"final devFees", finalMetrics.DeveloperFees.String(),
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	deltaGasProvided := int64(finalMetrics.GasProvided) - int64(initialMetrics.GasProvided)
+	if deltaGasProvided < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial gasProvided", initialMetrics.GasProvided,
+			"final gasProvided", finalMetrics.GasProvided,
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	deltaGasPenalized := int64(finalMetrics.GasPenalized) - int64(initialMetrics.GasPenalized)
+	if deltaGasPenalized < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial gasPenalized", initialMetrics.GasPenalized,
+			"final gasPenalized", finalMetrics.GasPenalized,
+			"error", process.ErrNegativeValue)
+		return result
+	}
+	deltaGasRefunded := int64(finalMetrics.GasRefunded) - int64(initialMetrics.GasRefunded)
+	if deltaGasRefunded < 0 {
+		log.Error("feeAndGasMetricsDelta",
+			"initial gasRefunded", initialMetrics.GasRefunded,
+			"final GasRefunded", finalMetrics.GasRefunded,
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	return scheduled.GasAndFees{
+		AccumulatedFees: deltaAccumulatedFees,
+		DeveloperFees:   deltaDevFees,
+		GasProvided:     uint64(deltaGasProvided),
+		GasPenalized:    uint64(deltaGasPenalized),
+		GasRefunded:     uint64(deltaGasRefunded),
+	}
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

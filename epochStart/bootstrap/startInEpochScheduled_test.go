@@ -3,11 +3,13 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -330,24 +332,28 @@ func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
 	require.Equal(t, expectedScheduledTxsMap, scheduledTxs)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsNoScheduledRootHash(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoScheduledRootHash(t *testing.T) {
 	t.Parallel()
 
 	scheduledSCRs := map[string]data.TransactionHandler{}
 	headerHash := []byte("header hash")
+	gasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 
 	sds := &startInEpochWithScheduledDataSyncer{
 		scheduledTxsHandler: &testscommon.ScheduledTxsExecutionStub{
-			SaveStateCalled: func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler) {
+			SaveStateCalled: func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
 				t.Error("should not be called")
 			},
 		},
 	}
 
-	sds.saveScheduledSCRs(scheduledSCRs, nil, headerHash)
+	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, nil, headerHash, gasAndFees)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRs(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *testing.T) {
 	t.Parallel()
 
 	scr1 := &smartContractResult.SmartContractResult{
@@ -358,7 +364,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRs(t *testing.T) {
 	}
 
 	scheduledSCRs := map[string]data.TransactionHandler{
-		"txhash1": scr1,
+		"txHash1": scr1,
 		"txHash2": scr2,
 	}
 	scheduledRootHash := []byte("scheduled root hash")
@@ -369,18 +375,33 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRs(t *testing.T) {
 	expectedScheduledSCRsMap := map[block.Type][]data.TransactionHandler{
 		block.TxBlock: {scr1, scr2},
 	}
+	gasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(100),
+		DeveloperFees:   big.NewInt(30),
+		GasProvided:     100,
+		GasPenalized:    0,
+		GasRefunded:     10,
+	}
+
+	expectedGasAndFees := gasAndFees
 
 	sds := &startInEpochWithScheduledDataSyncer{
 		scheduledTxsHandler: &testscommon.ScheduledTxsExecutionStub{
-			SaveStateCalled: func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler) {
+			SaveStateCalled: func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
 				require.Equal(t, expectedHeaderHash, headerHash)
 				require.Equal(t, expectedScheduledRootHash, scheduledRootHash)
-				require.Equal(t, expectedScheduledSCRsMap, mapScheduledSCRs)
+				require.Equal(t, expectedGasAndFees, gasAndFees)
+				for i, v := range mapScheduledSCRs {
+					require.Equal(t, len(expectedScheduledSCRsMap[i]), len(v))
+					for j := range v {
+						require.Contains(t, expectedScheduledSCRsMap[i], v[j])
+					}
+				}
 			},
 		},
 	}
 
-	sds.saveScheduledSCRs(scheduledSCRs, scheduledRootHash, headerHash)
+	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, scheduledRootHash, headerHash, gasAndFees)
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocksWithSyncErrorShouldErr(t *testing.T) {
