@@ -650,39 +650,26 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 3)
 
-	esdtToken, firstNft, secondNft := &indexer.AccountTokenData{}, &indexer.AccountTokenData{}, &indexer.AccountTokenData{}
-	for _, token := range res[encodedAddr].Tokens {
-		if token.Identifier == "esdttoken" {
-			esdtToken = token
-		}
-		if token.Identifier == "nft-0" && expectedToken1.TokenMetaData.Nonce == token.Nonce {
-			firstNft = token
-		}
-		if token.Identifier == "nft-0" && expectedToken2.TokenMetaData.Nonce == token.Nonce {
-			secondNft = token
-		}
-	}
-
-	require.Equal(t, &indexer.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &indexer.AccountTokenData{
 		Identifier: "esdttoken",
 		Balance:    expectedToken0.Value.String(),
 		Nonce:      0,
 		MetaData:   nil,
-	}, esdtToken)
+	})
 
-	require.Equal(t, &indexer.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &indexer.AccountTokenData{
 		Identifier: string(expectedToken1.TokenMetaData.Name),
 		Balance:    expectedToken1.Value.String(),
 		Nonce:      expectedToken1.TokenMetaData.Nonce,
 		MetaData:   expectedToken1.TokenMetaData,
-	}, firstNft)
+	})
 
-	require.Equal(t, &indexer.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &indexer.AccountTokenData{
 		Identifier: string(expectedToken2.TokenMetaData.Name),
 		Balance:    expectedToken2.Value.String(),
 		Nonce:      expectedToken2.TokenMetaData.Nonce,
 		MetaData:   expectedToken2.TokenMetaData,
-	}, secondNft)
+	})
 
 }
 
