@@ -199,7 +199,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		//we deliberately set this, automatically choose full archive node mode
+		// we deliberately set this, automatically choose full archive node mode
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
@@ -430,7 +430,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 }
 
 func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, error) {
-	cacheConf, dbConf, blConf := getDummyConfig()
+	cacheConf, dbConf := getDummyConfig()
 
 	lockPersisterMap := sync.Mutex{}
 	persistersMap := make(map[string]storage.Persister)
@@ -456,7 +456,6 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 		CacheConf:              cacheConf,
 		DbPath:                 dbConf.FilePath,
 		PersisterFactory:       persisterFactory,
-		BloomFilterConf:        blConf,
 		NumOfEpochsToKeep:      4,
 		NumOfActivePersisters:  4,
 		Notifier:               notifier,
@@ -467,7 +466,7 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 	return pruning.NewTriePruningStorer(args)
 }
 
-func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
+func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig) {
 	cacheConf := storageUnit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",
@@ -480,8 +479,8 @@ func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUni
 		MaxBatchSize:      1,
 		MaxOpenFiles:      1000,
 	}
-	blConf := storageUnit.BloomConfig{}
-	return cacheConf, dbConf, blConf
+
+	return cacheConf, dbConf
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
@@ -1937,7 +1936,7 @@ func CreateMintingForSenders(
 ) {
 
 	for _, n := range nodes {
-		//only sender shard nodes will be minted
+		// only sender shard nodes will be minted
 		if n.ShardCoordinator.SelfId() != senderShard {
 			continue
 		}
@@ -2039,7 +2038,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
 func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, _ uint32) dataRetriever.PoolsHolder {
-	//not allowed to request data from the same shard
+	// not allowed requesting data from the same shard
 	return dataRetrieverMock.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false

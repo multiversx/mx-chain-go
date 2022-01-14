@@ -84,10 +84,8 @@ type PruningStorer struct {
 	shardCoordinator storage.ShardCoordinator
 	activePersisters []*persisterData
 	// it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
-	persistersMapByEpoch map[uint32]*persisterData
-	cacher               storage.Cacher
-	// TODO remove bloom filter
-	bloomFilter            storage.BloomFilter
+	persistersMapByEpoch   map[uint32]*persisterData
+	cacher                 storage.Cacher
 	pathManager            storage.PathManagerHandler
 	dbPath                 string
 	persisterFactory       DbFactoryHandler
@@ -130,7 +128,6 @@ func initPruningStorer(
 	activePersisters []*persisterData,
 	persistersMapByEpoch map[uint32]*persisterData,
 ) (*PruningStorer, error) {
-	var bf storage.BloomFilter
 	pdb := &PruningStorer{}
 
 	cache, err := storageUnit.NewCache(args.CacheConf)
@@ -149,7 +146,6 @@ func initPruningStorer(
 	pdb.shardCoordinator = args.ShardCoordinator
 	pdb.cacher = cache
 	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
-	pdb.bloomFilter = nil
 	pdb.epochForPutOperation = args.StartingEpoch
 	pdb.pathManager = args.PathManager
 	pdb.dbPath = args.DbPath
@@ -158,15 +154,6 @@ func initPruningStorer(
 	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
-
-	if args.BloomFilterConf.Size != 0 { // if size is 0, that means an empty config was used so bloom filter will be nil
-		bf, err = storageUnit.NewBloomFilter(args.BloomFilterConf)
-		if err != nil {
-			return nil, err
-		}
-
-		pdb.bloomFilter = bf
-	}
 
 	pdb.extendPersisterLifeHandler = func() bool {
 		return false
@@ -277,7 +264,7 @@ func computeOldestEpochActiveAndToKeep(args *StorerArgs) (int64, int64) {
 func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 	pd, ok := value.(*persisterData)
 	if ok {
-		//since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
+		// since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
 		// the same mutex again here. It is safe to proceed without lock.
 
 		for _, active := range ps.activePersisters {
@@ -297,7 +284,7 @@ func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 	}
 }
 
-// Put adds data to both cache and persistence medium and updates the bloom filter
+// Put adds data to both cache and persistence medium
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
@@ -331,10 +318,6 @@ func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Pe
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
-	}
-
-	if ps.bloomFilter != nil {
-		ps.bloomFilter.Add(key)
 	}
 
 	return nil
@@ -402,16 +385,11 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 	return persister, closeFunc, nil
 }
 
-// Get searches the key in the cache. In case it is not found, it verifies with the bloom filter
-// if the key may be in the db. If bloom filter confirms then it further searches in the databases.
+// Get searches the key in the cache. In case it is not found, the key may be in the db.
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
 		return v.([]byte), nil
-	}
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
 	// not found in cache
@@ -562,8 +540,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 }
 
 // Has checks if the key is in the Unit.
-// It first checks the cache. If it is not found, it checks the bloom filter
-// and if present it checks the db
+// It first checks the cache. If it is not found, it checks the db
 func (ps *PruningStorer) Has(key []byte) error {
 	has := ps.cacher.Has(key)
 	if has {
@@ -572,14 +549,13 @@ func (ps *PruningStorer) Has(key []byte) error {
 
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
-	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
-		for _, persister := range ps.activePersisters {
-			if persister.getPersister().Has(key) != nil {
-				continue
-			}
 
-			return nil
+	for _, persister := range ps.activePersisters {
+		if persister.getPersister().Has(key) != nil {
+			continue
 		}
+
+		return nil
 	}
 
 	return storage.ErrKeyNotFound
@@ -635,14 +611,10 @@ func (ps *PruningStorer) GetOldestEpoch() (uint32, error) {
 	return oldestEpoch, nil
 }
 
-// DestroyUnit cleans up the bloom filter, the cache, and the dbs
+// DestroyUnit cleans up the cache and the dbs
 func (ps *PruningStorer) DestroyUnit() error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
-
-	if ps.bloomFilter != nil {
-		ps.bloomFilter.Clear()
-	}
 
 	ps.cacher.Clear()
 

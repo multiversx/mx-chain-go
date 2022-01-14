@@ -27,19 +27,3 @@ func GetDBFromConfig(cfg config.DBConfig) storageUnit.DBConfig {
 		MaxOpenFiles:      cfg.MaxOpenFiles,
 	}
 }
-
-// GetBloomFromConfig will return the bloom config needed for storage unit from a config came from the toml file
-func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
-	var hashFuncs []storageUnit.HasherType
-	if cfg.HashFunc != nil {
-		hashFuncs = make([]storageUnit.HasherType, len(cfg.HashFunc))
-		for idx, hf := range cfg.HashFunc {
-			hashFuncs[idx] = storageUnit.HasherType(hf)
-		}
-	}
-
-	return storageUnit.BloomConfig{
-		Size:     cfg.Size,
-		HashFunc: hashFuncs,
-	}
-}

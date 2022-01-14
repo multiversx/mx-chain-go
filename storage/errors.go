@@ -10,9 +10,6 @@ var ErrNilPersister = errors.New("expected not nil persister")
 // ErrNilCacher is raised when a nil cacher is provided
 var ErrNilCacher = errors.New("expected not nil cacher")
 
-// ErrNilBloomFilter is raised when a nil bloom filter is provided
-var ErrNilBloomFilter = errors.New("expected not nil bloom filter")
-
 // ErrNotSupportedCacheType is raised when an unsupported cache type is provided
 var ErrNotSupportedCacheType = errors.New("not supported cache type")
 

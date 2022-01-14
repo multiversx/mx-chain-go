@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
+func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig) {
 	cacheConf := storageUnit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",
@@ -39,12 +39,11 @@ func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUni
 		MaxBatchSize:      1,
 		MaxOpenFiles:      1000,
 	}
-	blConf := storageUnit.BloomConfig{}
-	return cacheConf, dbConf, blConf
+	return cacheConf, dbConf
 }
 
 func getDefaultArgs() *pruning.StorerArgs {
-	cacheConf, dbConf, blConf := getDummyConfig()
+	cacheConf, dbConf := getDummyConfig()
 
 	lockPersisterMap := sync.Mutex{}
 	persistersMap := make(map[string]storage.Persister)
@@ -70,7 +69,6 @@ func getDefaultArgs() *pruning.StorerArgs {
 		CacheConf:              cacheConf,
 		DbPath:                 dbConf.FilePath,
 		PersisterFactory:       persisterFactory,
-		BloomFilterConf:        blConf,
 		NumOfEpochsToKeep:      2,
 		NumOfActivePersisters:  2,
 		Notifier:               &mock.EpochStartNotifierStub{},
@@ -80,7 +78,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 }
 
 func getDefaultArgsSerialDB() *pruning.StorerArgs {
-	cacheConf, dbConf, blConf := getDummyConfig()
+	cacheConf, dbConf := getDummyConfig()
 	cacheConf.Capacity = 40
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
@@ -98,7 +96,6 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 		CacheConf:              cacheConf,
 		DbPath:                 dbConf.FilePath,
 		PersisterFactory:       persisterFactory,
-		BloomFilterConf:        blConf,
 		NumOfEpochsToKeep:      3,
 		NumOfActivePersisters:  2,
 		Notifier:               &mock.EpochStartNotifierStub{},
