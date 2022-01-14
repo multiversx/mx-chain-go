@@ -9,7 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const lastEpochIndex = 1
+const (
+	lastEpochIndex    = 1
+	currentEpochIndex = 0
+)
 
 type triePruningStorer struct {
 	*PruningStorer
@@ -194,6 +197,22 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 	return ps.activePersisters[lastEpochIndex].persister.Get(key)
 }
 
+// GetFromCurrentEpoch searches only the current epoch storer for the given key
+func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	if len(ps.activePersisters) == 0 {
+		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	}
+
+	return ps.activePersisters[currentEpochIndex].persister.Get(key)
+}
+
 // GetLatestStorageEpoch returns the epoch for the latest opened persister
 func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	ps.lock.RLock()
@@ -203,5 +222,5 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 		return 0, fmt.Errorf("there are no active persisters")
 	}
 
-	return ps.activePersisters[0].epoch, nil
+	return ps.activePersisters[currentEpochIndex].epoch, nil
 }

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -38,8 +39,9 @@ func NewPeerAccountsDB(
 		return nil, ErrNilStoragePruningManager
 	}
 
-	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
-	return &PeerAccountsDB{
+	trieStorageManager := trie.GetStorageManager()
+	numCheckpoints := getNumCheckpoints(trieStorageManager)
+	adb := &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
 			hasher:         hasher,
@@ -54,7 +56,25 @@ func NewPeerAccountsDB(
 			},
 			storagePruningManager: storagePruningManager,
 		},
-	}, nil
+	}
+
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
+	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		adb.startSnapshotAfterRestart()
+	}
+
+	return adb, nil
+}
+
+func (adb *PeerAccountsDB) startSnapshotAfterRestart() {
+	rootHash, err := adb.mainTrie.RootHash()
+	if err != nil {
+		log.Error("startSnapshotAfterRestart root hash", "error", err)
+		return
+	}
+
+	log.Debug("startSnapshotAfterRestart")
+	adb.SnapshotState(rootHash)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

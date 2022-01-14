@@ -35,6 +35,11 @@ func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
 	return tsm.db.Get(key)
 }
 
+// GetFromCurrentEpoch checks only the db
+func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	return tsm.db.Get(key)
+}
+
 // TakeSnapshot does nothing if pruning is disabled
 func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, _ uint32) {
 	if chLeaves != nil {

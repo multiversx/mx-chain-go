@@ -419,15 +419,29 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.activePersisters))); idx++ {
+	activePersisters := int(ps.numOfActivePersisters)
+	if len(ps.activePersisters) < activePersisters {
+		activePersisters = len(ps.activePersisters)
+	}
+
+	numClosedDbs := 0
+	for idx := 0; idx < activePersisters; idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
+			if err == storage.ErrSerialDBIsClosed {
+				numClosedDbs++
+			}
+
 			continue
 		}
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
 		return val, nil
+	}
+
+	if numClosedDbs == activePersisters && activePersisters > 0 {
+		return nil, storage.ErrSerialDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)

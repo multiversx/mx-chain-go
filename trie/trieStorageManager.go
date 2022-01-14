@@ -314,6 +314,25 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
+//GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
+func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	if tsm.closed {
+		log.Debug("trieStorageManager get context closing", "key", key)
+		return nil, ErrContextClosing
+	}
+
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		storerType := fmt.Sprintf("%T", tsm.mainStorer)
+		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
+	}
+
+	return storer.GetFromCurrentEpoch(key)
+}
+
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	val, err := tsm.checkpointsStorer.Get(key)
 	if isClosingError(err) {

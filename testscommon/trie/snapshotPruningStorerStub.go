@@ -7,6 +7,7 @@ type SnapshotPruningStorerStub struct {
 	*memorydb.DB
 	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, error)
 	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
+	GetFromCurrentEpochCalled                  func(key []byte) ([]byte, error)
 	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpochCalled                func() (uint32, error)
 }
@@ -33,6 +34,15 @@ func (spss *SnapshotPruningStorerStub) PutInEpochWithoutCache(key []byte, data [
 func (spss *SnapshotPruningStorerStub) GetFromLastEpoch(key []byte) ([]byte, error) {
 	if spss.GetFromLastEpochCalled != nil {
 		return spss.GetFromLastEpochCalled(key)
+	}
+
+	return nil, nil
+}
+
+// GetFromCurrentEpoch -
+func (spss *SnapshotPruningStorerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	if spss.GetFromCurrentEpochCalled != nil {
+		return spss.GetFromCurrentEpochCalled(key)
 	}
 
 	return nil, nil

@@ -134,7 +134,7 @@ func NewAccountsDB(
 		lastSnapshot:   &snapshotInfo{},
 	}
 
-	val, err := trieStorageManager.Get([]byte(common.ActiveDBKey))
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		adb.startSnapshotAfterRestart()
 	}
