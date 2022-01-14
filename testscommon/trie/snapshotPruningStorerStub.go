@@ -5,15 +5,15 @@ import "github.com/ElrondNetwork/elrond-go/storage/memorydb"
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
 	memorydb.DB
-	GetFromOldEpochsWithoutCacheCalled func(key []byte) ([]byte, error)
-	GetFromLastEpochCalled             func(key []byte) ([]byte, error)
-	PutWithoutCacheCalled              func(key, data []byte) error
+	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, error)
+	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
+	PutWithoutCacheCalled                      func(key, data []byte) error
 }
 
-// GetFromOldEpochsWithoutCache -
-func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
-	if spss.GetFromOldEpochsWithoutCacheCalled != nil {
-		return spss.GetFromOldEpochsWithoutCacheCalled(key)
+// GetFromOldEpochsWithoutAddingToCache -
+func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+	if spss.GetFromOldEpochsWithoutAddingToCacheCalled != nil {
+		return spss.GetFromOldEpochsWithoutAddingToCacheCalled(key)
 	}
 
 	return nil, nil
