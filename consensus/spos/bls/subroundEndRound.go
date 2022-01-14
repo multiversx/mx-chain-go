@@ -69,7 +69,7 @@ func checkNewSubroundEndRoundParams(
 }
 
 // receivedBlockHeaderFinalInfo method is called when a block header final info is received
-func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
