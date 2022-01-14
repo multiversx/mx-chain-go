@@ -386,7 +386,7 @@ func (ste *scheduledTxsExecution) SaveState(
 ) {
 	marshalledScheduledData, err := ste.getMarshalledScheduledRootHashSCRsGasAndFees(scheduledRootHash, mapScheduledSCRs, gasAndFees)
 	if err != nil {
-		log.Warn("scheduledTxsExecution.SaveState getMarshalledScheduledRootHashSCRsAndGas", "error", err.Error())
+		log.Warn("scheduledTxsExecution.SaveState getMarshalledScheduledRootHashSCRsGasAndFees", "error", err.Error())
 		return
 	}
 
@@ -411,7 +411,7 @@ func (ste *scheduledTxsExecution) getScheduledRootHashSCRsGasAndFeesForHeader(
 	var err error
 	defer func() {
 		if err != nil {
-			log.Trace("getScheduledRootHashSCRsAndGasForHeader: given header does not have scheduled txs",
+			log.Trace("getScheduledRootHashSCRsGasAndFeesForHeader: given header does not have scheduled txs",
 				"header hash", headerHash,
 			)
 		}

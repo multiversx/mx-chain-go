@@ -1647,8 +1647,8 @@ func gasAndFeesMetricsDelta(initialMetrics, finalMetrics scheduled.GasAndFees) s
 	deltaGasRefunded := int64(finalMetrics.GasRefunded) - int64(initialMetrics.GasRefunded)
 	if deltaGasRefunded < 0 {
 		log.Error("feeAndGasMetricsDelta",
-			"initial gasRefunded", initialMetrics.GasPenalized,
-			"final gasRefunded", finalMetrics.GasPenalized,
+			"initial gasRefunded", initialMetrics.GasRefunded,
+			"final gasRefunded", finalMetrics.GasRefunded,
 			"error", process.ErrNegativeValue)
 		return result
 	}
