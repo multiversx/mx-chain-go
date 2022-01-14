@@ -1206,6 +1206,7 @@ func (bp *baseProcessor) revertScheduledRootHashSCRsAndGas() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
+		log.Warn("baseProcessor.revertScheduledRootHashSCRsAndGas - could not rollback to block, trying recovery", "error", err.Error())
 		gasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(0),
 			DeveloperFees:   big.NewInt(0),
@@ -1213,7 +1214,7 @@ func (bp *baseProcessor) revertScheduledRootHashSCRsAndGas() {
 			GasPenalized:    0,
 			GasRefunded:     0,
 		}
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsAndGas(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 }
 
@@ -1597,7 +1598,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	finalGasMetrics := bp.getFeesAndGasMetrics()
 	scheduledProcessingGasMetrics := feeAndGasMetricsDelta(normalProcessingGasMetrics, finalGasMetrics)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
-	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFeeMetrics(scheduledProcessingGasMetrics)
+	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFee(scheduledProcessingGasMetrics)
 
 	return nil
 }

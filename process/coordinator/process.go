@@ -805,7 +805,7 @@ func (tc *transactionCoordinator) CreatePostProcessMiniBlocks() block.MiniBlockS
 func (tc *transactionCoordinator) addGasForScheduled(gasAndFees scheduled.GasAndFees) {
 	tc.gasHandler.SetGasRefunded(gasAndFees.GasRefunded, []byte(prevScheduledTxs))
 	tc.gasHandler.SetGasConsumed(gasAndFees.GasProvided, []byte(prevScheduledTxs))
-	tc.gasHandler.SetGasPenalized(gasAndFees.GasRefunded, []byte(prevScheduledTxs))
+	tc.gasHandler.SetGasPenalized(gasAndFees.GasPenalized, []byte(prevScheduledTxs))
 }
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process

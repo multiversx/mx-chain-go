@@ -51,7 +51,7 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFee() scheduled.GasA
 }
 
 // SetScheduledRootHasSCRsAndGas does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHasSCRsAndGas(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
+func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashSCRsAndGas(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
 }
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
@@ -87,7 +87,7 @@ func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
 }
 
 // SetScheduledGasAndFeeMetrics does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFeeMetrics(_ scheduled.GasAndFees) {
+func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFee(_ scheduled.GasAndFees) {
 }
 
 // SetTransactionProcessor does nothing as it is a disabled component

@@ -776,7 +776,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 				GasPenalized:    0,
 				GasRefunded:     0,
 			}
-			boot.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsAndGas(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
@@ -927,7 +927,7 @@ func (boot *baseBootstrap) restoreState(
 			GasPenalized:    0,
 			GasRefunded:     0,
 		}
-		boot.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsAndGas(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())

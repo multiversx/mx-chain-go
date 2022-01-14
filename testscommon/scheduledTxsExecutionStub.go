@@ -88,7 +88,7 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFee() scheduled.GasAndF
 }
 
 // SetScheduledRootHasSCRsAndGas -
-func (stes *ScheduledTxsExecutionStub) SetScheduledRootHasSCRsAndGas(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
+func (stes *ScheduledTxsExecutionStub) SetScheduledRootHashSCRsAndGas(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
 	if stes.SetScheduledRootHashSCRsAndGasCalled != nil {
 		stes.SetScheduledRootHashSCRsAndGasCalled(rootHash, mapSCRs, gasAndFees)
 	}
@@ -146,7 +146,7 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledRootHash(rootHash []byte) {
 }
 
 // SetScheduledGasAndFeeMetrics -
-func (stes *ScheduledTxsExecutionStub) SetScheduledGasAndFeeMetrics(gasAndFees scheduled.GasAndFees) {
+func (stes *ScheduledTxsExecutionStub) SetScheduledGasAndFee(gasAndFees scheduled.GasAndFees) {
 	if stes.SetScheduledGasAndFeeMetricsCalled != nil {
 		stes.SetScheduledGasAndFeeMetricsCalled(gasAndFees)
 	}

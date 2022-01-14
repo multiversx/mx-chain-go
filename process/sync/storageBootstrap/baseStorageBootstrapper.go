@@ -189,7 +189,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 			GasRefunded:     0,
 		}
 
-		st.scheduledTxsExecutionHandler.SetScheduledRootHasSCRsAndGas(
+		st.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsAndGas(
 			st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
 			make(map[block.Type][]data.TransactionHandler),
 			gasAndFees)

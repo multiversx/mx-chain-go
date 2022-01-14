@@ -22,15 +22,15 @@ func TestAsyncCallShouldWork(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{ScheduledMiniBlocksEnableEpoch: 1000})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{ScheduledMiniBlocksEnableEpoch: 1000})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{ScheduledMiniBlocksEnableEpoch: 1000})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{})
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
