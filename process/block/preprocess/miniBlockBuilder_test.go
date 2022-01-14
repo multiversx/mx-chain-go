@@ -429,22 +429,27 @@ func Test_MiniBlocksBuilderHandleBadTransactionWithSkip(t *testing.T) {
 	senderShardID := uint32(0)
 	receiverShardID := uint32(1)
 	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
-	mbb.gasInfo = gasConsumedInfo{
+	gasInfo := gasConsumedInfo{
+		prevGasConsumedInReceiverShard:        15,
 		gasConsumedByMiniBlocksInSenderShard:  10,
 		gasConsumedByMiniBlockInReceiverShard: 20,
 		totalGasConsumedInSelfShard:           30,
 	}
-	mbb.prevGasInfo = gasConsumedInfo{
+	prevGasInfo := gasConsumedInfo{
+		prevGasConsumedInReceiverShard:        5,
 		gasConsumedByMiniBlocksInSenderShard:  5,
 		gasConsumedByMiniBlockInReceiverShard: 10,
 		totalGasConsumedInSelfShard:           20,
 	}
+	mbb.gasInfo = gasInfo
+	mbb.prevGasInfo = prevGasInfo
+
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	mbb.handleBadTransaction(process.ErrHigherNonceInTransaction, wtx, tx)
 
 	require.Equal(t, tx.SndAddr, mbb.senderToSkip)
-	require.Equal(t, mbb.prevGasInfo, mbb.gasInfo)
-	require.Equal(t, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID], mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, prevGasInfo, mbb.gasInfo)
+	require.Equal(t, gasInfo.prevGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
 func Test_MiniBlocksBuilderHandleBadTransactionNoSkip(t *testing.T) {
@@ -458,22 +463,25 @@ func Test_MiniBlocksBuilderHandleBadTransactionNoSkip(t *testing.T) {
 	senderShardID := uint32(0)
 	receiverShardID := uint32(1)
 	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
-	mbb.gasInfo = gasConsumedInfo{
+	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  10,
 		gasConsumedByMiniBlockInReceiverShard: 20,
 		totalGasConsumedInSelfShard:           30,
 	}
-	mbb.prevGasInfo = gasConsumedInfo{
+	prevGasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  5,
 		gasConsumedByMiniBlockInReceiverShard: 10,
 		totalGasConsumedInSelfShard:           20,
 	}
+
+	mbb.prevGasInfo = prevGasInfo
+	mbb.gasInfo = gasInfo
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	mbb.handleBadTransaction(process.ErrAccountNotFound, wtx, tx)
 
 	require.Equal(t, []byte(""), mbb.senderToSkip)
-	require.Equal(t, mbb.prevGasInfo, mbb.gasInfo)
-	require.Equal(t, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID], mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, prevGasInfo, mbb.gasInfo)
+	require.Equal(t, gasInfo.prevGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
 func Test_MiniBlocksBuilderShouldSenderBeSkippedNoConfiguredSenderToSkip(t *testing.T) {
@@ -533,7 +541,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 	expectedGasConsumedInReceiverShard := uint64(10)
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = expectedGasConsumedInReceiverShard
 
-	err := mbb.accountGasForTx(tx, wtx)
+	_, err := mbb.accountGasForTx(tx, wtx)
 	require.Equal(t, expectedErr, err)
 	require.Equal(t, expectedGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
@@ -573,7 +581,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 		totalGasConsumedInSelfShard:           gasConsumedByMiniBlocksInSenderShard,
 	}
 
-	err := mbb.accountGasForTx(tx, wtx)
+	_, err := mbb.accountGasForTx(tx, wtx)
 
 	expectedConsumedReceiverShard := gasConsumedByMiniBlockInReceiverShard + gasProvidedByTxInReceiverShard
 	expectedConsumedSenderShard := gasConsumedByMiniBlocksInSenderShard + gasProvidedByTxInSenderShard
@@ -662,9 +670,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionWrongTypeAssertion(t *testing.T) {
 	args := createDefaultMiniBlockBuilderArgs()
 	mbb, _ := newMiniBlockBuilder(args)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Nil(t, tx)
 }
 
@@ -683,9 +691,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionNotEnoughTime(t *testing.T) {
 		return false
 	}
 	mbb, _ := newMiniBlockBuilder(args)
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.False(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.False(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -704,9 +712,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionInitializedMiniBlockNotFound(t *te
 	mbb, _ := newMiniBlockBuilder(args)
 	delete(mbb.miniBlocks, receiverShardID)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -726,9 +734,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionExceedsBlockSize(t *testing.T) {
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.False(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.False(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -748,9 +756,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionStuckShard(t *testing.T) {
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -768,9 +776,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionWithSenderSkip(t *testing.T) {
 	mbb, _ := newMiniBlockBuilder(args)
 	mbb.senderToSkip = sender
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -795,9 +803,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionNotEnoughBalance(t *testing.T) {
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -826,9 +834,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.False(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.False(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 
@@ -845,9 +853,9 @@ func Test_MiniBlocksBuilderCheckAddTransactionOK(t *testing.T) {
 	args := createDefaultMiniBlockBuilderArgs()
 	mbb, _ := newMiniBlockBuilder(args)
 
-	canAddTx, canAddMore, tx := mbb.checkAddTransaction(wtx)
-	require.True(t, canAddTx)
-	require.True(t, canAddMore)
+	actions, tx := mbb.checkAddTransaction(wtx)
+	require.True(t, actions.canAddTx)
+	require.True(t, actions.canAddMore)
 	require.Equal(t, txInitial, tx)
 }
 

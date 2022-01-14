@@ -1205,6 +1205,7 @@ func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
+		log.Warn("baseProcessor.revertScheduledRootHashSCRsAndGas - could not rollback to block, trying recovery", "error", err.Error())
 		gasAndFees := process.GetZeroGasAndFees()
 		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}

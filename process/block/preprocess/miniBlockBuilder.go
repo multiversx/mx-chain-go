@@ -145,53 +145,89 @@ func (mbb *miniBlocksBuilder) updateAccountShardsInfo(tx *transaction.Transactio
 	mbb.accountTxsShards.Unlock()
 }
 
-// function returns through the first parameter if the given transaction can be added to the miniBlock
-// second return values returns an error in case no more transactions can be added to the miniBlocks
-func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransaction) (canAddTx bool, canAddMore bool, tx *transaction.Transaction) {
+// checkAddTransaction method returns a set of actions which could be done afterwards, by checking the given transaction
+func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransaction) (*processingActions, *transaction.Transaction) {
 	tx, ok := wtx.Tx.(*transaction.Transaction)
 	if !ok {
 		log.Debug("wrong type assertion",
 			"hash", wtx.TxHash,
 			"sender shard", wtx.SenderShardID,
 			"receiver shard", wtx.ReceiverShardID)
-		return false, true, nil
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, nil
 	}
 
 	if !mbb.haveTime() {
 		log.Debug("time is out")
-		return false, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           false,
+			shouldAddToRemaining: true,
+		}, tx
 	}
 
 	receiverShardID := wtx.ReceiverShardID
 	miniBlock, ok := mbb.miniBlocks[receiverShardID]
 	if !ok {
 		log.Debug("mini block is not created", "shard", receiverShardID)
-		return false, true, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if mbb.wouldExceedBlockSizeWithTx(tx, receiverShardID, miniBlock) {
 		log.Debug("max txs accepted in one block is reached", "num txs added", mbb.stats.numTxsAdded)
-		return false, false, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           false,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if mbb.isShardStuck(receiverShardID) {
 		log.Trace("shard is stuck", "shard", receiverShardID)
-		return false, true, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if mbb.shouldSenderBeSkipped(tx.GetSndAddr()) {
-		return false, true, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
 	if !mbb.accountHasEnoughBalance(tx) {
-		return false, true, tx
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: false,
+		}, tx
 	}
 
-	if mbb.accountGasForTx(tx, wtx) != nil {
-		return false, true, tx
+	canAddToRemaining, err := mbb.accountGasForTx(tx, wtx)
+	if err != nil {
+		return &processingActions{
+			canAddTx:             false,
+			canAddMore:           true,
+			shouldAddToRemaining: canAddToRemaining,
+		}, tx
 	}
 
-	return true, true, tx
+	return &processingActions{
+		canAddTx:             true,
+		canAddMore:           true,
+		shouldAddToRemaining: false,
+	}, tx
 }
 
 func (mbb *miniBlocksBuilder) wouldExceedBlockSizeWithTx(tx *transaction.Transaction, receiverShardID uint32, miniBlock *block.MiniBlock) bool {
@@ -269,9 +305,10 @@ func (mbb *miniBlocksBuilder) accountHasEnoughBalance(tx *transaction.Transactio
 	return true
 }
 
-func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) error {
+func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) (bool, error) {
 	mbb.prevGasInfo = mbb.gasInfo
-	mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
+	mbb.gasInfo.prevGasConsumedInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
+	mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbb.gasInfo.prevGasConsumedInReceiverShard
 	startTime := time.Now()
 	gasProvidedByTxInSelfShard, err := mbb.computeGasProvided(
 		wtx.SenderShardID,
@@ -288,13 +325,14 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 			mbb.stats.numCrossShardTxsWithTooMuchGas++
 			strCache := process.ShardCacherIdentifier(wtx.SenderShardID, wtx.ReceiverShardID)
 			mbb.txPool.RemoveData(wtx.TxHash, strCache)
+			return false, err
 		}
-		return err
+		return true, err
 	}
 
 	mbb.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, wtx.TxHash)
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
-	return nil
+	return false, nil
 }
 
 func (mbb *miniBlocksBuilder) handleBadTransaction(err error, wtx *txcache.WrappedTransaction, tx *transaction.Transaction) {
@@ -306,8 +344,8 @@ func (mbb *miniBlocksBuilder) handleBadTransaction(err error, wtx *txcache.Wrapp
 	mbb.gasHandler.RemoveGasRefunded([][]byte{wtx.TxHash})
 	mbb.gasHandler.RemoveGasPenalized([][]byte{wtx.TxHash})
 
+	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.prevGasConsumedInReceiverShard
 	mbb.gasInfo = mbb.prevGasInfo
-	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.prevGasInfo.gasConsumedByMiniBlockInReceiverShard
 	mbb.stats.numTxsBad++
 }
 

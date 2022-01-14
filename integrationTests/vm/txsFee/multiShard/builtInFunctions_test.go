@@ -57,7 +57,8 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(owner))
-	testContextDst.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	gasAndFees := getZeroGasAndFees()
+	testContextDst.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
 	newOwner := []byte("12345678901234567890123456789110")

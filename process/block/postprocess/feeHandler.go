@@ -37,14 +37,14 @@ func NewFeeAccumulator() (*feeHandler, error) {
 func (f *feeHandler) CreateBlockStarted(gasAndFees scheduled.GasAndFees) {
 	f.mut.Lock()
 	f.mapHashFee = make(map[string]*feeData)
-	f.accumulatedFees = big.NewInt(0).Set(gasAndFees.AccumulatedFees)
-	if f.accumulatedFees == nil {
-		f.accumulatedFees = big.NewInt(0)
+	f.accumulatedFees = big.NewInt(0)
+	if gasAndFees.AccumulatedFees != nil {
+		f.accumulatedFees = big.NewInt(0).Set(gasAndFees.AccumulatedFees)
 	}
 
-	f.developerFees = big.NewInt(0).Set(gasAndFees.DeveloperFees)
-	if f.developerFees == nil {
-		f.developerFees = big.NewInt(0)
+	f.developerFees = big.NewInt(0)
+	if gasAndFees.DeveloperFees != nil {
+		f.developerFees = big.NewInt(0).Set(gasAndFees.DeveloperFees)
 	}
 	f.mut.Unlock()
 }

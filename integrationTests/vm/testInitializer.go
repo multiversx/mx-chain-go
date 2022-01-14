@@ -480,6 +480,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
 		BuiltInFunctionsEnableEpoch:    argEnableEpoch.BuiltinEnableEpoch,
 		SCDeployEnableEpoch:            argEnableEpoch.DeployEnableEpoch,
+		// TODO: enable Scheduled in all tests
 		ScheduledMiniBlocksEnableEpoch: 1000,
 	}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{

@@ -28,6 +28,7 @@ const (
 )
 
 type gasConsumedInfo struct {
+	prevGasConsumedInReceiverShard        uint64
 	gasConsumedByMiniBlocksInSenderShard  uint64
 	gasConsumedByMiniBlockInReceiverShard uint64
 	totalGasConsumedInSelfShard           uint64

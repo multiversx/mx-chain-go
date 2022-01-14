@@ -378,6 +378,7 @@ func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
 	}
 }
 
+// SaveState saves the scheduled SC execution state
 func (ste *scheduledTxsExecution) SaveState(
 	headerHash []byte,
 	scheduledRootHash []byte,

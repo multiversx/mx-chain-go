@@ -334,7 +334,7 @@ func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
 	require.Equal(t, expectedScheduledTxsMap, scheduledTxs)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsNoScheduledRootHash(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoScheduledRootHash(t *testing.T) {
 	t.Parallel()
 
 	scheduledSCRs := map[string]data.TransactionHandler{}
@@ -352,10 +352,10 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsNoScheduledRootHas
 		},
 	}
 
-	sds.saveScheduledSCRs(scheduledSCRs, nil, headerHash, gasAndFees)
+	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, nil, headerHash, gasAndFees)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRs(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *testing.T) {
 	t.Parallel()
 
 	scr1 := &smartContractResult.SmartContractResult{
@@ -403,7 +403,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRs(t *testing.T) {
 		},
 	}
 
-	sds.saveScheduledSCRs(scheduledSCRs, scheduledRootHash, headerHash, gasAndFees)
+	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, scheduledRootHash, headerHash, gasAndFees)
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocksWithSyncErrorShouldErr(t *testing.T) {

@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -13,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+var zeroBigInt = big.NewInt(0)
 
 type startInEpochWithScheduledDataSyncer struct {
 	scheduledTxsHandler       process.ScheduledTxsExecutionHandler
@@ -226,7 +229,7 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 			GasPenalized:    additionalData.GetScheduledGasPenalized(),
 			GasRefunded:     additionalData.GetScheduledGasRefunded(),
 		}
-		ses.saveScheduledSCRs(scheduledSCRs, header.GetAdditionalData().GetScheduledRootHash(), header.GetPrevHash(), gasAndFees)
+		ses.saveScheduledSCRsGasAndFees(scheduledSCRs, additionalData.GetScheduledRootHash(), header.GetPrevHash(), gasAndFees)
 	}
 
 	return nil
@@ -252,17 +255,17 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
 	return scheduledSCRs, nil
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
+func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 	scheduledSCRs map[string]data.TransactionHandler,
 	scheduledRootHash []byte,
 	headerHash []byte,
 	gasAndFees scheduled.GasAndFees,
 ) {
-	if len(scheduledRootHash) == 0 {
+	if len(scheduledRootHash) == 0 && gasAndFees.AccumulatedFees.Cmp(zeroBigInt) == 0 {
 		return
 	}
 
-	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRs",
+	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
 		"headerHash", headerHash,
 		"scheduledRootHash", scheduledRootHash,
 	)

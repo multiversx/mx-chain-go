@@ -72,14 +72,15 @@ func (gt *gasTracker) computeGasProvidedByTx(
 
 	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
 		txGasRefunded := gt.gasHandler.GasRefunded(txHash)
-
-		if txGasLimitInReceiverShard < txGasRefunded {
+		txGasPenalized := gt.gasHandler.GasPenalized(txHash)
+		txGasToBeSubtracted := txGasRefunded + txGasPenalized
+		if txGasLimitInReceiverShard < txGasToBeSubtracted {
 			return 0, 0, process.ErrInsufficientGasLimitInTx
 		}
 
 		if senderShardId == receiverShardId {
-			txGasLimitInSenderShard -= txGasRefunded
-			txGasLimitInReceiverShard -= txGasRefunded
+			txGasLimitInSenderShard -= txGasToBeSubtracted
+			txGasLimitInReceiverShard -= txGasToBeSubtracted
 		}
 	}
 

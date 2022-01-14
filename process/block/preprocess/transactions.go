@@ -998,6 +998,12 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	return scheduledMiniBlocks, nil
 }
 
+type processingActions struct {
+	canAddTx             bool
+	canAddMore           bool
+	shouldAddToRemaining bool
+}
+
 func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
@@ -1031,20 +1037,23 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {
-		canAddTx, canContinue, tx := mbBuilder.checkAddTransaction(wtx)
-		if !canContinue {
-			remainingTxs = append(remainingTxs, sortedTxs[idx:]...)
+		actions, tx := mbBuilder.checkAddTransaction(wtx)
+		if !actions.canAddMore {
+			if actions.shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[idx:]...)
+			}
 			break
 		}
 
-		if !canAddTx {
-			remainingTxs = append(remainingTxs, sortedTxs[idx])
+		if !actions.canAddTx {
+			if actions.shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[idx])
+			}
 			continue
 		}
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
-			remainingTxs = append(remainingTxs, sortedTxs[idx])
 			continue
 		}
 
