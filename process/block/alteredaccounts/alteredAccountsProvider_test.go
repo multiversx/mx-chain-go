@@ -1,6 +1,7 @@
 package alteredaccounts
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -572,7 +573,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 		Value: big.NewInt(37),
 		TokenMetaData: &esdt.MetaData{
 			Nonce: 6,
-			Name:  []byte("nft-1"),
+			Name:  []byte("nft-0"),
 		},
 	}
 	args := getMockArgs()
@@ -584,11 +585,15 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken0)
 						return tokenBytes, nil
 					}
-					if strings.Contains(string(key), "nft-0") {
+
+					firstNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(5).Bytes()))
+					if strings.Contains(string(key), firstNftKey) {
 						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken1)
 						return tokenBytes, nil
 					}
-					if strings.Contains(string(key), "nft-1") {
+
+					secondNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(6).Bytes()))
+					if strings.Contains(string(key), secondNftKey) {
 						tokenBytes, _ := args.Marshalizer.Marshal(expectedToken2)
 						return tokenBytes, nil
 					}
@@ -642,40 +647,43 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
+	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 3)
 
-	numChecks := 0
+	esdtToken, firstNft, secondNft := &indexer.AccountTokenData{}, &indexer.AccountTokenData{}, &indexer.AccountTokenData{}
 	for _, token := range res[encodedAddr].Tokens {
 		if token.Identifier == "esdttoken" {
-			require.Equal(t, &indexer.AccountTokenData{
-				Identifier: "esdttoken",
-				Balance:    expectedToken0.Value.String(),
-				Nonce:      0,
-				MetaData:   nil,
-			}, token)
-			numChecks++
+			esdtToken = token
 		}
-		if token.Identifier == "nft-0" {
-			require.Equal(t, &indexer.AccountTokenData{
-				Identifier: "nft-0",
-				Balance:    expectedToken1.Value.String(),
-				Nonce:      expectedToken1.TokenMetaData.Nonce,
-				MetaData:   expectedToken1.TokenMetaData,
-			}, token)
-			numChecks++
+		if token.Identifier == "nft-0" && expectedToken1.TokenMetaData.Nonce == token.Nonce {
+			firstNft = token
 		}
-		if token.Identifier == "nft-1" {
-			require.Equal(t, &indexer.AccountTokenData{
-				Identifier: "nft-1",
-				Balance:    expectedToken2.Value.String(),
-				Nonce:      expectedToken2.TokenMetaData.Nonce,
-				MetaData:   expectedToken2.TokenMetaData,
-			}, token)
-			numChecks++
+		if token.Identifier == "nft-0" && expectedToken2.TokenMetaData.Nonce == token.Nonce {
+			secondNft = token
 		}
 	}
 
-	require.Equal(t, 3, numChecks)
+	require.Equal(t, &indexer.AccountTokenData{
+		Identifier: "esdttoken",
+		Balance:    expectedToken0.Value.String(),
+		Nonce:      0,
+		MetaData:   nil,
+	}, esdtToken)
+
+	require.Equal(t, &indexer.AccountTokenData{
+		Identifier: string(expectedToken1.TokenMetaData.Name),
+		Balance:    expectedToken1.Value.String(),
+		Nonce:      expectedToken1.TokenMetaData.Nonce,
+		MetaData:   expectedToken1.TokenMetaData,
+	}, firstNft)
+
+	require.Equal(t, &indexer.AccountTokenData{
+		Identifier: string(expectedToken2.TokenMetaData.Name),
+		Balance:    expectedToken2.Value.String(),
+		Nonce:      expectedToken2.TokenMetaData.Nonce,
+		MetaData:   expectedToken2.TokenMetaData,
+	}, secondNft)
+
 }
 
 func getMockArgs() ArgsAlteredAccountsProvider {

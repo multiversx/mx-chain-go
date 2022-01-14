@@ -199,10 +199,10 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 		senderShardID := aap.shardCoordinator.ComputeId(senderAddress)
 		receiverShardID := aap.shardCoordinator.ComputeId(receiverAddress)
 
-		if senderShardID == selfShardID {
+		if senderShardID == selfShardID && len(senderAddress) > 0 {
 			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts)
 		}
-		if receiverShardID == selfShardID {
+		if receiverShardID == selfShardID && len(receiverAddress) > 0 {
 			aap.addAddressWithBalanceChangeInMap(receiverAddress, markedAlteredAccounts)
 		}
 	}
