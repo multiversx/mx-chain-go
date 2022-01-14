@@ -204,7 +204,7 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	select {
 	case <-chDone:
 	case <-time.After(timeoutWait):
-		assert.Fail(t, "timout while waiting the broadcast of the generated transactions")
+		assert.Fail(t, "timeout while waiting the broadcast of the generated transactions")
 		return
 	}
 

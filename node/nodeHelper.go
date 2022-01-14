@@ -148,8 +148,6 @@ func CreateNode(
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
-	var err error
-
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
