@@ -854,7 +854,7 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	}
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
 	gasConsumedByTx = MaxGasLimitPerBlock + 1
-	err := preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err := preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
 
 	// should not process transaction when processAndRemoveBadTransaction method returns error
@@ -864,7 +864,7 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
 	gasConsumedByTx = MaxGasLimitPerBlock - 1
 	processTransactionErr = process.ErrHigherNonceInTransaction
-	err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	// should process transaction bat should return ErrFailedTransaction
@@ -873,7 +873,7 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	}
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
 	processTransactionErr = process.ErrFailedTransaction
-	err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrFailedTransaction, err)
 
 	// should process transaction
@@ -882,6 +882,6 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	}
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
 	processTransactionErr = nil
-	err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
 }
