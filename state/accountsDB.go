@@ -136,14 +136,14 @@ func NewAccountsDB(
 
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		adb.startSnapshotAfterRestart()
+		startSnapshotAfterRestart(adb)
 	}
 
 	return adb, nil
 }
 
-func (adb *AccountsDB) startSnapshotAfterRestart() {
-	rootHash, err := adb.mainTrie.RootHash()
+func startSnapshotAfterRestart(adb AccountsAdapter) {
+	rootHash, err := adb.RootHash()
 	if err != nil {
 		log.Error("startSnapshotAfterRestart root hash", "error", err)
 		return

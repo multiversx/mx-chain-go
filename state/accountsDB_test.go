@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -2358,8 +2359,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
-	mutex := sync.RWMutex{}
-	takeSnapshotCalled := false
+	takeSnapshotCalled := atomicFlag.Flag{}
 	trieStub := &trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
@@ -2373,9 +2373,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 					return true
 				},
 				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
-					mutex.Lock()
-					takeSnapshotCalled = true
-					mutex.Unlock()
+					takeSnapshotCalled.SetValue(true)
 				},
 			}
 		},
@@ -2383,9 +2381,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 
 	_ = generateAccountDBFromTrie(trieStub)
 	time.Sleep(time.Second)
-	mutex.RLock()
-	assert.True(t, takeSnapshotCalled)
-	mutex.RUnlock()
+	assert.True(t, takeSnapshotCalled.IsSet())
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {

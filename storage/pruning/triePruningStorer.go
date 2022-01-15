@@ -200,17 +200,21 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 // GetFromCurrentEpoch searches only the current epoch storer for the given key
 func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	ps.lock.RLock()
-	defer ps.lock.RUnlock()
 
 	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
+		ps.lock.RUnlock()
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
 	if len(ps.activePersisters) == 0 {
+		ps.lock.RUnlock()
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	return ps.activePersisters[currentEpochIndex].persister.Get(key)
+	persister := ps.activePersisters[currentEpochIndex].persister
+	ps.lock.RUnlock()
+
+	return persister.Get(key)
 }
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister

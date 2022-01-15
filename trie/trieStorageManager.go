@@ -9,6 +9,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -317,18 +318,21 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 //GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
 func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
 
 	if tsm.closed {
 		log.Debug("trieStorageManager get context closing", "key", key)
+		tsm.storageOperationMutex.Unlock()
 		return nil, ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		storerType := fmt.Sprintf("%T", tsm.mainStorer)
+		tsm.storageOperationMutex.Unlock()
 		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
 	}
+
+	tsm.storageOperationMutex.Unlock()
 
 	return storer.GetFromCurrentEpoch(key)
 }
@@ -365,7 +369,11 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 }
 
 func isClosingError(err error) bool {
-	if err == ErrContextClosing || err == storage.ErrSerialDBIsClosed {
+	if err == nil {
+		return false
+	}
+
+	if err == ErrContextClosing || err == storage.ErrSerialDBIsClosed || strings.Contains(err.Error(), storage.ErrSerialDBIsClosed.Error()) {
 		return true
 	}
 

@@ -60,21 +60,10 @@ func NewPeerAccountsDB(
 
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		adb.startSnapshotAfterRestart()
+		startSnapshotAfterRestart(adb)
 	}
 
 	return adb, nil
-}
-
-func (adb *PeerAccountsDB) startSnapshotAfterRestart() {
-	rootHash, err := adb.mainTrie.RootHash()
-	if err != nil {
-		log.Error("startSnapshotAfterRestart root hash", "error", err)
-		return
-	}
-
-	log.Debug("startSnapshotAfterRestart")
-	adb.SnapshotState(rootHash)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
