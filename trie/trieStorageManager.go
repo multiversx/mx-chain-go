@@ -745,6 +745,7 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 	}
 
 	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		log.Debug("shouldTakeSnapshot true")
 		return true
 	}
 

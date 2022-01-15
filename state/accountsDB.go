@@ -1056,6 +1056,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		return
 	}
 
+	log.Debug("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+
 	snapshotAlreadyTaken := bytes.Equal(adb.lastSnapshot.rootHash, rootHash) && adb.lastSnapshot.epoch == epoch
 	if !trieStorageManager.ShouldTakeSnapshot() || snapshotAlreadyTaken {
 		log.Debug("skipping snapshot",
