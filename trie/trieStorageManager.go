@@ -372,11 +372,7 @@ func isClosingError(err error) bool {
 		err == storage.ErrSerialDBIsClosed ||
 		strings.Contains(err.Error(), storage.ErrSerialDBIsClosed.Error()) ||
 		strings.Contains(err.Error(), ErrContextClosing.Error())
-	if isClosingErr {
-		return true
-	}
-
-	return false
+	return isClosingErr
 }
 
 // Put adds the given value to the main storer
