@@ -123,11 +123,6 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	log.Debug("epoch for disabling old trie storage", "epoch", tsm.disableOldStorageEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
 
-	err = tsm.mainStorer.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-	if err != nil {
-		log.Warn("newTrieStorageManager error while putting active DB value into main storer", "error", err)
-	}
-
 	if tsm.flagDisableOldStorage.IsSet() {
 		err := tsm.db.Close()
 		if err != nil {

@@ -60,7 +60,7 @@ func NewPeerAccountsDB(
 
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb)
+		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
 
 	return adb, nil

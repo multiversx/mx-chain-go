@@ -136,21 +136,29 @@ func NewAccountsDB(
 
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		startSnapshotAfterRestart(adb)
+		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
 
 	return adb, nil
 }
 
-func startSnapshotAfterRestart(adb AccountsAdapter) {
+func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 	rootHash, err := adb.RootHash()
 	if err != nil {
 		log.Error("startSnapshotAfterRestart root hash", "error", err)
 		return
 	}
 
-	log.Debug("startSnapshotAfterRestart")
-	adb.SnapshotState(rootHash)
+	if tsm.ShouldTakeSnapshot() {
+		log.Debug("startSnapshotAfterRestart")
+		adb.SnapshotState(rootHash)
+		return
+	}
+
+	err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	if err != nil {
+		log.Warn("newTrieStorageManager error while putting active DB value into main storer", "error", err)
+	}
 }
 
 func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {

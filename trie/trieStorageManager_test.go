@@ -411,17 +411,6 @@ func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
 	assert.False(t, ts.ShouldTakeSnapshot())
 }
 
-func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
-	t.Parallel()
-
-	mainStorer := testscommon.NewSnapshotPruningStorerMock()
-	args := getNewTrieStorageManagerArgs()
-	args.MainStorer = mainStorer
-	ts, _ := trie.NewTrieStorageManager(args)
-
-	assert.True(t, ts.ShouldTakeSnapshot())
-}
-
 func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
