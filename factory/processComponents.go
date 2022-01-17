@@ -98,6 +98,7 @@ type processComponents struct {
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
 	vmFactoryForTxSimulator     process.VirtualMachinesContainerFactory
+	vmFactoryForProcessing      process.VirtualMachinesContainerFactory
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -455,7 +456,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
-	blockProcessor, vmFactoryTxSimulator, err := pcf.newBlockProcessor(
+	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
 		epochStartTrigger,
@@ -529,7 +530,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversFinder:             resolversFinder,
 		roundHandler:                pcf.coreData.RoundHandler(),
 		forkDetector:                forkDetector,
-		blockProcessor:              blockProcessor,
+		blockProcessor:              blockProcessorComponents.blockProcessor,
 		epochStartTrigger:           epochStartTrigger,
 		epochStartNotifier:          pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:            blackListHandler,
@@ -556,7 +557,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:               pcf.importHandler,
 		nodeRedundancyHandler:       nodeRedundancyHandler,
 		currentEpochProvider:        currentEpochProvider,
-		vmFactoryForTxSimulator:     vmFactoryTxSimulator,
+		vmFactoryForTxSimulator:     blockProcessorComponents.vmFactoryForTxSimulate,
+		vmFactoryForProcessing:      blockProcessorComponents.vmFactoryForProcessing,
 	}, nil
 }
 
@@ -1453,6 +1455,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.vmFactoryForTxSimulator) {
 		log.LogIfError(pc.vmFactoryForTxSimulator.Close())
+	}
+	if !check.IfNil(pc.vmFactoryForProcessing) {
+		log.LogIfError(pc.vmFactoryForProcessing.Close())
 	}
 
 	return nil

@@ -29,7 +29,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -82,7 +82,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -172,7 +172,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -264,7 +264,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

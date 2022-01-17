@@ -45,7 +45,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()
@@ -107,7 +107,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()
@@ -181,7 +181,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()
@@ -249,7 +249,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()

@@ -50,7 +50,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -172,7 +172,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -262,7 +262,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -393,7 +393,7 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()
@@ -461,7 +461,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()

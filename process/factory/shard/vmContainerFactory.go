@@ -165,7 +165,19 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 // Close closes the vm container factory
 func (vmf *vmContainerFactory) Close() error {
-	return vmf.blockChainHookImpl.Close()
+	err := vmf.container.Close()
+	if err != nil {
+		logVMContainerFactory.Error("cannot close container", "error", err)
+		return err
+	}
+
+	err = vmf.blockChainHookImpl.Close()
+	if err != nil {
+		logVMContainerFactory.Error("cannot close blockchain hook implementation", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 // GasScheduleChange updates the gas schedule map in all the components
