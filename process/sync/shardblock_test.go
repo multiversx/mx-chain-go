@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -508,7 +509,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrNilHeadersStorage, r)
 }
@@ -546,7 +547,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrTimeIsOut, r)
 }
@@ -603,7 +604,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.RequestHeaderWithNonce(2)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrTimeIsOut, r)
 }
@@ -812,7 +813,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Nil(t, r)
 }
@@ -895,7 +896,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	err := bs.SyncBlock()
+	err := bs.SyncBlock(context.Background())
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
@@ -2068,7 +2069,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	err := bs.SyncBlock()
+	err := bs.SyncBlock(context.Background())
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, syncCalled)
 }

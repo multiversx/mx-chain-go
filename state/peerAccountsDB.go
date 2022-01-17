@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -38,8 +39,9 @@ func NewPeerAccountsDB(
 		return nil, ErrNilStoragePruningManager
 	}
 
-	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
-	return &PeerAccountsDB{
+	trieStorageManager := trie.GetStorageManager()
+	numCheckpoints := getNumCheckpoints(trieStorageManager)
+	adb := &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
 			hasher:         hasher,
@@ -54,13 +56,26 @@ func NewPeerAccountsDB(
 			},
 			storagePruningManager: storagePruningManager,
 		},
-	}, nil
+	}
+
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
+	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		startSnapshotAfterRestart(adb, trieStorageManager)
+	}
+
+	return adb, nil
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("SnapshotState error", "err", err.Error())
+		return
+	}
+
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot for rootHash", "hash", rootHash)
 		return
@@ -70,13 +85,13 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.TakeSnapshot(rootHash, nil, stats)
+	trieStorageManager.TakeSnapshot(rootHash, rootHash, nil, stats, epoch)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go func() {
 		printStats(stats, "snapshotState peer trie", rootHash)
 
-		err := trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		err := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		if err != nil {
 			log.Warn("error while putting active DB value into main storer", "error", err)
 		}
@@ -98,7 +113,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	trieStorageManager.EnterPruningBufferingMode()
 	stats.NewSnapshotStarted()
-	trieStorageManager.SetCheckpoint(rootHash, nil, stats)
+	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go printStats(stats, "snapshotState peer trie", rootHash)

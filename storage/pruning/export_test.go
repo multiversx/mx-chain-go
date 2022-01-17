@@ -47,6 +47,14 @@ func (ps *PruningStorer) SetCacher(cacher storage.Cacher) {
 	ps.cacher = cacher
 }
 
+// GetNumActivePersisters -
+func (ps *PruningStorer) GetNumActivePersisters() int {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	return len(ps.activePersisters)
+}
+
 // GetOldEpochsActivePersisters -
 func (fhps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cacher {
 	return fhps.oldEpochsActivePersistersCache

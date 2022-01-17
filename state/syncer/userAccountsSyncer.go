@@ -126,7 +126,17 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
-	return u.syncAccountDataTries(mainTrie, tss, ctx)
+	err = u.syncAccountDataTries(mainTrie, tss, ctx)
+	if err != nil {
+		return err
+	}
+
+	err = mainTrie.GetStorageManager().Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	if err != nil {
+		log.Warn("error while putting active DB value into main storer after sync", "error", err)
+	}
+
+	return nil
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh common.SizeSyncStatisticsHandler, address []byte, ctx context.Context) error {

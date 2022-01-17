@@ -627,7 +627,6 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	store, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(bh.configSCStorage.Cache),
 		dbConfig,
-		factory.GetBloomFromConfig(bh.configSCStorage.Bloom),
 	)
 	if err != nil {
 		return err
