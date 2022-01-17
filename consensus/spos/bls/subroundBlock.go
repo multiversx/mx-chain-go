@@ -313,7 +313,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received
-func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta *consensus.Message) bool {
 	sw := core.NewStopWatch()
 	sw.Start("receivedBlockBodyAndHeader")
 
@@ -363,7 +363,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 		"hash", cnsDta.BlockHeaderHash)
 
 	sw.Start("processReceivedBlock")
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 	sw.Stop("processReceivedBlock")
 
 	sr.PeerHonestyHandler().ChangeScore(
@@ -376,7 +376,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
-func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -405,7 +405,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 
 	log.Debug("step 1: block body has been received")
 
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -419,7 +419,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 // receivedBlockHeader method is called when a block header is received through the block header channel.
 // If the block header is valid, than the validatorRoundStates map corresponding to the node which sent it,
 // is set on true for the subround Block
-func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if sr.IsConsensusDataSet() {
@@ -454,7 +454,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -465,7 +465,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {
 	if check.IfNil(sr.Body) {
 		return false
 	}
@@ -517,11 +517,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	}
 
 	if err != nil {
-		log.Debug("canceled round",
-			"round", sr.RoundHandler().Index(),
-			"subround", sr.Name(),
-			"error", err.Error())
-
+		sr.printCancelRoundLogMessage(ctx, err)
 		sr.RoundCanceled = true
 
 		return false
@@ -529,14 +525,23 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
-		log.Debug("canceled round",
-			"round", sr.RoundHandler().Index(),
-			"subround", sr.Name(),
-			"error", err.Error())
+		sr.printCancelRoundLogMessage(ctx, err)
 		return false
 	}
 
 	return true
+}
+
+func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err error) {
+	if common.IsContextDone(ctx) {
+		log.Debug("canceled round as the context is closing")
+		return
+	}
+
+	log.Debug("canceled round",
+		"round", sr.RoundHandler().Index(),
+		"subround", sr.Name(),
+		"error", err.Error())
 }
 
 func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, metric string) {
