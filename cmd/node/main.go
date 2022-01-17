@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 )
 
 const (
@@ -53,6 +55,24 @@ var appVersion = common.UnVersionedAppString
 func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
+
+	errProf := profiler.Start(
+		profiler.WithProfileTypes(
+			profiler.CPUProfile,
+			profiler.HeapProfile,
+			profiler.BlockProfile,
+			profiler.MutexProfile,
+			profiler.GoroutineProfile,
+		),
+	)
+	if errProf != nil {
+		fmt.Println(errProf.Error())
+	}
+
+	tracer.Start()
+
+	defer profiler.Stop()
+	defer tracer.Stop()
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate

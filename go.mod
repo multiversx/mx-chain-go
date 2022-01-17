@@ -46,6 +46,7 @@ require (
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
+	gopkg.in/DataDog/dd-trace-go.v1 v1.35.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
