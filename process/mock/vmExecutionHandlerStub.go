@@ -12,6 +12,7 @@ type VMExecutionHandlerStub struct {
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GasScheduleChangeCalled      func(gasSchedule map[string]map[string]uint64)
+	CloseCalled                  func() error
 }
 
 // GasScheduleChange -
@@ -56,6 +57,9 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 
 // Close -
 func (vm *VMExecutionHandlerStub) Close() error {
+	if vm.CloseCalled != nil {
+		return vm.CloseCalled()
+	}
 	return nil
 }
 
