@@ -411,6 +411,9 @@ func createMockTransactionCoordinatorArguments(
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
+		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	return argsTransactionCoordinator

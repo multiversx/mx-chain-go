@@ -109,7 +109,7 @@ func createGenesisConfig() config.EnableEpochs {
 		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 	}
 }
 
@@ -587,6 +587,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          arg.TxLogsProcessor,
+		EpochNotifier:                     epochNotifier,
+		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

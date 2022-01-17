@@ -290,7 +290,9 @@ func TestStartInEpochWithScheduledDataSyncer_GetRootHashToSyncWithScheduled(t *t
 			RootHash: blockRootHash,
 			Reserved: nil,
 		},
-		ScheduledRootHash: expectedRootHash,
+		ScheduledRootHash:        expectedRootHash,
+		ScheduledAccumulatedFees: big.NewInt(0),
+		ScheduledDeveloperFees:   big.NewInt(0),
 	}
 
 	rootHash := ds.GetRootHashToSync(notarizedHeader)

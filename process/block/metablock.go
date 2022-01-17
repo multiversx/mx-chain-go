@@ -113,7 +113,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                    arguments.HistoryRepository,
 		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                 arguments.RoundNotifier,
+		roundNotifier:                  arguments.RoundNotifier,
 		vmContainerFactory:             arguments.VMContainersFactory,
 		vmContainer:                    arguments.VmContainer,
 		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -626,7 +626,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	gasConsumedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
+	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
 	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
@@ -637,7 +637,7 @@ func (mp *metaProcessor) indexBlock(
 		Header:         metaBlock,
 		SignersIndexes: signersIndexes,
 		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasProvided:    gasConsumedInHeader,
+			GasProvided:    gasProvidedInHeader,
 			GasRefunded:    gasRefundedInHeader,
 			GasPenalized:   gasPenalizedInHeader,
 			MaxGasPerBlock: maxGasInHeader,
@@ -1375,7 +1375,7 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
-func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastMetaBlockHash []byte) {
+func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, _ []byte) {
 	if check.IfNil(lastMetaBlock) {
 		log.Debug("updateState nil header")
 		return

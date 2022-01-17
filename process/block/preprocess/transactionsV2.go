@@ -140,16 +140,16 @@ func (txs *transactions) processTransaction(
 	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
-	gasConsumedByTxInSelfShard, err := txs.computeGasConsumed(
+	gasProvidedByTxInSelfShard, err := txs.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
 		txHash,
 		&mbInfo.gasInfo)
 	elapsedTime := time.Since(startTime)
-	mbInfo.processingInfo.totalTimeUsedForComputeGasConsumed += elapsedTime
+	mbInfo.processingInfo.totalTimeUsedForComputeGasProvided += elapsedTime
 	if err != nil {
-		log.Trace("processTransaction.computeGasConsumed", "error", err)
+		log.Trace("processTransaction.computeGasProvided", "error", err)
 		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
 		if isTxTargetedForDeletion {
 			mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas++
@@ -160,7 +160,7 @@ func (txs *transactions) processTransaction(
 		return true, err
 	}
 
-	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+	txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	// execute transaction to change the trie root hash
@@ -191,7 +191,7 @@ func (txs *transactions) processTransaction(
 			log.Warn("revert to snapshot", "error", errRevert.Error())
 		}
 
-		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
+		txs.gasHandler.RemoveGasProvided([][]byte{txHash})
 		txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
 		txs.gasHandler.RemoveGasPenalized([][]byte{txHash})
 
@@ -381,16 +381,16 @@ func (txs *transactions) verifyTransaction(
 	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
-	gasConsumedByTxInSelfShard, err := txs.computeGasConsumed(
+	gasProvidedByTxInSelfShard, err := txs.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
 		txHash,
 		&mbInfo.gasInfo)
 	elapsedTime := time.Since(startTime)
-	mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed += elapsedTime
+	mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasProvided += elapsedTime
 	if err != nil {
-		log.Trace("verifyTransaction.computeGasConsumed", "error", err)
+		log.Trace("verifyTransaction.computeGasProvided", "error", err)
 		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
 		if isTxTargetedForDeletion {
 			mbInfo.schedulingInfo.numCrossShardTxsWithTooMuchGas++
@@ -400,7 +400,7 @@ func (txs *transactions) verifyTransaction(
 		return err
 	}
 
-	txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, txHash)
+	txs.gasHandler.SetGasProvidedAsScheduled(gasProvidedByTxInSelfShard, txHash)
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	startTime = time.Now()
@@ -422,7 +422,7 @@ func (txs *transactions) verifyTransaction(
 		mbInfo.schedulingInfo.numScheduledBadTxs++
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
-		txs.gasHandler.RemoveGasConsumedAsScheduled([][]byte{txHash})
+		txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
 
 		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
@@ -473,7 +473,7 @@ func (txs *transactions) displayProcessingResults(
 		"num txs with initial balance consumed", mbInfo.processingInfo.numTxsWithInitialBalanceConsumed,
 		"num cross shard sc calls or special txs", mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs,
 		"num cross shard txs with too much gas", mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas,
-		"used time for computeGasConsumed", mbInfo.processingInfo.totalTimeUsedForComputeGasConsumed,
+		"used time for computeGasProvided", mbInfo.processingInfo.totalTimeUsedForComputeGasProvided,
 		"used time for processAndRemoveBadTransaction", mbInfo.processingInfo.totalTimeUsedForProcess,
 	)
 }
@@ -507,7 +507,7 @@ func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 		"num scheduled txs with initial balance consumed", mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed,
 		"num scheduled cross shard sc calls", mbInfo.schedulingInfo.numScheduledCrossShardScCalls,
 		"num cross shard txs with too much gas", mbInfo.schedulingInfo.numCrossShardTxsWithTooMuchGas,
-		"used time for scheduled computeGasConsumed", mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed,
+		"used time for scheduled computeGasProvided", mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasProvided,
 		"used time for scheduled VerifyTransaction", mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify,
 	)
 }
@@ -711,7 +711,7 @@ func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlo
 		gasInfo: gasConsumedInfo{
 			gasConsumedByMiniBlockInReceiverShard: uint64(0),
 			gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-			totalGasConsumedInSelfShard:           txs.gasHandler.TotalGasConsumedAsScheduled(),
+			totalGasConsumedInSelfShard:           txs.gasHandler.TotalGasProvidedAsScheduled(),
 		},
 	}
 }
