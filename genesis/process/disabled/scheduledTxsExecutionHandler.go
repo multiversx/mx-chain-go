@@ -38,9 +38,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]da
 	return make(map[block.Type][]data.TransactionHandler)
 }
 
-
-// GetScheduledGasAndFee returns an zero value structure for the gas and fees
-func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFee() scheduled.GasAndFees {
+// GetScheduledGasAndFees returns a zero value structure for the gas and fees
+func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFees() scheduled.GasAndFees {
 	return scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
@@ -50,8 +49,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFee() scheduled.GasA
 	}
 }
 
-// SetScheduledRootHashSCRsAndGas does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashSCRsAndGas(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
+// SetScheduledRootHashSCRsGasAndFees does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashSCRsGasAndFees(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
 }
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
@@ -86,8 +85,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
 func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
 }
 
-// SetScheduledGasAndFeeMetrics does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFee(_ scheduled.GasAndFees) {
+// SetScheduledGasAndFees does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFees(_ scheduled.GasAndFees) {
 }
 
 // SetTransactionProcessor does nothing as it is a disabled component
@@ -99,7 +98,7 @@ func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.Tr
 }
 
 // IsScheduledTx always returns false as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(txHash []byte) bool {
+func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(_ []byte) bool {
 	return false
 }
 

@@ -96,7 +96,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                    arguments.HistoryRepository,
 		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                 arguments.RoundNotifier,
+		roundNotifier:                  arguments.RoundNotifier,
 		vmContainerFactory:             arguments.VMContainersFactory,
 		vmContainer:                    arguments.VmContainer,
 		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,

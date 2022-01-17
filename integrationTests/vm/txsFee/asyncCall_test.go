@@ -44,7 +44,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
-	gasAndFees:=  scheduled.GasAndFees{
+	gasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
 		GasProvided:     0,

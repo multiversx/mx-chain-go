@@ -13,14 +13,14 @@ type gasTracker struct {
 	gasHandler       process.GasHandler
 }
 
-func (gt *gasTracker) computeGasConsumed(
+func (gt *gasTracker) computeGasProvided(
 	senderShardId uint32,
 	receiverShardId uint32,
 	tx data.TransactionHandler,
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 ) (uint64, error) {
-	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gt.computeGasConsumedByTx(
+	gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, err := gt.computeGasProvidedByTx(
 		senderShardId,
 		receiverShardId,
 		tx,
@@ -29,40 +29,40 @@ func (gt *gasTracker) computeGasConsumed(
 		return 0, err
 	}
 
-	gasConsumedByTxInSelfShard := uint64(0)
+	gasProvidedByTxInSelfShard := uint64(0)
 	if gt.shardCoordinator.SelfId() == senderShardId {
-		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
+		gasProvidedByTxInSelfShard = gasProvidedByTxInSenderShard
 
-		if gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerTx() {
+		if gasProvidedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerTx() {
 			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
+		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShard() {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
-		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
+		gasProvidedByTxInSelfShard = gasProvidedByTxInReceiverShard
 	}
 
-	if gasInfo.totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
+	if gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.economicsFee.MaxGasLimitPerBlock(gt.shardCoordinator.SelfId()) {
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
-	gasInfo.gasConsumedByMiniBlocksInSenderShard += gasConsumedByTxInSenderShard
-	gasInfo.gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-	gasInfo.totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
+	gasInfo.gasConsumedByMiniBlocksInSenderShard += gasProvidedByTxInSenderShard
+	gasInfo.gasConsumedByMiniBlockInReceiverShard += gasProvidedByTxInReceiverShard
+	gasInfo.totalGasConsumedInSelfShard += gasProvidedByTxInSelfShard
 
-	return gasConsumedByTxInSelfShard, nil
+	return gasProvidedByTxInSelfShard, nil
 }
 
-func (gt *gasTracker) computeGasConsumedByTx(
+func (gt *gasTracker) computeGasProvidedByTx(
 	senderShardId uint32,
 	receiverShardId uint32,
 	tx data.TransactionHandler,
 	txHash []byte,
 ) (uint64, uint64, error) {
 
-	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := gt.gasHandler.ComputeGasConsumedByTx(
+	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := gt.gasHandler.ComputeGasProvidedByTx(
 		senderShardId,
 		receiverShardId,
 		tx)

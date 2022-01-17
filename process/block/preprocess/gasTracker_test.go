@@ -31,8 +31,8 @@ const (
 	suffixShard1              = "0001"
 )
 
-func computeGasLimitFromResultAndRefund(result *gasConsumedResult, refundGas uint64) uint64 {
-	return result.consumedReceiverShard + result.consumedSenderShard + refundGas
+func computeGasLimitFromResultAndRefund(gcr *gasConsumedResult, refundGas uint64) uint64 {
+	return gcr.consumedReceiverShard + gcr.consumedSenderShard + refundGas
 }
 
 func createDefaultTx(
@@ -73,7 +73,7 @@ func createDefaultGasTracker(
 	}
 
 	gasHandler := &testscommon.GasHandlerStub{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return gcr.consumedSenderShard, gcr.consumedReceiverShard, gcr.err
 		},
 		GasRefundedCalled: func(hash []byte) uint64 {
@@ -90,7 +90,7 @@ func createDefaultGasTracker(
 	return gt
 }
 
-func Test_computeGasConsumedSelfSenderMoveBalanceIntra(t *testing.T) {
+func Test_computeGasProvidedSelfSenderMoveBalanceIntra(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -99,21 +99,21 @@ func Test_computeGasConsumedSelfSenderMoveBalanceIntra(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString("addrReceiver" + suffixShard0)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 75000,
 		err:                   nil,
 	}
 	gasRefund := uint64(25000)
 
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gasLimitSender, gasLimitReceiver, err := gt.computeGasConsumedByTx(
+	gasLimitSender, gasLimitReceiver, err := gt.computeGasProvidedByTx(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -121,11 +121,11 @@ func Test_computeGasConsumedSelfSenderMoveBalanceIntra(t *testing.T) {
 	)
 
 	require.Nil(t, err)
-	require.Equal(t, gasConsumed.consumedSenderShard, gasLimitSender)
-	require.Equal(t, gasConsumed.consumedSenderShard, gasLimitReceiver)
+	require.Equal(t, gcr.consumedSenderShard, gasLimitSender)
+	require.Equal(t, gcr.consumedSenderShard, gasLimitReceiver)
 }
 
-func Test_computeGasConsumedSelfSenderSCCallIntra(t *testing.T) {
+func Test_computeGasProvidedSelfSenderSCCallIntra(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -134,22 +134,22 @@ func Test_computeGasConsumedSelfSenderSCCallIntra(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard0)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 	gasRefund := uint64(25000)
 
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("sc invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gasLimitSender, gasLimitReceiver, err := gt.computeGasConsumedByTx(
+	gasLimitSender, gasLimitReceiver, err := gt.computeGasProvidedByTx(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -157,11 +157,11 @@ func Test_computeGasConsumedSelfSenderSCCallIntra(t *testing.T) {
 	)
 
 	require.Nil(t, err)
-	require.Equal(t, gasConsumed.consumedSenderShard-gasRefund, gasLimitSender)
-	require.Equal(t, gasConsumed.consumedSenderShard-gasRefund, gasLimitReceiver)
+	require.Equal(t, gcr.consumedSenderShard-gasRefund, gasLimitSender)
+	require.Equal(t, gcr.consumedSenderShard-gasRefund, gasLimitReceiver)
 }
 
-func Test_computeGasConsumedByTxSelfSenderMoveBalanceCross(t *testing.T) {
+func Test_computeGasProvidedByTxSelfSenderMoveBalanceCross(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -170,21 +170,21 @@ func Test_computeGasConsumedByTxSelfSenderMoveBalanceCross(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString("addrReceiver" + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 75000,
 		err:                   nil,
 	}
 	gasRefund := uint64(25000)
 
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gasLimitSender, gasLimitReceiver, err := gt.computeGasConsumedByTx(
+	gasLimitSender, gasLimitReceiver, err := gt.computeGasProvidedByTx(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -192,11 +192,11 @@ func Test_computeGasConsumedByTxSelfSenderMoveBalanceCross(t *testing.T) {
 	)
 
 	require.Nil(t, err)
-	require.Equal(t, gasConsumed.consumedSenderShard, gasLimitSender)
-	require.Equal(t, gasConsumed.consumedReceiverShard, gasLimitReceiver)
+	require.Equal(t, gcr.consumedSenderShard, gasLimitSender)
+	require.Equal(t, gcr.consumedReceiverShard, gasLimitReceiver)
 }
 
-func Test_computeGasConsumedByTxSelfSenderScCallCross(t *testing.T) {
+func Test_computeGasProvidedByTxSelfSenderScCallCross(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -205,22 +205,22 @@ func Test_computeGasConsumedByTxSelfSenderScCallCross(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gasLimitSender, gasLimitReceiver, err := gt.computeGasConsumedByTx(
+	gasLimitSender, gasLimitReceiver, err := gt.computeGasProvidedByTx(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -228,11 +228,11 @@ func Test_computeGasConsumedByTxSelfSenderScCallCross(t *testing.T) {
 	)
 
 	require.Nil(t, err)
-	require.Equal(t, gasConsumed.consumedSenderShard, gasLimitSender)
-	require.Equal(t, gasConsumed.consumedReceiverShard, gasLimitReceiver)
+	require.Equal(t, gcr.consumedSenderShard, gasLimitSender)
+	require.Equal(t, gcr.consumedReceiverShard, gasLimitReceiver)
 }
 
-func Test_computeGasConsumedByTxGasHandlerComputeGasErrors(t *testing.T) {
+func Test_computeGasProvidedByTxGasHandlerComputeGasErrors(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -241,21 +241,21 @@ func Test_computeGasConsumedByTxGasHandlerComputeGasErrors(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	expectedError := errors.New("expecterd error")
 	gt.gasHandler = &testscommon.GasHandlerStub{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return 0, 0, expectedError
 		},
 	}
@@ -263,7 +263,7 @@ func Test_computeGasConsumedByTxGasHandlerComputeGasErrors(t *testing.T) {
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gasLimitSender, gasLimitReceiver, err := gt.computeGasConsumedByTx(
+	gasLimitSender, gasLimitReceiver, err := gt.computeGasProvidedByTx(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -275,7 +275,7 @@ func Test_computeGasConsumedByTxGasHandlerComputeGasErrors(t *testing.T) {
 	require.Zero(t, gasLimitReceiver)
 }
 
-func Test_computeGasConsumedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T) {
+func Test_computeGasProvidedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -284,21 +284,21 @@ func Test_computeGasConsumedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	gc := uint64(1000000)
 	gt.gasHandler = &testscommon.GasHandlerStub{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return gc, gc, nil
 		},
 		GasRefundedCalled: func(hash []byte) uint64 {
@@ -309,7 +309,7 @@ func Test_computeGasConsumedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T)
 	txm, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txm))
 
-	gasLimitSender, gasLimitReceiver, err := gt.computeGasConsumedByTx(
+	gasLimitSender, gasLimitReceiver, err := gt.computeGasProvidedByTx(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -321,7 +321,7 @@ func Test_computeGasConsumedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T)
 	require.Zero(t, gasLimitReceiver)
 }
 
-func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
+func Test_computeGasProvidedWithErrorForGasConsumedForTx(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -330,21 +330,21 @@ func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 1600000000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
 	expectedError := errors.New("expecterd error")
 	gt.gasHandler = &testscommon.GasHandlerStub{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return 0, 0, expectedError
 		},
 	}
@@ -353,7 +353,7 @@ func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{}
-	_, err := gt.computeGasConsumed(
+	_, err := gt.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -363,7 +363,7 @@ func Test_computeGasConsumedWithErrorForGasConsumedForTx(t *testing.T) {
 	require.Equal(t, expectedError, err)
 }
 
-func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
+func Test_computeGasProvidedMaxGasLimitInSenderShardReached(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -372,15 +372,15 @@ func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -388,9 +388,9 @@ func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: gt.economicsFee.MaxGasLimitPerBlock(receiverShardID) - gasConsumed.consumedReceiverShard/2,
+		gasConsumedByMiniBlockInReceiverShard: gt.economicsFee.MaxGasLimitPerBlock(receiverShardID) - gcr.consumedReceiverShard/2,
 	}
-	_, err := gt.computeGasConsumed(
+	_, err := gt.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -400,7 +400,7 @@ func Test_computeGasConsumedMaxGasLimitInSenderShardReached(t *testing.T) {
 	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached, err)
 }
 
-func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
+func Test_computeGasProvidedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -409,15 +409,15 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(receiverShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(receiverShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -425,9 +425,9 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{
-		gasConsumedByMiniBlocksInSenderShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
+		gasConsumedByMiniBlocksInSenderShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gcr.consumedSenderShard/2,
 	}
-	_, err := gt.computeGasConsumed(
+	_, err := gt.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -437,7 +437,7 @@ func Test_computeGasConsumedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	require.Equal(t, nil, err)
 }
 
-func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
+func Test_computeGasProvidedMaxGasLimitPerBlockReached(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -446,15 +446,15 @@ func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -462,9 +462,9 @@ func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{
-		totalGasConsumedInSelfShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gasConsumed.consumedSenderShard/2,
+		totalGasConsumedInSelfShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gcr.consumedSenderShard/2,
 	}
-	_, err := gt.computeGasConsumed(
+	_, err := gt.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -474,7 +474,7 @@ func Test_computeGasConsumedMaxGasLimitPerBlockReached(t *testing.T) {
 	require.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
 
-func Test_computeGasConsumedOK(t *testing.T) {
+func Test_computeGasProvidedOK(t *testing.T) {
 	t.Parallel()
 
 	senderShardID := uint32(0)
@@ -483,15 +483,15 @@ func Test_computeGasConsumedOK(t *testing.T) {
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
 	marshaller := &testscommon.MarshalizerMock{}
-	gasConsumed := &gasConsumedResult{
+	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
 		err:                   nil,
 	}
 
 	gasRefund := uint64(25000)
-	gasLimit := computeGasLimitFromResultAndRefund(gasConsumed, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gasConsumed, gasRefund)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -499,7 +499,7 @@ func Test_computeGasConsumedOK(t *testing.T) {
 	txHash := hasher.Compute(string(txm))
 
 	gci := &gasConsumedInfo{}
-	_, err := gt.computeGasConsumed(
+	_, err := gt.computeGasProvided(
 		senderShardID,
 		receiverShardID,
 		tx,
@@ -507,7 +507,7 @@ func Test_computeGasConsumedOK(t *testing.T) {
 		gci,
 	)
 	require.Nil(t, err)
-	require.Equal(t, gasConsumed.consumedSenderShard, gci.gasConsumedByMiniBlocksInSenderShard)
-	require.Equal(t, gasConsumed.consumedReceiverShard, gci.gasConsumedByMiniBlockInReceiverShard)
-	require.Equal(t, gasConsumed.consumedSenderShard, gci.totalGasConsumedInSelfShard)
+	require.Equal(t, gcr.consumedSenderShard, gci.gasConsumedByMiniBlocksInSenderShard)
+	require.Equal(t, gcr.consumedReceiverShard, gci.gasConsumedByMiniBlockInReceiverShard)
+	require.Equal(t, gcr.consumedSenderShard, gci.totalGasConsumedInSelfShard)
 }

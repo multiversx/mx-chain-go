@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
+	"math/big"
 	"sort"
 	"time"
 
@@ -763,5 +765,16 @@ func HaveAdditionalTime() func() bool {
 	startTime := time.Now()
 	return func() bool {
 		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
+	}
+}
+
+// GetZeroGasAndFees returns a zero value structure for the gas and fees
+func GetZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
 	}
 }

@@ -13,25 +13,25 @@ import (
 
 // ScheduledTxsExecutionStub -
 type ScheduledTxsExecutionStub struct {
-	InitCalled                           func()
-	AddCalled                            func([]byte, data.TransactionHandler) bool
-	ExecuteCalled                        func([]byte) error
-	ExecuteAllCalled                     func(func() time.Duration) error
-	GetScheduledSCRsCalled               func() map[block.Type][]data.TransactionHandler
-	SetScheduledRootHashSCRsAndGasCalled func(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
-	GetScheduledRootHashForHeaderCalled  func(headerHash []byte) ([]byte, error)
-	RollBackToBlockCalled                func(headerHash []byte) error
-	GetScheduledRootHashCalled           func() []byte
-	GetScheduledGasAndFeeCalled          func() scheduled.GasAndFees
-	SetScheduledRootHashCalled           func([]byte)
-	SetScheduledGasAndFeeMetricsCalled   func(gasAndFees scheduled.GasAndFees)
-	SetTransactionProcessorCalled        func(process.TransactionProcessor)
-	SetTransactionCoordinatorCalled      func(process.TransactionCoordinator)
-	HaveScheduledTxsCalled               func() bool
-	SaveStateIfNeededCalled              func(headerHash []byte)
-	SaveStateCalled                      func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
-	LoadStateCalled                      func(headerHash []byte)
-	IsScheduledTxCalled                  func([]byte) bool
+	InitCalled                               func()
+	AddCalled                                func([]byte, data.TransactionHandler) bool
+	ExecuteCalled                            func([]byte) error
+	ExecuteAllCalled                         func(func() time.Duration) error
+	GetScheduledSCRsCalled                   func() map[block.Type][]data.TransactionHandler
+	SetScheduledRootHashSCRsGasAndFeesCalled func(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	GetScheduledRootHashForHeaderCalled      func(headerHash []byte) ([]byte, error)
+	RollBackToBlockCalled                    func(headerHash []byte) error
+	GetScheduledRootHashCalled               func() []byte
+	GetScheduledGasAndFeesCalled             func() scheduled.GasAndFees
+	SetScheduledRootHashCalled               func([]byte)
+	SetScheduledGasAndFeesCalled             func(gasAndFees scheduled.GasAndFees)
+	SetTransactionProcessorCalled            func(process.TransactionProcessor)
+	SetTransactionCoordinatorCalled          func(process.TransactionCoordinator)
+	HaveScheduledTxsCalled                   func() bool
+	SaveStateIfNeededCalled                  func(headerHash []byte)
+	SaveStateCalled                          func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	LoadStateCalled                          func(headerHash []byte)
+	IsScheduledTxCalled                      func([]byte) bool
 }
 
 // Init -
@@ -73,10 +73,10 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledSCRs() map[block.Type][]data.
 	return nil
 }
 
-// GetScheduledGasAndFee returns the scheduled SC calls gas and fee
-func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFee() scheduled.GasAndFees {
-	if stes.GetScheduledGasAndFeeCalled != nil {
-		return stes.GetScheduledGasAndFeeCalled()
+// GetScheduledGasAndFees returns the scheduled SC calls gas and fees
+func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFees() scheduled.GasAndFees {
+	if stes.GetScheduledGasAndFeesCalled != nil {
+		return stes.GetScheduledGasAndFeesCalled()
 	}
 	return scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
@@ -87,10 +87,10 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledGasAndFee() scheduled.GasAndF
 	}
 }
 
-// SetScheduledRootHasSCRsAndGas -
-func (stes *ScheduledTxsExecutionStub) SetScheduledRootHashSCRsAndGas(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
-	if stes.SetScheduledRootHashSCRsAndGasCalled != nil {
-		stes.SetScheduledRootHashSCRsAndGasCalled(rootHash, mapSCRs, gasAndFees)
+// SetScheduledRootHashSCRsGasAndFees -
+func (stes *ScheduledTxsExecutionStub) SetScheduledRootHashSCRsGasAndFees(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
+	if stes.SetScheduledRootHashSCRsGasAndFeesCalled != nil {
+		stes.SetScheduledRootHashSCRsGasAndFeesCalled(rootHash, mapSCRs, gasAndFees)
 	}
 }
 
@@ -145,10 +145,10 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledRootHash(rootHash []byte) {
 	}
 }
 
-// SetScheduledGasAndFeeMetrics -
-func (stes *ScheduledTxsExecutionStub) SetScheduledGasAndFee(gasAndFees scheduled.GasAndFees) {
-	if stes.SetScheduledGasAndFeeMetricsCalled != nil {
-		stes.SetScheduledGasAndFeeMetricsCalled(gasAndFees)
+// SetScheduledGasAndFees -
+func (stes *ScheduledTxsExecutionStub) SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees) {
+	if stes.SetScheduledGasAndFeesCalled != nil {
+		stes.SetScheduledGasAndFeesCalled(gasAndFees)
 	}
 }
 

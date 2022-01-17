@@ -310,7 +310,7 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 	mbb.gasInfo.prevGasConsumedInReceiverShard = mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID]
 	mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbb.gasInfo.prevGasConsumedInReceiverShard
 	startTime := time.Now()
-	gasConsumedByTxInSelfShard, err := mbb.computeGasConsumed(
+	gasProvidedByTxInSelfShard, err := mbb.computeGasProvided(
 		wtx.SenderShardID,
 		wtx.ReceiverShardID,
 		tx,
@@ -330,7 +330,7 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 		return true, err
 	}
 
-	mbb.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, wtx.TxHash)
+	mbb.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, wtx.TxHash)
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = mbb.gasInfo.gasConsumedByMiniBlockInReceiverShard
 	return false, nil
 }
@@ -340,7 +340,7 @@ func (mbb *miniBlocksBuilder) handleBadTransaction(err error, wtx *txcache.Wrapp
 		mbb.senderToSkip = tx.GetSndAddr()
 	}
 
-	mbb.gasHandler.RemoveGasConsumed([][]byte{wtx.TxHash})
+	mbb.gasHandler.RemoveGasProvided([][]byte{wtx.TxHash})
 	mbb.gasHandler.RemoveGasRefunded([][]byte{wtx.TxHash})
 	mbb.gasHandler.RemoveGasPenalized([][]byte{wtx.TxHash})
 
