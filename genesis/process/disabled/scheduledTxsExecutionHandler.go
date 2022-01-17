@@ -50,7 +50,7 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFee() scheduled.GasA
 	}
 }
 
-// SetScheduledRootHasSCRsAndGas does nothing as it is disabled
+// SetScheduledRootHashSCRsAndGas does nothing as it is disabled
 func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashSCRsAndGas(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
 }
 
