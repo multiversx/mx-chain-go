@@ -69,6 +69,7 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:   make(map[string]data.TransactionHandler),
 		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:      make([]data.TransactionHandler, 0),
+		gasAndFees:        process.GetZeroGasAndFees(),
 		storer:            storer,
 		marshaller:        marshaller,
 		scheduledRootHash: nil,
@@ -84,7 +85,6 @@ func (ste *scheduledTxsExecution) Init() {
 	log.Debug("scheduledTxsExecution.Init", "num of last scheduled txs", len(ste.scheduledTxs))
 	ste.mapScheduledTxs = make(map[string]data.TransactionHandler)
 	ste.scheduledTxs = make([]data.TransactionHandler, 0)
-	ste.gasAndFees = process.GetZeroGasAndFees()
 	ste.mutScheduledTxs.Unlock()
 }
 

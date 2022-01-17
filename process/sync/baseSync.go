@@ -710,10 +710,27 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		return process.ErrNilHeadersNonceHashStorage
 	}
 
+	var roleBackOneBlockExecuted bool
+	var err error
+	var currHeaderHash []byte
+	var currHeader data.HeaderHandler
+	var prevHeader data.HeaderHandler
+	var currBody data.BodyHandler
+
+	defer func() {
+		if !roleBackOneBlockExecuted {
+			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+			if err != nil {
+				gasAndFees := process.GetZeroGasAndFees()
+				boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+			}
+		}
+	}()
+
 	log.Debug("starting roll back")
 	for {
-		currHeaderHash := boot.chainHandler.GetCurrentBlockHeaderHash()
-		currHeader, err := boot.blockBootstrapper.getCurrHeader()
+		currHeaderHash = boot.chainHandler.GetCurrentBlockHeaderHash()
+		currHeader, err = boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
 		}
@@ -727,7 +744,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 
 		prevHeaderHash := currHeader.GetPrevHash()
-		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
+		prevHeader, err = boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
 			return err
 		}
@@ -740,13 +757,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			"nonce", boot.forkDetector.GetHighestFinalBlockNonce(),
 		)
 
-		currBody, err := boot.rollBackOneBlock(
+		currBody, err = boot.rollBackOneBlock(
 			currHeaderHash,
 			currHeader,
 			prevHeaderHash,
 			prevHeader,
 		)
-
+		roleBackOneBlockExecuted = true
 		if err != nil {
 			return err
 		}

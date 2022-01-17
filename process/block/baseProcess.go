@@ -509,9 +509,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
-	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 	bp.txCoordinator.CreateBlockStarted()
-	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
+	bp.feeHandler.CreateBlockStarted(bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees())
 
 	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
 	if err != nil {
