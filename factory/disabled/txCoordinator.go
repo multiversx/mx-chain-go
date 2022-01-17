@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -67,7 +66,7 @@ func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler
 }
 
 // CreateBlockStarted does nothing as it is disabled
-func (txCoordinator *TxCoordinator) CreateBlockStarted(_ scheduled.GasAndFees) {
+func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled

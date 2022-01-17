@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -20,7 +19,7 @@ type TransactionCoordinatorMock struct {
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
-	CreateBlockStartedCalled                             func(scheduledGasAndFees scheduled.GasAndFees)
+	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
@@ -133,12 +132,12 @@ func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.Heade
 }
 
 // CreateBlockStarted -
-func (tcm *TransactionCoordinatorMock) CreateBlockStarted(scheduledGasAndFees scheduled.GasAndFees) {
+func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 	if tcm.CreateBlockStartedCalled == nil {
 		return
 	}
 
-	tcm.CreateBlockStartedCalled(scheduledGasAndFees)
+	tcm.CreateBlockStartedCalled()
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe -
