@@ -189,11 +189,6 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		ps.lock.RUnlock()
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
 	if len(ps.activePersisters) == 0 {
 		ps.lock.RUnlock()
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
