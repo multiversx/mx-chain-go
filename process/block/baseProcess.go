@@ -1614,42 +1614,42 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	if deltaAccumulatedFees.Cmp(zero) < 0 {
 		log.Error("gasAndFeesDelta",
 			"initial accumulatedFees", initialGasAndFees.AccumulatedFees.String(),
-			"final accumulatedFees", initialGasAndFees.AccumulatedFees.String(),
+			"final accumulatedFees", finalGasAndFees.AccumulatedFees.String(),
 			"error", process.ErrNegativeValue)
 		return result
 	}
 
-	deltaDevFees := big.NewInt(0).Sub(initialGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees)
+	deltaDevFees := big.NewInt(0).Sub(finalGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees)
 	if deltaDevFees.Cmp(zero) < 0 {
 		log.Error("gasAndFeesDelta",
 			"initial devFees", initialGasAndFees.DeveloperFees.String(),
-			"final devFees", initialGasAndFees.DeveloperFees.String(),
+			"final devFees", finalGasAndFees.DeveloperFees.String(),
 			"error", process.ErrNegativeValue)
 		return result
 	}
 
-	deltaGasProvided := int64(initialGasAndFees.GasProvided) - int64(initialGasAndFees.GasProvided)
+	deltaGasProvided := int64(finalGasAndFees.GasProvided) - int64(initialGasAndFees.GasProvided)
 	if deltaGasProvided < 0 {
 		log.Error("gasAndFeesDelta",
 			"initial gasProvided", initialGasAndFees.GasProvided,
-			"final gasProvided", initialGasAndFees.GasProvided,
+			"final gasProvided", finalGasAndFees.GasProvided,
 			"error", process.ErrNegativeValue)
 		return result
 	}
 
-	deltaGasPenalized := int64(initialGasAndFees.GasPenalized) - int64(initialGasAndFees.GasPenalized)
+	deltaGasPenalized := int64(finalGasAndFees.GasPenalized) - int64(initialGasAndFees.GasPenalized)
 	if deltaGasPenalized < 0 {
 		log.Error("gasAndFeesDelta",
 			"initial gasPenalized", initialGasAndFees.GasPenalized,
-			"final gasPenalized", initialGasAndFees.GasPenalized,
+			"final gasPenalized", finalGasAndFees.GasPenalized,
 			"error", process.ErrNegativeValue)
 		return result
 	}
-	deltaGasRefunded := int64(initialGasAndFees.GasRefunded) - int64(initialGasAndFees.GasRefunded)
+	deltaGasRefunded := int64(finalGasAndFees.GasRefunded) - int64(initialGasAndFees.GasRefunded)
 	if deltaGasRefunded < 0 {
 		log.Error("gasAndFeesDelta",
 			"initial gasRefunded", initialGasAndFees.GasRefunded,
-			"final gasRefunded", initialGasAndFees.GasRefunded,
+			"final gasRefunded", finalGasAndFees.GasRefunded,
 			"error", process.ErrNegativeValue)
 		return result
 	}

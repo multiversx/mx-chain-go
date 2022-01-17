@@ -384,38 +384,6 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
-func (bpp *basePreProcess) computeGasProvidedByTx(
-	senderShardId uint32,
-	receiverShardId uint32,
-	tx data.TransactionHandler,
-	txHash []byte,
-) (uint64, uint64, error) {
-
-	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasProvidedByTx(
-		senderShardId,
-		receiverShardId,
-		tx)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
-		txGasPenalized := bpp.gasHandler.GasPenalized(txHash)
-		txGasToBeSubtracted := txGasRefunded + txGasPenalized
-		if txGasLimitInReceiverShard < txGasToBeSubtracted {
-			return 0, 0, process.ErrInsufficientGasLimitInTx
-		}
-
-		if senderShardId == receiverShardId {
-			txGasLimitInSenderShard -= txGasToBeSubtracted
-			txGasLimitInReceiverShard -= txGasToBeSubtracted
-		}
-	}
-
-	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
-}
-
 func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
 	if bpp.balanceComputation.IsAddressSet(address) {
 		return
