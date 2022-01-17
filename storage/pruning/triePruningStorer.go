@@ -119,7 +119,7 @@ func shouldCloseOldPersisters(pd *persisterData) bool {
 	return false
 }
 
-// PutInEpochWithoutCache adds data to persistence medium related to the specified epoch and updates the bloom filter
+// PutInEpochWithoutCache adds data to persistence medium related to the specified epoch
 func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
@@ -139,10 +139,6 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 		return err
 	}
 
-	if ps.bloomFilter != nil {
-		ps.bloomFilter.Add(key)
-	}
-
 	return nil
 }
 
@@ -155,10 +151,6 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
 
 	numClosedDbs := 0
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
@@ -185,10 +177,6 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
-
-	if ps.bloomFilter != nil && !ps.bloomFilter.MayContain(key) {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
 
 	if len(ps.activePersisters) < 2 {
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
