@@ -2269,8 +2269,14 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 		return err
 	}
 
+	scheduledGasAndFees := mp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 	additionalVersionData := &headerVersionData.AdditionalData{
 		ScheduledRootHash:        rootHash,
+		ScheduledAccumulatedFees: scheduledGasAndFees.GetAccumulatedFees(),
+		ScheduledDeveloperFees:   scheduledGasAndFees.GetDeveloperFees(),
+		ScheduledGasProvided:     scheduledGasAndFees.GetGasProvided(),
+		ScheduledGasPenalized:    scheduledGasAndFees.GetGasPenalized(),
+		ScheduledGasRefunded:     scheduledGasAndFees.GetGasRefunded(),
 	}
 
 	return metaHeader.SetAdditionalData(additionalVersionData)
