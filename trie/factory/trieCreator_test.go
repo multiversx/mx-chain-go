@@ -42,7 +42,6 @@ func createTrieStorageCfg() config.StorageConfig {
 	return config.StorageConfig{
 		Cache: config.CacheConfig{Type: "LRU", Capacity: 1000},
 		DB:    config.DBConfig{Type: string(storageUnit.MemoryDB)},
-		Bloom: config.BloomFilterConfig{},
 	}
 }
 

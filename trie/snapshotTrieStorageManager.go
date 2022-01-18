@@ -5,9 +5,10 @@ import "fmt"
 type snapshotTrieStorageManager struct {
 	*trieStorageManager
 	mainSnapshotStorer snapshotPruningStorer
+	epoch              uint32
 }
 
-func newSnapshotTrieStorageManager(tsm *trieStorageManager) (*snapshotTrieStorageManager, error) {
+func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snapshotTrieStorageManager, error) {
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return nil, fmt.Errorf("invalid storer type")
@@ -16,6 +17,7 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager) (*snapshotTrieStorag
 	return &snapshotTrieStorageManager{
 		trieStorageManager: tsm,
 		mainSnapshotStorer: storer,
+		epoch:              epoch,
 	}, nil
 }
 
@@ -50,7 +52,8 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 		return ErrContextClosing
 	}
 
-	return stsm.mainSnapshotStorer.PutWithoutCache(key, data)
+	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
+	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key

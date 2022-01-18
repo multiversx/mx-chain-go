@@ -136,12 +136,13 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
 // These methods will execute the block and its transactions. Finally if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
-func (boot *ShardBootstrap) SyncBlock() error {
+func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
 	if isErrGetNodeFromDB {
 		errSync := boot.syncUserAccountsState()
-		if errSync != nil {
+		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
+		if shouldOutputLog {
 			log.Debug("SyncBlock syncTrie", "error", errSync)
 		}
 	}
