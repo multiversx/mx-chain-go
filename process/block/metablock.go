@@ -2270,7 +2270,7 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 	}
 
 	additionalVersionData := &headerVersionData.AdditionalData{
-		ScheduledRootHash: rootHash,
+		ScheduledRootHash:        rootHash,
 	}
 
 	return metaHeader.SetAdditionalData(additionalVersionData)
