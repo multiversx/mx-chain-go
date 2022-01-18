@@ -3,7 +3,9 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/debug/txcache"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
 )
 
 var _ process.InterceptorProcessor = (*TxInterceptorProcessor)(nil)
@@ -69,6 +71,12 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 		interceptedTx.Transaction().Size(),
 		cacherIdentifier,
 	)
+
+	_, isTx := interceptedTx.(*transaction.InterceptedTransaction)
+	if isTx {
+		log.Debug("checking eviction before time for transaction", "hash", data.Hash())
+		txcache.TXCACHE.AddNewTxHash(data.Hash())
+	}
 
 	return nil
 }
