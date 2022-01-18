@@ -21,3 +21,7 @@ type InterceptedTransactionHandler interface {
 type ShardedPool interface {
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
 }
+
+type shardedPool2 interface {
+	SearchFirstData(key []byte) (interface{}, bool)
+}

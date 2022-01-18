@@ -1,9 +1,11 @@
 package processor
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/debug/txcache"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 )
@@ -74,8 +76,15 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 
 	_, isTx := interceptedTx.(*transaction.InterceptedTransaction)
 	if isTx {
-		log.Debug("checking eviction before time for transaction", "hash", data.Hash())
-		txcache.TXCACHE.AddNewTxHash(data.Hash())
+		shp, okShp2 := txip.shardedPool.(shardedPool2)
+		if !okShp2 {
+			log.Error("programming error, txip.shardedPool should have been of type shardedPool2")
+		} else {
+			_, found := shp.SearchFirstData(data.Hash())
+			if !found {
+				panic(fmt.Sprintf("should have found the recently added tx hash %s", hex.EncodeToString(data.Hash())))
+			}
+		}
 	}
 
 	return nil

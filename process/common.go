@@ -524,7 +524,7 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
@@ -633,7 +633,7 @@ func DisplayProcessTxDetails(
 		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 	}
 
-	log.Trace("executing transaction",
+	log.Debug("executing transaction",
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
 		"gas limit", txHandler.GetGasLimit(),
