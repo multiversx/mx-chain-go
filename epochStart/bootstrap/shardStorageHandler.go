@@ -214,6 +214,9 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
+
 	if !withScheduled {
 		return processedMiniBlocks, pendingMiniBlocks, nil
 	}
@@ -227,7 +230,26 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	processedMiniBlocks = removeMbsFromProcessed(processedMiniBlocks, mapMbHeaderHandlers)
 	pendingMiniBlocks = addMbsToPending(pendingMiniBlocks, mapMbHeaderHandlers)
 
+	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled update for scheduled")
+	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
+
 	return processedMiniBlocks, pendingMiniBlocks, nil
+}
+
+func printProcessedAndPendingMbs(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
+	for _, miniBlocksInMeta := range processedMiniBlocks {
+		log.Debug("initial processed meta block", "hash", miniBlocksInMeta.MetaHash)
+		for _, mbHash:= range miniBlocksInMeta.MiniBlocksHashes {
+			log.Debug("processedMiniBlock", "hash", mbHash)
+		}
+	}
+
+	for _, pendingMbsInShard := range pendingMiniBlocks {
+		log.Debug("pending mbs", "shard", pendingMbsInShard.ShardID)
+		for _, mbHash:= range pendingMbsInShard.MiniBlocksHashes {
+			log.Debug("pendingMiniBlock", "hash", mbHash)
+		}
+	}
 }
 
 func removeMbFromProcessedList(
