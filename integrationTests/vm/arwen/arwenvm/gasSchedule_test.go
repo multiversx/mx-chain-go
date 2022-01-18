@@ -11,12 +11,21 @@ import (
 	"math/big"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/require"
 )
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
+	_ = logger.SetLogLevel("*:DEBUG")
 	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 32, "_main", nil, b.N, nil)
+}
+
+func Benchmark_searchingForPanic(b *testing.B) {
+	_ = logger.SetLogLevel("*:DEBUG")
+	for i := 0; i < 10; i++ {
+		runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, b.N, nil)
+	}
 }
 
 func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
