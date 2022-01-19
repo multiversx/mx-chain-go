@@ -45,7 +45,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 		return nil, process.ErrNilMultipleHeaderSigningDetectorArgs
 	}
 	if check.IfNil(args.NodesCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+		return nil, process.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.RoundHandler) {
 		return nil, process.ErrNilRoundHandler
@@ -56,8 +56,8 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(args.SlashingCache) {
-		return nil, process.ErrNilRoundDetectorCache
+	if check.IfNil(args.RoundValidatorHeadersCache) {
+		return nil, process.ErrNilRoundValidatorHeadersCache
 	}
 	if check.IfNil(args.RoundHashCache) {
 		return nil, process.ErrNilRoundHeadersCache
@@ -70,7 +70,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 
 	return &multipleHeaderSigningDetector{
 		baseSlashingDetector: baseDetector,
-		slashingCache:        args.SlashingCache,
+		slashingCache:        args.RoundValidatorHeadersCache,
 		hashesCache:          args.RoundHashCache,
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
@@ -82,7 +82,7 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 
 // VerifyData - checks if an intercepted data represents a slashable event
 func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	header, err := checkAndGetHeader(interceptedData)
+	header, err := getCheckedHeader(interceptedData)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, head
 			return process.ErrHeadersNotSameRound
 		}
 
-		hash, err := mhs.checkHash(header, hashes)
+		hash, err := mhs.checkHashWithoutSigExists(hashes, header)
 		if err != nil {
 			return err
 		}
@@ -253,17 +253,18 @@ func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, head
 	return nil
 }
 
-func (mhs *multipleHeaderSigningDetector) checkHash(header data.HeaderHandler, hashes map[string]struct{}) (string, error) {
+func (mhs *multipleHeaderSigningDetector) checkHashWithoutSigExists(hashes map[string]struct{}, header data.HeaderHandler) (string, error) {
 	hash, err := mhs.computeHashWithoutSignatures(header)
 	if err != nil {
 		return "", err
 	}
 
-	if _, exists := hashes[string(hash)]; exists {
+	hashStr := string(hash)
+	if _, exists := hashes[hashStr]; exists {
 		return "", process.ErrHeadersNotDifferentHashes
 	}
 
-	return string(hash), nil
+	return hashStr, nil
 }
 
 func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header data.HeaderHandler) bool {
@@ -276,9 +277,11 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 		return false
 	}
 
+	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
-		if bytes.Equal(validator.PubKey(), pubKey) {
-			if sliceUtil.IsIndexSetInBitmap(uint32(idx), header.GetPubKeysBitmap()) {
+		currPubKey := validator.PubKey()
+		if bytes.Equal(currPubKey, pubKey) {
+			if sliceUtil.IsIndexSetInBitmap(uint32(idx), bitmap) {
 				err = mhs.headerSigVerifier.VerifySignature(header)
 				log.LogIfError(err)
 				err = mhs.headerSigVerifier.VerifyLeaderSignature(header)

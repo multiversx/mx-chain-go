@@ -197,7 +197,7 @@ func (hhs *HeaderHandlerStub) SetPubKeysBitmap(bitmap []byte) error {
 	if hhs.SetPubKeysBitmapCalled != nil {
 		return hhs.SetPubKeysBitmapCalled(bitmap)
 	}
-	panic("implement me")
+	return nil
 }
 
 // SetSignature -
@@ -205,7 +205,7 @@ func (hhs *HeaderHandlerStub) SetSignature(signature []byte) error {
 	if hhs.SetSignatureCalled != nil {
 		return hhs.SetSignatureCalled(signature)
 	}
-	panic("implement me")
+	return nil
 }
 
 // SetLeaderSignature -
@@ -213,7 +213,7 @@ func (hhs *HeaderHandlerStub) SetLeaderSignature(leaderSig []byte) error {
 	if hhs.SetLeaderSignatureCalled != nil {
 		return hhs.SetLeaderSignatureCalled(leaderSig)
 	}
-	panic("implement me")
+	return nil
 }
 
 // SetChainID -
@@ -302,7 +302,7 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
 }
 
 // SetEpochStartMetaHash -
-func (h *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
 	return nil
 }
 

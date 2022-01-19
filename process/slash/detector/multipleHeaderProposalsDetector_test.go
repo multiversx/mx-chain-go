@@ -40,7 +40,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 				args.NodesCoordinator = nil
 				return args
 			},
-			expectedErr: process.ErrNilShardCoordinator,
+			expectedErr: process.ErrNilNodesCoordinator,
 		},
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
@@ -56,7 +56,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 				args.SlashingCache = nil
 				return args
 			},
-			expectedErr: process.ErrNilRoundDetectorCache,
+			expectedErr: process.ErrNilRoundValidatorHeadersCache,
 		},
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
@@ -125,7 +125,11 @@ func TestMultipleHeaderProposalsDetector_VerifyData_IrrelevantRound_ExpectError(
 
 	round := uint64(100)
 	args := generateMultipleHeaderProposalDetectorArgs()
-	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	args.RoundHandler = &testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return int64(round)
+		},
+	}
 	sd, _ := detector.NewMultipleHeaderProposalsDetector(args)
 
 	hData := slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round + detector.MaxDeltaToCurrentRound + 1})
@@ -363,6 +367,15 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testi
 				h1 := &block.HeaderV2{Header: &block.Header{Round: 5}}
 				h2 := &block.HeaderV2{Header: &block.Header{Round: 5}}
 				h3 := &block.HeaderV2{Header: &block.Header{Round: 5}}
+				return coreSlash.High, slash.HeaderList{h1, h2, h3}
+			},
+			expectedErr: process.ErrHeadersNotDifferentHashes,
+		},
+		{
+			args: func() (coreSlash.ThreatLevel, slash.HeaderList) {
+				h1 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}}
+				h2 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 2}}
+				h3 := &block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}}
 				return coreSlash.High, slash.HeaderList{h1, h2, h3}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,

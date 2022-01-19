@@ -1,6 +1,7 @@
 package notifier_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -243,10 +244,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 			}, nil
 		},
 	}
-
-	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{coreSlash.MultipleProposalProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
-
+	shardBigInt := big.NewInt(int64(shardID))
+	roundBigInt := big.NewInt(int64(round))
+	expectedData := []byte(fmt.Sprintf("%s@%s@%s@%s@%s@%s",
+		notifier.BuiltInFunctionSlashCommitmentProof,
+		hex.EncodeToString([]byte{coreSlash.MultipleProposalProofID}),
+		hex.EncodeToString(shardBigInt.Bytes()),
+		hex.EncodeToString(roundBigInt.Bytes()),
+		hex.EncodeToString([]byte{byte('c'), byte('d')}),
+		hex.EncodeToString([]byte("signature"))))
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
 		Nonce:     444,
@@ -282,8 +288,15 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 	}
 
-	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{coreSlash.MultipleSigningProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
+	shardBigInt := big.NewInt(int64(shardID))
+	roundBigInt := big.NewInt(int64(round))
+	expectedData := []byte(fmt.Sprintf("%s@%s@%s@%s@%s@%s",
+		notifier.BuiltInFunctionSlashCommitmentProof,
+		hex.EncodeToString([]byte{coreSlash.MultipleSigningProofID}),
+		hex.EncodeToString(shardBigInt.Bytes()),
+		hex.EncodeToString(roundBigInt.Bytes()),
+		hex.EncodeToString([]byte{byte('c'), byte('d')}),
+		hex.EncodeToString([]byte("signature"))))
 	expectedTx := &transaction.Transaction{
 		Data:      expectedData,
 		Nonce:     444,

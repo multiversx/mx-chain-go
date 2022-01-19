@@ -41,7 +41,7 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 				args.NodesCoordinator = nil
 				return args
 			},
-			expectedErr: process.ErrNilShardCoordinator,
+			expectedErr: process.ErrNilNodesCoordinator,
 		},
 		{
 			args: func() *detector.MultipleHeaderSigningDetectorArgs {
@@ -70,10 +70,10 @@ func TestNewSigningSlashingDetector(t *testing.T) {
 		{
 			args: func() *detector.MultipleHeaderSigningDetectorArgs {
 				args := generateMultipleHeaderSigningDetectorArgs()
-				args.SlashingCache = nil
+				args.RoundValidatorHeadersCache = nil
 				return args
 			},
-			expectedErr: process.ErrNilRoundDetectorCache,
+			expectedErr: process.ErrNilRoundValidatorHeadersCache,
 		},
 		{
 			args: func() *detector.MultipleHeaderSigningDetectorArgs {
@@ -149,7 +149,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCacheHeaderWithoutSignat
 	args := generateMultipleHeaderSigningDetectorArgs()
 	addCache1Flag := atomic.Flag{}
 	addCache2Flag := atomic.Flag{}
-	args.SlashingCache = &slashMocks.RoundDetectorCacheStub{
+	args.RoundValidatorHeadersCache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(uint64, []byte, data.HeaderInfoHandler) error {
 			addCache1Flag.Set()
 			return nil
@@ -174,10 +174,16 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCacheHeaderWithoutSignat
 			return headerCopy
 		},
 	}
+	interceptedData := testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
+	}
 	interceptedHeader := &testscommon.InterceptedHeaderStub{
 		HeaderHandlerCalled: func() data.HeaderHandler {
 			return header
 		},
+		InterceptedDataStub: interceptedData,
 	}
 
 	proof, err := ssd.VerifyData(interceptedHeader)
@@ -300,9 +306,12 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 		},
 	})
 
+	roundHashCache, _ := detector.NewRoundHashCache(3)
+	roundValidatorHeaderCache, _ := detector.NewRoundValidatorHeaderCache(3)
+
 	args := generateMultipleHeaderSigningDetectorArgs()
-	args.SlashingCache = detector.NewRoundValidatorHeaderCache(3)
-	args.RoundHashCache = detector.NewRoundHashCache(3)
+	args.RoundHashCache = roundHashCache
+	args.RoundValidatorHeadersCache = roundValidatorHeaderCache
 	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			switch string(randomness) {
@@ -405,9 +414,12 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof_CachingSignersFa
 	computeConsensusGroupCalledCt := 0
 	errComputeConsensusGroup := errors.New("error computing consensus group")
 
+	roundHashCache, _ := detector.NewRoundHashCache(3)
+	roundValidatorHeaderCache, _ := detector.NewRoundValidatorHeaderCache(3)
+
 	args := generateMultipleHeaderSigningDetectorArgs()
-	args.SlashingCache = detector.NewRoundValidatorHeaderCache(3)
-	args.RoundHashCache = detector.NewRoundHashCache(3)
+	args.RoundHashCache = roundHashCache
+	args.RoundValidatorHeadersCache = roundValidatorHeaderCache
 	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			computeConsensusGroupCalledCt++

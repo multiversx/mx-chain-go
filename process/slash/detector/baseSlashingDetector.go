@@ -46,7 +46,7 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
+func getCheckedHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
 	if check.IfNil(interceptedData) {
 		return nil, process.ErrNilInterceptedData
 	}
@@ -59,6 +59,10 @@ func checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHand
 	header := interceptedHeader.HeaderHandler()
 	if check.IfNil(header) {
 		return nil, process.ErrNilHeaderHandler
+	}
+	hash := interceptedHeader.Hash()
+	if hash == nil {
+		return nil, data.ErrNilHash
 	}
 
 	return header, nil
