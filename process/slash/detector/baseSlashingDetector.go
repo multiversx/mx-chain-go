@@ -14,12 +14,12 @@ import (
 // MultipleHeaderDetectorArgs is a a struct containing all common arguments required
 // to create a new multiple header proposal/signing detector
 type MultipleHeaderDetectorArgs struct {
-	NodesCoordinator  sharding.NodesCoordinator
-	RoundHandler      process.RoundHandler
-	SlashingCache     RoundValidatorHeadersCache
-	Hasher            hashing.Hasher
-	Marshaller        marshal.Marshalizer
-	HeaderSigVerifier consensus.HeaderSigVerifier
+	NodesCoordinator           sharding.NodesCoordinator
+	RoundHandler               process.RoundHandler
+	RoundValidatorHeadersCache RoundValidatorHeadersCache
+	Hasher                     hashing.Hasher
+	Marshaller                 marshal.Marshalizer
+	HeaderSigVerifier          consensus.HeaderSigVerifier
 }
 
 // minSlashableNoOfHeaders represents the min number of headers required for a

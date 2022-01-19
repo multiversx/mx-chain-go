@@ -48,7 +48,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(args.SlashingCache) {
+	if check.IfNil(args.RoundValidatorHeadersCache) {
 		return nil, process.ErrNilRoundValidatorHeadersCache
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
@@ -58,7 +58,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 	baseDetector := baseSlashingDetector{roundHandler: args.RoundHandler}
 
 	return &multipleHeaderProposalsDetector{
-		cache:                args.SlashingCache,
+		cache:                args.RoundValidatorHeadersCache,
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
 		marshaller:           args.Marshaller,

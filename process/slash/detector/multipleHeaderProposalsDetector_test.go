@@ -53,7 +53,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
 				args := generateMultipleHeaderProposalDetectorArgs()
-				args.SlashingCache = nil
+				args.RoundValidatorHeadersCache = nil
 				return args
 			},
 			expectedErr: process.ErrNilRoundValidatorHeadersCache,
@@ -167,7 +167,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleHeaders_SameHash_Exp
 			return []sharding.Validator{mock.NewValidatorMock(pubKey)}, nil
 		},
 	}
-	args.SlashingCache = &slashMocks.RoundDetectorCacheStub{
+	args.RoundValidatorHeadersCache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(r uint64, pk []byte, header data.HeaderInfoHandler) error {
 			if r == round && bytes.Equal(pk, pubKey) {
 				return process.ErrHeadersNotDifferentHashes
@@ -207,7 +207,7 @@ func TestMultipleHeaderProposalsDetector_VerifyData_MultipleProposedHeadersSameR
 	getCalledCt := 0
 	addCalledCt := 0
 	args := generateMultipleHeaderProposalDetectorArgs()
-	args.SlashingCache = &slashMocks.RoundDetectorCacheStub{
+	args.RoundValidatorHeadersCache = &slashMocks.RoundDetectorCacheStub{
 		AddCalled: func(_ uint64, _ []byte, header data.HeaderInfoHandler) error {
 			addCalledCt++
 			if bytes.Equal(header.GetHash(), hData2.Hash()) && addCalledCt == 3 {

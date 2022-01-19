@@ -54,12 +54,12 @@ func generateMockMultipleHeaderDetectorArgs() detector.MultipleHeaderDetectorArg
 	}
 
 	return detector.MultipleHeaderDetectorArgs{
-		NodesCoordinator:  nodesCoordinator,
-		RoundHandler:      &mock.RoundHandlerMock{},
-		SlashingCache:     &slashMocks.RoundDetectorCacheStub{},
-		Hasher:            &hashingMocks.HasherMock{},
-		Marshaller:        &testscommon.MarshalizerMock{},
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
+		NodesCoordinator:           nodesCoordinator,
+		RoundHandler:               &mock.RoundHandlerMock{},
+		RoundValidatorHeadersCache: &slashMocks.RoundDetectorCacheStub{},
+		Hasher:                     &hashingMocks.HasherMock{},
+		Marshaller:                 &testscommon.MarshalizerMock{},
+		HeaderSigVerifier:          &mock.HeaderSigVerifierStub{},
 	}
 }
 
@@ -166,13 +166,14 @@ func createMultipleHeaderDetectorArgs(
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(&headerSigVerifierArgs)
 	require.Nil(b, err)
 
+	roundValidatorHeaderCache, _ := detector.NewRoundValidatorHeaderCache(cacheSize)
 	return detector.MultipleHeaderDetectorArgs{
-		NodesCoordinator:  nodesCoordinator,
-		RoundHandler:      &mock.RoundHandlerMock{},
-		Hasher:            hasher,
-		Marshaller:        &marshal.GogoProtoMarshalizer{},
-		SlashingCache:     detector.NewRoundValidatorHeaderCache(cacheSize),
-		HeaderSigVerifier: headerSigVerifier,
+		NodesCoordinator:           nodesCoordinator,
+		RoundHandler:               &mock.RoundHandlerMock{},
+		Hasher:                     hasher,
+		Marshaller:                 &marshal.GogoProtoMarshalizer{},
+		RoundValidatorHeadersCache: roundValidatorHeaderCache,
+		HeaderSigVerifier:          headerSigVerifier,
 	}
 }
 
