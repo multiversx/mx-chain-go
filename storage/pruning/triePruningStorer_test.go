@@ -104,7 +104,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 			if !exists {
 				persister = &mock.PersisterStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, storage.ErrSerialDBIsClosed
+						return nil, storage.ErrDBIsClosed
 					},
 				}
 				persistersMap[path] = persister
@@ -123,7 +123,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 
 	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
 	assert.Nil(t, val)
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {

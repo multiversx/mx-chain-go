@@ -137,6 +137,11 @@ func (s *DB) Put(key, val []byte) error {
 
 // Get returns the value associated to the key
 func (s *DB) Get(key []byte) ([]byte, error) {
+	db := s.getDbPointer()
+	if db == nil {
+		return nil, storage.ErrDBIsClosed
+	}
+
 	data := s.batch.Get(key)
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
@@ -145,7 +150,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		return data, nil
 	}
 
-	data, err := s.db.Get(key, nil)
+	data, err := db.Get(key, nil)
 	if err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
@@ -158,6 +163,11 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 
 // Has returns nil if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
+	db := s.getDbPointer()
+	if db == nil {
+		return storage.ErrDBIsClosed
+	}
+
 	data := s.batch.Get(key)
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
@@ -166,7 +176,7 @@ func (s *DB) Has(key []byte) error {
 		return nil
 	}
 
-	has, err := s.db.Has(key, nil)
+	has, err := db.Has(key, nil)
 	if err != nil {
 		return err
 	}
@@ -194,7 +204,12 @@ func (s *DB) putBatch(b storage.Batcher) error {
 		Sync: true,
 	}
 
-	return s.db.Write(dbBatch.batch, wopt)
+	db := s.getDbPointer()
+	if db == nil {
+		return storage.ErrDBIsClosed
+	}
+
+	return db.Write(dbBatch.batch, wopt)
 }
 
 // Close closes the files/resources associated to the storage medium
@@ -209,7 +224,12 @@ func (s *DB) Close() error {
 	default:
 	}
 
-	return s.db.Close()
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		return db.Close()
+	}
+
+	return nil
 }
 
 // Remove removes the data associated to the given key
@@ -229,14 +249,15 @@ func (s *DB) Destroy() error {
 	s.mutBatch.Unlock()
 
 	s.dbClosed <- struct{}{}
-	err := s.db.Close()
-	if err != nil {
-		return err
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		err := db.Close()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = os.RemoveAll(s.path)
-
-	return err
+	return os.RemoveAll(s.path)
 }
 
 // DestroyClosed removes the already closed storage medium stored data

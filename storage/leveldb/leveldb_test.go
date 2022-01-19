@@ -291,7 +291,7 @@ func TestDB_RangeKeys(t *testing.T) {
 func TestDB_PutGetLargeValue(t *testing.T) {
 	t.Parallel()
 
-	buffLargeValue := make([]byte, 32*1000000) //equivalent to ~1000000 hashes
+	buffLargeValue := make([]byte, 32*1000000) // equivalent to ~1000000 hashes
 	key := []byte("key")
 	_, _ = rand.Read(buffLargeValue)
 
@@ -309,4 +309,50 @@ func TestDB_PutGetLargeValue(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, buffLargeValue, recovered)
+}
+
+func TestDB_MethodCallsAfterCloseOrDestroy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("when closing", func(t *testing.T) {
+		testDbAllMethodsShouldNotPanic(t, func(db *leveldb.DB) {
+			_ = db.Close()
+		})
+	})
+	t.Run("when destroying", func(t *testing.T) {
+		testDbAllMethodsShouldNotPanic(t, func(db *leveldb.DB) {
+			_ = db.Destroy()
+		})
+	})
+}
+
+func testDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.DB)) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panic %v", r))
+		}
+	}()
+
+	ldb := createLevelDb(t, 1, 1, 10)
+	closeHandler(ldb)
+
+	err := ldb.Put([]byte("key1"), []byte("val1"))
+	require.Equal(t, storage.ErrDBIsClosed, err)
+
+	_, err = ldb.Get([]byte("key2"))
+	require.Equal(t, storage.ErrDBIsClosed, err)
+
+	err = ldb.Has([]byte("key3"))
+	require.Equal(t, storage.ErrDBIsClosed, err)
+
+	ldb.RangeKeys(func(key []byte, value []byte) bool {
+		require.Fail(t, "should have not called range")
+		return false
+	})
+
+	err = ldb.Remove([]byte("key4"))
+	require.Equal(t, storage.ErrDBIsClosed, err)
 }

@@ -124,7 +124,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
 
 	if tsm.flagDisableOldStorage.IsSet() {
-		err := tsm.db.Close()
+		err = tsm.db.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +202,7 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 
 func (tsm *trieStorageManager) cleanupChans() {
 	<-tsm.closer.ChanClose()
-	//at this point we can not add new entries in the snapshot/checkpoint chans
+	// at this point we can not add new entries in the snapshot/checkpoint chans
 	for {
 		select {
 		case entry := <-tsm.snapshotReq:
@@ -289,7 +289,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]common.Snapshot
 	return getOrderedSnapshots(snapshotsMap), snapshotId, nil
 }
 
-//Get checks all the storers for the given key, and returns it if it is found
+// Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
@@ -310,7 +310,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
-//GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
+// GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
 func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 
@@ -369,8 +369,8 @@ func isClosingError(err error) bool {
 	}
 
 	isClosingErr := err == ErrContextClosing ||
-		err == storage.ErrSerialDBIsClosed ||
-		strings.Contains(err.Error(), storage.ErrSerialDBIsClosed.Error()) ||
+		err == storage.ErrDBIsClosed ||
+		strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) ||
 		strings.Contains(err.Error(), ErrContextClosing.Error())
 	return isClosingErr
 }
@@ -679,8 +679,8 @@ func (tsm *trieStorageManager) Close() error {
 	tsm.cancelFunc()
 	tsm.closed = true
 
-	//calling close on the SafeCloser instance should be the last instruction called
-	//(just to close some go routines started as edge cases that would otherwise hang)
+	// calling close on the SafeCloser instance should be the last instruction called
+	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer tsm.closer.Close()
 
 	var err error

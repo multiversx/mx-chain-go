@@ -2,6 +2,7 @@ package leveldb
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -69,7 +70,25 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 }
 
 type baseLevelDb struct {
-	db *leveldb.DB
+	mutDb sync.RWMutex
+	db    *leveldb.DB
+}
+
+func (bldb *baseLevelDb) getDbPointer() *leveldb.DB {
+	bldb.mutDb.RLock()
+	defer bldb.mutDb.RUnlock()
+
+	return bldb.db
+}
+
+func (bldb *baseLevelDb) makeDbPointerNilReturningLast() *leveldb.DB {
+	bldb.mutDb.Lock()
+	defer bldb.mutDb.Unlock()
+
+	db := bldb.db
+	bldb.db = nil
+
+	return db
 }
 
 // RangeKeys will call the handler function for each (key, value) pair
@@ -79,7 +98,12 @@ func (bldb *baseLevelDb) RangeKeys(handler func(key []byte, value []byte) bool) 
 		return
 	}
 
-	iterator := bldb.db.NewIterator(nil, nil)
+	db := bldb.getDbPointer()
+	if db == nil {
+		return
+	}
+
+	iterator := db.NewIterator(nil, nil)
 	for {
 		if !iterator.Next() {
 			break
