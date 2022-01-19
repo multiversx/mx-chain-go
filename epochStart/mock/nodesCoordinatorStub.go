@@ -7,7 +7,7 @@ import (
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
+	ComputeConsensusGroupCalled         func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
 	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
@@ -77,8 +77,8 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	epoch uint32,
 ) (validatorsGroup []sharding.Validator, err error) {
 
-	if ncm.ComputeValidatorsGroupCalled != nil {
-		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId, epoch)
+	if ncm.ComputeConsensusGroupCalled != nil {
+		return ncm.ComputeConsensusGroupCalled(randomness, round, shardId, epoch)
 	}
 
 	var list []sharding.Validator

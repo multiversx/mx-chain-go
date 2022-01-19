@@ -878,6 +878,51 @@ var ErrTrieNodeIsNotWhitelisted = errors.New("trie node is not whitelisted")
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
 
+// ErrCannotCastInterceptedDataToHeader signals that intercepted data cannot be converted to header data
+var ErrCannotCastInterceptedDataToHeader = errors.New("cannot cast intercepted data to header data")
+
+// ErrHeaderRoundNotRelevant signals that the current header that is checked by a slashing detector is not relevant because the round is obsolete
+var ErrHeaderRoundNotRelevant = errors.New("current header that is checked by a slashing detector is not relevant because the round is obsolete")
+
+// ErrNoSlashingEventDetected signals that no slashing event has been detected given the current data
+var ErrNoSlashingEventDetected = errors.New("no slashing event has been detected given the current data")
+
+// ErrCannotCastProofToMultipleProposedHeaders signals that a given proof cannot be cast to a multiple header proposal proof
+var ErrCannotCastProofToMultipleProposedHeaders = errors.New("cannot cast proof to multiple header proposal proof")
+
+// ErrCannotCastProofToMultipleSignedHeaders signals that a given proof cannot be cast to a multiple header signing proof
+var ErrCannotCastProofToMultipleSignedHeaders = errors.New("cannot cast proof to multiple header signing proof")
+
+// ErrSlashLevelDoesNotMatchSlashType signals the slash type is not consistent with the slash severity level
+var ErrSlashLevelDoesNotMatchSlashType = errors.New("proof slash type is not consistent with proof severity level")
+
+// ErrInvalidSlashType signals that an invalid slash type has been provided for the given proof
+var ErrInvalidSlashType = errors.New("invalid slash type has been provided for the given proof")
+
+// ErrInvalidSlashLevel signals that an invalid slash level has been provided for the given proof
+var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for the given proof")
+
+// ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proof
+var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proof")
+
+// ErrHeadersNotSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
+var ErrHeadersNotSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
+
+// ErrHeadersNotSameRound signals that the headers from a multiple header proof have different rounds
+var ErrHeadersNotSameRound = errors.New("the headers from a multiple header proof have different rounds")
+
+// ErrHeadersNotDifferentHashes signals that header hashes in a multiple header proof should be different
+var ErrHeadersNotDifferentHashes = errors.New("headers in a multiple header proof should have different hashes")
+
+// ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
+var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")
+
+// ErrNilRoundDetectorCache signals that a nil round detector cache has been provided
+var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
+
+// ErrNilRoundHeadersCache signals that a nil round headers cache has been provided
+var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
+
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
 
