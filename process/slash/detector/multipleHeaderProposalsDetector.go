@@ -42,7 +42,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 		return nil, process.ErrNilMultipleHeaderProposalDetectorArgs
 	}
 	if check.IfNil(args.NodesCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+		return nil, process.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.RoundHandler) {
 		return nil, process.ErrNilRoundHandler
@@ -54,7 +54,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Cache) {
-		return nil, process.ErrNilRoundDetectorCache
+		return nil, process.ErrNilRoundValidatorHeadersCache
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
@@ -77,7 +77,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 // slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
 // no slashing event has been detected or an error occurred verifying the data.
 func (mhp *multipleHeaderProposalsDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	header, err := checkAndGetHeader(interceptedData)
+	header, err := getCheckedHeader(interceptedData)
 	if err != nil {
 		return nil, err
 	}

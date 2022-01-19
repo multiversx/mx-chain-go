@@ -3,10 +3,10 @@ package detector
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -76,23 +76,61 @@ func TestBaseSlashingDetector_IsRoundRelevant_DifferentRelevantAndIrrelevantRoun
 }
 
 func TestBaseSlashingDetector_CheckAndGetHeader(t *testing.T) {
-	header, err := checkAndGetHeader(nil)
-	require.Nil(t, header)
-	require.Equal(t, process.ErrNilInterceptedData, err)
+	tests := []struct {
+		interceptedData process.InterceptedData
+		expectedHeader  data.HeaderHandler
+		expectedError   error
+	}{
+		{
+			interceptedData: nil,
+			expectedHeader:  nil,
+			expectedError:   process.ErrNilInterceptedData,
+		},
+		{
+			interceptedData: &testscommon.InterceptedDataStub{},
+			expectedHeader:  nil,
+			expectedError:   process.ErrCannotCastInterceptedDataToHeader,
+		},
+		{
+			interceptedData: &testscommon.InterceptedHeaderStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return nil
+				},
+				InterceptedDataStub: testscommon.InterceptedDataStub{
+					HashCalled: func() []byte {
+						return []byte("hash")
+					},
+				},
+			},
+			expectedHeader: nil,
+			expectedError:  process.ErrNilHeaderHandler,
+		},
+		{
+			interceptedData: &testscommon.InterceptedHeaderStub{
+				HeaderHandlerCalled: func() data.HeaderHandler {
+					return &testscommon.HeaderHandlerStub{}
+				},
+				InterceptedDataStub: testscommon.InterceptedDataStub{
+					HashCalled: func() []byte {
+						return nil
+					},
+				},
+			},
+			expectedHeader: nil,
+			expectedError:  data.ErrNilHash,
+		},
+		{
+			interceptedData: slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1}),
+			expectedHeader:  &block.Header{Round: 1},
+			expectedError:   nil,
+		},
+	}
 
-	header, err = checkAndGetHeader(&testscommon.InterceptedDataStub{})
-	require.Nil(t, header)
-	require.Equal(t, process.ErrCannotCastInterceptedDataToHeader, err)
-
-	header, err = checkAndGetHeader(&interceptedBlocks.InterceptedHeader{})
-	require.Nil(t, header)
-	require.Equal(t, process.ErrNilHeaderHandler, err)
-
-	blockHeader := &block.Header{Round: 1}
-	interceptedHeader := slashMocks.CreateInterceptedHeaderData(blockHeader)
-	header, err = checkAndGetHeader(interceptedHeader)
-	require.Equal(t, blockHeader, header)
-	require.Nil(t, err)
+	for _, test := range tests {
+		header, err := getCheckedHeader(test.interceptedData)
+		require.Equal(t, test.expectedHeader, header)
+		require.Equal(t, test.expectedError, err)
+	}
 }
 
 func TestBaseSlashingDetector_CheckSlashLevelBasedOnHeadersCount_DifferentSlashLevelsAndTypes(t *testing.T) {

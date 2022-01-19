@@ -41,7 +41,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 				args.NodesCoordinator = nil
 				return args
 			},
-			expectedErr: process.ErrNilShardCoordinator,
+			expectedErr: process.ErrNilNodesCoordinator,
 		},
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
@@ -57,7 +57,7 @@ func TestNewMultipleHeaderProposalsDetector(t *testing.T) {
 				args.Cache = nil
 				return args
 			},
-			expectedErr: process.ErrNilRoundDetectorCache,
+			expectedErr: process.ErrNilRoundValidatorHeadersCache,
 		},
 		{
 			args: func() *detector.MultipleHeaderProposalDetectorArgs {
@@ -368,6 +368,15 @@ func TestMultipleHeaderProposalsDetector_ValidateProof_DifferentHeaders(t *testi
 				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
 				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
 				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5}})
+				return coreSlash.High, slash.HeaderInfoList{h1, h2, h3}
+			},
+			expectedErr: process.ErrHeadersNotDifferentHashes,
+		},
+		{
+			args: func() (coreSlash.ThreatLevel, slash.HeaderInfoList) {
+				h1 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}})
+				h2 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 2}})
+				h3 := slashMocks.CreateHeaderInfoData(&block.HeaderV2{Header: &block.Header{Round: 5, TimeStamp: 1}})
 				return coreSlash.High, slash.HeaderInfoList{h1, h2, h3}
 			},
 			expectedErr: process.ErrHeadersNotDifferentHashes,

@@ -115,9 +115,9 @@ func (rhc *roundHashCache) remove(hashes hashList, idx int) hashList {
 	lastIdx := len(hashes) - 1
 
 	// Indexing here is safe, since this is called only when len(hashes) >= 1
-	hashes[idx] = hashes[lastIdx] // Copy last elem to the index to be removed
-	hashes[lastIdx] = nil         // Erase last elem
-	return hashes[:lastIdx]       // Truncate slice
+	hashes[idx] = hashes[lastIdx]
+	hashes[lastIdx] = nil
+	return hashes[:lastIdx]
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
