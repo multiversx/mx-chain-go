@@ -80,7 +80,7 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, withScheduled bool) error {
+func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler,  withScheduled bool) error {
 	bootStorer := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 
 	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)
@@ -93,7 +93,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, components.ShardHeader, withScheduled)
+	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, notarizedShardHeader, withScheduled)
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func printProcessedAndPendingMbs(processedMiniBlocks []bootstrapStorage.MiniBloc
 	}
 
 	for _, pendingMbsInShard := range pendingMiniBlocks {
-		log.Debug("shard", pendingMbsInShard.ShardID)
+		log.Debug("shard", "shardID", pendingMbsInShard.ShardID)
 		for _, mbHash := range pendingMbsInShard.MiniBlocksHashes {
 			log.Debug("pendingMiniBlock", "hash", mbHash)
 		}
