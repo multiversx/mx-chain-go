@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -68,7 +69,7 @@ func (hc *headersCounter) displayLogInfo(
 	hc.calculateNumOfShardMBHeaders(header)
 
 	dispHeader, dispLines := hc.createDisplayableMetaHeader(header)
-	dispLines = hc.displayTxBlockBody(dispLines, body)
+	dispLines = hc.displayTxBlockBody(dispLines, header, body)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -171,7 +172,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 	return lines
 }
 
-func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
+func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, header data.HeaderHandler, body *block.Body) []*display.LineData {
 	currentBlockTxs := 0
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -193,6 +194,8 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *bl
 			lines = append(lines, display.NewLineData(false, []string{
 				part, "", "<EMPTY>"}))
 		}
+
+		lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(header.GetMiniBlockHeadersHashes()[i])}))
 
 		currentBlockTxs += len(miniBlock.TxHashes)
 
