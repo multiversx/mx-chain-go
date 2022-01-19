@@ -294,7 +294,10 @@ func (s *SerialDB) Destroy() error {
 
 	db := s.makeDbPointerNilReturningLast()
 	if db != nil {
-		return db.Close()
+		err := db.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return os.RemoveAll(s.path)
