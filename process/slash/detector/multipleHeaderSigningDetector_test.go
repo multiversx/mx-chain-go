@@ -307,9 +307,12 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof(t *testing.T) {
 		},
 	})
 
+	roundHashCache, _ := detector.NewRoundHashCache(3)
+	roundValidatorHeaderCache, _ := detector.NewRoundValidatorHeaderCache(3)
+
 	args := generateMultipleHeaderSigningDetectorArgs()
-	args.RoundValidatorHeadersCache = detector.NewRoundValidatorHeaderCache(3)
-	args.RoundHashCache = detector.NewRoundHashCache(3)
+	args.RoundHashCache = roundHashCache
+	args.RoundValidatorHeadersCache = roundValidatorHeaderCache
 	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			switch string(randomness) {
@@ -414,9 +417,12 @@ func TestMultipleHeaderSigningDetector_VerifyData_ValidateProof_CachingSignersFa
 	computeConsensusGroupCalledCt := 0
 	errComputeConsensusGroup := errors.New("error computing consensus group")
 
+	roundHashCache, _ := detector.NewRoundHashCache(3)
+	roundValidatorHeaderCache, _ := detector.NewRoundValidatorHeaderCache(3)
+
 	args := generateMultipleHeaderSigningDetectorArgs()
-	args.RoundValidatorHeadersCache = detector.NewRoundValidatorHeaderCache(3)
-	args.RoundHashCache = detector.NewRoundHashCache(3)
+	args.RoundHashCache = roundHashCache
+	args.RoundValidatorHeadersCache = roundValidatorHeaderCache
 	args.NodesCoordinator = &mockEpochStart.NodesCoordinatorStub{
 		ComputeConsensusGroupCalled: func(randomness []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			computeConsensusGroupCalledCt++

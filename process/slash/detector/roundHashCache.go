@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type hashList [][]byte
@@ -18,13 +19,17 @@ type roundHashCache struct {
 }
 
 // NewRoundHashCache creates an instance of roundHashCache, which is a header-hash-based cache
-func NewRoundHashCache(maxRounds uint64) *roundHashCache {
+func NewRoundHashCache(maxRounds uint64) (*roundHashCache, error) {
+	if maxRounds == 0 {
+		return nil, storage.ErrCacheSizeInvalid
+	}
+
 	return &roundHashCache{
 		cache:       make(map[uint64]hashList),
 		cacheMutex:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
-	}
+	}, nil
 }
 
 // Add adds a header-hash in cache, in a given round.
