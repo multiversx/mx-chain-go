@@ -101,6 +101,15 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 			txv.pubkeyConverter.Encode(senderAddress),
 		)
 	}
+	/*
+		- check code metadata if frozen
+			- if frozen:  - check data field and if setguardian:
+																if yes - continue
+																	no- return error - action not permitted on frozen account
+			- if not frozen:
+					continue
+								todo: (IMPORTANT)		on execution if relayed -  check if inner tx is frozen - if yes check correct relayer  (= active guardian)
+	*/
 
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
