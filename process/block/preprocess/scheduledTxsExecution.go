@@ -254,7 +254,6 @@ func (ste *scheduledTxsExecution) SetScheduledRootHashSCRsGasAndFees(rootHash []
 	defer ste.mutScheduledTxs.Unlock()
 
 	ste.scheduledRootHash = rootHash
-	log.Debug("scheduledTxsExecution.SetScheduledRootHashSCRsGasAndFees", "scheduled root hash", rootHash)
 
 	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)

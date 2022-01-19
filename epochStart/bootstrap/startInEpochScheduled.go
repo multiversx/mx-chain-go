@@ -2,8 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -14,8 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
-
-var zeroBigInt = big.NewInt(0)
 
 type startInEpochWithScheduledDataSyncer struct {
 	scheduledTxsHandler       process.ScheduledTxsExecutionHandler
@@ -261,22 +257,33 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 	headerHash []byte,
 	gasAndFees scheduled.GasAndFees,
 ) {
-	if len(scheduledRootHash) == 0 && gasAndFees.AccumulatedFees.Cmp(zeroBigInt) == 0 {
+	if scheduledRootHash == nil {
 		return
+	}
+
+	// prepare the scheduledSCRs in the form of map[block.Type][]data.TransactionHandler
+	// the order should not matter, as the processing is done after sorting by scr hash
+	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
+	if len(scheduledSCRs) > 0 {
+		scheduledSCRsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
+		for scrHash := range scheduledSCRs {
+			scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
+		}
+
+		mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
 	}
 
 	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
 		"headerHash", headerHash,
 		"scheduledRootHash", scheduledRootHash,
+		"num of scheduled scrs", len(mapScheduledSCRs),
+		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
+		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
+		"gasAndFees.GasProvided", gasAndFees.GasProvided,
+		"gasAndFees.GasPenalized", gasAndFees.GasPenalized,
+		"gasAndFees.GasRefunded", gasAndFees.GasRefunded,
 	)
-	// prepare the scheduledSCRs in the form of map[block.Type][]data.TransactionHandler
-	// the order should not matter, as the processing is done after sorting by scr hash
-	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
-	scheduledSCRsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
-	for scrHash := range scheduledSCRs {
-		scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
-	}
-	mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
+
 	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs, gasAndFees)
 }
 
