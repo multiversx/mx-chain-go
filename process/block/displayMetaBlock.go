@@ -172,9 +172,14 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 	return lines
 }
 
-func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, header data.HeaderHandler, body *block.Body) []*display.LineData {
+func (hc *headersCounter) displayTxBlockBody(
+	lines []*display.LineData,
+	header data.HeaderHandler,
+	body *block.Body,
+) []*display.LineData {
 	currentBlockTxs := 0
 
+	miniBlockHeaders := header.GetMiniBlockHeadersHashes()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
@@ -195,7 +200,9 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, header d
 				part, "", "<EMPTY>"}))
 		}
 
-		lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(header.GetMiniBlockHeadersHashes()[i])}))
+		if len(miniBlockHeaders) > i {
+			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i])}))
+		}
 
 		currentBlockTxs += len(miniBlock.TxHashes)
 
