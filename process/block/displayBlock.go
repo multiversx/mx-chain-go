@@ -189,6 +189,7 @@ func (txc *transactionCounter) displayTxBlockBody(
 ) []*display.LineData {
 	currentBlockTxs := 0
 
+	miniBlockHeaders := header.GetMiniBlockHeadersHashes()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
@@ -217,7 +218,9 @@ func (txc *transactionCounter) displayTxBlockBody(
 				part, "", "<EMPTY>"}))
 		}
 
-		lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(header.GetMiniBlockHeadersHashes()[i])}))
+		if len(miniBlockHeaders) > i {
+			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i])}))
+		}
 
 		currentBlockTxs += len(miniBlock.TxHashes)
 
