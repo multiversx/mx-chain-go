@@ -24,7 +24,14 @@ func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 func Benchmark_searchingForPanic(b *testing.B) {
 	_ = logger.SetLogLevel("*:DEBUG")
 	for i := 0; i < 10; i++ {
-		runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, b.N, nil)
+		runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 8, "_main", nil, b.N, nil)
+	}
+}
+
+func Test_searchingForPanic(t *testing.T) {
+	_ = logger.SetLogLevel("*:DEBUG")
+	for i := 0; i < 10; i++ {
+		runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 8, "_main", nil, 1, nil)
 	}
 }
 
