@@ -212,6 +212,11 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 	address []byte,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
+	isValidAddress := len(aap.addressConverter.Encode(address)) > 0
+	if !isValidAddress {
+		return
+	}
+
 	_, addressAlreadySelected := markedAlteredAccounts[string(address)]
 	if addressAlreadySelected {
 		return

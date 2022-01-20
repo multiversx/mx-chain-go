@@ -498,8 +498,9 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	require.Equal(t, res[mapKeyToSearch].Tokens[0], &indexer.AccountTokenData{
 		Identifier: "token0",
 		Balance:    "37",
-		MetaData:   &esdt.MetaData{
-			Nonce:      38,
+		Nonce:      38,
+		MetaData: &esdt.MetaData{
+			Nonce: 38,
 		},
 	})
 }
