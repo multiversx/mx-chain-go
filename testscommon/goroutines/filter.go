@@ -9,6 +9,8 @@ var ignorable = []string{
 	"github.com/beevik/ntp.getTime",
 	"/usr/local/go/src/net/dnsclient_unix.go",
 	"/usr/local/go/src/runtime/proc.go",
+	"net._C2func_getaddrinfo",
+	"net.cgoLookupIPCNAME",
 }
 
 // AllPassFilter returns true for all provided strings

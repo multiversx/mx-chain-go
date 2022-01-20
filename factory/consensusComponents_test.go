@@ -116,7 +116,7 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilStateComponentsHolder, err)
 }
 
-//------------ Test Old Use Cases --------------------
+// ------------ Test Old Use Cases --------------------
 func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 

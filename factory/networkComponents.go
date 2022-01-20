@@ -121,7 +121,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	//TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
+	// TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
 	if ncf.mainConfig.Debug.Antiflood.Enabled {
 		var debugger process.AntifloodDebugger
 		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
@@ -168,7 +168,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	ncf.waitForBootstrap(ncf.bootstrapWaitSeconds)
+	netMessenger.WaitForConnections(time.Duration(ncf.bootstrapWaitSeconds)*time.Second, ncf.p2pConfig.Node.WaitNumPeersOnBootstrap)
 
 	return &networkComponents{
 		netMessenger:           netMessenger,
@@ -183,11 +183,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peersHolder:            peersHolder,
 		closeFunc:              cancelFunc,
 	}, nil
-}
-
-func (ncf *networkComponentsFactory) waitForBootstrap(numSecondsToWait uint32) {
-	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
-	time.Sleep(time.Duration(ncf.bootstrapWaitSeconds) * time.Second)
 }
 
 func (ncf *networkComponentsFactory) createPeerHonestyHandler(

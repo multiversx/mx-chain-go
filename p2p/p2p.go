@@ -153,6 +153,7 @@ type Messenger interface {
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
+	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -293,8 +294,8 @@ type Sharder interface {
 }
 
 // PeerDenialEvaluator defines the behavior of a component that is able to decide if a peer ID is black listed or not
-//TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
-//TODO move antiflooding inside network messenger
+// TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
+// TODO move antiflooding inside network messenger
 type PeerDenialEvaluator interface {
 	IsDenied(pid core.PeerID) bool
 	UpsertPeerID(pid core.PeerID, duration time.Duration) error
@@ -302,7 +303,7 @@ type PeerDenialEvaluator interface {
 }
 
 // ConnectionMonitorWrapper uses a connection monitor but checks if the peer is blacklisted or not
-//TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
+// TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
 type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
