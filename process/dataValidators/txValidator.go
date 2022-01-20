@@ -1,6 +1,8 @@
 package dataValidators
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -9,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
 var _ process.TxValidator = (*txValidator)(nil)
@@ -101,15 +105,14 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 			txv.pubkeyConverter.Encode(senderAddress),
 		)
 	}
-	/*
-		- check code metadata if frozen
-			- if frozen:  - check data field and if setguardian:
-																if yes - continue
-																	no- return error - action not permitted on frozen account
-			- if not frozen:
-					continue
-								todo: (IMPORTANT)		on execution if relayed -  check if inner tx is frozen - if yes check correct relayer  (= active guardian)
-	*/
+
+	txData, err := getTxData(interceptedTx)
+	if err != nil {
+		return err
+	}
+	if isAccountFrozen(account) && !isBuiltinFuncCall(txData, builtInFunctions.BuiltInFunctionSetGuardian) {
+		return errors.New("operation not permitted")
+	}
 
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
@@ -123,6 +126,30 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	}
 
 	return nil
+}
+
+func getTxData(interceptedTx process.TxValidatorHandler) ([]byte, error) {
+	txHandler, ok := interceptedTx.(processor.InterceptedTransactionHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+	tx := txHandler.Transaction()
+	if tx == nil {
+		return nil, process.ErrNilTransaction
+	}
+
+	return tx.GetData(), nil
+}
+
+func isAccountFrozen(account state.UserAccountHandler) bool {
+	codeMetaDataBytes := account.GetCodeMetadata()
+	codeMetaData := vmcommon.CodeMetadataFromBytes(codeMetaDataBytes)
+	return codeMetaData.Frozen
+}
+
+func isBuiltinFuncCall(txData []byte, function string) bool {
+	expectedTxData := []byte(function + "@")
+	return bytes.HasPrefix(txData, expectedTxData)
 }
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
