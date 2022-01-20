@@ -91,9 +91,10 @@ func createHeaderSigningDetectorArgs(
 	multiSignersData map[string]multiSignerData,
 ) *detector.MultipleHeaderSigningDetectorArgs {
 	detectorArgs := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, multiSignersData)
+	roundHashCache, _ := detector.NewRoundHashCache(cacheSize)
 
 	return &detector.MultipleHeaderSigningDetectorArgs{
 		MultipleHeaderDetectorArgs: detectorArgs,
-		RoundHashCache:             detector.NewRoundHashCache(cacheSize),
+		RoundHashCache:             roundHashCache,
 	}
 }

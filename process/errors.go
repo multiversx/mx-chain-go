@@ -914,17 +914,14 @@ var ErrHeadersNotDifferentHashes = errors.New("headers in a multiple header proo
 // ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
 var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")
 
-// ErrNilRoundDetectorCache signals that a nil round detector cache has been provided
-var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
+// ErrNilRoundValidatorHeadersCache signals that a nil round validator headers cache has been provided
+var ErrNilRoundValidatorHeadersCache = errors.New("round round validator headers cache is nil")
 
 // ErrNilRoundHeadersCache signals that a nil round headers cache has been provided
 var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
 
 // ErrInvalidProof signals that an invalid proof has been provided
 var ErrInvalidProof = errors.New("an invalid proof has been provided")
-
-// ErrNilMultipleHeaderProposalDetectorArgs signals that nil arguments have been provided to create a multiple header proposal detector
-var ErrNilMultipleHeaderProposalDetectorArgs = errors.New("nil arguments have been provided to create a multiple header proposal detector")
 
 // ErrNilInterceptedData signals that a nil intercepted header has been provided
 var ErrNilInterceptedData = errors.New("nil intercepted header has been provided")

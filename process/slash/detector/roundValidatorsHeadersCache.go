@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type validatorHeadersMap map[string]slash.HeaderInfoList
@@ -21,18 +22,26 @@ type roundValidatorsHeadersCache struct {
 
 // NewRoundValidatorHeaderCache creates a new instance of roundValidatorsHeadersCache, which
 // is a round-based(per validator data) cache
-func NewRoundValidatorHeaderCache(maxRounds uint64) *roundValidatorsHeadersCache {
+func NewRoundValidatorHeaderCache(maxRounds uint64) (*roundValidatorsHeadersCache, error) {
+	if maxRounds == 0 {
+		return nil, storage.ErrCacheSizeInvalid
+	}
+
 	return &roundValidatorsHeadersCache{
 		cache:       make(map[uint64]validatorHeadersMap),
 		cacheMutex:  sync.RWMutex{},
 		oldestRound: math.MaxUint64,
 		cacheSize:   maxRounds,
-	}
+	}, nil
 }
 
 // Add adds in cache an intercepted data for a public key, in a given round.
 // It has an eviction mechanism which always removes the oldest round entry when cache is full
 func (rdc *roundValidatorsHeadersCache) Add(round uint64, pubKey []byte, headerInfo data.HeaderInfoHandler) error {
+	if headerInfo == nil {
+		return data.ErrNilHeaderInfo
+	}
+
 	pubKeyStr := string(pubKey)
 	rdc.cacheMutex.Lock()
 	defer rdc.cacheMutex.Unlock()

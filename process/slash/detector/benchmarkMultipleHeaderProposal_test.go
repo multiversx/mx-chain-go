@@ -27,7 +27,7 @@ func BenchmarkMultipleHeaderProposalDetector_VerifyData(b *testing.B) {
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
 	noOfSignedHeaders := uint32(3)
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, true)
 	interceptedHeaders := createInterceptedHeaders(slashableHeaders)
 
@@ -45,7 +45,7 @@ func benchmarkVerifyDataMultipleHeaderProposal(
 	keyGenerator crypto.KeyGenerator,
 	blsSigners map[string]multiSignerData,
 	interceptedHeaders []process.InterceptedHeader) {
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderProposalsDetector(args)
 	require.Nil(b, err)
 
@@ -65,7 +65,7 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderProposalsDetector(args)
 	require.Nil(b, err)
 
@@ -83,16 +83,5 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		err = ssd.ValidateProof(proof)
 		require.Nil(b, err)
-	}
-}
-
-func createHeaderProposalDetectorArgs(
-	b *testing.B,
-	hasher hashing.Hasher,
-	keyGenerator crypto.KeyGenerator,
-	multiSignersData map[string]multiSignerData,
-) *detector.MultipleHeaderProposalDetectorArgs {
-	return &detector.MultipleHeaderProposalDetectorArgs{
-		MultipleHeaderDetectorArgs: createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, multiSignersData),
 	}
 }

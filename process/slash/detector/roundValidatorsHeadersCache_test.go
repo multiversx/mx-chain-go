@@ -3,17 +3,34 @@ package detector
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/slash"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewRoundValidatorHeaderCache(t *testing.T) {
+	t.Parallel()
+
+	cache, err := NewRoundValidatorHeaderCache(0)
+	require.Nil(t, cache)
+	require.Equal(t, storage.ErrCacheSizeInvalid, err)
+
+	cache, err = NewRoundValidatorHeaderCache(1)
+	require.NotNil(t, cache)
+	require.Nil(t, err)
+}
+
 func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t *testing.T) {
 	t.Parallel()
-	dataCache := NewRoundValidatorHeaderCache(1)
+	dataCache, _ := NewRoundValidatorHeaderCache(1)
 
-	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
+	err := dataCache.Add(1, []byte(""), nil)
+	require.Equal(t, data.ErrNilHeaderInfo, err)
+
+	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
 
 	err = dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
@@ -42,7 +59,7 @@ func TestRoundProposerDataCache_Add_OneRound_TwoProposers_FourInterceptedData(t 
 
 func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInCacheRemoved(t *testing.T) {
 	t.Parallel()
-	dataCache := NewRoundValidatorHeaderCache(2)
+	dataCache, _ := NewRoundValidatorHeaderCache(2)
 
 	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
@@ -98,7 +115,7 @@ func TestRoundProposerDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldest
 
 func TestRoundProposerDataCache_GetHeaders(t *testing.T) {
 	t.Parallel()
-	dataCache := NewRoundValidatorHeaderCache(3)
+	dataCache, _ := NewRoundValidatorHeaderCache(3)
 
 	h1 := &slash.HeaderInfo{Hash: []byte("hash1"), Header: &block.Header{TimeStamp: 1}}
 	h2 := &slash.HeaderInfo{Hash: []byte("hash2"), Header: &block.Header{TimeStamp: 2}}
@@ -142,7 +159,7 @@ func TestRoundProposerDataCache_GetHeaders(t *testing.T) {
 
 func TestRoundProposerDataCache_GetPubKeys(t *testing.T) {
 	t.Parallel()
-	dataCache := NewRoundValidatorHeaderCache(2)
+	dataCache, _ := NewRoundValidatorHeaderCache(2)
 
 	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
@@ -170,7 +187,7 @@ func TestRoundProposerDataCache_GetPubKeys(t *testing.T) {
 
 func TestRoundProposerDataCache_Contains(t *testing.T) {
 	t.Parallel()
-	dataCache := NewRoundValidatorHeaderCache(2)
+	dataCache, _ := NewRoundValidatorHeaderCache(2)
 
 	err := dataCache.Add(1, []byte("proposer1"), &slash.HeaderInfo{Hash: []byte("hash1")})
 	require.Nil(t, err)
@@ -197,8 +214,6 @@ func TestRoundProposerDataCache_Contains(t *testing.T) {
 }
 
 func TestRoundHeadersCache_IsInterfaceNil(t *testing.T) {
-	cache := NewRoundHashCache(1)
+	cache, _ := NewRoundValidatorHeaderCache(1)
 	require.False(t, cache.IsInterfaceNil())
-	cache = nil
-	require.True(t, cache.IsInterfaceNil())
 }

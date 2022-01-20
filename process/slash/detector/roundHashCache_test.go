@@ -4,13 +4,26 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewRoundHashCache(t *testing.T) {
+	t.Parallel()
+
+	cache, err := NewRoundHashCache(0)
+	require.Nil(t, cache)
+	require.Equal(t, storage.ErrCacheSizeInvalid, err)
+
+	cache, err = NewRoundHashCache(1)
+	require.NotNil(t, cache)
+	require.Nil(t, err)
+}
 
 func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 	t.Parallel()
 
-	dataCache := NewRoundHashCache(1)
+	dataCache, _ := NewRoundHashCache(1)
 
 	err := dataCache.Add(1, []byte("hash1"))
 	require.Nil(t, err)
@@ -34,7 +47,7 @@ func TestRoundDataCache_Add_OneRound_FourHeaders(t *testing.T) {
 func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInCacheRemoved(t *testing.T) {
 	t.Parallel()
 
-	dataCache := NewRoundHashCache(2)
+	dataCache, _ := NewRoundHashCache(2)
 
 	err := dataCache.Add(1, []byte("hash1"))
 	require.Nil(t, err)
@@ -83,7 +96,7 @@ func TestRoundDataCache_Add_CacheSizeTwo_FourEntriesInCache_ExpectOldestRoundInC
 func TestRoundDataCache_Contains(t *testing.T) {
 	t.Parallel()
 
-	dataCache := NewRoundHashCache(2)
+	dataCache, _ := NewRoundHashCache(2)
 
 	err := dataCache.Add(1, []byte("hash1"))
 	require.Nil(t, err)
@@ -105,7 +118,7 @@ func TestRoundDataCache_Contains(t *testing.T) {
 func TestRoundHashCache_Remove(t *testing.T) {
 	t.Parallel()
 
-	dataCache := NewRoundHashCache(2)
+	dataCache, _ := NewRoundHashCache(2)
 
 	err := dataCache.Add(1, []byte("hash1"))
 	require.Nil(t, err)
@@ -133,6 +146,6 @@ func TestRoundHashCache_Remove(t *testing.T) {
 }
 
 func TestRoundValidatorsDataCache_IsInterfaceNil(t *testing.T) {
-	cache := NewRoundHashCache(1)
+	cache, _ := NewRoundHashCache(1)
 	require.False(t, cache.IsInterfaceNil())
 }

@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -155,8 +156,16 @@ func (sn *slashingNotifier) computeTxData(proof coreSlash.SlashingProofHandler) 
 		return nil, err
 	}
 
-	dataStr := fmt.Sprintf("%s@%s@%d@%d@%s@%s", BuiltInFunctionSlashCommitmentProof,
-		[]byte{proofData.ProofID}, proofData.ShardID, proofData.Round, proofCRC, proofSignature)
+	shardID := big.NewInt(int64(proofData.ShardID))
+	round := big.NewInt(int64(proofData.Round))
+
+	dataStr := fmt.Sprintf("%s@%s@%s@%s@%s@%s",
+		BuiltInFunctionSlashCommitmentProof,
+		hex.EncodeToString([]byte{proofData.ProofID}),
+		hex.EncodeToString(shardID.Bytes()),
+		hex.EncodeToString(round.Bytes()),
+		hex.EncodeToString(proofCRC),
+		hex.EncodeToString(proofSignature))
 
 	return []byte(dataStr), nil
 }
