@@ -45,7 +45,11 @@ func (n *Node) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 }
 
 func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
-	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	statusComputer, err := txstatus.NewStatusComputer(
+		n.processComponents.ShardCoordinator().SelfId(),
+		n.coreComponents.Uint64ByteSliceConverter(),
+		n.dataComponents.StorageService(),
+	)
 	if err != nil {
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
@@ -58,6 +62,8 @@ func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 		HistoryRepo:              n.processComponents.HistoryRepository(),
 		UnmarshalTx:              n.unmarshalTransaction,
 		StatusComputer:           statusComputer,
+		AddressPubkeyConverter:   n.coreComponents.AddressPubKeyConverter(),
+		Hasher:                   n.coreComponents.Hasher(),
 	}
 
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {

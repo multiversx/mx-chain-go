@@ -28,6 +28,8 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
 			txStatusComputer:         arg.StatusComputer,
+			hasher:                   arg.Hasher,
+			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 		},
 	}
 }
@@ -103,10 +105,15 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		}
 		if withTxs {
 			miniBlockCopy := mb
-			miniblockAPI.Transactions = sbp.getTxsByMb(&miniBlockCopy, headerEpoch)
+			sbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	intraMb := sbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, withTxs)
+	if len(intraMb) > 0 {
+		miniblocks = append(miniblocks, intraMb...)
 	}
 
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)

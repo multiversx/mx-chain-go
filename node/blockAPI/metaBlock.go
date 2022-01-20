@@ -28,6 +28,8 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor 
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
 			txStatusComputer:         arg.StatusComputer,
+			hasher:                   arg.Hasher,
+			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 		},
 	}
 }
@@ -101,10 +103,15 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if withTxs {
 			miniBlockCopy := mb
-			miniblockAPI.Transactions = mbp.getTxsByMb(&miniBlockCopy, headerEpoch)
+			mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	intraMb := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, withTxs)
+	if len(intraMb) > 0 {
+		miniblocks = append(miniblocks, intraMb...)
 	}
 
 	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.ShardInfo))
