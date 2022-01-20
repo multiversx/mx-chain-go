@@ -1,9 +1,7 @@
 package notifier_test
 
 import (
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -14,7 +12,6 @@ import (
 	mockGenesis "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	mockIntegration "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/notifier"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -267,17 +264,9 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 			}, nil
 		},
 	}
-	shardBigInt := big.NewInt(int64(shardID))
-	roundBigInt := big.NewInt(int64(round))
-	expectedData := []byte(fmt.Sprintf("%s@%s@%s@%s@%s@%s",
-		notifier.BuiltInFunctionSlashCommitmentProof,
-		hex.EncodeToString([]byte{slash.MultipleProposalProofID}),
-		hex.EncodeToString(shardBigInt.Bytes()),
-		hex.EncodeToString(roundBigInt.Bytes()),
-		hex.EncodeToString([]byte{byte('c'), byte('d')}),
-		hex.EncodeToString([]byte("signature"))))
+
 	expectedTx := &transaction.Transaction{
-		Data:      expectedData,
+		Data:      []byte("SlashCommitment@01@02@0186a0@6364@7369676e6174757265"),
 		Nonce:     444,
 		SndAddr:   []byte("address"),
 		Value:     big.NewInt(notifier.CommitmentProofValue),
@@ -310,17 +299,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 	}
 
-	shardBigInt := big.NewInt(int64(shardID))
-	roundBigInt := big.NewInt(int64(round))
-	expectedData := []byte(fmt.Sprintf("%s@%s@%s@%s@%s@%s",
-		notifier.BuiltInFunctionSlashCommitmentProof,
-		hex.EncodeToString([]byte{slash.MultipleSigningProofID}),
-		hex.EncodeToString(shardBigInt.Bytes()),
-		hex.EncodeToString(roundBigInt.Bytes()),
-		hex.EncodeToString([]byte{byte('c'), byte('d')}),
-		hex.EncodeToString([]byte("signature"))))
 	expectedTx := &transaction.Transaction{
-		Data:      expectedData,
+		Data:      []byte("SlashCommitment@02@02@0186a0@6364@7369676e6174757265"),
 		Nonce:     444,
 		SndAddr:   []byte("address"),
 		Value:     big.NewInt(notifier.CommitmentProofValue),
