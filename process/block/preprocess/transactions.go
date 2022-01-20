@@ -470,11 +470,31 @@ func (txs *transactions) processTxsToMe(
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
 
+	numTXsProcessed := 0
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
+
+	log.Debug("transactions.processTxsToMe: before processing",
+		"scheduled mode", scheduledMode,
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("transactions.processTxsToMe after processing",
+			"scheduled mode", scheduledMode,
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num scrs processed", numTXsProcessed,
+			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	log.Debug("processTxsToMe", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 	defer func() {
@@ -529,6 +549,8 @@ func (txs *transactions) processTxsToMe(
 
 			txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
 		}
+
+		numTXsProcessed++
 	}
 
 	return nil
@@ -1315,7 +1337,9 @@ func (txs *transactions) ProcessMiniBlock(
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 
+	numTXsProcessed := 0
 	var err error
+	var gasProvidedByTxInSelfShard uint64
 	processedTxHashes := make([][]byte, 0)
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime, haveAdditionalTime)
 	if err != nil {
@@ -1352,7 +1376,24 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Trace("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Debug("transactions.ProcessMiniBlock: before processing",
+		"scheduled mode", scheduledMode,
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("transactions.ProcessMiniBlock after processing",
+			"scheduled mode", scheduledMode,
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num txs processed", numTXsProcessed,
+			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
@@ -1362,15 +1403,15 @@ func (txs *transactions) ProcessMiniBlock(
 			return processedTxHashes, index, err
 		}
 
-		gasProvidedByTxInSelfShard, errComputeGas := txs.computeGasProvided(
+		gasProvidedByTxInSelfShard, err = txs.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[index],
 			miniBlockTxHashes[index],
 			&gasInfo)
 
-		if errComputeGas != nil {
-			return processedTxHashes, index, errComputeGas
+		if err != nil {
+			return processedTxHashes, index, err
 		}
 
 		if scheduledMode {
@@ -1398,13 +1439,15 @@ func (txs *transactions) ProcessMiniBlock(
 
 			txs.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
 		}
+
+		numTXsProcessed++
 	}
 
 	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 	numOfNewCrossInterMbs := numOfCrtCrossInterMbs - numOfOldCrossInterMbs
 	numOfNewCrossInterTxs := numOfCrtCrossInterTxs - numOfOldCrossInterTxs
 
-	log.Trace("transactions.ProcessMiniBlock",
+	log.Debug("transactions.ProcessMiniBlock",
 		"scheduled mode", scheduledMode,
 		"numOfOldCrossInterMbs", numOfOldCrossInterMbs, "numOfOldCrossInterTxs", numOfOldCrossInterTxs,
 		"numOfCrtCrossInterMbs", numOfCrtCrossInterMbs, "numOfCrtCrossInterTxs", numOfCrtCrossInterTxs,
@@ -1414,7 +1457,8 @@ func (txs *transactions) ProcessMiniBlock(
 	numMiniBlocks := 1 + numOfNewCrossInterMbs
 	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs
 	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
-		return processedTxHashes, len(processedTxHashes), process.ErrMaxBlockSizeReached
+		err = process.ErrMaxBlockSizeReached
+		return processedTxHashes, len(processedTxHashes), err
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}

@@ -578,7 +578,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	numTxAdded := uint32(0)
-	numMiniBlocksProcessed := 0
+	numAlreadyMiniBlocksProcessed := 0
+	numNewMiniBlocksProcessed := 0
 	processedTxHashes := make([][]byte, 0)
 
 	if check.IfNil(hdr) {
@@ -598,7 +599,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(crossMiniBlockInfos),
-			"num mini blocks processed", numMiniBlocksProcessed,
+			"num already mini blocks processed", numAlreadyMiniBlocksProcessed,
+			"num new mini blocks processed", numNewMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
@@ -631,7 +633,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		_, ok := processedMiniBlocksHashes[string(miniBlockInfo.Hash)]
 		if ok {
-			numMiniBlocksProcessed++
+			numAlreadyMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
@@ -666,6 +668,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
+		//TODO: Should be removed this condition, just to allow processing of any kind of mbs as scheduled in destination shard?
 		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			//TODO: Change this to log.Trace
@@ -699,18 +702,27 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
+				"type", miniBlock.Type,
 				"round", miniBlockInfo.Round,
+				"num txs", len(miniBlock.TxHashes),
+				"total gas provided", tc.gasHandler.TotalGasProvided(),
+				"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+				"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 			)
 			continue
 		}
 
-		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: process mini block",
+		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block succeeded",
+			"scheduled mode", scheduledMode,
+			"sender shard", miniBlockInfo.SenderShardID,
 			"hash", miniBlockInfo.Hash,
-			"mb type", miniBlock.Type,
+			"type", miniBlock.Type,
+			"round", miniBlockInfo.Round,
+			"num txs", len(miniBlock.TxHashes),
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized(),
@@ -721,13 +733,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		numTxAdded = numTxAdded + uint32(len(miniBlock.TxHashes))
-		numMiniBlocksProcessed++
+		numNewMiniBlocksProcessed++
 		if processedMiniBlocksHashes != nil {
 			processedMiniBlocksHashes[string(miniBlockInfo.Hash)] = struct{}{}
 		}
 	}
 
-	allMBsProcessed := numMiniBlocksProcessed == len(crossMiniBlockInfos)
+	numTotalMiniBlocksProcessed := numAlreadyMiniBlocksProcessed + numNewMiniBlocksProcessed
+	allMBsProcessed := numTotalMiniBlocksProcessed == len(crossMiniBlockInfos)
 	if !allMBsProcessed {
 		tc.revertIfNeeded(processedTxHashes)
 	}
@@ -1040,7 +1053,27 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		tc.initProcessedTxsResults()
 	}
 
+	log.Debug("transactionsCoordinator.processCompleteMiniBlock: before processing",
+		"scheduled mode", scheduledMode,
+		"sender shard", miniBlock.SenderShardID,
+		"hash", miniBlockHash,
+		"type", miniBlock.Type,
+		"num txs to be processed", len(miniBlock.TxHashes),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+		"total gas penalized", tc.gasHandler.TotalGasPenalized(),
+	)
+
 	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, haveAdditionalTime, tc.getNumOfCrossInterMbsAndTxs, scheduledMode)
+
+	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing",
+		"num txs processed", numTxsProcessed,
+		"txs to be reverted", len(txsToBeReverted),
+		"total gas provided", tc.gasHandler.TotalGasProvided(),
+		"total gas refunded", tc.gasHandler.TotalGasRefunded(),
+		"total gas penalized", tc.gasHandler.TotalGasPenalized(),
+	)
+
 	if err != nil {
 		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
 			"scheduled mode", scheduledMode,

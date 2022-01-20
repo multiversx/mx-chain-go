@@ -233,16 +233,27 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		return process.ErrNilBlockBody
 	}
 
+	numSCRsProcessed := 0
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
-	log.Debug("smartContractResults.ProcessBlockTransactions", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Debug("smartContractResults.ProcessBlockTransactions: before processing",
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", scr.gasHandler.TotalGasProvided(),
+		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+	)
 	defer func() {
-		log.Debug("smartContractResults.ProcessBlockTransactions after processing", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		log.Debug("smartContractResults.ProcessBlockTransactions after processing",
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num scrs processed", numSCRsProcessed,
+			"total gas provided", scr.gasHandler.TotalGasProvided(),
+			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
 		)
 	}()
 
@@ -302,6 +313,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
+			numSCRsProcessed++
 		}
 	}
 
@@ -484,6 +496,10 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 
+	numSCRsProcessed := 0
+	var err error
+	var gasProvidedByTxInSelfShard uint64
+	processedTxHashes := make([][]byte, 0)
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return nil, 0, err
@@ -492,8 +508,6 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockScrs)) {
 		return nil, 0, process.ErrMaxBlockSizeReached
 	}
-
-	processedTxHashes := make([][]byte, 0)
 
 	defer func() {
 		if err != nil {
@@ -510,7 +524,22 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	}
 	maxGasLimitUsedForDestMeTxs := scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 
-	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", scr.gasHandler.TotalGasProvided(),
+		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("smartContractResults.ProcessMiniBlock after processing",
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num scrs processed", numSCRsProcessed,
+			"total gas provided", scr.gasHandler.TotalGasProvided(),
+			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
@@ -518,15 +547,15 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
-		gasProvidedByTxInSelfShard, errComputeGas := scr.computeGasProvided(
+		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
 			&gasInfo)
 
-		if errComputeGas != nil {
-			return processedTxHashes, index, errComputeGas
+		if err != nil {
+			return processedTxHashes, index, err
 		}
 
 		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
@@ -547,6 +576,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		}
 
 		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
+		numSCRsProcessed++
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
