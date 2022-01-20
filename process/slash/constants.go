@@ -1,17 +1,20 @@
 package slash
 
-type SlashingType string
+import coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 
+// Used by slashing notifier to create a slashing transaction
+// from a proof. Each transaction identifies a different
+// slashing event based on this ID
 const (
-	None             SlashingType = "no slashing"
-	MultipleProposal SlashingType = "multiple header proposal"
-	MultipleSigning  SlashingType = "multiple header signing"
+	// MultipleProposalProofID = MultipleProposal's ID
+	MultipleProposalProofID byte = 0x1
+	// MultipleSigningProofID = MultipleSigning's ID
+	MultipleSigningProofID byte = 0x2
 )
 
-type ThreatLevel uint8
-
-const (
-	Low    ThreatLevel = 0
-	Medium ThreatLevel = 1
-	High   ThreatLevel = 2
-)
+// ProofIDs is a convenience map containing all slashing events
+// with their corresponding ID
+var ProofIDs = map[coreSlash.SlashingType]byte{
+	coreSlash.MultipleProposal: MultipleProposalProofID,
+	coreSlash.MultipleSigning:  MultipleSigningProofID,
+}

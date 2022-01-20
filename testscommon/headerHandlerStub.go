@@ -24,6 +24,9 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled                     func(reference []byte) error
 	GetReservedCalled                      func() []byte
 	IsStartOfEpochBlockCalled              func() bool
+	SetSignatureCalled                     func(signature []byte) error
+	SetPubKeysBitmapCalled                 func(bitmap []byte) error
+	SetLeaderSignatureCalled               func(leaderSig []byte) error
 }
 
 // GetAccumulatedFees -
@@ -190,18 +193,27 @@ func (hhs *HeaderHandlerStub) SetRandSeed(_ []byte) error {
 }
 
 // SetPubKeysBitmap -
-func (hhs *HeaderHandlerStub) SetPubKeysBitmap(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetPubKeysBitmap(bitmap []byte) error {
+	if hhs.SetPubKeysBitmapCalled != nil {
+		return hhs.SetPubKeysBitmapCalled(bitmap)
+	}
+	return nil
 }
 
 // SetSignature -
-func (hhs *HeaderHandlerStub) SetSignature(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetSignature(signature []byte) error {
+	if hhs.SetSignatureCalled != nil {
+		return hhs.SetSignatureCalled(signature)
+	}
+	return nil
 }
 
 // SetLeaderSignature -
-func (hhs *HeaderHandlerStub) SetLeaderSignature(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetLeaderSignature(leaderSig []byte) error {
+	if hhs.SetLeaderSignatureCalled != nil {
+		return hhs.SetLeaderSignatureCalled(leaderSig)
+	}
+	return nil
 }
 
 // SetChainID -
@@ -290,7 +302,7 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
 }
 
 // SetEpochStartMetaHash -
-func (h *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
 	return nil
 }
 

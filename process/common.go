@@ -765,3 +765,26 @@ func HaveAdditionalTime() func() bool {
 		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
 	}
 }
+
+// CopyHeaderWithoutSig returns a copy to the given header without signatures
+func CopyHeaderWithoutSig(header data.HeaderHandler) (data.HeaderHandler, error) {
+	if check.IfNil(header) {
+		return nil, ErrNilHeaderHandler
+	}
+
+	headerCopy := header.ShallowClone()
+	err := headerCopy.SetSignature(nil)
+	if err != nil {
+		return nil, err
+	}
+	err = headerCopy.SetPubKeysBitmap(nil)
+	if err != nil {
+		return nil, err
+	}
+	err = headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return headerCopy, nil
+}

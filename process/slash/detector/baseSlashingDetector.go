@@ -1,9 +1,10 @@
 package detector
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
-	"github.com/ElrondNetwork/elrond-go/process/slash"
 )
 
 // minSlashableNoOfHeaders represents the min number of headers required for a
@@ -30,29 +31,71 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func computeSlashLevelBasedOnHeadersCount(data []process.InterceptedData) slash.ThreatLevel {
-	ret := slash.Low
+func getCheckedHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
+	if check.IfNil(interceptedData) {
+		return nil, process.ErrNilInterceptedData
+	}
 
-	if len(data) == minSlashableNoOfHeaders {
-		ret = slash.Medium
-	} else if len(data) >= minSlashableNoOfHeaders+1 {
-		ret = slash.High
+	interceptedHeader, castOk := interceptedData.(process.InterceptedHeader)
+	if !castOk {
+		return nil, process.ErrCannotCastInterceptedDataToHeader
+	}
+
+	header := interceptedHeader.HeaderHandler()
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+	hash := interceptedHeader.Hash()
+	if hash == nil {
+		return nil, data.ErrNilHash
+	}
+
+	return header, nil
+}
+
+func checkProofType(proof coreSlash.SlashingProofHandler, expectedType coreSlash.SlashingType) error {
+	if proof == nil {
+		return process.ErrNilProof
+	}
+	if proof.GetType() != expectedType {
+		return process.ErrInvalidSlashType
+	}
+
+	return nil
+}
+
+func getHeaderHandlers(headersInfo []data.HeaderInfoHandler) []data.HeaderHandler {
+	headers := make([]data.HeaderHandler, 0, len(headersInfo))
+	for _, headerInfo := range headersInfo {
+		headers = append(headers, headerInfo.GetHeaderHandler())
+	}
+
+	return headers
+}
+
+func computeSlashLevelBasedOnHeadersCount(headers []data.HeaderHandler) coreSlash.ThreatLevel {
+	ret := coreSlash.Zero
+
+	if len(headers) == minSlashableNoOfHeaders {
+		ret = coreSlash.Medium
+	} else if len(headers) >= minSlashableNoOfHeaders+1 {
+		ret = coreSlash.High
 	}
 
 	return ret
 }
 
-func checkSlashLevelBasedOnHeadersCount(headers []*interceptedBlocks.InterceptedHeader, level slash.ThreatLevel) error {
-	if level < slash.Medium || level > slash.High {
+func checkThreatLevelBasedOnHeadersCount(headers []data.HeaderHandler, level coreSlash.ThreatLevel) error {
+	if level < coreSlash.Medium || level > coreSlash.High {
 		return process.ErrInvalidSlashLevel
 	}
 	if len(headers) < minSlashableNoOfHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
-	if len(headers) == minSlashableNoOfHeaders && level != slash.Medium {
+	if len(headers) == minSlashableNoOfHeaders && level != coreSlash.Medium {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
-	if len(headers) > minSlashableNoOfHeaders && level != slash.High {
+	if len(headers) > minSlashableNoOfHeaders && level != coreSlash.High {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
 

@@ -2,53 +2,26 @@ package slash
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 )
-
-// SlashingProofHandler - contains a proof for a slashing event and can be wrapped in a transaction
-type SlashingProofHandler interface {
-	//GetType - contains the type of slashing detection
-	GetType() SlashingType
-}
-
-// MultipleProposalProofHandler contains proof data for a multiple header proposal slashing event
-type MultipleProposalProofHandler interface {
-	SlashingProofHandler
-	// GetLevel - contains the slashing level for the current slashing type
-	// multiple colluding parties should have a higher level
-	GetLevel() ThreatLevel
-	//GetHeaders - returns the slashable proposed Data
-	GetHeaders() []*interceptedBlocks.InterceptedHeader
-}
-
-// MultipleSigningProofHandler contains proof data for a multiple header signing slashing event
-type MultipleSigningProofHandler interface {
-	SlashingProofHandler
-	// GetPubKeys - returns all validator's public keys which have signed multiple headers
-	GetPubKeys() [][]byte
-	// GetLevel - returns the slashing level for a given validator
-	GetLevel(pubKey []byte) ThreatLevel
-	// GetHeaders - returns the slashable signed headers proposed by a given validator
-	GetHeaders(pubKey []byte) []*interceptedBlocks.InterceptedHeader
-}
 
 // SlashingDetector - checks for slashable events and generates proofs to be used for slash
 type SlashingDetector interface {
 	// VerifyData - checks if an intercepted data represents a slashable event and returns a proof if so,
 	// otherwise returns nil and error
-	VerifyData(data process.InterceptedData) (SlashingProofHandler, error)
+	VerifyData(data process.InterceptedData) (coreSlash.SlashingProofHandler, error)
 	// ValidateProof - checks if a given proof is valid
-	ValidateProof(proof SlashingProofHandler) error
+	ValidateProof(proof coreSlash.SlashingProofHandler) error
 }
 
 // SlashingNotifier - creates a transaction from the generated proof of the slash detector and sends it to the network
 type SlashingNotifier interface {
 	// CreateShardSlashingTransaction - creates a slash transaction from the generated SlashingProofHandler
-	CreateShardSlashingTransaction(proof SlashingProofHandler) data.TransactionHandler
+	CreateShardSlashingTransaction(proof coreSlash.SlashingProofHandler) (data.TransactionHandler, error)
 	// CreateMetaSlashingEscalatedTransaction - creates a transaction for the metachain if x rounds passed
 	// and no slash transaction has been created by any of the previous x proposers
-	CreateMetaSlashingEscalatedTransaction(proof SlashingProofHandler) data.TransactionHandler
+	CreateMetaSlashingEscalatedTransaction(proof coreSlash.SlashingProofHandler) data.TransactionHandler
 }
 
 // SlashingTxProcessor - processes the proofs from the SlashingNotifier inside shards

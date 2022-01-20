@@ -899,6 +899,9 @@ var ErrInvalidSlashLevel = errors.New("invalid slash level has been provided for
 // ErrNotEnoughHeadersProvided signals that not enough headers have been provided for a multiple header proof
 var ErrNotEnoughHeadersProvided = errors.New("not enough headers have been provided for a multiple header proof")
 
+// ErrNotEnoughPublicKeysProvided signals that not enough public keys have been provided for a multiple header proof
+var ErrNotEnoughPublicKeysProvided = errors.New("not enough public keys have been provided for a multiple header proof")
+
 // ErrHeadersNotSameProposer signals that the headers from a multiple header proposal proof are not proposed by the same validator
 var ErrHeadersNotSameProposer = errors.New("the headers from a multiple header proposal proof are not proposed by the same validator")
 
@@ -911,11 +914,29 @@ var ErrHeadersNotDifferentHashes = errors.New("headers in a multiple header proo
 // ErrHeaderNotSignedByValidator signals that the header is not signed by the given validator
 var ErrHeaderNotSignedByValidator = errors.New("header is not signed by the given validator")
 
-// ErrNilRoundDetectorCache signals that a nil round detector cache has been provided
-var ErrNilRoundDetectorCache = errors.New("round detector cache is nil")
+// ErrNilRoundValidatorHeadersCache signals that a nil round validator headers cache has been provided
+var ErrNilRoundValidatorHeadersCache = errors.New("round round validator headers cache is nil")
 
 // ErrNilRoundHeadersCache signals that a nil round headers cache has been provided
 var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
+
+// ErrInvalidProof signals that an invalid proof has been provided
+var ErrInvalidProof = errors.New("an invalid proof has been provided")
+
+// ErrNilMultipleHeaderProposalDetectorArgs signals that nil arguments have been provided to create a multiple header proposal detector
+var ErrNilMultipleHeaderProposalDetectorArgs = errors.New("nil arguments have been provided to create a multiple header proposal detector")
+
+// ErrNilInterceptedData signals that a nil intercepted header has been provided
+var ErrNilInterceptedData = errors.New("nil intercepted header has been provided")
+
+// ErrNilProof signals that a nil proof has been provided
+var ErrNilProof = errors.New("nil proof has been provided")
+
+// ErrNilMultipleHeaderSigningDetectorArgs signals that nil arguments have been provided to create a multiple header signing detector
+var ErrNilMultipleHeaderSigningDetectorArgs = errors.New("nil arguments have been provided to create a multiple header signing detector")
+
+// ErrNilSlashingNotifierArgs signals that nil arguments have been provided to create a slashing notifier
+var ErrNilSlashingNotifierArgs = errors.New("nil arguments have been provided to create a slashing notifier")
 
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
