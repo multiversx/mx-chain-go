@@ -551,7 +551,6 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
-		storageFactory.GetBloomFromConfig(storageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, err

@@ -33,10 +33,22 @@ func NewShardedFullHistoryPruningStorer(
 }
 
 func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (*FullHistoryPruningStorer, error) {
-	ps, err := initPruningStorer(args.StorerArgs, shardId)
+	err := checkArgs(args.StorerArgs)
 	if err != nil {
 		return nil, err
 	}
+
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args.StorerArgs, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	ps, err := initPruningStorer(args.StorerArgs, shardId, activePersisters, persistersMapByEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	ps.registerHandler(args.Notifier)
 
 	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
 		return nil, storage.ErrInvalidNumberOfOldPersisters
@@ -53,29 +65,6 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 	}
 
 	return fhps, nil
-}
-
-func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface{}) {
-	pd, ok := value.(*persisterData)
-	if ok {
-		//since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
-		// the same mutex again here. It is safe to proceed without lock.
-
-		for _, active := range fhps.activePersisters {
-			if active.epoch == pd.epoch {
-				return
-			}
-		}
-
-		if pd.getIsClosed() {
-			return
-		}
-
-		err := pd.Close()
-		if err != nil {
-			log.Warn("initFullHistoryPruningStorer - onEvicted", "key", key, "err", err.Error())
-		}
-	}
 }
 
 // GetFromEpoch will search a key only in the persister for the given epoch

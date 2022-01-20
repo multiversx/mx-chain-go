@@ -29,10 +29,6 @@ func TestTomlParser(t *testing.T) {
 	accountsStorageType := "type5"
 	accountsStorageFile := "path2/file3"
 	accountsStorageTypeDB := "type6"
-	accountsStorageBlomSize := 173
-	accountsStorageBlomHash1 := "hashFunc1"
-	accountsStorageBlomHash2 := "hashFunc2"
-	accountsStorageBlomHash3 := "hashFunc3"
 
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
@@ -76,14 +72,6 @@ func TestTomlParser(t *testing.T) {
 			DB: DBConfig{
 				FilePath: accountsStorageFile,
 				Type:     accountsStorageTypeDB,
-			},
-			Bloom: BloomFilterConfig{
-				Size: 173,
-				HashFunc: []string{
-					accountsStorageBlomHash1,
-					accountsStorageBlomHash2,
-					accountsStorageBlomHash3,
-				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -153,10 +141,6 @@ func TestTomlParser(t *testing.T) {
     [AccountsTrieStorage.DB]
         FilePath = "` + accountsStorageFile + `"
         Type = "` + accountsStorageTypeDB + `"
-    [AccountsTrieStorage.Bloom]
-        Size = ` + strconv.Itoa(accountsStorageBlomSize) + `
-		HashFunc = ["` + accountsStorageBlomHash1 + `", "` + accountsStorageBlomHash2 + `", "` +
-		accountsStorageBlomHash3 + `"]
 
 [Hasher]
 	Type = "` + hasherType + `"
