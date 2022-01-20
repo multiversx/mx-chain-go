@@ -589,7 +589,7 @@ func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 
 	_ = copy(validatorsCopy, validators)
 
-	sort.Sort(validatorList(validators))
+	sort.Sort(nodesCoordinator.ValidatorList(validators))
 
 	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
 
@@ -608,7 +608,7 @@ func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
 
 	_ = copy(validatorsCopy, validators)
 
-	sort.Sort(validatorList(validators))
+	sort.Sort(nodesCoordinator.ValidatorList(validators))
 
 	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
 
@@ -2419,8 +2419,8 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 	}
 
 	removedFromMeta := []validator{firstRemovedMeta, secondRemovedMeta}
-	sort.Sort(validatorList(removedFromMeta))
-	sort.Sort(validatorList(leavingPerShardMap[core.MetachainShardId]))
+	sort.Sort(nodesCoordinator.ValidatorList(removedFromMeta))
+	sort.Sort(nodesCoordinator.ValidatorList(leavingPerShardMap[core.MetachainShardId]))
 	assert.Equal(t, removedFromMeta, leavingPerShardMap[core.MetachainShardId])
 	found, _ := searchInMap(result.Eligible, firstRemovedMeta.PubKey())
 	assert.False(t, found)
@@ -2428,16 +2428,16 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 	assert.False(t, found)
 
 	remainingInMeta := []validator{notRemovedMeta}
-	sort.Sort(validatorList(remainingInMeta))
-	sort.Sort(validatorList(stillRemainingPerShardMap[core.MetachainShardId]))
+	sort.Sort(nodesCoordinator.ValidatorList(remainingInMeta))
+	sort.Sort(nodesCoordinator.ValidatorList(stillRemainingPerShardMap[core.MetachainShardId]))
 	assert.Equal(t, remainingInMeta, stillRemainingPerShardMap[core.MetachainShardId])
 	found, shardId := searchInMap(result.Eligible, notRemovedMeta.PubKey())
 	assert.True(t, found)
 	assert.Equal(t, core.MetachainShardId, shardId)
 
 	removedFromShard0 := []validator{firstRemovedShard0, secondRemovedShard0}
-	sort.Sort(validatorList(removedFromShard0))
-	sort.Sort(validatorList(leavingPerShardMap[0]))
+	sort.Sort(nodesCoordinator.ValidatorList(removedFromShard0))
+	sort.Sort(nodesCoordinator.ValidatorList(leavingPerShardMap[0]))
 	assert.Equal(t, removedFromShard0, leavingPerShardMap[0])
 	found, _ = searchInMap(result.Eligible, firstRemovedShard0.PubKey())
 	assert.False(t, found)
@@ -2445,8 +2445,8 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 	assert.False(t, found)
 
 	removedFromShard1 := []validator{firstRemovedShard1}
-	sort.Sort(validatorList(removedFromShard1))
-	sort.Sort(validatorList(leavingPerShardMap[1]))
+	sort.Sort(nodesCoordinator.ValidatorList(removedFromShard1))
+	sort.Sort(nodesCoordinator.ValidatorList(leavingPerShardMap[1]))
 	assert.Equal(t, removedFromShard1, leavingPerShardMap[1])
 	found, _ = searchInMap(result.Waiting, secondRemovedShard0.PubKey())
 	assert.False(t, found)
@@ -2497,12 +2497,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
 	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
 
 	oldEligible := getValidatorsInMap(args.Eligible)
-	sort.Sort(validatorList(allNewEligible))
-	sort.Sort(validatorList(oldEligible))
+	sort.Sort(nodesCoordinator.ValidatorList(allNewEligible))
+	sort.Sort(nodesCoordinator.ValidatorList(oldEligible))
 	assert.Equal(t, oldEligible, allNewEligible)
 
-	sort.Sort(validatorList(allNewWaiting))
-	sort.Sort(validatorList(args.NewNodes))
+	sort.Sort(nodesCoordinator.ValidatorList(allNewWaiting))
+	sort.Sort(nodesCoordinator.ValidatorList(args.NewNodes))
 	assert.Equal(t, args.NewNodes, allNewWaiting)
 
 	for _, waitingInShard := range resUpdateNodeList.Waiting {

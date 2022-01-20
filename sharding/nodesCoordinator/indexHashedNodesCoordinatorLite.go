@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -24,7 +25,24 @@ const (
 )
 
 // TODO: move this to config parameters
-const nodesCoordinatorStoredEpochs = 4
+const NodesCoordinatorStoredEpochs = 4
+
+type ValidatorList []Validator
+
+// Len will return the length of the validatorList
+func (v ValidatorList) Len() int { return len(v) }
+
+// Swap will interchange the objects on input indexes
+func (v ValidatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+
+// Less will return true if object on index i should appear before object in index j
+// Sorting of validators should be by index and public key
+func (v ValidatorList) Less(i, j int) bool {
+	if v[i].Index() == v[j].Index() {
+		return bytes.Compare(v[i].PubKey(), v[j].PubKey()) < 0
+	}
+	return v[i].Index() < v[j].Index()
+}
 
 type ValidatorWithShardID struct {
 	Validator Validator
@@ -60,6 +78,7 @@ type IndexHashedNodesCoordinatorLite struct {
 	isFullArchive             bool
 	chanStopNode              chan endProcess.ArgEndProcess
 	nodeTypeProvider          NodeTypeProviderHandler
+	flagWaitingListFix        atomicFlags.Flag
 }
 
 // NewIndexHashedNodesCoordinatorLite creates a new index hashed group selector
@@ -69,7 +88,7 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 		return nil, err
 	}
 
-	nodesConfig := make(map[uint32]*EpochNodesConfig, nodesCoordinatorStoredEpochs)
+	nodesConfig := make(map[uint32]*EpochNodesConfig, NodesCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &EpochNodesConfig{
 		NbShards:    arguments.NbShards,
@@ -603,6 +622,114 @@ func (ihncl *IndexHashedNodesCoordinatorLite) computeShardForSelfPublicKey(nodes
 	return selfShard, false
 }
 
+func (ihncl *IndexHashedNodesCoordinatorLite) ComputeNodesConfigFromList(
+	previousEpochConfig *EpochNodesConfig,
+	validatorInfos []*state.ShardValidatorInfo,
+) (*EpochNodesConfig, error) {
+	eligibleMap := make(map[uint32][]Validator)
+	waitingMap := make(map[uint32][]Validator)
+	leavingMap := make(map[uint32][]Validator)
+	newNodesList := make([]Validator, 0)
+
+	if ihncl.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
+		return nil, ErrNilPreviousEpochConfig
+	}
+
+	if len(validatorInfos) == 0 {
+		log.Warn("computeNodesConfigFromList - validatorInfos len is 0")
+	}
+
+	for _, validatorInfo := range validatorInfos {
+		chance := ihncl.GetNodesCoordinatorHelper().GetChance(validatorInfo.TempRating)
+		currentValidator, err := NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
+		if err != nil {
+			return nil, err
+		}
+
+		switch validatorInfo.List {
+		case string(common.WaitingList):
+			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
+		case string(common.EligibleList):
+			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
+		case string(common.LeavingList):
+			log.Debug("leaving node validatorInfo", "pk", validatorInfo.PublicKey)
+			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
+			ihncl.addValidatorToPreviousMap(
+				previousEpochConfig,
+				eligibleMap,
+				waitingMap,
+				currentValidator,
+				validatorInfo.ShardId)
+		case string(common.NewList):
+			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
+			newNodesList = append(newNodesList, currentValidator)
+		case string(common.InactiveList):
+			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
+		case string(common.JailedList):
+			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
+		}
+	}
+
+	sort.Sort(ValidatorList(newNodesList))
+	for _, eligibleList := range eligibleMap {
+		sort.Sort(ValidatorList(eligibleList))
+	}
+	for _, waitingList := range waitingMap {
+		sort.Sort(ValidatorList(waitingList))
+	}
+	for _, leavingList := range leavingMap {
+		sort.Sort(ValidatorList(leavingList))
+	}
+
+	if len(eligibleMap) == 0 {
+		return nil, fmt.Errorf("%w eligible map size is zero. No validators found", ErrMapSizeZero)
+	}
+
+	nbShards := len(eligibleMap) - 1
+
+	newNodesConfig := &EpochNodesConfig{
+		EligibleMap: eligibleMap,
+		WaitingMap:  waitingMap,
+		LeavingMap:  leavingMap,
+		NewList:     newNodesList,
+		NbShards:    uint32(nbShards),
+	}
+
+	return newNodesConfig, nil
+}
+
+func (ihncl *IndexHashedNodesCoordinatorLite) addValidatorToPreviousMap(
+	previousEpochConfig *EpochNodesConfig,
+	eligibleMap map[uint32][]Validator,
+	waitingMap map[uint32][]Validator,
+	currentValidator Validator,
+	currentValidatorShardId uint32) {
+
+	if !ihncl.flagWaitingListFix.IsSet() {
+		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
+		return
+	}
+
+	found, shardId := searchInMap(previousEpochConfig.EligibleMap, currentValidator.PubKey())
+	if found {
+		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
+		eligibleMap[shardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
+		return
+	}
+
+	found, shardId = searchInMap(previousEpochConfig.WaitingMap, currentValidator.PubKey())
+	if found {
+		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
+		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
+		return
+	}
+}
+
+func (ihncl *IndexHashedNodesCoordinatorLite) UpdateEpochFlags(epoch uint32) {
+	ihncl.flagWaitingListFix.Toggle(epoch >= ihncl.waitingListFixEnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihncl.flagWaitingListFix.IsSet())
+}
+
 // ConsensusGroupSize returns the consensus group size for a specific shard
 func (ihncl *IndexHashedNodesCoordinatorLite) ConsensusGroupSize(
 	shardID uint32,
@@ -612,102 +739,6 @@ func (ihncl *IndexHashedNodesCoordinatorLite) ConsensusGroupSize(
 	}
 
 	return ihncl.shardConsensusGroupSize
-}
-
-// GetLastEpochConfig returns the last epoch from nodes config
-func (ihncl *IndexHashedNodesCoordinatorLite) GetLastEpochConfig() uint32 {
-	ihncl.mutNodesConfig.Lock()
-	defer ihncl.mutNodesConfig.Unlock()
-
-	lastEpoch := uint32(0)
-	for epoch := range ihncl.nodesConfig {
-		if lastEpoch < epoch {
-			lastEpoch = epoch
-		}
-	}
-
-	return lastEpoch
-}
-
-// GetNumTotalEligible returns the number of total eligible accross all shards from current setup
-func (ihncl *IndexHashedNodesCoordinatorLite) GetNumTotalEligible() uint64 {
-	return ihncl.numTotalEligible
-}
-
-// GetCurrentEpoch returns current epoch
-func (ihncl *IndexHashedNodesCoordinatorLite) GetCurrentEpoch() uint32 {
-	return ihncl.currentEpoch
-}
-
-// SetCurrentEpoch updates current epoch
-func (ihncl *IndexHashedNodesCoordinatorLite) SetCurrentEpoch(epoch uint32) {
-	ihncl.currentEpoch = epoch
-}
-
-// SetNodesConfig updates nodes config in a concurrent safe way
-func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfig(nodesConfig map[uint32]*EpochNodesConfig) {
-	ihncl.mutNodesConfig.Lock()
-	ihncl.nodesConfig = nodesConfig
-	ihncl.mutNodesConfig.Unlock()
-}
-
-// GetNodesConfig returns nodes config for all epochs
-func (ihncl *IndexHashedNodesCoordinatorLite) GetNodesConfig() map[uint32]*EpochNodesConfig {
-	ihncl.mutNodesConfig.RLock()
-	defer ihncl.mutNodesConfig.RUnlock()
-
-	return ihncl.nodesConfig
-}
-
-// GetNodesConfigPerEpoch returns nodes config for the specified epoch
-func (ihncl *IndexHashedNodesCoordinatorLite) GetNodesConfigPerEpoch(epoch uint32) (*EpochNodesConfig, bool) {
-	ihncl.mutNodesConfig.RLock()
-	nodesConfig, ok := ihncl.nodesConfig[epoch]
-	ihncl.mutNodesConfig.RUnlock()
-
-	return nodesConfig, ok
-}
-
-// SetNodesConfigPerEpoch sets nodes config for the specified epoch
-func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfigPerEpoch(epoch uint32, nodeConfig *EpochNodesConfig) {
-	ihncl.mutNodesConfig.RLock()
-	ihncl.nodesConfig[epoch] = nodeConfig
-	ihncl.mutNodesConfig.RUnlock()
-}
-
-// GetNodesCoordinatorHelper
-func (ihncl *IndexHashedNodesCoordinatorLite) GetNodesCoordinatorHelper() NodesCoordinatorHelper {
-	return ihncl.nodesCoordinatorHelper
-}
-
-// SetNodesCoordinatorHelper
-func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesCoordinatorHelper(nch NodesCoordinatorHelper) {
-	ihncl.nodesCoordinatorHelper = nch
-}
-
-// ShardIDAsObserver
-func (ihncl *IndexHashedNodesCoordinatorLite) ShardIDAsObserver() uint32 {
-	return ihncl.shardIDAsObserver
-}
-
-// ClearConsensusGroupCacher will clear the consensus group cacher
-func (ihncl *IndexHashedNodesCoordinatorLite) ClearConsensusGroupCacher() {
-	ihncl.consensusGroupCacher.Clear()
-}
-
-// GetWaitingListFixEnableEpoch
-func (ihncl *IndexHashedNodesCoordinatorLite) GetWaitingListFixEnableEpoch() uint32 {
-	return ihncl.waitingListFixEnableEpoch
-}
-
-// GetOwnPublicKey will return current node public key  for block sign
-func (ihncl *IndexHashedNodesCoordinatorLite) GetOwnPublicKey() []byte {
-	return ihncl.selfPubKey
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (ihncl *IndexHashedNodesCoordinatorLite) IsInterfaceNil() bool {
-	return ihncl == nil
 }
 
 // CreateSelectors creates the consensus group selectors for each shard
@@ -800,4 +831,95 @@ func selectValidators(
 	displayValidatorsForRandomness(consensusGroup, randomness)
 
 	return consensusGroup, nil
+}
+
+// GetLastEpochConfig returns the last epoch from nodes config
+func (ihncl *IndexHashedNodesCoordinatorLite) GetLastEpochConfig() uint32 {
+	ihncl.mutNodesConfig.Lock()
+	defer ihncl.mutNodesConfig.Unlock()
+
+	lastEpoch := uint32(0)
+	for epoch := range ihncl.nodesConfig {
+		if lastEpoch < epoch {
+			lastEpoch = epoch
+		}
+	}
+
+	return lastEpoch
+}
+
+// GetNumTotalEligible returns the number of total eligible accross all shards from current setup
+func (ihncl *IndexHashedNodesCoordinatorLite) GetNumTotalEligible() uint64 {
+	return ihncl.numTotalEligible
+}
+
+// GetCurrentEpoch returns current epoch
+func (ihncl *IndexHashedNodesCoordinatorLite) GetCurrentEpoch() uint32 {
+	return ihncl.currentEpoch
+}
+
+// SetCurrentEpoch updates current epoch
+func (ihncl *IndexHashedNodesCoordinatorLite) SetCurrentEpoch(epoch uint32) {
+	ihncl.currentEpoch = epoch
+}
+
+// SetNodesConfig updates nodes config in a concurrent safe way
+func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfig(nodesConfig map[uint32]*EpochNodesConfig) {
+	ihncl.mutNodesConfig.Lock()
+	ihncl.nodesConfig = nodesConfig
+	ihncl.mutNodesConfig.Unlock()
+}
+
+// GetNodesConfig returns nodes config for all epochs
+func (ihncl *IndexHashedNodesCoordinatorLite) GetNodesConfig() map[uint32]*EpochNodesConfig {
+	ihncl.mutNodesConfig.RLock()
+	defer ihncl.mutNodesConfig.RUnlock()
+
+	return ihncl.nodesConfig
+}
+
+// GetNodesConfigPerEpoch returns nodes config for the specified epoch
+func (ihncl *IndexHashedNodesCoordinatorLite) GetNodesConfigPerEpoch(epoch uint32) (*EpochNodesConfig, bool) {
+	ihncl.mutNodesConfig.RLock()
+	nodesConfig, ok := ihncl.nodesConfig[epoch]
+	ihncl.mutNodesConfig.RUnlock()
+
+	return nodesConfig, ok
+}
+
+// SetNodesConfigPerEpoch sets nodes config for the specified epoch
+func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfigPerEpoch(epoch uint32, nodeConfig *EpochNodesConfig) {
+	ihncl.mutNodesConfig.RLock()
+	ihncl.nodesConfig[epoch] = nodeConfig
+	ihncl.mutNodesConfig.RUnlock()
+}
+
+// GetNodesCoordinatorHelper
+func (ihncl *IndexHashedNodesCoordinatorLite) GetNodesCoordinatorHelper() NodesCoordinatorHelper {
+	return ihncl.nodesCoordinatorHelper
+}
+
+// SetNodesCoordinatorHelper
+func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesCoordinatorHelper(nch NodesCoordinatorHelper) {
+	ihncl.nodesCoordinatorHelper = nch
+}
+
+// ShardIDAsObserver
+func (ihncl *IndexHashedNodesCoordinatorLite) ShardIDAsObserver() uint32 {
+	return ihncl.shardIDAsObserver
+}
+
+// ClearConsensusGroupCacher will clear the consensus group cacher
+func (ihncl *IndexHashedNodesCoordinatorLite) ClearConsensusGroupCacher() {
+	ihncl.consensusGroupCacher.Clear()
+}
+
+// GetOwnPublicKey will return current node public key  for block sign
+func (ihncl *IndexHashedNodesCoordinatorLite) GetOwnPublicKey() []byte {
+	return ihncl.selfPubKey
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ihncl *IndexHashedNodesCoordinatorLite) IsInterfaceNil() bool {
+	return ihncl == nil
 }

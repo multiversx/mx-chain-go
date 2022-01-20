@@ -19,6 +19,9 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilInputNodesMap signals that a nil nodes map was provided
 var ErrNilInputNodesMap = errors.New("nil input nodes map")
 
+// ErrNilPreviousEpochConfig signals that the previous epoch config is nil
+var ErrNilPreviousEpochConfig = errors.New("nil previous epoch config")
+
 // ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 
@@ -45,6 +48,9 @@ var ErrNilWeights = errors.New("nil weights")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrMapSizeZero signals that there are no elements in the map
+var ErrMapSizeZero = errors.New("map size zero")
 
 // ErrInvalidSampleSize signals that an invalid sample size was provided
 var ErrInvalidSampleSize = errors.New("invalid sample size")

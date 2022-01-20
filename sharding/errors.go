@@ -61,12 +61,6 @@ var ErrNilInputNodesMap = errors.New("nil input nodes map")
 // ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 
-// ErrMapSizeZero signals that there are no elements in the map
-var ErrMapSizeZero = errors.New("map size zero")
-
-// ErrNilPreviousEpochConfig signals that the previous epoch config is nil
-var ErrNilPreviousEpochConfig = errors.New("nil previous epoch config")
-
 // ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
 var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -21,33 +20,10 @@ import (
 
 var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
 
-// TODO: move this to config parameters
-const nodesCoordinatorStoredEpochs = 4
-
-type ValidatorWithShardID = nodesCoordinator.ValidatorWithShardID
-
-type validatorList []validator
-
-// Len will return the length of the validatorList
-func (v validatorList) Len() int { return len(v) }
-
-// Swap will interchange the objects on input indexes
-func (v validatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
-
-// Less will return true if object on index i should appear before object in index j
-// Sorting of validators should be by index and public key
-func (v validatorList) Less(i, j int) bool {
-	if v[i].Index() == v[j].Index() {
-		return bytes.Compare(v[i].PubKey(), v[j].PubKey()) < 0
-	}
-	return v[i].Index() < v[j].Index()
-}
-
 type indexHashedNodesCoordinator struct {
 	*nodesCoordinator.IndexHashedNodesCoordinatorLite
 
 	epochStartRegistrationHandler nodesCoordinator.EpochStartEventNotifier
-	flagWaitingListFix            atomicFlags.Flag
 	loadingFromDisk               atomic.Value
 	bootStorer                    storage.Storer
 	startEpoch                    uint32
@@ -227,7 +203,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	ihgs.updateEpochFlags(newEpoch)
+	ihgs.UpdateEpochFlags(newEpoch)
 
 	//TODO: remove the copy if no changes are done to the maps
 	copiedPrevious := ihgs.GetPreviousConfigCopy()
@@ -237,7 +213,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	}
 
 	// TODO: compare with previous nodesConfig if exists
-	newNodesConfig, err := ihgs.computeNodesConfigFromList(copiedPrevious, allValidatorInfo)
+	newNodesConfig, err := ihgs.ComputeNodesConfigFromList(copiedPrevious, allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
 		return
@@ -308,123 +284,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihgs.ClearConsensusGroupCacher()
 }
 
-func (ihgs *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]validator) []validator {
-	sortedList := make([]validator, 0)
-	for _, validators := range validatorsMap {
-		sortedList = append(sortedList, validators...)
-	}
-	sort.Sort(validatorList(sortedList))
-	return sortedList
-}
-
-func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
-	previousEpochConfig *nodesCoordinator.EpochNodesConfig,
-	validatorInfos []*state.ShardValidatorInfo,
-) (*nodesCoordinator.EpochNodesConfig, error) {
-	eligibleMap := make(map[uint32][]validator)
-	waitingMap := make(map[uint32][]validator)
-	leavingMap := make(map[uint32][]validator)
-	newNodesList := make([]validator, 0)
-
-	if ihgs.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
-		return nil, ErrNilPreviousEpochConfig
-	}
-
-	if len(validatorInfos) == 0 {
-		log.Warn("computeNodesConfigFromList - validatorInfos len is 0")
-	}
-
-	for _, validatorInfo := range validatorInfos {
-		chance := ihgs.GetNodesCoordinatorHelper().GetChance(validatorInfo.TempRating)
-		currentValidator, err := nodesCoordinator.NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
-		if err != nil {
-			return nil, err
-		}
-
-		switch validatorInfo.List {
-		case string(common.WaitingList):
-			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
-		case string(common.EligibleList):
-			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
-		case string(common.LeavingList):
-			log.Debug("leaving node validatorInfo", "pk", validatorInfo.PublicKey)
-			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
-			ihgs.addValidatorToPreviousMap(
-				previousEpochConfig,
-				eligibleMap,
-				waitingMap,
-				currentValidator,
-				validatorInfo.ShardId)
-		case string(common.NewList):
-			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
-			newNodesList = append(newNodesList, currentValidator)
-		case string(common.InactiveList):
-			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
-		case string(common.JailedList):
-			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
-		}
-	}
-
-	sort.Sort(validatorList(newNodesList))
-	for _, eligibleList := range eligibleMap {
-		sort.Sort(validatorList(eligibleList))
-	}
-	for _, waitingList := range waitingMap {
-		sort.Sort(validatorList(waitingList))
-	}
-	for _, leavingList := range leavingMap {
-		sort.Sort(validatorList(leavingList))
-	}
-
-	if len(eligibleMap) == 0 {
-		return nil, fmt.Errorf("%w eligible map size is zero. No validators found", ErrMapSizeZero)
-	}
-
-	nbShards := len(eligibleMap) - 1
-
-	newNodesConfig := &nodesCoordinator.EpochNodesConfig{
-		EligibleMap: eligibleMap,
-		WaitingMap:  waitingMap,
-		LeavingMap:  leavingMap,
-		NewList:     newNodesList,
-		NbShards:    uint32(nbShards),
-	}
-
-	return newNodesConfig, nil
-}
-
-func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
-	previousEpochConfig *nodesCoordinator.EpochNodesConfig,
-	eligibleMap map[uint32][]validator,
-	waitingMap map[uint32][]validator,
-	currentValidator validator,
-	currentValidatorShardId uint32) {
-
-	if !ihgs.flagWaitingListFix.IsSet() {
-		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
-		return
-	}
-
-	found, shardId := searchInMap(previousEpochConfig.EligibleMap, currentValidator.PubKey())
-	if found {
-		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
-		eligibleMap[shardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
-		return
-	}
-
-	found, shardId = searchInMap(previousEpochConfig.WaitingMap, currentValidator.PubKey())
-	if found {
-		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
-		waitingMap[shardId] = append(waitingMap[currentValidatorShardId], currentValidator)
-		return
-	}
-}
-
 // EpochStartAction is called upon a start of epoch event.
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
 	newEpoch := hdr.GetEpoch()
-	epochToRemove := int32(newEpoch) - nodesCoordinatorStoredEpochs
+	epochToRemove := int32(newEpoch) - nodesCoordinator.NodesCoordinatorStoredEpochs
 	needToRemove := epochToRemove >= 0
 	ihgs.SetCurrentEpoch(newEpoch)
 
@@ -436,6 +300,15 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	if needToRemove {
 		ihgs.RemoveNodesConfigEpochs(epochToRemove)
 	}
+}
+
+func (ihgs *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]nodesCoordinator.Validator) []nodesCoordinator.Validator {
+	sortedList := make([]nodesCoordinator.Validator, 0)
+	for _, validators := range validatorsMap {
+		sortedList = append(sortedList, validators...)
+	}
+	sort.Sort(nodesCoordinator.ValidatorList(sortedList))
+	return sortedList
 }
 
 // NotifyOrder returns the notification order for a start of epoch event
@@ -675,11 +548,6 @@ func createValidatorInfoFromBody(
 	}
 
 	return allValidatorInfo, nil
-}
-
-func (ihgs *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihgs.flagWaitingListFix.Toggle(epoch >= ihgs.GetWaitingListFixEnableEpoch())
-	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihgs.flagWaitingListFix.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

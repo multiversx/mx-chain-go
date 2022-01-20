@@ -108,8 +108,8 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 
 	minEpoch := 0
 	lastEpoch := ihgs.GetLastEpochConfig()
-	if lastEpoch >= nodesCoordinatorStoredEpochs {
-		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
+	if lastEpoch >= nodesCoordinator.NodesCoordinatorStoredEpochs {
+		minEpoch = int(lastEpoch) - nodesCoordinator.NodesCoordinatorStoredEpochs + 1
 	}
 
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
