@@ -26,6 +26,7 @@ type TxCache struct {
 	numSendersInGracePeriod   atomic.Counter
 	sweepingMutex             sync.Mutex
 	sweepingListOfSenders     []*txListForSender
+	mutAddTx                  sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
@@ -70,15 +71,17 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
+	cache.mutAddTx.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	cache.mutAddTx.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
 		// - A adds to "txByHash"
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		log.Error("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
@@ -268,7 +271,7 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	//TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
+	// TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
 	return int(cache.config.CountThreshold)
 }
 
