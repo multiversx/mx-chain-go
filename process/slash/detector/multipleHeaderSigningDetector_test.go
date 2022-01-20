@@ -149,13 +149,13 @@ func TestMultipleHeaderSigningDetector_VerifyData_CannotCacheHeaderWithoutSignat
 	args := generateMultipleHeaderSigningDetectorArgs()
 	addCache1Flag := atomic.Flag{}
 	addCache2Flag := atomic.Flag{}
-	args.RoundValidatorHeadersCache = &slashMocks.RoundDetectorCacheStub{
+	args.RoundValidatorHeadersCache = &slashMocks.RoundValidatorHeadersCacheStub{
 		AddCalled: func(uint64, []byte, data.HeaderInfoHandler) error {
 			addCache1Flag.Set()
 			return nil
 		},
 	}
-	args.RoundHashCache = &slashMocks.HeadersCacheStub{
+	args.RoundHashCache = &slashMocks.RoundHashCacheStub{
 		AddCalled: func(uint64, []byte) error {
 			addCache2Flag.Set()
 			return nil
@@ -235,7 +235,7 @@ func TestMultipleHeaderSigningDetector_VerifyData_SameHeaderData_DifferentSigner
 	t.Parallel()
 
 	args := generateMultipleHeaderSigningDetectorArgs()
-	args.RoundHashCache = &slashMocks.HeadersCacheStub{
+	args.RoundHashCache = &slashMocks.RoundHashCacheStub{
 		AddCalled: func(round uint64, hash []byte) error {
 			return process.ErrHeadersNotDifferentHashes
 		},
@@ -724,7 +724,7 @@ func TestMultipleHeaderSigningDetector_SignedHeader_CannotVerifySignature_Expect
 
 func generateMultipleHeaderSigningDetectorArgs() *detector.MultipleHeaderSigningDetectorArgs {
 	return &detector.MultipleHeaderSigningDetectorArgs{
-		RoundHashCache:             &slashMocks.HeadersCacheStub{},
+		RoundHashCache:             &slashMocks.RoundHashCacheStub{},
 		MultipleHeaderDetectorArgs: generateMockMultipleHeaderDetectorArgs(),
 	}
 }

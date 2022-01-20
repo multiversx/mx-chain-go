@@ -15,11 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// MultipleHeaderProposalDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderProposalsDetector
-type MultipleHeaderProposalDetectorArgs struct {
-	MultipleHeaderDetectorArgs
-}
-
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
 	cache             RoundValidatorHeadersCache
@@ -32,10 +27,7 @@ type multipleHeaderProposalsDetector struct {
 
 // NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
 // proposal detection or multiple headers proposal proof verification
-func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs) (*multipleHeaderProposalsDetector, error) {
-	if args == nil {
-		return nil, process.ErrNilMultipleHeaderProposalDetectorArgs
-	}
+func NewMultipleHeaderProposalsDetector(args MultipleHeaderDetectorArgs) (*multipleHeaderProposalsDetector, error) {
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
@@ -182,7 +174,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 		if check.IfNil(header) {
 			return process.ErrNilHeaderHandler
 		}
-		hash, err := mhp.checkHash(header, hashes)
+		hash, err := mhp.checkHashExists(hashes, header)
 		if err != nil {
 			return err
 		}
@@ -197,7 +189,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 	return nil
 }
 
-func (mhp *multipleHeaderProposalsDetector) checkHash(header data.HeaderHandler, hashes map[string]struct{}) (string, error) {
+func (mhp *multipleHeaderProposalsDetector) checkHashExists(hashes map[string]struct{}, header data.HeaderHandler) (string, error) {
 	hash, err := core.CalculateHash(mhp.marshaller, mhp.hasher, header)
 	if err != nil {
 		return "", err

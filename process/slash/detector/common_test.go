@@ -56,7 +56,7 @@ func generateMockMultipleHeaderDetectorArgs() detector.MultipleHeaderDetectorArg
 	return detector.MultipleHeaderDetectorArgs{
 		NodesCoordinator:           nodesCoordinator,
 		RoundHandler:               &mock.RoundHandlerMock{},
-		RoundValidatorHeadersCache: &slashMocks.RoundDetectorCacheStub{},
+		RoundValidatorHeadersCache: &slashMocks.RoundValidatorHeadersCacheStub{},
 		Hasher:                     &hashingMocks.HasherMock{},
 		Marshaller:                 &testscommon.MarshalizerMock{},
 		HeaderSigVerifier:          &mock.HeaderSigVerifierStub{},
