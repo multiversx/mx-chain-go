@@ -232,6 +232,13 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	pendingMiniBlocks = addMbsToPending(pendingMiniBlocks, mapMbHeaderHandlers)
 	pendingMiniBlockHashes := getPendingMiniBlocksHashes(pendingMiniBlocks)
 	processedMiniBlocks, err = ssh.updateProcessedMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlockHashes, headers)
+	if err != nil {
+		return nil, nil, err
+	}
+	pendingMiniBlocks, err = ssh.updatePendingMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlocks, headers)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: updated processed and pending for scheduled")
 	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
@@ -278,6 +285,42 @@ func (ssh *shardStorageHandler) updateProcessedMiniBlocksForScheduled(
 	}
 
 	return miniBlocksInMetaList, nil
+}
+
+func (ssh *shardStorageHandler) updatePendingMiniBlocksForScheduled(
+	referencedMetaBlockHashes [][]byte,
+	pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo,
+	headers map[string]data.HeaderHandler,
+) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
+	noPendingMbs := make(map[string]struct{})
+	remainingPendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	for index, metaBlockHash := range referencedMetaBlockHashes {
+		if index == 0 {
+			continue
+		}
+		metaHeaderHandler, ok := headers[string(metaBlockHash)]
+		if !ok {
+			return nil, epochStart.ErrMissingHeader
+		}
+		neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
+		if !ok {
+			return nil, epochStart.ErrWrongTypeAssertion
+		}
+		mbHashes := getProcessedMbHashes(neededMeta, ssh.shardCoordinator.SelfId(), noPendingMbs)
+		if len(mbHashes) > 0 {
+			for index := range pendingMiniBlocks {
+				pendingMiniBlocks[index].MiniBlocksHashes = removeHashes(pendingMiniBlocks[index].MiniBlocksHashes, mbHashes)
+			}
+		}
+	}
+
+	for index := range pendingMiniBlocks {
+		if len(pendingMiniBlocks[index].MiniBlocksHashes) > 0 {
+			remainingPendingMiniBlocks = append(remainingPendingMiniBlocks, pendingMiniBlocks[index])
+		}
+	}
+
+	return remainingPendingMiniBlocks, nil
 }
 
 func removeHashes(hashes [][]byte, hashesToRemove [][]byte) [][]byte {
