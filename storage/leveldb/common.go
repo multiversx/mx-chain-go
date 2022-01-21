@@ -3,6 +3,7 @@ package leveldb
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -71,6 +72,7 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 
 type baseLevelDb struct {
 	mutDb sync.RWMutex
+	path  string
 	db    *leveldb.DB
 }
 
@@ -84,6 +86,11 @@ func (bldb *baseLevelDb) getDbPointer() *leveldb.DB {
 func (bldb *baseLevelDb) makeDbPointerNilReturningLast() *leveldb.DB {
 	bldb.mutDb.Lock()
 	defer bldb.mutDb.Unlock()
+
+	if bldb.db != nil {
+		crtCounter := atomic.AddUint32(&dbCounter, ^uint32(0)) // subtract
+		logDebug.Warn("level db debug", "path", bldb.path, "nilled pointer", fmt.Sprintf("%p", bldb.db), "crt counter", crtCounter)
+	}
 
 	db := bldb.db
 	bldb.db = nil

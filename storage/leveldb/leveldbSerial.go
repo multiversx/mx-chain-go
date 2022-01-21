@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -21,7 +22,6 @@ var _ storage.Persister = (*SerialDB)(nil)
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
 	*baseLevelDb
-	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
 	sizeBatch         int
@@ -56,13 +56,16 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	}
 
 	bldb := &baseLevelDb{
-		db: db,
+		db:   db,
+		path: path,
 	}
+
+	crtCounter := atomic.AddUint32(&dbCounter, 1)
+	logDebug.Warn("serial level db debug", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "crt counter", crtCounter)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &SerialDB{
 		baseLevelDb:       bldb,
-		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
 		sizeBatch:         0,

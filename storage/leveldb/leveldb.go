@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -21,11 +22,12 @@ var _ storage.Persister = (*DB)(nil)
 const rwxOwner = 0700
 
 var log = logger.GetOrCreate("storage/leveldb")
+var logDebug = logger.GetOrCreate("storage/leveldbdebug")
+var dbCounter = uint32(0)
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
 	*baseLevelDb
-	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
 	sizeBatch         int
@@ -58,13 +60,16 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	}
 
 	bldb := &baseLevelDb{
-		db: db,
+		db:   db,
+		path: path,
 	}
+
+	crtCounter := atomic.AddUint32(&dbCounter, 1)
+	logDebug.Warn("level db debug", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "crt counter", crtCounter)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &DB{
 		baseLevelDb:       bldb,
-		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
 		sizeBatch:         0,
