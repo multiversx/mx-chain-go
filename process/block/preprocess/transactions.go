@@ -1368,7 +1368,14 @@ func (txs *transactions) ProcessMiniBlock(
 	} else {
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
-	maxGasLimitUsedForDestMeTxs := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+
+	var maxGasLimitUsedForDestMeTxs uint64
+	isFirstMiniBlockDestMe := totalGasConsumed == 0
+	if isFirstMiniBlockDestMe {
+		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	} else {
+		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+	}
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),

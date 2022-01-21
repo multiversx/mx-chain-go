@@ -522,7 +522,14 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
-	maxGasLimitUsedForDestMeTxs := scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+
+	var maxGasLimitUsedForDestMeTxs uint64
+	isFirstMiniBlockDestMe := gasInfo.totalGasConsumedInSelfShard == 0
+	if isFirstMiniBlockDestMe {
+		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId())
+	} else {
+		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+	}
 
 	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
