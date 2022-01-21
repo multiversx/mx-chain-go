@@ -633,7 +633,7 @@ func DisplayProcessTxDetails(
 		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 	}
 
-	log.Trace("executing transaction",
+	log.Debug("executing transaction",
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
 		"gas limit", txHandler.GetGasLimit(),
