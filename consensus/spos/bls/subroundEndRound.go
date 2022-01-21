@@ -2,6 +2,7 @@ package bls
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -68,7 +69,7 @@ func checkNewSubroundEndRoundParams(
 }
 
 // receivedBlockHeaderFinalInfo method is called when a block header final info is received
-func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
@@ -165,7 +166,7 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 }
 
 // doEndRoundJob method does the job of the subround EndRound
-func (sr *subroundEndRound) doEndRoundJob() bool {
+func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 	if !sr.IsSelfLeaderInCurrentRound() {
 		if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 			err := sr.prepareBroadcastBlockDataForValidator()

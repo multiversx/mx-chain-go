@@ -80,7 +80,7 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 }
 
 // SaveDataToStorage will save the fetched data to storage so it will be used by the storage bootstrap component
-func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, withScheduled bool) error {
+func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler,  withScheduled bool) error {
 	bootStorer := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 
 	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)
@@ -93,7 +93,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, components.ShardHeader, withScheduled)
+	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, notarizedShardHeader, withScheduled)
 	if err != nil {
 		return err
 	}
@@ -214,6 +214,10 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: initial processed and pending for scheduled")
+	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
+
 	if !withScheduled {
 		return processedMiniBlocks, pendingMiniBlocks, nil
 	}
@@ -227,7 +231,26 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	processedMiniBlocks = removeMbsFromProcessed(processedMiniBlocks, mapMbHeaderHandlers)
 	pendingMiniBlocks = addMbsToPending(pendingMiniBlocks, mapMbHeaderHandlers)
 
+	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: updated processed and pending for scheduled")
+	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
+
 	return processedMiniBlocks, pendingMiniBlocks, nil
+}
+
+func printProcessedAndPendingMbs(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
+	for _, miniBlocksInMeta := range processedMiniBlocks {
+		log.Debug("processed meta block", "hash", miniBlocksInMeta.MetaHash)
+		for _, mbHash := range miniBlocksInMeta.MiniBlocksHashes {
+			log.Debug("processedMiniBlock", "hash", mbHash)
+		}
+	}
+
+	for _, pendingMbsInShard := range pendingMiniBlocks {
+		log.Debug("shard", "shardID", pendingMbsInShard.ShardID)
+		for _, mbHash := range pendingMbsInShard.MiniBlocksHashes {
+			log.Debug("pendingMiniBlock", "hash", mbHash)
+		}
+	}
 }
 
 func removeMbFromProcessedList(

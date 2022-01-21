@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -28,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -508,8 +509,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 	bp.txCoordinator.CreateBlockStarted()
-	bp.feeHandler.CreateBlockStarted()
+	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
 	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
 	if err != nil {
@@ -1187,7 +1189,7 @@ func (bp *baseProcessor) updateStateStorage(
 // RevertCurrentBlock reverts the current block for cleanup failed process
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
-	bp.revertScheduledRootHashAndSCRs()
+	bp.revertScheduledRootHashSCRsGasAndFees()
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1199,11 +1201,13 @@ func (bp *baseProcessor) revertAccountState() {
 	}
 }
 
-func (bp *baseProcessor) revertScheduledRootHashAndSCRs() {
+func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler))
+		log.Trace("baseProcessor.revertScheduledRootHashSCRsAndGas", "error", err.Error())
+		gasAndFees := process.GetZeroGasAndFees()
+		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}
 }
 
@@ -1569,6 +1573,8 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	}()
 
 	startTime := time.Now()
+
+	normalProcessingGasAndFees := bp.getGasAndFees()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1582,14 +1588,83 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	if err != nil {
 		return err
 	}
-
+	finalProcessingGasAndFees := bp.getGasAndFees()
+	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
+	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
 
 	return nil
 }
 
+func (bp *baseProcessor) getGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
+		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
+		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
+		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
+		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
+	}
+}
+
+func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
+	zero := big.NewInt(0)
+	result := process.GetZeroGasAndFees()
+
+	deltaAccumulatedFees := big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees)
+	if deltaAccumulatedFees.Cmp(zero) < 0 {
+		log.Error("gasAndFeesDelta",
+			"initial accumulatedFees", initialGasAndFees.AccumulatedFees.String(),
+			"final accumulatedFees", finalGasAndFees.AccumulatedFees.String(),
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	deltaDevFees := big.NewInt(0).Sub(finalGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees)
+	if deltaDevFees.Cmp(zero) < 0 {
+		log.Error("gasAndFeesDelta",
+			"initial devFees", initialGasAndFees.DeveloperFees.String(),
+			"final devFees", finalGasAndFees.DeveloperFees.String(),
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	deltaGasProvided := int64(finalGasAndFees.GasProvided) - int64(initialGasAndFees.GasProvided)
+	if deltaGasProvided < 0 {
+		log.Error("gasAndFeesDelta",
+			"initial gasProvided", initialGasAndFees.GasProvided,
+			"final gasProvided", finalGasAndFees.GasProvided,
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	deltaGasPenalized := int64(finalGasAndFees.GasPenalized) - int64(initialGasAndFees.GasPenalized)
+	if deltaGasPenalized < 0 {
+		log.Error("gasAndFeesDelta",
+			"initial gasPenalized", initialGasAndFees.GasPenalized,
+			"final gasPenalized", finalGasAndFees.GasPenalized,
+			"error", process.ErrNegativeValue)
+		return result
+	}
+	deltaGasRefunded := int64(finalGasAndFees.GasRefunded) - int64(initialGasAndFees.GasRefunded)
+	if deltaGasRefunded < 0 {
+		log.Error("gasAndFeesDelta",
+			"initial gasRefunded", initialGasAndFees.GasRefunded,
+			"final gasRefunded", finalGasAndFees.GasRefunded,
+			"error", process.ErrNegativeValue)
+		return result
+	}
+
+	return scheduled.GasAndFees{
+		AccumulatedFees: deltaAccumulatedFees,
+		DeveloperFees:   deltaDevFees,
+		GasProvided:     uint64(deltaGasProvided),
+		GasPenalized:    uint64(deltaGasPenalized),
+		GasRefunded:     uint64(deltaGasRefunded),
+	}
+}
+
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	bp.flagScheduledMiniBlocks.Toggle(epoch >= bp.scheduledMiniBlocksEnableEpoch)
+	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
 }

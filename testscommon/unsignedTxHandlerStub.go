@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 )
 
 // UnsignedTxHandlerStub -
@@ -26,7 +27,7 @@ func (ut *UnsignedTxHandlerStub) RevertFees(txHashes [][]byte) {
 }
 
 // CreateBlockStarted -
-func (ut *UnsignedTxHandlerStub) CreateBlockStarted() {
+func (ut *UnsignedTxHandlerStub) CreateBlockStarted(_ scheduled.GasAndFees) {
 }
 
 // GetAccumulatedFees -

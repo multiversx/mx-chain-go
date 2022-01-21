@@ -201,8 +201,9 @@ func TestTxLogProcessor_GetLogFromCache(t *testing.T) {
 	txLogProcessor.EnableLogToBeSavedInCache()
 	_ = txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, []*vmcommon.LogEntry{{}})
 
-	_, found := txLogProcessor.GetLogFromCache([]byte("txhash"))
+	logData, found := txLogProcessor.GetLogFromCache([]byte("txhash"))
 	require.True(t, found)
+	require.Equal(t, "txhash", logData.TxHash)
 }
 
 func TestTxLogProcessor_GetLogFromCacheNotInCacheShouldReturnFromStorage(t *testing.T) {

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"math/big"
 	"time"
 
@@ -343,25 +344,25 @@ type HeartbeatComponentsHandler interface {
 type ConsensusWorker interface {
 	Close() error
 	StartWorking()
-	//AddReceivedMessageCall adds a new handler function for a received message type
-	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
-	//AddReceivedHeaderHandler adds a new handler function for a received header
+	// AddReceivedMessageCall adds a new handler function for a received message type
+	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
+	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
-	//RemoveAllReceivedMessagesCalls removes all the functions handlers
+	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
-	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
+	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	//Extend does an extension for the subround with subroundId
+	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
-	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 	GetConsensusStateChangedChannel() chan bool
-	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+	// ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
-	//DisplayStatistics method displays statistics of worker at the end of the round
+	// DisplayStatistics method displays statistics of worker at the end of the round
 	DisplayStatistics()
-	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
-	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

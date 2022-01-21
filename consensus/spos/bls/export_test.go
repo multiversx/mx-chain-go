@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -130,7 +131,7 @@ type SubroundStartRound *subroundStartRound
 
 // DoStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) DoStartRoundJob() bool {
-	return sr.doStartRoundJob()
+	return sr.doStartRoundJob(context.Background())
 }
 
 // DoStartRoundConsensusCheck method checks if the consensus is achieved in the subround StartRound
@@ -160,12 +161,12 @@ func (sr *subroundBlock) BlockChain() data.ChainHandler {
 
 // DoBlockJob method does the job of the subround Block
 func (sr *subroundBlock) DoBlockJob() bool {
-	return sr.doBlockJob()
+	return sr.doBlockJob(context.Background())
 }
 
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
 func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
-	return sr.processReceivedBlock(cnsDta)
+	return sr.processReceivedBlock(context.Background(), cnsDta)
 }
 
 // DoBlockConsensusCheck method checks if the consensus in the subround Block is achieved
@@ -205,17 +206,17 @@ func (sr *subroundBlock) ComputeSubroundProcessingMetric(startTime time.Time, me
 
 // ReceivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockBody(cnsDta)
+	return sr.receivedBlockBody(context.Background(), cnsDta)
 }
 
 // ReceivedBlockHeader method is called when a block header is received through the block header channel
 func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeader(cnsDta)
+	return sr.receivedBlockHeader(context.Background(), cnsDta)
 }
 
 // ReceivedBlockBodyAndHeader is called when both a header and block body have been received
 func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockBodyAndHeader(cnsDta)
+	return sr.receivedBlockBodyAndHeader(context.Background(), cnsDta)
 }
 
 // subroundSignature
@@ -225,12 +226,12 @@ type SubroundSignature *subroundSignature
 
 // DoSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) DoSignatureJob() bool {
-	return sr.doSignatureJob()
+	return sr.doSignatureJob(context.Background())
 }
 
 // ReceivedSignature method is called when a signature is received through the signature channel
 func (sr *subroundSignature) ReceivedSignature(cnsDta *consensus.Message) bool {
-	return sr.receivedSignature(cnsDta)
+	return sr.receivedSignature(context.Background(), cnsDta)
 }
 
 // DoSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
@@ -250,7 +251,7 @@ type SubroundEndRound *subroundEndRound
 
 // DoEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) DoEndRoundJob() bool {
-	return sr.doEndRoundJob()
+	return sr.doEndRoundJob(context.Background())
 }
 
 // DoEndRoundConsensusCheck method checks if the consensus is achieved
@@ -276,7 +277,7 @@ func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeaderFinalInfo(cnsDta)
+	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
 }
 
 func (sr *subroundEndRound) IsBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common/atomic"
 )
 
 const maxGasLimitPercentUsedForDestMeTxs = 50
@@ -28,6 +28,7 @@ const (
 )
 
 type gasConsumedInfo struct {
+	prevGasConsumedInReceiverShard        uint64
 	gasConsumedByMiniBlocksInSenderShard  uint64
 	gasConsumedByMiniBlockInReceiverShard uint64
 	totalGasConsumedInSelfShard           uint64
@@ -56,7 +57,7 @@ type processedTxsInfo struct {
 	numCrossShardScCallsOrSpecialTxs   int
 	numCrossShardTxsWithTooMuchGas     int
 	totalTimeUsedForProcess            time.Duration
-	totalTimeUsedForComputeGasConsumed time.Duration
+	totalTimeUsedForComputeGasProvided time.Duration
 }
 
 type createAndProcessMiniBlocksInfo struct {
@@ -82,7 +83,7 @@ type scheduledTxsInfo struct {
 	numScheduledCrossShardScCalls               int
 	numCrossShardTxsWithTooMuchGas              int
 	totalTimeUsedForScheduledVerify             time.Duration
-	totalTimeUsedForScheduledComputeGasConsumed time.Duration
+	totalTimeUsedForScheduledComputeGasProvided time.Duration
 }
 
 type createScheduledMiniBlocksInfo struct {
@@ -383,38 +384,6 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
-func (bpp *basePreProcess) computeGasConsumedByTx(
-	senderShardId uint32,
-	receiverShardId uint32,
-	tx data.TransactionHandler,
-	txHash []byte,
-) (uint64, uint64, error) {
-
-	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := bpp.gasHandler.ComputeGasConsumedByTx(
-		senderShardId,
-		receiverShardId,
-		tx)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		txGasRefunded := bpp.gasHandler.GasRefunded(txHash)
-		txGasPenalized := bpp.gasHandler.GasPenalized(txHash)
-		txGasToBeSubtracted := txGasRefunded + txGasPenalized
-		if txGasLimitInReceiverShard < txGasToBeSubtracted {
-			return 0, 0, process.ErrInsufficientGasLimitInTx
-		}
-
-		if senderShardId == receiverShardId {
-			txGasLimitInSenderShard -= txGasToBeSubtracted
-			txGasLimitInReceiverShard -= txGasToBeSubtracted
-		}
-	}
-
-	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
-}
-
 func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
 	if bpp.balanceComputation.IsAddressSet(address) {
 		return
@@ -503,8 +472,8 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
-	bpp.flagOptimizeGasUsedInCrossMiniBlocks.Toggle(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
-	bpp.flagFrontRunningProtection.Toggle(epoch >= bpp.frontRunningProtectionEnableEpoch)
+	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
 	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
 }

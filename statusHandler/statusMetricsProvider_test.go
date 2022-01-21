@@ -3,11 +3,14 @@ package statusHandler_test
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewStatusMetricsProvider(t *testing.T) {
@@ -195,6 +198,35 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
+func TestStatusMetrics_NetworkMetrics(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricCurrentRound, 200)
+	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
+	sm.SetUInt64Value(common.MetricNonce, 180)
+	sm.SetUInt64Value(common.MetricHighestFinalBlock, 181)
+	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 95)
+	sm.SetUInt64Value(common.MetricEpochNumber, 1)
+	sm.SetUInt64Value(common.MetricRoundsPerEpoch, 50)
+
+	expectedConfig := map[string]interface{}{
+		"erd_current_round":                  uint64(200),
+		"erd_round_at_epoch_start":           uint64(100),
+		"erd_nonce":                          uint64(180),
+		"erd_highest_final_nonce":            uint64(181),
+		"erd_nonce_at_epoch_start":           uint64(95),
+		"erd_epoch_number":                   uint64(1),
+		"erd_rounds_per_epoch":               uint64(50),
+		"erd_rounds_passed_in_current_epoch": uint64(100),
+		"erd_nonces_passed_in_current_epoch": uint64(85),
+	}
+
+	configMetrics := sm.NetworkMetrics()
+	assert.Equal(t, expectedConfig, configMetrics)
+}
+
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	t.Parallel()
 
@@ -249,4 +281,117 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 
 	epochsMetrics := sm.EnableEpochsMetrics()
 	assert.Equal(t, expectedMetrics, epochsMetrics)
+}
+
+func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	testKey := "test key"
+	sm.SetUInt64Value(testKey, 0)
+
+	numIterations := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+
+	for i := 0; i < numIterations; i++ {
+		go func() {
+			sm.Increment(testKey)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	val := sm.StatusMetricsMap()[testKey]
+	require.Equal(t, uint64(numIterations), val.(uint64))
+}
+
+func TestStatusMetrics_ConcurrentIncrementAndDecrement(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	initialValue := uint64(5000)
+
+	testKey := "test key"
+	sm.SetUInt64Value(testKey, initialValue)
+
+	numIterations := 1001
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+
+	for i := 0; i < numIterations; i++ {
+		go func(idx int) {
+			if idx%2 == 0 {
+				sm.Increment(testKey)
+			} else {
+				sm.Decrement(testKey)
+			}
+
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	val := sm.StatusMetricsMap()[testKey]
+	// we started with a value of initialValue (5000). after X + 1 increments and X decrements, the final
+	// value should be the original value, plus one (5001)
+
+	require.Equal(t, initialValue+1, val.(uint64))
+}
+
+func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	startTime := time.Now()
+
+	defer func() {
+		r := recover()
+		require.Nil(t, r)
+	}()
+	numIterations := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(numIterations)
+
+	for i := 0; i < numIterations; i++ {
+		go func(idx int) {
+			switch idx % 13 {
+			case 0:
+				sm.AddUint64("test", uint64(idx))
+			case 1:
+				sm.SetUInt64Value("test", uint64(idx))
+			case 2:
+				sm.Increment("test")
+			case 3:
+				sm.Decrement("test")
+			case 4:
+				sm.SetInt64Value("test i64", int64(idx))
+			case 5:
+				sm.SetStringValue("test str", "test val")
+			case 6:
+				_ = sm.NetworkMetrics()
+			case 7:
+				_ = sm.ConfigMetrics()
+			case 8:
+				_ = sm.EconomicsMetrics()
+			case 9:
+				_ = sm.StatusMetricsMap()
+			case 10:
+				_ = sm.StatusMetricsMapWithoutP2P()
+			case 11:
+				_ = sm.StatusMetricsWithoutP2PPrometheusString()
+			case 12:
+				_ = sm.StatusP2pMetricsMap()
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	elapsedTime := time.Since(startTime)
+	require.True(t, elapsedTime < 10 * time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
 }

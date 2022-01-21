@@ -59,6 +59,7 @@ type EnableEpochs struct {
 	MultiESDTTransferFixOnCallBackOnEnableEpoch       uint32
 	OptimizeGasUsedInCrossMiniBlocksEnableEpoch       uint32
 	CorrectFirstQueuedEpoch                           uint32
+	CorrectJailedNotUnstakedEmptyQueueEpoch     uint32
 	FixOOGReturnCodeEnableEpoch                       uint32
 	RemoveNonUpdatedStorageEnableEpoch                uint32
 	DeleteDelegatorAfterClaimRewardsEnableEpoch       uint32

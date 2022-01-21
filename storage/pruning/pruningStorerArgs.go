@@ -14,7 +14,6 @@ type StorerArgs struct {
 	PathManager               storage.PathManagerHandler
 	DbPath                    string
 	PersisterFactory          DbFactoryHandler
-	BloomFilterConf           storageUnit.BloomConfig
 	Notifier                  EpochStartNotifier
 	OldDataCleanerProvider    clean.OldDataCleanerProvider
 	MaxBatchSize              int

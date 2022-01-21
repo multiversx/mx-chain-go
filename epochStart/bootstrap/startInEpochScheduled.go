@@ -2,11 +2,11 @@ package bootstrap
 
 import (
 	"context"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -218,7 +218,14 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 
 	additionalData := header.GetAdditionalData()
 	if additionalData != nil {
-		ses.saveScheduledSCRs(scheduledSCRs, header.GetAdditionalData().GetScheduledRootHash(), header.GetPrevHash())
+		gasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: additionalData.GetScheduledAccumulatedFees(),
+			DeveloperFees:   additionalData.GetScheduledDeveloperFees(),
+			GasProvided:     additionalData.GetScheduledGasProvided(),
+			GasPenalized:    additionalData.GetScheduledGasPenalized(),
+			GasRefunded:     additionalData.GetScheduledGasRefunded(),
+		}
+		ses.saveScheduledSCRsGasAndFees(scheduledSCRs, additionalData.GetScheduledRootHash(), header.GetPrevHash(), gasAndFees)
 	}
 
 	return nil
@@ -244,28 +251,40 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
 	return scheduledSCRs, nil
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRs(
+func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 	scheduledSCRs map[string]data.TransactionHandler,
 	scheduledRootHash []byte,
 	headerHash []byte,
+	gasAndFees scheduled.GasAndFees,
 ) {
-	if len(scheduledRootHash) == 0 {
+	if scheduledRootHash == nil {
 		return
 	}
 
-	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRs",
-		"headerHash", headerHash,
-		"scheduledRootHash", scheduledRootHash,
-	)
 	// prepare the scheduledSCRs in the form of map[block.Type][]data.TransactionHandler
 	// the order should not matter, as the processing is done after sorting by scr hash
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
-	scheduledSCRsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
-	for scrHash := range scheduledSCRs {
-		scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
+	if len(scheduledSCRs) > 0 {
+		scheduledSCRsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
+		for scrHash := range scheduledSCRs {
+			scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
+		}
+
+		mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
 	}
-	mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
-	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs)
+
+	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
+		"headerHash", headerHash,
+		"scheduledRootHash", scheduledRootHash,
+		"num of scheduled scrs", len(mapScheduledSCRs),
+		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
+		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
+		"gasAndFees.GasProvided", gasAndFees.GasProvided,
+		"gasAndFees.GasPenalized", gasAndFees.GasPenalized,
+		"gasAndFees.GasRefunded", gasAndFees.GasRefunded,
+	)
+
+	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs, gasAndFees)
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getAllTransactionsForMiniBlocks(miniBlocks map[string]*block.MiniBlock, epoch uint32) (map[string]data.TransactionHandler, error) {

@@ -72,7 +72,7 @@ func TestScheduledProcessorWrapper_IsProcessedOKEarlyExit(t *testing.T) {
 	args := ScheduledProcessorWrapperArgs{
 		SyncTimer: &mock.SyncTimerMock{
 			CurrentTimeCalled: func() time.Time {
-				called.Set()
+				called.SetValue(true)
 				return time.Now()
 			},
 		},
@@ -238,7 +238,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV1ProcessingOK(
 		SyncTimer: &mock.SyncTimerMock{},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled.Set()
+				processScheduledCalled.SetValue(true)
 				return nil
 			},
 		},
@@ -264,7 +264,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingWit
 		SyncTimer: &mock.SyncTimerMock{},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled.Set()
+				processScheduledCalled.SetValue(true)
 				return errors.New("processing error")
 			},
 		},
@@ -292,7 +292,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 		SyncTimer: &mock.SyncTimerMock{},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled.Set()
+				processScheduledCalled.SetValue(true)
 				return nil
 			},
 		},
@@ -325,7 +325,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 		},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled.Set()
+				processScheduledCalled.SetValue(true)
 				for {
 					<-time.After(time.Millisecond)
 					remainingTime := haveTime()
@@ -366,7 +366,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 		},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled.Set()
+				processScheduledCalled.SetValue(true)
 				<-time.After(time.Millisecond)
 				return nil
 			},

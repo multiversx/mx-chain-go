@@ -2,7 +2,6 @@ package storageBootstrap
 
 import (
 	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -179,9 +178,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
 	if err != nil {
-		st.scheduledTxsExecutionHandler.SetScheduledRootHashAndSCRs(
+		gasAndFees := process.GetZeroGasAndFees()
+		st.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(
 			st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
-			make(map[block.Type][]data.TransactionHandler))
+			make(map[block.Type][]data.TransactionHandler),
+			gasAndFees)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce

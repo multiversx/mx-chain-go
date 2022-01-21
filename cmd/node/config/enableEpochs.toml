@@ -177,6 +177,9 @@
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
     ScheduledMiniBlocksEnableEpoch = 1000000
 
+    # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
+    CorrectJailedNotUnstakedEmptyQueueEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
