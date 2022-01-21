@@ -261,13 +261,13 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 
 		roundDif := tpc.roundHandler.Index() - currTxInfo.round
 		if roundDif <= process.MaxRoundsToKeepUnprocessedTransactions {
-			log.Trace("cleaning transaction not yet allowed",
-				"hash", []byte(hash),
-				"round", currTxInfo.round,
-				"sender", currTxInfo.senderShardID,
-				"receiver", currTxInfo.receiverShardID,
-				"type", getTxTypeName(currTxInfo.txType),
-				"round dif", roundDif)
+			// log.Trace("cleaning transaction not yet allowed",
+			// 	"hash", []byte(hash),
+			// 	"round", currTxInfo.round,
+			// 	"sender", currTxInfo.senderShardID,
+			// 	"receiver", currTxInfo.receiverShardID,
+			// 	"type", getTxTypeName(currTxInfo.txType),
+			// 	"round dif", roundDif)
 
 			continue
 		}
