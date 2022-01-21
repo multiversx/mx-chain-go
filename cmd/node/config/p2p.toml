@@ -24,9 +24,9 @@
     #the sync and consensus mechanisms
     ThresholdMinConnectedPeers = 3
 
-    # WaitNumPeersOnBootstrap is the minimum number of peers to wait on bootstrap or the node will wait the default
-    # time which is now set to ~20 seconds
-    WaitNumPeersOnBootstrap = 10
+    # MinNumPeersToWaitForOnBootstrap is the minimum number of peers to wait on bootstrap or the node will wait the default
+    # time which is now set to ~20 seconds (the const defined in the common package named TimeToWaitForP2PBootstrap)
+    MinNumPeersToWaitForOnBootstrap = 10
 
 # P2P peer discovery section
 

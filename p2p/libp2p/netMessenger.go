@@ -695,9 +695,9 @@ func (netMes *networkMessenger) WaitForConnections(maxWaitingTime time.Duration,
 			"waited", time.Since(startTime), "num connected peers", len(netMes.ConnectedPeers()))
 	}()
 
-	if minNumOfPeers <= 0 {
-		time.Sleep(maxWaitingTime)
+	if minNumOfPeers == 0 {
 		log.Debug("networkMessenger.WaitForConnections", "waiting", maxWaitingTime)
+		time.Sleep(maxWaitingTime)
 		return
 	}
 
@@ -705,6 +705,7 @@ func (netMes *networkMessenger) WaitForConnections(maxWaitingTime time.Duration,
 }
 
 func (netMes *networkMessenger) waitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
+	log.Debug("networkMessenger.WaitForConnections", "waiting", maxWaitingTime, "min num of peers", minNumOfPeers)
 	ctxMaxWaitingTime, cancel := context.WithTimeout(context.Background(), maxWaitingTime)
 	defer cancel()
 

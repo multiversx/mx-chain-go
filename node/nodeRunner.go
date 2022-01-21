@@ -1135,18 +1135,18 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:            *nr.configs.P2pConfig,
-		MainConfig:           *nr.configs.GeneralConfig,
-		RatingsConfig:        *nr.configs.RatingsConfig,
-		StatusHandler:        managedCoreComponents.StatusHandler(),
-		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
-		Syncer:               managedCoreComponents.SyncTimer(),
-		PreferredPublicKeys:  decodedPreferredPubKeys,
-		BootstrapWaitSeconds: common.SecondsToWaitForP2PBootstrap,
-		NodeOperationMode:    p2p.NormalOperation,
+		P2pConfig:           *nr.configs.P2pConfig,
+		MainConfig:          *nr.configs.GeneralConfig,
+		RatingsConfig:       *nr.configs.RatingsConfig,
+		StatusHandler:       managedCoreComponents.StatusHandler(),
+		Marshalizer:         managedCoreComponents.InternalMarshalizer(),
+		Syncer:              managedCoreComponents.SyncTimer(),
+		PreferredPublicKeys: decodedPreferredPubKeys,
+		BootstrapWaitTime:   common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:   p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
-		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
 		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode

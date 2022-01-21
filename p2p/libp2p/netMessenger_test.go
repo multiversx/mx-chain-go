@@ -1837,12 +1837,31 @@ func TestNetworkMessenger_WaitForConnections(t *testing.T) {
 		defer func() {
 			_ = mes1.Close()
 			_ = mes2.Close()
+			_ = mes3.Close()
 		}()
 
-		timeToWait := time.Hour
+		timeToWait := time.Second * 10
 		mes1.WaitForConnections(timeToWait, 2)
 
 		assert.True(t, timeToWait > time.Since(startTime))
 		assert.True(t, libp2p.PollWaitForConnectionsInterval <= time.Since(startTime))
+	})
+	t.Run("min num of peers is 2 but we only connected to 1 peer", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		_, mes1, mes2 := createMockNetworkOf2()
+
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+		}()
+
+		timeToWait := time.Second * 10
+		mes1.WaitForConnections(timeToWait, 2)
+
+		assert.True(t, timeToWait < time.Since(startTime))
 	})
 }
