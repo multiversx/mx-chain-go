@@ -315,6 +315,12 @@ func (ihncl *IndexHashedNodesCoordinatorLite) ComputeConsensusGroup(
 		return nil, err
 	}
 
+	for i, v := range tempList {
+		log.Debug("computeValidatorsGroup - PK",
+			"validator", i,
+			"pubKey", v.PubKey())
+	}
+
 	size := 0
 	for _, v := range tempList {
 		size += v.Size()
