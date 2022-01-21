@@ -2,6 +2,7 @@ package leveldb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -30,7 +31,7 @@ type DB struct {
 	sizeBatch         int
 	batch             storage.Batcher
 	mutBatch          sync.RWMutex
-	dbClosed          chan struct{}
+	cancel            context.CancelFunc
 }
 
 // NewDB is a constructor for the leveldb persister
@@ -60,18 +61,19 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		db: db,
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &DB{
 		baseLevelDb:       bldb,
 		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
 		sizeBatch:         0,
-		dbClosed:          make(chan struct{}),
+		cancel:            cancel,
 	}
 
 	dbStore.batch = dbStore.createBatch()
 
-	go dbStore.batchTimeoutHandle()
+	go dbStore.batchTimeoutHandle(ctx)
 
 	runtime.SetFinalizer(dbStore, func(db *DB) {
 		_ = db.Close()
@@ -82,7 +84,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	return dbStore, nil
 }
 
-func (s *DB) batchTimeoutHandle() {
+func (s *DB) batchTimeoutHandle(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
@@ -97,7 +99,7 @@ func (s *DB) batchTimeoutHandle() {
 			s.batch.Reset()
 			s.sizeBatch = 0
 			s.mutBatch.Unlock()
-		case <-s.dbClosed:
+		case <-ctx.Done():
 			log.Debug("closing the timed batch handler", "path", s.path)
 			return
 		}
@@ -219,11 +221,7 @@ func (s *DB) Close() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	select {
-	case s.dbClosed <- struct{}{}:
-	default:
-	}
-
+	s.cancel()
 	db := s.makeDbPointerNilReturningLast()
 	if db != nil {
 		return db.Close()
@@ -248,7 +246,7 @@ func (s *DB) Destroy() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	s.dbClosed <- struct{}{}
+	s.cancel()
 	db := s.makeDbPointerNilReturningLast()
 	if db != nil {
 		err := db.Close()
