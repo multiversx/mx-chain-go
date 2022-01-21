@@ -549,8 +549,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return processedTxHashes, index, err
+			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
 		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
