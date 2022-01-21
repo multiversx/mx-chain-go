@@ -1,6 +1,7 @@
 package spos_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -546,7 +547,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -589,7 +590,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		return time.Until(maxTime)
 	}
 
-	r := sr.DoWork(roundHandlerMock)
+	r := sr.DoWork(context.Background(), roundHandlerMock)
 
 	assert.False(t, r)
 }
@@ -616,7 +617,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = nil
@@ -627,7 +628,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		return time.Until(maxTime)
 	}
 
-	r := sr.DoWork(roundHandlerMock)
+	r := sr.DoWork(context.Background(), roundHandlerMock)
 	assert.False(t, r)
 }
 
@@ -663,7 +664,7 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -676,7 +677,7 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 		return time.Until(maxTime)
 	}
 
-	r := sr.DoWork(roundHandlerMock)
+	r := sr.DoWork(context.Background(), roundHandlerMock)
 	assert.Equal(t, shouldWork, r)
 }
 
@@ -708,7 +709,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	checkSuccess := false
 	mut.Unlock()
 
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -733,7 +734,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		ch <- true
 	}()
 
-	r := sr.DoWork(roundHandlerMock)
+	r := sr.DoWork(context.Background(), roundHandlerMock)
 
 	assert.True(t, r)
 }
@@ -760,7 +761,7 @@ func TestSubround_Previous(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -792,7 +793,7 @@ func TestSubround_Current(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -824,7 +825,7 @@ func TestSubround_Next(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -856,7 +857,7 @@ func TestSubround_StartTime(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -888,7 +889,7 @@ func TestSubround_EndTime(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {
@@ -920,7 +921,7 @@ func TestSubround_Name(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	sr.Job = func() bool {
+	sr.Job = func(_ context.Context) bool {
 		return true
 	}
 	sr.Check = func() bool {

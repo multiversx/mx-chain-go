@@ -510,7 +510,7 @@ func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
 	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
-	bp.txCoordinator.CreateBlockStarted(scheduledGasAndFees)
+	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
 	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
@@ -1205,7 +1205,7 @@ func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		log.Warn("baseProcessor.revertScheduledRootHashSCRsAndGas - could not rollback to block, trying recovery", "error", err.Error())
+		log.Trace("baseProcessor.revertScheduledRootHashSCRsAndGas", "error", err.Error())
 		gasAndFees := process.GetZeroGasAndFees()
 		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 	}

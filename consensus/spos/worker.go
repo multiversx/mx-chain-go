@@ -52,7 +52,7 @@ type Worker struct {
 	networkShardingCollector consensus.NetworkShardingCollector
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
-	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
+	receivedMessagesCalls map[consensus.MessageType]func(ctx context.Context, msg *consensus.Message) bool
 
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
@@ -152,7 +152,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
 	wrk.executeMessageChannel = make(chan *consensus.Message)
-	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(context.Context, *consensus.Message) bool)
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
@@ -293,7 +293,7 @@ func (wrk *Worker) initReceivedMessages() {
 }
 
 // AddReceivedMessageCall adds a new handler function for a received messege type
-func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {
+func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
 	wrk.mutReceivedMessagesCalls.Unlock()
@@ -302,7 +302,7 @@ func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, rec
 // RemoveAllReceivedMessagesCalls removes all the functions handlers
 func (wrk *Worker) RemoveAllReceivedMessagesCalls() {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(context.Context, *consensus.Message) bool)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
@@ -341,8 +341,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 
 	defer func() {
 		if wrk.shouldBlacklistPeer(err) {
-			//this situation is so severe that we have to black list both the message originator and the connected peer
-			//that disseminated this message.
+			// this situation is so severe that we have to black list both the message originator and the connected peer
+			// that disseminated this message.
 
 			reason := fmt.Sprintf("blacklisted due to invalid consensus message: %s", err.Error())
 			wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
@@ -403,8 +403,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	errNotCritical := wrk.checkSelfState(cnsMsg)
 	if errNotCritical != nil {
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
-		//in this case should return nil but do not process the message
-		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
+		// in this case should return nil but do not process the message
+		// nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
 		return nil
 	}
 
@@ -474,8 +474,8 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	if errNotCritical != nil {
 		log.Debug("add received header from consensus topic to fork detector failed",
 			"error", errNotCritical.Error())
-		//we should not return error here because the other peers connected to self might need this message
-		//to advance the consensus
+		// we should not return error here because the other peers connected to self might need this message
+		// to advance the consensus
 	}
 
 	return nil
@@ -592,7 +592,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
-			if callReceivedMessage(rcvDta) {
+			if callReceivedMessage(ctx, rcvDta) {
 				select {
 				case wrk.consensusStateChangedChannel <- true:
 				default:
@@ -602,7 +602,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 	}
 }
 
-//Extend does an extension for the subround with subroundId
+// Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
 	wrk.consensusState.ExtendedCalled = true
 	log.Debug("extend function is called",
@@ -658,8 +658,8 @@ func (wrk *Worker) ExecuteStoredMessages() {
 
 // Close will close the endless running go routine
 func (wrk *Worker) Close() error {
-	//calling close on the SafeCloser instance should be the last instruction called
-	//(just to close some go routines started as edge cases that would otherwise hang)
+	// calling close on the SafeCloser instance should be the last instruction called
+	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer wrk.closer.Close()
 
 	if wrk.cancelFunc != nil {

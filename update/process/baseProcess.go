@@ -101,9 +101,7 @@ func (b *baseProcessor) getTxsInfoFromMiniBlock(
 
 // CreatePostMiniBlocks will create all the post miniBlocks from the given miniBlocks info
 func (b *baseProcessor) CreatePostMiniBlocks(mbsInfo []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
-	// TODO: need to add scheduled component for hardfork as well
-	gasAndFees := process.GetZeroGasAndFees()
-	b.txCoordinator.CreateBlockStarted(gasAndFees)
+	b.txCoordinator.CreateBlockStarted()
 
 	body := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),

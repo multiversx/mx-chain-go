@@ -1228,7 +1228,10 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	args.TxDataPool = tdp.Transactions()
 	args.GasHandler = &mock.GasHandlerMock{
 		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-			return 0, MaxGasLimitPerBlock*maxGasLimitPercentUsedForDestMeTxs/100 + 1, nil
+			return 0, MaxGasLimitPerBlock * maxGasLimitPercentUsedForDestMeTxs / 100, nil
+		},
+		TotalGasProvidedCalled: func() uint64 {
+			return 1
 		},
 	}
 

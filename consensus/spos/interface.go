@@ -1,6 +1,8 @@
 package spos
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
@@ -110,7 +112,7 @@ type WorkerHandler interface {
 	Close() error
 	StartWorking()
 	// AddReceivedMessageCall adds a new handler function for a received message type
-	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
 	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers

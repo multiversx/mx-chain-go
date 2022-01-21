@@ -640,8 +640,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	zeroGasAndFees := process.GetZeroGasAndFees()
-	tc.CreateBlockStarted(zeroGasAndFees)
+	tc.CreateBlockStarted()
 
 	tc.mutPreProcessor.Lock()
 	for _, value := range tc.txPreProcessors {

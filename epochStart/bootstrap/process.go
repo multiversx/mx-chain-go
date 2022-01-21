@@ -118,8 +118,8 @@ type epochStartBootstrap struct {
 	argumentsParser           process.ArgumentsParser
 	enableEpochs              config.EnableEpochs
 	dataSyncerFactory         types.ScheduledDataSyncerCreator
-	dataSyncerWithScheduled types.ScheduledDataSyncer
-	storageService             dataRetriever.StorageService
+	dataSyncerWithScheduled   types.ScheduledDataSyncer
+	storageService            dataRetriever.StorageService
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -167,10 +167,10 @@ type ArgsEpochStartBootstrap struct {
 }
 
 type dataToSync struct {
-	ownShardHdr       data.ShardHeaderHandler
-	rootHashToSync    []byte
-	withScheduled     bool
-	additionalHeaders map[string]data.HeaderHandler
+	ownShardHdr        data.ShardHeaderHandler
+	rootHashToSync     []byte
+	withScheduled      bool
+	additionalHeaders  map[string]data.HeaderHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -912,7 +912,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, dts.withScheduled)
+	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled)
 	if errSavingToStorage != nil {
 		return errSavingToStorage
 	}

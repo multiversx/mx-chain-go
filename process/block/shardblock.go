@@ -1311,8 +1311,14 @@ func (sp *shardProcessor) setHeaderVersionData(shardHeader data.ShardHeaderHandl
 		return err
 	}
 
+	scheduledGasAndFees := sp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 	additionalVersionData := &headerVersionData.AdditionalData{
-		ScheduledRootHash: rootHash,
+		ScheduledRootHash:        rootHash,
+		ScheduledAccumulatedFees: scheduledGasAndFees.AccumulatedFees,
+		ScheduledDeveloperFees:   scheduledGasAndFees.DeveloperFees,
+		ScheduledGasProvided:     scheduledGasAndFees.GasProvided,
+		ScheduledGasPenalized:    scheduledGasAndFees.GasPenalized,
+		ScheduledGasRefunded:     scheduledGasAndFees.GasRefunded,
 	}
 
 	return shardHeader.SetAdditionalData(additionalVersionData)

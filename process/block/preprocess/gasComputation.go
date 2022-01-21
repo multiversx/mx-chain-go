@@ -282,7 +282,7 @@ func (gc *gasComputation) ComputeGasProvidedByTx(
 
 	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 	if moveBalanceConsumption > txHandler.GetGasLimit() {
-		log.Warn("ComputeGasProvidedByTx less gasLimit than moveBalance", "gasLimit", txHandler.GetGasLimit(), "moveBalanceGasCost", moveBalanceConsumption)
+		log.Trace("ComputeGasProvidedByTx less gasLimit than moveBalance", "gasLimit", txHandler.GetGasLimit(), "moveBalanceGasCost", moveBalanceConsumption)
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 

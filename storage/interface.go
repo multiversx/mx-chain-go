@@ -80,19 +80,6 @@ type Cacher interface {
 	IsInterfaceNil() bool
 }
 
-// BloomFilter provides services for filtering database requests
-type BloomFilter interface {
-	//Add adds the value to the bloom filter
-	Add([]byte)
-	// MayContain checks if the value is in in the set. If it returns 'false',
-	//the item is definitely not in the DB
-	MayContain([]byte) bool
-	//Clear sets all the bits from the filter to 0
-	Clear()
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
 // Storer provides storage services in a two layered storage construct, where the first layer is
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {

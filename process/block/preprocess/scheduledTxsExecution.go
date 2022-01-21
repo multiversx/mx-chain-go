@@ -69,6 +69,7 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:   make(map[string]data.TransactionHandler),
 		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:      make([]data.TransactionHandler, 0),
+		gasAndFees:        process.GetZeroGasAndFees(),
 		storer:            storer,
 		marshaller:        marshaller,
 		scheduledRootHash: nil,
@@ -84,7 +85,6 @@ func (ste *scheduledTxsExecution) Init() {
 	log.Debug("scheduledTxsExecution.Init", "num of last scheduled txs", len(ste.scheduledTxs))
 	ste.mapScheduledTxs = make(map[string]data.TransactionHandler)
 	ste.scheduledTxs = make([]data.TransactionHandler, 0)
-	ste.gasAndFees = process.GetZeroGasAndFees()
 	ste.mutScheduledTxs.Unlock()
 }
 
@@ -254,7 +254,6 @@ func (ste *scheduledTxsExecution) SetScheduledRootHashSCRsGasAndFees(rootHash []
 	defer ste.mutScheduledTxs.Unlock()
 
 	ste.scheduledRootHash = rootHash
-	log.Debug("scheduledTxsExecution.SetScheduledRootHashSCRsGasAndFees", "scheduled root hash", rootHash)
 
 	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
@@ -274,7 +273,14 @@ func (ste *scheduledTxsExecution) SetScheduledRootHashSCRsGasAndFees(rootHash []
 
 	ste.gasAndFees = gasAndFees
 
-	log.Debug("scheduledTxsExecution.SetScheduledRootHashSCRsGasAndFees", "num of scheduled scrs", numScheduledSCRs)
+	log.Debug("scheduledTxsExecution.SetScheduledRootHashSCRsGasAndFees",
+		"scheduled root hash", rootHash,
+		"num of scheduled scrs", numScheduledSCRs,
+		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
+		"developerFees", gasAndFees.DeveloperFees.String(),
+		"gasProvided", gasAndFees.GasProvided,
+		"gasPenalized", gasAndFees.GasPenalized,
+		"gasRefunded", gasAndFees.GasRefunded)
 }
 
 // GetScheduledRootHash gets the resulted root hash after the execution of scheduled transactions
@@ -344,7 +350,7 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 ) ([]byte, error) {
 	rootHash, _, _, err := ste.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
 
-	log.Trace("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", rootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", rootHash)
 
 	return rootHash, err
 }
@@ -356,7 +362,15 @@ func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
 		return err
 	}
 
-	log.Debug("scheduledTxsExecution.RollBackToBlock", "header hash", headerHash, "scheduled root hash", scheduledRootHash, "num of scheduled scrs", len(mapScheduledSCRs))
+	log.Debug("scheduledTxsExecution.RollBackToBlock",
+		"header hash", headerHash,
+		"scheduled root hash", scheduledRootHash,
+		"num of scheduled scrs", len(mapScheduledSCRs),
+		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
+		"developerFees", gasAndFees.DeveloperFees.String(),
+		"gasProvided", gasAndFees.GasProvided,
+		"gasPenalized", gasAndFees.GasPenalized,
+		"gasRefunded", gasAndFees.GasRefunded)
 
 	ste.SetScheduledRootHashSCRsGasAndFees(scheduledRootHash, mapScheduledSCRs, *gasAndFees)
 
@@ -371,7 +385,16 @@ func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
 	gasAndFees := ste.gasAndFees
 	numScheduledTxs := len(ste.scheduledTxs)
 	ste.mutScheduledTxs.RUnlock()
-	log.Debug("scheduledTxsExecution.SaveStateIfNeeded", "num of scheduled txs", numScheduledTxs)
+	log.Debug("scheduledTxsExecution.SaveStateIfNeeded",
+		"header hash", headerHash,
+		"scheduled root hash", scheduledRootHash,
+		"num of scheduled txs", numScheduledTxs,
+		"num of scheduled scrs", len(mapScheduledSCRs),
+		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
+		"developerFees", gasAndFees.DeveloperFees.String(),
+		"gasProvided", gasAndFees.GasProvided,
+		"gasPenalized", gasAndFees.GasPenalized,
+		"gasRefunded", gasAndFees.GasRefunded)
 
 	if numScheduledTxs > 0 {
 		ste.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs, gasAndFees)
@@ -391,14 +414,16 @@ func (ste *scheduledTxsExecution) SaveState(
 		return
 	}
 
-	log.Trace("scheduledTxsExecution.SaveState Put",
+	log.Debug("scheduledTxsExecution.SaveState Put",
 		"header hash", headerHash,
-		"length of marshalized scheduled SCRs", len(marshalledScheduledData),
+		"scheduled root hash", scheduledRootHash,
+		"num of scheduled scrs", len(mapScheduledSCRs),
 		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
 		"gasAndFees.GasProvided", gasAndFees.GasProvided,
 		"gasAndFees.GasPenalized", gasAndFees.GasPenalized,
-		"gasAndFees.GasRefunded", gasAndFees.GasRefunded)
+		"gasAndFees.GasRefunded", gasAndFees.GasRefunded,
+		"length of marshalized scheduled SCRs", len(marshalledScheduledData))
 	err = ste.storer.Put(headerHash, marshalledScheduledData)
 	if err != nil {
 		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledSCRsUnit", "error", err.Error())

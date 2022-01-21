@@ -87,7 +87,7 @@ func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint6
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
 
-	//TODO remove duplicate code found in update/factory/exportHandlerFactory.go
+	// TODO remove duplicate code found in update/factory/exportHandlerFactory.go
 	keysStorer, err := createStorer(gbc.arg.HardForkConfig.ImportKeysStorageConfig, importFolder)
 	if err != nil {
 		return fmt.Errorf("%w while creating keys storer", err)
@@ -130,7 +130,6 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 	store, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
-		factory.GetBloomFromConfig(storageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, err
@@ -321,7 +320,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, err
 	}
 
-	//TODO call here trie pruning on all roothashes not from current shard
+	// TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
 }
@@ -469,7 +468,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		return newArgument, nil
 	}
 
-	newArgument := gbc.arg //copy the arguments
+	newArgument := gbc.arg // copy the arguments
 	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
