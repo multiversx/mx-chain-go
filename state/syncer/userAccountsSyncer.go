@@ -131,9 +131,9 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	err = mainTrie.GetStorageManager().Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	err = mainTrie.GetStorageManager().Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
 	if err != nil {
-		log.Warn("error while putting active DB value into main storer after sync", "error", err)
+		log.Warn("error while putting trieSynced value into main storer after sync", "error", err)
 	}
 
 	return nil
