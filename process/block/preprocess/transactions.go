@@ -1331,16 +1331,15 @@ func (txs *transactions) ProcessMiniBlock(
 	haveAdditionalTime func() bool,
 	getNumOfCrossInterMbsAndTxs func() (int, int),
 	scheduledMode bool,
-) ([][]byte, int, error) {
+) (processedTxHashes [][]byte, numProcessedTxs int, err error) {
 
 	if miniBlock.Type != block.TxBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 
 	numTXsProcessed := 0
-	var err error
 	var gasProvidedByTxInSelfShard uint64
-	processedTxHashes := make([][]byte, 0)
+	processedTxHashes = make([][]byte, 0)
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime, haveAdditionalTime)
 	if err != nil {
 		return nil, 0, err
@@ -1406,8 +1405,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	for index := range miniBlockTxs {
 		if !haveTime() && !haveAdditionalTime() {
-			err = process.ErrTimeIsOut
-			return processedTxHashes, index, err
+			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
 		gasProvidedByTxInSelfShard, err = txs.computeGasProvided(
@@ -1431,8 +1429,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 		if txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-				return processedTxHashes, index, err
+				return processedTxHashes, index, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 			}
 		}
 
@@ -1464,8 +1461,7 @@ func (txs *transactions) ProcessMiniBlock(
 	numMiniBlocks := 1 + numOfNewCrossInterMbs
 	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs
 	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
-		err = process.ErrMaxBlockSizeReached
-		return processedTxHashes, len(processedTxHashes), err
+		return processedTxHashes, len(processedTxHashes), process.ErrMaxBlockSizeReached
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
