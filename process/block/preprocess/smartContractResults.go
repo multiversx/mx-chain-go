@@ -490,16 +490,15 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool, _ []b
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
+func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool) (processedTxHashes [][]byte, numProcessedTxs int, err error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 
 	numSCRsProcessed := 0
-	var err error
 	var gasProvidedByTxInSelfShard uint64
-	processedTxHashes := make([][]byte, 0)
+	processedTxHashes = make([][]byte, 0)
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return nil, 0, err
@@ -570,8 +569,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-				return processedTxHashes, index, err
+				return processedTxHashes, index, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 			}
 		}
 
