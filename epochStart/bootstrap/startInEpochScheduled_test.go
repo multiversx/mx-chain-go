@@ -375,7 +375,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 	expectedHeaderHash := headerHash
 	expectedScheduledRootHash := scheduledRootHash
 	expectedScheduledSCRsMap := map[block.Type][]data.TransactionHandler{
-		block.TxBlock: {scr1, scr2},
+		block.SmartContractResultBlock: {scr1, scr2},
 	}
 	gasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(100),

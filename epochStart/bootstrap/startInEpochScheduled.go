@@ -270,7 +270,7 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 			scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
 		}
 
-		mapScheduledSCRs[block.TxBlock] = scheduledSCRsList
+		mapScheduledSCRs[block.SmartContractResultBlock] = scheduledSCRsList
 	}
 
 	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
