@@ -1062,6 +1062,9 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 		return
 	}
 
+	// TODO - this PR: evaluate if we really need this on a shard node or we can mock the peer trie snapshot
+	peerAccounts := sp.accountsDB[state.PeerAccountsState]
+
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -1086,6 +1089,11 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			rootHash := epochStartShData.RootHash
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
 			accounts.SnapshotState(rootHash)
+			if !check.IfNil(peerAccounts) {
+				peerAccounts.SnapshotState(metaHdr.ValidatorStatsRootHash)
+			} else {
+				log.Warn("programming error: peerAccounts is nil while trying to take a snapshot on a shard node")
+			}
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {
 				err := sp.commitTrieEpochRootHashIfNeeded(metaHdr, rootHash)
