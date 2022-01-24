@@ -123,12 +123,10 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
 		miniBlocksHashes := make(MiniBlockHashes)
-		//TODO: Remove the commented code after this new two fields will be added in elrond-go-core
-		//for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
-		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
+		for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
 			miniBlocksHashes[string(miniBlockHash)] = &process.ProcessedMiniBlockInfo{
-				//IsFullyProcessed: miniBlocksInMeta.IsFullyProcessed[index],
-				//IndexOfLastTxProcessed: miniBlocksInMeta.IndexOfLastTxprocessed[index],
+				IsFullyProcessed:       miniBlocksInMeta.IsFullyProcessed[index],
+				IndexOfLastTxProcessed: miniBlocksInMeta.IndexOfLastTxProcessed[index],
 			}
 		}
 		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes

@@ -11,6 +11,8 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 message MiniBlocksInMeta {
 	bytes          MetaHash         = 1;
 	repeated bytes MiniBlocksHashes = 2;
+	repeated bool IsFullyProcessed  = 3;
+	repeated uint32 IndexOfLastTxProcessed = 4;
 }
 
 //BootstrapHeaderInfo is used to store information about a header
