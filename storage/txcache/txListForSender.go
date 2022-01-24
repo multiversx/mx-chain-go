@@ -144,7 +144,8 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 			}
 			if currentTxGasPrice == incomingGasPrice {
 				// The incoming transaction will be placed right after the existing one, which has same nonce and the same price.
-				// This will order out the transactions having the same nonce and tx hash
+				// (but different hash, because of some other fields like receiver, value or data)
+				// This will order out the transactions having the same nonce and gas price
 				if bytes.Compare(currentTx.TxHash, incomingTx.TxHash) < 0 {
 					return element, nil
 				}
