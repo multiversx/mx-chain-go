@@ -27,7 +27,7 @@ func Benchmark_searchingForPanic(b *testing.B) {
 
 func Test_searchingForPanic(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 8, "_main", nil, 1, nil)
+		runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, 1, nil)
 	}
 }
 
