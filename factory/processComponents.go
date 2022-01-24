@@ -828,13 +828,6 @@ func (pcf *processComponentsFactory) saveShardBlock(genesisBlockHash []byte, mar
 		log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
 	}
 
-	selfShardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
-	if shardID != selfShardID {
-		log.Debug("cannot save a genesis shard header nonce because it is from other shard",
-			"self shard ID", selfShardID, "block shard ID", shardID)
-		return
-	}
-
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
 	errNotCritical = pcf.data.StorageService().Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
 	if errNotCritical != nil {
@@ -872,9 +865,9 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
-		miniBlocks, txsPoolPerShard, err := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
-		if err != nil {
-			return err
+		miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
+		if errGenerate != nil {
+			return errGenerate
 		}
 
 		genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Txs)))
