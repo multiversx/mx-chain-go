@@ -169,6 +169,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
+		log.Trace("TxCache.RemoveTxByHash - not found by hash", "hash", txHash)
 		return false
 	}
 
@@ -185,6 +186,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		log.Error("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
+	log.Trace("TxCache.RemoveTxByHash - removed", "hash", txHash)
 	return true
 }
 
