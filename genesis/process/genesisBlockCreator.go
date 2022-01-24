@@ -240,6 +240,7 @@ func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.Head
 			Nonce:     nonce,
 			Epoch:     epoch,
 			TimeStamp: gbc.arg.GenesisTime,
+			ShardID:   i,
 		}
 	}
 
