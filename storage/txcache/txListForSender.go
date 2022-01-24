@@ -136,10 +136,19 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 			return nil, storage.ErrItemAlreadyInCache
 		}
 
-		if currentTxNonce == incomingNonce && currentTxGasPrice > incomingGasPrice {
-			// The incoming transaction will be placed right after the existing one, which has same nonce but higher price.
-			// If the nonces are the same, but the incoming gas price is higher or equal, the search loop continues.
-			return element, nil
+		if currentTxNonce == incomingNonce {
+			if currentTxGasPrice > incomingGasPrice {
+				// The incoming transaction will be placed right after the existing one, which has same nonce but higher price.
+				// If the nonces are the same, but the incoming gas price is higher or equal, the search loop continues.
+				return element, nil
+			}
+			if currentTxGasPrice == incomingGasPrice {
+				// The incoming transaction will be placed right after the existing one, which has same nonce and the same price.
+				// This will order out the transactions having the same nonce and tx hash
+				if bytes.Compare(currentTx.TxHash, incomingTx.TxHash) < 0 {
+					return element, nil
+				}
+			}
 		}
 
 		if currentTxNonce < incomingNonce {
