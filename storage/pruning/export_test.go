@@ -1,10 +1,59 @@
 package pruning
 
 import (
+	"sort"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+// NewEmptyPruningStorer -
+func NewEmptyPruningStorer() *PruningStorer {
+	return &PruningStorer{
+		persistersMapByEpoch: make(map[uint32]*persisterData),
+	}
+}
+
+// AddMockActivePersister -
+func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32) {
+	for _, e := range epochs {
+		pd := &persisterData{
+			epoch: e,
+		}
+
+		ps.activePersisters = append(ps.activePersisters, pd)
+	}
+}
+
+// PersistersMapByEpochToSlice -
+func (ps *PruningStorer) PersistersMapByEpochToSlice() []uint32 {
+	slice := make([]uint32, 0)
+	for epoch := range ps.persistersMapByEpoch {
+		slice = append(slice, epoch)
+	}
+
+	sort.Slice(slice, func(i, j int) bool {
+		return slice[i] < slice[j]
+	})
+
+	return slice
+}
+
+// ProcessPersistersToClose -
+func (ps *PruningStorer) ProcessPersistersToClose() []uint32 {
+	persistersToClose := ps.processPersistersToClose()
+	slice := make([]uint32, 0)
+	for _, p := range persistersToClose {
+		slice = append(slice, p.epoch)
+	}
+
+	return slice
+}
+
+func (ps *PruningStorer) SetNumActivePersistersParameter(num uint32) {
+	ps.numOfActivePersisters = num
+}
 
 // ChangeEpoch -
 func (ps *PruningStorer) ChangeEpoch(hdr data.HeaderHandler) error {

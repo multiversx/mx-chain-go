@@ -868,17 +868,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 // should be called under mutex protection
 func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
-	persistersToClose := make([]*persisterData, 0)
-
-	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
-		for idx := int(ps.numOfActivePersisters); idx < len(ps.activePersisters); idx++ {
-			persisterToClose := ps.activePersisters[idx]
-			// remove it from the active persisters slice
-			ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
-			ps.persistersMapByEpoch[persisterToClose.epoch] = persisterToClose
-			persistersToClose = append(persistersToClose, persisterToClose)
-		}
-	}
+	persistersToClose := ps.processPersistersToClose()
 
 	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
@@ -900,6 +890,21 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	}
 
 	return nil
+}
+
+func (ps *PruningStorer) processPersistersToClose() []*persisterData {
+	persistersToClose := make([]*persisterData, 0)
+
+	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
+		persistersToClose = ps.activePersisters[ps.numOfActivePersisters:]
+		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
+
+		for _, p := range persistersToClose {
+			ps.persistersMapByEpoch[p.epoch] = p
+		}
+	}
+
+	return persistersToClose
 }
 
 // RangeKeys does nothing as it is unable to iterate over multiple persisters

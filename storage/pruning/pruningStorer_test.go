@@ -806,3 +806,15 @@ func TestRegex(t *testing.T) {
 		assert.Equal(t, expectedRes, rg.ReplaceAllString(path, replacementEpoch))
 	}
 }
+
+func TestPruningStorer_processPersistersToClose(t *testing.T) {
+	t.Parallel()
+
+	ps := pruning.NewEmptyPruningStorer()
+	ps.SetNumActivePersistersParameter(3)
+	ps.AddMockActivePersisters([]uint32{10, 9, 8, 7, 6})
+	persistersToCloseEpochs := ps.ProcessPersistersToClose()
+	assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
+	assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())
+	assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
+}
