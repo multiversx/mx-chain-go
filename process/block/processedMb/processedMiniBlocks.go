@@ -1,7 +1,6 @@
 package processedMb
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -10,8 +9,14 @@ import (
 
 var log = logger.GetOrCreate("process/processedMb")
 
+// ProcessedMiniBlockInfo will keep the info about processed mini blocks
+type ProcessedMiniBlockInfo struct {
+	IsFullyProcessed       bool
+	IndexOfLastTxProcessed uint32
+}
+
 // MiniBlockHashes will keep a list of miniblock hashes as keys in a map for easy access
-type MiniBlockHashes map[string]*process.ProcessedMiniBlockInfo
+type MiniBlockHashes map[string]*ProcessedMiniBlockInfo
 
 // ProcessedMiniBlockTracker is used to store all processed mini blocks hashes grouped by a metahash
 type ProcessedMiniBlockTracker struct {
@@ -27,7 +32,7 @@ func NewProcessedMiniBlocks() *ProcessedMiniBlockTracker {
 }
 
 // AddMiniBlockHash will add a miniblock hash
-func (pmb *ProcessedMiniBlockTracker) AddMiniBlockHash(metaBlockHash string, miniBlockHash string, processedMbInfo *process.ProcessedMiniBlockInfo) {
+func (pmb *ProcessedMiniBlockTracker) AddMiniBlockHash(metaBlockHash string, miniBlockHash string, processedMbInfo *ProcessedMiniBlockInfo) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	defer pmb.mutProcessedMiniBlocks.Unlock()
 
@@ -64,9 +69,9 @@ func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) 
 }
 
 // GetProcessedMiniBlocksHashes will return all processed miniblocks for a metablock
-func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksHashes(metaBlockHash string) map[string]*process.ProcessedMiniBlockInfo {
+func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksHashes(metaBlockHash string) map[string]*ProcessedMiniBlockInfo {
 	pmb.mutProcessedMiniBlocks.RLock()
-	processedMiniBlocksHashes := make(map[string]*process.ProcessedMiniBlockInfo)
+	processedMiniBlocksHashes := make(map[string]*ProcessedMiniBlockInfo)
 	for hash, value := range pmb.processedMiniBlocks[metaBlockHash] {
 		processedMiniBlocksHashes[hash] = value
 	}
@@ -124,7 +129,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
 		miniBlocksHashes := make(MiniBlockHashes)
 		for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
-			miniBlocksHashes[string(miniBlockHash)] = &process.ProcessedMiniBlockInfo{
+			miniBlocksHashes[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
 				IsFullyProcessed:       miniBlocksInMeta.IsFullyProcessed[index],
 				IndexOfLastTxProcessed: miniBlocksInMeta.IndexOfLastTxProcessed[index],
 			}

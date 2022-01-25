@@ -765,9 +765,3 @@ func HaveAdditionalTime() func() bool {
 		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
 	}
 }
-
-// ProcessedMiniBlockInfo will keep the info about processed mini blocks
-type ProcessedMiniBlockInfo struct {
-	IsFullyProcessed       bool
-	IndexOfLastTxProcessed uint32
-}
