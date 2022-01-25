@@ -1,9 +1,8 @@
-package node_test
+package blockAPI_test
 
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 	"math/big"
 	"testing"
 	"time"
@@ -181,7 +180,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		},
 		AccumulatedFees: "0",
 		DeveloperFees:   "0",
-		Status:          blockAPI.BlockStatusOnChain,
+		Status:          BlockStatusOnChain,
 	}
 
 	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
@@ -253,7 +252,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 			},
 		},
 		NotarizedBlocks:        []*api.NotarizedBlock{},
-		Status:                 blockAPI.BlockStatusOnChain,
+		Status:                 BlockStatusOnChain,
 		AccumulatedFees:        "100",
 		DeveloperFees:          "10",
 		AccumulatedFeesInEpoch: "2000",
@@ -367,7 +366,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		},
 		AccumulatedFees: "1000",
 		DeveloperFees:   "50",
-		Status:          blockAPI.BlockStatusOnChain,
+		Status:          BlockStatusOnChain,
 	}
 
 	blk, err := n.GetBlockByNonce(1, false)
@@ -435,7 +434,7 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 		},
 		AccumulatedFees: "1000",
 		DeveloperFees:   "50",
-		Status:          blockAPI.BlockStatusOnChain,
+		Status:          BlockStatusOnChain,
 	}
 
 	blk, err := n.GetBlockByNonce(nonce, false)
@@ -519,7 +518,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		},
 		AccumulatedFees: "500",
 		DeveloperFees:   "55",
-		Status:          blockAPI.BlockStatusReverted,
+		Status:          BlockStatusReverted,
 	}
 
 	blk, err := n.GetBlockByHash(hex.EncodeToString([]byte(headerHash)), false)

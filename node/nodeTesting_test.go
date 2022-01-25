@@ -2,6 +2,7 @@ package node_test
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 	"math/big"
 	"strings"
 	"sync"
@@ -46,10 +47,10 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 	sk, _ := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
 
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
@@ -73,10 +74,10 @@ func TestGenerateAndSendBulkTransactions_NilSingleSignerShouldErr(t *testing.T) 
 	keyGen := &mock.KeyGenMock{}
 	sk, _ := keyGen.GeneratePair()
 	accAdapter := getAccAdapter(big.NewInt(0))
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = accAdapter
@@ -101,14 +102,14 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 	sk, _ := keyGen.GeneratePair()
 	accAdapter := getAccAdapter(big.NewInt(0))
 	singleSigner := &mock.SinglesignMock{}
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = accAdapter
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -128,13 +129,13 @@ func TestGenerateAndSendBulkTransactions_NilPubkeyConverterShouldErr(t *testing.
 	keyGen := &mock.KeyGenMock{}
 	sk, _ := keyGen.GeneratePair()
 	singleSigner := &mock.SinglesignMock{}
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = accAdapter
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -160,12 +161,12 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 			}
 		},
 	}
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = &mock.MarshalizerFake{}
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
-	dataComponents := getDefaultDataComponents()
+	dataComponents := blockAPI.getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
@@ -206,7 +207,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		},
 	}
 	expectedErr := errors.New("expected error")
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			if len(humanReadable) == 0 {
@@ -216,9 +217,9 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 			return []byte("1234"), nil
 		},
 	}
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
-	dataComponents := getDefaultDataComponents()
+	dataComponents := blockAPI.getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
@@ -260,12 +261,12 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
-	dataComponents := getDefaultDataComponents()
+	dataComponents := blockAPI.getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
@@ -347,13 +348,13 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 			},
 		}
 	}}
-	coreComponents := getDefaultCoreComponents()
+	coreComponents := blockAPI.getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.TxMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	processComponents := getDefaultProcessComponents()
+	processComponents := blockAPI.getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
-	dataComponents := getDefaultDataComponents()
+	dataComponents := blockAPI.getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = signer

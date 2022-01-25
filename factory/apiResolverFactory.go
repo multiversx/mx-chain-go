@@ -420,9 +420,5 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 		Hasher:                   args.CoreComponents.Hasher(),
 	}
 
-	if args.ProcessComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-		return blockAPI.NewShardApiBlockProcessor(blockApiArgs), nil
-	}
-
-	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs), nil
+	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
 }
