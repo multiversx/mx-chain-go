@@ -17,7 +17,7 @@ type APIBlockProcessorArg struct {
 	Marshalizer              marshal.Marshalizer
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	HistoryRepo              dblookupext.HistoryRepository
-	UnmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalTxHandler       TransactionUnmarshalerHandler
 	StatusComputer           transaction.StatusComputerHandler
 	Hasher                   hashing.Hasher
 	AddressPubkeyConverter   core.PubkeyConverter

@@ -1,4 +1,4 @@
-package node_test
+package transactionAPI
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -53,21 +52,8 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizerdMock
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
-
-	dataComponents := getDefaultDataComponents()
-	dataComponents.Store = dataStore
-
-	processComponents := getDefaultProcessComponents()
-	processComponents.HistoryRepositoryInternal = historyRepo
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithProcessComponents(processComponents),
-	)
+	pubKeyConverter := &mock.PubkeyConverterMock{}
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, 0)
 
 	epoch := uint32(0)
 
@@ -77,10 +63,10 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
-		SndAddr: n.GetCoreComponents().AddressPubKeyConverter().Encode(rec.SndAddr),
+		SndAddr: pubKeyConverter.Encode(rec.SndAddr),
 	}
 
-	n.PutResultsInTransaction(txHash, tx, epoch)
+	n.putResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedRecAPI, tx.Receipt)
 }
 
@@ -146,23 +132,9 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizerdMock
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+	pubKeyConverter := &mock.PubkeyConverterMock{}
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, 0)
 
-	dataComponents := getDefaultDataComponents()
-	dataComponents.Store = dataStore
-
-	processComponents := getDefaultProcessComponents()
-	processComponents.HistoryRepositoryInternal = historyRepo
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithProcessComponents(processComponents),
-	)
-
-	addressPubKeyConverter := n.GetCoreComponents().AddressPubKeyConverter()
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
 			Hash:           hex.EncodeToString(scrHash1),
@@ -178,10 +150,10 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			CallType:       scr1.CallType,
 			CodeMetadata:   string(scr1.CodeMetadata),
 			ReturnMessage:  string(scr1.ReturnMessage),
-			SndAddr:        addressPubKeyConverter.Encode(scr1.SndAddr),
-			RcvAddr:        addressPubKeyConverter.Encode(scr1.RcvAddr),
-			RelayerAddr:    addressPubKeyConverter.Encode(scr1.RelayerAddr),
-			OriginalSender: addressPubKeyConverter.Encode(scr1.OriginalSender),
+			SndAddr:        pubKeyConverter.Encode(scr1.SndAddr),
+			RcvAddr:        pubKeyConverter.Encode(scr1.RcvAddr),
+			RelayerAddr:    pubKeyConverter.Encode(scr1.RelayerAddr),
+			OriginalSender: pubKeyConverter.Encode(scr1.OriginalSender),
 			Logs:           nil,
 		},
 		{
@@ -192,7 +164,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	n.PutResultsInTransaction(txHash, tx, epoch)
+	n.putResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
 }
 
@@ -236,39 +208,25 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizerMock
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
-
-	dataComponents := getDefaultDataComponents()
-	dataComponents.Store = dataStore
-
 	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
 		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return nil, errors.New("local err")
 		},
 	}
-	processComponents := getDefaultProcessComponents()
-	processComponents.HistoryRepositoryInternal = historyRepo
 
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithProcessComponents(processComponents),
-	)
-
-	addressPubKeyConverter := n.GetCoreComponents().AddressPubKeyConverter()
+	pubKeyConverter := &mock.PubkeyConverterMock{}
+	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, 0)
 	expectedLogs := &transaction.ApiLogs{
-		Address: addressPubKeyConverter.Encode(logsAndEvents.Address),
+		Address: pubKeyConverter.Encode(logsAndEvents.Address),
 		Events: []*transaction.Events{
 			{
-				Address:    addressPubKeyConverter.Encode(logsAndEvents.Events[0].Address),
+				Address:    pubKeyConverter.Encode(logsAndEvents.Events[0].Address),
 				Identifier: string(logsAndEvents.Events[0].Identifier),
 				Topics:     logsAndEvents.Events[0].Topics,
 				Data:       logsAndEvents.Events[0].Data,
 			},
 			{
-				Address:    addressPubKeyConverter.Encode(logsAndEvents.Events[1].Address),
+				Address:    pubKeyConverter.Encode(logsAndEvents.Events[1].Address),
 				Identifier: string(logsAndEvents.Events[1].Identifier),
 				Topics:     logsAndEvents.Events[1].Topics,
 				Data:       logsAndEvents.Events[1].Data,
@@ -277,6 +235,6 @@ func TestPutLogsInTransaction(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	n.PutResultsInTransaction(txHash, tx, epoch)
+	n.putResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedLogs, tx.Logs)
 }

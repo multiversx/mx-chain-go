@@ -1,6 +1,7 @@
 package external
 
 import (
+	"encoding/hex"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -16,6 +17,8 @@ type ArgNodeApiResolver struct {
 	TotalStakedValueHandler TotalStakedValueHandler
 	DirectStakedListHandler DirectStakedListHandler
 	DelegatedListHandler    DelegatedListHandler
+	APITransactionHandler   APITransactionHandler
+	APIBlockHandler         APIBlockHandler
 }
 
 // nodeApiResolver can resolve API requests
@@ -26,6 +29,8 @@ type nodeApiResolver struct {
 	totalStakedValueHandler TotalStakedValueHandler
 	directStakedListHandler DirectStakedListHandler
 	delegatedListHandler    DelegatedListHandler
+	apiTransactionHandler   APITransactionHandler
+	apiBlockHandler         APIBlockHandler
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -48,6 +53,12 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.DelegatedListHandler) {
 		return nil, ErrNilDelegatedListHandler
 	}
+	if check.IfNil(arg.APITransactionHandler) {
+		return nil, ErrNilAPITransactionHandler
+	}
+	if check.IfNil(arg.APIBlockHandler) {
+		return nil, ErrNilAPIBlockHandler
+	}
 
 	return &nodeApiResolver{
 		scQueryService:          arg.SCQueryService,
@@ -56,6 +67,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		totalStakedValueHandler: arg.TotalStakedValueHandler,
 		directStakedListHandler: arg.DirectStakedListHandler,
 		delegatedListHandler:    arg.DelegatedListHandler,
+		apiBlockHandler:         arg.APIBlockHandler,
 	}, nil
 }
 
@@ -97,4 +109,26 @@ func (nar *nodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (nar *nodeApiResolver) IsInterfaceNil() bool {
 	return nar == nil
+}
+
+// GetTransaction will return the transaction with the given hash and optionally with results
+func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+	return nar.apiTransactionHandler.GetTransaction(hash, withResults)
+}
+
+func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiBlockHandler.GetBlockByHash(decodedHash, withTxs)
+}
+
+func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
+	return nar.apiBlockHandler.GetBlockByNonce(nonce, withTxs)
+}
+
+func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
 }

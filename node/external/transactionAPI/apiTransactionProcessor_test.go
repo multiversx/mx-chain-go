@@ -1,4 +1,4 @@
-package node_test
+package transactionAPI
 
 import (
 	"bytes"
@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -33,7 +32,7 @@ import (
 func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.NewNode()
+	n, _, _, _ := createAPITransactionProc(t, 0, false)
 	_, err := n.GetTransaction("zzz", false)
 	assert.Error(t, err)
 }
@@ -41,7 +40,7 @@ func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
 func TestNode_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 
-	n, _, dataPool, _ := createNode(t, 42, false)
+	n, _, dataPool, _ := createAPITransactionProc(t, 42, false)
 
 	// Normal transactions
 
@@ -118,12 +117,10 @@ func TestNode_GetTransactionFromPool(t *testing.T) {
 func TestNode_GetTransactionFromStorage(t *testing.T) {
 	t.Parallel()
 
-	n, chainStorer, _, _ := createNode(t, 0, false)
-
-	// Normal transactions
+	n, chainStorer, _, _ := createAPITransactionProc(t, 0, false)
 
 	// Cross-shard, we are source
-	internalMarshalizer := n.GetCoreComponents().InternalMarshalizer()
+	internalMarshalizer := &mock.MarshalizerFake{}
 	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
 	// Cross-shard, we are destination
@@ -251,22 +248,18 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizer
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
-	dataComponents := getDefaultDataComponents()
-	dataComponents.DataPool = dataRetrieverMock.NewPoolsHolderMock()
-	dataComponents.Store = chainStorer
-	processComponents := getDefaultProcessComponents()
-	processComponents.ShardCoord = &mock.ShardCoordinatorMock{}
-	processComponents.HistoryRepositoryInternal = historyRepo
-
-	n, err := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithProcessComponents(processComponents),
-	)
-	require.NoError(t, err)
+	args := &APITransactionProcessorArgs{
+		RoundDuration:            0,
+		GenesisTime:              time.Time{},
+		Marshalizer:              &mock.MarshalizerFake{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		HistoryRepository:        historyRepo,
+		StorageService:           chainStorer,
+		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+	}
+	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
 	expectedTx := &transaction.ApiTransactionResult{
 		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
@@ -285,7 +278,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	apiTx, err := n.GetTransaction(txHash, true)
+	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
 	require.Nil(t, err)
 	require.Equal(t, expectedTx, apiTx)
 }
@@ -293,12 +286,12 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	t.Parallel()
 
-	n, chainStorer, _, historyRepo := createNode(t, 42, true)
+	n, chainStorer, _, historyRepo := createAPITransactionProc(t, 42, true)
 
 	// Normal transactions
 
 	// Cross-shard, we are source
-	internalMarshalizer := n.GetCoreComponents().InternalMarshalizer()
+	internalMarshalizer := n.marshalizer
 	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 2, 42, nil, 0)
@@ -333,7 +326,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 
 	// Invalid transaction
 	txInvalid := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.GetCoreComponents().InternalMarshalizer())
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.marshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.InvalidBlock, 1, 1, 42, nil, 0)
 
 	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")), false)
@@ -346,7 +339,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	// Reward transactions
 	headerHash := []byte("hash")
 	headerNonce := uint64(1)
-	nonceBytes := n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
+	nonceBytes := n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
@@ -419,10 +412,10 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	wrongHeaderHash := []byte("wrong-hash")
 	headerHash = []byte("hash")
 	headerNonce = uint64(1)
-	nonceBytes = n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
+	nonceBytes = n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 	txH := &rewardTx.RewardTx{Round: 50, RcvAddr: []byte("alice")}
-	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.GetCoreComponents().InternalMarshalizer())
+	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.marshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, wrongHeaderHash, headerNonce)
 
 	actualH, err := n.GetTransaction(hex.EncodeToString([]byte("h")), false)
@@ -449,7 +442,7 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 		NotarizedAtDestinationInMetaHash:  []byte{12},
 	}
 
-	node.PutMiniblockFieldsInTransaction(tx, metadata)
+	putMiniblockFieldsInTransaction(tx, metadata)
 
 	require.Equal(t, 42, int(tx.Epoch))
 	require.Equal(t, 4321, int(tx.Round))
@@ -464,10 +457,9 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
+func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
 	chainStorer := genericMocks.NewChainStorerMock(epoch)
 	dataPool := dataRetrieverMock.NewPoolsHolderMock()
-	marshalizer := &mock.MarshalizerFake{}
 
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
@@ -475,25 +467,20 @@ func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizer
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
-	coreComponents.UInt64ByteSliceConv = mock.NewNonceHashConverterMock()
-	dataComponents := getDefaultDataComponents()
-	dataComponents.DataPool = dataPool
-	dataComponents.Store = chainStorer
-	processComponents := getDefaultProcessComponents()
-	processComponents.ShardCoord = createShardCoordinator()
-	processComponents.HistoryRepositoryInternal = historyRepo
+	args := &APITransactionProcessorArgs{
+		RoundDuration:            0,
+		GenesisTime:              time.Time{},
+		Marshalizer:              &mock.MarshalizerFake{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		ShardCoordinator:         createShardCoordinator(),
+		HistoryRepository:        historyRepo,
+		StorageService:           chainStorer,
+		DataPool:                 dataPool,
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+	}
+	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
-	n, err := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithProcessComponents(processComponents),
-	)
-
-	require.Nil(t, err)
-	return n, chainStorer, dataPool, historyRepo
+	return apiTransactionProc, chainStorer, dataPool, historyRepo
 }
 
 func createShardCoordinator() *mock.ShardCoordinatorMock {
@@ -548,15 +535,11 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: []byte("invalid original sender"),
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
+	n, _, _, _ := createAPITransactionProc(t, 0, true)
+	n.unmarshalerAndPreparer.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
+	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
 
-	n, err := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-	)
-	assert.Nil(t, err)
-
-	scrResult1, err := n.PrepareUnsignedTx(scr1)
+	scrResult1, err := n.unmarshalerAndPreparer.prepareUnsignedTx(scr1)
 	assert.Nil(t, err)
 	expectedScr1 := &transaction.ApiTransactionResult{
 		Tx:             scr1,
@@ -577,7 +560,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: bytes.Repeat([]byte{7}, addrSize),
 	}
 
-	scrResult2, err := n.PrepareUnsignedTx(scr2)
+	scrResult2, err := n.unmarshalerAndPreparer.prepareUnsignedTx(scr2)
 	assert.Nil(t, err)
 	expectedScr2 := &transaction.ApiTransactionResult{
 		Tx:             scr2,
@@ -593,15 +576,14 @@ func TestPrepareUnsignedTx(t *testing.T) {
 
 func TestNode_ComputeTimestampForRound(t *testing.T) {
 	genesis := getTime(t, "1596117600")
-	n, _ := node.NewNode(
-		node.WithGenesisTime(genesis),
-		node.WithRoundDuration(6000),
-	)
+	n, _, _, _ := createAPITransactionProc(t, 0, false)
+	n.genesisTime = genesis
+	n.roundDuration = 6000
 
-	res := n.ComputeTimestampForRound(0)
+	res := n.computeTimestampForRound(0)
 	require.Equal(t, int64(0), res)
 
-	res = n.ComputeTimestampForRound(4837403)
+	res = n.computeTimestampForRound(4837403)
 	require.Equal(t, int64(1625142018), res)
 }
 

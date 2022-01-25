@@ -3,6 +3,7 @@ package node_test
 import (
 	"encoding/hex"
 	"encoding/json"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 	"math/big"
 	"testing"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"

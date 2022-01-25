@@ -3,10 +3,10 @@ package node
 import (
 	"encoding/hex"
 	"errors"
+	blockAPI2 "github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 )
 
@@ -44,7 +44,7 @@ func (n *Node) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	return apiBlockProcessor.GetBlockByRound(round, withTxs)
 }
 
-func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
+func (n *Node) createAPIBlockProcessor() (blockAPI2.APIBlockHandler, error) {
 	statusComputer, err := txstatus.NewStatusComputer(
 		n.processComponents.ShardCoordinator().SelfId(),
 		n.coreComponents.Uint64ByteSliceConverter(),
@@ -54,7 +54,7 @@ func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
 
-	blockApiArgs := &blockAPI.APIBlockProcessorArg{
+	blockApiArgs := &blockAPI2.APIBlockProcessorArg{
 		SelfShardID:              n.processComponents.ShardCoordinator().SelfId(),
 		Store:                    n.dataComponents.StorageService(),
 		Marshalizer:              n.coreComponents.InternalMarshalizer(),
@@ -67,8 +67,8 @@ func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 	}
 
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-		return blockAPI.NewShardApiBlockProcessor(blockApiArgs), nil
+		return blockAPI2.NewShardApiBlockProcessor(blockApiArgs), nil
 	}
 
-	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs), nil
+	return blockAPI2.NewMetaApiBlockProcessor(blockApiArgs), nil
 }

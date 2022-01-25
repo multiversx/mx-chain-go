@@ -26,7 +26,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			unmarshalTx:              arg.UnmarshalTx,
+			unmarshalTx:              arg.UnmarshalTxHandler.UnmarshalTransaction,
 			txStatusComputer:         arg.StatusComputer,
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
@@ -133,4 +133,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
 		Status:          BlockStatusOnChain,
 	}, nil
+}
+
+func (sbp *shardAPIBlockProcessor) IsInterfaceNil() bool {
+	return sbp == nil
 }

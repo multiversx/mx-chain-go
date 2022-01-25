@@ -1,6 +1,7 @@
 package blockAPI
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -109,11 +110,12 @@ func TestBaseApiBlockProcessor_GetNormalTxFromMiniBlock(t *testing.T) {
 		marshalizer,
 	)
 
-	mbTxs := baseAPIBlock.getTxsByMb(&mbHeader, epoch)
+	apiMB := &api.MiniBlock{}
+	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
 
-	assert.Equal(t, mbTxs[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, mbTxs[0].Type, txType)
-	assert.EqualValues(t, mbTxs[0].Receiver, recvAddress)
+	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
+	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
+	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
 }
 
 func TestBaseApiBlockProcessor_GetRewardsTxFromMiniBlock(t *testing.T) {
@@ -160,11 +162,12 @@ func TestBaseApiBlockProcessor_GetRewardsTxFromMiniBlock(t *testing.T) {
 		marshalizer,
 	)
 
-	mbTxs := baseAPIBlock.getTxsByMb(&mbHeader, epoch)
+	apiMB := &api.MiniBlock{}
+	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
 
-	assert.Equal(t, mbTxs[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, mbTxs[0].Type, txType)
-	assert.EqualValues(t, mbTxs[0].Receiver, recvAddress)
+	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
+	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
+	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
 }
 
 func TestBaseApiBlockProcessor_GetUnsignedTxFromMiniBlock(t *testing.T) {
@@ -211,11 +214,12 @@ func TestBaseApiBlockProcessor_GetUnsignedTxFromMiniBlock(t *testing.T) {
 		marshalizer,
 	)
 
-	mbTxs := baseAPIBlock.getTxsByMb(&mbHeader, epoch)
+	apiMB := &api.MiniBlock{}
+	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
 
-	assert.Equal(t, mbTxs[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, mbTxs[0].Type, txType)
-	assert.EqualValues(t, mbTxs[0].Receiver, recvAddress)
+	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
+	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
+	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
 }
 
 func TestBaseApiBlockProcessor_GetInvalidTxFromMiniBlock(t *testing.T) {
@@ -262,9 +266,10 @@ func TestBaseApiBlockProcessor_GetInvalidTxFromMiniBlock(t *testing.T) {
 		marshalizer,
 	)
 
-	mbTxs := baseAPIBlock.getTxsByMb(&mbHeader, epoch)
+	apiMB := &api.MiniBlock{}
+	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
 
-	assert.Equal(t, mbTxs[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, mbTxs[0].Type, txType)
-	assert.EqualValues(t, mbTxs[0].Receiver, recvAddress)
+	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
+	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
+	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
 }

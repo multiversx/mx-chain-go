@@ -1,16 +1,16 @@
 package factory
 
 import (
+	"errors"
 	"fmt"
-	"path/filepath"
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -29,6 +30,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"path/filepath"
+	"sync"
 )
 
 // ApiResolverArgs holds the argument needed to create an API resolver
@@ -169,6 +172,27 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	argsAPITransactionProc := &transactionAPI.APITransactionProcessorArgs{
+		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
+		GenesisTime:              args.CoreComponents.GenesisTime(),
+		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
+		AddressPubKeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:         args.ProcessComponents.ShardCoordinator(),
+		HistoryRepository:        args.ProcessComponents.HistoryRepository(),
+		StorageService:           args.DataComponents.StorageService(),
+		DataPool:                 args.DataComponents.Datapool(),
+		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+	}
+	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          scQueryService,
 		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
@@ -176,6 +200,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		APITransactionHandler:   apiTransactionProcessor,
+		APIBlockHandler:         apiBlockProcessor,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -370,4 +396,33 @@ func createBuiltinFuncs(
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+}
+
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (external.APIBlockHandler, error) {
+	statusComputer, err := txstatus.NewStatusComputer(
+		args.ProcessComponents.ShardCoordinator().SelfId(),
+		args.CoreComponents.Uint64ByteSliceConverter(),
+		args.DataComponents.StorageService(),
+	)
+	if err != nil {
+		return nil, errors.New("error creating transaction status computer " + err.Error())
+	}
+
+	blockApiArgs := &blockAPI.APIBlockProcessorArg{
+		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
+		Store:                    args.DataComponents.StorageService(),
+		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:              args.ProcessComponents.HistoryRepository(),
+		UnmarshalTxHandler:       apiTransactionHandler,
+		StatusComputer:           statusComputer,
+		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
+		Hasher:                   args.CoreComponents.Hasher(),
+	}
+
+	if args.ProcessComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return blockAPI.NewShardApiBlockProcessor(blockApiArgs), nil
+	}
+
+	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs), nil
 }

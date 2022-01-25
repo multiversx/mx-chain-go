@@ -121,12 +121,6 @@ var ErrNilStateComponents = errors.New("nil state components")
 // ErrNilStatusComponents signals that a nil status components instance has been provided
 var ErrNilStatusComponents = errors.New("nil status components")
 
-// ErrTransactionNotFound signals that a transaction was not found
-var ErrTransactionNotFound = errors.New("transaction not found")
-
-// ErrCannotRetrieveTransaction signals that a transaction was not found
-var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
-
 // ErrNodeCloseFailed signals that the close function of the node failed
 var ErrNodeCloseFailed = errors.New("node closing failed ")
 

@@ -63,9 +63,6 @@ type NodeHandler interface {
 	// SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
-	// GetTransaction will return a transaction based on the hash
-	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
 	GetAccount(address string) (api.AccountResponse, error)
@@ -113,6 +110,7 @@ type ApiResolver interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	Close() error
 	IsInterfaceNil() bool
 }
