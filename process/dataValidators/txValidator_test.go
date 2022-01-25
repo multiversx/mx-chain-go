@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -47,8 +49,8 @@ func getTxValidatorHandler(
 	nonce uint64,
 	sndAddr []byte,
 	fee *big.Int,
-) process.TxValidatorHandler {
-	return &mock.TxValidatorHandlerStub{
+) process.InterceptedTxHandler {
+	return &mock.InterceptedTxHandlerStub{
 		SenderShardIdCalled: func() uint32 {
 			return sndShardId
 		},
@@ -63,6 +65,9 @@ func getTxValidatorHandler(
 		},
 		FeeCalled: func() *big.Int {
 			return fee
+		},
+		TransactionCalled: func() data.TransactionHandler {
+			return &transaction.Transaction{}
 		},
 	}
 }
@@ -314,10 +319,10 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 
 	interceptedTx := struct {
 		process.InterceptedData
-		process.TxValidatorHandler
+		process.InterceptedTxHandler
 	}{
-		InterceptedData:    nil,
-		TxValidatorHandler: txValidatorHandler,
+		InterceptedData:      nil,
+		InterceptedTxHandler: txValidatorHandler,
 	}
 
 	// interceptedTx needs to be of type InterceptedData & TxValidatorHandler

@@ -60,7 +60,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	CheckTxValidity(txHandler TxValidatorHandler) error
+	CheckTxValidity(interceptedTx InterceptedTxHandler) error
 	CheckTxWhiteList(data InterceptedData) error
 	IsInterfaceNil() bool
 }
@@ -72,6 +72,17 @@ type TxValidatorHandler interface {
 	Nonce() uint64
 	SenderAddress() []byte
 	Fee() *big.Int
+}
+
+// InterceptedTxHandler defines an intercepted data wrapper over transaction handler that has
+// receiver and sender shard getters
+type InterceptedTxHandler interface {
+	SenderShardId() uint32
+	ReceiverShardId() uint32
+	Nonce() uint64
+	SenderAddress() []byte
+	Fee() *big.Int
+	Transaction() data.TransactionHandler
 }
 
 // TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version

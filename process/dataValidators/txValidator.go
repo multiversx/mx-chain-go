@@ -57,7 +57,7 @@ func NewTxValidator(
 }
 
 // CheckTxValidity will filter transactions that needs to be added in pools
-func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
+func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandler) error {
 	// TODO: Refactor, extract methods.
 
 	interceptedData, ok := interceptedTx.(process.InterceptedData)
@@ -128,12 +128,8 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	return nil
 }
 
-func getTxData(interceptedTx process.TxValidatorHandler) ([]byte, error) {
-	txHandler, ok := interceptedTx.(processor.InterceptedTransactionHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-	tx := txHandler.Transaction()
+func getTxData(interceptedTx process.InterceptedTxHandler) ([]byte, error) {
+	tx := interceptedTx.Transaction()
 	if tx == nil {
 		return nil, process.ErrNilTransaction
 	}

@@ -791,7 +791,7 @@ func (n *Node) commonTransactionValidation(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	whiteListRequest process.WhiteListHandler,
 	checkSignature bool,
-) (process.TxValidator, process.TxValidatorHandler, error) {
+) (process.TxValidator, process.InterceptedTxHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.stateComponents.AccountsAdapter(),
 		n.processComponents.ShardCoordinator(),
