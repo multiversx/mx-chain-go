@@ -798,34 +798,43 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 
 	pcf.data.Blockchain().SetGenesisHeaderHash(genesisBlockHash)
 
-	marshalizedBlock, err := pcf.coreData.InternalMarshalizer().Marshal(genesisBlock)
+	marshalledBlock, err := pcf.coreData.InternalMarshalizer().Marshal(genesisBlock)
 	if err != nil {
 		return err
 	}
 
 	nonceToByteSlice := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlock.GetNonce())
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		errNotCritical := pcf.data.StorageService().Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
-		if errNotCritical != nil {
-			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
-		}
-		errNotCritical = pcf.data.StorageService().Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
-		if errNotCritical != nil {
-			log.Error("error storing genesis metablock (nonce-hash)", "error", errNotCritical.Error())
-		}
+		pcf.saveMetaBlock(genesisBlockHash, marshalledBlock, nonceToByteSlice)
 	} else {
-		errNotCritical := pcf.data.StorageService().Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
-		if errNotCritical != nil {
-			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
-		}
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlock.GetShardID())
-		errNotCritical = pcf.data.StorageService().Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
-		if errNotCritical != nil {
-			log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
-		}
+		pcf.saveShardBlock(genesisBlockHash, marshalledBlock, nonceToByteSlice, genesisBlock.GetShardID())
 	}
 
 	return nil
+}
+
+func (pcf *processComponentsFactory) saveMetaBlock(genesisBlockHash []byte, marshalledBlock []byte, nonceToByteSlice []byte) {
+	errNotCritical := pcf.data.StorageService().Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalledBlock)
+	if errNotCritical != nil {
+		log.Error("error storing genesis metablock", "error", errNotCritical.Error())
+	}
+	errNotCritical = pcf.data.StorageService().Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+	if errNotCritical != nil {
+		log.Error("error storing genesis metablock (nonce-hash)", "error", errNotCritical.Error())
+	}
+}
+
+func (pcf *processComponentsFactory) saveShardBlock(genesisBlockHash []byte, marshalledBlock []byte, nonceToByteSlice []byte, shardID uint32) {
+	errNotCritical := pcf.data.StorageService().Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalledBlock)
+	if errNotCritical != nil {
+		log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
+	}
+
+	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
+	errNotCritical = pcf.data.StorageService().Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+	if errNotCritical != nil {
+		log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
+	}
 }
 
 func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) *dataBlock.Body {
@@ -858,9 +867,9 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
-		miniBlocks, txsPoolPerShard, err := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
-		if err != nil {
-			return err
+		miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
+		if errGenerate != nil {
+			return errGenerate
 		}
 
 		genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Txs)))

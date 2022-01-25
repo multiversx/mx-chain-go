@@ -124,7 +124,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	args.EpochNotifier.RegisterNotifyHandler(tsm)
 
 	if tsm.flagDisableOldStorage.IsSet() {
-		err := tsm.db.Close()
+		err = tsm.db.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +202,7 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 
 func (tsm *trieStorageManager) cleanupChans() {
 	<-tsm.closer.ChanClose()
-	//at this point we can not add new entries in the snapshot/checkpoint chans
+	// at this point we can not add new entries in the snapshot/checkpoint chans
 	for {
 		select {
 		case entry := <-tsm.snapshotReq:
@@ -289,13 +289,13 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]common.Snapshot
 	return getOrderedSnapshots(snapshotsMap), snapshotId, nil
 }
 
-//Get checks all the storers for the given key, and returns it if it is found
+// Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
 	if tsm.closed {
-		log.Debug("trieStorageManager get context closing", "key", key)
+		log.Trace("trieStorageManager get context closing", "key", key)
 		return nil, ErrContextClosing
 	}
 
@@ -310,12 +310,12 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
-//GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
+// GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
 func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 
 	if tsm.closed {
-		log.Debug("trieStorageManager get context closing", "key", key)
+		log.Trace("trieStorageManager get context closing", "key", key)
 		tsm.storageOperationMutex.Unlock()
 		return nil, ErrContextClosing
 	}
@@ -382,7 +382,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 	log.Trace("put hash in tsm", "hash", key)
 
 	if tsm.closed {
-		log.Debug("trieStorageManager put context closing", "key", key, "value", val)
+		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
 		return ErrContextClosing
 	}
 
@@ -396,7 +396,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 
 	if tsm.closed {
-		log.Debug("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
+		log.Trace("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
 		return ErrContextClosing
 	}
 
@@ -679,8 +679,8 @@ func (tsm *trieStorageManager) Close() error {
 	tsm.cancelFunc()
 	tsm.closed = true
 
-	//calling close on the SafeCloser instance should be the last instruction called
-	//(just to close some go routines started as edge cases that would otherwise hang)
+	// calling close on the SafeCloser instance should be the last instruction called
+	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer tsm.closer.Close()
 
 	var err error
