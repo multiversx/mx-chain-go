@@ -1,0 +1,42 @@
+{
+	"name": "swap fixed input",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "init_accounts.steps.json"
+		},
+		{
+			"step": "externalSteps",
+			"path": "setup_pair_contract.steps.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "benchmark",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "swapTokensFixedInput",
+				"esdt": {
+					"tokenIdentifier": "str:MEX-abcdef",
+					"value": "100,000"
+				},
+				"arguments": [
+					"str:WEGLD-abcdef",
+					"50,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"*"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}
