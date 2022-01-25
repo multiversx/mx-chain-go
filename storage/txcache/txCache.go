@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"runtime/debug"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
@@ -186,7 +187,9 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		log.Error("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
-	log.Trace("TxCache.RemoveTxByHash - removed", "hash", txHash)
+	// TODO - this PR: remove this
+	stack := debug.Stack()
+	log.Trace("TxCache.RemoveTxByHash - removed", "hash", txHash, "stack", string(stack))
 	return true
 }
 
