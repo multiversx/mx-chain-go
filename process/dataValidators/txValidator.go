@@ -2,7 +2,6 @@ package dataValidators
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -110,8 +109,8 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandl
 	if err != nil {
 		return err
 	}
-	if isAccountFrozen(account) && !isBuiltinFuncCall(txData, builtInFunctions.BuiltInFunctionSetGuardian) {
-		return errors.New("operation not permitted")
+	if isAccountFrozen(account) && !isBuiltinFuncCallWithParam(txData, builtInFunctions.BuiltInFunctionSetGuardian) {
+		return state.ErrOperationNotPermitted
 	}
 
 	accountBalance := account.GetBalance()
@@ -143,9 +142,9 @@ func isAccountFrozen(account state.UserAccountHandler) bool {
 	return codeMetaData.Frozen
 }
 
-func isBuiltinFuncCall(txData []byte, function string) bool {
-	expectedTxData := []byte(function + "@")
-	return bytes.HasPrefix(txData, expectedTxData)
+func isBuiltinFuncCallWithParam(txData []byte, function string) bool {
+	expectedTxDataPrefix := []byte(function + "@")
+	return bytes.HasPrefix(txData, expectedTxDataPrefix)
 }
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
