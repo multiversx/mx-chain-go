@@ -295,7 +295,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	defer tsm.storageOperationMutex.Unlock()
 
 	if tsm.closed {
-		log.Debug("trieStorageManager get context closing", "key", key)
+		log.Trace("trieStorageManager get context closing", "key", key)
 		return nil, ErrContextClosing
 	}
 
@@ -315,7 +315,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 
 	if tsm.closed {
-		log.Debug("trieStorageManager get context closing", "key", key)
+		log.Trace("trieStorageManager get context closing", "key", key)
 		tsm.storageOperationMutex.Unlock()
 		return nil, ErrContextClosing
 	}
@@ -382,7 +382,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 	log.Trace("put hash in tsm", "hash", key)
 
 	if tsm.closed {
-		log.Debug("trieStorageManager put context closing", "key", key, "value", val)
+		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
 		return ErrContextClosing
 	}
 
@@ -396,7 +396,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 
 	if tsm.closed {
-		log.Debug("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
+		log.Trace("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
 		return ErrContextClosing
 	}
 
