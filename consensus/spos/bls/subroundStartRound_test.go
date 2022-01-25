@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -315,7 +316,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNot
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextConsensusGroupErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
 		return nil, err
@@ -349,7 +350,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenMainMachineIsAc
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(
 		bytes []byte,
 		round uint64,
@@ -441,7 +442,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 
 	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
@@ -73,7 +74,7 @@ func NewShardProcessorEmptyWith3shards(
 	blockChain data.ChainHandler,
 ) (*shardProcessor, error) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},

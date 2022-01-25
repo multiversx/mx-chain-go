@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 // NewTestSyncNode returns a new TestProcessorNode instance with sync capabilities
@@ -51,7 +52,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pkBytes, 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil

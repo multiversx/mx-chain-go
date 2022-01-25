@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -97,7 +98,7 @@ func createMockMetaArguments(
 			StatusComponents:    statusComponents,
 			AccountsDB:          accountsDb,
 			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    mock.NewNodesCoordinatorMock(),
+			NodesCoordinator:    shardingMocks.NewNodesCoordinatorMock(),
 			FeeHandler:          &mock.FeeAccumulatorStub{},
 			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &mock.BlockChainHookHandlerMock{},

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -506,7 +507,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
 		ShardConsensusSize: 1,
 		MetaConsensusSize:  1,
 		NbShards:           uint32(noOfShards),
@@ -557,7 +558,7 @@ func getArgumentsMeta(
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		NodesCoordinator:        shardingMocks.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},
 		Store:                   createMetaStore(),
 		DataPool:                createMetaDataPools(),

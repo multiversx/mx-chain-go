@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,7 +73,7 @@ func getProcessArgs(
 		GasSchedule: gasSchedule,
 	}
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{}
 	statusComponents := getStatusComponents(
 		coreComponents,
 		networkComponents,

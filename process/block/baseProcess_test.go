@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -324,7 +325,7 @@ func CreateMockArguments(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgShardProcessor {
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
