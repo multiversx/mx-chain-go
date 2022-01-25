@@ -14,6 +14,7 @@ type NodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled            func(shardID uint32) int
+	ComputeConsensusGroupCalled         func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 }
 
 // GetChance -
@@ -132,7 +133,6 @@ func (ncm *NodesCoordinatorStub) ShardIdForEpoch(_ uint32) (uint32, error) {
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
 func (ncm *NodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
-	panic("not implemented")
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
