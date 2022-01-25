@@ -1,9 +1,9 @@
 package blockAPI
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
