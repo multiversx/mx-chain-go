@@ -397,13 +397,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	activePersisters := int(ps.numOfActivePersisters)
-	if len(ps.activePersisters) < activePersisters {
-		activePersisters = len(ps.activePersisters)
-	}
-
 	numClosedDbs := 0
-	for idx := 0; idx < activePersisters; idx++ {
+	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
 			if err == storage.ErrSerialDBIsClosed {
@@ -418,7 +413,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		return val, nil
 	}
 
-	if numClosedDbs == activePersisters && activePersisters > 0 {
+	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
 		return nil, storage.ErrSerialDBIsClosed
 	}
 
