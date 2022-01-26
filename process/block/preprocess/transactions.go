@@ -1351,6 +1351,11 @@ func (txs *transactions) ProcessMiniBlock(
 
 	defer func() {
 		if err != nil {
+			for _, hash := range processedTxHashes {
+				//TODO: Remove it or set log level to Trace
+				log.Debug("transactions.ProcessMiniBlock: defer func()", "tx hash", hash)
+			}
+
 			txs.gasHandler.RestoreGasSinceLastReset()
 		}
 	}()

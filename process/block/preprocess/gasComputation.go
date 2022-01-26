@@ -128,6 +128,9 @@ func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.gasRefunded[string(hash)] = gasRefunded
 	gc.gasRefundedAccumulatedSinceLastReset = append(gc.gasRefundedAccumulatedSinceLastReset, hash)
 	gc.mutGasRefunded.Unlock()
+
+	//TODO: Remove it or set log level to Trace
+	log.Debug("gasComputation.SetGasRefunded", "tx hash", hash, "gas penalized", gasRefunded)
 }
 
 // SetGasPenalized sets gas penalized for a given hash
@@ -136,6 +139,9 @@ func (gc *gasComputation) SetGasPenalized(gasPenalized uint64, hash []byte) {
 	gc.gasPenalized[string(hash)] = gasPenalized
 	gc.gasPenalizedAccumulatedSinceLastReset = append(gc.gasPenalizedAccumulatedSinceLastReset, hash)
 	gc.mutGasPenalized.Unlock()
+
+	//TODO: Remove it or set log level to Trace
+	log.Debug("gasComputation.SetGasPenalized", "tx hash", hash, "gas penalized", gasPenalized)
 }
 
 // GasProvided gets gas provided for a given hash

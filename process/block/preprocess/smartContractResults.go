@@ -516,6 +516,11 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	defer func() {
 		if err != nil {
+			for _, hash := range processedTxHashes {
+				//TODO: Remove it or set log level to Trace
+				log.Debug("smartContractResults.ProcessMiniBlock: defer func()", "tx hash", hash)
+			}
+
 			scr.gasHandler.RestoreGasSinceLastReset()
 		}
 	}()
