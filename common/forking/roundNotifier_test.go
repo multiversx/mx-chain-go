@@ -13,14 +13,14 @@ func TestRoundNotifier_RegisterNotifyHandler(t *testing.T) {
 	flag1 := atomic.Flag{}
 	subscriber1 := &mock.RoundSubscriberHandlerStub{
 		RoundConfirmedCalled: func(uint64) {
-			flag1.Set()
+			_ = flag1.SetReturningPrevious()
 		},
 	}
 
 	flag2 := atomic.Flag{}
 	subscriber2 := &mock.RoundSubscriberHandlerStub{
 		RoundConfirmedCalled: func(uint64) {
-			flag2.Set()
+			_ = flag2.SetReturningPrevious()
 		},
 	}
 

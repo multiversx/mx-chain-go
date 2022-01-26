@@ -47,11 +47,18 @@ func NewSuppliesProcessor(
 }
 
 // ProcessLogs will process the provided logs
-func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs map[string]data.LogHandler) error {
+func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*data.LogData) error {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
-	return sp.logsProc.processLogs(blockNonce, logs, false)
+	logsMap := make(map[string]*data.LogData)
+	for _, logData := range logs {
+		if logData != nil {
+			logsMap[logData.TxHash] = logData
+		}
+	}
+
+	return sp.logsProc.processLogs(blockNonce, logsMap, false)
 }
 
 // RevertChanges will revert supplies changes based on the provided block body
