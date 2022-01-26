@@ -16,6 +16,33 @@ type ApiResolverStub struct {
 	GetTotalStakedValueHandler        func() (*api.StakeValues, error)
 	GetDirectStakedListHandler        func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler          func() ([]*api.Delegator, error)
+	GetBlockByHashCalled              func(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonceCalled             func(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRoundCalled             func(round uint64, withTxs bool) (*api.Block, error)
+	GetTransactionHandler             func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
+}
+
+// GetTransaction -
+func (ars *ApiResolverStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
+	return ars.GetTransactionHandler(hash, withEvents)
+}
+
+// GetBlockByHash -
+func (ars *ApiResolverStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
+	return ars.GetBlockByHashCalled(hash, withTxs)
+}
+
+// GetBlockByNonce -
+func (ars *ApiResolverStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
+	return ars.GetBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetBlockByRound -
+func (ars *ApiResolverStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	if ars.GetBlockByRoundCalled != nil {
+		return ars.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
 }
 
 // ExecuteSCQuery -
