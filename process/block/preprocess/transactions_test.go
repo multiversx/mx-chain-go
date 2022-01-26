@@ -216,9 +216,9 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
 		FrontRunningProtectionEnableEpoch:           30,
-		ScheduledMiniBlocksEnableEpoch: 2,
-		TxTypeHandler: &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch:              2,
+		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler:                &testscommon.ScheduledTxsExecutionStub{},
 	}
 }
 
@@ -593,7 +593,7 @@ func TestTransactionPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {
 	t.Parallel()
 
-	totalGasConsumed := uint64(0)
+	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxDataPool, _ = dataRetrieverMock.CreateTxPool(2, 0)
 	args.TxProcessor = &testscommon.TxProcessorMock{
@@ -601,13 +601,13 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 			return 0, nil
 		}}
 	args.GasHandler = &mock.GasHandlerMock{
-		SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
-			totalGasConsumed += gasConsumed
+		SetGasProvidedCalled: func(gasProvided uint64, hash []byte) {
+			totalGasProvided += gasProvided
 		},
-		TotalGasConsumedCalled: func() uint64 {
-			return totalGasConsumed
+		TotalGasProvidedCalled: func() uint64 {
+			return totalGasProvided
 		},
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return 0, 0, nil
 		},
 		SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -648,20 +648,20 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCalls(t *testing.T) {
 	t.Parallel()
 
-	totalGasConsumed := uint64(0)
+	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxProcessor = &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			return 0, nil
 		}}
 	args.GasHandler = &mock.GasHandlerMock{
-		SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
-			totalGasConsumed += gasConsumed
+		SetGasProvidedCalled: func(gasProvided uint64, hash []byte) {
+			totalGasProvided += gasProvided
 		},
-		TotalGasConsumedCalled: func() uint64 {
-			return totalGasConsumed
+		TotalGasProvidedCalled: func() uint64 {
+			return totalGasProvided
 		},
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return 0, 0, nil
 		},
 		SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
@@ -707,7 +707,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	numTxsToAdd := 5
 	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
-	totalGasConsumed := uint64(0)
+	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxDataPool, _ = dataRetrieverMock.CreateTxPool(2, 0)
 	args.TxProcessor = &testscommon.TxProcessorMock{
@@ -715,21 +715,21 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 			return 0, nil
 		}}
 	args.GasHandler = &mock.GasHandlerMock{
-		SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
-			totalGasConsumed += gasConsumed
+		SetGasProvidedCalled: func(gasProvided uint64, hash []byte) {
+			totalGasProvided += gasProvided
 		},
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return gasLimit, gasLimit, nil
 		},
-		TotalGasConsumedCalled: func() uint64 {
-			return totalGasConsumed
+		TotalGasProvidedCalled: func() uint64 {
+			return totalGasProvided
 		},
 		SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		GasRefundedCalled: func(hash []byte) uint64 {
 			return 0
 		},
-		RemoveGasConsumedCalled: func(hashes [][]byte) {
-			totalGasConsumed = 0
+		RemoveGasProvidedCalled: func(hashes [][]byte) {
+			totalGasProvided = 0
 		},
 		RemoveGasRefundedCalled: func(hashes [][]byte) {
 		},
@@ -803,14 +803,14 @@ func TestTransactions_IsDataPrepared_NumMissingTxsGreaterThanZeroShouldWork(t *t
 func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var gasConsumed uint64
+	var gasProvided uint64
 	var gasRefunded uint64
 	var gasPenalized uint64
 
 	args := createDefaultTransactionsProcessorArgs()
 	args.GasHandler = &mock.GasHandlerMock{
-		TotalGasConsumedCalled: func() uint64 {
-			return gasConsumed
+		TotalGasProvidedCalled: func() uint64 {
+			return gasProvided
 		},
 		TotalGasRefundedCalled: func() uint64 {
 			return gasRefunded
@@ -822,21 +822,21 @@ func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
 
 	preprocessor, _ := NewTransactionPreprocessor(args)
 
-	gasConsumed = 10
+	gasProvided = 10
 	gasRefunded = 2
 	gasPenalized = 3
 	totalGasConsumed := preprocessor.getTotalGasConsumed()
-	assert.Equal(t, gasConsumed, totalGasConsumed)
+	assert.Equal(t, gasProvided, totalGasConsumed)
 
 	preprocessor.EpochConfirmed(2, 0)
 
 	totalGasConsumed = preprocessor.getTotalGasConsumed()
-	assert.Equal(t, gasConsumed-gasRefunded-gasPenalized, totalGasConsumed)
+	assert.Equal(t, gasProvided-gasRefunded-gasPenalized, totalGasConsumed)
 
 	gasRefunded = 5
 	gasPenalized = 6
 	totalGasConsumed = preprocessor.getTotalGasConsumed()
-	assert.Equal(t, gasConsumed, totalGasConsumed)
+	assert.Equal(t, gasProvided, totalGasConsumed)
 }
 
 func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(t *testing.T) {
@@ -860,7 +860,7 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  0,
 		gasConsumedByMiniBlockInReceiverShard: 5,
-		totalGasConsumedInSelfShard: 10,
+		totalGasConsumedInSelfShard:           10,
 	}
 
 	gasRefunded = 2
@@ -1227,8 +1227,11 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	args := createDefaultTransactionsProcessorArgs()
 	args.TxDataPool = tdp.Transactions()
 	args.GasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-			return 0, MaxGasLimitPerBlock*maxGasLimitPercentUsedForDestMeTxs/100 + 1, nil
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, MaxGasLimitPerBlock * maxGasLimitPercentUsedForDestMeTxs / 100, nil
+		},
+		TotalGasProvidedCalled: func() uint64 {
+			return 1
 		},
 	}
 
@@ -1260,7 +1263,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	assert.Equal(t, 0, numTxsProcessed)
 }
 
-func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
+func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
 	maxGasLimit := uint64(1500000000)
@@ -1273,7 +1276,7 @@ func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
 		},
 	}
 	args.GasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return txGasLimitInSender, txGasLimitInReceiver, nil
 		},
 	}
@@ -1289,7 +1292,7 @@ func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
 		totalGasConsumedInSelfShard:           uint64(0),
 	}
 
-	gasConsumedByTxInSelfShard, err := preprocessor.computeGasConsumed(
+	gasProvidedByTxInSelfShard, err := preprocessor.computeGasProvided(
 		1,
 		0,
 		&tx,
@@ -1300,7 +1303,7 @@ func TestTransactionsPreprocessor_ComputeGasConsumedShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, maxGasLimit+1, gasInfo.gasConsumedByMiniBlocksInSenderShard)
 	assert.Equal(t, maxGasLimit, gasInfo.gasConsumedByMiniBlockInReceiverShard)
-	assert.Equal(t, maxGasLimit, gasConsumedByTxInSelfShard)
+	assert.Equal(t, maxGasLimit, gasProvidedByTxInSelfShard)
 	assert.Equal(t, maxGasLimit, gasInfo.totalGasConsumedInSelfShard)
 }
 
@@ -1320,7 +1323,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 		},
 	}
 	args.GasHandler = &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return txGasLimit, txGasLimit, nil
 		},
 	}
@@ -1376,7 +1379,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 
 func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T) {
 	gasHandler := &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
@@ -1426,7 +1429,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsNoBandwidth(t *testing.T)
 
 func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleTxs(t *testing.T) {
 	gasHandler := &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
@@ -1487,7 +1490,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 
 func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleTxsWithSkippedMoveBalance(t *testing.T) {
 	gasHandler := &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}
@@ -1556,7 +1559,7 @@ func TestTransactionsPreProcessor_preFilterTransactionsLimitedBandwidthMultipleT
 
 func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.T) {
 	gasHandler := &mock.GasHandlerMock{
-		ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 			return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 		},
 	}

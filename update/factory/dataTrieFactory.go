@@ -56,7 +56,6 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(args.StorageConfig.Cache),
 		dbConfig,
-		storageFactory.GetBloomFromConfig(args.StorageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, err

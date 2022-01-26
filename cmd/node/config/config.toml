@@ -386,7 +386,7 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
-    SnapshotsGoroutineNum = 10
+    SnapshotsGoroutineNum = 200
     MaxSnapshots = 3
     KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
@@ -684,7 +684,7 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
-    CheckpointsEnabled = true
+    CheckpointsEnabled = false
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5

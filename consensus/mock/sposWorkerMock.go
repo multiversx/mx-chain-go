@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -11,7 +13,7 @@ import (
 type SposWorkerMock struct {
 	AddReceivedMessageCallCalled func(
 		messageType consensus.MessageType,
-		receivedMessageCall func(cnsDta *consensus.Message) bool,
+		receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool,
 	)
 	AddReceivedHeaderHandlerCalled         func(handler func(data.HeaderHandler))
 	RemoveAllReceivedMessagesCallsCalled   func()
@@ -30,7 +32,7 @@ type SposWorkerMock struct {
 
 // AddReceivedMessageCall -
 func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consensus.MessageType,
-	receivedMessageCall func(cnsDta *consensus.Message) bool) {
+	receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
 	sposWorkerMock.AddReceivedMessageCallCalled(messageType, receivedMessageCall)
 }
 

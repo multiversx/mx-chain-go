@@ -96,7 +96,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                    arguments.HistoryRepository,
 		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                 arguments.RoundNotifier,
+		roundNotifier:                  arguments.RoundNotifier,
 		vmContainerFactory:             arguments.VMContainersFactory,
 		vmContainer:                    arguments.VmContainer,
 		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -159,14 +159,14 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.roundNotifier.CheckRound(headerHandler.GetRound())
+	sp.epochNotifier.CheckEpoch(headerHandler)
+	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
 	err = sp.checkScheduledRootHash(headerHandler)
 	if err != nil {
 		return err
 	}
-
-	sp.roundNotifier.CheckRound(headerHandler.GetRound())
-	sp.epochNotifier.CheckEpoch(headerHandler)
-	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
 		"epoch", headerHandler.GetEpoch(),
@@ -1311,8 +1311,14 @@ func (sp *shardProcessor) setHeaderVersionData(shardHeader data.ShardHeaderHandl
 		return err
 	}
 
+	scheduledGasAndFees := sp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 	additionalVersionData := &headerVersionData.AdditionalData{
-		ScheduledRootHash: rootHash,
+		ScheduledRootHash:        rootHash,
+		ScheduledAccumulatedFees: scheduledGasAndFees.AccumulatedFees,
+		ScheduledDeveloperFees:   scheduledGasAndFees.DeveloperFees,
+		ScheduledGasProvided:     scheduledGasAndFees.GasProvided,
+		ScheduledGasPenalized:    scheduledGasAndFees.GasPenalized,
+		ScheduledGasRefunded:     scheduledGasAndFees.GasRefunded,
 	}
 
 	return shardHeader.SetAdditionalData(additionalVersionData)

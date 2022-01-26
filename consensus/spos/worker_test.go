@@ -1,6 +1,7 @@
 package spos_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -447,7 +448,7 @@ func TestWorker_InitReceivedMessagesShouldInitMap(t *testing.T) {
 func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	receivedMessageCall := func(*consensus.Message) bool {
+	receivedMessageCall := func(context.Context, *consensus.Message) bool {
 		return true
 	}
 	wrk.AddReceivedMessageCall(bls.MtBlockBody, receivedMessageCall)
@@ -455,13 +456,13 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
 }
 
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	receivedMessageCall := func(*consensus.Message) bool {
+	receivedMessageCall := func(context.Context, *consensus.Message) bool {
 		return true
 	}
 	wrk.AddReceivedMessageCall(bls.MtBlockBody, receivedMessageCall)
@@ -469,7 +470,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
 
 	wrk.RemoveAllReceivedMessagesCalls()
 	receivedMessageCalls = wrk.ReceivedMessagesCalls()
@@ -1344,7 +1345,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.StartWorking()
-	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
+	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(ctx context.Context, cnsMsg *consensus.Message) bool {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		return true
 	})

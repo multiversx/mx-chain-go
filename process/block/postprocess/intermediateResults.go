@@ -134,7 +134,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
 			})
 
-			log.Trace("intermediateResultsProcessor.CreateAllInterMiniBlocks",
+			log.Debug("intermediateResultsProcessor.CreateAllInterMiniBlocks",
 				"type", miniblock.Type,
 				"senderShardID", miniblock.SenderShardID,
 				"receiverShardID", miniblock.ReceiverShardID,

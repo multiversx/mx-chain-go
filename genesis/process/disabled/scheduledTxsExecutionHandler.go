@@ -1,10 +1,12 @@
 package disabled
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -36,8 +38,19 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]da
 	return make(map[block.Type][]data.TransactionHandler)
 }
 
-// SetScheduledRootHashAndSCRs does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashAndSCRs(_ []byte, _ map[block.Type][]data.TransactionHandler) {
+// GetScheduledGasAndFees returns a zero value structure for the gas and fees
+func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
+
+// SetScheduledRootHashSCRsGasAndFees does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashSCRsGasAndFees(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
 }
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
@@ -59,6 +72,7 @@ func (steh *ScheduledTxsExecutionHandler) SaveState(
 	_ []byte,
 	_ []byte,
 	_ map[block.Type][]data.TransactionHandler,
+	_ scheduled.GasAndFees,
 ) {
 }
 
@@ -71,6 +85,10 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHash() []byte {
 func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHash(_ []byte) {
 }
 
+// SetScheduledGasAndFees does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledGasAndFees(_ scheduled.GasAndFees) {
+}
+
 // SetTransactionProcessor does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.TransactionProcessor) {
 }
@@ -80,7 +98,7 @@ func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.Tr
 }
 
 // IsScheduledTx always returns false as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(txHash []byte) bool {
+func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(_ []byte) bool {
 	return false
 }
 

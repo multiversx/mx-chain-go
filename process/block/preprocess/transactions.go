@@ -465,16 +465,36 @@ func (txs *transactions) processTxsToMe(
 
 	var totalGasConsumed uint64
 	if scheduledMode {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
+		totalGasConsumed = txs.gasHandler.TotalGasProvidedAsScheduled()
 	} else {
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
 
+	numTXsProcessed := 0
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
+
+	log.Debug("transactions.processTxsToMe: before processing",
+		"scheduled mode", scheduledMode,
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("transactions.processTxsToMe after processing",
+			"scheduled mode", scheduledMode,
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num scrs processed", numTXsProcessed,
+			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	log.Debug("processTxsToMe", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 	defer func() {
@@ -496,7 +516,7 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
-		gasConsumedByTxInSelfShard, errComputeGas := txs.computeGasConsumed(
+		gasProvidedByTxInSelfShard, errComputeGas := txs.computeGasProvided(
 			senderShardID,
 			receiverShardID,
 			tx,
@@ -508,9 +528,9 @@ func (txs *transactions) processTxsToMe(
 		}
 
 		if scheduledMode {
-			txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, txHash)
+			txs.gasHandler.SetGasProvidedAsScheduled(gasProvidedByTxInSelfShard, txHash)
 		} else {
-			txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
+			txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 		}
 
 		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
@@ -529,6 +549,8 @@ func (txs *transactions) processTxsToMe(
 
 			txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
 		}
+
+		numTXsProcessed++
 	}
 
 	return nil
@@ -998,6 +1020,12 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	return scheduledMiniBlocks, nil
 }
 
+type processingActions struct {
+	canAddTx             bool
+	canAddMore           bool
+	shouldAddToRemaining bool
+}
+
 func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
@@ -1031,20 +1059,23 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {
-		canAddTx, canContinue, tx := mbBuilder.checkAddTransaction(wtx)
-		if !canContinue {
-			remainingTxs = append(remainingTxs, sortedTxs[idx:]...)
+		actions, tx := mbBuilder.checkAddTransaction(wtx)
+		if !actions.canAddMore {
+			if actions.shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[idx:]...)
+			}
 			break
 		}
 
-		if !canAddTx {
-			remainingTxs = append(remainingTxs, sortedTxs[idx])
+		if !actions.canAddTx {
+			if actions.shouldAddToRemaining {
+				remainingTxs = append(remainingTxs, sortedTxs[idx])
+			}
 			continue
 		}
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
-			remainingTxs = append(remainingTxs, sortedTxs[idx])
 			continue
 		}
 
@@ -1087,7 +1118,7 @@ func logCreatedMiniBlocksStats(
 		"num txs with initial balance consumed", mbb.stats.numTxsWithInitialBalanceConsumed,
 		"num cross shard sc calls or special txs", mbb.stats.numCrossShardSCCallsOrSpecialTxs,
 		"num cross shard txs with too much gas", mbb.stats.numCrossShardTxsWithTooMuchGas,
-		"used time for computeGasConsumed", mbb.stats.totalGasComputeTime,
+		"used time for computeGasProvided", mbb.stats.totalGasComputeTime,
 		"used time for processAndRemoveBadTransaction", mbb.stats.totalProcessingTime)
 }
 
@@ -1219,7 +1250,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 			continue
 		}
 
-		_, gasConsumedByTxInReceiverShard, err := txs.computeGasConsumedByTx(
+		_, gasProvidedByTxInReceiverShard, err := txs.computeGasProvidedByTx(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			txInfo.tx,
@@ -1230,7 +1261,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 			continue
 		}
 
-		isGasLimitExceeded := gasLimitInReceiverShard+gasConsumedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
+		isGasLimitExceeded := gasLimitInReceiverShard+gasProvidedByTxInReceiverShard > txs.economicsFee.MaxGasLimitPerMiniBlockForSafeCrossShard()
 		if isGasLimitExceeded {
 			log.Debug("transactions.splitMiniBlockIfNeeded: gas limit exceeded",
 				"mb type", currentMiniBlock.Type,
@@ -1248,7 +1279,7 @@ func (txs *transactions) splitMiniBlockBasedOnMaxGasLimitIfNeeded(miniBlock *blo
 			gasLimitInReceiverShard = 0
 		}
 
-		gasLimitInReceiverShard += gasConsumedByTxInReceiverShard
+		gasLimitInReceiverShard += gasProvidedByTxInReceiverShard
 		currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 	}
 
@@ -1300,14 +1331,15 @@ func (txs *transactions) ProcessMiniBlock(
 	haveAdditionalTime func() bool,
 	getNumOfCrossInterMbsAndTxs func() (int, int),
 	scheduledMode bool,
-) ([][]byte, int, error) {
+) (processedTxHashes [][]byte, numProcessedTxs int, err error) {
 
 	if miniBlock.Type != block.TxBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 
-	var err error
-	processedTxHashes := make([][]byte, 0)
+	numTXsProcessed := 0
+	var gasProvidedByTxInSelfShard uint64
+	processedTxHashes = make([][]byte, 0)
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime, haveAdditionalTime)
 	if err != nil {
 		return nil, 0, err
@@ -1320,9 +1352,9 @@ func (txs *transactions) ProcessMiniBlock(
 	defer func() {
 		if err != nil {
 			if scheduledMode {
-				txs.gasHandler.RemoveGasConsumedAsScheduled(processedTxHashes)
+				txs.gasHandler.RemoveGasProvidedAsScheduled(processedTxHashes)
 			} else {
-				txs.gasHandler.RemoveGasConsumed(processedTxHashes)
+				txs.gasHandler.RemoveGasProvided(processedTxHashes)
 				txs.gasHandler.RemoveGasRefunded(processedTxHashes)
 				txs.gasHandler.RemoveGasPenalized(processedTxHashes)
 			}
@@ -1331,11 +1363,18 @@ func (txs *transactions) ProcessMiniBlock(
 
 	var totalGasConsumed uint64
 	if scheduledMode {
-		totalGasConsumed = txs.gasHandler.TotalGasConsumedAsScheduled()
+		totalGasConsumed = txs.gasHandler.TotalGasProvidedAsScheduled()
 	} else {
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
-	maxGasLimitUsedForDestMeTxs := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+
+	var maxGasLimitUsedForDestMeTxs uint64
+	isFirstMiniBlockDestMe := totalGasConsumed == 0
+	if isFirstMiniBlockDestMe {
+		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	} else {
+		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+	}
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
@@ -1343,39 +1382,54 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Trace("transactions.ProcessMiniBlock", "scheduled mode", scheduledMode, "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	log.Debug("transactions.ProcessMiniBlock: before processing",
+		"scheduled mode", scheduledMode,
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("transactions.ProcessMiniBlock after processing",
+			"scheduled mode", scheduledMode,
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num txs processed", numTXsProcessed,
+			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
+			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
 	for index := range miniBlockTxs {
 		if !haveTime() && !haveAdditionalTime() {
-			err = process.ErrTimeIsOut
-			return processedTxHashes, index, err
+			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
-		gasConsumedByTxInSelfShard, errComputeGas := txs.computeGasConsumed(
+		gasProvidedByTxInSelfShard, err = txs.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[index],
 			miniBlockTxHashes[index],
 			&gasInfo)
 
-		if errComputeGas != nil {
-			return processedTxHashes, index, errComputeGas
+		if err != nil {
+			return processedTxHashes, index, err
 		}
 
 		if scheduledMode {
-			txs.gasHandler.SetGasConsumedAsScheduled(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
+			txs.gasHandler.SetGasProvidedAsScheduled(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
 		} else {
-			txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, miniBlockTxHashes[index])
+			txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 
 		if txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-				return processedTxHashes, index, err
+				return processedTxHashes, index, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 			}
 		}
 
@@ -1389,13 +1443,15 @@ func (txs *transactions) ProcessMiniBlock(
 
 			txs.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
 		}
+
+		numTXsProcessed++
 	}
 
 	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 	numOfNewCrossInterMbs := numOfCrtCrossInterMbs - numOfOldCrossInterMbs
 	numOfNewCrossInterTxs := numOfCrtCrossInterTxs - numOfOldCrossInterTxs
 
-	log.Trace("transactions.ProcessMiniBlock",
+	log.Debug("transactions.ProcessMiniBlock",
 		"scheduled mode", scheduledMode,
 		"numOfOldCrossInterMbs", numOfOldCrossInterMbs, "numOfOldCrossInterTxs", numOfOldCrossInterTxs,
 		"numOfCrtCrossInterMbs", numOfCrtCrossInterMbs, "numOfCrtCrossInterTxs", numOfCrtCrossInterTxs,
@@ -1595,7 +1651,7 @@ func (txs *transactions) addTxsWithinBandwidth(
 
 	gasEstimation := initialTxsGasEstimation
 	for i, tx := range additionalTxs {
-		gasInShard, _, err := txs.gasHandler.ComputeGasConsumedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
+		gasInShard, _, err := txs.gasHandler.ComputeGasProvidedByTx(tx.SenderShardID, tx.ReceiverShardID, tx.Tx)
 		if err != nil {
 			continue
 		}

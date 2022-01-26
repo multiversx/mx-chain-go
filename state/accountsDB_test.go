@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -260,7 +261,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 
 						return nil
 					},
-					SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+					SetCheckpointCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 						close(leavesChan)
 					},
 					ExitPruningBufferingModeCalled: func() {
@@ -291,6 +292,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	}
 
 	wg.Wait()
+	time.Sleep(time.Second)
 
 	val, err := db.Get(numCheckpointsKey)
 	require.Nil(t, err)
@@ -1032,7 +1034,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(rootHash []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMut.Lock()
 					takeSnapshotWasCalled = true
 					snapshotMut.Unlock()
@@ -1047,6 +1049,108 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	snapshotMut.Lock()
 	assert.True(t, takeSnapshotWasCalled)
 	snapshotMut.Unlock()
+}
+
+func TestAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(t *testing.T) {
+	t.Parallel()
+
+	takeSnapshotCalled := false
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 0, fmt.Errorf("new error")
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					takeSnapshotCalled = true
+				},
+			}
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	adb.SnapshotState([]byte("roothash"))
+	time.Sleep(time.Second)
+
+	assert.False(t, takeSnapshotCalled)
+}
+
+func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
+	t.Parallel()
+
+	rootHash1 := []byte("rootHash1")
+	rootHash2 := []byte("rootHash2")
+	latestEpoch := uint32(0)
+	snapshotMutex := sync.RWMutex{}
+	takeSnapshotCalled := 0
+	trieStub := &trieMock.TrieStub{
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return latestEpoch, nil
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					snapshotMutex.Lock()
+					takeSnapshotCalled++
+					snapshotMutex.Unlock()
+				},
+			}
+		},
+	}
+	adb := generateAccountDBFromTrie(trieStub)
+	waitForOpToFinish := time.Millisecond * 100
+
+	// snapshot rootHash1 and epoch 0
+	adb.SnapshotState(rootHash1)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 1, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+
+	// snapshot rootHash1 and epoch 1
+	latestEpoch = 1
+	adb.SnapshotState(rootHash1)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 2, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+
+	// snapshot rootHash1 and epoch 0 again
+	latestEpoch = 0
+	adb.SnapshotState(rootHash1)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 3, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+
+	// snapshot rootHash1 and epoch 0 again
+	adb.SnapshotState(rootHash1)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 3, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+
+	// snapshot rootHash2 and epoch 0
+	adb.SnapshotState(rootHash2)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 4, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+
+	// snapshot rootHash2 and epoch 1
+	latestEpoch = 1
+	adb.SnapshotState(rootHash2)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 5, takeSnapshotCalled)
+	snapshotMutex.Unlock()
+
+	// snapshot rootHash2 and epoch 1 again
+	latestEpoch = 1
+	adb.SnapshotState(rootHash2)
+	time.Sleep(waitForOpToFinish)
+	snapshotMutex.Lock()
+	assert.Equal(t, 5, takeSnapshotCalled)
+	snapshotMutex.Unlock()
 }
 
 func TestAccountsDB_SetStateCheckpointWithDataTries(t *testing.T) {
@@ -1088,7 +1192,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(rootHash []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
+				SetCheckpointCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
 					snapshotMut.Lock()
 					setCheckPointWasCalled = true
 					snapshotMut.Unlock()
@@ -2250,6 +2354,35 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
 	assert.Equal(t, dataTrie, account.DataTrie())
+}
+
+func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("rootHash")
+	takeSnapshotCalled := atomicFlag.Flag{}
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetCalled: func(_ []byte) ([]byte, error) {
+					return nil, fmt.Errorf("key not found")
+				},
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					takeSnapshotCalled.SetValue(true)
+				},
+			}
+		},
+	}
+
+	_ = generateAccountDBFromTrie(trieStub)
+	time.Sleep(time.Second)
+	assert.True(t, takeSnapshotCalled.IsSet())
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
