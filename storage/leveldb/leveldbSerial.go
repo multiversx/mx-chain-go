@@ -60,9 +60,6 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		path: path,
 	}
 
-	crtCounter := atomic.AddUint32(&dbCounter, 1)
-	logDebug.Warn("serial level db debug", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "crt counter", crtCounter)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &SerialDB{
 		baseLevelDb:       bldb,
@@ -83,7 +80,8 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		_ = db.Close()
 	})
 
-	log.Debug("opened serial level db persister", "path", path)
+	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
+	log.Debug("opened serial level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
 
 	return dbStore, nil
 }

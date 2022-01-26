@@ -23,7 +23,6 @@ const rwxOwner = 0700
 
 var log = logger.GetOrCreate("storage/leveldb")
 var logDebug = logger.GetOrCreate("storage/leveldbdebug")
-var dbCounter = uint32(0)
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
@@ -64,9 +63,6 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		path: path,
 	}
 
-	crtCounter := atomic.AddUint32(&dbCounter, 1)
-	logDebug.Warn("level db debug", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "crt counter", crtCounter)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &DB{
 		baseLevelDb:       bldb,
@@ -84,7 +80,8 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		_ = db.Close()
 	})
 
-	log.Debug("opened level db persister", "path", path)
+	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
+	log.Debug("opened level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
 
 	return dbStore, nil
 }

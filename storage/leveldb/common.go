@@ -15,6 +15,9 @@ const resourceUnavailable = "resource temporarily unavailable"
 const maxRetries = 10
 const timeBetweenRetries = time.Second
 
+// loggingDBCounter this variable should be used only used in logging prints
+var loggingDBCounter = uint32(0)
+
 func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 	retries := 0
 	for {
@@ -88,8 +91,8 @@ func (bldb *baseLevelDb) makeDbPointerNilReturningLast() *leveldb.DB {
 	defer bldb.mutDb.Unlock()
 
 	if bldb.db != nil {
-		crtCounter := atomic.AddUint32(&dbCounter, ^uint32(0)) // subtract
-		logDebug.Warn("level db debug", "path", bldb.path, "nilled pointer", fmt.Sprintf("%p", bldb.db), "crt counter", crtCounter)
+		crtCounter := atomic.AddUint32(&loggingDBCounter, ^uint32(0)) // subtract 1
+		logDebug.Debug("makeDbPointerNilReturningLast", "path", bldb.path, "nilled pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
 	}
 
 	db := bldb.db
