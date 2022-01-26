@@ -5,29 +5,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-func checkNilArgs(args *APITransactionProcessorArgs) error {
-	if args == nil {
+func checkNilArgs(arg *ArgAPITransactionProcessor) error {
+	if arg == nil {
 		return ErrNilAPITransactionProcessorArg
 	}
-	if check.IfNil(args.Marshalizer) {
+	if check.IfNil(arg.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(args.DataPool) {
+	if check.IfNil(arg.DataPool) {
 		return process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(args.HistoryRepository) {
+	if check.IfNil(arg.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(args.ShardCoordinator) {
+	if check.IfNil(arg.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.AddressPubKeyConverter) {
+	if check.IfNil(arg.AddressPubKeyConverter) {
 		return process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(args.StorageService) {
+	if check.IfNil(arg.StorageService) {
 		return process.ErrNilStorage
 	}
-	if check.IfNil(args.Uint64ByteSliceConverter) {
+	if check.IfNil(arg.Uint64ByteSliceConverter) {
 		return process.ErrNilUint64Converter
 	}
 

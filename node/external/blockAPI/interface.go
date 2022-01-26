@@ -8,6 +8,7 @@ import (
 // TransactionUnmarshalerHandler defines the transaction unmarshaler handler should do
 type TransactionUnmarshalerHandler interface {
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	IsInterfaceNil() bool
 }
 
 // APIBlockHandler defines the behavior of a component able to return api blocks

@@ -17,9 +17,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArgsAPIBlockProc() *APIBlockProcessorArg {
+func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &mock.ChainStorerStub{})
-	return &APIBlockProcessorArg{
+	return &ArgAPIBlockProcessor{
 		Store:                    &mock.ChainStorerStub{},
 		Marshalizer:              &mock.MarshalizerFake{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),

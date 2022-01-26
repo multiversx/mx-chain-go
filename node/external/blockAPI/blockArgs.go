@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 )
 
-// APIBlockProcessorArg is structure that store components that are needed to create an api block procesosr
-type APIBlockProcessorArg struct {
+// ArgAPIBlockProcessor is structure that store components that are needed to create an api block procesosr
+type ArgAPIBlockProcessor struct {
 	SelfShardID              uint32
 	Store                    dataRetriever.StorageService
 	Marshalizer              marshal.Marshalizer

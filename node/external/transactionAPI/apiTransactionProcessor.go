@@ -35,7 +35,7 @@ type apiTransactionProcessor struct {
 	transactionResultsProcessor *apiTransactionResultsProcessor
 }
 
-func NewAPITransactionProcessor(args *APITransactionProcessorArgs) (*apiTransactionProcessor, error) {
+func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransactionProcessor, error) {
 	err := checkNilArgs(args)
 	if err != nil {
 		return nil, err

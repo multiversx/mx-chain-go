@@ -188,7 +188,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
-	argsApiTransactionProc := &transactionAPI.APITransactionProcessorArgs{
+	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		Marshalizer:              TestMarshalizer,
 		AddressPubKeyConverter:   TestAddressPubkeyConverter,
 		ShardCoordinator:         tpn.ShardCoordinator,
@@ -203,7 +203,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	statusCom, err := txstatus.NewStatusComputer(tpn.ShardCoordinator.SelfId(), TestUint64Converter, tpn.Storage)
 	log.LogIfError(err)
 
-	argsBlockAPI := &blockAPI.APIBlockProcessorArg{
+	argsBlockAPI := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              tpn.ShardCoordinator.SelfId(),
 		Store:                    tpn.Storage,
 		Marshalizer:              TestMarshalizer,

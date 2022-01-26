@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type APITransactionProcessorArgs struct {
+type ArgAPITransactionProcessor struct {
 	RoundDuration            uint64
 	GenesisTime              time.Time
 	Marshalizer              marshal.Marshalizer

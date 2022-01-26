@@ -248,7 +248,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	args := &APITransactionProcessorArgs{
+	args := &ArgAPITransactionProcessor{
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
@@ -467,7 +467,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 
-	args := &APITransactionProcessorArgs{
+	args := &ArgAPITransactionProcessor{
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
@@ -478,7 +478,8 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 	}
-	apiTransactionProc, _ := NewAPITransactionProcessor(args)
+	apiTransactionProc, err := NewAPITransactionProcessor(args)
+	require.Nil(t, err)
 
 	return apiTransactionProc, chainStorer, dataPool, historyRepo
 }

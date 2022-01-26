@@ -172,7 +172,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	argsAPITransactionProc := &transactionAPI.APITransactionProcessorArgs{
+	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		GenesisTime:              args.CoreComponents.GenesisTime(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
@@ -408,7 +408,7 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 		return nil, errors.New("error creating transaction status computer " + err.Error())
 	}
 
-	blockApiArgs := &blockAPI.APIBlockProcessorArg{
+	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
 		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
 		Store:                    args.DataComponents.StorageService(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
