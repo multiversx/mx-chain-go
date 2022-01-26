@@ -1,4 +1,4 @@
-package mock
+package shardingMocks
 
 const uint32Size = 4
 const numUint32 = 2

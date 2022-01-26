@@ -20,11 +20,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/slash"
 	"github.com/ElrondNetwork/elrond-go/process/slash/detector"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	shardingMock "github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/slashMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -215,7 +215,7 @@ func createNodesCoordinatorArgs(hasher hashing.Hasher, pubKeys []string) shardin
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("test"),
 		ConsensusGroupCache:        consensusGroupCache,
-		ShuffledOutHandler:         &shardingMock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		IsFullArchive:              false,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
@@ -242,7 +242,7 @@ func createValidatorList(nbNodes uint32, pubKeys []string) []sharding.Validator 
 
 	for i := uint32(0); i < nbNodes; i++ {
 		pubKey := []byte(pubKeys[i])
-		validator := shardingMock.NewValidatorMock(pubKey, defaultSelectionChances, defaultSelectionChances)
+		validator := shardingMocks.NewValidatorMock(pubKey, defaultSelectionChances, defaultSelectionChances)
 		validators = append(validators, validator)
 	}
 
