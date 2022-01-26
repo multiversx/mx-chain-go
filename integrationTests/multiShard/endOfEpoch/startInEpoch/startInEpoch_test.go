@@ -219,7 +219,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		GenesisNodesConfig:         nodesConfig,
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		NodeShuffler:               &mock.NodeShufflerMock{},
+		NodeShuffler:               &shardingMocks.NodeShufflerMock{},
 		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},

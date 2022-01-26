@@ -10,12 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -97,7 +98,7 @@ func CreateNodesCoordinator(
 	hasher hashing.Hasher,
 	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
-	nodeShuffler sharding.NodesShuffler,
+	nodeShuffler nodesCoordinator.NodesShuffler,
 	currentShardID uint32,
 	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,

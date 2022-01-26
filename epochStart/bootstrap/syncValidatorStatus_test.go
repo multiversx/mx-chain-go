@@ -148,7 +148,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:      &mock.NodeShufflerMock{},
+		NodeShuffler:      &shardingMocks.NodeShufflerMock{},
 		PubKey:            []byte("public key"),
 		ShardIdAsObserver: 0,
 		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),

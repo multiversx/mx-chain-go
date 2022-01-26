@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -87,7 +88,7 @@ type coreComponents struct {
 	economicsData                 process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
-	nodesShuffler                 sharding.NodesShuffler
+	nodesShuffler                 nodesCoordinator.NodesShuffler
 	txVersionChecker              process.TxVersionCheckerHandler
 	genesisTime                   time.Time
 	chainID                       string
@@ -295,7 +296,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		log.Debug("cannot set status handler to economicsData", "error", err)
 	}
 
-	argsNodesShuffler := &sharding.NodesShufflerArgs{
+	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     genesisNodesConfig.MinNumberOfShardNodes(),
 		NodesMeta:                      genesisNodesConfig.MinNumberOfMetaNodes(),
 		Hysteresis:                     genesisNodesConfig.GetHysteresis(),
@@ -306,7 +307,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		WaitingListFixEnableEpoch:      ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 	}
 
-	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
+	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)
 	if err != nil {
 		return nil, err
 	}

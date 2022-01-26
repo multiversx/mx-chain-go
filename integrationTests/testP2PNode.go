@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -339,7 +340,7 @@ func CreateNodesWithTestP2PNodes(
 			EligibleNodes:              validatorsForNodesCoordinator,
 			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:        cache,
-			Shuffler:                   &mock.NodeShufflerMock{},
+			Shuffler:                   &shardingMocks.NodeShufflerMock{},
 			BootStorer:                 CreateMemUnit(),
 			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 			Epoch:                      0,
@@ -384,7 +385,7 @@ func CreateNodesWithTestP2PNodes(
 				EligibleNodes:              validatorsForNodesCoordinator,
 				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
 				ConsensusGroupCache:        cache,
-				Shuffler:                   &mock.NodeShufflerMock{},
+				Shuffler:                   &shardingMocks.NodeShufflerMock{},
 				BootStorer:                 CreateMemUnit(),
 				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 				Epoch:                      0,

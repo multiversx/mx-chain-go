@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -477,7 +478,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
-	shufflerArgs := &sharding.NodesShufflerArgs{
+	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     uint32(nodesPerShard),
 		NodesMeta:                      uint32(nbMetaNodes),
 		Hysteresis:                     hysteresis,
@@ -487,7 +488,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		WaitingListFixEnableEpoch:      0,
 		BalanceWaitingListsEnableEpoch: 0,
 	}
-	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
+	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 
@@ -585,7 +586,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
-	nodeShuffler := &mock.NodeShufflerMock{}
+	nodeShuffler := &shardingMocks.NodeShufflerMock{}
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {

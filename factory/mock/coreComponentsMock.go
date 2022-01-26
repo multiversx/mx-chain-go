@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -45,7 +46,7 @@ type CoreComponentsMock struct {
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
-	Shuffler                    sharding.NodesShuffler
+	Shuffler                    nodesCoordinator.NodesShuffler
 	EpochChangeNotifier         process.EpochNotifier
 	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
@@ -200,7 +201,7 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 }
 
 // NodesShuffler -
-func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
+func (ccm *CoreComponentsMock) NodesShuffler() nodesCoordinator.NodesShuffler {
 	return ccm.Shuffler
 }
 

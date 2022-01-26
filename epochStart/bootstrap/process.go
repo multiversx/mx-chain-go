@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -89,7 +90,7 @@ type epochStartBootstrap struct {
 	trieContainer              common.TriesHolder
 	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
-	nodeShuffler               sharding.NodesShuffler
+	nodeShuffler               nodesCoordinator.NodesShuffler
 	roundHandler               epochStart.RoundHandler
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
@@ -152,7 +153,7 @@ type ArgsEpochStartBootstrap struct {
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
-	NodeShuffler               sharding.NodesShuffler
+	NodeShuffler               nodesCoordinator.NodesShuffler
 	RoundHandler               epochStart.RoundHandler
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
