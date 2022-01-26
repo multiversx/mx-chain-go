@@ -183,7 +183,6 @@ func (sn *slashingNotifier) selectKeyPair() KeyPair {
 		shardID = currShardID
 
 		if currShardID != selfID {
-			shardID = currShardID
 			break
 		}
 	}
