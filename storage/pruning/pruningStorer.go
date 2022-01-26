@@ -895,14 +895,32 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 func (ps *PruningStorer) processPersistersToClose() []*persisterData {
 	persistersToClose := make([]*persisterData, 0)
 
+	epochsToClose := make([]uint32, 0)
+	allEpochsBeforeProcess := make([]uint32, 0)
+	for _, p := range ps.activePersisters {
+		allEpochsBeforeProcess = append(allEpochsBeforeProcess, p.epoch)
+	}
+
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
 		persistersToClose = ps.activePersisters[ps.numOfActivePersisters:]
 		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
 
 		for _, p := range persistersToClose {
 			ps.persistersMapByEpoch[p.epoch] = p
+			epochsToClose = append(epochsToClose, p.epoch)
 		}
 	}
+
+	allEpochsAfterProcess := make([]uint32, 0)
+	for _, p := range ps.activePersisters {
+		allEpochsAfterProcess = append(allEpochsAfterProcess, p.epoch)
+	}
+
+	// TODO remove this
+	log.Debug("PruningStorer.processPersistersToClose",
+		"epochs to close", epochsToClose,
+		"before process", allEpochsBeforeProcess,
+		"after process", allEpochsAfterProcess)
 
 	return persistersToClose
 }
