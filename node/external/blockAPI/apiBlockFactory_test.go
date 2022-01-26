@@ -24,7 +24,7 @@ func createMockArgsAPIBlockProc() *APIBlockProcessorArg {
 		Marshalizer:              &mock.MarshalizerFake{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-		UnmarshalTxHandler:       &mock.UnmarshalTxStub{},
+		UnmarshalTxHandler:       &mock.TransactionAPIHandlerStub{},
 		StatusComputer:           statusComputer,
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},

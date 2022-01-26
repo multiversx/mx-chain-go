@@ -20,6 +20,8 @@ func createMockAgrs() external.ArgNodeApiResolver {
 		TotalStakedValueHandler: &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler: &mock.DirectStakedListProcessorStub{},
 		DelegatedListHandler:    &mock.DelegatedListProcessorStub{},
+		APIBlockHandler:         &mock.BlockAPIHandler{},
+		APITransactionHandler:   &mock.TransactionAPIHandlerStub{},
 	}
 }
 

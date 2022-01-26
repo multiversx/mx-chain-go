@@ -24,7 +24,7 @@ func createMockMetaAPIProcessor(
 ) *metaAPIBlockProcessor {
 	return NewMetaApiBlockProcessor(
 		&APIBlockProcessorArg{
-			UnmarshalTxHandler: &mock.UnmarshalTxStub{},
+			UnmarshalTxHandler: &mock.TransactionAPIHandlerStub{},
 			SelfShardID:        core.MetachainShardId,
 			Marshalizer:        &mock.MarshalizerFake{},
 			Store: &mock.ChainStorerMock{
