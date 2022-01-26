@@ -179,12 +179,8 @@ func (sn *slashingNotifier) selectKeyPair() KeyPair {
 	var shardID uint32
 	selfID := sn.shardCoordinator.SelfId()
 
-	first := true
 	for currShardID := range sn.keyPairs {
-		if first == true {
-			shardID = currShardID
-			first = false
-		}
+		shardID = currShardID
 
 		if currShardID != selfID {
 			shardID = currShardID
