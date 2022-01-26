@@ -24,8 +24,9 @@ func createMockShardAPIProcessor(
 ) *shardAPIBlockProcessor {
 	return NewShardApiBlockProcessor(
 		&APIBlockProcessorArg{
-			SelfShardID: shardID,
-			Marshalizer: &mock.MarshalizerFake{},
+			UnmarshalTxHandler: &mock.UnmarshalTxStub{},
+			SelfShardID:        shardID,
+			Marshalizer:        &mock.MarshalizerFake{},
 			Store: &mock.ChainStorerMock{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return storerMock

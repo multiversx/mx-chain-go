@@ -24,8 +24,9 @@ func createMockMetaAPIProcessor(
 ) *metaAPIBlockProcessor {
 	return NewMetaApiBlockProcessor(
 		&APIBlockProcessorArg{
-			SelfShardID: core.MetachainShardId,
-			Marshalizer: &mock.MarshalizerFake{},
+			UnmarshalTxHandler: &mock.UnmarshalTxStub{},
+			SelfShardID:        core.MetachainShardId,
+			Marshalizer:        &mock.MarshalizerFake{},
 			Store: &mock.ChainStorerMock{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return storerMock

@@ -16,6 +16,7 @@ type shardAPIBlockProcessor struct {
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
 func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
+	// TODO check args
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 
 	return &shardAPIBlockProcessor{

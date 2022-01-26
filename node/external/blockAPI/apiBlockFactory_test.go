@@ -1,73 +1,34 @@
-package blockAPI_test
+package blockAPI
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/node/mock/factory"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-
-	blk, err := n.GetBlockByHash("invalidHash", false)
-	assert.Error(t, err)
-	assert.Nil(t, blk)
-}
-
-func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	historyProc := &dblookupext.HistoryRepositoryStub{
-		IsEnabledCalled: func() bool {
-			return true
-		},
-		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-			return 1, nil
-		},
+func createMockArgsAPIBlockProc() *APIBlockProcessorArg {
+	statusComputer, _ := txstatus.NewStatusComputer(0, mock.NewNonceHashConverterMock(), &mock.ChainStorerStub{})
+	return &APIBlockProcessorArg{
+		Store:                    &mock.ChainStorerStub{},
+		Marshalizer:              &mock.MarshalizerFake{},
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+		UnmarshalTxHandler:       &mock.UnmarshalTxStub{},
+		StatusComputer:           statusComputer,
+		Hasher:                   &mock.HasherMock{},
+		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 	}
-	uint64Converter := mock.NewNonceHashConverterMock()
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-	coreComponentsMock := getDefaultCoreComponents()
-	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
-	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.HistoryRepositoryInternal = historyProc
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = nil
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-	)
-
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
-	assert.Error(t, err)
-	assert.Nil(t, blk)
 }
 
 func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
@@ -81,15 +42,12 @@ func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 			return 1, nil
 		},
 	}
-	uint64Converter := mock.NewNonceHashConverterMock()
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 	storerMock := mock.NewStorerMock()
-	coreComponentsMock := getDefaultCoreComponents()
-	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
-	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.HistoryRepositoryInternal = historyProc
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{
+
+	args := createMockArgsAPIBlockProc()
+	args.HistoryRepo = historyProc
+	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
 		},
@@ -97,14 +55,9 @@ func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 			return headerHash, nil
 		},
 	}
+	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-	)
-
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -129,12 +82,9 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 
 	uint64Converter := mock.NewNonceHashConverterMock()
 	storerMock := mock.NewStorerMock()
-	coreComponentsMock := getDefaultCoreComponents()
-	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
-	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.HistoryRepositoryInternal = historyProc
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{
+
+	args := createMockArgsAPIBlockProc()
+	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
 		},
@@ -142,12 +92,8 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 			return headerHash, nil
 		},
 	}
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-	)
+	args.HistoryRepo = historyProc
+	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	header := &block.Header{
 		Nonce:   nonce,
@@ -183,7 +129,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -199,27 +145,20 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	miniblockHeader := []byte("mbHash")
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 	storerMock := mock.NewStorerMock()
-	coreComponentsMock := getDefaultCoreComponents()
-	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
-	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.ShardCoord = &mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}
-	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{
-		IsEnabledCalled: func() bool {
-			return false
-		},
-	}
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{
+
+	args := createMockArgsAPIBlockProc()
+	args.SelfShardID = core.MetachainShardId
+	args.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return storerMock.Get(key)
 		},
 	}
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-	)
+	args.HistoryRepo = &dblookupext.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return false
+		},
+	}
+	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	header := &block.MetaBlock{
 		Nonce: nonce,
@@ -259,45 +198,9 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		DeveloperFeesInEpoch:   "49",
 	}
 
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
-}
-
-func TestGetBlockByNonce_GetBlockByRound_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	historyProc := &dblookupext.HistoryRepositoryStub{
-		IsEnabledCalled: func() bool {
-			return true
-		},
-		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-			return 1, nil
-		},
-	}
-	nonce := uint64(1)
-	round := uint64(2)
-	uint64Converter := mock.NewNonceHashConverterMock()
-	coreComponentsMock := getDefaultCoreComponents()
-	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
-	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.HistoryRepositoryInternal = historyProc
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = nil
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-	)
-
-	blk, err := n.GetBlockByNonce(nonce, false)
-	assert.Error(t, err)
-	assert.Nil(t, blk)
-
-	blk, err = n.GetBlockByRound(round, false)
-	assert.Error(t, err)
-	assert.Nil(t, blk)
 }
 
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
@@ -319,11 +222,10 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	miniblockHeader := []byte("mbHash")
 	storerMock := mock.NewStorerMock()
 	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
-	coreComponentsMock := getDefaultCoreComponents()
-	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.HistoryRepositoryInternal = historyProc
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{
+
+	args := createMockArgsAPIBlockProc()
+	args.HistoryRepo = historyProc
+	args.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return hex.DecodeString(headerHash)
 		},
@@ -331,12 +233,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 			return storerMock
 		},
 	}
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-	)
+	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	header := &block.Header{
 		Nonce:   nonce,
@@ -369,7 +266,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := n.GetBlockByNonce(1, false)
+	blk, err := apiBlockProc.GetBlockByNonce(1, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -383,10 +280,14 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 	shardID := uint32(5)
 	miniblockHeader := []byte("mbHash")
 	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
-	coreComponentsMock := getDefaultCoreComponents()
-	processComponentsMock := getDefaultProcessComponents()
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{
+
+	args := createMockArgsAPIBlockProc()
+	args.HistoryRepo = &dblookupext.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return false
+		},
+	}
+	args.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
 				unitType == dataRetriever.RoundHdrHashDataUnit {
@@ -407,18 +308,7 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 			return blockBytes, nil
 		},
 	}
-
-	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{
-		IsEnabledCalled: func() bool {
-			return false
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-	)
+	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -437,11 +327,11 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 		Status:          BlockStatusOnChain,
 	}
 
-	blk, err := n.GetBlockByNonce(nonce, false)
+	blk, err := apiBlockProc.GetBlockByNonce(nonce, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 
-	blk, err = n.GetBlockByRound(round, false)
+	blk, err = apiBlockProc.GetBlockByRound(round, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -465,11 +355,10 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
 	uint64Converter := mock.NewNonceHashConverterMock()
 	storerMock := mock.NewStorerMock()
-	coreComponentsMock := getDefaultCoreComponents()
-	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
-	processComponentsMock := getDefaultProcessComponents()
-	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{
+
+	args := createMockArgsAPIBlockProc()
+	args.HistoryRepo = historyProc
+	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
 		},
@@ -477,14 +366,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 			return storerMock.Get(key)
 		},
 	}
-
-	processComponentsMock.HistoryRepositoryInternal = historyProc
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponentsMock),
-		node.WithDataComponents(dataComponentsMock),
-		node.WithProcessComponents(processComponentsMock),
-	)
+	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	header := &block.Header{
 		Nonce:   nonce,
@@ -521,94 +403,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		Status:          BlockStatusReverted,
 	}
 
-	blk, err := n.GetBlockByHash(hex.EncodeToString([]byte(headerHash)), false)
+	blk, err := apiBlockProc.GetBlockByHash([]byte(headerHash), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
-}
-
-func getDefaultCoreComponents() *factory.CoreComponentsMock {
-	return &factory.CoreComponentsMock{
-		IntMarsh:            &testscommon.MarshalizerMock{},
-		TxMarsh:             &testscommon.MarshalizerMock{},
-		VmMarsh:             &testscommon.MarshalizerMock{},
-		TxSignHasherField:   &testscommon.HasherStub{},
-		Hash:                &testscommon.HasherStub{},
-		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
-		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
-		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),
-		PathHdl:             &testscommon.PathManagerStub{},
-		ChainIdCalled: func() string {
-			return "chainID"
-		},
-		MinTransactionVersionCalled: func() uint32 {
-			return 1
-		},
-		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
-		WDTimer:               &testscommon.WatchdogMock{},
-		Alarm:                 &testscommon.AlarmSchedulerStub{},
-		NtpTimer:              &testscommon.SyncTimerStub{},
-		RoundHandlerField:     &testscommon.RoundHandlerMock{},
-		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:         &testscommon.RatingsInfoMock{},
-		RatingHandler:         &testscommon.RaterMock{},
-		NodesConfig:           &testscommon.NodesSetupStub{},
-		StartTime:             time.Time{},
-		EpochChangeNotifier:   &mock.EpochNotifierStub{},
-		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
-	}
-}
-
-func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
-	return &factoryMock.ProcessComponentsMock{
-		NodesCoord: &mock.NodesCoordinatorMock{},
-		ShardCoord: &testscommon.ShardsCoordinatorMock{
-			NoShards:     1,
-			CurrentShard: 0,
-		},
-		IntContainer:                   &testscommon.InterceptorsContainerStub{},
-		ResFinder:                      &mock.ResolversFinderStub{},
-		RoundHandlerField:              &testscommon.RoundHandlerMock{},
-		EpochTrigger:                   &testscommon.EpochStartTriggerStub{},
-		EpochNotifier:                  &mock.EpochStartNotifierStub{},
-		ForkDetect:                     &mock.ForkDetectorMock{},
-		BlockProcess:                   &mock.BlockProcessorStub{},
-		BlackListHdl:                   &testscommon.TimeCacheStub{},
-		BootSore:                       &mock.BootstrapStorerMock{},
-		HeaderSigVerif:                 &mock.HeaderSigVerifierStub{},
-		HeaderIntegrVerif:              &mock.HeaderIntegrityVerifierStub{},
-		ValidatorStatistics:            &mock.ValidatorStatisticsProcessorMock{},
-		ValidatorProvider:              &mock.ValidatorsProviderStub{},
-		BlockTrack:                     &mock.BlockTrackerStub{},
-		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
-		ReqHandler:                     &testscommon.RequestHandlerStub{},
-		TxLogsProcess:                  &mock.TxLogProcessorMock{},
-		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
-		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
-		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
-	}
-}
-
-func getDefaultDataComponents() *factory.DataComponentsMock {
-	return &factory.DataComponentsMock{
-		BlockChain: &mock.ChainHandlerStub{},
-		Store:      &mock.ChainStorerStub{},
-		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
-		MbProvider: &mock.MiniBlocksProviderStub{},
-	}
-}
-
-func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
-	return &mainFactoryMocks.BootstrapComponentsStub{
-		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
-			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
-			BootstrapCalled: nil,
-		},
-		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
-		NodeRole:             "",
-		ShCoordinator:        &mock.ShardCoordinatorMock{},
-		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-	}
 }
