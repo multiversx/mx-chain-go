@@ -114,7 +114,11 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	go func() {
 		printStats(stats, "snapshotState peer trie", rootHash)
-		adb.MarkSnapshotDone()
+
+		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+		if err != nil {
+			log.Warn("error while putting active DB value into main storer", "error", err)
+		}
 	}()
 
 	if adb.processingMode == common.ImportDb {

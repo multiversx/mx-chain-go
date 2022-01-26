@@ -53,11 +53,15 @@ func TestSerialDB_MethodCallsAfterCloseOrDestroy(t *testing.T) {
 	t.Parallel()
 
 	t.Run("when closing", func(t *testing.T) {
+		t.Parallel()
+
 		testSerialDbAllMethodsShouldNotPanic(t, func(db *leveldb.SerialDB) {
 			_ = db.Close()
 		})
 	})
 	t.Run("when destroying", func(t *testing.T) {
+		t.Parallel()
+
 		testSerialDbAllMethodsShouldNotPanic(t, func(db *leveldb.SerialDB) {
 			_ = db.Destroy()
 		})

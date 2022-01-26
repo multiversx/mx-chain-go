@@ -315,11 +315,15 @@ func TestDB_MethodCallsAfterCloseOrDestroy(t *testing.T) {
 	t.Parallel()
 
 	t.Run("when closing", func(t *testing.T) {
+		t.Parallel()
+
 		testDbAllMethodsShouldNotPanic(t, func(db *leveldb.DB) {
 			_ = db.Close()
 		})
 	})
 	t.Run("when destroying", func(t *testing.T) {
+		t.Parallel()
+
 		testDbAllMethodsShouldNotPanic(t, func(db *leveldb.DB) {
 			_ = db.Destroy()
 		})

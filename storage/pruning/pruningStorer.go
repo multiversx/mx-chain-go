@@ -809,6 +809,16 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	if oldestEpochActive < 0 {
 		oldestEpochActive = 0
 	}
+	log.Trace("PruningStorer.changeEpochWithExisting",
+		"oldestEpochActive", oldestEpochActive, "epoch", epoch, "numActivePersisters", numActivePersisters)
+
+	if len(ps.activePersisters) > 0 {
+		// this should solve the case when extended persisters are present
+		lastActivePersister := ps.activePersisters[len(ps.activePersisters)-1]
+		if oldestEpochActive > int64(lastActivePersister.epoch) {
+			oldestEpochActive = int64(lastActivePersister.epoch)
+		}
+	}
 
 	persisters := make([]*persisterData, 0)
 	for e := int64(epoch); e >= oldestEpochActive; e-- {

@@ -2,10 +2,13 @@ package pruning_test
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,18 +16,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("storage/pruning_test")
 
 func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig) {
 	cacheConf := storageUnit.CacheConfig{
@@ -772,20 +782,20 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	err = ps.ChangeEpochSimple(1)
 	require.Nil(t, err)
 	ps.ClearCache()
-	restauredVal0, err := ps.Get(key0)
+	restoredVal0, err := ps.Get(key0)
 	require.Nil(t, err)
-	require.Equal(t, val0, restauredVal0)
+	require.Equal(t, val0, restoredVal0)
 
-	restauredVal1, err := ps.Get(key1)
+	restoredVal1, err := ps.Get(key1)
 	require.Nil(t, err)
-	require.Equal(t, val1, restauredVal1)
+	require.Equal(t, val1, restoredVal1)
 
 	err = ps.ChangeEpochSimple(2)
 	require.Nil(t, err)
 	ps.ClearCache()
-	restauredVal2, err := ps.Get(key2)
+	restoredVal2, err := ps.Get(key2)
 	require.Nil(t, err)
-	require.Equal(t, val2, restauredVal2)
+	require.Equal(t, val2, restoredVal2)
 }
 
 func TestRegex(t *testing.T) {
@@ -817,4 +827,108 @@ func TestPruningStorer_processPersistersToClose(t *testing.T) {
 	assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
 	assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())
 	assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
+}
+
+func TestPruningStorer_ConcurrentOperations(t *testing.T) {
+	t.Skip("this test should be run only when troubleshooting pruning storer concurrent operations")
+
+	startTime := time.Now()
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	dbName := "db-concurrent-test"
+	testDir, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+
+	fmt.Println(testDir)
+	args := getDefaultArgs()
+	args.PersisterFactory = factory.NewPersisterFactory(config.DBConfig{
+		FilePath:          filepath.Join(testDir, dbName),
+		Type:              "LvlDBSerial",
+		MaxBatchSize:      100,
+		MaxOpenFiles:      10,
+		BatchDelaySeconds: 2,
+	})
+	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
+	require.NoError(t, err)
+
+	ps, _ := pruning.NewPruningStorer(args)
+	require.NotNil(t, ps)
+	defer func() {
+		_ = ps.Close()
+	}()
+
+	rnd := random.ConcurrentSafeIntRandomizer{}
+	numOperations := 5000
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	mut := sync.Mutex{}
+	currentEpoch := 0
+
+	chanChangeEpoch := make(chan struct{}, 10000)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-chanChangeEpoch:
+				buff := make([]byte, 1)
+				_, _ = rand.Read(buff)
+				mut.Lock()
+				if buff[0] > 200 && currentEpoch > 0 {
+					currentEpoch--
+				} else {
+					currentEpoch++
+				}
+				newEpoch := currentEpoch
+				mut.Unlock()
+
+				_ = ps.ChangeEpochSimple(uint32(newEpoch))
+				log.Debug("called ChangeEpochSimple", "epoch", newEpoch)
+				wg.Done()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(ctx)
+
+	for idx := 0; idx < numOperations; idx++ {
+		if idx%6 != 0 {
+			chanChangeEpoch <- struct{}{}
+			continue
+		}
+
+		go func(index int) {
+			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
+			switch index % 6 {
+			case 1:
+				_, _ = ps.GetFromEpoch([]byte("key"), uint32(index-1))
+				log.Debug("called GetFromEpoch", "epoch", index-1)
+			case 2:
+				_ = ps.Put([]byte("key"), []byte("value"))
+				log.Debug("called Put")
+			case 3:
+				_, _ = ps.Get([]byte("key"))
+				log.Debug("called Get")
+			case 4:
+				epoch := uint32(rnd.Intn(100))
+				_, _ = ps.GetFromEpoch([]byte("key"), epoch)
+				log.Debug("called GetFromEpoch", "epoch", epoch)
+			case 5:
+				epoch := uint32(rnd.Intn(100))
+				_, _ = ps.GetBulkFromEpoch([][]byte{[]byte("key")}, epoch)
+				log.Debug("called GetBulkFromEpoch", "epoch", epoch)
+			}
+			wg.Done()
+		}(idx)
+	}
+
+	wg.Wait()
+
+	log.Info("test done")
+
+	elapsedTime := time.Since(startTime)
+	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
+	require.True(t, elapsedTime < 100*time.Second)
 }
