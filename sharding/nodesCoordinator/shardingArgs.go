@@ -22,4 +22,5 @@ type ArgNodesCoordinatorLite struct {
 	ChanStopNode               chan endProcess.ArgEndProcess
 	NodeTypeProvider           NodeTypeProviderHandler
 	IsFullArchive              bool
+	Shuffler                   NodesShuffler
 }

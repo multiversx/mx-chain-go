@@ -73,17 +73,11 @@ var ErrNilRandomness = errors.New("nil randomness source")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
-// ErrNilShuffler signals that a nil shuffler was provided
-var ErrNilShuffler = errors.New("nil nodes shuffler provided")
-
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer provided")
 
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
-
-// ErrNotImplemented signals a call of a non implemented functionality
-var ErrNotImplemented = errors.New("feature not implemented")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
@@ -108,12 +102,6 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
-
-// ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
-var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
-
-// ErrNilNodeShufflerArguments signals that a nil argument pointer was provided for creating the nodes shuffler instance
-var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of a node shuffler")
 
 // ErrNilNodeStopChannel signals that a nil node stop channel has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")

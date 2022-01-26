@@ -22,6 +22,9 @@ var ErrNilInputNodesMap = errors.New("nil input nodes map")
 // ErrNilPreviousEpochConfig signals that the previous epoch config is nil
 var ErrNilPreviousEpochConfig = errors.New("nil previous epoch config")
 
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")
+
 // ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 
@@ -69,3 +72,12 @@ var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full arc
 
 // ErrNilNodeTypeProvider signals that a nil node type provider has been given
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")
+
+// ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
+var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
+
+// ErrNotImplemented signals a call of a non implemented functionality
+var ErrNotImplemented = errors.New("feature not implemented")
+
+// ErrNilNodeShufflerArguments signals that a nil argument pointer was provided for creating the nodes shuffler instance
+var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of a node shuffler")

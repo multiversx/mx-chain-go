@@ -3,7 +3,6 @@ package sharding
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"sync"
 	"sync/atomic"
 
@@ -29,7 +28,6 @@ type indexHashedNodesCoordinator struct {
 	startEpoch                    uint32
 	savedStateKey                 []byte
 	marshalizer                   marshal.Marshalizer
-	shuffler                      NodesShuffler
 	shuffledOutHandler            ShuffledOutHandler
 	mutNodesConfig                sync.RWMutex
 	mutSavedStateKey              sync.RWMutex
@@ -74,7 +72,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		startEpoch:                      arguments.StartEpoch,
 		savedStateKey:                   savedKey,
 		marshalizer:                     arguments.Marshalizer,
-		shuffler:                        arguments.Shuffler,
 		shuffledOutHandler:              arguments.ShuffledOutHandler,
 	}
 
@@ -94,9 +91,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 }
 
 func checkArguments(arguments ArgNodesCoordinator) error {
-	if check.IfNil(arguments.Shuffler) {
-		return ErrNilShuffler
-	}
 	if check.IfNil(arguments.BootStorer) {
 		return ErrNilBootStorer
 	}
@@ -233,10 +227,10 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	unStakeLeavingList := ihgs.createSortedListFromMap(newNodesConfig.LeavingMap)
-	additionalLeavingList := ihgs.createSortedListFromMap(additionalLeavingMap)
+	unStakeLeavingList := ihgs.CreateSortedListFromMap(newNodesConfig.LeavingMap)
+	additionalLeavingList := ihgs.CreateSortedListFromMap(additionalLeavingMap)
 
-	shufflerArgs := ArgsUpdateNodes{
+	shufflerArgs := nodesCoordinator.ArgsUpdateNodes{
 		Eligible:          newNodesConfig.EligibleMap,
 		Waiting:           newNodesConfig.WaitingMap,
 		NewNodes:          newNodesConfig.NewList,
@@ -247,13 +241,13 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		Epoch:             newEpoch,
 	}
 
-	resUpdateNodes, err := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	resUpdateNodes, err := ihgs.UpdateNodeLists(shufflerArgs)
 	if err != nil {
 		log.Error("could not compute UpdateNodeLists - do nothing on nodesCoordinator epochStartPrepare", "err", err.Error())
 		return
 	}
 
-	leavingNodesMap, stillRemainingNodesMap := createActuallyLeavingPerShards(
+	leavingNodesMap, stillRemainingNodesMap := nodesCoordinator.CreateActuallyLeavingPerShards(
 		newNodesConfig.LeavingMap,
 		additionalLeavingMap,
 		resUpdateNodes.Leaving,
@@ -300,15 +294,6 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	if needToRemove {
 		ihgs.RemoveNodesConfigEpochs(epochToRemove)
 	}
-}
-
-func (ihgs *indexHashedNodesCoordinator) createSortedListFromMap(validatorsMap map[uint32][]nodesCoordinator.Validator) []nodesCoordinator.Validator {
-	sortedList := make([]nodesCoordinator.Validator, 0)
-	for _, validators := range validatorsMap {
-		sortedList = append(sortedList, validators...)
-	}
-	sort.Sort(nodesCoordinator.ValidatorList(sortedList))
-	return sortedList
 }
 
 // NotifyOrder returns the notification order for a start of epoch event
@@ -467,52 +452,6 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		"shard", selfShard,
 	)
 	return selfShard, false
-}
-
-func createActuallyLeavingPerShards(
-	unstakeLeaving map[uint32][]validator,
-	additionalLeaving map[uint32][]validator,
-	leaving []validator,
-) (map[uint32][]validator, map[uint32][]validator) {
-	actuallyLeaving := make(map[uint32][]validator)
-	actuallyRemaining := make(map[uint32][]validator)
-	processedValidatorsMap := make(map[string]bool)
-
-	computeActuallyLeaving(unstakeLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
-	computeActuallyLeaving(additionalLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
-
-	return actuallyLeaving, actuallyRemaining
-}
-
-func computeActuallyLeaving(
-	unstakeLeaving map[uint32][]validator,
-	leaving []validator,
-	actuallyLeaving map[uint32][]validator,
-	actuallyRemaining map[uint32][]validator,
-	processedValidatorsMap map[string]bool,
-) {
-	sortedShardIds := sortKeys(unstakeLeaving)
-	for _, shardId := range sortedShardIds {
-		leavingValidatorsPerShard := unstakeLeaving[shardId]
-		for _, v := range leavingValidatorsPerShard {
-			if processedValidatorsMap[string(v.PubKey())] {
-				continue
-			}
-			processedValidatorsMap[string(v.PubKey())] = true
-			found := false
-			for _, leavingValidator := range leaving {
-				if bytes.Equal(v.PubKey(), leavingValidator.PubKey()) {
-					found = true
-					break
-				}
-			}
-			if found {
-				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], v)
-			} else {
-				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], v)
-			}
-		}
-	}
 }
 
 // createValidatorInfoFromBody unmarshalls body data to create validator info

@@ -73,3 +73,36 @@ type NodeTypeProviderHandler interface {
 	GetType() core.NodeType
 	IsInterfaceNil() bool
 }
+
+// ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
+type ArgsUpdateNodes struct {
+	Eligible          map[uint32][]Validator
+	Waiting           map[uint32][]Validator
+	NewNodes          []Validator
+	UnStakeLeaving    []Validator
+	AdditionalLeaving []Validator
+	Rand              []byte
+	NbShards          uint32
+	Epoch             uint32
+}
+
+// NodesShuffler provides shuffling functionality for nodes
+type NodesShuffler interface {
+	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
+	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
+	IsInterfaceNil() bool
+}
+
+// ResUpdateNodes holds the result of the UpdateNodes method
+type ResUpdateNodes struct {
+	Eligible       map[uint32][]Validator
+	Waiting        map[uint32][]Validator
+	Leaving        []Validator
+	StillRemaining []Validator
+}
+
+// ValidatorsDistributor distributes validators across shards
+type ValidatorsDistributor interface {
+	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte, balanced bool) error
+	IsInterfaceNil() bool
+}

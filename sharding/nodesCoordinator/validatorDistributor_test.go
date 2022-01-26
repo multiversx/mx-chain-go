@@ -1,9 +1,8 @@
-package sharding
+package nodesCoordinator
 
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +51,7 @@ func TestCrossShardValidatorDistributor_DistributeValidators_ShufflesBetweenShar
 	eligibleMap := generateValidatorMap(nbEligible, nbShards)
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
-	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
+	waitingCopy := CopyValidatorMap(waitingMap)
 
 	err := vd.DistributeValidators(eligibleMap, waitingMap, random, false)
 	assert.Nil(t, err)
@@ -123,7 +122,7 @@ func TestIntraShardValidatorDistributor_DistributeValidators_ShufflesIntraShard(
 	eligibleMap := generateValidatorMap(nbEligible, nbShards)
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
-	waitingCopy := nodesCoordinator.CopyValidatorMap(waitingMap)
+	waitingCopy := CopyValidatorMap(waitingMap)
 
 	err := vd.DistributeValidators(eligibleMap, waitingMap, random, false)
 	assert.Nil(t, err)

@@ -79,6 +79,7 @@ type IndexHashedNodesCoordinatorLite struct {
 	chanStopNode              chan endProcess.ArgEndProcess
 	nodeTypeProvider          NodeTypeProviderHandler
 	flagWaitingListFix        atomicFlags.Flag
+	shuffler                  NodesShuffler
 }
 
 // NewIndexHashedNodesCoordinatorLite creates a new index hashed group selector
@@ -114,6 +115,7 @@ func NewIndexHashedNodesCoordinatorLite(arguments ArgNodesCoordinatorLite) (*Ind
 		chanStopNode:              arguments.ChanStopNode,
 		nodeTypeProvider:          arguments.NodeTypeProvider,
 		isFullArchive:             arguments.IsFullArchive,
+		shuffler:                  arguments.Shuffler,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihncl.waitingListFixEnableEpoch)
 
@@ -170,6 +172,9 @@ func checkArguments(arguments ArgNodesCoordinatorLite) error {
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
+	}
+	if check.IfNil(arguments.Shuffler) {
+		return ErrNilShuffler
 	}
 
 	return nil
@@ -248,6 +253,116 @@ func (ihncl *IndexHashedNodesCoordinatorLite) setNodeType(isValidator bool) {
 	}
 
 	ihncl.nodeTypeProvider.SetType(core.NodeTypeObserver)
+}
+
+func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfigOnNewEpochStart(newEpoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) {
+	copiedPrevious := ihncl.GetPreviousConfigCopy()
+	if copiedPrevious == nil {
+		log.Error("previous nodes config is nil")
+		return
+	}
+
+	newNodesConfig, err := ihncl.ComputeNodesConfigFromList(copiedPrevious, validatorsInfo)
+	if err != nil {
+		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
+		return
+	}
+
+	additionalLeavingMap, err := ihncl.GetNodesCoordinatorHelper().ComputeAdditionalLeaving(validatorsInfo)
+	if err != nil {
+		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
+		return
+	}
+
+	unStakeLeavingList := ihncl.CreateSortedListFromMap(newNodesConfig.LeavingMap)
+	additionalLeavingList := ihncl.CreateSortedListFromMap(additionalLeavingMap)
+
+	shufflerArgs := ArgsUpdateNodes{
+		Eligible:          newNodesConfig.EligibleMap,
+		Waiting:           newNodesConfig.WaitingMap,
+		NewNodes:          newNodesConfig.NewList,
+		UnStakeLeaving:    unStakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              randomness,
+		NbShards:          newNodesConfig.NbShards,
+		Epoch:             newEpoch,
+	}
+
+	resUpdateNodes, err := ihncl.shuffler.UpdateNodeLists(shufflerArgs)
+	if err != nil {
+		log.Error("could not compute UpdateNodeLists - do nothing on nodesCoordinator epochStartPrepare", "err", err.Error())
+		return
+	}
+
+	leavingNodesMap, _ := CreateActuallyLeavingPerShards(
+		newNodesConfig.LeavingMap,
+		additionalLeavingMap,
+		resUpdateNodes.Leaving,
+	)
+
+	err = ihncl.SetNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, newEpoch)
+	if err != nil {
+		log.Error("set nodes per shard failed", "error", err.Error())
+	}
+}
+
+func (ihncl *IndexHashedNodesCoordinatorLite) CreateSortedListFromMap(validatorsMap map[uint32][]Validator) []Validator {
+	sortedList := make([]Validator, 0)
+	for _, validators := range validatorsMap {
+		sortedList = append(sortedList, validators...)
+	}
+	sort.Sort(ValidatorList(sortedList))
+	return sortedList
+}
+
+func CreateActuallyLeavingPerShards(
+	unstakeLeaving map[uint32][]Validator,
+	additionalLeaving map[uint32][]Validator,
+	leaving []Validator,
+) (map[uint32][]Validator, map[uint32][]Validator) {
+	actuallyLeaving := make(map[uint32][]Validator)
+	actuallyRemaining := make(map[uint32][]Validator)
+	processedValidatorsMap := make(map[string]bool)
+
+	computeActuallyLeaving(unstakeLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
+	computeActuallyLeaving(additionalLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
+
+	return actuallyLeaving, actuallyRemaining
+}
+
+func computeActuallyLeaving(
+	unstakeLeaving map[uint32][]Validator,
+	leaving []Validator,
+	actuallyLeaving map[uint32][]Validator,
+	actuallyRemaining map[uint32][]Validator,
+	processedValidatorsMap map[string]bool,
+) {
+	sortedShardIds := sortKeys(unstakeLeaving)
+	for _, shardId := range sortedShardIds {
+		leavingValidatorsPerShard := unstakeLeaving[shardId]
+		for _, v := range leavingValidatorsPerShard {
+			if processedValidatorsMap[string(v.PubKey())] {
+				continue
+			}
+			processedValidatorsMap[string(v.PubKey())] = true
+			found := false
+			for _, leavingValidator := range leaving {
+				if bytes.Equal(v.PubKey(), leavingValidator.PubKey()) {
+					found = true
+					break
+				}
+			}
+			if found {
+				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], v)
+			} else {
+				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], v)
+			}
+		}
+	}
+}
+
+func (ihncl *IndexHashedNodesCoordinatorLite) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
+	return ihncl.shuffler.UpdateNodeLists(args)
 }
 
 // ComputeAdditionalLeaving - computes extra leaving validators based on computation at the start of epoch

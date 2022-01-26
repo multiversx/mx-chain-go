@@ -14,7 +14,6 @@ type ArgNodesCoordinator struct {
 	MetaConsensusGroupSize     int
 	Marshalizer                marshal.Marshalizer
 	Hasher                     hashing.Hasher
-	Shuffler                   NodesShuffler
 	EpochStartNotifier         nodesCoordinator.EpochStartEventNotifier
 	BootStorer                 storage.Storer
 	ShardIDAsObserver          uint32

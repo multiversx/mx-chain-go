@@ -33,33 +33,6 @@ type EpochHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
-type ArgsUpdateNodes struct {
-	Eligible          map[uint32][]validator
-	Waiting           map[uint32][]validator
-	NewNodes          []validator
-	UnStakeLeaving    []validator
-	AdditionalLeaving []validator
-	Rand              []byte
-	NbShards          uint32
-	Epoch             uint32
-}
-
-// ResUpdateNodes holds the result of the UpdateNodes method
-type ResUpdateNodes struct {
-	Eligible       map[uint32][]validator
-	Waiting        map[uint32][]validator
-	Leaving        []validator
-	StillRemaining []validator
-}
-
-// NodesShuffler provides shuffling functionality for nodes
-type NodesShuffler interface {
-	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
-	IsInterfaceNil() bool
-}
-
 //PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
 type PeerAccountListAndRatingHandler interface {
 	//GetChance returns the chances for the the rating
@@ -133,11 +106,5 @@ type GenesisNodeInfoHandler interface {
 	AddressBytes() []byte
 	PubKeyBytes() []byte
 	GetInitialRating() uint32
-	IsInterfaceNil() bool
-}
-
-// ValidatorsDistributor distributes validators across shards
-type ValidatorsDistributor interface {
-	DistributeValidators(destination map[uint32][]validator, source map[uint32][]validator, rand []byte, balanced bool) error
 	IsInterfaceNil() bool
 }
