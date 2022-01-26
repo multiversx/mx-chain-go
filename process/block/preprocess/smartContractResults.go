@@ -516,9 +516,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	defer func() {
 		if err != nil {
-			scr.gasHandler.RemoveGasProvided(processedTxHashes)
-			scr.gasHandler.RemoveGasRefunded(processedTxHashes)
-			scr.gasHandler.RemoveGasPenalized(processedTxHashes)
+			scr.gasHandler.RestoreGasSinceLastReset()
 		}
 	}()
 

@@ -17,13 +17,17 @@ type gasComputation struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
 	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
-	gasProvided            map[string]uint64
-	gasProvidedAsScheduled map[string]uint64
-	mutGasProvided         sync.RWMutex
-	gasRefunded            map[string]uint64
-	mutGasRefunded         sync.RWMutex
-	gasPenalized           map[string]uint64
-	mutGasPenalized        sync.RWMutex
+	gasProvided                                     map[string]uint64
+	gasProvidedAccumulatedSinceLastReset            [][]byte
+	gasProvidedAsScheduled                          map[string]uint64
+	gasProvidedAsScheduledAccumulatedSinceLastReset [][]byte
+	mutGasProvided                                  sync.RWMutex
+	gasRefunded                                     map[string]uint64
+	gasRefundedAccumulatedSinceLastReset            [][]byte
+	mutGasRefunded                                  sync.RWMutex
+	gasPenalized                                    map[string]uint64
+	gasPenalizedAccumulatedSinceLastReset           [][]byte
+	mutGasPenalized                                 sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
 	gasComputeV2EnableEpoch uint32
@@ -47,13 +51,17 @@ func NewGasComputation(
 	}
 
 	g := &gasComputation{
-		txTypeHandler:           txTypeHandler,
-		economicsFee:            economicsFee,
-		gasProvided:             make(map[string]uint64),
-		gasProvidedAsScheduled:  make(map[string]uint64),
-		gasRefunded:             make(map[string]uint64),
-		gasPenalized:            make(map[string]uint64),
-		gasComputeV2EnableEpoch: gasComputeV2EnableEpoch,
+		txTypeHandler:                        txTypeHandler,
+		economicsFee:                         economicsFee,
+		gasProvided:                          make(map[string]uint64),
+		gasProvidedAccumulatedSinceLastReset: make([][]byte, 0),
+		gasProvidedAsScheduled:               make(map[string]uint64),
+		gasProvidedAsScheduledAccumulatedSinceLastReset: make([][]byte, 0),
+		gasRefunded:                           make(map[string]uint64),
+		gasRefundedAccumulatedSinceLastReset:  make([][]byte, 0),
+		gasPenalized:                          make(map[string]uint64),
+		gasPenalizedAccumulatedSinceLastReset: make([][]byte, 0),
+		gasComputeV2EnableEpoch:               gasComputeV2EnableEpoch,
 	}
 	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
 
@@ -62,19 +70,39 @@ func NewGasComputation(
 	return g, nil
 }
 
-// Init method resets consumed and refunded gas structures
+// Init method inits provided, refunded and penalized gas structures
 func (gc *gasComputation) Init() {
 	gc.mutGasProvided.Lock()
 	gc.gasProvided = make(map[string]uint64)
+	gc.gasProvidedAccumulatedSinceLastReset = make([][]byte, 0)
 	gc.gasProvidedAsScheduled = make(map[string]uint64)
+	gc.gasProvidedAsScheduledAccumulatedSinceLastReset = make([][]byte, 0)
 	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded = make(map[string]uint64)
+	gc.gasRefundedAccumulatedSinceLastReset = make([][]byte, 0)
 	gc.mutGasRefunded.Unlock()
 
 	gc.mutGasPenalized.Lock()
 	gc.gasPenalized = make(map[string]uint64)
+	gc.gasPenalizedAccumulatedSinceLastReset = make([][]byte, 0)
+	gc.mutGasPenalized.Unlock()
+}
+
+// Reset method resets provided, refunded and penalized gas accumulated since last reset structures
+func (gc *gasComputation) Reset() {
+	gc.mutGasProvided.Lock()
+	gc.gasProvidedAccumulatedSinceLastReset = make([][]byte, 0)
+	gc.gasProvidedAsScheduledAccumulatedSinceLastReset = make([][]byte, 0)
+	gc.mutGasProvided.Unlock()
+
+	gc.mutGasRefunded.Lock()
+	gc.gasRefundedAccumulatedSinceLastReset = make([][]byte, 0)
+	gc.mutGasRefunded.Unlock()
+
+	gc.mutGasPenalized.Lock()
+	gc.gasPenalizedAccumulatedSinceLastReset = make([][]byte, 0)
 	gc.mutGasPenalized.Unlock()
 }
 
@@ -82,6 +110,7 @@ func (gc *gasComputation) Init() {
 func (gc *gasComputation) SetGasProvided(gasProvided uint64, hash []byte) {
 	gc.mutGasProvided.Lock()
 	gc.gasProvided[string(hash)] = gasProvided
+	gc.gasProvidedAccumulatedSinceLastReset = append(gc.gasProvidedAccumulatedSinceLastReset, hash)
 	gc.mutGasProvided.Unlock()
 }
 
@@ -89,6 +118,7 @@ func (gc *gasComputation) SetGasProvided(gasProvided uint64, hash []byte) {
 func (gc *gasComputation) SetGasProvidedAsScheduled(gasProvided uint64, hash []byte) {
 	gc.mutGasProvided.Lock()
 	gc.gasProvidedAsScheduled[string(hash)] = gasProvided
+	gc.gasProvidedAsScheduledAccumulatedSinceLastReset = append(gc.gasProvidedAsScheduledAccumulatedSinceLastReset, hash)
 	gc.mutGasProvided.Unlock()
 }
 
@@ -96,6 +126,7 @@ func (gc *gasComputation) SetGasProvidedAsScheduled(gasProvided uint64, hash []b
 func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded[string(hash)] = gasRefunded
+	gc.gasRefundedAccumulatedSinceLastReset = append(gc.gasRefundedAccumulatedSinceLastReset, hash)
 	gc.mutGasRefunded.Unlock()
 }
 
@@ -103,6 +134,7 @@ func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 func (gc *gasComputation) SetGasPenalized(gasPenalized uint64, hash []byte) {
 	gc.mutGasPenalized.Lock()
 	gc.gasPenalized[string(hash)] = gasPenalized
+	gc.gasPenalizedAccumulatedSinceLastReset = append(gc.gasPenalizedAccumulatedSinceLastReset, hash)
 	gc.mutGasPenalized.Unlock()
 }
 
@@ -228,6 +260,38 @@ func (gc *gasComputation) RemoveGasPenalized(hashes [][]byte) {
 		delete(gc.gasPenalized, string(hash))
 	}
 	gc.mutGasPenalized.Unlock()
+}
+
+// RestoreGasSinceLastReset method restores gas provided, refunded and penalized since last reset
+func (gc *gasComputation) RestoreGasSinceLastReset() {
+	gc.RemoveGasProvided(gc.getGasProvidedAccumulatedSinceLastReset())
+	gc.RemoveGasProvidedAsScheduled(gc.getGasProvidedAsScheduledAccumulatedSinceLastReset())
+	gc.RemoveGasRefunded(gc.getGasRefundedAccumulatedSinceLastReset())
+	gc.RemoveGasPenalized(gc.getGasPenalizedAccumulatedSinceLastReset())
+}
+
+func (gc *gasComputation) getGasProvidedAccumulatedSinceLastReset() [][]byte {
+	gc.mutGasProvided.RLock()
+	defer gc.mutGasProvided.RUnlock()
+	return gc.gasProvidedAccumulatedSinceLastReset
+}
+
+func (gc *gasComputation) getGasProvidedAsScheduledAccumulatedSinceLastReset() [][]byte {
+	gc.mutGasProvided.RLock()
+	defer gc.mutGasProvided.RUnlock()
+	return gc.gasProvidedAsScheduledAccumulatedSinceLastReset
+}
+
+func (gc *gasComputation) getGasRefundedAccumulatedSinceLastReset() [][]byte {
+	gc.mutGasRefunded.RLock()
+	defer gc.mutGasRefunded.RUnlock()
+	return gc.gasRefundedAccumulatedSinceLastReset
+}
+
+func (gc *gasComputation) getGasPenalizedAccumulatedSinceLastReset() [][]byte {
+	gc.mutGasPenalized.RLock()
+	defer gc.mutGasPenalized.RUnlock()
+	return gc.gasPenalizedAccumulatedSinceLastReset
 }
 
 // ComputeGasProvidedByMiniBlock computes gas provided by the given miniblock in sender and receiver shard
