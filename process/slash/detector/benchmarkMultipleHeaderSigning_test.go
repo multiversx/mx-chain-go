@@ -15,10 +15,6 @@ import (
 )
 
 func BenchmarkMultipleHeaderSigningDetector_VerifyData(b *testing.B) {
-	if testing.Short() {
-		b.Skip("this is not a short test")
-	}
-
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 
@@ -45,7 +41,8 @@ func benchmarkVerifyDataMultipleHeaderSigning(
 	hasher hashing.Hasher,
 	keyGenerator crypto.KeyGenerator,
 	blsSigners map[string]multiSignerData,
-	interceptedHeaders []process.InterceptedHeader) {
+	interceptedHeaders []process.InterceptedHeader,
+) {
 	args := createHeaderSigningDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderSigningDetector(args)
 	require.Nil(b, err)
@@ -55,10 +52,6 @@ func benchmarkVerifyDataMultipleHeaderSigning(
 }
 
 func BenchmarkMultipleHeaderSigningDetector_ValidateProof(b *testing.B) {
-	if testing.Short() {
-		b.Skip("this is not a short test")
-	}
-
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 

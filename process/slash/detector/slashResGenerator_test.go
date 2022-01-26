@@ -199,7 +199,8 @@ func signHeader(
 	signers []crypto.MultiSigner,
 	bitmap []byte,
 	sigSharesData []sigShareData,
-	leaderPrivateKey crypto.PrivateKey) {
+	leaderPrivateKey crypto.PrivateKey,
+) {
 	aggregatedSig, err := calcAggregatedSignature(signers, sigSharesData, bitmap)
 	require.Nil(b, err)
 
