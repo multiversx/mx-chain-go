@@ -36,6 +36,11 @@ type apiTransactionProcessor struct {
 }
 
 func NewAPITransactionProcessor(args *APITransactionProcessorArgs) (*apiTransactionProcessor, error) {
+	err := checkNilArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	txUnmarshalerAndPreparer := newTransactionUnmashalerAndPreparer(args.Marshalizer, args.AddressPubKeyConverter)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
