@@ -72,10 +72,27 @@ func isStringSubgroup(a []string, b []string) bool {
 	return found
 }
 
+func createHashShuffler() (*randHashShuffler, error) {
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           eligiblePerShard,
+		NodesMeta:            eligiblePerShard,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: nil,
+	}
+
+	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+
+	return shuffler, err
+}
+
 func createArguments() ArgNodesCoordinatorLite {
 	nbShards := uint32(1)
 	eligibleMap := createDummyNodesMap(10, nbShards, "eligible")
 	waitingMap := createDummyNodesMap(3, nbShards, "waiting")
+
+	nodeShuffler, _ := createHashShuffler()
 
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    1,
@@ -90,6 +107,7 @@ func createArguments() ArgNodesCoordinatorLite {
 		IsFullArchive:              false,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodeShuffler,
 	}
 	return arguments
 }
@@ -207,6 +225,9 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    2,
 		MetaConsensusGroupSize:     1,
@@ -219,6 +240,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinatorLite(arguments)
@@ -247,6 +269,9 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 	eligibleMap := createDummyNodesMap(5, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    10,
 		MetaConsensusGroupSize:     1,
@@ -259,6 +284,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 	ihgs, err := NewIndexHashedNodesCoordinatorLite(arguments)
 
@@ -301,6 +327,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	nodesMap[0] = list
 	nodesMap[core.MetachainShardId] = tmp[core.MetachainShardId]
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
@@ -313,6 +342,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinatorLite(arguments)
 	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -341,6 +371,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		},
 	}
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
@@ -353,6 +386,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinatorLite(arguments)
@@ -409,6 +443,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		},
 	}
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
@@ -421,6 +458,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinatorLite(arguments)
@@ -460,6 +498,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
@@ -472,6 +513,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinatorLite(arguments)
@@ -504,6 +546,8 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
 
+	nodesShuffler, _ := createHashShuffler()
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
@@ -516,6 +560,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinatorLite(arguments)
 
@@ -532,6 +577,8 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
 
+	nodesShuffler, _ := createHashShuffler()
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
@@ -544,6 +591,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinatorLite(arguments)
 
@@ -562,6 +610,8 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
 
+	nodesShuffler, _ := createHashShuffler()
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    consensusGroupSize,
 		MetaConsensusGroupSize:     1,
@@ -574,6 +624,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 	ihgs, err := NewIndexHashedNodesCoordinatorLite(arguments)
 	require.Nil(b, err)
@@ -682,6 +733,9 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	eligibleMap[0] = listShard0
 	eligibleMap[1] = listShard1
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
@@ -694,6 +748,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinatorLite(arguments)
 
@@ -745,6 +800,9 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	eligibleMap[shardZeroId] = listShard0
 	eligibleMap[shardOneId] = listShard1
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
@@ -758,6 +816,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinatorLite(arguments)
@@ -803,6 +862,9 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	eligibleMap[core.MetachainShardId] = []Validator{&mock.ValidatorMock{}}
 	eligibleMap[shardZeroId] = []Validator{&mock.ValidatorMock{}}
 
+	nodesShuffler, err := createHashShuffler()
+	require.Nil(t, err)
+
 	arguments := ArgNodesCoordinatorLite{
 		ShardConsensusGroupSize:    1,
 		MetaConsensusGroupSize:     1,
@@ -816,6 +878,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		Shuffler:                   nodesShuffler,
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinatorLite(arguments)
@@ -1463,4 +1526,29 @@ func verifySizes(t *testing.T, newNodesConfig *EpochNodesConfig) {
 	assert.Equal(t, expectedWaitingSize, len(newNodesConfig.WaitingMap))
 	assert.Equal(t, expectedNewSize, len(newNodesConfig.NewList))
 	assert.Equal(t, expectedLeavingSize, len(newNodesConfig.LeavingMap))
+}
+
+func BenchmarkIndexHashedNodesCoordinator_CopyMaps(b *testing.B) {
+	previousConfig := &EpochNodesConfig{}
+
+	eligibleMap := generateValidatorMap(400, 3)
+	waitingMap := generateValidatorMap(400, 3)
+
+	previousConfig.EligibleMap = eligibleMap
+	previousConfig.WaitingMap = waitingMap
+
+	testMutex := sync.RWMutex{}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		testMutex.RLock()
+
+		copiedPrevious := &EpochNodesConfig{}
+		copiedPrevious.EligibleMap = CopyValidatorMap(previousConfig.EligibleMap)
+		copiedPrevious.WaitingMap = CopyValidatorMap(previousConfig.WaitingMap)
+		copiedPrevious.NbShards = previousConfig.NbShards
+
+		testMutex.RUnlock()
+	}
 }

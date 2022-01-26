@@ -51,6 +51,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		ChanStopNode:               arguments.ChanStopNode,
 		NodeTypeProvider:           arguments.NodeTypeProvider,
 		IsFullArchive:              arguments.IsFullArchive,
+		Shuffler:                   arguments.Shuffler,
 	}
 
 	ihgsLite, err := nodesCoordinator.NewIndexHashedNodesCoordinatorLite(argumentsNodesCoordinatorLite)
