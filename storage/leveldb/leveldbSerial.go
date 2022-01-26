@@ -87,9 +87,15 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 }
 
 func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
+	interval := time.Duration(s.batchDelaySeconds) * time.Second
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(interval)
+
 		select {
-		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
+		case <-timer.C:
 			err := s.putBatch()
 			if err != nil {
 				log.Warn("leveldb serial putBatch", "error", err.Error())

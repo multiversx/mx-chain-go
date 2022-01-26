@@ -22,7 +22,6 @@ var _ storage.Persister = (*DB)(nil)
 const rwxOwner = 0700
 
 var log = logger.GetOrCreate("storage/leveldb")
-var logDebug = logger.GetOrCreate("storage/leveldbdebug")
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
@@ -87,9 +86,15 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 }
 
 func (s *DB) batchTimeoutHandle(ctx context.Context) {
+	interval := time.Duration(s.batchDelaySeconds) * time.Second
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(interval)
+
 		select {
-		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
+		case <-timer.C:
 			s.mutBatch.Lock()
 			err := s.putBatch(s.batch)
 			if err != nil {

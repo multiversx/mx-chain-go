@@ -92,7 +92,7 @@ func (bldb *baseLevelDb) makeDbPointerNilReturningLast() *leveldb.DB {
 
 	if bldb.db != nil {
 		crtCounter := atomic.AddUint32(&loggingDBCounter, ^uint32(0)) // subtract 1
-		logDebug.Debug("makeDbPointerNilReturningLast", "path", bldb.path, "nilled pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
+		log.Debug("makeDbPointerNilReturningLast", "path", bldb.path, "nilled pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
 	}
 
 	db := bldb.db
