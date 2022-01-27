@@ -1,6 +1,7 @@
 package preprocess_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -56,9 +57,14 @@ func TestGasProvided_ShouldWork(t *testing.T) {
 
 	gc.SetGasProvided(2, []byte("hash1"))
 	assert.Equal(t, uint64(2), gc.GasProvided([]byte("hash1")))
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset()[0])
 
 	gc.SetGasProvided(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasProvided([]byte("hash2")))
+	require.Equal(t, 2, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset()[0])
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasProvidedSinceLastReset()[1])
 
 	assert.Equal(t, uint64(5), gc.TotalGasProvided())
 
@@ -81,9 +87,14 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 
 	gc.SetGasRefunded(2, []byte("hash1"))
 	assert.Equal(t, uint64(2), gc.GasRefunded([]byte("hash1")))
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset()[0])
 
 	gc.SetGasRefunded(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasRefunded([]byte("hash2")))
+	require.Equal(t, 2, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset()[0])
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasRefundedSinceLastReset()[1])
 
 	assert.Equal(t, uint64(5), gc.TotalGasRefunded())
 
@@ -106,9 +117,14 @@ func TestGasPenalized_ShouldWork(t *testing.T) {
 
 	gc.SetGasPenalized(2, []byte("hash1"))
 	assert.Equal(t, uint64(2), gc.GasPenalized([]byte("hash1")))
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[0])
 
 	gc.SetGasPenalized(3, []byte("hash2"))
 	assert.Equal(t, uint64(3), gc.GasPenalized([]byte("hash2")))
+	require.Equal(t, 2, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[0])
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[1])
 
 	assert.Equal(t, uint64(5), gc.TotalGasPenalized())
 
@@ -510,4 +526,79 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 	gasInSnd, gasInRcv, _ := gc.ComputeGasProvidedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
 	assert.Equal(t, uint64(1), gasInRcv)
+}
+
+func TestReset_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		0,
+	)
+
+	gc.SetGasProvided(5, []byte("hash1"))
+	gc.SetGasProvidedAsScheduled(7, []byte("hash2"))
+	gc.SetGasRefunded(2, []byte("hash1"))
+	gc.SetGasPenalized(1, []byte("hash2"))
+
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasProvidedSinceLastReset()[0])
+
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset()))
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset()[0])
+
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
+	assert.Equal(t, []byte("hash1"), gc.GetTxHashesWithGasRefundedSinceLastReset()[0])
+
+	require.Equal(t, 1, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
+	assert.Equal(t, []byte("hash2"), gc.GetTxHashesWithGasPenalizedSinceLastReset()[0])
+
+	gc.Reset()
+
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasProvidedSinceLastReset()))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasProvidedAsScheduledSinceLastReset()))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasRefundedSinceLastReset()))
+	require.Equal(t, 0, len(gc.GetTxHashesWithGasPenalizedSinceLastReset()))
+}
+
+func TestRestoreGasSinceLastReset_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		0,
+	)
+
+	gc.SetGasProvided(5, []byte("hash1"))
+	gc.SetGasProvidedAsScheduled(7, []byte("hash2"))
+	gc.SetGasRefunded(2, []byte("hash1"))
+	gc.SetGasPenalized(1, []byte("hash2"))
+
+	assert.Equal(t, uint64(5), gc.TotalGasProvided())
+	assert.Equal(t, uint64(7), gc.TotalGasProvidedAsScheduled())
+	assert.Equal(t, uint64(2), gc.TotalGasRefunded())
+	assert.Equal(t, uint64(1), gc.TotalGasPenalized())
+
+	gc.Reset()
+
+	gc.SetGasProvided(5, []byte("hash3"))
+	gc.SetGasProvidedAsScheduled(7, []byte("hash4"))
+	gc.SetGasRefunded(2, []byte("hash3"))
+	gc.SetGasPenalized(1, []byte("hash4"))
+
+	assert.Equal(t, uint64(10), gc.TotalGasProvided())
+	assert.Equal(t, uint64(14), gc.TotalGasProvidedAsScheduled())
+	assert.Equal(t, uint64(4), gc.TotalGasRefunded())
+	assert.Equal(t, uint64(2), gc.TotalGasPenalized())
+
+	gc.RestoreGasSinceLastReset()
+
+	assert.Equal(t, uint64(5), gc.TotalGasProvided())
+	assert.Equal(t, uint64(7), gc.TotalGasProvidedAsScheduled())
+	assert.Equal(t, uint64(2), gc.TotalGasRefunded())
+	assert.Equal(t, uint64(1), gc.TotalGasPenalized())
 }
