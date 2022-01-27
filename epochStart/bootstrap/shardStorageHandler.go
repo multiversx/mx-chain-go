@@ -334,19 +334,24 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 }
 
 func removeHashes(hashes [][]byte, hashesToRemove [][]byte) [][]byte {
+	resultedHashes := hashes
 	for _, hashToRemove := range hashesToRemove {
-		hashes = removeHash(hashes, hashToRemove)
+		resultedHashes = removeHash(resultedHashes, hashToRemove)
 	}
-	return hashes
+	return resultedHashes
 }
 
 func removeHash(hashes [][]byte, hashToRemove []byte) [][]byte {
+	result := make([][]byte, 0)
 	for i, hash := range hashes {
 		if bytes.Equal(hash, hashToRemove) {
-			return append(hashes[:i], hashes[i+1:]...)
+			result = append(result, hashes[:i]...)
+			result = append(result, hashes[i+1:]...)
+			return result
 		}
 	}
-	return hashes
+
+	return append(result, hashes...)
 }
 
 func printProcessedAndPendingMbs(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
