@@ -15,9 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,7 +89,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("test"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -113,7 +114,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 
 	arguments := createArguments()
@@ -145,11 +146,11 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
+		list = append(list, shardingMocks.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -212,11 +213,11 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 
 	//generate 400 validators
 	for i := uint32(0); i < shardSize; i++ {
-		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
+		list = append(list, shardingMocks.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
 	}
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	consensusAppearances := make(map[string]uint64)
@@ -295,7 +296,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 	eligibleMap := make(map[uint32][]Validator)
 	waitingMap := make(map[uint32][]Validator)
@@ -328,7 +329,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -345,7 +346,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -380,7 +381,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -397,19 +398,19 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	t.Parallel()
 
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -446,7 +447,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -480,19 +481,19 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -529,7 +530,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
@@ -794,12 +795,12 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
+		list = append(list, shardingMocks.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		shardingMocks.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -833,7 +834,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		WaitingNodes:               waitingMap,
 		SelfPublicKey:              []byte("key"),
 		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:         &shardingMocks.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},

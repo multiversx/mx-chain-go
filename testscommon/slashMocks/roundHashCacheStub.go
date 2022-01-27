@@ -1,23 +1,23 @@
 package slashMocks
 
-// HeadersCacheStub -
-type HeadersCacheStub struct {
+// RoundHashCacheStub -
+type RoundHashCacheStub struct {
 	AddCalled func(round uint64, hash []byte) error
 }
 
 // Add -
-func (hcs *HeadersCacheStub) Add(round uint64, hash []byte) error {
-	if hcs.AddCalled != nil {
-		return hcs.AddCalled(round, hash)
+func (rhc *RoundHashCacheStub) Add(round uint64, hash []byte) error {
+	if rhc.AddCalled != nil {
+		return rhc.AddCalled(round, hash)
 	}
 	return nil
 }
 
 // Remove -
-func (hcs *HeadersCacheStub) Remove(_ uint64, _ []byte) {
+func (rhc *RoundHashCacheStub) Remove(_ uint64, _ []byte) {
 }
 
 // IsInterfaceNil -
-func (hcs *HeadersCacheStub) IsInterfaceNil() bool {
-	return hcs == nil
+func (rhc *RoundHashCacheStub) IsInterfaceNil() bool {
+	return rhc == nil
 }

@@ -7,18 +7,9 @@ import (
 
 // MultipleHeaderProposalProofStub -
 type MultipleHeaderProposalProofStub struct {
-	GetTypeCalled        func() coreSlash.SlashingType
 	GetProofTxDataCalled func() (*coreSlash.ProofTxData, error)
 	GetLevelCalled       func() coreSlash.ThreatLevel
 	GetHeadersCalled     func() []data.HeaderHandler
-}
-
-// GetType -
-func (mps *MultipleHeaderProposalProofStub) GetType() coreSlash.SlashingType {
-	if mps.GetTypeCalled != nil {
-		return mps.GetTypeCalled()
-	}
-	return coreSlash.MultipleProposal
 }
 
 // GetProofTxData -
@@ -26,7 +17,7 @@ func (mps *MultipleHeaderProposalProofStub) GetProofTxData() (*coreSlash.ProofTx
 	if mps.GetProofTxDataCalled != nil {
 		return mps.GetProofTxDataCalled()
 	}
-	return &coreSlash.ProofTxData{}, nil
+	return &coreSlash.ProofTxData{ProofID: coreSlash.MultipleProposalProofID}, nil
 }
 
 // GetLevel -

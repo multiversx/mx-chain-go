@@ -139,10 +139,6 @@ func (sn *slashingNotifier) createUnsignedTx(proof coreSlash.SlashingProofHandle
 }
 
 func (sn *slashingNotifier) computeTxData(proof coreSlash.SlashingProofHandler) ([]byte, error) {
-	proofID, found := slash.ProofIDs[proof.GetType()]
-	if !found {
-		return nil, process.ErrInvalidProof
-	}
 	proofData, err := proof.GetProofTxData()
 	if err != nil {
 		return nil, err
@@ -165,7 +161,7 @@ func (sn *slashingNotifier) computeTxData(proof coreSlash.SlashingProofHandler) 
 
 	dataStr := fmt.Sprintf("%s@%s@%s@%s@%s@%s",
 		BuiltInFunctionSlashCommitmentProof,
-		hex.EncodeToString([]byte{proofID}),
+		hex.EncodeToString([]byte{proofData.ProofID}),
 		hex.EncodeToString(shardID.Bytes()),
 		hex.EncodeToString(round.Bytes()),
 		hex.EncodeToString(proofCRC),

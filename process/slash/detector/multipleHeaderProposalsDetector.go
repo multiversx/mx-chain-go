@@ -15,16 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// MultipleHeaderProposalDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderProposalsDetector
-type MultipleHeaderProposalDetectorArgs struct {
-	NodesCoordinator  sharding.NodesCoordinator
-	RoundHandler      process.RoundHandler
-	Cache             RoundValidatorHeadersCache
-	Hasher            hashing.Hasher
-	Marshaller        marshal.Marshalizer
-	HeaderSigVerifier consensus.HeaderSigVerifier
-}
-
 // multipleHeaderProposalsDetector - checks slashable events in case a validator proposes multiple(possibly) malicious headers.
 type multipleHeaderProposalsDetector struct {
 	cache             RoundValidatorHeadersCache
@@ -37,10 +27,7 @@ type multipleHeaderProposalsDetector struct {
 
 // NewMultipleHeaderProposalsDetector - creates a new multipleHeaderProposalsDetector for multiple headers
 // proposal detection or multiple headers proposal proof verification
-func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs) (*multipleHeaderProposalsDetector, error) {
-	if args == nil {
-		return nil, process.ErrNilMultipleHeaderProposalDetectorArgs
-	}
+func NewMultipleHeaderProposalsDetector(args MultipleHeaderDetectorArgs) (*multipleHeaderProposalsDetector, error) {
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
@@ -53,7 +40,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(args.Cache) {
+	if check.IfNil(args.RoundValidatorHeadersCache) {
 		return nil, process.ErrNilRoundValidatorHeadersCache
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
@@ -63,7 +50,7 @@ func NewMultipleHeaderProposalsDetector(args *MultipleHeaderProposalDetectorArgs
 	baseDetector := baseSlashingDetector{roundHandler: args.RoundHandler}
 
 	return &multipleHeaderProposalsDetector{
-		cache:                args.Cache,
+		cache:                args.RoundValidatorHeadersCache,
 		nodesCoordinator:     args.NodesCoordinator,
 		hasher:               args.Hasher,
 		marshaller:           args.Marshaller,
@@ -145,7 +132,7 @@ func (mhp *multipleHeaderProposalsDetector) computeSlashLevel(headers []data.Hea
 //  - Be of either level slash.Medium (with 2 proposed headers) OR slash.High (with >2 proposed headers)
 //  - Have all proposed headers with the same round and proposer, but different hashes
 func (mhp *multipleHeaderProposalsDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
-	err := checkProofType(proof, coreSlash.MultipleProposal)
+	err := checkProofType(proof, coreSlash.MultipleProposalProofID)
 	if err != nil {
 		return err
 	}
@@ -187,7 +174,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 		if check.IfNil(header) {
 			return process.ErrNilHeaderHandler
 		}
-		hash, err := mhp.checkHash(header, hashes)
+		hash, err := mhp.checkHashExists(hashes, header)
 		if err != nil {
 			return err
 		}
@@ -202,7 +189,7 @@ func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.
 	return nil
 }
 
-func (mhp *multipleHeaderProposalsDetector) checkHash(header data.HeaderHandler, hashes map[string]struct{}) (string, error) {
+func (mhp *multipleHeaderProposalsDetector) checkHashExists(hashes map[string]struct{}, header data.HeaderHandler) (string, error) {
 	hash, err := core.CalculateHash(mhp.marshaller, mhp.hasher, header)
 	if err != nil {
 		return "", err

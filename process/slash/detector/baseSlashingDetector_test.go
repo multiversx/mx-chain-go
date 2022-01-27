@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -203,17 +204,54 @@ func TestBaseSlashingDetector_CheckSlashLevelBasedOnHeadersCount_DifferentSlashL
 }
 
 func TestBaseSlashingDetector_CheckProofType(t *testing.T) {
-	err := checkProofType(nil, coreSlash.MultipleProposal)
-	require.Equal(t, process.ErrNilProof, err)
+	t.Parallel()
 
-	proof := &slashMocks.SlashingProofStub{
-		GetTypeCalled: func() coreSlash.SlashingType {
-			return coreSlash.MultipleProposal
+	errGetProofTxData := errors.New("error getting proof tx data")
+	tests := []struct {
+		proof         coreSlash.SlashingProofHandler
+		proofType     byte
+		expectedError error
+	}{
+		{
+			proof:         nil,
+			proofType:     coreSlash.MultipleProposalProofID,
+			expectedError: process.ErrNilProof,
+		},
+		{
+			proof: &slashMocks.SlashingProofStub{
+				GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+					return &coreSlash.ProofTxData{
+						ProofID: coreSlash.MultipleProposalProofID,
+					}, nil
+				},
+			},
+			proofType:     coreSlash.MultipleSigningProofID,
+			expectedError: process.ErrInvalidSlashType,
+		},
+		{
+			proof: &slashMocks.SlashingProofStub{
+				GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+					return nil, errGetProofTxData
+				},
+			},
+			proofType:     coreSlash.MultipleSigningProofID,
+			expectedError: errGetProofTxData,
+		},
+		{
+			proof: &slashMocks.SlashingProofStub{
+				GetProofTxDataCalled: func() (*coreSlash.ProofTxData, error) {
+					return &coreSlash.ProofTxData{
+						ProofID: coreSlash.MultipleProposalProofID,
+					}, nil
+				},
+			},
+			proofType:     coreSlash.MultipleProposalProofID,
+			expectedError: nil,
 		},
 	}
-	err = checkProofType(proof, coreSlash.MultipleSigning)
-	require.Equal(t, process.ErrInvalidSlashType, err)
 
-	err = checkProofType(proof, coreSlash.MultipleProposal)
-	require.Nil(t, err)
+	for _, test := range tests {
+		err := checkProofType(test.proof, test.proofType)
+		require.Equal(t, test.expectedError, err)
+	}
 }

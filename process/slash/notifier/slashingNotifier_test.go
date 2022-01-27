@@ -105,15 +105,6 @@ func TestNewSlashingNotifier(t *testing.T) {
 	}
 }
 
-func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProof_ExpectError(t *testing.T) {
-	args := generateSlashingNotifierArgs()
-	sn, _ := notifier.NewSlashingNotifier(args)
-
-	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.SlashingProofStub{})
-	require.Nil(t, tx)
-	require.Equal(t, process.ErrInvalidProof, err)
-}
-
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	errPubKey := errors.New("pub key error")
@@ -177,20 +168,6 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_CannotGetDataForSigning
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
 	require.Equal(t, errMarshaller, err)
-}
-
-func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidSlashType_ExpectError(t *testing.T) {
-	args := generateSlashingNotifierArgs()
-
-	sn, _ := notifier.NewSlashingNotifier(args)
-	proof := &slashMocks.SlashingProofStub{
-		GetTypeCalled: func() coreSlash.SlashingType {
-			return 9999999
-		},
-	}
-	tx, err := sn.CreateShardSlashingTransaction(proof)
-	require.Nil(t, tx)
-	require.Equal(t, process.ErrInvalidProof, err)
 }
 
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidProofTxData_ExpectError(t *testing.T) {
@@ -261,6 +238,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 			return &coreSlash.ProofTxData{
 				Round:   round,
 				ShardID: shardID,
+				ProofID: coreSlash.MultipleProposalProofID,
 			}, nil
 		},
 	}
@@ -295,6 +273,7 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 			return &coreSlash.ProofTxData{
 				Round:   round,
 				ShardID: shardID,
+				ProofID: coreSlash.MultipleSigningProofID,
 			}, nil
 		},
 	}

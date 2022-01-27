@@ -22,13 +22,8 @@ var log = logger.GetOrCreate("process/slash/detector/multipleHeaderSigning")
 
 // MultipleHeaderSigningDetectorArgs is a a struct containing all arguments required to create a new multipleHeaderSigningDetector
 type MultipleHeaderSigningDetectorArgs struct {
-	NodesCoordinator           sharding.NodesCoordinator
-	RoundHandler               process.RoundHandler
-	Hasher                     hashing.Hasher
-	Marshaller                 marshal.Marshalizer
-	RoundHashCache             RoundHashCache
-	RoundValidatorHeadersCache RoundValidatorHeadersCache
-	HeaderSigVerifier          consensus.HeaderSigVerifier
+	MultipleHeaderDetectorArgs
+	RoundHashCache RoundHashCache
 }
 
 // multipleHeaderSigningDetector - checks for slashable events in case one(or more)
@@ -191,7 +186,7 @@ func (mhs *multipleHeaderSigningDetector) computeSlashLevel(headers slash.Header
 
 // ValidateProof - validates the given proof
 func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.SlashingProofHandler) error {
-	err := checkProofType(proof, coreSlash.MultipleSigning)
+	err := checkProofType(proof, coreSlash.MultipleSigningProofID)
 	if err != nil {
 		return err
 	}
@@ -289,8 +284,9 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 		samePubKey := bytes.Equal(currPubKey, pubKey)
 		isInConsensusGroup := sliceUtil.IsIndexSetInBitmap(uint32(idx), bitmap)
 		headerSigValid := mhs.headerSigVerifier.VerifySignature(header) == nil
+		leaderSigValid := mhs.headerSigVerifier.VerifyLeaderSignature(header) == nil
 
-		if samePubKey && isInConsensusGroup && headerSigValid {
+		if samePubKey && isInConsensusGroup && headerSigValid && leaderSigValid{
 			return true
 		}
 	}

@@ -1,4 +1,4 @@
-package mock
+package shardingMocks
 
 // ShuffledOutHandlerStub -
 type ShuffledOutHandlerStub struct {

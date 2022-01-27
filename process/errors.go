@@ -923,9 +923,6 @@ var ErrNilRoundHeadersCache = errors.New("round headers cache is nil")
 // ErrInvalidProof signals that an invalid proof has been provided
 var ErrInvalidProof = errors.New("an invalid proof has been provided")
 
-// ErrNilMultipleHeaderProposalDetectorArgs signals that nil arguments have been provided to create a multiple header proposal detector
-var ErrNilMultipleHeaderProposalDetectorArgs = errors.New("nil arguments have been provided to create a multiple header proposal detector")
-
 // ErrNilInterceptedData signals that a nil intercepted header has been provided
 var ErrNilInterceptedData = errors.New("nil intercepted header has been provided")
 
