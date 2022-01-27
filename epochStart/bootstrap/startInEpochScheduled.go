@@ -99,7 +99,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 
 	headerToBeProcessed, ok := headers[string(notarizedShardHeader.GetPrevHash())].(data.ShardHeaderHandler)
 	if !ok {
-		log.Warn("getRequiredHeaderByHash", "hash", notarizedShardHeader.GetPrevHash(), "error", epochStart.ErrMissingHeader)
+		log.Warn("getRequiredHeaderByHash - shard header", "hash", notarizedShardHeader.GetPrevHash(), "error", epochStart.ErrMissingHeader)
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 
@@ -119,7 +119,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		shardIDs = []uint32{core.MetachainShardId}
 		header := prevHeaders[string(hashesToRequest[0])]
 		if header == nil {
-			log.Warn("getRequiredHeaderByHash", "hash", hashesToRequest[0], "error", epochStart.ErrMissingHeader)
+			log.Warn("getRequiredHeaderByHash - metaBlock", "hash", hashesToRequest[0], "error", epochStart.ErrMissingHeader)
 			return nil, nil, epochStart.ErrMissingHeader
 		}
 
