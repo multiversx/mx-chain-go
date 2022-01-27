@@ -260,21 +260,15 @@ func (ssh *shardStorageHandler) updateProcessedMiniBlocksForScheduled(
 	pendingMiniBlockHashes [][]byte,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.MiniBlocksInMeta, error) {
-	noPendingMbs := make(map[string]struct{})
 	miniBlocksInMetaList := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 	for _, metaBlockHash := range referencedMetaBlockHashes {
 		mbsInMeta := bootstrapStorage.MiniBlocksInMeta{
 			MetaHash: metaBlockHash,
 		}
-		metaHeaderHandler, ok := headers[string(metaBlockHash)]
-		if !ok {
-			return nil, epochStart.ErrMissingHeader
+		mbHashes, err := getProcessedMiniBlockHashesForMetaBlockHash(ssh.shardCoordinator.SelfId(), metaBlockHash, headers)
+		if err != nil {
+			return nil, err
 		}
-		neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
-		if !ok {
-			return nil, epochStart.ErrWrongTypeAssertion
-		}
-		mbHashes := getProcessedMbHashes(neededMeta, ssh.shardCoordinator.SelfId(), noPendingMbs)
 		if len(mbHashes) > 0 {
 			remainingMbHashes := removeHashes(mbHashes, pendingMiniBlockHashes)
 			if len(remainingMbHashes) > 0 {
@@ -292,24 +286,19 @@ func (ssh *shardStorageHandler) updatePendingMiniBlocksForScheduled(
 	pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
-	noPendingMbs := make(map[string]struct{})
 	remainingPendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
 	for index, metaBlockHash := range referencedMetaBlockHashes {
 		if index == 0 {
 			continue
 		}
-		metaHeaderHandler, ok := headers[string(metaBlockHash)]
-		if !ok {
-			return nil, epochStart.ErrMissingHeader
+		mbHashes, err := getProcessedMiniBlockHashesForMetaBlockHash(ssh.shardCoordinator.SelfId(), metaBlockHash, headers)
+		if err != nil {
+			return nil, err
 		}
-		neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
-		if !ok {
-			return nil, epochStart.ErrWrongTypeAssertion
-		}
-		mbHashes := getProcessedMbHashes(neededMeta, ssh.shardCoordinator.SelfId(), noPendingMbs)
+
 		if len(mbHashes) > 0 {
-			for index := range pendingMiniBlocks {
-				pendingMiniBlocks[index].MiniBlocksHashes = removeHashes(pendingMiniBlocks[index].MiniBlocksHashes, mbHashes)
+			for i := range pendingMiniBlocks {
+				pendingMiniBlocks[i].MiniBlocksHashes = removeHashes(pendingMiniBlocks[i].MiniBlocksHashes, mbHashes)
 			}
 		}
 	}
@@ -321,6 +310,24 @@ func (ssh *shardStorageHandler) updatePendingMiniBlocksForScheduled(
 	}
 
 	return remainingPendingMiniBlocks, nil
+}
+
+func getProcessedMiniBlockHashesForMetaBlockHash(
+	selfShardID uint32,
+	metaBlockHash []byte,
+	headers map[string]data.HeaderHandler,
+) ([][]byte, error) {
+	noPendingMbs := make(map[string]struct{})
+	metaHeaderHandler, ok := headers[string(metaBlockHash)]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
+	neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+	mbHashes := getProcessedMbHashes(neededMeta, selfShardID, noPendingMbs)
+	return mbHashes, nil
 }
 
 func removeHashes(hashes [][]byte, hashesToRemove [][]byte) [][]byte {
