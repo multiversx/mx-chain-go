@@ -1086,3 +1086,36 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 		expectedProcessedMbsWithScheduled: expectedProcessedMbsWithScheduled,
 	}
 }
+
+func TestShardStorageHandler_UpdatePendingMiniBlocksForScheduled(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	shardMiniBlockHeader := block.MiniBlockHeader{SenderShardID: 1, Hash: hash1}
+	metablock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					shardMiniBlockHeader,
+				},
+			},
+		},
+	}
+
+	referencedMetaBlockHashes := [][]byte{[]byte("meta_hash1"), []byte("meta_hash2")}
+	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	pendingMiniBlocks = append(pendingMiniBlocks, bootstrapStorage.PendingMiniBlocksInfo{
+		ShardID:          0,
+		MiniBlocksHashes: [][]byte{hash1, hash2},
+	})
+	headers := make(map[string]data.HeaderHandler)
+	headers["meta_hash2"] = metablock
+
+	remainingPendingMiniBlocks, err := updatePendingMiniBlocksForScheduled(referencedMetaBlockHashes, pendingMiniBlocks, headers, 0)
+	assert.Nil(t, err)
+	require.Equal(t, 1, len(remainingPendingMiniBlocks))
+	require.Equal(t, 1, len(remainingPendingMiniBlocks[0].MiniBlocksHashes))
+	assert.Equal(t, hash2, remainingPendingMiniBlocks[0].MiniBlocksHashes[0])
+}

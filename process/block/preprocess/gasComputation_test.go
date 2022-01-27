@@ -1,7 +1,6 @@
 package preprocess_test
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {

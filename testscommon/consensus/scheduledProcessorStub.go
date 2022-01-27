@@ -1,17 +1,21 @@
 package consensus
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/data"
+)
 
 // ScheduledProcessorStub -
 type ScheduledProcessorStub struct {
-	StartScheduledProcessingCalled func(header data.HeaderHandler, body data.BodyHandler)
+	StartScheduledProcessingCalled func(header data.HeaderHandler, body data.BodyHandler, startTime time.Time)
 	IsProcessedOKCalled            func() bool
 }
 
 // StartScheduledProcessing -
-func (sps *ScheduledProcessorStub) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler) {
+func (sps *ScheduledProcessorStub) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time) {
 	if sps.StartScheduledProcessingCalled != nil {
-		sps.StartScheduledProcessingCalled(header, body)
+		sps.StartScheduledProcessingCalled(header, body, startTime)
 	}
 }
 

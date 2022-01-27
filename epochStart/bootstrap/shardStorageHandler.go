@@ -231,11 +231,11 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	mapMbHeaderHandlers := ssh.getCrossProcessedMbsDestMeByHeader(shardHeader)
 	pendingMiniBlocks = addMbsToPending(pendingMiniBlocks, mapMbHeaderHandlers)
 	pendingMiniBlockHashes := getPendingMiniBlocksHashes(pendingMiniBlocks)
-	processedMiniBlocks, err = ssh.updateProcessedMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlockHashes, headers)
+	processedMiniBlocks, err = updateProcessedMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlockHashes, headers, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, err
 	}
-	pendingMiniBlocks, err = ssh.updatePendingMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlocks, headers)
+	pendingMiniBlocks, err = updatePendingMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlocks, headers, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -255,10 +255,11 @@ func getPendingMiniBlocksHashes(pendingMbsInfo []bootstrapStorage.PendingMiniBlo
 	return pendingMbHashes
 }
 
-func (ssh *shardStorageHandler) updateProcessedMiniBlocksForScheduled(
+func updateProcessedMiniBlocksForScheduled(
 	referencedMetaBlockHashes [][]byte,
 	pendingMiniBlockHashes [][]byte,
 	headers map[string]data.HeaderHandler,
+	selfShardID uint32,
 ) ([]bootstrapStorage.MiniBlocksInMeta, error) {
 	noPendingMbs := make(map[string]struct{})
 	miniBlocksInMetaList := make([]bootstrapStorage.MiniBlocksInMeta, 0)
@@ -274,7 +275,7 @@ func (ssh *shardStorageHandler) updateProcessedMiniBlocksForScheduled(
 		if !ok {
 			return nil, epochStart.ErrWrongTypeAssertion
 		}
-		mbHashes := getProcessedMbHashes(neededMeta, ssh.shardCoordinator.SelfId(), noPendingMbs)
+		mbHashes := getProcessedMbHashes(neededMeta, selfShardID, noPendingMbs)
 		if len(mbHashes) > 0 {
 			remainingMbHashes := removeHashes(mbHashes, pendingMiniBlockHashes)
 			if len(remainingMbHashes) > 0 {
@@ -287,10 +288,11 @@ func (ssh *shardStorageHandler) updateProcessedMiniBlocksForScheduled(
 	return miniBlocksInMetaList, nil
 }
 
-func (ssh *shardStorageHandler) updatePendingMiniBlocksForScheduled(
+func updatePendingMiniBlocksForScheduled(
 	referencedMetaBlockHashes [][]byte,
 	pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo,
 	headers map[string]data.HeaderHandler,
+	selfShardID uint32,
 ) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
 	noPendingMbs := make(map[string]struct{})
 	remainingPendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
@@ -306,7 +308,7 @@ func (ssh *shardStorageHandler) updatePendingMiniBlocksForScheduled(
 		if !ok {
 			return nil, epochStart.ErrWrongTypeAssertion
 		}
-		mbHashes := getProcessedMbHashes(neededMeta, ssh.shardCoordinator.SelfId(), noPendingMbs)
+		mbHashes := getProcessedMbHashes(neededMeta, selfShardID, noPendingMbs)
 		if len(mbHashes) > 0 {
 			for index := range pendingMiniBlocks {
 				pendingMiniBlocks[index].MiniBlocksHashes = removeHashes(pendingMiniBlocks[index].MiniBlocksHashes, mbHashes)

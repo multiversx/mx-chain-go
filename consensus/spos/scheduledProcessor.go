@@ -131,7 +131,7 @@ func (sp *scheduledProcessorWrapper) IsProcessedOKWithTimeout() bool {
 }
 
 // StartScheduledProcessing starts the scheduled processing
-func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler) {
+func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time) {
 	if !header.HasScheduledSupport() {
 		log.Debug("scheduled processing not supported")
 		sp.setStatus(processingOK)
@@ -145,9 +145,9 @@ func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.Header
 
 	go func() {
 		defer sp.oneInstance.Unlock()
-		errSchExec := sp.processScheduledMiniBlocks(header, body)
+		errSchExec := sp.processScheduledMiniBlocks(header, body, startTime)
 		if errSchExec != nil {
-			log.Error("scheduledProcessorWrapper.processScheduledMiniBlocks",
+			log.Debug("scheduledProcessorWrapper.processScheduledMiniBlocks",
 				"err", errSchExec.Error())
 			sp.setStatus(processingError)
 			return
@@ -209,9 +209,9 @@ func (sp *scheduledProcessorWrapper) setStatus(status processingStatus) {
 	sp.status = status
 }
 
-func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler) error {
+func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler, startTime time.Time) error {
 	sp.Lock()
-	sp.startTime = sp.syncTimer.CurrentTime()
+	sp.startTime = startTime
 	sp.Unlock()
 
 	haveTime := func() time.Duration {
