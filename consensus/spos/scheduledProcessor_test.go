@@ -250,7 +250,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV1ProcessingOK(
 
 	header := &block.Header{}
 	body := &block.Body{}
-	sp.StartScheduledProcessing(header, body)
+	sp.StartScheduledProcessing(header, body, time.Now())
 	time.Sleep(10 * time.Millisecond)
 	require.False(t, processScheduledCalled.IsSet())
 	require.Equal(t, processingOK, sp.getStatus())
@@ -276,7 +276,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingWit
 
 	header := &block.HeaderV2{}
 	body := &block.Body{}
-	sp.StartScheduledProcessing(header, body)
+	sp.StartScheduledProcessing(header, body, time.Now())
 	require.Equal(t, inProgress, sp.getStatus())
 
 	time.Sleep(100 * time.Millisecond)
@@ -304,7 +304,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 
 	header := &block.HeaderV2{}
 	body := &block.Body{}
-	sp.StartScheduledProcessing(header, body)
+	sp.StartScheduledProcessing(header, body, time.Now())
 	require.Equal(t, inProgress, sp.getStatus())
 
 	time.Sleep(100 * time.Millisecond)
@@ -343,7 +343,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 
 	hdr := &block.HeaderV2{}
 	blkBody := &block.Body{}
-	spw.StartScheduledProcessing(hdr, blkBody)
+	spw.StartScheduledProcessing(hdr, blkBody, time.Now())
 	time.Sleep(time.Second)
 	startTime := time.Now()
 	spw.ForceStopScheduledExecutionBlocking()
@@ -379,7 +379,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 
 	hdr := &block.HeaderV2{}
 	blkBody := &block.Body{}
-	spw.StartScheduledProcessing(hdr, blkBody)
+	spw.StartScheduledProcessing(hdr, blkBody, time.Now())
 	time.Sleep(20 * time.Millisecond)
 	spw.ForceStopScheduledExecutionBlocking()
 	status := spw.getStatus()
