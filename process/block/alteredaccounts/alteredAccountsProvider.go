@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -152,7 +153,11 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 
 	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(storageKey)
 	if err != nil {
-		return err
+		log.Warn("cannot get ESDT data for address",
+			"address", encodedAddress,
+			"tokenKey", tokenKey,
+			"error", err)
+		return nil
 	}
 
 	var esdtToken esdt.ESDigitalToken
@@ -181,16 +186,17 @@ func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
 ) {
 	selfShardID := aap.shardCoordinator.SelfId()
 
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Txs, markedAlteredAccounts)
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Scrs, markedAlteredAccounts)
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Rewards, markedAlteredAccounts)
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Invalid, markedAlteredAccounts)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Txs, markedAlteredAccounts, process.MoveBalance)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Scrs, markedAlteredAccounts, process.SCInvoking)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Rewards, markedAlteredAccounts, process.RewardTx)
+	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Invalid, markedAlteredAccounts, process.InvalidTransaction)
 }
 
 func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 	selfShardID uint32,
 	txsHandlers map[string]data.TransactionHandler,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
+	txType process.TransactionType,
 ) {
 	for _, txHandler := range txsHandlers {
 		senderAddress := txHandler.GetSndAddr()
@@ -202,7 +208,7 @@ func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 		if senderShardID == selfShardID && len(senderAddress) > 0 {
 			aap.addAddressWithBalanceChangeInMap(senderAddress, markedAlteredAccounts)
 		}
-		if receiverShardID == selfShardID && len(receiverAddress) > 0 {
+		if txType != process.InvalidTransaction && receiverShardID == selfShardID && len(receiverAddress) > 0 {
 			aap.addAddressWithBalanceChangeInMap(receiverAddress, markedAlteredAccounts)
 		}
 	}
@@ -212,7 +218,7 @@ func (aap *alteredAccountsProvider) addAddressWithBalanceChangeInMap(
 	address []byte,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
-	isValidAddress := len(aap.addressConverter.Encode(address)) > 0
+	isValidAddress := len(address) == aap.addressConverter.Len()
 	if !isValidAddress {
 		return
 	}

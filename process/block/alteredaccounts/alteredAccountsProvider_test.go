@@ -120,16 +120,17 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 			return 0
 		},
 	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(20)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
 		Txs: map[string]data.TransactionHandler{
 			"hash0": &transaction.Transaction{
-				SndAddr: []byte("sender shard - tx0"),
+				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
 			},
 			"hash1": &transaction.Transaction{
-				SndAddr: []byte("sender shard - tx1"),
+				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
 			},
 		},
@@ -159,16 +160,17 @@ func testExtractAlteredAccountsFromPoolReceiverShard(t *testing.T) {
 			return 1
 		},
 	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(20)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
 		Txs: map[string]data.TransactionHandler{
 			"hash0": &transaction.Transaction{
-				SndAddr: []byte("sender shard - tx0"),
+				SndAddr: []byte("sender shard - tx0  "),
 				RcvAddr: []byte("receiver shard - tx0"),
 			},
 			"hash1": &transaction.Transaction{
-				SndAddr: []byte("sender shard - tx1"),
+				SndAddr: []byte("sender shard - tx1  "),
 				RcvAddr: []byte("receiver shard - tx1"),
 			},
 		},
@@ -196,12 +198,13 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 			return 0
 		},
 	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(19)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
 		Txs: map[string]data.TransactionHandler{
 			"hash0": &transaction.Transaction{ // intra-shard 0, different addresses
-				SndAddr: []byte("shard0 addr - tx0"),
+				SndAddr: []byte("shard0 addr - tx0  "),
 				RcvAddr: []byte("shard0 addr 2 - tx0"),
 			},
 			"hash1": &transaction.Transaction{ // intra-shard 0, same addresses
@@ -209,16 +212,16 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 				RcvAddr: []byte("shard0 addr 3 - tx1"),
 			},
 			"hash2": &transaction.Transaction{ // cross-shard, sender in shard 0
-				SndAddr: []byte("shard0 addr - tx2"),
-				RcvAddr: []byte("shard1 - tx2"),
+				SndAddr: []byte("shard0 addr - tx2  "),
+				RcvAddr: []byte("shard1 - tx2       "),
 			},
 			"hash3": &transaction.Transaction{ // cross-shard, receiver in shard 0
-				SndAddr: []byte("shard1 addr - tx3"),
-				RcvAddr: []byte("shard0 addr - tx3"),
+				SndAddr: []byte("shard1 addr - tx3  "),
+				RcvAddr: []byte("shard0 addr - tx3  "),
 			},
 			"hash4": &transaction.Transaction{ // cross-shard, no address in shard 0
-				SndAddr: []byte("shard2 addr - tx4"),
-				RcvAddr: []byte("shard2 addr - tx3"),
+				SndAddr: []byte("shard2 addr - tx4  "),
+				RcvAddr: []byte("shard2 addr - tx3  "),
 			},
 		},
 	})
@@ -229,11 +232,11 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "shard0"))
 	}
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx0")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx0  ")))
 	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr 2 - tx0")))
 	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr 3 - tx1")))
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx2")))
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx3")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx2  ")))
+	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx3  ")))
 }
 
 func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
@@ -261,12 +264,13 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 			}, nil
 		},
 	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(19)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
 		Txs: map[string]data.TransactionHandler{
 			"hash0": &transaction.Transaction{
-				SndAddr: []byte("sender in shard 0"),
+				SndAddr: []byte("sender in shard 0  "),
 				RcvAddr: []byte(receiverInSelfShard),
 			},
 		},
@@ -305,12 +309,13 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 			}, nil
 		},
 	}
+	args.AddressConverter = testscommon.NewPubkeyConverterMock(26)
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
 		Txs: map[string]data.TransactionHandler{
 			"hash0": &transaction.Transaction{
-				SndAddr: []byte("sender in shard 0 - tx 0"),
+				SndAddr: []byte("sender in shard 0 - tx 0  "),
 			},
 		},
 		Rewards: map[string]data.TransactionHandler{
@@ -320,19 +325,19 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 		},
 		Scrs: map[string]data.TransactionHandler{
 			"hash2": &smartContractResult.SmartContractResult{
-				SndAddr: []byte("sender in shard 0 - tx 2"),
+				SndAddr: []byte("sender in shard 0 - tx 2  "),
 				RcvAddr: []byte("receiver in shard 0 - tx 2"),
 			},
 		},
 		Invalid: map[string]data.TransactionHandler{
 			"hash3": &transaction.Transaction{
-				SndAddr: []byte("sender in shard 0 - tx 3"),
-				RcvAddr: []byte("receiver in shard 0 - tx 3"),
+				SndAddr: []byte("sender in shard 0 - tx 3  "),
+				RcvAddr: []byte("receiver in shard 0 - tx 3"), // receiver for invalid txs should not be included
 			},
 		},
 	})
 	require.NoError(t, err)
-	require.Len(t, res, 6)
+	require.Len(t, res, 5)
 }
 
 func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
