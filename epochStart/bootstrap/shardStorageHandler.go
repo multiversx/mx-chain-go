@@ -320,6 +320,7 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 	noPendingMbs := make(map[string]struct{})
 	metaHeaderHandler, ok := headers[string(metaBlockHash)]
 	if !ok {
+		log.Warn("getProcessedMiniBlockHashesForMetaBlockHash", "hash", metaBlockHash, "error", epochStart.ErrMissingHeader)
 		return nil, epochStart.ErrMissingHeader
 	}
 	neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
@@ -407,6 +408,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 	header, ok := headers[string(epochShardData.GetFirstPendingMetaBlock())]
 	if !ok {
+		log.Warn("getProcessedAndPendingMiniBlocks", "hash", epochShardData.GetFirstPendingMetaBlock(), "error", epochStart.ErrMissingHeader)
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 	neededMeta, ok := header.(*block.MetaBlock)
@@ -473,6 +475,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 
 	lastCrossMetaHdrHash := shardData.GetLastFinishedMetaBlock()
 	if len(shardData.GetPendingMiniBlockHeaderHandlers()) == 0 {
+		log.Warn("saveLastCrossNotarizedHeaders changing lastCrossMetaHdrHash", "initial hash", lastCrossMetaHdrHash, "final hash", shardData.GetFirstPendingMetaBlock())
 		lastCrossMetaHdrHash = shardData.GetFirstPendingMetaBlock()
 	}
 
@@ -487,6 +490,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 
 	neededHdr, ok := headers[string(lastCrossMetaHdrHash)]
 	if !ok {
+		log.Warn("saveLastCrossNotarizedHeaders", "hash", lastCrossMetaHdrHash, "error", epochStart.ErrMissingHeader)
 		return nil, epochStart.ErrMissingHeader
 	}
 
@@ -525,6 +529,7 @@ func updateLastCrossMetaHdrHashIfNeeded(
 
 	metaHdr, found := headers[string(metaBlockHashes[0])]
 	if !found {
+		log.Warn("updateLastCrossMetaHdrHashIfNeeded", "hash", metaBlockHashes[0], "error", epochStart.ErrMissingHeader)
 		return nil, epochStart.ErrMissingHeader
 	}
 
@@ -536,6 +541,7 @@ func updateLastCrossMetaHdrHashIfNeeded(
 func getShardHeaderAndMetaHashes(headers map[string]data.HeaderHandler, headerHash []byte) (data.ShardHeaderHandler, [][]byte, error) {
 	header, ok := headers[string(headerHash)]
 	if !ok {
+		log.Warn("getShardHeaderAndMetaHashes", "hash", headerHash, "error", epochStart.ErrMissingHeader)
 		return nil, nil, epochStart.ErrMissingHeader
 	}
 
