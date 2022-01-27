@@ -12,6 +12,8 @@ import (
 )
 
 func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
@@ -23,6 +25,8 @@ func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestHas_ReturnsCorrectly(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 	s.HasCalled = func(key []byte) error {
 		return nil
@@ -35,6 +39,8 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
@@ -45,6 +51,8 @@ func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestGet_ReturnsCorrectly(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 	getResult := []byte("get called")
 	s.GetCalled = func(key []byte) (b []byte, e error) {
@@ -59,16 +67,20 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	err := b.Put(2, []byte("whatever"), []byte("whatever value"))
 
-	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNoSuchStorageUnit))
 }
 
 func TestPut_ReturnsCorrectly(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 	putErr := errors.New("error")
 	s.PutCalled = func(key, data []byte) error {
@@ -82,6 +94,8 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
@@ -93,6 +107,8 @@ func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 	getErr := errors.New("error")
 	s.GetCalled = func(key []byte) (bytes []byte, e error) {
@@ -108,6 +124,8 @@ func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
 }
 
 func TestGetAll_ReturnsCorrectly(t *testing.T) {
+	t.Parallel()
+
 	key1 := "key1"
 	key2 := "key2"
 	val1 := []byte("val1")
@@ -135,6 +153,8 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestDestroy_ErrorsWhenStorerDestroyErrors(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 	destroyError := errors.New("error")
 	s.DestroyUnitCalled = func() error {
@@ -147,6 +167,8 @@ func TestDestroy_ErrorsWhenStorerDestroyErrors(t *testing.T) {
 }
 
 func TestDestroy_ReturnsCorrectly(t *testing.T) {
+	t.Parallel()
+
 	s := &storageStubs.StorerStub{}
 	destroyCalled := false
 	s.DestroyUnitCalled = func() error {
