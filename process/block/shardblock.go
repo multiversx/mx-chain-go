@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -284,6 +285,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	if header.Nonce == 512480 {
+		err = errors.New("forced error on header with nonce 512480")
 		return err
 	}
 
