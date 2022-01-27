@@ -92,8 +92,8 @@ func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint
 			results[string(key)] = dataInCache.([]byte)
 			continue
 		}
-		data, err := persister.Get(key)
-		if err == nil && data != nil {
+		data, errGet := persister.Get(key)
+		if errGet == nil && data != nil {
 			results[string(key)] = data
 		}
 	}
@@ -211,4 +211,11 @@ func (fhps *FullHistoryPruningStorer) getPersisterData(epochString string, epoch
 	}
 
 	return nil, false
+}
+
+// Close will try to close all opened persisters, including the ones in the LRU cache
+func (fhps *FullHistoryPruningStorer) Close() error {
+	fhps.oldEpochsActivePersistersCache.Clear()
+
+	return fhps.PruningStorer.Close()
 }
