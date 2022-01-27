@@ -331,8 +331,6 @@ func TestDB_MethodCallsAfterCloseOrDestroy(t *testing.T) {
 }
 
 func testDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.DB)) {
-	t.Parallel()
-
 	defer func() {
 		r := recover()
 		if r != nil {
