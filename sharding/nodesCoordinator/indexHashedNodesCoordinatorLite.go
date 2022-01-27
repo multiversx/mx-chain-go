@@ -255,57 +255,6 @@ func (ihncl *IndexHashedNodesCoordinatorLite) setNodeType(isValidator bool) {
 	ihncl.nodeTypeProvider.SetType(core.NodeTypeObserver)
 }
 
-func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfigOnNewEpochStart(newEpoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) {
-	copiedPrevious := ihncl.GetPreviousConfigCopy()
-	if copiedPrevious == nil {
-		log.Error("previous nodes config is nil")
-		return
-	}
-
-	newNodesConfig, err := ihncl.ComputeNodesConfigFromList(copiedPrevious, validatorsInfo)
-	if err != nil {
-		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
-		return
-	}
-
-	additionalLeavingMap, err := ihncl.GetNodesCoordinatorHelper().ComputeAdditionalLeaving(validatorsInfo)
-	if err != nil {
-		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
-		return
-	}
-
-	unStakeLeavingList := ihncl.CreateSortedListFromMap(newNodesConfig.LeavingMap)
-	additionalLeavingList := ihncl.CreateSortedListFromMap(additionalLeavingMap)
-
-	shufflerArgs := ArgsUpdateNodes{
-		Eligible:          newNodesConfig.EligibleMap,
-		Waiting:           newNodesConfig.WaitingMap,
-		NewNodes:          newNodesConfig.NewList,
-		UnStakeLeaving:    unStakeLeavingList,
-		AdditionalLeaving: additionalLeavingList,
-		Rand:              randomness,
-		NbShards:          newNodesConfig.NbShards,
-		Epoch:             newEpoch,
-	}
-
-	resUpdateNodes, err := ihncl.shuffler.UpdateNodeLists(shufflerArgs)
-	if err != nil {
-		log.Error("could not compute UpdateNodeLists - do nothing on nodesCoordinator epochStartPrepare", "err", err.Error())
-		return
-	}
-
-	leavingNodesMap, _ := CreateActuallyLeavingPerShards(
-		newNodesConfig.LeavingMap,
-		additionalLeavingMap,
-		resUpdateNodes.Leaving,
-	)
-
-	err = ihncl.SetNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, newEpoch)
-	if err != nil {
-		log.Error("set nodes per shard failed", "error", err.Error())
-	}
-}
-
 func (ihncl *IndexHashedNodesCoordinatorLite) CreateSortedListFromMap(validatorsMap map[uint32][]Validator) []Validator {
 	sortedList := make([]Validator, 0)
 	for _, validators := range validatorsMap {
@@ -961,6 +910,66 @@ func (ihncl *IndexHashedNodesCoordinatorLite) GetLastEpochConfig() uint32 {
 	}
 
 	return lastEpoch
+}
+
+// SetNodesConfigFromValidatorsInfo sets epoch config based on validators list configuration
+func (ihncl *IndexHashedNodesCoordinatorLite) SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error {
+	copiedPrevious := &EpochNodesConfig{}
+	newNodesConfig, err := ihncl.ComputeNodesConfigFromList(copiedPrevious, validatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	additionalLeavingMap, err := ihncl.GetNodesCoordinatorHelper().ComputeAdditionalLeaving(validatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	unStakeLeavingList := ihncl.CreateSortedListFromMap(newNodesConfig.LeavingMap)
+	additionalLeavingList := ihncl.CreateSortedListFromMap(additionalLeavingMap)
+
+	shufflerArgs := ArgsUpdateNodes{
+		Eligible:          newNodesConfig.EligibleMap,
+		Waiting:           newNodesConfig.WaitingMap,
+		NewNodes:          newNodesConfig.NewList,
+		UnStakeLeaving:    unStakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              randomness,
+		NbShards:          newNodesConfig.NbShards,
+		Epoch:             epoch,
+	}
+
+	resUpdateNodes, err := ihncl.shuffler.UpdateNodeLists(shufflerArgs)
+	if err != nil {
+		return err
+	}
+
+	leavingNodesMap, _ := CreateActuallyLeavingPerShards(
+		newNodesConfig.LeavingMap,
+		additionalLeavingMap,
+		resUpdateNodes.Leaving,
+	)
+
+	err = ihncl.SetNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, epoch)
+	if err != nil {
+		return err
+	}
+
+	epochToRemove := int32(epoch) - NodesCoordinatorStoredEpochs
+	if epochToRemove >= 0 {
+		ihncl.RemoveNodesConfigEpochs(epochToRemove)
+	}
+
+	return nil
+}
+
+// IsEpochInConfig checks wether the specified epoch is already in map
+func (ihncl *IndexHashedNodesCoordinatorLite) IsEpochInConfig(epoch uint32) bool {
+	ihncl.mutNodesConfig.Lock()
+	_, status := ihncl.nodesConfig[epoch]
+	defer ihncl.mutNodesConfig.Unlock()
+
+	return status
 }
 
 // GetNumTotalEligible returns the number of total eligible accross all shards from current setup
