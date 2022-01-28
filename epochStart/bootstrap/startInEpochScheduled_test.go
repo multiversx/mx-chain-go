@@ -537,6 +537,80 @@ func Test_getShardIDAndHashesForIncludedMetaBlocks(t *testing.T) {
 	require.Equal(t, expectedMetaHashes, metaHashes)
 }
 
+/*
+func getPreviousToFirstReferencedMetaHeaderHash(shardHeader data.ShardHeaderHandler, headers map[string]data.HeaderHandler) []byte {
+	hashes := shardHeader.GetMetaBlockHashes()
+	if len(hashes) == 0 {
+		return nil
+	}
+
+	firstReferencedMetaHash := hashes[0]
+	firstReferencedMetaHeader := headers[string(firstReferencedMetaHash)]
+	if firstReferencedMetaHeader == nil {
+		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrMissingHeader)
+		return nil
+	}
+
+	metaHeader, ok := firstReferencedMetaHeader.(data.ShardHeaderHandler)
+	if !ok {
+		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrWrongTypeAssertion)
+		return nil
+	}
+
+	return metaHeader.GetPrevHash()
+}
+*/
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashNoMetaBlocksReturnsNil(t *testing.T) {
+	shardHeader := &block.Header{
+		MetaBlockHashes: nil,
+	}
+
+	headers := map[string]data.HeaderHandler{}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Nil(t, hash)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashFirstReferencedMetaNotInMap(t *testing.T) {
+	metaHash := []byte("metaHash")
+	shardHeader := &block.Header{
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+
+	headers := map[string]data.HeaderHandler{}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Nil(t, hash)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashFirstReferencedMetaInvalid(t *testing.T) {
+	metaHash := []byte("metaHash")
+	shardHeader := &block.Header{
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+
+	headers := map[string]data.HeaderHandler{
+		string(metaHash): &block.Header{},
+	}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Nil(t, hash)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashOK(t *testing.T) {
+	metaHash := []byte("metaHash")
+	prevMetaHash := []byte("prevMetaHash")
+	shardHeader := &block.Header{
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+
+	headers := map[string]data.HeaderHandler{
+		string(metaHash): &block.MetaBlock{
+			PrevHash: prevMetaHash,
+		},
+	}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Equal(t, prevMetaHash, hash)
+}
+
 func createTestHeader() *block.Header {
 	return &block.Header{
 		Nonce:            100,
