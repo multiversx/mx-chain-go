@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
+func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &stateMock.AccountsStub{
@@ -55,95 +55,122 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
-	args.Accounts = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
+	tests := []struct {
+		args        func() hooks.ArgBlockChainHook
+		expectedErr error
+	}{
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.Accounts = nil
+				return args
+			},
+			expectedErr: process.ErrNilAccountsAdapter,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.PubkeyConv = nil
+				return args
+			},
+			expectedErr: process.ErrNilPubkeyConverter,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.StorageService = nil
+				return args
+			},
+			expectedErr: process.ErrNilStorage,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.BlockChain = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockChain,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.ShardCoordinator = nil
+				return args
+			},
+			expectedErr: process.ErrNilShardCoordinator,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.Marshalizer = nil
+				return args
+			},
+			expectedErr: process.ErrNilMarshalizer,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.Uint64Converter = nil
+				return args
+			},
+			expectedErr: process.ErrNilUint64Converter,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.BuiltInFunctions = nil
+				return args
+			},
+			expectedErr: process.ErrNilBuiltInFunction,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.CompiledSCPool = nil
+				return args
+			},
+			expectedErr: process.ErrNilCacher,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.NFTStorageHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilNFTStorageHandler,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.EpochNotifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilEpochNotifier,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				return createMockBlockChainHookArgs()
+			},
+			expectedErr: nil,
+		},
+	}
 
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilAccountsAdapter, err)
-}
+	for _, test := range tests {
+		bh, err := hooks.NewBlockChainHookImpl(test.args())
+		require.Equal(t, test.expectedErr, err)
 
-func TestNewBlockChainHookImpl_NilPubkeyConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.PubkeyConv = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilPubkeyConverter, err)
-}
-
-func TestNewBlockChainHookImpl_NilStorageServiceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.StorageService = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilStorage, err)
-}
-
-func TestNewBlockChainHookImpl_NilBlockChainShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.BlockChain = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilBlockChain, err)
-}
-
-func TestNewBlockChainHookImpl_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.ShardCoordinator = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewBlockChainHookImpl_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.Marshalizer = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-}
-
-func TestNewBlockChainHookImpl_NilUint64ConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.Uint64Converter = nil
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilUint64Converter, err)
-}
-
-func TestNewBlockChainHookImpl_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	bh, err := hooks.NewBlockChainHookImpl(args)
-
-	assert.NotNil(t, bh)
-	assert.Nil(t, err)
-	assert.False(t, bh.IsInterfaceNil())
+		if test.expectedErr != nil {
+			require.Nil(t, bh)
+		} else {
+			require.NotNil(t, bh)
+		}
+	}
 }
 
 func TestBlTestBlockChainHookImpl_GetUserAccountNotASystemAccountInCrossShard(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.ShardCoordinator = &mock.ShardCoordinatorStub{
 		ComputeIdCalled: func(address []byte) uint32 {
 			return 0
@@ -164,7 +191,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.
 
 	errExpected := errors.New("expected err")
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, errExpected
@@ -178,7 +205,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.
 func TestBlTestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return &mock.PeerAccountHandlerMock{}, nil
@@ -193,7 +220,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	t.Parallel()
 
 	expectedAccount, _ := state.NewUserAccount([]byte("1234"))
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return expectedAccount, nil
@@ -211,7 +238,7 @@ func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected err")
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, errExpected
@@ -233,7 +260,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 	accnt := mock.NewAccountWrapMock(nil)
 	_ = accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return accnt, nil
@@ -254,7 +281,7 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return state.NewUserAccount(address)
 	}
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -278,7 +305,7 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return state.NewUserAccount(address)
 	}
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -298,7 +325,7 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return state.NewUserAccount(address)
 	}
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -328,7 +355,7 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 
 	hdrToRet := &block.Header{Nonce: 2}
 	hashToRet := []byte("hash")
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
@@ -349,7 +376,7 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
 
 	hdrToRet := &block.Header{Nonce: 2, Epoch: 2}
 	hashToRet := []byte("hash")
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 
 	marshaledData, _ := args.Marshalizer.Marshal(hdrToRet)
 
@@ -399,7 +426,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		Epoch:     epoch,
 	}
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.BlockChain = &mock.BlockChainStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
@@ -432,7 +459,7 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 		Epoch:     epoch,
 	}
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	bh.SetCurrentHeader(hdr)
@@ -447,7 +474,7 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 func TestBlockChainHookImpl_IsPayableNormalAccount(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 	isPayable, err := bh.IsPayable([]byte("address"), []byte("address"))
 	assert.True(t, isPayable)
@@ -457,7 +484,7 @@ func TestBlockChainHookImpl_IsPayableNormalAccount(t *testing.T) {
 func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc := &mock.AccountWrapMock{}
@@ -474,7 +501,7 @@ func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			acc := &mock.AccountWrapMock{}
@@ -496,7 +523,7 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			acc := &mock.AccountWrapMock{}
@@ -514,7 +541,7 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
-	args := createMockVMAccountsArguments()
+	args := createMockBlockChainHookArgs()
 
 	funcName := "func1"
 	builtInFunctionsContainer := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
@@ -568,7 +595,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	t.Run("account not found returns an empty esdt data", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 				return nil, state.ErrAccNotFound
@@ -584,7 +611,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	t.Run("accountsDB errors returns error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
@@ -599,7 +626,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	t.Run("backwards compatibility - retrieve value errors, should return error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
@@ -619,7 +646,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	t.Run("backwards compatibility - empty byte slice should return empty esdt token", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
@@ -644,7 +671,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		t.Parallel()
 
 		nftNonce := uint64(44)
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
@@ -666,7 +693,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 	t.Run("backwards compatibility - should load the esdt data", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
@@ -688,7 +715,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		t.Parallel()
 
 		nftNonce := uint64(44)
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
 				return mock.NewAccountWrapMock(address), nil
@@ -713,7 +740,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		t.Parallel()
 
 		nftNonce := uint64(44)
-		args := createMockVMAccountsArguments()
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
 				return mock.NewAccountWrapMock(address), nil
