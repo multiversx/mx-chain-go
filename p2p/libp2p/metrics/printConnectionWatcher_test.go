@@ -67,10 +67,10 @@ func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 		connection := " "
 		numCalled := 0
 
-		pcw, _ := NewPrintConnectionsWatcher(time.Hour)
-		pcw.printHandler = func(pid core.PeerID, conn string) {
+		handler := func(pid core.PeerID, conn string) {
 			numCalled++
 		}
+		pcw, _ := NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
 
 		pcw.NewKnownConnection(providedPid, connection)
 		assert.Equal(t, 0, numCalled)
@@ -80,12 +80,12 @@ func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 		connection := "connection"
 		numCalled := 0
 
-		pcw, _ := NewPrintConnectionsWatcher(time.Hour)
-		pcw.printHandler = func(pid core.PeerID, conn string) {
+		handler := func(pid core.PeerID, conn string) {
 			numCalled++
 			assert.Equal(t, providedPid, pid)
 			assert.Equal(t, connection, conn)
 		}
+		pcw, _ := NewPrintConnectionsWatcherWithHandler(time.Hour, handler)
 
 		pcw.NewKnownConnection(providedPid, connection)
 		assert.Equal(t, 1, numCalled)

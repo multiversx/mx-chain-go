@@ -37,8 +37,8 @@ func NewPrintConnectionsWatcher(timeToLive time.Duration) (*printConnectionsWatc
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go pcw.doSweep(ctx)
 	pcw.cancel = cancel
+	go pcw.doSweep(ctx)
 
 	return pcw, nil
 }
