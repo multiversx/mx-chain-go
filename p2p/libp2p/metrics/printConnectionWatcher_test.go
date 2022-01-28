@@ -43,7 +43,7 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 
 		assert.Nil(t, err)
 		time.Sleep(time.Second) // allow the go routine to close
-		assert.True(t, pcw.goRoutineClosed)
+		assert.True(t, pcw.goRoutineClosed.IsSet())
 	})
 	t.Run("iterations were done", func(t *testing.T) {
 		t.Parallel()
@@ -54,7 +54,7 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 
 		assert.Nil(t, err)
 		time.Sleep(time.Second) // allow the go routine to close
-		assert.True(t, pcw.goRoutineClosed)
+		assert.True(t, pcw.goRoutineClosed.IsSet())
 	})
 
 }

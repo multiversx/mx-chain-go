@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -18,7 +19,7 @@ var log = logger.GetOrCreate("p2p/libp2p/metrics")
 
 type printConnectionsWatcher struct {
 	timeCacher      storage.TimeCacher
-	goRoutineClosed bool
+	goRoutineClosed atomic.Flag
 	timeToLive      time.Duration
 	printHandler    func(pid core.PeerID, connection string)
 	cancel          func()
@@ -47,7 +48,7 @@ func (pcw *printConnectionsWatcher) doSweep(ctx context.Context) {
 	timer := time.NewTimer(pcw.timeToLive)
 	defer func() {
 		timer.Stop()
-		pcw.goRoutineClosed = true
+		pcw.goRoutineClosed.SetValue(true)
 	}()
 
 	for {
