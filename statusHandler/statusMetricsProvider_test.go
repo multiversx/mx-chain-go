@@ -168,6 +168,8 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
 	sm.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", 0.5))
 	sm.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(144))
+	sm.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", true))
+	sm.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", 0.0))
 
 	expectedConfig := map[string]interface{}{
 		"erd_chain_id":                      "local-id",
@@ -189,6 +191,8 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_gas_price_modifier":            "0.5",
 		"erd_rounds_per_epoch":              uint64(144),
 		"erd_max_gas_per_transaction":       uint64(15000),
+		"erd_adaptivity":                    "true",
+		"erd_hysteresis":                    "0.000000",
 	}
 
 	configMetrics := sm.ConfigMetrics()

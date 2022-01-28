@@ -180,6 +180,8 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[common.MetricTopUpFactor] = sm.loadStringMetric(common.MetricTopUpFactor)
 	configMetrics[common.MetricGasPriceModifier] = sm.loadStringMetric(common.MetricGasPriceModifier)
 	configMetrics[common.MetricRoundsPerEpoch] = sm.loadUint64Metric(common.MetricRoundsPerEpoch)
+	configMetrics[common.MetricAdaptivity] = sm.loadStringMetric(common.MetricAdaptivity)
+	configMetrics[common.MetricHysteresis] = sm.loadStringMetric(common.MetricHysteresis)
 
 	return configMetrics
 }
