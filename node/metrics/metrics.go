@@ -117,6 +117,19 @@ func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig confi
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
+	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
+
+	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
+		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
+		appStatusHandler.SetUInt64Value(epochEnable, uint64(nodesChangeConfig.EpochEnable))
+
+		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
+		appStatusHandler.SetUInt64Value(maxNumNodes, uint64(nodesChangeConfig.MaxNumNodes))
+
+		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
+		appStatusHandler.SetUInt64Value(nodesToShufflePerShard, uint64(nodesChangeConfig.NodesToShufflePerShard))
+	}
+	appStatusHandler.SetUInt64Value(common.MetricMaxNodesChangeEnableEpoch+"_count", uint64(len(enableEpochs.MaxNodesChangeEnableEpoch)))
 
 	return nil
 }

@@ -472,6 +472,21 @@ const (
 
 	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
 	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
+
+	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
+	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
+
+	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
+
+	// EpochEnableSuffix represents the suffix for EpochEnable item in MaxNodesChangeEnableEpoch list
+	EpochEnableSuffix = "_epoch_enable"
+
+	// MaxNumNodesSuffix represents the suffix for MaxNumNodes item in MaxNodesChangeEnableEpoch list
+	MaxNumNodesSuffix = "_max_num_nodes"
+
+	// NodesToShufflePerShardSuffix represents the suffix for NodesToShufflePerShard item in MaxNodesChangeEnableEpoch list
+	NodesToShufflePerShardSuffix = "_nodes_to_shuffle_per_shard"
 )
 
 const (
