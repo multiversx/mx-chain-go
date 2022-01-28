@@ -1,4 +1,4 @@
-package sharding
+package nodesCoordinator
 
 import (
 	"testing"

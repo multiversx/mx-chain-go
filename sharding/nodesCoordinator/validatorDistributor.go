@@ -1,4 +1,4 @@
-package sharding
+package nodesCoordinator
 
 // IntraShardValidatorDistributor - distributes validators from source to destination inside the same shard
 type IntraShardValidatorDistributor struct{}

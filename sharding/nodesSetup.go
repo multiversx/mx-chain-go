@@ -6,7 +6,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
+
+type GenesisNodeInfoHandler = nodesCoordinator.GenesisNodeInfoHandler
 
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
 var _ GenesisNodeInfoHandler = (*nodeInfo)(nil)

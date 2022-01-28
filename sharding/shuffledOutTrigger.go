@@ -6,9 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/prometheus/common/log"
 )
 
-var _ ShuffledOutHandler = (*shuffledOutTrigger)(nil)
+var _ nodesCoordinator.ShuffledOutHandler = (*shuffledOutTrigger)(nil)
 
 type shuffledOutTrigger struct {
 	ownPubKey         []byte
