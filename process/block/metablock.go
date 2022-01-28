@@ -1209,10 +1209,10 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	log.Info("meta block has been committed successfully",
-		"epoch", header.Epoch,
+		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
-		"round", header.Round,
-		"nonce", header.Nonce,
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
