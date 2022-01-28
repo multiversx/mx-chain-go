@@ -54,15 +54,23 @@ type FacadeStub struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
-	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
-	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
-	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
-	GetProofCalled                          func(string, string) (*common.GetProofResponse, error)
-	GetProofCurrentRootHashCalled           func(string) (*common.GetProofResponse, error)
-	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
-	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
-	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
+	GetInternalShardBlockByNonceCalled      func(format common.OutportFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled       func(format common.OutportFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRoundCalled      func(format common.OutportFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled       func(format common.OutportFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled        func(format common.OutportFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled       func(format common.OutportFormat, round uint64) (interface{}, error)
+
+	GetInternalMiniBlockByHashCalled func(format common.OutportFormat, txHash string) (interface{}, error)
+	GetTotalStakedValueHandler       func() (*api.StakeValues, error)
+	GetAllIssuedESDTsCalled          func(tokenType string) ([]string, error)
+	GetDirectStakedListHandler       func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler         func() ([]*api.Delegator, error)
+	GetProofCalled                   func(string, string) (*common.GetProofResponse, error)
+	GetProofCurrentRootHashCalled    func(string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled           func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled             func(token string) (*api.ESDTSupply, error)
 }
 
 // GetTokenSupply -
@@ -368,6 +376,47 @@ func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, er
 		return f.GetBlockByRoundCalled(round, withTxs)
 	}
 	return nil, nil
+}
+
+// GetInternalMetaBlockByNonce -
+func (f *FacadeStub) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+	return f.GetInternalMetaBlockByNonceCalled(format, nonce)
+}
+
+// GetInternalMetaBlockByHash -
+func (f *FacadeStub) GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+	return f.GetInternalMetaBlockByHashCalled(format, hash)
+}
+
+// GetInternalMetaBlockByRound -
+func (f *FacadeStub) GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+	if f.GetInternalMetaBlockByRoundCalled != nil {
+		return f.GetInternalMetaBlockByRoundCalled(format, round)
+	}
+	return nil, nil
+}
+
+// GetInternalShardBlockByNonce -
+func (f *FacadeStub) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+	return f.GetInternalShardBlockByNonceCalled(format, nonce)
+}
+
+// GetInternalShardBlockByHash -
+func (f *FacadeStub) GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+	return f.GetInternalShardBlockByHashCalled(format, hash)
+}
+
+// GetInternalShardBlockByRound -
+func (f *FacadeStub) GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+	if f.GetInternalShardBlockByRoundCalled != nil {
+		return f.GetInternalShardBlockByRoundCalled(format, round)
+	}
+	return nil, nil
+}
+
+// GetInternalMiniBlockByHash -
+func (f *FacadeStub) GetInternalMiniBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+	return f.GetInternalMiniBlockByHashCalled(format, hash)
 }
 
 // Trigger -

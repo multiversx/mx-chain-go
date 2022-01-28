@@ -475,6 +475,77 @@ const (
 )
 
 const (
+	// MetricRatingsGeneralStartRating represents the starting rating used by the rater
+	MetricRatingsGeneralStartRating = "erd_ratings_general_start_rating"
+
+	// MetricRatingsGeneralMaxRating represents the maximum rating limit
+	MetricRatingsGeneralMaxRating = "erd_ratings_general_max_rating"
+
+	// MetricRatingsGeneralMinRating represents the minimum rating limit
+	MetricRatingsGeneralMinRating = "erd_ratings_general_min_rating"
+
+	// MetricRatingsGeneralSignedBlocksThreshold represents the signed blocks threshold
+	MetricRatingsGeneralSignedBlocksThreshold = "erd_ratings_general_signed_blocks_threshold"
+
+	// MetricRatingsGeneralSelectionChances represents the selection chances thresholds
+	MetricRatingsGeneralSelectionChances = "erd_ratings_general_selection_chances"
+
+	// SelectionChancesMaxThresholdSuffix represents the SelectionChances suffix for MaxThreshold
+	SelectionChancesMaxThresholdSuffix = "_max_threshold"
+
+	// SelectionChancesChancePercentSuffix represents the SelectionChances suffix for ChancePercent
+	SelectionChancesChancePercentSuffix = "_chance_percent"
+
+	// MetricRatingsShardChainHoursToMaxRatingFromStartRating represents the hours to max rating from start rating
+	MetricRatingsShardChainHoursToMaxRatingFromStartRating = "erd_ratings_shardchain_hours_to_max_rating_from_start_rating"
+
+	// MetricRatingsShardChainProposerValidatorImportance represents the proposer validator importance index
+	MetricRatingsShardChainProposerValidatorImportance = "erd_ratings_shardchain_proposer_validator_importance"
+
+	// MetricRatingsShardChainProposerDecreaseFactor represents the proposer decrease factor
+	MetricRatingsShardChainProposerDecreaseFactor = "erd_ratings_shardchain_proposer_decrease_factor"
+
+	// MetricRatingsShardChainValidatorDecreaseFactor represents the validator decrease factor
+	MetricRatingsShardChainValidatorDecreaseFactor = "erd_ratings_shardchain_validator_decrease_factor"
+
+	// MetricRatingsShardChainConsecutiveMissedBlocksPenalty represents the consecutive missed block penalty
+	MetricRatingsShardChainConsecutiveMissedBlocksPenalty = "erd_ratings_shardchain_consecutive_missed_blocks_penalty"
+
+	// MetricRatingsMetaChainHoursToMaxRatingFromStartRating represents the hours to max rating from start rating
+	MetricRatingsMetaChainHoursToMaxRatingFromStartRating = "erd_ratings_metachain_hours_to_max_rating_from_start_rating"
+
+	// MetricRatingsMetaChainProposerValidatorImportance represents the proposer validator importance index
+	MetricRatingsMetaChainProposerValidatorImportance = "erd_ratings_metachain_proposer_validator_importance"
+
+	// MetricRatingsMetaChainProposerDecreaseFactor represents the proposer decrease factor
+	MetricRatingsMetaChainProposerDecreaseFactor = "erd_ratings_metachain_proposer_decrease_factor"
+
+	// MetricRatingsMetaChainValidatorDecreaseFactor represents the validator decrease factor
+	MetricRatingsMetaChainValidatorDecreaseFactor = "erd_ratings_metachain_validator_decrease_factor"
+
+	// MetricRatingsMetaChainConsecutiveMissedBlocksPenalty represents the consecutive missed blocks penalty
+	MetricRatingsMetaChainConsecutiveMissedBlocksPenalty = "erd_ratings_metachain_consecutive_missed_blocks_penalty"
+
+	// MetricRatingsPeerHonestyDecayCoefficient represents the peer honesty decay coefficient
+	MetricRatingsPeerHonestyDecayCoefficient = "erd_ratings_peerhonesty_decay_coefficient"
+
+	// MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds represents the decat update interval in seconds
+	MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds = "erd_ratings_peerhonesty_decay_update_interval_inseconds"
+
+	// MetricRatingsPeerHonestyMaxScore represents the peer honesty max score allowed
+	MetricRatingsPeerHonestyMaxScore = "erd_ratings_peerhonesty_max_score"
+
+	// MetricRatingsPeerHonestyMinScore represents the peer honesty min score
+	MetricRatingsPeerHonestyMinScore = "erd_ratings_peerhonesty_min_score"
+
+	// MetricRatingsPeerHonestyBadPeerThreshold represents the peer honesty bad peer threshold
+	MetricRatingsPeerHonestyBadPeerThreshold = "erd_ratings_peerhonesty_bad_peer_threshold"
+
+	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
+	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
+)
+
+const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
@@ -681,4 +752,15 @@ const (
 
 	// ActiveDBVal is the value that will be saved at ActiveDBKey
 	ActiveDBVal = "yes"
+)
+
+// OutportFormat represents the format type returned by api
+type OutportFormat uint8
+
+const (
+	// Internal outport format returns struct directly, will be serialized into JSON by gin
+	Internal OutportFormat = 0
+
+	// Proto outport format returns the bytes of the proto object
+	Proto OutportFormat = 1
 )

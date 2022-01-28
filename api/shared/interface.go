@@ -73,6 +73,13 @@ type FacadeHandler interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
+	GetInternalMiniBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*api.StakeValues, error)

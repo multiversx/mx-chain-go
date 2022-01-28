@@ -298,6 +298,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	err = metrics.InitRatingsMetrics(statusHandlersInfo, ccf.ratingsConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	err = economicsData.SetStatusHandler(statusHandlersInfo.StatusHandler())
 	if err != nil {
 		log.Debug("cannot set status handler to economicsData", "error", err)

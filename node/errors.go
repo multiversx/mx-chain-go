@@ -147,3 +147,9 @@ var ErrInvalidESDTRole = errors.New("invalid ESDT role")
 
 // ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
 var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")
+
+// ErrShardOnlyEndpoint signals that an endpoint was called, but it is only available for shard nodes
+var ErrShardOnlyEndpoint = errors.New("the endpoint is only available on shard nodes")
+
+// ErrInvalidOutportFormat signals that the outport format type is not valid
+var ErrInvalidOutportFormat = errors.New("the outport format type is invalid")

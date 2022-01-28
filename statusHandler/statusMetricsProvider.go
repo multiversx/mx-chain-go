@@ -245,6 +245,49 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	return networkMetrics
 }
 
+// RatingsMetrics will return metrics related to current configuration
+func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
+	ratingsMetrics := make(map[string]interface{})
+
+	ratingsMetrics[common.MetricRatingsGeneralStartRating] = sm.loadUint64Metric(common.MetricRatingsGeneralStartRating)
+	ratingsMetrics[common.MetricRatingsGeneralMaxRating] = sm.loadUint64Metric(common.MetricRatingsGeneralMaxRating)
+	ratingsMetrics[common.MetricRatingsGeneralMinRating] = sm.loadUint64Metric(common.MetricRatingsGeneralMinRating)
+	ratingsMetrics[common.MetricRatingsGeneralSignedBlocksThreshold] = sm.loadStringMetric(common.MetricRatingsGeneralSignedBlocksThreshold)
+
+	numSelectionChances := sm.loadUint64Metric(common.MetricRatingsGeneralSelectionChances + "_count")
+	selectionChances := make([]interface{}, 0)
+	for i := uint64(0); i < numSelectionChances; i++ {
+		selectionChance := make(map[string]interface{})
+		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
+		selectionChance[common.SelectionChancesMaxThresholdSuffix] = sm.loadUint64Metric(maxThresholdStr)
+		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
+		selectionChance[common.SelectionChancesChancePercentSuffix] = sm.loadUint64Metric(chancePercentStr)
+		selectionChances = append(selectionChances, selectionChance)
+	}
+	ratingsMetrics[common.MetricRatingsGeneralSelectionChances] = selectionChances
+
+	ratingsMetrics[common.MetricRatingsShardChainHoursToMaxRatingFromStartRating] = sm.loadUint64Metric(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating)
+	ratingsMetrics[common.MetricRatingsShardChainProposerValidatorImportance] = sm.loadStringMetric(common.MetricRatingsShardChainProposerValidatorImportance)
+	ratingsMetrics[common.MetricRatingsShardChainProposerDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsShardChainProposerDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsShardChainValidatorDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsShardChainValidatorDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty] = sm.loadStringMetric(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty)
+
+	ratingsMetrics[common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating] = sm.loadUint64Metric(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating)
+	ratingsMetrics[common.MetricRatingsMetaChainProposerValidatorImportance] = sm.loadStringMetric(common.MetricRatingsMetaChainProposerValidatorImportance)
+	ratingsMetrics[common.MetricRatingsMetaChainProposerDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsMetaChainProposerDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsMetaChainValidatorDecreaseFactor] = sm.loadStringMetric(common.MetricRatingsMetaChainValidatorDecreaseFactor)
+	ratingsMetrics[common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty] = sm.loadStringMetric(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty)
+
+	ratingsMetrics[common.MetricRatingsPeerHonestyDecayCoefficient] = sm.loadStringMetric(common.MetricRatingsPeerHonestyDecayCoefficient)
+	ratingsMetrics[common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds] = sm.loadUint64Metric(common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds)
+	ratingsMetrics[common.MetricRatingsPeerHonestyMaxScore] = sm.loadStringMetric(common.MetricRatingsPeerHonestyMaxScore)
+	ratingsMetrics[common.MetricRatingsPeerHonestyMinScore] = sm.loadStringMetric(common.MetricRatingsPeerHonestyMinScore)
+	ratingsMetrics[common.MetricRatingsPeerHonestyBadPeerThreshold] = sm.loadStringMetric(common.MetricRatingsPeerHonestyBadPeerThreshold)
+	ratingsMetrics[common.MetricRatingsPeerHonestyUnitValue] = sm.loadStringMetric(common.MetricRatingsPeerHonestyUnitValue)
+
+	return ratingsMetrics
+}
+
 func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
 	metricObj, ok := sm.nodeMetrics.Load(metric)
 	if !ok {

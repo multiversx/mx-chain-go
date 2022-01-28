@@ -47,6 +47,11 @@ func (d *disabledStatusMetricsHandler) NetworkMetrics() map[string]interface{} {
 	return getReturnMap()
 }
 
+// RatingsMetrics returns a default response map
+func (d *disabledStatusMetricsHandler) RatingsMetrics() map[string]interface{} {
+	return getReturnMap()
+}
+
 func getReturnMap() map[string]interface{} {
 	return map[string]interface{}{
 		responseKey: responseValue,
