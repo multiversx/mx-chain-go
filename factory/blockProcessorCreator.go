@@ -353,6 +353,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
+	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:                 pcf.coreData,
@@ -1016,6 +1017,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
 		ConfigSCStorage:    configSCStorage,
+		EnableEpochs:       pcf.epochConfig.EnableEpochs,
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -1054,6 +1056,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		NFTStorageHandler:  nftStorageHandler,
 		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
+		EnableEpochs:       pcf.epochConfig.EnableEpochs,
 	}
 
 	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{

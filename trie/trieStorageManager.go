@@ -369,8 +369,8 @@ func isClosingError(err error) bool {
 	}
 
 	isClosingErr := err == ErrContextClosing ||
-		err == storage.ErrSerialDBIsClosed ||
-		strings.Contains(err.Error(), storage.ErrSerialDBIsClosed.Error()) ||
+		err == storage.ErrDBIsClosed ||
+		strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) ||
 		strings.Contains(err.Error(), ErrContextClosing.Error())
 	return isClosingErr
 }
