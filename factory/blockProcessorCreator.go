@@ -339,6 +339,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
+	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:      pcf.coreData,
