@@ -143,3 +143,9 @@ type ValidatorsDistributor interface {
 	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte, balanced bool) error
 	IsInterfaceNil() bool
 }
+
+// NodesCoordinatorLite specifies the behaviour needed to manage nodes config epochs
+type NodesCoordinatorLite interface {
+	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
+	IsEpochInConfig(epoch uint32) bool
+}
