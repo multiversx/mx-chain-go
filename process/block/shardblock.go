@@ -170,6 +170,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	log.Debug("started processing block",
 		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
@@ -828,6 +829,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
@@ -896,9 +898,9 @@ func (sp *shardProcessor) CommitBlock(
 
 	log.Info("shard block has been committed successfully",
 		"epoch", header.GetEpoch(),
+		"shard", header.GetShardID(),
 		"round", header.GetRound(),
 		"nonce", header.GetNonce(),
-		"shard id", header.GetShardID(),
 		"hash", headerHash,
 	)
 
@@ -924,8 +926,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
-		"nonce", highestFinalBlockNonce,
 		"shard", sp.shardCoordinator.SelfId(),
+		"nonce", highestFinalBlockNonce,
 	)
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
@@ -1873,24 +1875,35 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	var miniBlocks block.MiniBlockSlice
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty,
-			"stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()),
-		)
+		log.Error("shardProcessor.createMiniBlocks",
+			"error", process.ErrAccountStateDirty,
+			"stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	if !haveTime() {
 		log.Debug("shardProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
+
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	startTime := time.Now()
 	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to create mbs to me",
-		"time [s]", elapsedTime,
-	)
+	log.Debug("elapsed time to create mbs to me", "time [s]", elapsedTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -1901,27 +1914,27 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		log.Debug("processed miniblocks and txs with destination in self shard",
 			"num miniblocks", len(mbsToMe),
 			"num txs", numTxs,
-			"num meta headers", numMetaHeaders,
-		)
+			"num meta headers", numMetaHeaders)
 	}
 
 	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
-		log.Warn("shardProcessor.createMiniBlocks", "error", process.ErrShardIsStuck, "shard", core.MetachainShardId)
+		log.Warn("shardProcessor.createMiniBlocks",
+			"error", process.ErrShardIsStuck,
+			"shard", core.MetachainShardId)
 
 		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
 		if len(interMBs) > 0 {
 			miniBlocks = append(miniBlocks, interMBs...)
 		}
 
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
-	log.Debug("elapsed time to create mbs from me",
-		"time [s]", elapsedTime,
-	)
+	log.Debug("elapsed time to create mbs from me", "time [s]", elapsedTime)
 
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
@@ -1933,13 +1946,10 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 
 		log.Debug("processed miniblocks and txs from self shard",
 			"num miniblocks", len(mbsFromMe),
-			"num txs", numTxs,
-		)
+			"num txs", numTxs)
 	}
 
-	log.Debug("creating mini blocks has been finished",
-		"num miniblocks", len(miniBlocks),
-	)
+	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 

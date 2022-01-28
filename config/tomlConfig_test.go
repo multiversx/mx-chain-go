@@ -39,7 +39,6 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	consensusType := "bls"
-	scheduledExecutionMilliseconds := 10
 
 	vmConfig := VirtualMachineConfig{
 		ArwenVersions: []ArwenVersionByEpoch{
@@ -97,8 +96,7 @@ func TestTomlParser(t *testing.T) {
 			Type: multiSigHasherType,
 		},
 		Consensus: ConsensusConfig{
-			ScheduledExecutionMilliseconds: uint32(scheduledExecutionMilliseconds),
-			Type:                           consensusType,
+			Type: consensusType,
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
 			Execution: vmConfig,
@@ -174,7 +172,6 @@ func TestTomlParser(t *testing.T) {
 	Type = "` + multiSigHasherType + `"
 
 [Consensus]
-	ScheduledExecutionMilliseconds = ` + strconv.Itoa(scheduledExecutionMilliseconds) + `
 	Type = "` + consensusType + `"
 
 [VirtualMachine]

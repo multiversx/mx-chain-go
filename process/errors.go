@@ -155,6 +155,9 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 // ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
 var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
+// ErrNilRoundTimeDurationHandler signals that an operation has been attempted to or with a nil RoundTimeDurationHandler implementation
+var ErrNilRoundTimeDurationHandler = errors.New("nil RoundTimeDurationHandler")
+
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
 
@@ -716,9 +719,6 @@ var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
 
-// ErrInvalidAddressLength signals that address length is invalid
-var ErrInvalidAddressLength = errors.New("invalid address length")
-
 // ErrDuplicateThreshold signals that two thresholds are the same
 var ErrDuplicateThreshold = errors.New("two thresholds are the same")
 
@@ -1039,9 +1039,6 @@ var ErrNilIntermediateProcessor = errors.New("intermediate processor is nil")
 
 // ErrNilSyncTimer signals that the sync timer is nil
 var ErrNilSyncTimer = errors.New("sync timer is nil")
-
-// ErrInvalidProcessingTime signals an invalid processing time
-var ErrInvalidProcessingTime = errors.New("processing time is invalid")
 
 // ErrNilIsShardStuckHandler signals a nil shard stuck handler
 var ErrNilIsShardStuckHandler = errors.New("nil handler for checking stuck shard")
