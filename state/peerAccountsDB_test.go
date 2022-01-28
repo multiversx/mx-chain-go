@@ -296,7 +296,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 					}
 				},
 			},
-			&testscommon.HasherMock{},
+			&hashingMocks.HasherMock{},
 			&testscommon.MarshalizerMock{},
 			&stateMock.AccountsFactoryStub{},
 			disabled.NewDisabledStoragePruningManager(),
@@ -330,7 +330,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 					}
 				},
 			},
-			&testscommon.HasherMock{},
+			&hashingMocks.HasherMock{},
 			&testscommon.MarshalizerMock{},
 			&stateMock.AccountsFactoryStub{},
 			disabled.NewDisabledStoragePruningManager(),
@@ -357,7 +357,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 					}
 				},
 			},
-			&testscommon.HasherMock{},
+			&hashingMocks.HasherMock{},
 			&testscommon.MarshalizerMock{},
 			&stateMock.AccountsFactoryStub{},
 			disabled.NewDisabledStoragePruningManager(),
