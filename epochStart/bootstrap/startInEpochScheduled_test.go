@@ -537,30 +537,6 @@ func Test_getShardIDAndHashesForIncludedMetaBlocks(t *testing.T) {
 	require.Equal(t, expectedMetaHashes, metaHashes)
 }
 
-/*
-func getPreviousToFirstReferencedMetaHeaderHash(shardHeader data.ShardHeaderHandler, headers map[string]data.HeaderHandler) []byte {
-	hashes := shardHeader.GetMetaBlockHashes()
-	if len(hashes) == 0 {
-		return nil
-	}
-
-	firstReferencedMetaHash := hashes[0]
-	firstReferencedMetaHeader := headers[string(firstReferencedMetaHash)]
-	if firstReferencedMetaHeader == nil {
-		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrMissingHeader)
-		return nil
-	}
-
-	metaHeader, ok := firstReferencedMetaHeader.(data.ShardHeaderHandler)
-	if !ok {
-		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrWrongTypeAssertion)
-		return nil
-	}
-
-	return metaHeader.GetPrevHash()
-}
-*/
-
 func Test_getPreviousToFirstReferencedMetaHeaderHashNoMetaBlocksReturnsNil(t *testing.T) {
 	shardHeader := &block.Header{
 		MetaBlockHashes: nil,
