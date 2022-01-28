@@ -158,7 +158,7 @@ func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 	return awm.trackableDataTrie
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
 }
