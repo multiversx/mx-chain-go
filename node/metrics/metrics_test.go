@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -125,6 +126,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			GlobalMintBurnDisableEpoch:                  32,
 			ESDTTransferRoleEnableEpoch:                 33,
 			BuiltInFunctionOnMetaEnableEpoch:            34,
+			WaitingListFixEnableEpoch:                   35,
 		},
 	}
 
@@ -163,12 +165,25 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_global_mint_burn_disable_epoch":                     uint32(32),
 		"erd_esdt_transfer_role_enable_epoch":                    uint32(33),
 		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
+		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
+		"erd_max_nodes_change_enable_epoch":                      nil,
 		"erd_total_supply":                                       "12345",
+		"erd_hysteresis":                                         "0.000000",
+		"erd_adaptivity":                                         "true",
 	}
 
 	economicsConfig := config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
 			GenesisTotalSupply: "12345",
+		},
+	}
+
+	genesisNodesConfig := &testscommon.NodesSetupStub{
+		GetAdaptivityCalled: func() bool {
+			return true
+		},
+		GetHysteresisCalled: func() float32 {
+			return 0
 		},
 	}
 
@@ -187,10 +202,10 @@ func TestInitConfigMetrics(t *testing.T) {
 		AppStatusHandler: ash,
 	}
 
-	err := InitConfigMetrics(nil, cfg, economicsConfig)
+	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig)
 	require.Equal(t, ErrNilStatusHandlerUtils, err)
 
-	err = InitConfigMetrics(sm, cfg, economicsConfig)
+	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))

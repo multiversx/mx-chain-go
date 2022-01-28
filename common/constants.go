@@ -487,6 +487,12 @@ const (
 
 	// NodesToShufflePerShardSuffix represents the suffix for NodesToShufflePerShard item in MaxNodesChangeEnableEpoch list
 	NodesToShufflePerShardSuffix = "_nodes_to_shuffle_per_shard"
+
+	// MetricHysteresis represents the hysteresis threshold
+	MetricHysteresis = "erd_hysteresis"
+
+	// MetricAdaptivity represents a boolean to determine if adaptivity will be enabled or not
+	MetricAdaptivity = "erd_adaptivity"
 )
 
 const (

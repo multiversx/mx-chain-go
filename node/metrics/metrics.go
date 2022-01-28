@@ -74,7 +74,12 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 }
 
 // InitConfigMetrics will init the "enable epochs" configuration metrics from epoch config
-func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig config.EpochConfig, economicsConfig config.EconomicsConfig) error {
+func InitConfigMetrics(
+	statusHandlerUtils StatusHandlersUtils,
+	epochConfig config.EpochConfig,
+	economicsConfig config.EconomicsConfig,
+	genesisNodesConfig sharding.GenesisNodesSetupHandler,
+) error {
 	if check.IfNil(statusHandlerUtils) {
 		return ErrNilStatusHandlerUtils
 	}
@@ -130,6 +135,9 @@ func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig confi
 		appStatusHandler.SetUInt64Value(nodesToShufflePerShard, uint64(nodesChangeConfig.NodesToShufflePerShard))
 	}
 	appStatusHandler.SetUInt64Value(common.MetricMaxNodesChangeEnableEpoch+"_count", uint64(len(enableEpochs.MaxNodesChangeEnableEpoch)))
+
+	appStatusHandler.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", genesisNodesConfig.GetHysteresis()))
+	appStatusHandler.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", genesisNodesConfig.GetAdaptivity()))
 
 	return nil
 }
