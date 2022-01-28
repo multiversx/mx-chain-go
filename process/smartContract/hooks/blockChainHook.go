@@ -167,6 +167,10 @@ func checkForNil(args ArgBlockChainHook) error {
 
 // GetCode returns the code for the given account
 func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byte {
+	if check.IfNil(account) {
+		return nil
+	}
+
 	return bh.accounts.GetCode(account.GetCodeHash())
 }
 
