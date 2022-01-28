@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 
@@ -322,8 +323,9 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 	noPendingMbs := make(map[string]struct{})
 	metaHeaderHandler, ok := headers[string(metaBlockHash)]
 	if !ok {
-		log.Warn("getProcessedMiniBlockHashesForMetaBlockHash", "hash", metaBlockHash, "error", epochStart.ErrMissingHeader)
-		return nil, epochStart.ErrMissingHeader
+		return nil, fmt.Errorf("%w in getProcessedMiniBlockHashesForMetaBlockHash: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(metaBlockHash))
 	}
 	neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
 	if !ok {
@@ -415,8 +417,9 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 	header, ok := headers[string(epochShardData.GetFirstPendingMetaBlock())]
 	if !ok {
-		log.Warn("getProcessedAndPendingMiniBlocks", "hash", epochShardData.GetFirstPendingMetaBlock(), "error", epochStart.ErrMissingHeader)
-		return nil, nil, epochStart.ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w in getProcessedAndPendingMiniBlocks: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(epochShardData.GetFirstPendingMetaBlock()))
 	}
 	neededMeta, ok := header.(*block.MetaBlock)
 	if !ok {
@@ -497,8 +500,9 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 
 	neededHdr, ok := headers[string(lastCrossMetaHdrHash)]
 	if !ok {
-		log.Warn("saveLastCrossNotarizedHeaders", "hash", lastCrossMetaHdrHash, "error", epochStart.ErrMissingHeader)
-		return nil, epochStart.ErrMissingHeader
+		return nil, fmt.Errorf("%w in saveLastCrossNotarizedHeaders: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(lastCrossMetaHdrHash))
 	}
 
 	neededMeta, ok := neededHdr.(*block.MetaBlock)
@@ -536,8 +540,9 @@ func updateLastCrossMetaHdrHashIfNeeded(
 
 	metaHdr, found := headers[string(metaBlockHashes[0])]
 	if !found {
-		log.Warn("updateLastCrossMetaHdrHashIfNeeded", "hash", metaBlockHashes[0], "error", epochStart.ErrMissingHeader)
-		return nil, epochStart.ErrMissingHeader
+		return nil, fmt.Errorf("%w in updateLastCrossMetaHdrHashIfNeeded: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(metaBlockHashes[0]))
 	}
 
 	lastCrossMetaHdrHash = metaHdr.GetPrevHash()
@@ -548,8 +553,9 @@ func updateLastCrossMetaHdrHashIfNeeded(
 func getShardHeaderAndMetaHashes(headers map[string]data.HeaderHandler, headerHash []byte) (data.ShardHeaderHandler, [][]byte, error) {
 	header, ok := headers[string(headerHash)]
 	if !ok {
-		log.Warn("getShardHeaderAndMetaHashes", "hash", headerHash, "error", epochStart.ErrMissingHeader)
-		return nil, nil, epochStart.ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w in getShardHeaderAndMetaHashes: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(headerHash))
 	}
 
 	shardHeader, ok := header.(data.ShardHeaderHandler)

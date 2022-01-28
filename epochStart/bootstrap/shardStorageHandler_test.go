@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -80,7 +81,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 	}
 
 	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
-	assert.Equal(t, epochStart.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
@@ -432,7 +433,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksMissingHeader(t *te
 	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, miniBlocksInMeta)
 	require.Nil(t, pendingMiniBlocksInfoList)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWrongHeader(t *testing.T) {
@@ -591,7 +592,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledMissin
 
 	bootstrapHeaderInfo, err := shardStorage.saveLastCrossNotarizedHeaders(meta, headers, false)
 	require.Nil(t, bootstrapHeaderInfo)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongTypeAssertion(t *testing.T) {
@@ -724,7 +725,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduledErrorUpda
 
 	bootstrapHeaderInfo, err := shardStorage.saveLastCrossNotarizedHeaders(meta, headers, true)
 	require.Nil(t, bootstrapHeaderInfo)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduled(t *testing.T) {
@@ -781,7 +782,7 @@ func Test_updateLastCrossMetaHdrHashIfNeededGetShardHeaderErr(t *testing.T) {
 	}
 
 	lastCrossMetaHash, err := updateLastCrossMetaHdrHashIfNeeded(headers, epochStartData, []byte(lastCrossMetaHdrHash))
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 	require.Nil(t, lastCrossMetaHash)
 }
 
@@ -851,7 +852,7 @@ func Test_updateLastCrossMetaHdrHashIfNeededMissingOneReferencedMetaHeader(t *te
 
 	lastCrossMetaHash, err := updateLastCrossMetaHdrHashIfNeeded(headers, epochStartData, []byte(lastCrossMetaHdrHash))
 	require.Nil(t, lastCrossMetaHash)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func Test_updateLastCrossMetaHdrHashIfNeeded(t *testing.T) {
@@ -903,7 +904,7 @@ func Test_getShardHeaderAndMetaHashesHeaderNotFound(t *testing.T) {
 	}
 
 	shardHeader, metaHashes, err := getShardHeaderAndMetaHashes(headers, []byte("unknownHash"))
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 	require.Nil(t, shardHeader)
 	require.Nil(t, metaHashes)
 }
@@ -1242,7 +1243,7 @@ func Test_getProcessedMiniBlockHashesForMetaBlockHashMissingHeaderShouldErr(t *t
 
 	processedMbs, err := getProcessedMiniBlockHashesForMetaBlockHash(1, hashMeta, headers)
 
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 	require.Nil(t, processedMbs)
 }
 
