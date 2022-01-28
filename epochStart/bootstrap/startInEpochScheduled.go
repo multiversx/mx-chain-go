@@ -2,6 +2,8 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -99,8 +101,9 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 
 	headerToBeProcessed, ok := headers[string(notarizedShardHeader.GetPrevHash())].(data.ShardHeaderHandler)
 	if !ok {
-		log.Warn("getRequiredHeaderByHash - shard header", "hash", notarizedShardHeader.GetPrevHash(), "error", epochStart.ErrMissingHeader)
-		return nil, nil, epochStart.ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w in getRequiredHeaderByHash: shard header hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(notarizedShardHeader.GetPrevHash()))
 	}
 
 	shardIDs, hashesToRequest = getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)
@@ -125,8 +128,9 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		shardIDs = []uint32{core.MetachainShardId}
 		header := prevHeaders[string(hashesToRequest[0])]
 		if header == nil {
-			log.Warn("getRequiredHeaderByHash - metaBlock", "hash", hashesToRequest[0], "error", epochStart.ErrMissingHeader)
-			return nil, nil, epochStart.ErrMissingHeader
+			return nil, nil, fmt.Errorf("%w in getRequiredHeaderByHash: metaBlock hash: %s",
+				epochStart.ErrMissingHeader,
+				hex.EncodeToString(hashesToRequest[0]))
 		}
 
 		hashesToRequest = [][]byte{header.GetPrevHash()}
