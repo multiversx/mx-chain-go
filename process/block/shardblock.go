@@ -1903,7 +1903,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	startTime := time.Now()
 	mbsToMe, numTxs, numMetaHeaders, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to create mbs to me", "time [s]", elapsedTime)
+	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -1934,7 +1934,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
-	log.Debug("elapsed time to create mbs from me", "time [s]", elapsedTime)
+	log.Debug("elapsed time to create mbs from me", "time", elapsedTime)
 
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
