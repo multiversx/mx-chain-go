@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -65,6 +66,11 @@ func (pcw *printConnectionsWatcher) doSweep(ctx context.Context) {
 
 // NewKnownConnection will add the known connection to the cache, printing it as necessary
 func (pcw *printConnectionsWatcher) NewKnownConnection(pid core.PeerID, connection string) {
+	conn := strings.Trim(connection, " ")
+	if len(conn) == 0 {
+		return
+	}
+
 	has := pcw.timeCacher.Has(pid.Pretty())
 	err := pcw.timeCacher.Upsert(pid.Pretty(), pcw.timeToLive)
 	if err != nil {
@@ -75,7 +81,7 @@ func (pcw *printConnectionsWatcher) NewKnownConnection(pid core.PeerID, connecti
 		return
 	}
 
-	pcw.printHandler(pid, connection)
+	pcw.printHandler(pid, conn)
 }
 
 // Close will close any go routines opened by this instance
@@ -86,7 +92,7 @@ func (pcw *printConnectionsWatcher) Close() error {
 }
 
 func logPrintHandler(pid core.PeerID, connection string) {
-	log.Debug("new known connection", "pid", pid.Pretty(), "connection", connection)
+	log.Debug("new known peer", "pid", pid.Pretty(), "connection", connection)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

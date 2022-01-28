@@ -62,21 +62,36 @@ func TestPrintConnectionsWatcher_Close(t *testing.T) {
 func TestPrintConnectionsWatcher_NewKnownConnection(t *testing.T) {
 	t.Parallel()
 
-	providedPid := core.PeerID("pid")
-	connection := "connection"
-	numCalled := 0
+	t.Run("invalid connection", func(t *testing.T) {
+		providedPid := core.PeerID("pid")
+		connection := " "
+		numCalled := 0
 
-	pcw, _ := NewPrintConnectionsWatcher(time.Hour)
-	pcw.printHandler = func(pid core.PeerID, conn string) {
-		numCalled++
-		assert.Equal(t, providedPid, pid)
-		assert.Equal(t, connection, conn)
-	}
+		pcw, _ := NewPrintConnectionsWatcher(time.Hour)
+		pcw.printHandler = func(pid core.PeerID, conn string) {
+			numCalled++
+		}
 
-	pcw.NewKnownConnection(providedPid, connection)
-	assert.Equal(t, 1, numCalled)
-	pcw.NewKnownConnection(providedPid, connection)
-	assert.Equal(t, 1, numCalled)
+		pcw.NewKnownConnection(providedPid, connection)
+		assert.Equal(t, 0, numCalled)
+	})
+	t.Run("valid connection", func(t *testing.T) {
+		providedPid := core.PeerID("pid")
+		connection := "connection"
+		numCalled := 0
+
+		pcw, _ := NewPrintConnectionsWatcher(time.Hour)
+		pcw.printHandler = func(pid core.PeerID, conn string) {
+			numCalled++
+			assert.Equal(t, providedPid, pid)
+			assert.Equal(t, connection, conn)
+		}
+
+		pcw.NewKnownConnection(providedPid, connection)
+		assert.Equal(t, 1, numCalled)
+		pcw.NewKnownConnection(providedPid, connection)
+		assert.Equal(t, 1, numCalled)
+	})
 }
 
 func TestLogPrintHandler_shouldNotPanic(t *testing.T) {
