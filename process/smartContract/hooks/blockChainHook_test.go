@@ -171,15 +171,17 @@ func TestBlockChainHookImpl_GetCode(t *testing.T) {
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
-
 	t.Run("nil account expect nil code", func(t *testing.T) {
-		bh, _ := hooks.NewBlockChainHookImpl(args)
+		t.Parallel()
 
+		bh, _ := hooks.NewBlockChainHookImpl(args)
 		code := bh.GetCode(nil)
 		require.Nil(t, code)
 	})
 
 	t.Run("expect correct returned code", func(t *testing.T) {
+		t.Parallel()
+
 		expectedCodeHash := []byte("codeHash")
 		expectedCode := []byte("code")
 
@@ -199,7 +201,7 @@ func TestBlockChainHookImpl_GetCode(t *testing.T) {
 	})
 }
 
-func TestBlTestBlockChainHookImpl_GetUserAccountNotASystemAccountInCrossShard(t *testing.T) {
+func TestBlockChainHookImpl_GetUserAccountNotASystemAccountInCrossShard(t *testing.T) {
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
@@ -218,7 +220,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountNotASystemAccountInCrossShard(t 
 	assert.Equal(t, state.ErrAccNotFound, err)
 }
 
-func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.T) {
+func TestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -234,7 +236,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.
 	assert.Equal(t, errExpected, err)
 }
 
-func TestBlTestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
@@ -248,7 +250,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T)
 	assert.Equal(t, state.ErrWrongTypeAssertion, err)
 }
 
-func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
+func TestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	t.Parallel()
 
 	expectedAccount, _ := state.NewUserAccount([]byte("1234"))
@@ -265,7 +267,57 @@ func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	assert.Equal(t, expectedAccount, acc)
 }
 
-func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetStorageDataAccountNotFoundExpectEmptyStorage(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	address := []byte("address")
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, address, addressContainer)
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	storageData, err := bh.GetStorageData(address, []byte("index"))
+	require.Equal(t, []byte{}, storageData)
+	require.Nil(t, err)
+}
+
+func TestBlockChainHookImpl_GetStorageDataCannotRetrieveAccountValueExpectError(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	address := []byte("address")
+	index := []byte("i")
+	expectedErr := errors.New("error retrieving value")
+
+	dataTrieStub := &trie.DataTrieTrackerStub{
+		RetrieveValueCalled: func(key []byte) ([]byte, error) {
+			require.Equal(t, index, key)
+			return nil, expectedErr
+		},
+	}
+	account := &mock.AccountWrapMock{
+		AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+			return dataTrieStub
+		},
+	}
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, address, addressContainer)
+			return account, nil
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	storageData, err := bh.GetStorageData(address, index)
+	require.Nil(t, storageData)
+	require.Equal(t, expectedErr, err)
+}
+
+func TestBlockChainHookImpl_GetStorageDataErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
