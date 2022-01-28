@@ -49,16 +49,16 @@ func (ps processingStatus) String() string {
 
 // ScheduledProcessorWrapperArgs holds the arguments required to instantiate the pipelineExecution
 type ScheduledProcessorWrapperArgs struct {
-	SyncTimer                  ntp.SyncTimer
-	Processor                  process.ScheduledBlockProcessor
-	ProcessingTimeMilliSeconds uint32
+	SyncTimer                ntp.SyncTimer
+	Processor                process.ScheduledBlockProcessor
+	RoundTimeDurationHandler process.RoundTimeDurationHandler
 }
 
 type scheduledProcessorWrapper struct {
-	syncTimer      ntp.SyncTimer
-	processingTime time.Duration
-	processor      process.ScheduledBlockProcessor
-	startTime      time.Time
+	syncTimer                ntp.SyncTimer
+	processor                process.ScheduledBlockProcessor
+	roundTimeDurationHandler process.RoundTimeDurationHandler
+	startTime                time.Time
 
 	status processingStatus
 	sync.RWMutex
@@ -75,16 +75,16 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 	if check.IfNil(args.Processor) {
 		return nil, process.ErrNilBlockProcessor
 	}
-	if args.ProcessingTimeMilliSeconds < 1 {
-		return nil, process.ErrInvalidProcessingTime
+	if check.IfNil(args.RoundTimeDurationHandler) {
+		return nil, process.ErrNilRoundTimeDurationHandler
 	}
 
 	return &scheduledProcessorWrapper{
-		syncTimer:      args.SyncTimer,
-		processingTime: time.Duration(args.ProcessingTimeMilliSeconds) * time.Millisecond,
-		processor:      args.Processor,
-		status:         processingNotStarted,
-		stopExecution:  make(chan struct{}, 1),
+		syncTimer:                args.SyncTimer,
+		roundTimeDurationHandler: args.RoundTimeDurationHandler,
+		processor:                args.Processor,
+		status:                   processingNotStarted,
+		stopExecution:            make(chan struct{}, 1),
 	}, nil
 }
 
@@ -192,7 +192,7 @@ func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Durat
 		return 0
 	}
 
-	return sp.processingTime - elapsedTime
+	return sp.roundTimeDurationHandler.TimeDuration() - elapsedTime
 }
 
 func (sp *scheduledProcessorWrapper) getStatus() processingStatus {

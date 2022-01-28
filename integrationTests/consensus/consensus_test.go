@@ -105,8 +105,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 		consensusArgs := factory.ConsensusComponentsFactoryArgs{
 			Config: config.Config{
 				Consensus: config.ConsensusConfig{
-					ScheduledExecutionMilliseconds: 10,
-					Type:                           blsConsensusType,
+					Type: blsConsensusType,
 				},
 				ValidatorPubkeyConverter: config.PubkeyConfig{
 					Length:          96,

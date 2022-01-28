@@ -78,9 +78,9 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	poolAdder := testscommon.NewCacherMock()
 
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
-		SyncTimer:                  syncTimerMock,
-		Processor:                  blockProcessor,
-		ProcessingTimeMilliSeconds: 10,
+		SyncTimer:                syncTimerMock,
+		Processor:                blockProcessor,
+		RoundTimeDurationHandler: roundHandlerMock,
 	}
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
 

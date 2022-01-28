@@ -165,7 +165,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 	scrMbs := irp.CreateAllInterMiniBlocks()
 	createdMapMbs := createMiniBlocksMap(scrMbs)
 
-	countedCrossShard := 0
+	receivedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
 		if mb.Type != irp.blockType {
@@ -175,14 +175,14 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 			continue
 		}
 
-		countedCrossShard++
+		receivedCrossShard++
 		err := irp.verifyMiniBlock(createdMapMbs, mb)
 		if err != nil {
 			return err
 		}
 	}
 
-	createCrossShard := 0
+	createdCrossShard := 0
 	for _, mb := range scrMbs {
 		if mb.Type != irp.blockType {
 			continue
@@ -191,10 +191,13 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 			continue
 		}
 
-		createCrossShard++
+		createdCrossShard++
 	}
 
-	if createCrossShard != countedCrossShard {
+	if createdCrossShard != receivedCrossShard {
+		log.Debug("intermediateResultsProcessor.VerifyInterMiniBlocks",
+			"num created cross shard", createdCrossShard,
+			"num received cross shard", receivedCrossShard)
 		return process.ErrMiniBlockNumMissMatch
 	}
 

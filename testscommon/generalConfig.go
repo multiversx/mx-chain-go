@@ -39,8 +39,7 @@ func GetGeneralConfig() config.Config {
 			SignatureLength: 48,
 		},
 		Consensus: config.ConsensusConfig{
-			ScheduledExecutionMilliseconds: 10,
-			Type:                           "bls",
+			Type: "bls",
 		},
 		ValidatorStatistics: config.ValidatorStatisticsConfig{
 			CacheRefreshIntervalInSec: uint32(100),
