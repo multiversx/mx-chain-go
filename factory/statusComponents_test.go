@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,7 +152,7 @@ func getStatusComponents(
 	dataComponents factory.DataComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) factory.StatusComponentsHandler {
 	indexerURL := "url"
 	elasticUsername := "user"

@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -43,7 +44,7 @@ const GlobalTopic = "global"
 // with all its fields exported, used mainly on P2P tests
 type TestP2PNode struct {
 	Messenger              p2p.Messenger
-	NodesCoordinator       sharding.NodesCoordinator
+	NodesCoordinator       nodesCoordinator.NodesCoordinator
 	ShardCoordinator       sharding.Coordinator
 	NetworkShardingUpdater NetworkShardingUpdater
 	Node                   *node.Node
@@ -59,7 +60,7 @@ func NewTestP2PNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	p2pConfig config.P2PConfig,
-	coordinator sharding.NodesCoordinator,
+	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestP2PNode {
 
@@ -323,12 +324,12 @@ func CreateNodesWithTestP2PNodes(
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
-	validatorsForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
+	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestP2PNode)
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:    shardConsensusGroupSize,
 			MetaConsensusGroupSize:     metaConsensusGroupSize,
 			Marshalizer:                TestMarshalizer,
@@ -340,7 +341,7 @@ func CreateNodesWithTestP2PNodes(
 			ConsensusGroupCache:        cache,
 			Shuffler:                   &mock.NodeShufflerMock{},
 			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 			Epoch:                      0,
 			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
@@ -349,7 +350,7 @@ func CreateNodesWithTestP2PNodes(
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
 		}
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
 
 		nodesList := make([]*TestP2PNode, len(validatorList))
@@ -359,7 +360,7 @@ func CreateNodesWithTestP2PNodes(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
-				nodesCoordinator,
+				nodesCoord,
 				*kp,
 			)
 		}
@@ -373,7 +374,7 @@ func CreateNodesWithTestP2PNodes(
 				shardId = core.MetachainShardId
 			}
 
-			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ShardConsensusGroupSize:    shardConsensusGroupSize,
 				MetaConsensusGroupSize:     metaConsensusGroupSize,
 				Marshalizer:                TestMarshalizer,
@@ -385,7 +386,7 @@ func CreateNodesWithTestP2PNodes(
 				ConsensusGroupCache:        cache,
 				Shuffler:                   &mock.NodeShufflerMock{},
 				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]sharding.Validator),
+				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 				Epoch:                      0,
 				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
@@ -394,14 +395,14 @@ func CreateNodesWithTestP2PNodes(
 				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:              false,
 			}
-			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
 
 			n := NewTestP2PNode(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
-				nodesCoordinator,
+				nodesCoord,
 				createCryptoPair(),
 			)
 

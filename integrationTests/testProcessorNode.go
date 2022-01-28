@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -78,6 +78,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -225,7 +226,7 @@ type Connectable interface {
 // with all its fields exported
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
-	NodesCoordinator sharding.NodesCoordinator
+	NodesCoordinator nodesCoordinator.NodesCoordinator
 	NodesSetup       sharding.GenesisNodesSetupHandler
 	Messenger        p2p.Messenger
 
@@ -370,9 +371,9 @@ func newBaseTestProcessorNode(
 		},
 	}
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
@@ -385,8 +386,8 @@ func newBaseTestProcessorNode(
 
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}

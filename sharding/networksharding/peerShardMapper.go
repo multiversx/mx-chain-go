@@ -11,7 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -43,7 +43,7 @@ type PeerShardMapper struct {
 
 	mutEpoch             sync.RWMutex
 	epoch                uint32
-	nodesCoordinator     sharding.NodesCoordinator
+	nodesCoordinator     nodesCoordinator.NodesCoordinator
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
@@ -52,7 +52,7 @@ type ArgPeerShardMapper struct {
 	PeerIdPkCache         storage.Cacher
 	FallbackPkShardCache  storage.Cacher
 	FallbackPidShardCache storage.Cacher
-	NodesCoordinator      sharding.NodesCoordinator
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
 	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
 	StartEpoch            uint32
 }
@@ -61,16 +61,16 @@ type ArgPeerShardMapper struct {
 func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 
 	if check.IfNil(arg.NodesCoordinator) {
-		return nil, sharding.ErrNilNodesCoordinator
+		return nil, nodesCoordinator.ErrNilNodesCoordinator
 	}
 	if check.IfNil(arg.PeerIdPkCache) {
-		return nil, fmt.Errorf("%w for PeerIdPkCache", sharding.ErrNilCacher)
+		return nil, fmt.Errorf("%w for PeerIdPkCache", nodesCoordinator.ErrNilCacher)
 	}
 	if check.IfNil(arg.FallbackPkShardCache) {
-		return nil, fmt.Errorf("%w for FallbackPkShardCache", sharding.ErrNilCacher)
+		return nil, fmt.Errorf("%w for FallbackPkShardCache", nodesCoordinator.ErrNilCacher)
 	}
 	if check.IfNil(arg.FallbackPidShardCache) {
-		return nil, fmt.Errorf("%w for FallbackPidShardCache", sharding.ErrNilCacher)
+		return nil, fmt.Errorf("%w for FallbackPidShardCache", nodesCoordinator.ErrNilCacher)
 	}
 	if check.IfNil(arg.PreferredPeersHolder) {
 		return nil, p2p.ErrNilPreferredPeersHolder

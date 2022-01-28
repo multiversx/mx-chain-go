@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -39,7 +40,7 @@ const (
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	Marshalizer                                       marshal.Marshalizer
-	NodesCoordinator                                  sharding.NodesCoordinator
+	NodesCoordinator                                  nodesCoordinator.NodesCoordinator
 	ShardCoordinator                                  sharding.Coordinator
 	DataPool                                          DataPool
 	StorageService                                    dataRetriever.StorageService
@@ -63,7 +64,7 @@ type validatorStatistics struct {
 	marshalizer                                       marshal.Marshalizer
 	dataPool                                          DataPool
 	storageService                                    dataRetriever.StorageService
-	nodesCoordinator                                  sharding.NodesCoordinator
+	nodesCoordinator                                  nodesCoordinator.NodesCoordinator
 	shardCoordinator                                  sharding.Coordinator
 	pubkeyConv                                        core.PubkeyConverter
 	peerAdapter                                       state.AccountsAdapter
@@ -829,7 +830,7 @@ func (vs *validatorStatistics) computeDecrease(
 }
 
 func (vs *validatorStatistics) decreaseForConsensusValidators(
-	consensusGroup []sharding.Validator,
+	consensusGroup []nodesCoordinator.Validator,
 	shardId uint32,
 	epoch uint32,
 ) error {
@@ -989,7 +990,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
-	validatorList []sharding.Validator,
+	validatorList []nodesCoordinator.Validator,
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
 	shardId uint32,

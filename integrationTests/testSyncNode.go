@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -51,9 +52,9 @@ func NewTestSyncNode(
 	}
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkBytes, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
@@ -61,8 +62,8 @@ func NewTestSyncNode(
 			keys[0] = append(keys[0], pkBytes)
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}

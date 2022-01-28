@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -146,18 +146,18 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoord := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	nodesCoordinator.ComputeValidatorsGroupCalled = func(
+	nodesCoord.ComputeValidatorsGroupCalled = func(
 		randomness []byte,
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]sharding.Validator, error) {
+	) ([]nodesCoordinator.Validator, error) {
 		return nil, err
 	}
 
-	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator, 0)
+	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoord, 0)
 	assert.Equal(t, err, err2)
 }
 

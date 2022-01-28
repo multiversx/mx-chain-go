@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -317,7 +317,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
@@ -355,8 +355,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]sharding.Validator, error) {
-		return make([]sharding.Validator, 0), nil
+	) ([]nodesCoordinator.Validator, error) {
+		return make([]nodesCoordinator.Validator, 0), nil
 	}
 
 	container := mock.InitConsensusCore()
@@ -449,7 +449,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]sharding.Validator, error) {
+	) ([]nodesCoordinator.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
