@@ -457,7 +457,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 func getProcessedMbHashes(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) [][]byte {
 	processedMbHashes := make([][]byte, 0)
-	miniBlocksDstMe := getAllMiniBlocksWithDst(metaBlock, destShardID)
+	miniBlocksDstMe := getNewPendingMiniBlocksForDst(metaBlock, destShardID)
 	for hash, mb := range miniBlocksDstMe {
 		if _, hashExists := pendingMBsMap[hash]; hashExists {
 			continue
@@ -615,7 +615,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	return bootstrapKey, nil
 }
 
-func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+func getNewPendingMiniBlocksForDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		if metaBlock.ShardInfo[i].ShardID == destId {

@@ -104,6 +104,12 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	}
 
 	shardIDs, hashesToRequest = getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)
+	additionalMetaHashToRequest := getPreviousToFirstReferencedMetaHeaderHash(notarizedShardHeader, headers)
+	if len(additionalMetaHashToRequest) != 0 {
+		shardIDs = append(shardIDs, core.MetachainShardId)
+		hashesToRequest = append(hashesToRequest, additionalMetaHashToRequest)
+	}
+
 	prevHeaders, err := ses.syncHeaders(shardIDs, hashesToRequest)
 	if err != nil {
 		return nil, nil, err
@@ -135,6 +141,28 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	}
 
 	return headerToBeProcessed, headers, nil
+}
+
+func getPreviousToFirstReferencedMetaHeaderHash(shardHeader data.ShardHeaderHandler, headers map[string]data.HeaderHandler) []byte {
+	hashes := shardHeader.GetMetaBlockHashes()
+	if len(hashes) == 0 {
+		return nil
+	}
+
+	firstReferencedMetaHash := hashes[0]
+	firstReferencedMetaHeader := headers[string(firstReferencedMetaHash)]
+	if firstReferencedMetaHeader == nil {
+		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrMissingHeader)
+		return nil
+	}
+
+	metaHeader, ok := firstReferencedMetaHeader.(data.MetaHeaderHandler)
+	if !ok {
+		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrWrongTypeAssertion)
+		return nil
+	}
+
+	return metaHeader.GetPrevHash()
 }
 
 func getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader data.ShardHeaderHandler) ([]uint32, [][]byte) {
