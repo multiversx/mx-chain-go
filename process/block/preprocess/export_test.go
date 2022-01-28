@@ -148,3 +148,19 @@ func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {
 
 	return big.NewInt(0).Set(currValue)
 }
+
+func (gc *gasComputation) GetTxHashesWithGasProvidedSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasProvidedSinceLastReset()
+}
+
+func (gc *gasComputation) GetTxHashesWithGasProvidedAsScheduledSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasProvidedAsScheduledSinceLastReset()
+}
+
+func (gc *gasComputation) GetTxHashesWithGasRefundedSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasRefundedSinceLastReset()
+}
+
+func (gc *gasComputation) GetTxHashesWithGasPenalizedSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasPenalizedSinceLastReset()
+}

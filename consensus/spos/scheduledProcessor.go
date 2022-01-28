@@ -49,16 +49,16 @@ func (ps processingStatus) String() string {
 
 // ScheduledProcessorWrapperArgs holds the arguments required to instantiate the pipelineExecution
 type ScheduledProcessorWrapperArgs struct {
-	SyncTimer                  ntp.SyncTimer
-	Processor                  process.ScheduledBlockProcessor
-	ProcessingTimeMilliSeconds uint32
+	SyncTimer                ntp.SyncTimer
+	Processor                process.ScheduledBlockProcessor
+	RoundTimeDurationHandler process.RoundTimeDurationHandler
 }
 
 type scheduledProcessorWrapper struct {
-	syncTimer      ntp.SyncTimer
-	processingTime time.Duration
-	processor      process.ScheduledBlockProcessor
-	startTime      time.Time
+	syncTimer                ntp.SyncTimer
+	processor                process.ScheduledBlockProcessor
+	roundTimeDurationHandler process.RoundTimeDurationHandler
+	startTime                time.Time
 
 	status processingStatus
 	sync.RWMutex
@@ -75,16 +75,16 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 	if check.IfNil(args.Processor) {
 		return nil, process.ErrNilBlockProcessor
 	}
-	if args.ProcessingTimeMilliSeconds < 1 {
-		return nil, process.ErrInvalidProcessingTime
+	if check.IfNil(args.RoundTimeDurationHandler) {
+		return nil, process.ErrNilRoundTimeDurationHandler
 	}
 
 	return &scheduledProcessorWrapper{
-		syncTimer:      args.SyncTimer,
-		processingTime: time.Duration(args.ProcessingTimeMilliSeconds) * time.Millisecond,
-		processor:      args.Processor,
-		status:         processingNotStarted,
-		stopExecution:  make(chan struct{}, 1),
+		syncTimer:                args.SyncTimer,
+		processor:                args.Processor,
+		roundTimeDurationHandler: args.RoundTimeDurationHandler,
+		status:                   processingNotStarted,
+		stopExecution:            make(chan struct{}, 1),
 	}, nil
 }
 
@@ -131,7 +131,7 @@ func (sp *scheduledProcessorWrapper) IsProcessedOKWithTimeout() bool {
 }
 
 // StartScheduledProcessing starts the scheduled processing
-func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler) {
+func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time) {
 	if !header.HasScheduledSupport() {
 		log.Debug("scheduled processing not supported")
 		sp.setStatus(processingOK)
@@ -145,9 +145,9 @@ func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.Header
 
 	go func() {
 		defer sp.oneInstance.Unlock()
-		errSchExec := sp.processScheduledMiniBlocks(header, body)
+		errSchExec := sp.processScheduledMiniBlocks(header, body, startTime)
 		if errSchExec != nil {
-			log.Error("scheduledProcessorWrapper.processScheduledMiniBlocks",
+			log.Debug("scheduledProcessorWrapper.processScheduledMiniBlocks",
 				"err", errSchExec.Error())
 			sp.setStatus(processingError)
 			return
@@ -192,7 +192,7 @@ func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Durat
 		return 0
 	}
 
-	return sp.processingTime - elapsedTime
+	return sp.roundTimeDurationHandler.TimeDuration() - elapsedTime
 }
 
 func (sp *scheduledProcessorWrapper) getStatus() processingStatus {
@@ -209,9 +209,9 @@ func (sp *scheduledProcessorWrapper) setStatus(status processingStatus) {
 	sp.status = status
 }
 
-func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler) error {
+func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler, startTime time.Time) error {
 	sp.Lock()
-	sp.startTime = sp.syncTimer.CurrentTime()
+	sp.startTime = startTime
 	sp.Unlock()
 
 	haveTime := func() time.Duration {

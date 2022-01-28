@@ -375,7 +375,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 	expectedHeaderHash := headerHash
 	expectedScheduledRootHash := scheduledRootHash
 	expectedScheduledSCRsMap := map[block.Type][]data.TransactionHandler{
-		block.TxBlock: {scr1, scr2},
+		block.SmartContractResultBlock: {scr1, scr2},
 	}
 	gasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(100),
@@ -535,6 +535,56 @@ func Test_getShardIDAndHashesForIncludedMetaBlocks(t *testing.T) {
 	shardIDs, metaHashes := getShardIDAndHashesForIncludedMetaBlocks(shardHeader)
 	require.Equal(t, expectedShardIDs, shardIDs)
 	require.Equal(t, expectedMetaHashes, metaHashes)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashNoMetaBlocksReturnsNil(t *testing.T) {
+	shardHeader := &block.Header{
+		MetaBlockHashes: nil,
+	}
+
+	headers := map[string]data.HeaderHandler{}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Nil(t, hash)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashFirstReferencedMetaNotInMap(t *testing.T) {
+	metaHash := []byte("metaHash")
+	shardHeader := &block.Header{
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+
+	headers := map[string]data.HeaderHandler{}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Nil(t, hash)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashFirstReferencedMetaInvalid(t *testing.T) {
+	metaHash := []byte("metaHash")
+	shardHeader := &block.Header{
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+
+	headers := map[string]data.HeaderHandler{
+		string(metaHash): &block.Header{},
+	}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Nil(t, hash)
+}
+
+func Test_getPreviousToFirstReferencedMetaHeaderHashOK(t *testing.T) {
+	metaHash := []byte("metaHash")
+	prevMetaHash := []byte("prevMetaHash")
+	shardHeader := &block.Header{
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+
+	headers := map[string]data.HeaderHandler{
+		string(metaHash): &block.MetaBlock{
+			PrevHash: prevMetaHash,
+		},
+	}
+	hash := getPreviousToFirstReferencedMetaHeaderHash(shardHeader, headers)
+	require.Equal(t, prevMetaHash, hash)
 }
 
 func createTestHeader() *block.Header {

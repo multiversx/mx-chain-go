@@ -721,8 +721,12 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if !roleBackOneBlockExecuted {
 			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 			if err != nil {
+				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
+				if currHeader != nil {
+					rootHash = currHeader.GetRootHash()
+				}
 				gasAndFees := process.GetZeroGasAndFees()
-				boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+				boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(rootHash, make(map[block.Type][]data.TransactionHandler), gasAndFees)
 			}
 		}
 	}()

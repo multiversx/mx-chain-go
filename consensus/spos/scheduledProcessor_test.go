@@ -27,9 +27,9 @@ func TestNewScheduledProcessorWrapper_NilSyncTimerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                  nil,
-		Processor:                  &mock.BlockProcessorMock{},
-		ProcessingTimeMilliSeconds: 10,
+		SyncTimer:                nil,
+		Processor:                &mock.BlockProcessorMock{},
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -41,9 +41,9 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                  &mock.SyncTimerMock{},
-		Processor:                  nil,
-		ProcessingTimeMilliSeconds: 10,
+		SyncTimer:                &mock.SyncTimerMock{},
+		Processor:                nil,
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -51,13 +51,27 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
+func TestNewScheduledProcessorWrapper_NilRoundTimeDurationHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := ScheduledProcessorWrapperArgs{
+		SyncTimer:                &mock.SyncTimerMock{},
+		Processor:                &mock.BlockProcessorMock{},
+		RoundTimeDurationHandler: nil,
+	}
+
+	sp, err := NewScheduledProcessorWrapper(args)
+	require.Nil(t, sp)
+	require.Equal(t, process.ErrNilRoundTimeDurationHandler, err)
+}
+
 func TestNewScheduledProcessorWrapper_NilBlockProcessorOK(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                  &mock.SyncTimerMock{},
-		Processor:                  &mock.BlockProcessorMock{},
-		ProcessingTimeMilliSeconds: 10,
+		SyncTimer:                &mock.SyncTimerMock{},
+		Processor:                &mock.BlockProcessorMock{},
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -76,8 +90,8 @@ func TestScheduledProcessorWrapper_IsProcessedOKEarlyExit(t *testing.T) {
 				return time.Now()
 			},
 		},
-		Processor:                  &mock.BlockProcessorMock{},
-		ProcessingTimeMilliSeconds: 100,
+		Processor:                &mock.BlockProcessorMock{},
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -102,8 +116,8 @@ func defaultScheduledProcessorWrapperArgs() ScheduledProcessorWrapperArgs {
 				return time.Now()
 			},
 		},
-		Processor:                  &mock.BlockProcessorMock{},
-		ProcessingTimeMilliSeconds: 100,
+		Processor:                &mock.BlockProcessorMock{},
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 }
 
@@ -122,7 +136,7 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressNegativeRemainingTime(t 
 	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	timeSpent := endTime.Sub(startTime)
-	require.Less(t, timeSpent, sp.processingTime)
+	require.Less(t, timeSpent, sp.roundTimeDurationHandler.TimeDuration())
 }
 
 func TestScheduledProcessorWrapper_IsProcessedInProgressStartingInFuture(t *testing.T) {
@@ -156,7 +170,7 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressEarlyCompletion(t *testi
 	require.True(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	timeSpent := endTime.Sub(sp.startTime)
-	require.Less(t, timeSpent, sp.processingTime)
+	require.Less(t, timeSpent, sp.roundTimeDurationHandler.TimeDuration())
 }
 
 func TestScheduledProcessorWrapper_IsProcessedInProgressEarlyCompletionWithError(t *testing.T) {
@@ -175,7 +189,7 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressEarlyCompletionWithError
 	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	timeSpent := endTime.Sub(sp.startTime)
-	require.Less(t, timeSpent, sp.processingTime)
+	require.Less(t, timeSpent, sp.roundTimeDurationHandler.TimeDuration())
 }
 
 func TestScheduledProcessorWrapper_IsProcessedInProgressAlreadyStartedNoCompletion(t *testing.T) {
@@ -190,8 +204,8 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressAlreadyStartedNoCompleti
 	sp.startTime = startTime.Add(-10 * time.Millisecond)
 	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
-	require.Less(t, endTime.Sub(startTime), sp.processingTime)
-	require.Greater(t, endTime.Sub(startTime), sp.processingTime-10*time.Millisecond)
+	require.Less(t, endTime.Sub(startTime), sp.roundTimeDurationHandler.TimeDuration())
+	require.Greater(t, endTime.Sub(startTime), sp.roundTimeDurationHandler.TimeDuration()-10*time.Millisecond)
 }
 
 func TestScheduledProcessorWrapper_IsProcessedInProgressTimeout(t *testing.T) {
@@ -205,16 +219,16 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressTimeout(t *testing.T) {
 	sp.startTime = time.Now()
 	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
-	require.Greater(t, endTime.Sub(sp.startTime), sp.processingTime)
+	require.Greater(t, endTime.Sub(sp.startTime), sp.roundTimeDurationHandler.TimeDuration())
 }
 
 func TestScheduledProcessorWrapper_StatusGetterAndSetter(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                  &mock.SyncTimerMock{},
-		Processor:                  &mock.BlockProcessorMock{},
-		ProcessingTimeMilliSeconds: 10,
+		SyncTimer:                &mock.SyncTimerMock{},
+		Processor:                &mock.BlockProcessorMock{},
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -242,7 +256,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV1ProcessingOK(
 				return nil
 			},
 		},
-		ProcessingTimeMilliSeconds: 10,
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -250,7 +264,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV1ProcessingOK(
 
 	header := &block.Header{}
 	body := &block.Body{}
-	sp.StartScheduledProcessing(header, body)
+	sp.StartScheduledProcessing(header, body, time.Now())
 	time.Sleep(10 * time.Millisecond)
 	require.False(t, processScheduledCalled.IsSet())
 	require.Equal(t, processingOK, sp.getStatus())
@@ -268,7 +282,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingWit
 				return errors.New("processing error")
 			},
 		},
-		ProcessingTimeMilliSeconds: 10,
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -276,7 +290,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingWit
 
 	header := &block.HeaderV2{}
 	body := &block.Body{}
-	sp.StartScheduledProcessing(header, body)
+	sp.StartScheduledProcessing(header, body, time.Now())
 	require.Equal(t, inProgress, sp.getStatus())
 
 	time.Sleep(100 * time.Millisecond)
@@ -296,7 +310,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 				return nil
 			},
 		},
-		ProcessingTimeMilliSeconds: 10,
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -304,7 +318,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 
 	header := &block.HeaderV2{}
 	body := &block.Body{}
-	sp.StartScheduledProcessing(header, body)
+	sp.StartScheduledProcessing(header, body, time.Now())
 	require.Equal(t, inProgress, sp.getStatus())
 
 	time.Sleep(100 * time.Millisecond)
@@ -335,7 +349,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 				}
 			},
 		},
-		ProcessingTimeMilliSeconds: 10,
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	spw, err := NewScheduledProcessorWrapper(args)
@@ -343,7 +357,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 
 	hdr := &block.HeaderV2{}
 	blkBody := &block.Body{}
-	spw.StartScheduledProcessing(hdr, blkBody)
+	spw.StartScheduledProcessing(hdr, blkBody, time.Now())
 	time.Sleep(time.Second)
 	startTime := time.Now()
 	spw.ForceStopScheduledExecutionBlocking()
@@ -371,7 +385,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 				return nil
 			},
 		},
-		ProcessingTimeMilliSeconds: 10,
+		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
 	}
 
 	spw, err := NewScheduledProcessorWrapper(args)
@@ -379,7 +393,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 
 	hdr := &block.HeaderV2{}
 	blkBody := &block.Body{}
-	spw.StartScheduledProcessing(hdr, blkBody)
+	spw.StartScheduledProcessing(hdr, blkBody, time.Now())
 	time.Sleep(20 * time.Millisecond)
 	spw.ForceStopScheduledExecutionBlocking()
 	status := spw.getStatus()

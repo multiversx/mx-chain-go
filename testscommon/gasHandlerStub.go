@@ -8,6 +8,7 @@ import (
 // GasHandlerStub -
 type GasHandlerStub struct {
 	InitCalled                          func()
+	ResetCalled                         func()
 	SetGasProvidedCalled                func(gasProvided uint64, hash []byte)
 	SetGasProvidedAsScheduledCalled     func(gasProvided uint64, hash []byte)
 	SetGasRefundedCalled                func(gasRefunded uint64, hash []byte)
@@ -24,6 +25,7 @@ type GasHandlerStub struct {
 	RemoveGasProvidedAsScheduledCalled  func(hashes [][]byte)
 	RemoveGasRefundedCalled             func(hashes [][]byte)
 	RemoveGasPenalizedCalled            func(hashes [][]byte)
+	RestoreGasSinceLastResetCalled      func()
 	ComputeGasProvidedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasProvidedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 }
@@ -32,6 +34,13 @@ type GasHandlerStub struct {
 func (ghs *GasHandlerStub) Init() {
 	if ghs.InitCalled != nil {
 		ghs.InitCalled()
+	}
+}
+
+// Reset -
+func (ghs *GasHandlerStub) Reset() {
+	if ghs.ResetCalled != nil {
+		ghs.ResetCalled()
 	}
 }
 
@@ -152,6 +161,13 @@ func (ghs *GasHandlerStub) RemoveGasRefunded(hashes [][]byte) {
 func (ghs *GasHandlerStub) RemoveGasPenalized(hashes [][]byte) {
 	if ghs.RemoveGasPenalizedCalled != nil {
 		ghs.RemoveGasPenalizedCalled(hashes)
+	}
+}
+
+// RestoreGasSinceLastReset -
+func (ghs *GasHandlerStub) RestoreGasSinceLastReset() {
+	if ghs.RestoreGasSinceLastResetCalled != nil {
+		ghs.RestoreGasSinceLastResetCalled()
 	}
 }
 

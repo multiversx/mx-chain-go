@@ -1351,13 +1351,11 @@ func (txs *transactions) ProcessMiniBlock(
 
 	defer func() {
 		if err != nil {
-			if scheduledMode {
-				txs.gasHandler.RemoveGasProvidedAsScheduled(processedTxHashes)
-			} else {
-				txs.gasHandler.RemoveGasProvided(processedTxHashes)
-				txs.gasHandler.RemoveGasRefunded(processedTxHashes)
-				txs.gasHandler.RemoveGasPenalized(processedTxHashes)
+			for _, hash := range processedTxHashes {
+				log.Trace("transactions.ProcessMiniBlock: defer func()", "tx hash", hash)
 			}
+
+			txs.gasHandler.RestoreGasSinceLastReset()
 		}
 	}()
 
