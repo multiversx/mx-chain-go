@@ -1088,7 +1088,7 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	}
 }
 
-func TestShardStorageHandler_UpdatePendingMiniBlocksForScheduled(t *testing.T) {
+func Test_updatePendingMiniBlocksForScheduled(t *testing.T) {
 	t.Parallel()
 
 	hash1 := []byte("hash1")
@@ -1290,7 +1290,7 @@ func Test_removeHashes(t *testing.T) {
 	hashes := [][]byte{mbHash1, mbHash2, mbHash3, mbHash4, mbHash5, mbHash6}
 
 	expectedRemoveMiddle := [][]byte{mbHash1, mbHash2, mbHash5, mbHash6}
-	middleHashes := [][]byte{ mbHash3, mbHash4}
+	middleHashes := [][]byte{mbHash3, mbHash4}
 	updatedHashes := removeHashes(hashes, middleHashes)
 	require.Equal(t, expectedRemoveMiddle, updatedHashes)
 

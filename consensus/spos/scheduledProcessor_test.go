@@ -51,7 +51,7 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
-func TestNewScheduledProcessorWrapper_NilRoundTimeDurationShouldErr(t *testing.T) {
+func TestNewScheduledProcessorWrapper_NilRoundTimeDurationHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{

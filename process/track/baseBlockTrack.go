@@ -828,7 +828,7 @@ func getCrossShardMiniblockKeys(miniBlockHdrs []data.MiniBlockHeaderHandler, sel
 	keys := make([][]byte, 0)
 	for _, miniBlockHdr := range miniBlockHdrs {
 		receiverShard := miniBlockHdr.GetReceiverShardID()
-		receiverIsSelfShard := receiverShard == selfShardID || receiverShard == core.AllShardId && processingShard == core.MetachainShardId
+		receiverIsSelfShard := (receiverShard == selfShardID || receiverShard == core.AllShardId) && processingShard == core.MetachainShardId
 		senderIsCrossShard := miniBlockHdr.GetSenderShardID() != selfShardID
 		if receiverIsSelfShard && senderIsCrossShard {
 			keys = append(keys, miniBlockHdr.GetHash())

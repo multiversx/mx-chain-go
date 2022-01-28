@@ -81,8 +81,8 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 
 	return &scheduledProcessorWrapper{
 		syncTimer:                args.SyncTimer,
-		roundTimeDurationHandler: args.RoundTimeDurationHandler,
 		processor:                args.Processor,
+		roundTimeDurationHandler: args.RoundTimeDurationHandler,
 		status:                   processingNotStarted,
 		stopExecution:            make(chan struct{}, 1),
 	}, nil
