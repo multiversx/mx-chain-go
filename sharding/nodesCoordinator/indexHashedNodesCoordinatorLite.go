@@ -47,6 +47,8 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		return err
 	}
 
+	ihgs.removeOldEpochs(epoch)
+
 	return nil
 }
 
@@ -57,4 +59,16 @@ func (ihgs *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
 	defer ihgs.mutNodesConfig.Unlock()
 
 	return status
+}
+
+func (ihgs *indexHashedNodesCoordinator) removeOldEpochs(epoch uint32) {
+	ihgs.mutNodesConfig.Lock()
+	if len(ihgs.nodesConfig) >= nodesCoordinatorStoredEpochs {
+		for currEpoch := range ihgs.nodesConfig {
+			if currEpoch <= uint32(epoch-nodesCoordinatorStoredEpochs) {
+				delete(ihgs.nodesConfig, epoch)
+			}
+		}
+	}
+	ihgs.mutNodesConfig.Unlock()
 }

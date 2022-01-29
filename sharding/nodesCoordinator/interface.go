@@ -144,8 +144,9 @@ type ValidatorsDistributor interface {
 	IsInterfaceNil() bool
 }
 
-// NodesCoordinatorLite specifies the behaviour needed to manage nodes config epochs
-type NodesCoordinatorLite interface {
+// EpochsConfigUpdateHandler specifies the behaviour needed to update nodes config epochs
+type EpochsConfigUpdateHandler interface {
+	NodesCoordinator
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
 }
