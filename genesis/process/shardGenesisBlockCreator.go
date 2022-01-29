@@ -97,6 +97,7 @@ func createGenesisConfig() config.EnableEpochs {
 		MultiESDTTransferFixOnCallBackOnEnableEpoch:       unreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       unreachableEpoch,
 		CorrectFirstQueuedEpoch:                           unreachableEpoch,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
 		FixOOGReturnCodeEnableEpoch:                       unreachableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:                unreachableEpoch,
 		DeleteDelegatorAfterClaimRewardsEnableEpoch:       unreachableEpoch,
@@ -109,6 +110,7 @@ func createGenesisConfig() config.EnableEpochs {
 		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 	}
 }
@@ -351,10 +353,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Accounts:                     arg.Accounts,
 		ShardCoordinator:             arg.ShardCoordinator,
 		EpochNotifier:                epochNotifier,
-		ESDTMultiTransferEnableEpoch: unreachableEpoch,
-		ESDTTransferRoleEnableEpoch:  unreachableEpoch,
-		GlobalMintBurnDisableEpoch:   unreachableEpoch,
-		ESDTTransferMetaEnableEpoch:  unreachableEpoch,
+		ESDTMultiTransferEnableEpoch: enableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  enableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   enableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
@@ -375,6 +377,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
+		EnableEpochs:       enableEpochs,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {

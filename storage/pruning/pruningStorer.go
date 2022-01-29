@@ -401,7 +401,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrSerialDBIsClosed {
+			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
 			}
 
@@ -414,7 +414,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, storage.ErrSerialDBIsClosed
+		return nil, storage.ErrDBIsClosed
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
@@ -809,6 +809,16 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	if oldestEpochActive < 0 {
 		oldestEpochActive = 0
 	}
+	log.Trace("PruningStorer.changeEpochWithExisting",
+		"oldestEpochActive", oldestEpochActive, "epoch", epoch, "numActivePersisters", numActivePersisters)
+
+	if len(ps.activePersisters) > 0 {
+		// this should solve the case when extended persisters are present
+		lastActivePersister := ps.activePersisters[len(ps.activePersisters)-1]
+		if oldestEpochActive > int64(lastActivePersister.epoch) {
+			oldestEpochActive = int64(lastActivePersister.epoch)
+		}
+	}
 
 	persisters := make([]*persisterData, 0)
 	for e := int64(epoch); e >= oldestEpochActive; e-- {
@@ -868,17 +878,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 // should be called under mutex protection
 func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
-	persistersToClose := make([]*persisterData, 0)
-
-	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
-		for idx := int(ps.numOfActivePersisters); idx < len(ps.activePersisters); idx++ {
-			persisterToClose := ps.activePersisters[idx]
-			// remove it from the active persisters slice
-			ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
-			ps.persistersMapByEpoch[persisterToClose.epoch] = persisterToClose
-			persistersToClose = append(persistersToClose, persisterToClose)
-		}
-	}
+	persistersToClose := ps.processPersistersToClose()
 
 	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
@@ -900,6 +900,39 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	}
 
 	return nil
+}
+
+func (ps *PruningStorer) processPersistersToClose() []*persisterData {
+	persistersToClose := make([]*persisterData, 0)
+
+	epochsToClose := make([]uint32, 0)
+	allEpochsBeforeProcess := make([]uint32, 0)
+	for _, p := range ps.activePersisters {
+		allEpochsBeforeProcess = append(allEpochsBeforeProcess, p.epoch)
+	}
+
+	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
+		persistersToClose = ps.activePersisters[ps.numOfActivePersisters:]
+		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
+
+		for _, p := range persistersToClose {
+			ps.persistersMapByEpoch[p.epoch] = p
+			epochsToClose = append(epochsToClose, p.epoch)
+		}
+	}
+
+	allEpochsAfterProcess := make([]uint32, 0)
+	for _, p := range ps.activePersisters {
+		allEpochsAfterProcess = append(allEpochsAfterProcess, p.epoch)
+	}
+
+	// TODO remove this
+	log.Debug("PruningStorer.processPersistersToClose",
+		"epochs to close", epochsToClose,
+		"before process", allEpochsBeforeProcess,
+		"after process", allEpochsAfterProcess)
+
+	return persistersToClose
 }
 
 // RangeKeys does nothing as it is unable to iterate over multiple persisters
