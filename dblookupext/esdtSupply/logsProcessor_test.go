@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -127,4 +128,86 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	err := logsProc.processLogs(0, logs, false)
 	require.Nil(t, err)
+}
+
+func TestMakePropertiesNotNil(t *testing.T) {
+	t.Parallel()
+
+	t.Run("supply is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: nil,
+			Burned: big.NewInt(1),
+			Minted: big.NewInt(2),
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(0),
+			Burned: big.NewInt(1),
+			Minted: big.NewInt(2),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("burned is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: nil,
+			Minted: big.NewInt(2),
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(0),
+			Minted: big.NewInt(2),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("minted is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: nil,
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: big.NewInt(0),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("all are nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{}
+		expected := SupplyESDT{
+			Supply: big.NewInt(0),
+			Burned: big.NewInt(0),
+			Minted: big.NewInt(0),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("none is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: big.NewInt(3),
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: big.NewInt(3),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+
 }
