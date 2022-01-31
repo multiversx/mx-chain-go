@@ -15,6 +15,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -221,10 +222,10 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return 0, err
 	}
 
+	var state *block.MetaTriggerRegistry
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
-		state := &block.MetaTriggerRegistry{}
-		err = marshaller.Unmarshal(state, trigData)
+		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
 		if err != nil {
 			return 0, err
 		}

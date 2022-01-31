@@ -35,7 +35,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.triggerStorage = t.triggerStorage
 	rt.metaNonceHdrStorage = t.metaNonceHdrStorage
 	rt.uint64Converter = t.uint64Converter
-	rt.marshalizer = t.marshalizer
+	rt.marshaller = t.marshaller
 	rt.hasher = t.hasher
 	rt.headerValidator = t.headerValidator
 	rt.requestHandler = t.requestHandler

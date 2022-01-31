@@ -3924,9 +3924,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 
-	removeGasProvidedWasCalled := false
-	removeGasRefundedWasCalled := false
-	removeGasPenalizedWasCalled := false
+	restoreGasSinceLastResetCalled := false
 	numTxsFeesReverted := 0
 
 	dataPool := initDataPool(txHash)
@@ -3940,14 +3938,8 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 		PreProcessors:    createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		InterProcessors:  createInterimProcessorContainer(),
 		GasHandler: &mock.GasHandlerMock{
-			RemoveGasProvidedCalled: func(hashes [][]byte) {
-				removeGasProvidedWasCalled = true
-			},
-			RemoveGasRefundedCalled: func(hashes [][]byte) {
-				removeGasRefundedWasCalled = true
-			},
-			RemoveGasPenalizedCalled: func(hashes [][]byte) {
-				removeGasPenalizedWasCalled = true
+			RestoreGasSinceLastResetCalled: func() {
+				restoreGasSinceLastResetCalled = true
 			},
 		},
 		FeeHandler: &mock.FeeAccumulatorStub{
@@ -3976,9 +3968,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	tc, _ := NewTransactionCoordinator(txCoordinatorArgs)
 
 	tc.revertIfNeeded(txHashes)
-	assert.False(t, removeGasProvidedWasCalled)
-	assert.False(t, removeGasRefundedWasCalled)
-	assert.False(t, removeGasPenalizedWasCalled)
+	assert.False(t, restoreGasSinceLastResetCalled)
 	assert.Equal(t, 0, numTxsFeesReverted)
 
 	txCoordinatorArgs.ShardCoordinator = &mock.CoordinatorStub{
@@ -3989,9 +3979,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	tc, _ = NewTransactionCoordinator(txCoordinatorArgs)
 
 	tc.revertIfNeeded(txHashes)
-	assert.False(t, removeGasProvidedWasCalled)
-	assert.False(t, removeGasRefundedWasCalled)
-	assert.False(t, removeGasPenalizedWasCalled)
+	assert.False(t, restoreGasSinceLastResetCalled)
 	assert.Equal(t, 0, numTxsFeesReverted)
 
 	txHash1 := []byte("txHash1")
@@ -4000,9 +3988,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	txHashes = append(txHashes, txHash2)
 
 	tc.revertIfNeeded(txHashes)
-	assert.True(t, removeGasProvidedWasCalled)
-	assert.True(t, removeGasRefundedWasCalled)
-	assert.True(t, removeGasPenalizedWasCalled)
+	assert.True(t, restoreGasSinceLastResetCalled)
 	assert.Equal(t, len(txHashes), numTxsFeesReverted)
 }
 

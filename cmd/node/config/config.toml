@@ -386,7 +386,7 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
-    SnapshotsGoroutineNum = 10
+    SnapshotsGoroutineNum = 200
     MaxSnapshots = 3
     KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
@@ -672,7 +672,6 @@
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
-   ScheduledExecutionMilliseconds = 1500
    Type = "bls"
 
 [NTPConfig]

@@ -217,6 +217,22 @@ func (txs *transactions) processTransaction(
 	}
 
 	if errors.Is(err, process.ErrFailedTransaction) {
+		log.Debug("transactions.processTransaction",
+			"txHash", txHash,
+			"txType", txType,
+			"nonce", tx.Nonce,
+			"value", tx.Value,
+			"gas price", tx.GasPrice,
+			"gas limit", tx.GasLimit,
+			"sender", senderShardID,
+			"receiver", receiverShardID,
+			"senderAddr", tx.GetSndAddr(),
+			"senderUsername", tx.GetSndUserName(),
+			"receiverAddr", tx.GetRcvAddr(),
+			"receiverUsername", tx.GetRcvUserName(),
+			"data", string(tx.Data),
+			"err", err.Error(),
+		)
 		if !mbInfo.firstInvalidTxFound {
 			mbInfo.firstInvalidTxFound = true
 			txs.blockSizeComputation.AddNumMiniBlocks(1)

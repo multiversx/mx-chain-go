@@ -47,6 +47,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	gopkg.in/go-playground/validator.v8 v8.18.2
+// test point 3 for custom profiler
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2

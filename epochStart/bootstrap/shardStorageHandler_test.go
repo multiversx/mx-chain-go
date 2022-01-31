@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -80,7 +81,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 	}
 
 	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
-	assert.Equal(t, epochStart.ErrMissingHeader, err)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
@@ -118,7 +119,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestGetAllMiniBlocksWithDst(t *testing.T) {
+func Test_getNewPendingMiniBlocksForDst(t *testing.T) {
 	t.Parallel()
 
 	hash1 := []byte("hash1")
@@ -142,7 +143,7 @@ func TestGetAllMiniBlocksWithDst(t *testing.T) {
 		},
 	}
 
-	shardMbHeaders := getAllMiniBlocksWithDst(metablock, 0)
+	shardMbHeaders := getNewPendingMiniBlocksForDst(metablock, 0)
 	assert.Equal(t, shardMbHeaders[string(hash1)], shardMiniBlockHeader)
 	assert.NotNil(t, shardMbHeaders[string(hash2)])
 }
@@ -190,7 +191,7 @@ func TestShardStorageHandler_getCrossProcessedMbsDestMeByHeader(t *testing.T) {
 	args := createDefaultShardStorageArgs()
 	shardStorage, _ := NewShardStorageHandler(args.generalConfig, args.prefsConfig, args.shardCoordinator, args.pathManagerHandler, args.marshalizer, args.hasher, 1, args.uint64Converter, args.nodeTypeProvider)
 	shardHeader := &block.Header{
-		Nonce: 100,
+		Nonce:            100,
 		MiniBlockHeaders: mbs,
 	}
 
@@ -271,55 +272,6 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduled(t *te
 	require.Equal(t, scenario.expectedProcessedMbsWithScheduled, processedMiniBlocks)
 }
 
-func Test_removeMbFromProcessedList(t *testing.T) {
-	t.Parallel()
-
-	mbHash := []byte("hash1")
-	mbHash2 := []byte("hash2")
-	mbHash3 := []byte("hash3")
-	metaHash := []byte("metaHash")
-	metaHash2 := []byte("metaHash2")
-	processedMbs := []bootstrapStorage.MiniBlocksInMeta{
-		{MetaHash: metaHash, MiniBlocksHashes: [][]byte{mbHash}},
-		{MetaHash: metaHash2, MiniBlocksHashes: [][]byte{mbHash2, mbHash3}},
-	}
-
-	mbHandler := &block.MiniBlockHeader{
-		Hash:            mbHash3,
-		SenderShardID:   1,
-		ReceiverShardID: 0,
-	}
-
-	expectedProcessedMbs := []bootstrapStorage.MiniBlocksInMeta{
-		{MetaHash: metaHash, MiniBlocksHashes: [][]byte{mbHash}},
-		{MetaHash: metaHash2, MiniBlocksHashes: [][]byte{mbHash2}},
-	}
-
-	resultingProcessedMbs := removeMbFromProcessedList(mbHandler, processedMbs)
-	require.Equal(t, expectedProcessedMbs, resultingProcessedMbs)
-}
-
-func Test_removeMbFromProcessedListLastOne(t *testing.T) {
-	t.Parallel()
-
-	mbHash := []byte("hash1")
-	metaHash := []byte("metaHash")
-	processedMbs := []bootstrapStorage.MiniBlocksInMeta{
-		{MetaHash: metaHash, MiniBlocksHashes: [][]byte{mbHash}},
-	}
-
-	mbHandler := &block.MiniBlockHeader{
-		Hash:            mbHash,
-		SenderShardID:   1,
-		ReceiverShardID: 0,
-	}
-
-	expectedProcessedMbs := []bootstrapStorage.MiniBlocksInMeta{}
-
-	resultingProcessedMbs := removeMbFromProcessedList(mbHandler, processedMbs)
-	require.Equal(t, expectedProcessedMbs, resultingProcessedMbs)
-}
-
 func Test_addMbToPendingListNoPreviousEntryForShard(t *testing.T) {
 	t.Parallel()
 
@@ -366,77 +318,6 @@ func Test_addMbToPendingListWithPreviousEntryForShard(t *testing.T) {
 
 	resultingMbsInfo := addMbToPendingList(mbHandler, pendingMbsInfo)
 	require.Equal(t, expectedPendingMbsInfo, resultingMbsInfo)
-}
-
-func Test_removeMbsFromProcessed(t *testing.T) {
-	t.Parallel()
-
-	mb1Hash := []byte("hash1")
-	mb2Hash := []byte("hash2")
-	mb3Hash := []byte("hash3")
-	mb4Hash := []byte("hash4")
-	mb5Hash := []byte("hash5")
-	mb6Hash := []byte("hash6")
-
-	metaHash1 := []byte("metaHash1")
-	metaHash2 := []byte("metaHash2")
-	metaHash3 := []byte("metaHash3")
-	processedMbs := []bootstrapStorage.MiniBlocksInMeta{
-		{MetaHash: metaHash1, MiniBlocksHashes: [][]byte{mb1Hash, mb2Hash}},
-		{MetaHash: metaHash2, MiniBlocksHashes: [][]byte{mb3Hash, mb4Hash, mb5Hash}},
-		{MetaHash: metaHash3, MiniBlocksHashes: [][]byte{mb6Hash}},
-	}
-
-	mb0HashIntra := []byte("mb1 hash")
-	mb1HashIntra := []byte("mb2 hash")
-	mb2HashIntra := []byte("mb1 hash")
-	shard0Mbs := []data.MiniBlockHeaderHandler{
-		&block.MiniBlockHeader{
-			Hash:            mb5Hash,
-			SenderShardID:   1,
-			ReceiverShardID: 0,
-		},
-		&block.MiniBlockHeader{
-			Hash:            mb0HashIntra,
-			SenderShardID:   0,
-			ReceiverShardID: 0,
-		},
-		&block.MiniBlockHeader{
-			Hash:            mb1HashIntra,
-			SenderShardID:   0,
-			ReceiverShardID: 0,
-		},
-		&block.MiniBlockHeader{
-			Hash:            mb6Hash,
-			SenderShardID:   2,
-			ReceiverShardID: 0,
-		},
-	}
-
-	shard1Mbs := []data.MiniBlockHeaderHandler{
-		&block.MiniBlockHeader{
-			Hash:            mb4Hash,
-			SenderShardID:   2,
-			ReceiverShardID: 1,
-		},
-		&block.MiniBlockHeader{
-			Hash:            mb2HashIntra,
-			SenderShardID:   1,
-			ReceiverShardID: 1,
-		},
-	}
-
-	mapMbHeaderHandlers := map[uint32][]data.MiniBlockHeaderHandler{
-		0: shard0Mbs,
-		1: shard1Mbs,
-	}
-
-	expectedProcessed := []bootstrapStorage.MiniBlocksInMeta{
-		{MetaHash: metaHash1, MiniBlocksHashes: [][]byte{mb1Hash, mb2Hash}},
-		{MetaHash: metaHash2, MiniBlocksHashes: [][]byte{mb3Hash}},
-	}
-	processedMbsInfo := removeMbsFromProcessed(processedMbs, mapMbHeaderHandlers)
-	require.Equal(t, expectedProcessed, processedMbsInfo)
 }
 
 func Test_addMbsToPending(t *testing.T) {
@@ -552,7 +433,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksMissingHeader(t *te
 	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, miniBlocksInMeta)
 	require.Nil(t, pendingMiniBlocksInfoList)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWrongHeader(t *testing.T) {
@@ -711,7 +592,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledMissin
 
 	bootstrapHeaderInfo, err := shardStorage.saveLastCrossNotarizedHeaders(meta, headers, false)
 	require.Nil(t, bootstrapHeaderInfo)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongTypeAssertion(t *testing.T) {
@@ -844,7 +725,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduledErrorUpda
 
 	bootstrapHeaderInfo, err := shardStorage.saveLastCrossNotarizedHeaders(meta, headers, true)
 	require.Nil(t, bootstrapHeaderInfo)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduled(t *testing.T) {
@@ -901,7 +782,7 @@ func Test_updateLastCrossMetaHdrHashIfNeededGetShardHeaderErr(t *testing.T) {
 	}
 
 	lastCrossMetaHash, err := updateLastCrossMetaHdrHashIfNeeded(headers, epochStartData, []byte(lastCrossMetaHdrHash))
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 	require.Nil(t, lastCrossMetaHash)
 }
 
@@ -971,7 +852,7 @@ func Test_updateLastCrossMetaHdrHashIfNeededMissingOneReferencedMetaHeader(t *te
 
 	lastCrossMetaHash, err := updateLastCrossMetaHdrHashIfNeeded(headers, epochStartData, []byte(lastCrossMetaHdrHash))
 	require.Nil(t, lastCrossMetaHash)
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
 func Test_updateLastCrossMetaHdrHashIfNeeded(t *testing.T) {
@@ -1023,7 +904,7 @@ func Test_getShardHeaderAndMetaHashesHeaderNotFound(t *testing.T) {
 	}
 
 	shardHeader, metaHashes, err := getShardHeaderAndMetaHashes(headers, []byte("unknownHash"))
-	require.Equal(t, epochStart.ErrMissingHeader, err)
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 	require.Nil(t, shardHeader)
 	require.Nil(t, metaHashes)
 }
@@ -1143,7 +1024,6 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	}
 
 	processedMbsHeaders := []block.MiniBlockHeader{crossMbHeaders[0]}
-	processedMbsHeaders = append(processedMbsHeaders, intraMbHeaders...)
 	pendingMbsHeaders := crossMbHeaders[1:]
 
 	shardHeader := &block.Header{
@@ -1174,10 +1054,11 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 			Nonce:    95,
 			PrevHash: []byte(lastFinishedMetaBlockHash),
 			ShardInfo: []block.ShardData{
-				{ShardID: 0, HeaderHash: []byte(prevShardHeaderHash), ShardMiniBlockHeaders: processedMbsHeaders},
-				{ShardID: 1, HeaderHash: []byte("header hash "), ShardMiniBlockHeaders: []block.MiniBlockHeader{crossMbHeaders[4]}},
-				{ShardID: 2, HeaderHash: []byte("header hash 2 "), ShardMiniBlockHeaders: []block.MiniBlockHeader{crossMbHeaders[1], crossMbHeaders[3]}},
-				{ShardID: core.MetachainShardId, HeaderHash: []byte("header hash 3"), ShardMiniBlockHeaders: []block.MiniBlockHeader{crossMbHeaders[2]}},
+				{ShardID: 0, HeaderHash: []byte("header hash 1"), ShardMiniBlockHeaders: intraMbHeaders},
+				{ShardID: 1, HeaderHash: []byte(prevShardHeaderHash), ShardMiniBlockHeaders: processedMbsHeaders},
+				{ShardID: 1, HeaderHash: []byte("header hash 2"), ShardMiniBlockHeaders: []block.MiniBlockHeader{crossMbHeaders[4]}},
+				{ShardID: 2, HeaderHash: []byte("header hash 3 "), ShardMiniBlockHeaders: []block.MiniBlockHeader{crossMbHeaders[1], crossMbHeaders[3]}},
+				{ShardID: core.MetachainShardId, HeaderHash: []byte("header hash 4"), ShardMiniBlockHeaders: []block.MiniBlockHeader{crossMbHeaders[2]}},
 			},
 		},
 		shardHeaderHash: shardHeader,
@@ -1205,4 +1086,226 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 		expectedPendingMbsWithScheduled:   expectedPendingMbsWithScheduled,
 		expectedProcessedMbsWithScheduled: expectedProcessedMbsWithScheduled,
 	}
+}
+
+func Test_updatePendingMiniBlocksForScheduled(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	shardMiniBlockHeader := block.MiniBlockHeader{SenderShardID: 1, Hash: hash1}
+	metablock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					shardMiniBlockHeader,
+				},
+			},
+		},
+	}
+
+	referencedMetaBlockHashes := [][]byte{[]byte("meta_hash1"), []byte("meta_hash2")}
+	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	pendingMiniBlocks = append(pendingMiniBlocks, bootstrapStorage.PendingMiniBlocksInfo{
+		ShardID:          0,
+		MiniBlocksHashes: [][]byte{hash1, hash2},
+	})
+	headers := make(map[string]data.HeaderHandler)
+	headers["meta_hash2"] = metablock
+
+	remainingPendingMiniBlocks, err := updatePendingMiniBlocksForScheduled(referencedMetaBlockHashes, pendingMiniBlocks, headers, 0)
+	assert.Nil(t, err)
+	require.Equal(t, 1, len(remainingPendingMiniBlocks))
+	require.Equal(t, 1, len(remainingPendingMiniBlocks[0].MiniBlocksHashes))
+	assert.Equal(t, hash2, remainingPendingMiniBlocks[0].MiniBlocksHashes[0])
+}
+
+func Test_updateProcessedMiniBlocksForScheduled(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hash3 := []byte("hash3")
+	hash4 := []byte("hash4")
+	hashMeta := []byte("metaHash1")
+	hashPrevMeta := []byte("metaHash2")
+	shardMiniBlockHeaders := []block.MiniBlockHeader{
+		{SenderShardID: 0, ReceiverShardID: 1, Hash: hash3},
+		{SenderShardID: 0, ReceiverShardID: 1, Hash: hash4},
+	}
+	shardMiniBlockHeadersPrevMeta := []block.MiniBlockHeader{
+		{SenderShardID: 0, ReceiverShardID: 1, Hash: hash1},
+		{SenderShardID: 1, ReceiverShardID: 0, Hash: hash2},
+	}
+
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:               0,
+				ShardMiniBlockHeaders: shardMiniBlockHeaders,
+			},
+		},
+	}
+
+	prevMetaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:               0,
+				ShardMiniBlockHeaders: shardMiniBlockHeadersPrevMeta,
+			},
+		},
+	}
+
+	referencedMetaBlockHashes := [][]byte{hashPrevMeta, hashMeta}
+	pendingMiniBlocks := [][]byte{hash4}
+	headers := make(map[string]data.HeaderHandler)
+	headers[string(hashMeta)] = metaBlock
+	headers[string(hashPrevMeta)] = prevMetaBlock
+	expectedProcessedMbs := []bootstrapStorage.MiniBlocksInMeta{
+		{
+			MetaHash:         hashPrevMeta,
+			MiniBlocksHashes: [][]byte{hash1},
+		},
+		{
+			MetaHash:         hashMeta,
+			MiniBlocksHashes: [][]byte{hash3},
+		},
+	}
+
+	updatedProcessed, err := updateProcessedMiniBlocksForScheduled(referencedMetaBlockHashes, pendingMiniBlocks, headers, 1)
+	assert.Nil(t, err)
+	require.Equal(t, expectedProcessedMbs, updatedProcessed)
+}
+
+func Test_getPendingMiniBlocksHashes(t *testing.T) {
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+	mbHash4 := []byte("mbHash4")
+	mbHash5 := []byte("mbHash5")
+	mbHash6 := []byte("mbHash6")
+
+	pendingMbsInfo := []bootstrapStorage.PendingMiniBlocksInfo{
+		{
+			ShardID:          0,
+			MiniBlocksHashes: [][]byte{mbHash1, mbHash2},
+		},
+		{
+			ShardID:          0,
+			MiniBlocksHashes: [][]byte{mbHash3},
+		},
+		{
+			ShardID:          0,
+			MiniBlocksHashes: [][]byte{mbHash4, mbHash5, mbHash6},
+		},
+	}
+	expectedPendingMbHashes := [][]byte{mbHash1, mbHash2, mbHash3, mbHash4, mbHash5, mbHash6}
+
+	pendingMbHashes := getPendingMiniBlocksHashes(pendingMbsInfo)
+	require.Equal(t, expectedPendingMbHashes, pendingMbHashes)
+}
+
+func Test_getProcessedMiniBlockHashesForMetaBlockHash(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hashMeta := []byte("metaHash1")
+
+	shardMiniBlockHeaders := []block.MiniBlockHeader{
+		{SenderShardID: 0, ReceiverShardID: 1, Hash: hash1},
+		{SenderShardID: 1, ReceiverShardID: 0, Hash: hash2},
+	}
+
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:               0,
+				ShardMiniBlockHeaders: shardMiniBlockHeaders,
+			},
+		},
+	}
+
+	headers := make(map[string]data.HeaderHandler)
+	headers[string(hashMeta)] = metaBlock
+	expectedProcessedMbs := [][]byte{hash1}
+
+	processedMbs, err := getProcessedMiniBlockHashesForMetaBlockHash(1, hashMeta, headers)
+
+	require.Nil(t, err)
+	require.Equal(t, expectedProcessedMbs, processedMbs)
+}
+
+func Test_getProcessedMiniBlockHashesForMetaBlockHashMissingHeaderShouldErr(t *testing.T) {
+	hashMeta := []byte("hashMeta")
+	headers := make(map[string]data.HeaderHandler)
+
+	processedMbs, err := getProcessedMiniBlockHashesForMetaBlockHash(1, hashMeta, headers)
+
+	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+	require.Nil(t, processedMbs)
+}
+
+func Test_getProcessedMiniBlockHashesForMetaBlockHashInvalidHeaderShouldErr(t *testing.T) {
+	hashMeta := []byte("hashMeta")
+	headers := make(map[string]data.HeaderHandler)
+	headers[string(hashMeta)] = &block.Header{}
+
+	processedMbs, err := getProcessedMiniBlockHashesForMetaBlockHash(1, hashMeta, headers)
+
+	require.Equal(t, epochStart.ErrWrongTypeAssertion, err)
+	require.Nil(t, processedMbs)
+}
+
+func Test_removeHash(t *testing.T) {
+	mbHash1 := []byte("hash1")
+	mbHash2 := []byte("hash2")
+	mbHash3 := []byte("hash3")
+	mbHash4 := []byte("hash4")
+	mbHash5 := []byte("hash5")
+	mbHash6 := []byte("hash6")
+	hashes := [][]byte{mbHash1, mbHash2, mbHash3, mbHash4, mbHash5, mbHash6}
+
+	expectedRemoveMiddle := [][]byte{mbHash1, mbHash2, mbHash4, mbHash5, mbHash6}
+	hashes = removeHash(hashes, mbHash3)
+	require.Equal(t, expectedRemoveMiddle, hashes)
+
+	expectedRemoveFirst := [][]byte{mbHash2, mbHash4, mbHash5, mbHash6}
+	hashes = removeHash(hashes, mbHash1)
+	require.Equal(t, expectedRemoveFirst, hashes)
+
+	expectedRemoveLast := [][]byte{mbHash2, mbHash4, mbHash5}
+	hashes = removeHash(hashes, mbHash6)
+	require.Equal(t, expectedRemoveLast, hashes)
+}
+
+func Test_removeHashes(t *testing.T) {
+	mbHash1 := []byte("hash1")
+	mbHash2 := []byte("hash2")
+	mbHash3 := []byte("hash3")
+	mbHash4 := []byte("hash4")
+	mbHash5 := []byte("hash5")
+	mbHash6 := []byte("hash6")
+	hashes := [][]byte{mbHash1, mbHash2, mbHash3, mbHash4, mbHash5, mbHash6}
+
+	expectedRemoveMiddle := [][]byte{mbHash1, mbHash2, mbHash5, mbHash6}
+	middleHashes := [][]byte{mbHash3, mbHash4}
+	updatedHashes := removeHashes(hashes, middleHashes)
+	require.Equal(t, expectedRemoveMiddle, updatedHashes)
+
+	expectedRemoveFirst := [][]byte{mbHash3, mbHash4, mbHash5, mbHash6}
+	firstHashes := [][]byte{mbHash1, mbHash2}
+	updatedHashes = removeHashes(hashes, firstHashes)
+	require.Equal(t, expectedRemoveFirst, updatedHashes)
+
+	expectedRemoveLast := [][]byte{mbHash1, mbHash2, mbHash3, mbHash4}
+	lastHashes := [][]byte{mbHash5, mbHash6}
+	updatedHashes = removeHashes(hashes, lastHashes)
+	require.Equal(t, expectedRemoveLast, updatedHashes)
+
+	expectedRemoveDifferent := [][]byte{mbHash1, mbHash2, mbHash3, mbHash4, mbHash5, mbHash6}
+	different := [][]byte{[]byte("different")}
+	updatedHashes = removeHashes(hashes, different)
+	require.Equal(t, expectedRemoveDifferent, updatedHashes)
 }

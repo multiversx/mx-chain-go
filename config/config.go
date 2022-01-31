@@ -61,8 +61,7 @@ type MarshalizerConfig struct {
 
 // ConsensusConfig holds the consensus configuration parameters
 type ConsensusConfig struct {
-	ScheduledExecutionMilliseconds uint32
-	Type                           string
+	Type string
 }
 
 // NTPConfig will hold the configuration for NTP queries

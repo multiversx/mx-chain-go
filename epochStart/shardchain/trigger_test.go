@@ -515,7 +515,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 	et, _ := NewEpochStartTrigger(args)
 
 	prevHdr := &block.Header{Round: 29, Epoch: 2}
-	prevHash, _ := core.CalculateHash(et.marshalizer, et.hasher, prevHdr)
+	prevHash, _ := core.CalculateHash(et.marshaller, et.hasher, prevHdr)
 
 	epochStartShHdr := &block.Header{
 		Nonce:              30,
@@ -570,7 +570,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	et, _ := NewEpochStartTrigger(args)
 
 	prevHdr := &block.Header{Round: 29, Epoch: 2}
-	prevHash, _ := core.CalculateHash(et.marshalizer, et.hasher, prevHdr)
+	prevHash, _ := core.CalculateHash(et.marshaller, et.hasher, prevHdr)
 
 	epochStartShHdr := &block.Header{
 		Nonce:              30,
