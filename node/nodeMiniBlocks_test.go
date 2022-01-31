@@ -43,7 +43,7 @@ func TestGetInternalMiniBlock_NotFoundInStorerShouldErr(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	miniBlock, err := n.GetInternalMiniBlock(common.Proto, hex.EncodeToString([]byte("dummyhash")))
+	miniBlock, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString([]byte("dummyhash")))
 	assert.Error(t, err)
 	assert.Nil(t, miniBlock)
 }
@@ -64,7 +64,7 @@ func TestInternalMiniBlock_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	miniBlock, err := n.GetInternalMiniBlock(common.Proto, hex.EncodeToString([]byte("dummyhash")))
+	miniBlock, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString([]byte("dummyhash")))
 	assert.Nil(t, err)
 	assert.Nil(t, miniBlock)
 }
@@ -91,7 +91,7 @@ func TestGetInternalMiniBlock_WrongEncodedHashShoudFail(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalMiniBlock(common.Proto, "wronghashformat")
+	blk, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, "wronghashformat")
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -115,7 +115,7 @@ func TestGetInternalMiniBlock_InvalidOutportFormat_ShouldWork(t *testing.T) {
 
 	n, miniBlockBytes := prepareInternalMiniBlockNode(headerHash)
 
-	blk, err := n.GetInternalMiniBlock(common.Proto, hex.EncodeToString(headerHash))
+	blk, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString(headerHash))
 	assert.Nil(t, err)
 	assert.Equal(t, miniBlockBytes, blk)
 }
@@ -130,7 +130,7 @@ func TestGetInternalMiniBlock__InvalidOutportFormat_ShouldWork(t *testing.T) {
 	err := json.Unmarshal(miniBlockBytes, miniBlock)
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalMiniBlock(common.Internal, hex.EncodeToString(headerHash))
+	blk, err := n.GetInternalMiniBlock(common.ApiOutputFormatInternal, hex.EncodeToString(headerHash))
 	assert.Nil(t, err)
 	assert.Equal(t, miniBlock, blk)
 }

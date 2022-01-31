@@ -1046,13 +1046,13 @@ func TestNodeFacade_GetInternalMetaBlockByNonceShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalMetaBlockByNonce(common.Proto, 0)
+	ret, err := nf.GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1068,13 +1068,13 @@ func TestNodeFacade_GetInternalMetaBlockByRoundShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalMetaBlockByRound(common.Proto, 0)
+	ret, err := nf.GetInternalMetaBlockByRound(common.ApiOutputFormatProto, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1090,13 +1090,13 @@ func TestNodeFacade_GetInternalMetaBlockByHashShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalMetaBlockByHash(common.Proto, "dummyhash")
+	ret, err := nf.GetInternalMetaBlockByHash(common.ApiOutputFormatProto, "dummyhash")
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1114,13 +1114,13 @@ func TestNodeFacade_GetInternalShardBlockByNonceShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalShardBlockByNonce(common.Proto, 0)
+	ret, err := nf.GetInternalShardBlockByNonce(common.ApiOutputFormatProto, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1136,13 +1136,13 @@ func TestNodeFacade_GetInternalShardBlockByRoundShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalShardBlockByRound(common.Proto, 0)
+	ret, err := nf.GetInternalShardBlockByRound(common.ApiOutputFormatProto, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1158,13 +1158,13 @@ func TestNodeFacade_GetInternalShardBlockByHashShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalShardBlockByHash(common.Proto, "dummyhash")
+	ret, err := nf.GetInternalShardBlockByHash(common.ApiOutputFormatProto, "dummyhash")
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
@@ -1180,13 +1180,13 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 	}
 
 	arg.Node = &mock.NodeStub{
-		GetInternalMiniBlockCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalMiniBlockByHash(common.Proto, "dummyhash")
+	ret, err := nf.GetInternalMiniBlockByHash(common.ApiOutputFormatProto, "dummyhash")
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)

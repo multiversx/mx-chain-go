@@ -383,37 +383,37 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash
-func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	return nf.node.GetInternalMetaBlockByHash(format, hash)
 }
 
 // GetInternalMetaBlockByNonce returns the meta block for a given nonce
-func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	return nf.node.GetInternalMetaBlockByNonce(format, nonce)
 }
 
 // GetInternalMetaBlockByRound returns the meta block for a given round
-func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	return nf.node.GetInternalMetaBlockByRound(format, round)
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash
-func (nf *nodeFacade) GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+func (nf *nodeFacade) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	return nf.node.GetInternalShardBlockByHash(format, hash)
 }
 
 // GetInternalShardBlockByNonce returns the shard block for a given nonce
-func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	return nf.node.GetInternalShardBlockByNonce(format, nonce)
 }
 
 // GetInternalShardBlockByRound returns the shard block for a given round
-func (nf *nodeFacade) GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	return nf.node.GetInternalShardBlockByRound(format, round)
 }
 
 // GetInternalMiniBlock return the miniblock for a given hash
-func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.OutportFormat, txHash string) (interface{}, error) {
+func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string) (interface{}, error) {
 	return nf.node.GetInternalMiniBlock(format, txHash)
 }
 

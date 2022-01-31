@@ -8,7 +8,7 @@ import (
 )
 
 // GetInternalMetaBlockByHash wil return a meta block by hash
-func (n *Node) GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+func (n *Node) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
@@ -22,7 +22,7 @@ func (n *Node) GetInternalMetaBlockByHash(format common.OutportFormat, hash stri
 }
 
 // GetInternalMetaBlockByNonce wil return a meta block by nonce
-func (n *Node) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+func (n *Node) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
@@ -31,7 +31,7 @@ func (n *Node) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce ui
 }
 
 // GetInternalMetaBlockByRound wil return a meta block by round
-func (n *Node) GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+func (n *Node) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
@@ -40,7 +40,7 @@ func (n *Node) GetInternalMetaBlockByRound(format common.OutportFormat, round ui
 }
 
 // GetInternalShardBlockByHash wil return a shard block by hash
-func (n *Node) GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+func (n *Node) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	if n.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		return nil, ErrShardOnlyEndpoint
 	}
@@ -54,7 +54,7 @@ func (n *Node) GetInternalShardBlockByHash(format common.OutportFormat, hash str
 }
 
 // GetInternalShardBlockByNonce wil return a shard block by nonce
-func (n *Node) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+func (n *Node) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	if n.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		return nil, ErrShardOnlyEndpoint
 	}
@@ -63,7 +63,7 @@ func (n *Node) GetInternalShardBlockByNonce(format common.OutportFormat, nonce u
 }
 
 // GetInternalShardBlockByRound wil return a shard block by round
-func (n *Node) GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+func (n *Node) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	if n.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		return nil, ErrShardOnlyEndpoint
 	}

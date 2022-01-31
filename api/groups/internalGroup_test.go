@@ -92,7 +92,7 @@ func TestGetRawMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -115,7 +115,7 @@ func TestGetRawMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -141,7 +141,7 @@ func TestGetRawMetaBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -168,7 +168,7 @@ func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -195,7 +195,7 @@ func TestGetRawMetaBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -218,7 +218,7 @@ func TestGetRawMetaBlockByRound_InvalidRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -244,7 +244,7 @@ func TestGetRawMetaBlockByRound_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -271,7 +271,7 @@ func TestGetRawMetaBlockByRound_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -298,7 +298,7 @@ func TestGetRawMetaBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -322,7 +322,7 @@ func TestGetRawMetaBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -349,7 +349,7 @@ func TestGetRawMetaBlockByHash_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -376,7 +376,7 @@ func TestGetRawShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -399,7 +399,7 @@ func TestGetRawShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -424,7 +424,7 @@ func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -451,7 +451,7 @@ func TestGetRawShardBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -474,7 +474,7 @@ func TestGetRawShardBlockByRound_InvalidRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -500,7 +500,7 @@ func TestGetRawShardBlockByRound_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -527,7 +527,7 @@ func TestGetRawShardBlockByRound_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -554,7 +554,7 @@ func TestGetRawShardBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -578,7 +578,7 @@ func TestGetRawShardBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -605,7 +605,7 @@ func TestGetRawShardBlockByHash_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -615,7 +615,7 @@ func TestGetRawShardBlockByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-hash/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -632,7 +632,7 @@ func TestGetRawMiniBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -657,7 +657,7 @@ func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -686,7 +686,7 @@ func TestGetInternalMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -709,7 +709,7 @@ func TestGetInternalMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -735,7 +735,7 @@ func TestGetInternalMetaBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -765,7 +765,7 @@ func TestGetInternalMetaBlockByNonce_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -792,7 +792,7 @@ func TestGetInternalMetaBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -815,7 +815,7 @@ func TestGetInternalMetaBlockByRound_InvalidRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -841,7 +841,7 @@ func TestGetInternalMetaBlockByRound_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -871,7 +871,7 @@ func TestGetInternalMetaBlockByRound_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -898,7 +898,7 @@ func TestGetInternalMetaBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -922,7 +922,7 @@ func TestGetInternalMetaBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -952,7 +952,7 @@ func TestGetInternalMetaBlockByHash_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -962,7 +962,7 @@ func TestGetInternalMetaBlockByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-hash/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -979,7 +979,7 @@ func TestGetInternalShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1002,7 +1002,7 @@ func TestGetInternalShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1030,7 +1030,7 @@ func TestGetInternalShardBlockByNonce_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -1057,7 +1057,7 @@ func TestGetInternalShardBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1080,7 +1080,7 @@ func TestGetInternalShardBlockByRound_InvalidRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1106,7 +1106,7 @@ func TestGetInternalShardBlockByRound_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -1136,7 +1136,7 @@ func TestGetInternalShardBlockByRound_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.OutportFormat, _ uint64) (interface{}, error) {
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -1163,7 +1163,7 @@ func TestGetInternalShardBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1187,7 +1187,7 @@ func TestGetInternalShardBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return nil, expectedErr
 		},
 	}
@@ -1217,7 +1217,7 @@ func TestGetInternalShardBlockByHash_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -1227,7 +1227,7 @@ func TestGetInternalShardBlockByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-hash/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -1244,7 +1244,7 @@ func TestGetInternalMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T)
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1269,7 +1269,7 @@ func TestGetInternalMiniBlockByHash_ShouldWork(t *testing.T) {
 	expectedOutput := block.MiniBlock{}
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.OutportFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
