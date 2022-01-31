@@ -129,7 +129,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestMakeNonNilProperties(t *testing.T) {
+func TestMakePropertiesNotNil(t *testing.T) {
 	t.Parallel()
 
 	t.Run("supply is nil", func(t *testing.T) {
@@ -145,7 +145,7 @@ func TestMakeNonNilProperties(t *testing.T) {
 			Burned: big.NewInt(1),
 			Minted: big.NewInt(2),
 		}
-		makeNonNilProperties(&provided)
+		makePropertiesNotNil(&provided)
 		assert.Equal(t, expected, provided)
 	})
 	t.Run("burned is nil", func(t *testing.T) {
@@ -161,7 +161,7 @@ func TestMakeNonNilProperties(t *testing.T) {
 			Burned: big.NewInt(0),
 			Minted: big.NewInt(2),
 		}
-		makeNonNilProperties(&provided)
+		makePropertiesNotNil(&provided)
 		assert.Equal(t, expected, provided)
 	})
 	t.Run("minted is nil", func(t *testing.T) {
@@ -177,7 +177,7 @@ func TestMakeNonNilProperties(t *testing.T) {
 			Burned: big.NewInt(2),
 			Minted: big.NewInt(0),
 		}
-		makeNonNilProperties(&provided)
+		makePropertiesNotNil(&provided)
 		assert.Equal(t, expected, provided)
 	})
 	t.Run("all are nil", func(t *testing.T) {
@@ -189,7 +189,7 @@ func TestMakeNonNilProperties(t *testing.T) {
 			Burned: big.NewInt(0),
 			Minted: big.NewInt(0),
 		}
-		makeNonNilProperties(&provided)
+		makePropertiesNotNil(&provided)
 		assert.Equal(t, expected, provided)
 	})
 	t.Run("none is nil", func(t *testing.T) {
@@ -205,7 +205,7 @@ func TestMakeNonNilProperties(t *testing.T) {
 			Burned: big.NewInt(2),
 			Minted: big.NewInt(3),
 		}
-		makeNonNilProperties(&provided)
+		makePropertiesNotNil(&provided)
 		assert.Equal(t, expected, provided)
 	})
 
