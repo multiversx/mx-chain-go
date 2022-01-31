@@ -66,7 +66,7 @@ func (ihgs *indexHashedNodesCoordinator) removeOldEpochs(epoch uint32) {
 	if len(ihgs.nodesConfig) >= nodesCoordinatorStoredEpochs {
 		for currEpoch := range ihgs.nodesConfig {
 			if currEpoch <= uint32(epoch-nodesCoordinatorStoredEpochs) {
-				delete(ihgs.nodesConfig, epoch)
+				delete(ihgs.nodesConfig, currEpoch)
 			}
 		}
 	}
