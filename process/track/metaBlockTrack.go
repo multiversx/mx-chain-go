@@ -65,13 +65,13 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
 	selfMetaBlocksInfo := make([]*HeaderInfo, 0)
 
-	header, ok := headerHandler.(*block.Header)
+	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		log.Debug("GetSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfMetaBlocksInfo
 	}
 
-	for _, metaBlockHash := range header.MetaBlockHashes {
+	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		metaBlock, err := process.GetMetaHeader(metaBlockHash, mbt.headersPool, mbt.marshalizer, mbt.store)
 		if err != nil {
 			log.Trace("GetSelfHeaders.GetMetaHeader", "error", err.Error())

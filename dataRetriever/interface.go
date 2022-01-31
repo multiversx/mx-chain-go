@@ -43,6 +43,8 @@ func (ut UnitType) String() string {
 		return "ReceiptsUnit"
 	case TrieEpochRootHashUnit:
 		return "TrieEpochRootHashUnit"
+	case ScheduledSCRsUnit:
+		return "ScheduledSCRsUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
@@ -101,6 +103,8 @@ const (
 	PeerAccountsUnit UnitType = 22
 	// PeerAccountsCheckpointsUnit is the peer accounts checkpoints storage unit identifier
 	PeerAccountsCheckpointsUnit UnitType = 23
+	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
+	ScheduledSCRsUnit UnitType = 24
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
