@@ -110,7 +110,11 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)
-	require.Equal(t, &SupplyESDT{
+	expectedESDTSupply := &SupplyESDT{
 		Supply: big.NewInt(123456),
-	}, res)
+		Burned: big.NewInt(0),
+		Minted: big.NewInt(0),
+	}
+
+	require.Equal(t, expectedESDTSupply, res)
 }
