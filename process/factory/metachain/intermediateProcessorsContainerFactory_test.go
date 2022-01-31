@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -37,7 +38,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -71,7 +72,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -88,7 +89,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		nil,
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -105,7 +106,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) 
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		nil,
@@ -122,7 +123,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *tes
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -139,7 +140,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),
@@ -157,7 +158,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dataRetrieverMock.NewPoolsHolderMock(),

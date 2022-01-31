@@ -9,13 +9,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,10 +84,10 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	}
 
 	startRound, lastRound := uint64(5), int64(10)
-	state := &shardchain.TriggerRegistry{
+	state := &block.ShardTriggerRegistry{
 		EpochStartRound: startRound,
 	}
-	storer := &testscommon.StorerStub{
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
@@ -135,10 +135,10 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 	key := []byte("123")
 	shardID := uint32(0)
 	startRound := uint64(100)
-	state := &shardchain.TriggerRegistry{
+	state := &block.ShardTriggerRegistry{
 		EpochStartRound: startRound,
 	}
-	storer := &testscommon.StorerStub{
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
@@ -159,12 +159,13 @@ func TestLoadEpochStartRoundMetachain(t *testing.T) {
 	key := []byte("123")
 	shardID := core.MetachainShardId
 	startRound := uint64(1000)
-	state := &metachain.TriggerRegistry{
+	state := &block.MetaTriggerRegistry{
 		CurrEpochStartRound: startRound,
 	}
-	storer := &testscommon.StorerStub{
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
@@ -200,9 +201,9 @@ func TestLatestDataProvider_ShouldWork(t *testing.T) {
 		LastRound:              1,
 	}
 
-	storerStub := &testscommon.StorerStub{
+	storerStub := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return json.Marshal(&shardchain.TriggerRegistry{
+			return json.Marshal(&block.ShardTriggerRegistry{
 				EpochStartRound: 1,
 			})
 		},
@@ -278,12 +279,14 @@ func TestFullHistoryLatestDataProvider_Get(t *testing.T) {
 	}
 
 	startRound, lastRound := uint64(5), int64(10)
-	state := &shardchain.TriggerRegistry{
-		EpochStartRound: startRound,
+	state := &block.ShardTriggerRegistry{
+		EpochStartRound:       startRound,
+		EpochStartShardHeader: &block.Header{},
 	}
-	storer := &testscommon.StorerStub{
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
@@ -318,12 +321,14 @@ func TestFullHistoryLoadEpochStartRoundShard(t *testing.T) {
 	key := []byte("123")
 	shardID := uint32(0)
 	startRound := uint64(100)
-	state := &shardchain.TriggerRegistry{
-		EpochStartRound: startRound,
+	state := &block.ShardTriggerRegistry{
+		EpochStartRound:       startRound,
+		EpochStartShardHeader: &block.Header{},
 	}
-	storer := &testscommon.StorerStub{
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
@@ -342,12 +347,14 @@ func TestFullHistoryLoadEpochStartRoundMetachain(t *testing.T) {
 	key := []byte("123")
 	shardID := core.MetachainShardId
 	startRound := uint64(1000)
-	state := &metachain.TriggerRegistry{
+	state := &block.MetaTriggerRegistry{
 		CurrEpochStartRound: startRound,
 	}
-	storer := &testscommon.StorerStub{
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
+			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
 	}
