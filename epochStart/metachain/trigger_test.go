@@ -332,7 +332,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 		Epoch: epoch,
 	}
 
-	prevHash, _ := core.CalculateHash(epochStartTrigger.marshalizer, epochStartTrigger.hasher, prevMetaHdr)
+	prevHash, _ := core.CalculateHash(epochStartTrigger.marshaller, epochStartTrigger.hasher, prevMetaHdr)
 	metaHdr := &block.MetaBlock{
 		Round:    round,
 		Epoch:    epoch + 1,
