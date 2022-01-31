@@ -33,7 +33,7 @@ func TestNewConnectionsWatcher(t *testing.T) {
 		t.Parallel()
 
 		cw, err := NewConnectionsWatcher("unknown", time.Second)
-		assert.True(t, errors.Is(err, errUnkownConnectionWatcherType))
+		assert.True(t, errors.Is(err, errUnknownConnectionWatcherType))
 		assert.True(t, check.IfNil(cw))
 	})
 }

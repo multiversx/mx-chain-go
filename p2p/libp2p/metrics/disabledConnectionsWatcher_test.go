@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledConnectionsWatcher_MethodsShouldNoptPanic(t *testing.T) {
+func TestDisabledConnectionsWatcher_MethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {

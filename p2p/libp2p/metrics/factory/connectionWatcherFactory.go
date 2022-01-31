@@ -19,6 +19,6 @@ func NewConnectionsWatcher(connectionsWatcherType string, timeToLive time.Durati
 	case disabledConnectionsWatcher:
 		return metrics.NewDisabledConnectionsWatcher(), nil
 	default:
-		return nil, fmt.Errorf("%w %s", errUnkownConnectionWatcherType, connectionsWatcherType)
+		return nil, fmt.Errorf("%w %s", errUnknownConnectionWatcherType, connectionsWatcherType)
 	}
 }

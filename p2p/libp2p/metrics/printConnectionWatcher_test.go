@@ -14,12 +14,12 @@ import (
 func TestNewPrintConnectionsWatcher(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid time to live should error", func(t *testing.T) {
+	t.Run("invalid value for time to live parameter should error", func(t *testing.T) {
 		t.Parallel()
 
 		pcw, err := NewPrintConnectionsWatcher(minTimeToLive - time.Nanosecond)
 		assert.True(t, check.IfNil(pcw))
-		assert.True(t, errors.Is(err, errInvalidTimeToLive))
+		assert.True(t, errors.Is(err, errInvalidValueForTimeToLiveParam))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

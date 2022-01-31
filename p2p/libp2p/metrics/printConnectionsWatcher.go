@@ -28,7 +28,7 @@ type printConnectionsWatcher struct {
 // NewPrintConnectionsWatcher creates a new
 func NewPrintConnectionsWatcher(timeToLive time.Duration) (*printConnectionsWatcher, error) {
 	if timeToLive < minTimeToLive {
-		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", errInvalidTimeToLive, timeToLive, minTimeToLive)
+		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", errInvalidValueForTimeToLiveParam, timeToLive, minTimeToLive)
 	}
 
 	pcw := &printConnectionsWatcher{

@@ -2,4 +2,4 @@ package metrics
 
 import "errors"
 
-var errInvalidTimeToLive = errors.New("invalid time to live")
+var errInvalidValueForTimeToLiveParam = errors.New("invalid value for the time-to-live parameter")

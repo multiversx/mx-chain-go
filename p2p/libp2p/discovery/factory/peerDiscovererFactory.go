@@ -17,7 +17,7 @@ const defaultSeedersReconnectionInterval = time.Minute * 5
 
 var log = logger.GetOrCreate("p2p/discovery/factory")
 
-// ArgsPeerDiscoverer is the DTO struct
+// ArgsPeerDiscoverer is the DTO struct used in the NewPeerDiscoverer function
 type ArgsPeerDiscoverer struct {
 	Context            context.Context
 	Host               discovery.ConnectableHost

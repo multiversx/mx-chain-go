@@ -12,7 +12,7 @@ import (
 // NewPrintConnectionsWatcherWithHandler -
 func NewPrintConnectionsWatcherWithHandler(timeToLive time.Duration, handler func(pid core.PeerID, connection string)) (*printConnectionsWatcher, error) {
 	if timeToLive < minTimeToLive {
-		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", errInvalidTimeToLive, timeToLive, minTimeToLive)
+		return nil, fmt.Errorf("%w in NewPrintConnectionsWatcher, got: %d, minimum: %d", errInvalidValueForTimeToLiveParam, timeToLive, minTimeToLive)
 	}
 
 	pcw := &printConnectionsWatcher{
