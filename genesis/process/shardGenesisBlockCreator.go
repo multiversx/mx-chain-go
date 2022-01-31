@@ -111,6 +111,7 @@ func createGenesisConfig() config.EnableEpochs {
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 	}
 }
 
@@ -242,7 +243,11 @@ func createShardGenesisBlockAfterHardFork(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	hdrHandler.SetTimeStamp(arg.GenesisTime)
+
+	err = hdrHandler.SetTimeStamp(arg.GenesisTime)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
@@ -532,6 +537,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -554,6 +560,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		enableEpochs.FrontRunningProtectionEnableEpoch,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		disabledScheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -581,6 +590,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          arg.TxLogsProcessor,
+		EpochNotifier:                     epochNotifier,
+		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

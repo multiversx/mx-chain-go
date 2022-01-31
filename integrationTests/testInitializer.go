@@ -61,6 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
@@ -74,7 +75,7 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Second / 10
+var StepDelay = time.Millisecond * 180
 
 // SyncDelay is used so that nodes have enough time to sync
 var SyncDelay = time.Second / 5
@@ -348,6 +349,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -391,7 +393,7 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -424,7 +426,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -763,7 +765,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
-) data.HeaderHandler {
+) data.MetaHeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
@@ -1068,7 +1070,7 @@ func CreateNewDefaultTrie() common.Trie {
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -1298,16 +1300,11 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 
 // CreateHeaderIntegrityVerifier outputs a valid header integrity verifier handler
 func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	hvh := &testscommon.HeaderVersionHandlerStub{}
+
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "*",
-			},
-		},
-		"default",
-		testscommon.NewCacherMock(),
+		hvh,
 	)
 
 	return headerVersioning

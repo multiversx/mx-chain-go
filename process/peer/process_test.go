@@ -22,9 +22,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,7 +93,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -114,7 +115,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxComputableRounds:                  1000,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
-		EpochNotifier:                        &mock.EpochNotifierStub{},
+		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
 		StakingV2EnableEpoch:                 5,
 		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 1500,
 	}
@@ -523,7 +524,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, getHeaderError
 				},
@@ -579,7 +580,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
@@ -1251,7 +1252,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},

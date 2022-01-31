@@ -23,20 +23,20 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 	}
 
 	base := &storageBootstrapper{
-		bootStorer:        arguments.BootStorer,
-		forkDetector:      arguments.ForkDetector,
-		blkExecutor:       arguments.BlockProcessor,
-		blkc:              arguments.ChainHandler,
-		marshalizer:       arguments.Marshalizer,
-		store:             arguments.Store,
-		shardCoordinator:  arguments.ShardCoordinator,
-		nodesCoordinator:  arguments.NodesCoordinator,
-		epochStartTrigger: arguments.EpochStartTrigger,
-		blockTracker:      arguments.BlockTracker,
-
-		uint64Converter:     arguments.Uint64Converter,
-		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
-		chainID:             arguments.ChainID,
+		bootStorer:                   arguments.BootStorer,
+		forkDetector:                 arguments.ForkDetector,
+		blkExecutor:                  arguments.BlockProcessor,
+		blkc:                         arguments.ChainHandler,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		blockTracker:                 arguments.BlockTracker,
+		uint64Converter:              arguments.Uint64Converter,
+		bootstrapRoundIndex:          arguments.BootstrapRoundIndex,
+		chainID:                      arguments.ChainID,
+		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -102,7 +102,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 		return
 	}
 
-	for _, metaBlockHash := range shardHeader.MetaBlockHashes {
+	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
 		var metaBlock *block.MetaBlock
 		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
@@ -168,6 +168,17 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 }
 
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStorage.PendingMiniBlocksInfo) {
+}
+
+func (ssb *shardStorageBootstrapper) getRootHash(shardHeaderHash []byte) []byte {
+	shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, ssb.marshalizer, ssb.store)
+	if err != nil {
+		log.Debug("shard header is not found in BlockHeaderUnit storage",
+			"hash", shardHeaderHash)
+		return nil
+	}
+
+	return shardHeader.GetRootHash()
 }
 
 func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {

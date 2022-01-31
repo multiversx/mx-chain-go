@@ -49,6 +49,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
@@ -61,6 +62,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			pcf.smartContractParser,
 			txSimulatorProcessorArgs,
 			arwenChangeLocker,
+			scheduledTxsExecutionHandler,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -75,6 +77,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			pendingMiniBlocksHandler,
 			txSimulatorProcessorArgs,
 			arwenChangeLocker,
+			scheduledTxsExecutionHandler,
 		)
 	}
 
@@ -84,13 +87,14 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 func (pcf *processComponentsFactory) newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
-	epochStartTrigger epochStart.TriggerHandler,
+	epochStartTrigger process.EpochStartTriggerHandler,
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	smartContractParser genesis.InitialSmartContractParser,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -256,6 +260,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
+	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
+
 	vmContainerTxSimulator, err := pcf.createShardTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, argsNewTxProcessor, esdtTransferParser, arwenChangeLocker, mapDNSAddresses)
 	if err != nil {
 		return nil, nil, err
@@ -304,6 +310,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		enableEpochs.FrontRunningProtectionEnableEpoch,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -331,41 +340,48 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: pcf.epochConfig.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          pcf.txLogsProcessor,
+		EpochNotifier:                     pcf.epochNotifier,
+		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		CoreComponents:      pcf.coreData,
-		DataComponents:      pcf.data,
-		BootstrapComponents: pcf.bootstrapComponents,
-		StatusComponents:    pcf.statusComponents,
-		Config:              pcf.config,
-		Version:             pcf.version,
-		AccountsDB:          accountsDb,
-		ForkDetector:        forkDetector,
-		NodesCoordinator:    pcf.nodesCoordinator,
-		RequestHandler:      requestHandler,
-		BlockChainHook:      vmFactory.BlockChainHookImpl(),
-		TxCoordinator:       txCoordinator,
-		EpochStartTrigger:   epochStartTrigger,
-		HeaderValidator:     headerValidator,
-		BootStorer:          bootStorer,
-		BlockTracker:        blockTracker,
-		FeeHandler:          txFeeHandler,
-		BlockSizeThrottler:  blockSizeThrottler,
-		HistoryRepository:   pcf.historyRepo,
-		EpochNotifier:       pcf.epochNotifier,
-		RoundNotifier:       pcf.coreData.RoundNotifier(),
-		VMContainersFactory: vmFactory,
-		VmContainer:         vmContainer,
-		GasHandler:          gasHandler,
+		CoreComponents:                 pcf.coreData,
+		DataComponents:                 pcf.data,
+		BootstrapComponents:            pcf.bootstrapComponents,
+		StatusComponents:               pcf.statusComponents,
+		Config:                         pcf.config,
+		Version:                        pcf.version,
+		AccountsDB:                     accountsDb,
+		ForkDetector:                   forkDetector,
+		NodesCoordinator:               pcf.nodesCoordinator,
+		RequestHandler:                 requestHandler,
+		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                  txCoordinator,
+		EpochStartTrigger:              epochStartTrigger,
+		HeaderValidator:                headerValidator,
+		BootStorer:                     bootStorer,
+		BlockTracker:                   blockTracker,
+		FeeHandler:                     txFeeHandler,
+		BlockSizeThrottler:             blockSizeThrottler,
+		HistoryRepository:              pcf.historyRepo,
+		EpochNotifier:                  pcf.epochNotifier,
+		RoundNotifier:                  pcf.coreData.RoundNotifier(),
+		VMContainersFactory:            vmFactory,
+		VmContainer:                    vmContainer,
+		GasHandler:                     gasHandler,
+		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -383,13 +399,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	epochStartTrigger epochStart.TriggerHandler,
+	epochStartTrigger process.EpochStartTriggerHandler,
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	builtInFuncs, nftStorageHandler, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -519,6 +536,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
+	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
+
 	vmFactoryTxSimulator, err := pcf.createMetaTxSimulatorProcessor(txSimulatorProcessorArgs, argsNewScProcessor, txTypeHandler)
 	if err != nil {
 		return nil, nil, err
@@ -562,6 +581,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		enableEpochs.FrontRunningProtectionEnableEpoch,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -589,11 +611,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          pcf.txLogsProcessor,
+		EpochNotifier:                     pcf.epochNotifier,
+		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
 		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
@@ -703,30 +730,32 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		CoreComponents:      pcf.coreData,
-		DataComponents:      pcf.data,
-		BootstrapComponents: pcf.bootstrapComponents,
-		StatusComponents:    pcf.statusComponents,
-		Config:              pcf.config,
-		Version:             pcf.version,
-		AccountsDB:          accountsDb,
-		ForkDetector:        forkDetector,
-		NodesCoordinator:    pcf.nodesCoordinator,
-		RequestHandler:      requestHandler,
-		BlockChainHook:      vmFactory.BlockChainHookImpl(),
-		TxCoordinator:       txCoordinator,
-		EpochStartTrigger:   epochStartTrigger,
-		HeaderValidator:     headerValidator,
-		BootStorer:          bootStorer,
-		BlockTracker:        blockTracker,
-		FeeHandler:          txFeeHandler,
-		BlockSizeThrottler:  blockSizeThrottler,
-		HistoryRepository:   pcf.historyRepo,
-		EpochNotifier:       pcf.epochNotifier,
-		RoundNotifier:       pcf.coreData.RoundNotifier(),
-		VMContainersFactory: vmFactory,
-		VmContainer:         vmContainer,
-		GasHandler:          gasHandler,
+		CoreComponents:                 pcf.coreData,
+		DataComponents:                 pcf.data,
+		BootstrapComponents:            pcf.bootstrapComponents,
+		StatusComponents:               pcf.statusComponents,
+		Config:                         pcf.config,
+		Version:                        pcf.version,
+		AccountsDB:                     accountsDb,
+		ForkDetector:                   forkDetector,
+		NodesCoordinator:               pcf.nodesCoordinator,
+		RequestHandler:                 requestHandler,
+		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                  txCoordinator,
+		EpochStartTrigger:              epochStartTrigger,
+		HeaderValidator:                headerValidator,
+		BootStorer:                     bootStorer,
+		BlockTracker:                   blockTracker,
+		FeeHandler:                     txFeeHandler,
+		BlockSizeThrottler:             blockSizeThrottler,
+		HistoryRepository:              pcf.historyRepo,
+		EpochNotifier:                  pcf.epochNotifier,
+		RoundNotifier:                  pcf.coreData.RoundNotifier(),
+		VMContainersFactory:            vmFactory,
+		VmContainer:                    vmContainer,
+		GasHandler:                     gasHandler,
+		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

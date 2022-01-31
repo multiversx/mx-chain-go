@@ -46,7 +46,7 @@ func CreateMetaGenesisBlock(
 	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
+) (data.MetaHeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
@@ -123,7 +123,11 @@ func CreateMetaGenesisBlock(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	header.SetValidatorStatsRootHash(validatorRootHash)
+
+	err = header.SetValidatorStatsRootHash(validatorRootHash)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), header)
 	if err != nil {
@@ -143,7 +147,7 @@ func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
+) (data.MetaHeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
 		return nil, nil, nil, update.ErrNilHardForkBlockProcessor
 	}
@@ -158,7 +162,11 @@ func createMetaGenesisBlockAfterHardFork(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	hdrHandler.SetTimeStamp(arg.GenesisTime)
+
+	err = hdrHandler.SetTimeStamp(arg.GenesisTime)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
@@ -421,6 +429,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -441,6 +450,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		enableEpochs.FrontRunningProtectionEnableEpoch,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		disabledScheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -468,6 +480,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          arg.TxLogsProcessor,
+		EpochNotifier:                     epochNotifier,
+		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

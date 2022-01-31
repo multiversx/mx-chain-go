@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -39,12 +38,12 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 		return nil
 	}
 
-	gb, ok := genesisBlock.(*block.Header)
+	gb, ok := genesisBlock.(data.ShardHeaderHandler)
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
 	bc.mut.Lock()
-	bc.genesisHeader = gb.Clone()
+	bc.genesisHeader = gb.ShallowClone()
 	bc.mut.Unlock()
 
 	return nil
@@ -60,24 +59,19 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 		return nil
 	}
 
-	h, ok := header.(*block.Header)
+	h, ok := header.(data.ShardHeaderHandler)
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
 
-	bc.appStatusHandler.SetUInt64Value(common.MetricNonce, h.Nonce)
-	bc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, h.Round)
+	bc.appStatusHandler.SetUInt64Value(common.MetricNonce, h.GetNonce())
+	bc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, h.GetRound())
 
 	bc.mut.Lock()
-	bc.currentBlockHeader = h.Clone()
+	bc.currentBlockHeader = h.ShallowClone()
 	bc.mut.Unlock()
 
 	return nil
-}
-
-// CreateNewHeader creates a new header
-func (bc *blockChain) CreateNewHeader() data.HeaderHandler {
-	return &block.Header{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

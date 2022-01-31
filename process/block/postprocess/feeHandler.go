@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -33,11 +34,18 @@ func NewFeeAccumulator() (*feeHandler, error) {
 }
 
 // CreateBlockStarted does the cleanup before creating a new block
-func (f *feeHandler) CreateBlockStarted() {
+func (f *feeHandler) CreateBlockStarted(gasAndFees scheduled.GasAndFees) {
 	f.mut.Lock()
 	f.mapHashFee = make(map[string]*feeData)
 	f.accumulatedFees = big.NewInt(0)
+	if gasAndFees.AccumulatedFees != nil {
+		f.accumulatedFees = big.NewInt(0).Set(gasAndFees.AccumulatedFees)
+	}
+
 	f.developerFees = big.NewInt(0)
+	if gasAndFees.DeveloperFees != nil {
+		f.developerFees = big.NewInt(0).Set(gasAndFees.DeveloperFees)
+	}
 	f.mut.Unlock()
 }
 
