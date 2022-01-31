@@ -5,13 +5,16 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -50,6 +53,16 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		NilCompiledSCStore: true,
 	}
 	return arguments
+}
+
+func createContractCallInput(function string, sender, receiver []byte) *vmcommon.ContractCallInput {
+	return &vmcommon.ContractCallInput{
+		Function:      function,
+		RecipientAddr: receiver,
+		VMInput: vmcommon.VMInput{
+			CallerAddr: sender,
+		},
+	}
 }
 
 func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
@@ -599,36 +612,54 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpochExpectError(t *testing.T) {
 func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(37)
-	round := uint64(5)
-	timestamp := uint64(1234)
-	randSeed := []byte("a")
-	rootHash := []byte("b")
-	epoch := uint32(7)
-	hdrToRet := &block.Header{
-		Nonce:     nonce,
-		Round:     round,
-		TimeStamp: timestamp,
-		RandSeed:  randSeed,
-		RootHash:  rootHash,
-		Epoch:     epoch,
-	}
+	t.Run("nil header, expect default values", func(t *testing.T) {
+		args := createMockBlockChainHookArgs()
+		args.BlockChain = &mock.BlockChainStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}
 
-	args := createMockBlockChainHookArgs()
-	args.BlockChain = &mock.BlockChainStub{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return hdrToRet
-		},
-	}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		assert.Equal(t, uint64(0), bh.LastNonce())
+		assert.Equal(t, uint64(0), bh.LastRound())
+		assert.Equal(t, uint64(0), bh.LastTimeStamp())
+		assert.Equal(t, uint32(0), bh.LastEpoch())
+		assert.Equal(t, []byte{}, bh.LastRandomSeed())
+		assert.Equal(t, []byte{}, bh.GetStateRootHash())
+	})
 
-	bh, _ := hooks.NewBlockChainHookImpl(args)
+	t.Run("custom header, expect correct values are returned", func(t *testing.T) {
+		nonce := uint64(37)
+		round := uint64(5)
+		timestamp := uint64(1234)
+		randSeed := []byte("a")
+		rootHash := []byte("b")
+		epoch := uint32(7)
+		hdrToRet := &block.Header{
+			Nonce:     nonce,
+			Round:     round,
+			TimeStamp: timestamp,
+			RandSeed:  randSeed,
+			RootHash:  rootHash,
+			Epoch:     epoch,
+		}
 
-	assert.Equal(t, nonce, bh.LastNonce())
-	assert.Equal(t, round, bh.LastRound())
-	assert.Equal(t, timestamp, bh.LastTimeStamp())
-	assert.Equal(t, epoch, bh.LastEpoch())
-	assert.Equal(t, randSeed, bh.LastRandomSeed())
-	assert.Equal(t, rootHash, bh.GetStateRootHash())
+		args := createMockBlockChainHookArgs()
+		args.BlockChain = &mock.BlockChainStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return hdrToRet
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		assert.Equal(t, nonce, bh.LastNonce())
+		assert.Equal(t, round, bh.LastRound())
+		assert.Equal(t, timestamp, bh.LastTimeStamp())
+		assert.Equal(t, epoch, bh.LastEpoch())
+		assert.Equal(t, randSeed, bh.LastRandomSeed())
+		assert.Equal(t, rootHash, bh.GetStateRootHash())
+	})
 }
 
 func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
@@ -729,30 +760,345 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
-	args := createMockBlockChainHookArgs()
-
-	funcName := "func1"
+	funcName := "func"
 	builtInFunctionsContainer := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	_ = builtInFunctionsContainer.Add(funcName, &mock.BuiltInFunctionStub{})
-	args.BuiltInFunctions = builtInFunctionsContainer
 
-	args.Accounts = &stateMock.AccountsStub{
-		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return mock.NewAccountWrapMock([]byte("addr1")), nil
-		},
-		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return mock.NewAccountWrapMock([]byte("addr2")), nil
-		},
-	}
+	addrSender := []byte("addr sender")
+	addrReceiver := []byte("addr receiver")
 
-	bh, _ := hooks.NewBlockChainHookImpl(args)
+	errGetAccount := errors.New("cannot get account")
+	errSaveAccount := errors.New("error saving account")
 
-	input := &vmcommon.ContractCallInput{
-		Function: funcName,
-	}
-	output, err := bh.ProcessBuiltInFunction(input)
-	require.NoError(t, err)
-	require.Equal(t, vmcommon.Ok, output.ReturnCode)
+	t.Run("nil input, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		output, err := bh.ProcessBuiltInFunction(nil)
+		require.Nil(t, output)
+		require.Equal(t, process.ErrNilVmInput, err)
+	})
+
+	t.Run("no function set in built in function container, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		output, err := bh.ProcessBuiltInFunction(&vmcommon.ContractCallInput{})
+		require.Nil(t, output)
+		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), vmcommonBuiltInFunctions.ErrInvalidContainerKey.Error()))
+	})
+
+	t.Run("cannot get sender account, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return nil, errGetAccount
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errGetAccount, err)
+	})
+
+	t.Run("cannot convert sender account to user account, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return &genesisMock.BaseAccountMock{}, nil
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("cannot load destination account, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrReceiver, addressContainer)
+				return nil, errGetAccount
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errGetAccount, err)
+	})
+
+	t.Run("cannot convert destination account to user account, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrReceiver, addressContainer)
+				return &genesisMock.BaseAccountMock{}, nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("cannot process new built in function, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		newFunc := "newFunc"
+		input := createContractCallInput(newFunc, addrSender, addrReceiver)
+
+		errProcessBuiltInFunc := errors.New("error processing builtin func")
+		newBuiltInFunc := &mock.BuiltInFunctionStub{
+			ProcessBuiltinFunctionCalled: func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				require.Equal(t, addrSender, acntSnd.AddressBytes())
+				require.Equal(t, addrReceiver, acntDst.AddressBytes())
+				require.Equal(t, input, vmInput)
+
+				return nil, errProcessBuiltInFunc
+			},
+		}
+		newBuiltInFuncContainer := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
+		_ = newBuiltInFuncContainer.Add(newFunc, newBuiltInFunc)
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = newBuiltInFuncContainer
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrReceiver, addressContainer)
+				return mock.NewAccountWrapMock(addrReceiver), nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		output, err := bh.ProcessBuiltInFunction(input)
+		require.Nil(t, output)
+		require.Equal(t, errProcessBuiltInFunc, err)
+	})
+
+	t.Run("sender and receiver not in same shard, expect they are not saved", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+			ComputeIdCalled: func(address []byte) uint32 {
+				isSender := bytes.Equal(addrSender, address)
+				isReceiver := bytes.Equal(addrReceiver, address)
+				require.True(t, isSender || isReceiver)
+
+				return 0
+			},
+			SelfIDCalled: func() uint32 {
+				return 1
+			},
+		}
+
+		getSenderAccountCalled := &atomic.Flag{}
+		getReceiverAccountCalled := &atomic.Flag{}
+		saveAccountCalled := &atomic.Flag{}
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				getSenderAccountCalled.SetValue(true)
+				return nil, nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				getReceiverAccountCalled.SetValue(true)
+				return nil, nil
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				saveAccountCalled.SetValue(true)
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, err)
+		require.Equal(t, &vmcommon.VMOutput{}, output)
+		require.False(t, getSenderAccountCalled.IsSet())
+		require.False(t, getReceiverAccountCalled.IsSet())
+		require.False(t, saveAccountCalled.IsSet())
+	})
+
+	t.Run("sender and receiver same shard, expect accounts saved", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrReceiver, addressContainer)
+				return mock.NewAccountWrapMock(addrReceiver), nil
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				isSender := bytes.Equal(addrSender, account.AddressBytes())
+				isReceiver := bytes.Equal(addrReceiver, account.AddressBytes())
+
+				require.True(t, isSender || isReceiver)
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, err)
+		require.Equal(t, &vmcommon.VMOutput{}, output)
+	})
+
+	t.Run("sender and receiver same shard, sender = receiver, expect only one account is saved", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		getReceiverAccountCalled := &atomic.Flag{}
+		ctSaveAccount := &atomic.Counter{}
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				getReceiverAccountCalled.SetValue(true)
+				return nil, nil
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				require.Equal(t, addrSender, account.AddressBytes())
+				ctSaveAccount.Increment()
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrSender)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, err)
+		require.Equal(t, &vmcommon.VMOutput{}, output)
+		require.Equal(t, int64(1), ctSaveAccount.Get())
+		require.False(t, getReceiverAccountCalled.IsSet())
+	})
+
+	t.Run("cannot save sender account, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				require.Equal(t, addrSender, account.AddressBytes())
+				return errSaveAccount
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrSender)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errSaveAccount, err)
+	})
+
+	t.Run("cannot save receiver account, expect error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrSender, addressContainer)
+				return mock.NewAccountWrapMock(addrSender), nil
+			},
+
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, addrReceiver, addressContainer)
+				return mock.NewAccountWrapMock(addrReceiver), nil
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				isSender := bytes.Equal(addrSender, account.AddressBytes())
+				isReceiver := bytes.Equal(addrReceiver, account.AddressBytes())
+				require.True(t, isSender || isReceiver)
+
+				if isSender {
+					return nil
+				}
+				return errSaveAccount
+
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errSaveAccount, err)
+	})
 }
 
 func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
