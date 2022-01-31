@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -562,7 +563,7 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 
 func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 	return &factoryMock.ProcessComponentsMock{
-		NodesCoord: &mock.NodesCoordinatorMock{},
+		NodesCoord: &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord: &testscommon.ShardsCoordinatorMock{
 			NoShards:     1,
 			CurrentShard: 0,

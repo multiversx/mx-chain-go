@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 // NewTestProcessorNodeWithStateCheckpointModulus creates a new testNodeProcessor with custom state checkpoint modulus
@@ -47,7 +48,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pkBytes, defaultChancesSelection, 1)
 			return []nodesCoordinator.Validator{v}, nil

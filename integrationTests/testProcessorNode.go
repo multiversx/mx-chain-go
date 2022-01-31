@@ -92,6 +92,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -370,7 +371,7 @@ func newBaseTestProcessorNode(
 			return numNodes
 		},
 	}
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
@@ -569,7 +570,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 	messenger := CreateMessengerWithNoDiscovery()
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
@@ -2819,7 +2820,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 // GetDefaultProcessComponents -
 func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 	return &mock.ProcessComponentsStub{
-		NodesCoord: &mock.NodesCoordinatorMock{},
+		NodesCoord: &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord: &testscommon.ShardsCoordinatorMock{
 			NoShards:     1,
 			CurrentShard: 0,

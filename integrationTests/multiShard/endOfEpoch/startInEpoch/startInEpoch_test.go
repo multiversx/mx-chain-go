@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -274,7 +275,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Uint64Converter:     uint64Converter,
 		BootstrapRoundIndex: round,
 		ShardCoordinator:    shardC,
-		NodesCoordinator:    &mock.NodesCoordinatorMock{},
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
