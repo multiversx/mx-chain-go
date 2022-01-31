@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -613,6 +614,8 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil header, expect default values", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockBlockChainHookArgs()
 		args.BlockChain = &mock.BlockChainStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -630,6 +633,8 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 	})
 
 	t.Run("custom header, expect correct values are returned", func(t *testing.T) {
+		t.Parallel()
+
 		nonce := uint64(37)
 		round := uint64(5)
 		timestamp := uint64(1234)
@@ -688,6 +693,42 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
 	assert.Equal(t, epoch, bh.CurrentEpoch())
 	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
+}
+
+func TestBlockChainHookImpl_SaveNFTMetaDataToSystemAccount(t *testing.T) {
+	t.Parallel()
+
+	expectedTx := &transaction.Transaction{Nonce: 1}
+
+	args := createMockBlockChainHookArgs()
+	args.NFTStorageHandler = &testscommon.SimpleNFTStorageHandlerStub{
+		SaveNFTMetaDataToSystemAccountCalled: func(tx data.TransactionHandler) error {
+			require.Equal(t, expectedTx, tx)
+			return nil
+		},
+	}
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	err := bh.SaveNFTMetaDataToSystemAccount(expectedTx)
+	require.Nil(t, err)
+}
+
+func TestBlockChainHookImpl_GetShardOfAddress(t *testing.T) {
+	t.Parallel()
+
+	expectedAddr := []byte("address")
+	expectedShardID := uint32(444)
+
+	args := createMockBlockChainHookArgs()
+	args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+		ComputeIdCalled: func(address []byte) uint32 {
+			require.Equal(t, expectedAddr, address)
+			return expectedShardID
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	shardID := bh.GetShardOfAddress(expectedAddr)
+	require.Equal(t, expectedShardID, shardID)
 }
 
 func TestBlockChainHookImpl_IsPayableNormalAccount(t *testing.T) {
@@ -755,6 +796,97 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 	isPayable, err := bh.IsPayable(make([]byte, 32), make([]byte, 32))
 	assert.True(t, isPayable)
 	assert.Nil(t, err)
+}
+
+func TestBlockChainHookImpl_IsPayableReceiverIsSystemAccountNotPayable(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	receiver := make([]byte, 32)
+	copy(receiver, core.SystemAccountAddress)
+
+	isPayable, err := bh.IsPayable(make([]byte, 32), receiver)
+	require.False(t, isPayable)
+	require.Nil(t, err)
+}
+
+func TestTestBlockChainHookImpl_IsPayableReceiverIsCrossShardNotPayable(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	receiver := make([]byte, 32)
+	args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+		ComputeIdCalled: func(address []byte) uint32 {
+			require.Equal(t, receiver, address)
+			return 1
+		},
+		SelfIDCalled: func() uint32 {
+			return 0
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	isPayable, err := bh.IsPayable([]byte("sender"), receiver)
+	require.True(t, isPayable)
+	require.Nil(t, err)
+}
+
+func TestTestBlockChainHookImpl_IsPayableReceiverNotFoundNotPayable(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	receiver := make([]byte, 32)
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, addressContainer, receiver)
+			return nil, state.ErrAccNotFound
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	isPayable, err := bh.IsPayable([]byte("sender"), receiver)
+	require.False(t, isPayable)
+	require.Nil(t, err)
+}
+
+func TestTestBlockChainHookImpl_IsPayableErrorGettingReceiverNotPayable(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	receiver := make([]byte, 32)
+	errGetAccount := errors.New("error getting account")
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, addressContainer, receiver)
+			return nil, errGetAccount
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	isPayable, err := bh.IsPayable([]byte("sender"), receiver)
+	require.False(t, isPayable)
+	require.Equal(t, errGetAccount, err)
+}
+
+func TestBlockChainHookImpl_GetBuiltinFunctionNames(t *testing.T) {
+	t.Parallel()
+
+	builtInFunctionContainer := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
+	_ = builtInFunctionContainer.Add("func1", &mock.BuiltInFunctionStub{})
+	_ = builtInFunctionContainer.Add("func2", &mock.BuiltInFunctionStub{})
+
+	args := createMockBlockChainHookArgs()
+	args.BuiltInFunctions = builtInFunctionContainer
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	funcNames := bh.GetBuiltinFunctionNames()
+	expectedFuncNames := vmcommon.FunctionNames{
+		"func1": {},
+		"func2": {},
+	}
+	require.Equal(t, expectedFuncNames, funcNames)
 }
 
 func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
