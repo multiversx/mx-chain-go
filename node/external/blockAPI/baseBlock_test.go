@@ -37,17 +37,8 @@ func createMockArgumentsWithTx(
 			}
 		},
 	}
-	statusComputer, _ := txstatus.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
-	return baseAPIBlockProcessor{
-		selfShardID: srcShardID,
-		marshalizer: marshalizer,
-		store:       storerMock,
-		historyRepo: &dblookupext.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		},
-		unmarshalTx: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+	txUnsmarshaler := &mock.TransactionAPIHandlerStub{
+		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 			var unmarshalledTx transaction.Transaction
 			_ = marshalizer.Unmarshal(&unmarshalledTx, txBytes)
 			return &transaction.ApiTransactionResult{
@@ -62,6 +53,18 @@ func createMockArgumentsWithTx(
 				Data:             []byte{},
 			}, nil
 		},
+	}
+	statusComputer, _ := txstatus.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
+	return baseAPIBlockProcessor{
+		selfShardID: srcShardID,
+		marshalizer: marshalizer,
+		store:       storerMock,
+		historyRepo: &dblookupext.HistoryRepositoryStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		},
+		txUnmarshaller:   txUnsmarshaler,
 		txStatusComputer: statusComputer,
 	}
 }

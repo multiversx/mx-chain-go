@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 )
 
-// TransactionUnmarshalerHandler defines the transaction unmarshaler handler should do
-type TransactionUnmarshalerHandler interface {
+// TransactionUnmarshaller defines what a transaction unmarshaler should do
+type TransactionUnmarshaller interface {
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	IsInterfaceNil() bool
 }

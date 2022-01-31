@@ -35,6 +35,7 @@ type apiTransactionProcessor struct {
 	transactionResultsProcessor *apiTransactionResultsProcessor
 }
 
+// NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
 func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransactionProcessor, error) {
 	err := checkNilArgs(args)
 	if err != nil {
@@ -67,13 +68,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
 // will return the transaction in a format which can be respected by all types of transactions (normal, reward or unsigned)
-func (n *apiTransactionProcessor) GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := n.optionallyGetTransactionFromPool(hash)
+	tx, err := atp.optionallyGetTransactionFromPool(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -81,50 +82,50 @@ func (n *apiTransactionProcessor) GetTransaction(txHash string, withResults bool
 		return tx, nil
 	}
 
-	if n.historyRepository.IsEnabled() {
-		return n.lookupHistoricalTransaction(hash, withResults)
+	if atp.historyRepository.IsEnabled() {
+		return atp.lookupHistoricalTransaction(hash, withResults)
 	}
 
-	return n.getTransactionFromStorage(hash)
+	return atp.getTransactionFromStorage(hash)
 }
 
-func (n *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {
-	txObj, txType, found := n.getTxObjFromDataPool(hash)
+func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {
+	txObj, txType, found := atp.getTxObjFromDataPool(hash)
 	if !found {
 		return nil, nil
 	}
 
-	tx, err := n.castObjToTransaction(txObj, txType)
+	tx, err := atp.castObjToTransaction(txObj, txType)
 	if err != nil {
 		return nil, err
 	}
 
-	tx.SourceShard = n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr())
-	tx.DestinationShard = n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr())
+	tx.SourceShard = atp.shardCoordinator.ComputeId(tx.Tx.GetSndAddr())
+	tx.DestinationShard = atp.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr())
 	tx.Status = transaction.TxStatusPending
 
 	return tx, nil
 }
 
 // computeTimestampForRound will return the timestamp for the given round
-func (n *apiTransactionProcessor) computeTimestampForRound(round uint64) int64 {
+func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64 {
 	if round == 0 {
 		return 0
 	}
 
-	secondsSinceGenesis := round * n.roundDuration
-	timestamp := n.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+	secondsSinceGenesis := round * atp.roundDuration
+	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
 
 	return timestamp.Unix()
 }
 
-func (n *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
+func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
+	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
 
-	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
+	txBytes, txType, found := atp.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot find transaction in storage")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
@@ -137,15 +138,15 @@ func (n *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withR
 		txType = transaction.TxTypeInvalid
 	}
 
-	tx, err := n.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
-	tx.Timestamp = n.computeTimestampForRound(tx.Round)
-	statusComputer, err := txstatus.NewStatusComputer(n.shardCoordinator.SelfId(), n.uint64ByteSliceConverter, n.storageService)
+	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
+	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
 	}
@@ -162,7 +163,7 @@ func (n *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withR
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		n.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
 	}
 
 	return tx, nil
@@ -187,44 +188,44 @@ func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, minib
 	return tx
 }
 
-func (n *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
-	txBytes, txType, found := n.getTxBytesFromStorage(hash)
+func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
+	txBytes, txType, found := atp.getTxBytesFromStorage(hash)
 	if !found {
 		return nil, ErrTransactionNotFound
 	}
 
-	tx, err := n.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		return nil, err
 	}
 
-	tx.Timestamp = n.computeTimestampForRound(tx.Round)
+	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
 
 	// TODO: take care of this when integrating the adaptivity
-	statusComputer, err := txstatus.NewStatusComputer(n.shardCoordinator.SelfId(), n.uint64ByteSliceConverter, n.storageService)
+	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
 	}
 	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
-		n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()), tx)
+		atp.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()), tx)
 
 	return tx, nil
 }
 
-func (n *apiTransactionProcessor) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxType, bool) {
-	txsPool := n.dataPool.Transactions()
+func (atp *apiTransactionProcessor) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxType, bool) {
+	txsPool := atp.dataPool.Transactions()
 	txObj, found := txsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeNormal, true
 	}
 
-	rewardTxsPool := n.dataPool.RewardTransactions()
+	rewardTxsPool := atp.dataPool.RewardTransactions()
 	txObj, found = rewardTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeReward, true
 	}
 
-	unsignedTxsPool := n.dataPool.UnsignedTransactions()
+	unsignedTxsPool := atp.dataPool.UnsignedTransactions()
 	txObj, found = unsignedTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, transaction.TxTypeUnsigned, true
@@ -233,8 +234,8 @@ func (n *apiTransactionProcessor) getTxObjFromDataPool(hash []byte) (interface{}
 	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
-	store := n.storageService
+func (atp *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
+	store := atp.storageService
 	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
@@ -256,8 +257,8 @@ func (n *apiTransactionProcessor) getTxBytesFromStorage(hash []byte) ([]byte, tr
 	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *apiTransactionProcessor) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
-	store := n.storageService
+func (atp *apiTransactionProcessor) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
+	store := atp.storageService
 	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
@@ -279,23 +280,23 @@ func (n *apiTransactionProcessor) getTxBytesFromStorageByEpoch(hash []byte, epoc
 	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
 	case transaction.TxTypeNormal:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
-			return n.unmarshalerAndPreparer.prepareNormalTx(tx)
+			return atp.unmarshalerAndPreparer.prepareNormalTx(tx)
 		}
 	case transaction.TxTypeInvalid:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
-			return n.unmarshalerAndPreparer.prepareInvalidTx(tx)
+			return atp.unmarshalerAndPreparer.prepareInvalidTx(tx)
 		}
 	case transaction.TxTypeReward:
 		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
-			return n.unmarshalerAndPreparer.prepareRewardTx(tx)
+			return atp.unmarshalerAndPreparer.prepareRewardTx(tx)
 		}
 	case transaction.TxTypeUnsigned:
 		if tx, ok := txObj.(*smartContractResult.SmartContractResult); ok {
-			return n.unmarshalerAndPreparer.prepareUnsignedTx(tx)
+			return atp.unmarshalerAndPreparer.prepareUnsignedTx(tx)
 		}
 	}
 
@@ -303,10 +304,12 @@ func (n *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txType
 	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil
 }
 
-func (n *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	return n.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
+// UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
+func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+	return atp.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
 }
 
-func (n *apiTransactionProcessor) IsInterfaceNil() bool {
-	return n == nil
+// IsInterfaceNil returns true if underlying object is nil
+func (atp *apiTransactionProcessor) IsInterfaceNil() bool {
+	return atp == nil
 }

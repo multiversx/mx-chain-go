@@ -24,17 +24,29 @@ type ApiResolverStub struct {
 
 // GetTransaction -
 func (ars *ApiResolverStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
-	return ars.GetTransactionHandler(hash, withEvents)
+	if ars.GetTransactionHandler != nil {
+		return ars.GetTransactionHandler(hash, withEvents)
+	}
+
+	return nil, nil
 }
 
 // GetBlockByHash -
 func (ars *ApiResolverStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
-	return ars.GetBlockByHashCalled(hash, withTxs)
+	if ars.GetBlockByHashCalled != nil {
+		return ars.GetBlockByHashCalled(hash, withTxs)
+	}
+
+	return nil, nil
 }
 
 // GetBlockByNonce -
 func (ars *ApiResolverStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return ars.GetBlockByNonceCalled(nonce, withTxs)
+	if ars.GetBlockByNonceCalled != nil {
+		return ars.GetBlockByNonceCalled(nonce, withTxs)
+	}
+
+	return nil, nil
 }
 
 // GetBlockByRound -
@@ -42,27 +54,44 @@ func (ars *ApiResolverStub) GetBlockByRound(round uint64, withTxs bool) (*api.Bl
 	if ars.GetBlockByRoundCalled != nil {
 		return ars.GetBlockByRoundCalled(round, withTxs)
 	}
+
 	return nil, nil
 }
 
 // ExecuteSCQuery -
 func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-	return ars.ExecuteSCQueryHandler(query)
+	if ars.ExecuteSCQueryHandler != nil {
+		return ars.ExecuteSCQueryHandler(query)
+	}
+
+	return nil, nil
 }
 
 // StatusMetrics -
 func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
-	return ars.StatusMetricsHandler()
+	if ars.StatusMetricsHandler != nil {
+		return ars.StatusMetricsHandler()
+	}
+
+	return nil
 }
 
 // ComputeTransactionGasLimit -
 func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	return ars.ComputeTransactionGasLimitHandler(tx)
+	if ars.ComputeTransactionGasLimitHandler != nil {
+		return ars.ComputeTransactionGasLimitHandler(tx)
+	}
+
+	return nil, nil
 }
 
 // GetTotalStakedValue -
 func (ars *ApiResolverStub) GetTotalStakedValue() (*api.StakeValues, error) {
-	return ars.GetTotalStakedValueHandler()
+	if ars.GetTotalStakedValueHandler != nil {
+		return ars.GetTotalStakedValueHandler()
+	}
+
+	return nil, nil
 }
 
 // GetDirectStakedList -

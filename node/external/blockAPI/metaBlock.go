@@ -26,7 +26,7 @@ func NewMetaApiBlockProcessor(arg *ArgAPIBlockProcessor) *metaAPIBlockProcessor 
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			unmarshalTx:              arg.UnmarshalTxHandler.UnmarshalTransaction,
+			txUnmarshaller:           arg.TxUnmarshaller,
 			txStatusComputer:         arg.StatusComputer,
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
@@ -162,6 +162,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	return metaBlock, nil
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (mbp *metaAPIBlockProcessor) IsInterfaceNil() bool {
 	return mbp == nil
 }

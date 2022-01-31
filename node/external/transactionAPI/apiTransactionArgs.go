@@ -1,15 +1,17 @@
 package transactionAPI
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"time"
 )
 
+// ArgAPITransactionProcessor is structure that store components that are needed to create an api transaction processor
 type ArgAPITransactionProcessor struct {
 	RoundDuration            uint64
 	GenesisTime              time.Time

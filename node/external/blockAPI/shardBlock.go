@@ -26,7 +26,7 @@ func NewShardApiBlockProcessor(arg *ArgAPIBlockProcessor) *shardAPIBlockProcesso
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			unmarshalTx:              arg.UnmarshalTxHandler.UnmarshalTransaction,
+			txUnmarshaller:           arg.TxUnmarshaller,
 			txStatusComputer:         arg.StatusComputer,
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
@@ -135,6 +135,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}, nil
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (sbp *shardAPIBlockProcessor) IsInterfaceNil() bool {
 	return sbp == nil
 }

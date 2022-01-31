@@ -116,6 +116,7 @@ func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*tran
 	return nar.apiTransactionHandler.GetTransaction(hash, withResults)
 }
 
+// GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
@@ -125,10 +126,12 @@ func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Bloc
 	return nar.apiBlockHandler.GetBlockByHash(decodedHash, withTxs)
 }
 
+// GetBlockByNonce will return the block with the given nonce and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByNonce(nonce, withTxs)
 }
 
+// GetBlockByRound will return the block with the given round and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
 }

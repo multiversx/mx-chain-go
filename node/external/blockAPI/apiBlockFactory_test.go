@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -24,14 +25,95 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		Marshalizer:              &mock.MarshalizerFake{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 		HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
-		UnmarshalTxHandler:       &mock.TransactionAPIHandlerStub{},
+		TxUnmarshaller:           &mock.TransactionAPIHandlerStub{},
 		StatusComputer:           statusComputer,
 		Hasher:                   &mock.HasherMock{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 	}
 }
 
-func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
+func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NilArgShouldErr", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := CreateAPIBlockProcessor(nil)
+		assert.Equal(t, errNilArgAPIBlockProcessor, err)
+	})
+
+	t.Run("NilUint64Converter", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.Uint64ByteSliceConverter = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilUint64Converter, err)
+	})
+
+	t.Run("NilStore", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.Store = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilStorage, err)
+	})
+
+	t.Run("NilMarshalizer", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.Marshalizer = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+	})
+
+	t.Run("NilHistoryRepo", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.HistoryRepo = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilHistoryRepository, err)
+	})
+
+	t.Run("NilUnmarshalTxHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.TxUnmarshaller = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilTransactionUnmarshaler, err)
+	})
+
+	t.Run("NilHasher", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.Hasher = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilHasher, err)
+	})
+
+	t.Run("NilPubKeyConverter", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.AddressPubkeyConverter = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilPubkeyConverter, err)
+	})
+}
+
+func TestGetBlockByHash_KeyNotFound(t *testing.T) {
 	t.Parallel()
 
 	historyProc := &dblookupext.HistoryRepositoryStub{
@@ -58,7 +140,7 @@ func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 	apiBlockProc, _ := CreateAPIBlockProcessor(args)
 
 	blk, err := apiBlockProc.GetBlockByHash(headerHash, false)
-	assert.Error(t, err)
+	assert.Equal(t, "key: ZDA4MDg5ZjJhYjczOTUyMDU5OGZkN2FlZWQwOGM0Mjc0NjBmZTk0ZjI4NjM4MzA0N2YzZjYxOTUxYWZjNGUwMA== not found", err.Error())
 	assert.Nil(t, blk)
 }
 

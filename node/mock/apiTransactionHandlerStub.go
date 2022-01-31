@@ -4,6 +4,7 @@ import "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 
 // TransactionAPIHandlerStub -
 type TransactionAPIHandlerStub struct {
+	UnmarshalTransactionCalled func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 }
 
 // GetTransaction -
@@ -12,7 +13,10 @@ func (tas *TransactionAPIHandlerStub) GetTransaction(_ string, _ bool) (*transac
 }
 
 // UnmarshalTransaction -
-func (tas *TransactionAPIHandlerStub) UnmarshalTransaction(_ []byte, _ transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (tas *TransactionAPIHandlerStub) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+	if tas.UnmarshalTransactionCalled != nil {
+		return tas.UnmarshalTransactionCalled(txBytes, txType)
+	}
 	return nil, nil
 }
 

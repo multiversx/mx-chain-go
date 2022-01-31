@@ -56,7 +56,8 @@ func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transacti
 	rec, err := arp.getReceiptFromStorage(recHash, epoch)
 	if err != nil {
 		log.Warn("nodeTransactionEvents.putReceiptInTransaction() cannot get receipt from storage",
-			"hash", hex.EncodeToString(recHash))
+			"hash", recHash,
+			"error", err.Error())
 		return
 	}
 
@@ -97,7 +98,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 			scr, err := arp.getScrFromStorage(scrHash, scrHashesE.Epoch)
 			if err != nil {
 				log.Warn("putSmartContractResultsInTransaction cannot get result from storage",
-					"hash", hex.EncodeToString(scrHash),
+					"hash", scrHash,
 					"error", err.Error())
 				continue
 			}
@@ -166,19 +167,19 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		ReturnMessage:  string(scr.ReturnMessage),
 	}
 
-	if len(scr.SndAddr) != 0 {
+	if len(scr.SndAddr) != arp.addressPubKeyConverter.Len() {
 		apiSCR.SndAddr = arp.addressPubKeyConverter.Encode(scr.SndAddr)
 	}
 
-	if len(scr.RcvAddr) != 0 {
+	if len(scr.RcvAddr) != arp.addressPubKeyConverter.Len() {
 		apiSCR.RcvAddr = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
 	}
 
-	if len(scr.RelayerAddr) != 0 {
+	if len(scr.RelayerAddr) != arp.addressPubKeyConverter.Len() {
 		apiSCR.RelayerAddr = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
 	}
 
-	if len(scr.OriginalSender) != 0 {
+	if len(scr.OriginalSender) != arp.addressPubKeyConverter.Len() {
 		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 

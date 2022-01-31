@@ -28,7 +28,7 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.HistoryRepo) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arg.UnmarshalTxHandler) {
+	if check.IfNil(arg.TxUnmarshaller) {
 		return errNilTransactionUnmarshaler
 	}
 	if check.IfNil(arg.Hasher) {

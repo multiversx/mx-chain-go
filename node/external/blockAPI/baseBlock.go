@@ -38,9 +38,8 @@ type baseAPIBlockProcessor struct {
 	historyRepo              dblookupext.HistoryRepository
 	hasher                   hashing.Hasher
 	addressPubKeyConverter   core.PubkeyConverter
-	// TODO: use an interface instead of this function
-	unmarshalTx      func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	txStatusComputer transaction.StatusComputerHandler
+	txStatusComputer         transaction.StatusComputerHandler
+	txUnmarshaller           TransactionUnmarshaller
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -79,8 +78,7 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 
 		mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniBlock)
 		if err != nil {
-			log.Warn("cannot compute miniblocks hash",
-				"error", err.Error())
+			log.Warn("cannot compute miniblock's hash", "error", err.Error())
 			continue
 		}
 
@@ -144,8 +142,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	start := time.Now()
 	marshalizedReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
-		log.Warn("cannot get from storage receipts",
-			"error", err.Error())
+		log.Warn("cannot get receipts from storage", "error", err.Error())
 		return []*transaction.ApiReceipt{}
 	}
 	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
@@ -194,10 +191,10 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for txHash, txBytes := range marshalizedTxs {
-		tx, errUnmarshalTx := bap.unmarshalTx(txBytes, txType)
+		tx, errUnmarshalTx := bap.txUnmarshaller.UnmarshalTransaction(txBytes, txType)
 		if errUnmarshalTx != nil {
 			log.Warn("cannot unmarshal transaction",
-				"hash", hex.EncodeToString([]byte(txHash)),
+				"hash", []byte(txHash),
 				"error", errUnmarshalTx.Error())
 			continue
 		}
