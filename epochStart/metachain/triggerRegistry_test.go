@@ -30,7 +30,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartNotifier = t.epochStartNotifier
 	rt.triggerStorage = t.triggerStorage
 	rt.metaHeaderStorage = t.metaHeaderStorage
-	rt.marshalizer = t.marshalizer
+	rt.marshaller = t.marshaller
 	rt.hasher = t.hasher
 	rt.appStatusHandler = t.appStatusHandler
 	rt.nextEpochStartRound = t.nextEpochStartRound

@@ -625,9 +625,9 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
-		SyncTimer:                  coreComponents.SyncTimer(),
-		Processor:                  processComponents.BlockProcessor(),
-		ProcessingTimeMilliSeconds: nr.configs.GeneralConfig.Consensus.ScheduledExecutionMilliseconds,
+		SyncTimer:                coreComponents.SyncTimer(),
+		Processor:                processComponents.BlockProcessor(),
+		RoundTimeDurationHandler: coreComponents.RoundHandler(),
 	}
 
 	scheduledProcessor, err := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)

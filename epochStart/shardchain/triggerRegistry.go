@@ -22,7 +22,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state, err := UnmarshalTrigger(t.marshalizer, triggerData)
+	state, err := UnmarshalTrigger(t.marshaller, triggerData)
 	if err != nil {
 		return err
 	}
@@ -44,23 +44,23 @@ func (t *trigger) LoadState(key []byte) error {
 }
 
 // UnmarshalTrigger unmarshalls the trigger
-func UnmarshalTrigger(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
-	trig, err := UnmarshalTriggerV2(marshalizer, data)
+func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+	trig, err := unmarshalTriggerV2(marshaller, data)
 	if err == nil {
 		return trig, nil
 	}
 
-	trig, err = UnmarshalTriggerV1(marshalizer, data)
+	trig, err = unmarshalTriggerV1(marshaller, data)
 	if err == nil {
 		return trig, nil
 	}
 
 	// for backwards compatibility
-	return UnmarshalTriggerJson(data)
+	return unmarshalTriggerJson(data)
 }
 
-// UnmarshalTriggerJson unmarshalls the trigger with json, for backwards compatibility
-func UnmarshalTriggerJson(data []byte) (data.TriggerRegistryHandler, error) {
+// unmarshalTriggerJson unmarshalls the trigger with json, for backwards compatibility
+func unmarshalTriggerJson(data []byte) (data.TriggerRegistryHandler, error) {
 	trig := &block.ShardTriggerRegistry{EpochStartShardHeader: &block.Header{}}
 	err := json.Unmarshal(data, trig)
 	if err != nil {
@@ -70,13 +70,13 @@ func UnmarshalTriggerJson(data []byte) (data.TriggerRegistryHandler, error) {
 	return trig, nil
 }
 
-// UnmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
-func UnmarshalTriggerV2(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+// unmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
+func unmarshalTriggerV2(marshaller marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
 	triggerV2 := &block.ShardTriggerRegistryV2{
 		EpochStartShardHeader: &block.HeaderV2{},
 	}
 
-	err := marshalizer.Unmarshal(triggerV2, data)
+	err := marshaller.Unmarshal(triggerV2, data)
 	if err != nil {
 		return nil, err
 	}
@@ -87,13 +87,13 @@ func UnmarshalTriggerV2(marshalizer marshal.Marshalizer, data []byte) (data.Trig
 	return triggerV2, nil
 }
 
-// UnmarshalTriggerV1 tries to unmarshal the data into a v1 trigger
-func UnmarshalTriggerV1(marshalizer marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+// unmarshalTriggerV1 tries to unmarshal the data into a v1 trigger
+func unmarshalTriggerV1(marshaller marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
 	triggerV1 := &block.ShardTriggerRegistry{
 		EpochStartShardHeader: &block.Header{},
 	}
 
-	err := marshalizer.Unmarshal(triggerV1, data)
+	err := marshaller.Unmarshal(triggerV1, data)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (t *trigger) saveState(key []byte) error {
 	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
 	_ = registry.SetEpochStartHeaderHandler(t.epochStartShardHeader)
 
-	marshalledRegistry, err := t.marshalizer.Marshal(registry)
+	marshalledRegistry, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err
 	}

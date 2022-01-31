@@ -200,6 +200,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	log.Debug("started processing block",
 		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce())
 
@@ -1153,6 +1154,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
@@ -1207,9 +1209,10 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	log.Info("meta block has been committed successfully",
-		"epoch", header.Epoch,
-		"round", header.Round,
-		"nonce", header.Nonce,
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)

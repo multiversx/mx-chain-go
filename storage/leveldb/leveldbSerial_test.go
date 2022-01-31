@@ -1,6 +1,7 @@
 package leveldb_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
@@ -47,21 +49,53 @@ func TestSerialDB_GetErrorOnFail(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestSerialDB_CallsNotBlockingAfterCloseOrDestroy(t *testing.T) {
+func TestSerialDB_MethodCallsAfterCloseOrDestroy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("when closing", func(t *testing.T) {
+		t.Parallel()
+
+		testSerialDbAllMethodsShouldNotPanic(t, func(db *leveldb.SerialDB) {
+			_ = db.Close()
+		})
+	})
+	t.Run("when destroying", func(t *testing.T) {
+		t.Parallel()
+
+		testSerialDbAllMethodsShouldNotPanic(t, func(db *leveldb.SerialDB) {
+			_ = db.Destroy()
+		})
+	})
+}
+
+func testSerialDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.SerialDB)) {
 	ldb := createSerialLevelDb(t, 10, 1, 10)
-	_ = ldb.Destroy()
 
-	_, err := ldb.Get([]byte("key"))
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panic %v", r))
+		}
+	}()
 
-	err = ldb.Has([]byte("key"))
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+	closeHandler(ldb)
 
-	err = ldb.Remove([]byte("key"))
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+	_, err := ldb.Get([]byte("key1"))
+	assert.Equal(t, storage.ErrDBIsClosed, err)
 
-	err = ldb.Put([]byte("key"), []byte("val"))
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+	err = ldb.Has([]byte("key2"))
+	assert.Equal(t, storage.ErrDBIsClosed, err)
+
+	err = ldb.Remove([]byte("key3"))
+	assert.Equal(t, storage.ErrDBIsClosed, err)
+
+	err = ldb.Put([]byte("key4"), []byte("val"))
+	assert.Equal(t, storage.ErrDBIsClosed, err)
+
+	ldb.RangeKeys(func(key []byte, value []byte) bool {
+		require.Fail(t, "should have not called range")
+		return false
+	})
 }
 
 func TestSerialDB_GetOKAfterPutWithTimeout(t *testing.T) {

@@ -85,7 +85,7 @@ type trigger struct {
 
 	uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	marshalizer     marshal.Marshalizer
+	marshaller      marshal.Marshalizer
 	hasher          hashing.Hasher
 	headerValidator epochStart.HeaderValidator
 
@@ -222,7 +222,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		triggerStorage:              triggerStorage,
 		metaNonceHdrStorage:         metaHdrNoncesStorage,
 		uint64Converter:             args.Uint64Converter,
-		marshalizer:                 args.Marshalizer,
+		marshaller:                  args.Marshalizer,
 		hasher:                      args.Hasher,
 		headerValidator:             args.HeaderValidator,
 		requestHandler:              args.RequestHandler,
@@ -566,7 +566,7 @@ func (t *trigger) saveEpochStartMeta(metaHdr data.HeaderHandler) {
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch())
 
-	metaBuff, err := t.marshalizer.Marshal(metaHdr)
+	metaBuff, err := t.marshaller.Marshal(metaHdr)
 	if err != nil {
 		log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
 		return
@@ -610,7 +610,7 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	finalityAttestingRound := metaHdr.GetRound()
 	currHdr := metaHdr
 	for nonce := metaHdr.GetNonce() + 1; nonce <= metaHdr.GetNonce()+t.finality; nonce++ {
-		currHash, err := core.CalculateHash(t.marshalizer, t.hasher, currHdr)
+		currHash, err := core.CalculateHash(t.marshaller, t.hasher, currHdr)
 		if err != nil {
 			continue
 		}
@@ -702,7 +702,7 @@ func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) data.HeaderHan
 	storageData, err := t.metaHdrStorage.Get(neededHash)
 	if err == nil {
 		var neededHdr block.MetaBlock
-		err = t.marshalizer.Unmarshal(&neededHdr, storageData)
+		err = t.marshaller.Unmarshal(&neededHdr, storageData)
 		if err == nil {
 			t.mapHashHdr[string(neededHash)] = &neededHdr
 			t.mapNonceHashes[neededHdr.Nonce] = append(t.mapNonceHashes[neededHdr.Nonce], string(neededHash))
@@ -861,7 +861,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
-	shardHdrBuff, errNotCritical := t.marshalizer.Marshal(shardHdr)
+	shardHdrBuff, errNotCritical := t.marshaller.Marshal(shardHdr)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed marshal error", "error", errNotCritical)
 	}
@@ -887,7 +887,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	currentHeaderHash, err := core.CalculateHash(t.marshalizer, t.hasher, header)
+	currentHeaderHash, err := core.CalculateHash(t.marshaller, t.hasher, header)
 	if err != nil {
 		log.Warn("RevertStateToBlock error on hashing", "error", err)
 		return err
@@ -930,7 +930,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	shardHdr, err := process.CreateShardHeader(t.marshalizer, shardHdrBuff)
+	shardHdr, err := process.CreateShardHeader(t.marshaller, shardHdrBuff)
 	if err != nil {
 		log.Warn("RevertStateToBlock unmarshal error", "err", err)
 		return err

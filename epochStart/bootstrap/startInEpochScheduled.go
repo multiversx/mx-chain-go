@@ -2,6 +2,9 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -98,10 +101,18 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 
 	headerToBeProcessed, ok := headers[string(notarizedShardHeader.GetPrevHash())].(data.ShardHeaderHandler)
 	if !ok {
-		return nil, nil, epochStart.ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w in getRequiredHeaderByHash: shard header hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(notarizedShardHeader.GetPrevHash()))
 	}
 
 	shardIDs, hashesToRequest = getShardIDAndHashesForIncludedMetaBlocks(headerToBeProcessed)
+	additionalMetaHashToRequest := getPreviousToFirstReferencedMetaHeaderHash(notarizedShardHeader, headers)
+	if len(additionalMetaHashToRequest) != 0 {
+		shardIDs = append(shardIDs, core.MetachainShardId)
+		hashesToRequest = append(hashesToRequest, additionalMetaHashToRequest)
+	}
+
 	prevHeaders, err := ses.syncHeaders(shardIDs, hashesToRequest)
 	if err != nil {
 		return nil, nil, err
@@ -117,7 +128,9 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		shardIDs = []uint32{core.MetachainShardId}
 		header := prevHeaders[string(hashesToRequest[0])]
 		if header == nil {
-			return nil, nil, epochStart.ErrMissingHeader
+			return nil, nil, fmt.Errorf("%w in getRequiredHeaderByHash: metaBlock hash: %s",
+				epochStart.ErrMissingHeader,
+				hex.EncodeToString(hashesToRequest[0]))
 		}
 
 		hashesToRequest = [][]byte{header.GetPrevHash()}
@@ -132,6 +145,28 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	}
 
 	return headerToBeProcessed, headers, nil
+}
+
+func getPreviousToFirstReferencedMetaHeaderHash(shardHeader data.ShardHeaderHandler, headers map[string]data.HeaderHandler) []byte {
+	hashes := shardHeader.GetMetaBlockHashes()
+	if len(hashes) == 0 {
+		return nil
+	}
+
+	firstReferencedMetaHash := hashes[0]
+	firstReferencedMetaHeader := headers[string(firstReferencedMetaHash)]
+	if firstReferencedMetaHeader == nil {
+		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrMissingHeader)
+		return nil
+	}
+
+	metaHeader, ok := firstReferencedMetaHeader.(data.MetaHeaderHandler)
+	if !ok {
+		log.Error("getPreviousToFirstReferencedMetaHeaderHash", "hash", firstReferencedMetaHash, "error", epochStart.ErrWrongTypeAssertion)
+		return nil
+	}
+
+	return metaHeader.GetPrevHash()
 }
 
 func getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader data.ShardHeaderHandler) ([]uint32, [][]byte) {

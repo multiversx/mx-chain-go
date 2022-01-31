@@ -105,7 +105,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body)
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.RoundTimeStamp)
 
 	return true
 }
@@ -557,7 +557,7 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 		return false
 	}
 
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.Header, sr.Body)
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.Header, sr.Body, sr.RoundTimeStamp)
 
 	return true
 }

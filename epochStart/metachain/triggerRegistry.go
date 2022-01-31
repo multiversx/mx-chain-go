@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -18,7 +19,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state, err := t.UnmarshallTrigger(d)
+	state, err := UnmarshalTrigger(t.marshaller, d)
 	if err != nil {
 		return err
 	}
@@ -37,11 +38,13 @@ func (t *trigger) LoadState(key []byte) error {
 	return nil
 }
 
-func (t *trigger) UnmarshallTrigger(data []byte) (*block.MetaTriggerRegistry, error) {
+// UnmarshalTrigger unmarshalls the trigger with json, for backwards compatibility
+func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaTriggerRegistry, error) {
 	state := &block.MetaTriggerRegistry{
 		EpochStartMeta: &block.MetaBlock{},
 	}
-	err := t.marshalizer.Unmarshal(state, data)
+
+	err := marshaller.Unmarshal(state, data)
 	if err == nil {
 		return state, nil
 	}
@@ -68,7 +71,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.Epoch = t.epoch
 	registry.EpochStartMetaHash = t.epochStartMetaHash
 	registry.EpochStartMeta = metaHeader
-	triggerData, err := t.marshalizer.Marshal(registry)
+	triggerData, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err
 	}

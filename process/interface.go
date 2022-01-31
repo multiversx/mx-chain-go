@@ -694,6 +694,7 @@ type SCQuery struct {
 // GasHandler is able to perform some gas calculation
 type GasHandler interface {
 	Init()
+	Reset()
 	SetGasProvided(gasProvided uint64, hash []byte)
 	SetGasProvidedAsScheduled(gasProvided uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
@@ -710,6 +711,7 @@ type GasHandler interface {
 	RemoveGasProvidedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
 	RemoveGasPenalized(hashes [][]byte)
+	RestoreGasSinceLastReset()
 	ComputeGasProvidedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasProvidedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool

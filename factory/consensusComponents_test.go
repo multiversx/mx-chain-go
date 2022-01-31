@@ -388,9 +388,9 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 	)
 
 	args := spos.ScheduledProcessorWrapperArgs{
-		SyncTimer:                  coreComponents.SyncTimer(),
-		Processor:                  processComponents.BlockProcessor(),
-		ProcessingTimeMilliSeconds: 10,
+		SyncTimer:                coreComponents.SyncTimer(),
+		Processor:                processComponents.BlockProcessor(),
+		RoundTimeDurationHandler: coreComponents.RoundHandler(),
 	}
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 

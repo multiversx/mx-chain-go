@@ -590,6 +590,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	if tc.shardCoordinator.SelfId() == core.MetachainShardId {
 		tc.initProcessedTxsResults()
+		tc.gasHandler.Reset()
 	}
 
 	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
@@ -755,10 +756,7 @@ func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {
 		return
 	}
 
-	tc.gasHandler.RemoveGasProvided(txsToBeReverted)
-	tc.gasHandler.RemoveGasRefunded(txsToBeReverted)
-	tc.gasHandler.RemoveGasPenalized(txsToBeReverted)
-
+	tc.gasHandler.RestoreGasSinceLastReset()
 	tc.revertProcessedTxsResults(txsToBeReverted)
 }
 
@@ -1052,6 +1050,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
 		tc.initProcessedTxsResults()
+		tc.gasHandler.Reset()
 	}
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: before processing",
@@ -1127,15 +1126,26 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 			continue
 		}
 		resultHashes := interProc.RemoveProcessedResults()
-		currentAccFee := tc.feeHandler.GetAccumulatedFees()
+		accFeesBeforeRevert := tc.feeHandler.GetAccumulatedFees()
 		tc.feeHandler.RevertFees(resultHashes)
 		accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
 
-		if currentAccFee.Cmp(accFeesAfterRevert) != 0 {
-			log.Debug("revertProcessedTxsResults reverted accumulated fees from postProcessor", "value", big.NewInt(0).Sub(currentAccFee, accFeesAfterRevert))
+		if accFeesBeforeRevert.Cmp(accFeesAfterRevert) != 0 {
+			log.Debug("revertProcessedTxsResults.RevertFees with result hashes",
+				"num resultHashes", len(resultHashes),
+				"value", big.NewInt(0).Sub(accFeesBeforeRevert, accFeesAfterRevert))
 		}
 	}
+
+	accFeesBeforeRevert := tc.feeHandler.GetAccumulatedFees()
 	tc.feeHandler.RevertFees(txHashes)
+	accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
+
+	if accFeesBeforeRevert.Cmp(accFeesAfterRevert) != 0 {
+		log.Debug("revertProcessedTxsResults.RevertFees with tx hashes",
+			"num txHashes", len(txHashes),
+			"value", big.NewInt(0).Sub(accFeesBeforeRevert, accFeesAfterRevert))
+	}
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed
