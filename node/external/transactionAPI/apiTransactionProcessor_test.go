@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -28,6 +29,101 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
+	return &ArgAPITransactionProcessor{
+		RoundDuration:            0,
+		GenesisTime:              time.Time{},
+		Marshalizer:              &mock.MarshalizerFake{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		ShardCoordinator:         createShardCoordinator(),
+		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
+		StorageService:           &mock.ChainStorerMock{},
+		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+	}
+}
+
+func TestNewAPITransactionProcessor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NilArg", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := NewAPITransactionProcessor(nil)
+		require.Equal(t, ErrNilAPITransactionProcessorArg, err)
+	})
+
+	t.Run("NilMarshalizer", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.Marshalizer = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilMarshalizer, err)
+	})
+
+	t.Run("NilDataPool", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.DataPool = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilDataPoolHolder, err)
+	})
+
+	t.Run("NilHistoryRepository", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.HistoryRepository = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilHistoryRepository, err)
+	})
+
+	t.Run("NilShardCoordinator", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.ShardCoordinator = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilShardCoordinator, err)
+	})
+
+	t.Run("NilPubKeyConverter", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.AddressPubKeyConverter = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilPubkeyConverter, err)
+	})
+
+	t.Run("NilStorageService", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.StorageService = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilStorage, err)
+	})
+
+	t.Run("NilUint64Converter", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.Uint64ByteSliceConverter = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilUint64Converter, err)
+	})
+}
 
 func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
