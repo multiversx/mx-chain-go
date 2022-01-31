@@ -133,7 +133,7 @@ func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
 	err := hdRes.SetEpochHandler(handler)
 
 	assert.Nil(t, err)
-	assert.True(t, handler == hdRes.epochHandler) //pointer testing
+	assert.True(t, handler == hdRes.epochHandler) // pointer testing
 }
 
 func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t *testing.T) {
@@ -285,7 +285,7 @@ func TestHeaderResolver_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	newEpochCalled := false
+	epochsCalled := make(map[uint32]struct{})
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
@@ -300,7 +300,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	}
 	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
 		NewEpochCalled: func(epoch uint32) {
-			newEpochCalled = true
+			epochsCalled[epoch] = struct{}{}
 		},
 	}
 	arg.Messenger = &mock.MessengerStub{
@@ -315,7 +315,11 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	err := hdRes.RequestDataFromNonce(1, 0)
 
 	assert.Nil(t, err)
-	assert.True(t, newEpochCalled)
+	assert.Equal(t, 2, len(epochsCalled))
+	_, found := epochsCalled[1]
+	assert.True(t, found)
+	_, found = epochsCalled[2]
+	assert.True(t, found)
 	assert.True(t, sendCalled)
 }
 
