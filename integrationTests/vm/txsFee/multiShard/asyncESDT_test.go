@@ -55,12 +55,12 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	secondContractOwnerAcc, _ := testContextSecondContract.Accounts.LoadAccount(secondContractOwner)
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
 	secondSCAddress := utils.DoDeploySecond(t, testContextSecondContract, "../../esdt/testdata/second-contract.wasm", secondContractOwnerAcc, gasPrice, gasLimitDeploy, argsSecond, big.NewInt(0))
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	firstContractOwnerAcc, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	firstSCAddress := utils.DoDeploySecond(t, testContextFirstContract, "../../esdt/testdata/first-contract.wasm", firstContractOwnerAcc, gasPrice, gasLimitDeploy, args, big.NewInt(0))
-	testContextFirstContract.TxFeeHandler.CreateBlockStarted()
+	testContextFirstContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	require.Equal(t, uint32(1), testContextSender.ShardCoordinator.ComputeId(firstSCAddress))
 	require.Equal(t, uint32(2), testContextSender.ShardCoordinator.ComputeId(secondSCAddress))
@@ -173,12 +173,12 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	secondContractOwnerAcc, _ := testContextSecondContract.Accounts.LoadAccount(secondContractOwner)
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(append(token, []byte("aaa")...)))}
 	secondSCAddress := utils.DoDeploySecond(t, testContextSecondContract, "../../esdt/testdata/second-contract.wasm", secondContractOwnerAcc, gasPrice, gasLimitDeploy, argsSecond, big.NewInt(0))
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	firstContractOwnerAcc, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	firstSCAddress := utils.DoDeploySecond(t, testContextFirstContract, "../../esdt/testdata/first-contract.wasm", firstContractOwnerAcc, gasPrice, gasLimitDeploy, args, big.NewInt(0))
-	testContextFirstContract.TxFeeHandler.CreateBlockStarted()
+	testContextFirstContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	require.Equal(t, uint32(1), testContextSender.ShardCoordinator.ComputeId(firstSCAddress))
 	require.Equal(t, uint32(2), testContextSender.ShardCoordinator.ComputeId(secondSCAddress))

@@ -50,32 +50,33 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base := &baseBootstrap{
-		chainHandler:         arguments.ChainHandler,
-		blockProcessor:       arguments.BlockProcessor,
-		store:                arguments.Store,
-		headers:              arguments.PoolsHolder.Headers(),
-		roundHandler:         arguments.RoundHandler,
-		waitTime:             arguments.WaitTime,
-		hasher:               arguments.Hasher,
-		marshalizer:          arguments.Marshalizer,
-		forkDetector:         arguments.ForkDetector,
-		requestHandler:       arguments.RequestHandler,
-		shardCoordinator:     arguments.ShardCoordinator,
-		accounts:             arguments.Accounts,
-		blackListHandler:     arguments.BlackListHandler,
-		networkWatcher:       arguments.NetworkWatcher,
-		bootStorer:           arguments.BootStorer,
-		storageBootstrapper:  arguments.StorageBootstrapper,
-		epochHandler:         arguments.EpochHandler,
-		miniBlocksProvider:   arguments.MiniblocksProvider,
-		uint64Converter:      arguments.Uint64Converter,
-		poolsHolder:          arguments.PoolsHolder,
-		statusHandler:        arguments.AppStatusHandler,
-		outportHandler:       arguments.OutportHandler,
-		accountsDBSyncer:     arguments.AccountsDBSyncer,
-		currentEpochProvider: arguments.CurrentEpochProvider,
-		isInImportMode:       arguments.IsInImportMode,
-		historyRepo:          arguments.HistoryRepo,
+		chainHandler:                 arguments.ChainHandler,
+		blockProcessor:               arguments.BlockProcessor,
+		store:                        arguments.Store,
+		headers:                      arguments.PoolsHolder.Headers(),
+		roundHandler:                 arguments.RoundHandler,
+		waitTime:                     arguments.WaitTime,
+		hasher:                       arguments.Hasher,
+		marshalizer:                  arguments.Marshalizer,
+		forkDetector:                 arguments.ForkDetector,
+		requestHandler:               arguments.RequestHandler,
+		shardCoordinator:             arguments.ShardCoordinator,
+		accounts:                     arguments.Accounts,
+		blackListHandler:             arguments.BlackListHandler,
+		networkWatcher:               arguments.NetworkWatcher,
+		bootStorer:                   arguments.BootStorer,
+		storageBootstrapper:          arguments.StorageBootstrapper,
+		epochHandler:                 arguments.EpochHandler,
+		miniBlocksProvider:           arguments.MiniblocksProvider,
+		uint64Converter:              arguments.Uint64Converter,
+		poolsHolder:                  arguments.PoolsHolder,
+		statusHandler:                arguments.AppStatusHandler,
+		outportHandler:               arguments.OutportHandler,
+		accountsDBSyncer:             arguments.AccountsDBSyncer,
+		currentEpochProvider:         arguments.CurrentEpochProvider,
+		isInImportMode:               arguments.IsInImportMode,
+		historyRepo:                  arguments.HistoryRepo,
+		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 	}
 
 	if base.isInImportMode {
@@ -172,12 +173,13 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
 // These methods will execute the block and its transactions. Finally if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
-func (boot *MetaBootstrap) SyncBlock() error {
+func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
 	if isErrGetNodeFromDB {
 		errSync := boot.syncAccountsDBs()
-		if errSync != nil {
+		shouldOutputLog := errSync != nil && !common.IsContextDone(ctx)
+		if shouldOutputLog {
 			log.Debug("SyncBlock syncTrie", "error", errSync)
 		}
 	}

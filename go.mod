@@ -5,11 +5,11 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.35
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.35
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.33
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.34
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.14
-	github.com/ElrondNetwork/elrond-go-core v1.1.7
+	github.com/ElrondNetwork/elrond-go-core v1.1.9
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.2.9
@@ -47,6 +47,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	gopkg.in/go-playground/validator.v8 v8.18.2
+// test point 3 for custom profiler
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
@@ -55,4 +56,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.35 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.35 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.35
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.33 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.33
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.34 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.34

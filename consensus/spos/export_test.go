@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -138,7 +139,7 @@ func (wrk *Worker) NilReceivedMessages() {
 }
 
 // ReceivedMessagesCalls -
-func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType]func(*consensus.Message) bool {
+func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType]func(context.Context, *consensus.Message) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
@@ -146,7 +147,7 @@ func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType]func(*conse
 }
 
 // SetReceivedMessagesCalls -
-func (wrk *Worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(*consensus.Message) bool) {
+func (wrk *Worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = f
 	wrk.mutReceivedMessagesCalls.Unlock()
