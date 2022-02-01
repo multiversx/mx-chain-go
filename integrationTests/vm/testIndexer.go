@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -120,7 +119,7 @@ func (ti *testIndexer) createElasticProcessor(
 	})
 
 	balanceConverter, _ := converters.NewBalanceConverter(18)
-	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, &stateMock.AccountsStub{}, balanceConverter)
+	ap, _ := accounts.NewAccountsProcessor(testMarshalizer, pubkeyConv, balanceConverter)
 	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()

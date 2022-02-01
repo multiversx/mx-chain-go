@@ -34,7 +34,7 @@ func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRating
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ map[string]*indexer.AlteredAccount) {
 }
 
 // FinalizedBlock -

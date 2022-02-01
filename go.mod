@@ -7,13 +7,13 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.35
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.34
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
-	github.com/ElrondNetwork/elastic-indexer-go v1.1.33
+	github.com/ElrondNetwork/covalent-indexer-go v1.0.7-0.20220201134600-2c993a02fe07
+	github.com/ElrondNetwork/elastic-indexer-go v1.1.33-0.20220201123616-fafd4b190155
 	github.com/ElrondNetwork/elrond-go-core v1.1.10-0.20220201122512-86d7af4818f4
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.5
 	github.com/ElrondNetwork/elrond-vm-common v1.2.9
-	github.com/ElrondNetwork/notifier-go v1.0.3
+	github.com/ElrondNetwork/notifier-go v1.0.4-0.20220201135024-c6fdc94cb5a1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1

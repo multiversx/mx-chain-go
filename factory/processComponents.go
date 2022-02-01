@@ -761,7 +761,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	genesisAccounts := make([]data.UserAccountHandler, 0)
+	genesisAccounts := make(map[string]*indexer.AlteredAccount, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -769,7 +769,13 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 			continue
 		}
 
-		genesisAccounts = append(genesisAccounts, userAccount)
+		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		genesisAccounts[encodedAddress] = &indexer.AlteredAccount{
+			Address: encodedAddress,
+			Balance: userAccount.GetBalance().String(),
+			Nonce:   userAccount.GetNonce(),
+			Tokens:  nil,
+		}
 	}
 
 	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)

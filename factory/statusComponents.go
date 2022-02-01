@@ -231,7 +231,6 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
-		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
 		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
 		UseKibana:                elasticSearchConfig.UseKibana,
