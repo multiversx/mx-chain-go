@@ -26,8 +26,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/pkg/errors"
@@ -53,7 +55,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments
@@ -593,14 +595,14 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpochExpectError(t *testing.T) {
 	args.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			if uint8(unitType) >= uint8(dataRetriever.ShardHdrNonceHashDataUnit) {
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
 						return hashToRet, nil
 					},
 				}
 			}
 
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return marshaledData, nil
 				},

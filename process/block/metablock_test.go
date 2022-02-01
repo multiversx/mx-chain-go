@@ -25,8 +25,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,6 +58,11 @@ func createMockComponentHolders() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
@@ -62,7 +70,6 @@ func createMockComponentHolders() (
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
-
 }
 
 func createMockMetaArguments(
@@ -84,9 +91,15 @@ func createMockMetaArguments(
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 	}
 	accountsDb[state.PeerAccountsState] = &stateMock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+		RootHashCalled: func() ([]byte, error) {
 			return nil, nil
 		},
 	}
@@ -112,11 +125,13 @@ func createMockMetaArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
-			RoundNotifier:      &mock.RoundNotifierStub{},
+			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
+			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch: 2,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -256,6 +271,34 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 	assert.Nil(t, be)
 }
 
+func TestNewMetaProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return nil
+		},
+	}
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilSCToProtocolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.SCToProtocol = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilSCToProtocol, err)
+	assert.Nil(t, be)
+}
+
 func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -264,6 +307,78 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilForkDetector, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilEpochStartDataCreatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochStartDataCreator = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilEpochStartDataCreator, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilEpochEconomicsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochEconomics = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilEpochEconomics, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilEpochRewardsCreatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochRewardsCreator = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilRewardsCreator, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilEpochValidatorInfoCreatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochValidatorInfoCreator = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilEpochStartValidatorInfoCreator, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilValidatorStatisticsProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ValidatorStatisticsProcessor = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilValidatorStatistics, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilEpochSystemSCProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochSystemSCProcessor = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilEpochStartSystemSCProcessor, err)
 	assert.Nil(t, be)
 }
 
@@ -378,6 +493,17 @@ func TestNewMetaProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	arguments.ScheduledTxsExecutionHandler = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
 	assert.Nil(t, be)
 }
 
@@ -717,7 +843,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	body := &block.Body{}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	hdrUnit := &testscommon.StorerStub{
+	hdrUnit := &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			wg.Done()
@@ -731,7 +857,8 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
+	genesisHeader := &block.MetaBlock{Nonce: 0}
+	_ = blkc.SetGenesisHeader(genesisHeader)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.Storage = store
@@ -830,7 +957,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		},
 	}
 	hasher := &mock.HasherStub{}
-	blockHeaderUnit := &testscommon.StorerStub{
+	blockHeaderUnit := &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return nil
 		},
@@ -841,6 +968,12 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = mdp
 	dataComponents.Storage = store
+	dataComponents.BlockChain = &mock.BlockChainStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+	}
+
 	coreComponents.Hash = hasher
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -851,6 +984,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -956,7 +1090,7 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) {
 	t.Parallel()
 
 	// set accounts dirty
@@ -993,15 +1127,17 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			return expectedErr
 		},
 	}
-	mp, _ := blproc.NewMetaProcessor(arguments)
+	mp, err := blproc.NewMetaProcessor(arguments)
+	require.Nil(t, err)
+	require.NotNil(t, mp)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RevertStateToBlock(&hdr)
-	assert.Equal(t, expectedErr, err)
+	err = mp.RevertStateToBlock(&hdr, hdr.RootHash)
+	require.Equal(t, expectedErr, err)
 }
 
 func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
@@ -1020,7 +1156,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
 		},
@@ -1028,7 +1164,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RevertStateToBlock(&hdr)
+	err := mp.RevertStateToBlock(&hdr, hdr.RootHash)
 	assert.Nil(t, err)
 	assert.True(t, revertePeerStateWasCalled)
 	assert.True(t, recreateTrieWasCalled)
@@ -1597,7 +1733,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},
@@ -1629,7 +1765,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	pool := dataRetrieverMock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
@@ -1704,7 +1840,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	// put headers in pool
 	pool.Headers().AddHeader(currHash, currHdr)
 	pool.Headers().AddHeader(prevHash, prevHdr)
-	mp.CreateBlockStarted()
+	_ = mp.CreateBlockStarted()
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
@@ -1719,7 +1855,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	pool := dataRetrieverMock.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
@@ -1825,7 +1961,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
-	mp.CreateBlockStarted()
+	_ = mp.CreateBlockStarted()
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
@@ -2184,9 +2320,6 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.BlockChain = &mock.BlockChainStub{
-		CreateNewHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
-		},
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0}
 		},
@@ -2331,7 +2464,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
@@ -2498,7 +2631,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
@@ -2567,7 +2700,7 @@ func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *
 	metaHeader := &block.MetaBlock{Round: round}
 	bodyHandler, _ := metaProcessor.CreateBlockBody(metaHeader, func() bool { return true })
 
-	headerHandler := metaProcessor.CreateNewHeader(round, 1)
+	headerHandler, _ := metaProcessor.CreateNewHeader(round, 1)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
 	_ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
@@ -2595,7 +2728,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		}
 		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(hdrHash1Bytes, key) {
-				return &block.Header{
+				return &block.MetaBlock{
 					PrevHash:         []byte("hash1"),
 					Nonce:            1,
 					Round:            1,
@@ -2621,7 +2754,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -2642,6 +2775,13 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	coreComponents.Hash = hasher
 	dataComponents.DataPool = dPool
 	dataComponents.BlockChain = blkc
+	bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+		CreateCalled: func(epoch uint32) data.HeaderHandler {
+			return &block.MetaBlock{
+				Epoch: 0,
+			}
+		},
+	}
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = txCoordinator
 
@@ -2651,16 +2791,26 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 
 	metaHdr := &block.MetaBlock{Round: round}
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader(round, nonce)
-	headerHandler.SetRound(uint64(1))
-	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash(hash)
-	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	headerHandler, err := mp.CreateNewHeader(round, nonce)
+	require.Nil(t, err)
+	require.NotNil(t, headerHandler)
+
+	err = headerHandler.SetRound(uint64(1))
+	require.Nil(t, err)
+
+	err = headerHandler.SetNonce(1)
+	require.Nil(t, err)
+
+	err = headerHandler.SetPrevHash(hash)
+	require.Nil(t, err)
+
+	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
+	require.Nil(t, err)
 
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
-	assert.Nil(t, err)
+	require.Nil(t, err)
 }
 
 func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool(t *testing.T) {
@@ -2750,7 +2900,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	}
 
 	txCoordinator := &mock.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -2802,14 +2952,109 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
 
-	headerHandler.SetRound(uint64(1))
-	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash(hash)
-	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	err = headerHandler.SetRound(uint64(1))
+	assert.Nil(t, err)
+
+	err = headerHandler.SetNonce(1)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetPrevHash(hash)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
+	assert.Nil(t, err)
+
+	metaHeaderHandler, _ := headerHandler.(data.MetaHeaderHandler)
+	err = metaHeaderHandler.SetAccumulatedFeesInEpoch(big.NewInt(0))
+	assert.Nil(t, err)
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
+}
+
+func TestMetaProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
+	cc, dc, _, sc := createMockComponentHolders()
+
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
+	}
+
+	arguments := createMockMetaArguments(cc, dc, boostrapComponents, sc)
+
+	mp, err := blproc.NewMetaProcessor(arguments)
+	assert.Nil(t, err)
+
+	h, err := mp.CreateNewHeader(1, 1)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, h)
+}
+
+func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("root")
+	round := uint64(7)
+	nonce := uint64(8)
+	epoch := uint32(5)
+
+	coreComponents, dataComponents, _, statusComponents := createMockComponentHolders()
+
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
+	}
+
+	boostrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+		CreateCalled: func(epoch uint32) data.HeaderHandler {
+			return &block.MetaBlock{
+				Epoch: epoch,
+			}
+		},
+	}
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+	}
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return epoch
+		},
+	}
+
+	mp, err := blproc.NewMetaProcessor(arguments)
+	assert.Nil(t, err)
+
+	h, err := mp.CreateNewHeader(round, nonce)
+	assert.Nil(t, err)
+	assert.IsType(t, &block.MetaBlock{}, h)
+	assert.Equal(t, epoch, h.GetEpoch())
+	assert.Equal(t, round, h.GetRound())
+	assert.Equal(t, nonce, h.GetNonce())
+
+	zeroInt := big.NewInt(0)
+	metaHeader := h.(*block.MetaBlock)
+	assert.Equal(t, zeroInt, metaHeader.AccumulatedFeesInEpoch)
+	assert.Equal(t, zeroInt, metaHeader.AccumulatedFees)
+	assert.Equal(t, zeroInt, metaHeader.DeveloperFees)
+	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
 }

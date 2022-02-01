@@ -228,7 +228,7 @@ func (se *stateExport) exportUnFinishedMetaBlocks() error {
 	return nil
 }
 
-func (se *stateExport) exportMetaBlock(metaBlock *block.MetaBlock, identifier string) error {
+func (se *stateExport) exportMetaBlock(metaBlock data.HeaderHandler, identifier string) error {
 	jsonData, err := json.Marshal(metaBlock)
 	if err != nil {
 		return err
@@ -245,11 +245,11 @@ func (se *stateExport) exportMetaBlock(metaBlock *block.MetaBlock, identifier st
 		"identifier", identifier,
 		"version key", versionKey,
 		"hash", metaHash,
-		"epoch", metaBlock.Epoch,
-		"round", metaBlock.Round,
-		"nonce", metaBlock.Nonce,
-		"start of epoch block", metaBlock.Nonce == 0 || metaBlock.IsStartOfEpochBlock(),
-		"rootHash", metaBlock.RootHash,
+		"epoch", metaBlock.GetEpoch(),
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
+		"start of epoch block", metaBlock.GetNonce() == 0 || metaBlock.IsStartOfEpochBlock(),
+		"rootHash", metaBlock.GetRootHash(),
 	)
 
 	return nil
