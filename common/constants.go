@@ -675,10 +675,19 @@ const (
 	ImportDb
 )
 
+// ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
+const ScheduledMode = "Scheduled"
+
 const (
 	// ActiveDBKey is the key at which ActiveDBVal will be saved
 	ActiveDBKey = "activeDB"
 
 	// ActiveDBVal is the value that will be saved at ActiveDBKey
 	ActiveDBVal = "yes"
+
+	// TrieSyncedKey is the key at which TrieSyncedVal will be saved
+	TrieSyncedKey = "synced"
+
+	// TrieSyncedVal is the value that will be saved at TrieSyncedKey
+	TrieSyncedVal = "yes"
 )

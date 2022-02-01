@@ -25,13 +25,23 @@ func (tsm *trieStorageManagerWithoutPruning) Put(key []byte, val []byte) error {
 	return tsm.db.Put(key, val)
 }
 
+// PutInEpoch adds only to the db
+func (tsm *trieStorageManagerWithoutPruning) PutInEpoch(key []byte, val []byte, _ uint32) error {
+	return tsm.db.Put(key, val)
+}
+
 // Get checks only the db
 func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
 	return tsm.db.Get(key)
 }
 
+// GetFromCurrentEpoch checks only the db
+func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	return tsm.db.Get(key)
+}
+
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, _ uint32) {
 	if chLeaves != nil {
 		close(chLeaves)
 	}
@@ -41,7 +51,7 @@ func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, chLeaves cha
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, _ []byte, chLeaves chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if chLeaves != nil {
 		close(chLeaves)
 	}
@@ -69,6 +79,11 @@ func (tsm *trieStorageManagerWithoutPruning) AddDirtyCheckpointHashes(_ []byte, 
 // ShouldTakeSnapshot returns false
 func (tsm *trieStorageManagerWithoutPruning) ShouldTakeSnapshot() bool {
 	return false
+}
+
+// GetLatestStorageEpoch returns 0
+func (tsm *trieStorageManagerWithoutPruning) GetLatestStorageEpoch() (uint32, error) {
+	return 0, nil
 }
 
 // Remove does nothing for this implementation

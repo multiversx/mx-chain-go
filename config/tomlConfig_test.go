@@ -22,17 +22,18 @@ func TestTomlParser(t *testing.T) {
 	receiptsStorageFile := "path1/file2"
 	receiptsStorageTypeDB := "type4"
 
+	scheduledSCRsStorageSize := 174
+	scheduledSCRsStorageType := "type7"
+	scheduledSCRsStorageFile := "path1/file4"
+	scheduledSCRsStorageTypeDB := "type8"
+
 	logsPath := "pathLogger"
 	logsStackDepth := 1010
 
 	accountsStorageSize := 172
 	accountsStorageType := "type5"
-	accountsStorageFile := "path2/file3"
+	accountsStorageFile := "path1/file3"
 	accountsStorageTypeDB := "type6"
-	accountsStorageBlomSize := 173
-	accountsStorageBlomHash1 := "hashFunc1"
-	accountsStorageBlomHash2 := "hashFunc2"
-	accountsStorageBlomHash3 := "hashFunc3"
 
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
@@ -68,6 +69,16 @@ func TestTomlParser(t *testing.T) {
 				Type:     receiptsStorageTypeDB,
 			},
 		},
+		ScheduledSCRsStorage: StorageConfig{
+			Cache: CacheConfig{
+				Capacity: uint32(scheduledSCRsStorageSize),
+				Type:     scheduledSCRsStorageType,
+			},
+			DB: DBConfig{
+				FilePath: scheduledSCRsStorageFile,
+				Type:     scheduledSCRsStorageTypeDB,
+			},
+		},
 		AccountsTrieStorage: StorageConfig{
 			Cache: CacheConfig{
 				Capacity: uint32(accountsStorageSize),
@@ -76,14 +87,6 @@ func TestTomlParser(t *testing.T) {
 			DB: DBConfig{
 				FilePath: accountsStorageFile,
 				Type:     accountsStorageTypeDB,
-			},
-			Bloom: BloomFilterConfig{
-				Size: 173,
-				HashFunc: []string{
-					accountsStorageBlomHash1,
-					accountsStorageBlomHash2,
-					accountsStorageBlomHash3,
-				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -142,6 +145,14 @@ func TestTomlParser(t *testing.T) {
         FilePath = "` + receiptsStorageFile + `"
         Type = "` + receiptsStorageTypeDB + `"
 
+[ScheduledSCRsStorage]
+    [ScheduledSCRsStorage.Cache]
+        Capacity = ` + strconv.Itoa(scheduledSCRsStorageSize) + `
+        Type = "` + scheduledSCRsStorageType + `"
+    [ScheduledSCRsStorage.DB]
+        FilePath = "` + scheduledSCRsStorageFile + `"
+        Type = "` + scheduledSCRsStorageTypeDB + `"
+
 [Logger]
     Path = "` + logsPath + `"
     StackTraceDepth = ` + strconv.Itoa(logsStackDepth) + `
@@ -153,10 +164,6 @@ func TestTomlParser(t *testing.T) {
     [AccountsTrieStorage.DB]
         FilePath = "` + accountsStorageFile + `"
         Type = "` + accountsStorageTypeDB + `"
-    [AccountsTrieStorage.Bloom]
-        Size = ` + strconv.Itoa(accountsStorageBlomSize) + `
-		HashFunc = ["` + accountsStorageBlomHash1 + `", "` + accountsStorageBlomHash2 + `", "` +
-		accountsStorageBlomHash3 + `"]
 
 [Hasher]
 	Type = "` + hasherType + `"

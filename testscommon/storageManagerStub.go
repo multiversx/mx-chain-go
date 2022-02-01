@@ -8,9 +8,11 @@ import (
 // StorageManagerStub -
 type StorageManagerStub struct {
 	PutCalled                       func([]byte, []byte) error
+	PutInEpochCalled                func([]byte, []byte, uint32) error
 	GetCalled                       func([]byte) ([]byte, error)
-	TakeSnapshotCalled              func([]byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
-	SetCheckpointCalled             func([]byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
+	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
+	TakeSnapshotCalled              func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler, uint32)
+	SetCheckpointCalled             func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
 	IsPruningEnabledCalled          func() bool
 	IsPruningBlockedCalled          func() bool
@@ -21,12 +23,22 @@ type StorageManagerStub struct {
 	IsInterfaceNilCalled            func() bool
 	SetEpochForPutOperationCalled   func(uint32)
 	ShouldTakeSnapshotCalled        func() bool
+	GetLatestStorageEpochCalled     func() (uint32, error)
 }
 
 // Put -
 func (sms *StorageManagerStub) Put(key []byte, val []byte) error {
 	if sms.PutCalled != nil {
 		return sms.PutCalled(key, val)
+	}
+
+	return nil
+}
+
+// PutInEpoch -
+func (sms *StorageManagerStub) PutInEpoch(key []byte, val []byte, epoch uint32) error {
+	if sms.PutInEpochCalled != nil {
+		return sms.PutInEpochCalled(key, val, epoch)
 	}
 
 	return nil
@@ -41,17 +53,26 @@ func (sms *StorageManagerStub) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
+// GetFromCurrentEpoch -
+func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	if sms.GetFromCurrentEpochCalled != nil {
+		return sms.GetFromCurrentEpochCalled(key)
+	}
+
+	return nil, nil
+}
+
 // TakeSnapshot -
-func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler, epoch uint32) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, leavesChan, stats)
+		sms.TakeSnapshotCalled(rootHash, mainTrieRootHash, leavesChan, stats, epoch)
 	}
 }
 
 // SetCheckpoint -
-func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats common.SnapshotStatisticsHandler) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash, leavesChan, stats)
+		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, leavesChan, stats)
 	}
 }
 
@@ -122,6 +143,15 @@ func (sms *StorageManagerStub) ShouldTakeSnapshot() bool {
 	}
 
 	return true
+}
+
+// GetLatestStorageEpoch -
+func (sms *StorageManagerStub) GetLatestStorageEpoch() (uint32, error) {
+	if sms.GetLatestStorageEpochCalled != nil {
+		return sms.GetLatestStorageEpochCalled()
+	}
+
+	return 0, nil
 }
 
 // Close -

@@ -75,7 +75,6 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(args.TrieStorageConfig.Cache),
 		dbConfig,
-		factory.GetBloomFromConfig(args.TrieStorageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, nil, err

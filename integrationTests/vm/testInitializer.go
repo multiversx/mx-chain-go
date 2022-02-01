@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
@@ -54,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -79,6 +81,16 @@ var log = logger.GetOrCreate("integrationtests")
 
 const maxTrieLevelInMemory = uint(5)
 
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
+
 // ArgEnableEpoch will specify enable epoch values for certain flags
 type ArgEnableEpoch struct {
 	PenalizedTooMuchGasEnableEpoch      uint32
@@ -89,6 +101,7 @@ type ArgEnableEpoch struct {
 	UnbondTokensV2EnableEpoch           uint32
 	BackwardCompSaveKeyValueEnableEpoch uint32
 	CleanUpInformativeSCRsEnableEpoch   uint32
+	ScheduledMiniBlocksEnableEpoch      uint32
 }
 
 // VMTestAccount -
@@ -137,7 +150,7 @@ func (vmTestContext *VMTestContext) GetLatestError() error {
 
 // CreateBlockStarted -
 func (vmTestContext *VMTestContext) CreateBlockStarted() {
-	vmTestContext.TxFeeHandler.CreateBlockStarted()
+	vmTestContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	vmTestContext.ScForwarder.CreateBlockStarted()
 	vmTestContext.ScProcessor.CleanGasRefunded()
 }
@@ -317,7 +330,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -402,7 +415,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    builtInCost,
 	}
 
@@ -433,7 +446,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -467,6 +480,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
 		BuiltInFunctionsEnableEpoch:    argEnableEpoch.BuiltinEnableEpoch,
 		SCDeployEnableEpoch:            argEnableEpoch.DeployEnableEpoch,
+		// TODO: enable Scheduled in all tests
+		ScheduledMiniBlocksEnableEpoch: 1000,
 	}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
@@ -483,7 +498,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		EconomicsFee:     economicsData,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -536,7 +551,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -585,7 +600,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -655,7 +670,7 @@ func CreateVMAndBlockchainHookMeta(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	economicsData, err := createEconomicsData(0)
@@ -674,7 +689,7 @@ func CreateVMAndBlockchainHookMeta(
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}

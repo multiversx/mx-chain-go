@@ -409,13 +409,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	argsPendingTransactions := sync.ArgsNewPendingTransactionsSyncer{
+	argsPendingTransactions := sync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       e.storageService,
 		Marshalizer:    e.CoreComponents.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	epochStartTransactionsSyncer, err := sync.NewPendingTransactionsSyncer(argsPendingTransactions)
+	epochStartTransactionsSyncer, err := sync.NewTransactionsSyncer(argsPendingTransactions)
 	if err != nil {
 		return nil, err
 	}
@@ -551,7 +551,6 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
-		storageFactory.GetBloomFromConfig(storageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 )
 
@@ -19,7 +21,7 @@ type SubroundHandlerMock struct {
 }
 
 // DoWork -
-func (srm *SubroundHandlerMock) DoWork(roundHandler consensus.RoundHandler) bool {
+func (srm *SubroundHandlerMock) DoWork(_ context.Context, roundHandler consensus.RoundHandler) bool {
 	return srm.DoWorkCalled(roundHandler)
 }
 

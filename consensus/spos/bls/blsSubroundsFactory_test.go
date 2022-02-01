@@ -1,6 +1,7 @@
 package bls_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -58,7 +59,8 @@ func initWorker() spos.WorkerHandler {
 	sposWorker.RemoveAllReceivedMessagesCallsCalled = func() {}
 
 	sposWorker.AddReceivedMessageCallCalled =
-		func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool) {}
+		func(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
+		}
 
 	return sposWorker
 }

@@ -45,6 +45,7 @@ type EnableEpochs struct {
 	ReDelegateBelowMinCheckEnableEpoch                uint32
 	WaitingListFixEnableEpoch                         uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch       uint32
+	ScheduledMiniBlocksEnableEpoch                    uint32
 	ESDTMultiTransferEnableEpoch                      uint32
 	GlobalMintBurnDisableEpoch                        uint32
 	ESDTTransferRoleEnableEpoch                       uint32
@@ -58,6 +59,7 @@ type EnableEpochs struct {
 	MultiESDTTransferFixOnCallBackOnEnableEpoch       uint32
 	OptimizeGasUsedInCrossMiniBlocksEnableEpoch       uint32
 	CorrectFirstQueuedEpoch                           uint32
+	CorrectJailedNotUnstakedEmptyQueueEpoch     uint32
 	FixOOGReturnCodeEnableEpoch                       uint32
 	RemoveNonUpdatedStorageEnableEpoch                uint32
 	DeleteDelegatorAfterClaimRewardsEnableEpoch       uint32

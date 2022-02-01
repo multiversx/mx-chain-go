@@ -4,25 +4,27 @@ import "github.com/ElrondNetwork/elrond-go/storage/memorydb"
 
 // SnapshotPruningStorerStub -
 type SnapshotPruningStorerStub struct {
-	memorydb.DB
-	GetFromOldEpochsWithoutCacheCalled func(key []byte) ([]byte, error)
-	GetFromLastEpochCalled             func(key []byte) ([]byte, error)
-	PutWithoutCacheCalled              func(key, data []byte) error
+	*memorydb.DB
+	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, error)
+	GetFromLastEpochCalled                     func(key []byte) ([]byte, error)
+	GetFromCurrentEpochCalled                  func(key []byte) ([]byte, error)
+	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error
+	GetLatestStorageEpochCalled                func() (uint32, error)
 }
 
-// GetFromOldEpochsWithoutCache -
-func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutCache(key []byte) ([]byte, error) {
-	if spss.GetFromOldEpochsWithoutCacheCalled != nil {
-		return spss.GetFromOldEpochsWithoutCacheCalled(key)
+// GetFromOldEpochsWithoutAddingToCache -
+func (spss *SnapshotPruningStorerStub) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+	if spss.GetFromOldEpochsWithoutAddingToCacheCalled != nil {
+		return spss.GetFromOldEpochsWithoutAddingToCacheCalled(key)
 	}
 
 	return nil, nil
 }
 
-// PutWithoutCache -
-func (spss *SnapshotPruningStorerStub) PutWithoutCache(key, data []byte) error {
-	if spss.PutWithoutCacheCalled != nil {
-		return spss.PutWithoutCacheCalled(key, data)
+// PutInEpochWithoutCache -
+func (spss *SnapshotPruningStorerStub) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
+	if spss.PutInEpochWithoutCacheCalled != nil {
+		return spss.PutInEpochWithoutCacheCalled(key, data, epoch)
 	}
 
 	return nil
@@ -35,4 +37,22 @@ func (spss *SnapshotPruningStorerStub) GetFromLastEpoch(key []byte) ([]byte, err
 	}
 
 	return nil, nil
+}
+
+// GetFromCurrentEpoch -
+func (spss *SnapshotPruningStorerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	if spss.GetFromCurrentEpochCalled != nil {
+		return spss.GetFromCurrentEpochCalled(key)
+	}
+
+	return nil, nil
+}
+
+// GetLatestStorageEpoch -
+func (spss *SnapshotPruningStorerStub) GetLatestStorageEpoch() (uint32, error) {
+	if spss.GetLatestStorageEpochCalled != nil {
+		return spss.GetLatestStorageEpochCalled()
+	}
+
+	return 0, nil
 }
