@@ -140,7 +140,7 @@ func TestGroup_HandleActionOneMember(t *testing.T) {
 	var m1Called atomic.Flag
 	m1 := &groupActionsMocks.ActionHandlerStub{
 		HandleActionCalled: func(_ interface{}, _ groupTypes.TriggerStage) error {
-			m1Called.Set()
+			m1Called.SetValue(true)
 			return nil
 		},
 	}
@@ -160,13 +160,13 @@ func TestGroup_HandleActionTwoMembers(t *testing.T) {
 	var m1Called, m2Called atomic.Flag
 	m1 := &groupActionsMocks.ActionHandlerStub{
 		HandleActionCalled: func(_ interface{}, _ groupTypes.TriggerStage) error {
-			m1Called.Set()
+			m1Called.SetValue(true)
 			return nil
 		},
 	}
 	m2 := &groupActionsMocks.ActionHandlerStub{
 		HandleActionCalled: func(_ interface{}, _ groupTypes.TriggerStage) error {
-			m2Called.Set()
+			m2Called.SetValue(true)
 			return nil
 		},
 	}
@@ -190,13 +190,13 @@ func TestGroup_HandleActionTwoMembersOneWithError(t *testing.T) {
 
 	m1 := &groupActionsMocks.ActionHandlerStub{
 		HandleActionCalled: func(_ interface{}, _ groupTypes.TriggerStage) error {
-			m1Called.Set()
+			m1Called.SetValue(true)
 			return nil
 		},
 	}
 	m2 := &groupActionsMocks.ActionHandlerStub{
 		HandleActionCalled: func(_ interface{}, _ groupTypes.TriggerStage) error {
-			m2Called.Set()
+			m2Called.SetValue(true)
 			return expectedError
 		},
 	}
