@@ -344,7 +344,8 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	t.Parallel()
 
 	expectedToken := esdt.ESDigitalToken{
-		Value: big.NewInt(37),
+		Value:      big.NewInt(37),
+		Properties: []byte("ok"),
 	}
 	args := getMockArgs()
 	args.AccountsDB = &state.AccountsStub{
@@ -394,6 +395,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      0,
+		Properties: "ok",
 		MetaData:   nil,
 	}, res[encodedAddr].Tokens[0])
 }

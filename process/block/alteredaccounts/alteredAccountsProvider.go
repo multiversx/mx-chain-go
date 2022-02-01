@@ -23,6 +23,7 @@ var (
 
 type markedAlteredAccountToken struct {
 	identifier string
+	properties string
 	nonce      uint64
 }
 
@@ -172,6 +173,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
+		Properties: string(esdtToken.Properties),
 		MetaData:   esdtToken.TokenMetaData,
 	})
 
