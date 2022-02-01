@@ -167,10 +167,10 @@ type ArgsEpochStartBootstrap struct {
 }
 
 type dataToSync struct {
-	ownShardHdr        data.ShardHeaderHandler
-	rootHashToSync     []byte
-	withScheduled      bool
-	additionalHeaders  map[string]data.HeaderHandler
+	ownShardHdr       data.ShardHeaderHandler
+	rootHashToSync    []byte
+	withScheduled     bool
+	additionalHeaders map[string]data.HeaderHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap

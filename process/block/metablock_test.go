@@ -130,6 +130,7 @@ func createMockMetaArguments(
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 			RoundNotifier:                  &mock.RoundNotifierStub{},
+			AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 		},

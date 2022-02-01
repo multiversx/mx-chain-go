@@ -378,6 +378,7 @@ func CreateMockArguments(
 			RoundNotifier:                  &mock.RoundNotifierStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
 		},
 	}

@@ -16,6 +16,7 @@ import (
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/alteredaccounts"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -349,6 +350,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, nil, err
 	}
 
+	alteredAccountsProvider, err := pcf.createAlteredAccountsProvider()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -382,6 +388,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasHandler:                     gasHandler,
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		AlteredAccountsProvider:        alteredAccountsProvider,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -725,6 +732,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, nil, err
 	}
 
+	alteredAccountsProvider, err := pcf.createAlteredAccountsProvider()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
@@ -756,6 +768,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasHandler:                     gasHandler,
 		ScheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch: enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		AlteredAccountsProvider:        alteredAccountsProvider,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -807,6 +820,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	return metaProcessor, vmFactoryTxSimulator, nil
+}
+
+func (pcf *processComponentsFactory) createAlteredAccountsProvider() (process.AlteredAccountsProviderHandler, error) {
+	return alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
+		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		AddressConverter: pcf.coreData.AddressPubKeyConverter(),
+		AccountsDB:       pcf.state.AccountsAdapter(),
+		Marshalizer:      pcf.coreData.InternalMarshalizer(),
+	})
 }
 
 func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(

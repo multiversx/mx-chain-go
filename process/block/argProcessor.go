@@ -74,6 +74,7 @@ type ArgBaseProcessor struct {
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
 	GasHandler                     gasConsumedProvider
+	AlteredAccountsProvider        process.AlteredAccountsProviderHandler
 	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 	ScheduledMiniBlocksEnableEpoch uint32
 }
