@@ -28,8 +28,8 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/pkg/errors"
@@ -517,7 +517,7 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerErrorReadingFromStorage(t *tes
 	}
 	args.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, errors.New("local error")
 				},
@@ -546,13 +546,14 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpoch(t *testing.T) {
 			return header
 		},
 	}
-	storerBlockHeader := &testscommon.StorerStub{
+
+	storerBlockHeader := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			require.Equal(t, hash, key)
 			return marshalledHeader, nil
 		},
 	}
-	storerShardHdrNonceHash := &testscommon.StorerStub{
+	storerShardHdrNonceHash := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			require.Equal(t, nonceToByteSlice, key)
 			return hash, nil
