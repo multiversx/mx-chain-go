@@ -168,6 +168,22 @@ func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.NilCompiledSCStore = false
+				args.ConfigSCStorage = config.StorageConfig{
+					Cache: config.CacheConfig{
+						Capacity: 1,
+					},
+					DB: config.DBConfig{
+						MaxBatchSize: 100,
+					},
+				}
+				return args
+			},
+			expectedErr: storage.ErrCacheSizeIsLowerThanBatchSize,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
 				return createMockBlockChainHookArgs()
 			},
 			expectedErr: nil,
@@ -1461,6 +1477,36 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		assert.Nil(t, err)
 		require.NotNil(t, esdtData)
 		assert.Equal(t, emptyESDTData, esdtData)
+	})
+	t.Run("error unmarshall", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		invalidUnmarshalledData := []byte("invalid data")
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				require.Equal(t, address, addressContainer)
+				account := mock.NewAccountWrapMock(address)
+				_ = account.DataTrieTracker().SaveKeyValue(completeEsdtTokenKey, invalidUnmarshalledData)
+
+				return account, nil
+			},
+		}
+		errMarshaller := errors.New("error marshaller")
+		args.Marshalizer = &testscommon.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				require.Equal(t, emptyESDTData, obj)
+				require.Equal(t, invalidUnmarshalledData, buff)
+				return errMarshaller
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh.SetFlagOptimizeNFTStore(false)
+
+		esdtData, err := bh.GetESDTToken(address, token, nonce)
+		require.Nil(t, esdtData)
+		require.Equal(t, errMarshaller, err)
 	})
 	t.Run("accountsDB errors returns error", func(t *testing.T) {
 		t.Parallel()
