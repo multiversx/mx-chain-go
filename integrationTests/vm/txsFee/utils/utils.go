@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
@@ -43,7 +44,6 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -79,7 +79,6 @@ func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContrac
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -114,7 +113,6 @@ func DoDeploySecond(
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -143,14 +141,21 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, testContext.GetLatestError())
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	gasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+
+	testContext.TxFeeHandler.CreateBlockStarted(gasAndFees)
 
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddr))

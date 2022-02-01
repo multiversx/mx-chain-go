@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -87,7 +88,7 @@ func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHa
 }
 
 // doStartRoundJob method does the job of the subround StartRound
-func (sr *subroundStartRound) doStartRoundJob() bool {
+func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.RoundHandler().Index()
 	sr.RoundTimeStamp = sr.RoundHandler().TimeStamp()

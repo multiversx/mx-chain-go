@@ -229,7 +229,7 @@ func TestGroupNotifier_ReceiveNotificationOneGroup(t *testing.T) {
 
 	groupAction := &groupActionsMocks.GroupActionStub{
 		HandleActionCalled: func(triggerData interface{}, stage groupTypes.TriggerStage) error {
-			handleActionCalled.Set()
+			handleActionCalled.SetValue(true)
 			return nil
 		},
 	}
@@ -250,7 +250,7 @@ func TestGroupNotifier_ReceiveNotificationTwoGroups(t *testing.T) {
 
 	group1Action := &groupActionsMocks.GroupActionStub{
 		HandleActionCalled: func(triggerData interface{}, stage groupTypes.TriggerStage) error {
-			handleAction1Called.Set()
+			handleAction1Called.SetValue(true)
 			return nil
 		},
 		GroupIDCalled: func() string {
@@ -260,7 +260,7 @@ func TestGroupNotifier_ReceiveNotificationTwoGroups(t *testing.T) {
 
 	group2Action := &groupActionsMocks.GroupActionStub{
 		HandleActionCalled: func(triggerData interface{}, stage groupTypes.TriggerStage) error {
-			handleAction2Called.Set()
+			handleAction2Called.SetValue(true)
 			return nil
 		},
 		GroupIDCalled: func() string {
@@ -337,7 +337,7 @@ func TestGroupNotifier_CloseOneEventNoGroup(t *testing.T) {
 	var unregisterCalled atomic.Flag
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{
 		UnregisterHandlerCalled: func(handler es.ActionHandler) {
-			unregisterCalled.Set()
+			unregisterCalled.SetValue(true)
 		},
 	}
 	_ = gan2.registerTrigger(epochStartTrigger)
@@ -357,7 +357,7 @@ func TestGroupNotifier_CloseOneEventOneGroup(t *testing.T) {
 	var unregisterCalled atomic.Flag
 	epochStartTrigger := &epochStart.EpochStartNotifierStub{
 		UnregisterHandlerCalled: func(handler es.ActionHandler) {
-			unregisterCalled.Set()
+			unregisterCalled.SetValue(true)
 		},
 	}
 	group1Action := &groupActionsMocks.GroupActionStub{
@@ -383,7 +383,7 @@ func TestGroupNotifier_CloseTwoEventsTwoGroups(t *testing.T) {
 	var unregister1Called, unregister2Called atomic.Flag
 	epochStartTrigger1 := &epochStart.EpochStartNotifierStub{
 		UnregisterHandlerCalled: func(handler es.ActionHandler) {
-			unregister1Called.Set()
+			unregister1Called.SetValue(true)
 		},
 		GetNameCalled: func() string {
 			return "event1"
@@ -391,7 +391,7 @@ func TestGroupNotifier_CloseTwoEventsTwoGroups(t *testing.T) {
 	}
 	epochStartTrigger2 := &epochStart.EpochStartNotifierStub{
 		UnregisterHandlerCalled: func(handler es.ActionHandler) {
-			unregister2Called.Set()
+			unregister2Called.SetValue(true)
 		},
 		GetNameCalled: func() string {
 			return "event2"

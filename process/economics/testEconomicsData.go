@@ -20,6 +20,7 @@ func (ted *TestEconomicsData) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64)
 	ted.maxGasLimitPerMiniBlock = maxGasLimitPerBlock
 	ted.maxGasLimitPerMetaBlock = maxGasLimitPerBlock
 	ted.maxGasLimitPerMetaMiniBlock = maxGasLimitPerBlock
+	ted.maxGasLimitPerTx = maxGasLimitPerBlock
 }
 
 // SetMinGasPrice sets the minimum gas price for a transaction to be accepted

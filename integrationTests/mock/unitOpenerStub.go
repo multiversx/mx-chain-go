@@ -1,13 +1,21 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/storage"
+import (
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
 
 // UnitOpenerStub -
 type UnitOpenerStub struct {
 }
 
-// GetMostRecentBootstrapStorageUnit -
-func (u *UnitOpenerStub) GetMostRecentBootstrapStorageUnit() (storage.Storer, error) {
+// OpenDB -
+func (u *UnitOpenerStub) OpenDB(_ config.DBConfig, _ uint32, _ uint32) (storage.Storer, error) {
+	return &StorerMock{}, nil
+}
+
+// GetMostRecentStorageUnit -
+func (u *UnitOpenerStub) GetMostRecentStorageUnit(_ config.DBConfig) (storage.Storer, error) {
 	return NewStorerMock(), nil
 }
 

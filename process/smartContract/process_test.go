@@ -20,13 +20,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -68,7 +72,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	return ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		AccountsDB: &stateMock.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
@@ -76,6 +80,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			},
 		},
 		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
@@ -94,11 +99,11 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			},
 		},
 		TxTypeHandler: &testscommon.TxTypeHandlerMock{},
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		EpochNotifier:     &mock.EpochNotifierStub{},
+		EpochNotifier:     &epochNotifier.EpochNotifierStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
@@ -127,6 +132,18 @@ func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
 	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilCacher, err)
+}
+
+func TestNewSmartContractProcessorNilBuiltInFunctions(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.BuiltInFunctions = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilBuiltInFunction, err)
 }
 
 func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
@@ -334,7 +351,7 @@ func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
 	gasScheduleRegisterCalled := false
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EpochNotifier = &mock.EpochNotifierStub{
+	arguments.EpochNotifier = &epochNotifier.EpochNotifierStub{
 		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 			epochNotifierRegisterCalled = true
 		},
@@ -521,6 +538,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochs.SCDeployEnableEpoch = maxEpoch
+
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -538,9 +556,9 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 		return vm, nil
 	}
 
-	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	tsc := NewTestScProcessor(sc)
-	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, tsc.GetLatestTestError())
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
 }
 
 func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
@@ -679,7 +697,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 		return nil, nil
 	}
 
-	sc.flagBuiltin.Set()
+	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -738,7 +756,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 		return nil, nil
 	}
 
-	sc.flagBuiltin.Set()
+	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -781,7 +799,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	sc.flagBuiltin.Set()
+	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -956,7 +974,7 @@ func TestScProcessor_DeploySmartContractEconomicsWithFlagPenalizeTooMuchGasEnabl
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.flagPenalizedTooMuchGas.Toggle(false)
+	sc.flagPenalizedTooMuchGas.SetValue(false)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -1373,10 +1391,9 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	_, err = sc.DeploySmartContract(tx, acntSrc)
-	tsp := NewTestScProcessor(sc)
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
 	require.Nil(t, err)
-	require.Nil(t, tsp.GetLatestTestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
@@ -2330,7 +2347,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 
 	acntSrc, _ = createAccounts(tx)
 	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
-	sc.flagPenalizedTooMuchGas.Toggle(false)
+	sc.flagPenalizedTooMuchGas.SetValue(false)
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
@@ -2892,7 +2909,7 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{
-		IsPayableCalled: func(address []byte) (bool, error) {
+		IsPayableCalled: func(_, _ []byte) (bool, error) {
 			return false, nil
 		},
 	}
@@ -3179,7 +3196,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	sc.flagBuiltInFunctionOnMetachain.Unset()
+	sc.flagBuiltInFunctionOnMetachain.Reset()
 	scr := smartContractResult.SmartContractResult{
 		SndAddr: []byte("snd addr"),
 		RcvAddr: scAddress,
@@ -3191,7 +3208,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	sc.flagBuiltInFunctionOnMetachain.Set()
+	_ = sc.flagBuiltInFunctionOnMetachain.SetReturningPrevious()
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)
@@ -3891,7 +3908,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.flagSCRSizeInvariantCheck.Unset()
+	sc.flagSCRSizeInvariantCheck.Reset()
 
 	scrTooBig := &smartContractResult.SmartContractResult{Data: bytes.Repeat([]byte{1}, core.MegabyteSize)}
 	scrs := make([]data.TransactionHandler, 0)
@@ -3900,10 +3917,92 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	err := sc.checkSCRSizeInvariant(scrs)
 	assert.Nil(t, err)
 
-	sc.flagSCRSizeInvariantCheck.Toggle(true)
+	sc.flagSCRSizeInvariantCheck.SetValue(true)
 
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
+}
+
+func TestProcessIsInformativeSCR(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	arguments.BuiltInFunctions = builtInFuncs
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.Value = big.NewInt(0)
+	scr.CallType = vmData.AsynchronousCallBack
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.CallType = vmData.DirectCall
+	scr.Data = []byte("@abab")
+	assert.True(t, sc.isInformativeSCR(scr))
+
+	scr.Data = []byte("ab@ab")
+	scr.RcvAddr = make([]byte, 32)
+	assert.False(t, sc.isInformativeSCR(scr))
+
+	scr.RcvAddr = []byte("address")
+	assert.True(t, sc.isInformativeSCR(scr))
+
+	_ = builtInFuncs.Add("ab", &mock.BuiltInFunctionStub{})
+	assert.False(t, sc.isInformativeSCR(scr))
+}
+
+func TestCleanInformativeOnlySCRs(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	arguments.BuiltInFunctions = builtInFuncs
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scrs := make([]data.TransactionHandler, 0)
+	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(1)})
+	scrs = append(scrs, &smartContractResult.SmartContractResult{Value: big.NewInt(0), Data: []byte("@6b6f")})
+
+	sc.flagCleanUpInformativeSCRs.Reset()
+	finalSCRs, logs := sc.cleanInformativeOnlySCRs(scrs)
+	assert.Equal(t, len(finalSCRs), len(scrs))
+	assert.Equal(t, 1, len(logs))
+
+	_ = sc.flagCleanUpInformativeSCRs.SetReturningPrevious()
+	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
+	assert.Equal(t, 1, len(finalSCRs))
+	assert.Equal(t, 1, len(logs))
+}
+
+func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
+	arguments.ShardCoordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1), SndAddr: bytes.Repeat([]byte{1}, 32)}
+	scrHash := []byte("hash")
+
+	logHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scrHash, logHash)
+
+	scr.OriginalTxHash = []byte("originalHash")
+	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
+	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
+	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)
+	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scr.OriginalTxHash, logHash)
+
+	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
+	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	assert.Equal(t, scrHash, logHash)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
@@ -3936,6 +4035,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerMiniBlock:     "1500000000",
 						MaxGasLimitPerMetaBlock:     "15000000000",
 						MaxGasLimitPerMetaMiniBlock: "15000000000",
+						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 					},
 				},
@@ -3944,7 +4044,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				GasPriceModifier: 0.01,
 			},
 		},
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		GasPriceModifierEnableEpoch:    0,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},

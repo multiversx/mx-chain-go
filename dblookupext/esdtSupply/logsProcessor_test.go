@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,28 +19,30 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte("something"),
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+	logs := map[string]*data.LogData{
+		"txLog": {
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte("something"),
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+						},
 					},
 				},
 			},
@@ -47,7 +51,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	}
 
 	marshalizer := testscommon.MarshalizerMock{}
-	storer := &testscommon.StorerStub{
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
@@ -78,28 +82,30 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	token := []byte("esdt-miiu")
 
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTLocalBurn),
-					Topics: [][]byte{
-						token, big.NewInt(0).Bytes(), big.NewInt(20).Bytes(),
+	logs := map[string]*data.LogData{
+		"txLog": {
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTLocalBurn),
+						Topics: [][]byte{
+							token, big.NewInt(0).Bytes(), big.NewInt(20).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
-					Topics: [][]byte{
-						token, big.NewInt(0).Bytes(), big.NewInt(25).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
+						Topics: [][]byte{
+							token, big.NewInt(0).Bytes(), big.NewInt(25).Bytes(),
+						},
 					},
+					nil,
 				},
-				nil,
 			},
 		},
 	}
 
 	marshalizer := testscommon.MarshalizerMock{}
-	storer := &testscommon.StorerStub{
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			supplyESDT := &SupplyESDT{
 				Supply: big.NewInt(1000),
@@ -122,4 +128,86 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	err := logsProc.processLogs(0, logs, false)
 	require.Nil(t, err)
+}
+
+func TestMakePropertiesNotNil(t *testing.T) {
+	t.Parallel()
+
+	t.Run("supply is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: nil,
+			Burned: big.NewInt(1),
+			Minted: big.NewInt(2),
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(0),
+			Burned: big.NewInt(1),
+			Minted: big.NewInt(2),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("burned is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: nil,
+			Minted: big.NewInt(2),
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(0),
+			Minted: big.NewInt(2),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("minted is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: nil,
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: big.NewInt(0),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("all are nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{}
+		expected := SupplyESDT{
+			Supply: big.NewInt(0),
+			Burned: big.NewInt(0),
+			Minted: big.NewInt(0),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+	t.Run("none is nil", func(t *testing.T) {
+		t.Parallel()
+
+		provided := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: big.NewInt(3),
+		}
+		expected := SupplyESDT{
+			Supply: big.NewInt(1),
+			Burned: big.NewInt(2),
+			Minted: big.NewInt(3),
+		}
+		makePropertiesNotNil(&provided)
+		assert.Equal(t, expected, provided)
+	})
+
 }

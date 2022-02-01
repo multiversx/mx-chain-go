@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. delegation.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. delegation.proto
 package systemSmartContracts
 
 import (
@@ -588,10 +588,10 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegationManager) EpochConfirmed(epoch uint32, _ uint64) {
-	d.delegationMgrEnabled.Toggle(epoch >= d.enableDelegationMgrEpoch)
+	d.delegationMgrEnabled.SetValue(epoch >= d.enableDelegationMgrEpoch)
 	log.Debug("delegationManagerSC: delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
 
-	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
+	d.flagValidatorToDelegation.SetValue(epoch >= d.validatorToDelegationEnableEpoch)
 	log.Debug("delegationManagerSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 }
 

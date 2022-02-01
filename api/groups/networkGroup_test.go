@@ -1,6 +1,7 @@
 package groups_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -340,7 +341,7 @@ func TestDelegatedInfo_ShouldWork(t *testing.T) {
 
 func delegatorFoundInResponse(response string, delegator api.Delegator) bool {
 	if strings.Contains(response, delegator.TotalAsBigInt.String()) {
-		//we should have not encoded the total as big int
+		// we should have not encoded the total as big int
 		return false
 	}
 
@@ -409,8 +410,8 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
-		GetTokenSupplyCalled: func(token string) (string, error) {
-			return "", expectedErr
+		GetTokenSupplyCalled: func(token string) (*api.ESDTSupply, error) {
+			return nil, expectedErr
 		},
 	}
 
@@ -432,9 +433,17 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 }
 
 func TestGetESDTTotalSupply(t *testing.T) {
+	type supplyResponse struct {
+		Data *api.ESDTSupply `json:"data"`
+	}
+
 	facade := mock.FacadeStub{
-		GetTokenSupplyCalled: func(token string) (string, error) {
-			return "1000", nil
+		GetTokenSupplyCalled: func(token string) (*api.ESDTSupply, error) {
+			return &api.ESDTSupply{
+				Supply: "1000",
+				Burned: "500",
+				Minted: "1500",
+			}, nil
 		},
 	}
 
@@ -448,11 +457,17 @@ func TestGetESDTTotalSupply(t *testing.T) {
 	ws.ServeHTTP(resp, req)
 
 	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueInResponse := strings.Contains(respStr, "supply") && strings.Contains(respStr, "1000")
-	require.True(t, keyAndValueInResponse)
+	respSupply := &supplyResponse{}
+	err = json.Unmarshal(respBytes, respSupply)
+	require.Nil(t, err)
+
+	require.Equal(t, &supplyResponse{Data: &api.ESDTSupply{
+		Supply: "1000",
+		Burned: "500",
+		Minted: "1500",
+	}}, respSupply)
 }
 
 func getNetworkRoutesConfig() config.ApiRoutesConfig {

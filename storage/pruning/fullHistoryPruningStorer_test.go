@@ -1,6 +1,8 @@
 package pruning_test
 
 import (
+	"context"
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -9,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -265,11 +269,31 @@ func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
 	require.NotNil(t, fhps)
 }
 
+func TestFullHistoryPruningStorer_Close(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	fhArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 5,
+	}
+	fhps, _ := pruning.NewShardedFullHistoryPruningStorer(fhArgs, 2)
+	for i := 0; i < 10; i++ {
+		_, _ = fhps.GetFromEpoch([]byte("key"), uint32(i))
+	}
+	assert.Equal(t, int(fhArgs.NumOfOldActivePersisters), fhps.GetOldEpochsActivePersisters().Len())
+
+	err := fhps.Close()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, fhps.GetOldEpochsActivePersisters().Len())
+}
+
 func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	t.Skip("this test should be run only when troubleshooting pruning storer concurrent operations")
 
 	startTime := time.Now()
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	dbName := "db-concurrent-test"
 	testDir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
@@ -293,18 +317,63 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
 	require.NotNil(t, fhps)
 
-	numOperations := 500
+	defer func() {
+		_ = fhps.Close()
+	}()
+
+	rnd := random.ConcurrentSafeIntRandomizer{}
+	numOperations := 5000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
+
+	mut := sync.Mutex{}
+	currentEpoch := 0
+	chanChangeEpoch := make(chan struct{}, 10000)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-chanChangeEpoch:
+				buff := make([]byte, 1)
+				_, _ = rand.Read(buff)
+				mut.Lock()
+				if buff[0] > 200 && currentEpoch > 0 {
+					currentEpoch--
+				} else {
+					currentEpoch++
+				}
+				newEpoch := currentEpoch
+				mut.Unlock()
+
+				_ = fhps.ChangeEpochSimple(uint32(newEpoch))
+				log.Debug("called ChangeEpochSimple", "epoch", newEpoch)
+				wg.Done()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(ctx)
+
 	for idx := 0; idx < numOperations; idx++ {
+		if idx%6 != 0 {
+			chanChangeEpoch <- struct{}{}
+			continue
+		}
+
 		go func(index int) {
-			switch index % 3 {
-			case 0:
-				_ = fhps.ChangeEpochSimple(uint32(index))
+			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
+			switch index % 6 {
 			case 1:
 				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(index-1))
 			case 2:
 				_ = fhps.Put([]byte("key"), []byte("value"))
+			case 3:
+				_, _ = fhps.Get([]byte("key"))
+			case 4:
+				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(rnd.Intn(100)))
+			case 5:
+				_, _ = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, uint32(rnd.Intn(100)))
 			}
 			wg.Done()
 		}(idx)
@@ -312,7 +381,9 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	wg.Wait()
 
+	log.Info("test done")
+
 	elapsedTime := time.Since(startTime)
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
-	require.True(t, elapsedTime < 10*time.Second)
+	require.True(t, elapsedTime < 100*time.Second)
 }

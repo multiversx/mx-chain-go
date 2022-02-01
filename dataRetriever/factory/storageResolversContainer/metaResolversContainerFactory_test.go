@@ -8,11 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
+	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +50,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 func createStoreForMeta() dataRetriever.StorageService {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{}
+			return &storageStubs.StorerStub{}
 		},
 	}
 }
@@ -196,8 +198,10 @@ func getMockStorageConfig() config.StorageConfig {
 func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
 		GeneralConfig: config.Config{
-			AccountsTrieStorage:     getMockStorageConfig(),
-			PeerAccountsTrieStorage: getMockStorageConfig(),
+			AccountsTrieStorage:        getMockStorageConfig(),
+			PeerAccountsTrieStorage:    getMockStorageConfig(),
+			AccountsTrieStorageOld:     getMockStorageConfig(),
+			PeerAccountsTrieStorageOld: getMockStorageConfig(),
 			TrieSnapshotDB: config.DBConfig{
 				FilePath:          "",
 				Type:              "MemoryDB",
@@ -221,7 +225,7 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 		ShardIDForTries:          0,
 		ChainID:                  "T",
 		WorkingDirectory:         "",
-		Hasher:                   mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForMeta("", ""),
 		Store:                    createStoreForMeta(),
@@ -230,5 +234,6 @@ func getArgumentsMeta() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
+		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
 	}
 }

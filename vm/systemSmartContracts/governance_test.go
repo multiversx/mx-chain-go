@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -34,7 +35,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 			},
 		},
 		Marshalizer:                 &mock.MarshalizerMock{},
-		Hasher:                      &mock.HasherMock{},
+		Hasher:                      &hashingMocks.HasherMock{},
 		GovernanceSCAddress:         vm.GovernanceSCAddress,
 		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:          vm.ValidatorSCAddress,
@@ -231,11 +232,11 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	gsc.flagEnabled.Unset()
+	gsc.flagEnabled.Reset()
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	gsc.flagEnabled.Set()
+	_ = gsc.flagEnabled.SetReturningPrevious()
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -79,7 +80,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderFoundInStorageShouldWor
 			return nil, errors.New("not found")
 		},
 	}
-	args.Storage = &testscommon.StorerStub{
+	args.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			mb := &block.MetaBlock{Nonce: 37}
 			mbBytes, _ := args.Marshalizer.Marshal(mb)
@@ -102,7 +103,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderNotFoundShouldTimeout(t
 			return nil, errNotFound
 		},
 	}
-	args.Storage = &testscommon.StorerStub{
+	args.Storage = &storageStubs.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return nil, errNotFound
 		},
@@ -134,7 +135,7 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 	var handlerToNotify func(header data.HeaderHandler, shardHeaderHash []byte)
 	var errNotFound = errors.New("not found")
 	args := getMisingHeadersByHashSyncerArgs()
-	args.Storage = &testscommon.StorerStub{
+	args.Storage = &storageStubs.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return nil, errNotFound
 		},

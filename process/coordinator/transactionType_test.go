@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func createMockArguments() ArgNewTxTypeHandler {
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 }
@@ -450,7 +451,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedV2Func(t *testing.T) {
 	assert.Equal(t, process.RelayedTxV2, txTypeIn)
 	assert.Equal(t, process.RelayedTxV2, txTypeCross)
 
-	tth.flagRelayedTxV2.Unset()
+	tth.flagRelayedTxV2.Reset()
 	txTypeIn, txTypeCross = tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.MoveBalance, txTypeIn)
 	assert.Equal(t, process.MoveBalance, txTypeCross)

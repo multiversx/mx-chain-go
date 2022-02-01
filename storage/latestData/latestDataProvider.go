@@ -1,7 +1,6 @@
 package latestData
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -10,6 +9,9 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -65,6 +67,11 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
 	lastData, _, _, err := ldp.getLastData()
 	return lastData, err
+}
+
+// GetParentDirectory returns the parent directory
+func (ldp *latestDataProvider) GetParentDirectory() string {
+	return ldp.parentDir
 }
 
 // GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the node
@@ -210,14 +217,15 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	storer storage.Storer,
 ) (uint64, error) {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
-	data, err := storer.Get(trigInternalKey)
+	trigData, err := storer.Get(trigInternalKey)
 	if err != nil {
 		return 0, err
 	}
 
+	var state *block.MetaTriggerRegistry
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
-		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(data, state)
+		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
 		if err != nil {
 			return 0, err
 		}
@@ -225,13 +233,13 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return state.CurrEpochStartRound, nil
 	}
 
-	state := &shardchain.TriggerRegistry{}
-	err = json.Unmarshal(data, state)
+	var trigHandler data.TriggerRegistryHandler
+	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
 	if err != nil {
 		return 0, err
 	}
 
-	return state.EpochStartRound, nil
+	return trigHandler.GetEpochStartRound(), nil
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory
