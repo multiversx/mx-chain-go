@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
+
 	"math"
 	"math/big"
 	"sort"
@@ -25,6 +28,10 @@ import (
 )
 
 var log = logger.GetOrCreate("process")
+
+// TODO: remove these
+var m = &marshal.GogoProtoMarshalizer{}
+var h = blake2b.NewBlake2b()
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -636,7 +643,10 @@ func DisplayProcessTxDetails(
 		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 	}
 
+	hash, _ := core.CalculateHash(m, h, txHandler)
+
 	log.Debug("executing transaction",
+		"hash", hash,
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
 		"gas limit", txHandler.GetGasLimit(),
