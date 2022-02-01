@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 
 	"math/big"
 	"sort"
@@ -570,7 +571,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 // with destination of current shard
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
-	processedMiniBlocksHashes map[string]struct{},
+	processedMiniBlocksHashes map[string]*processedMb.ProcessedMiniBlockInfo,
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
@@ -632,8 +633,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		_, ok := processedMiniBlocksHashes[string(miniBlockInfo.Hash)]
-		if ok {
+		processedMbInfo, ok := processedMiniBlocksHashes[string(miniBlockInfo.Hash)]
+		if ok && processedMbInfo.IsFullyProcessed {
 			numAlreadyMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,

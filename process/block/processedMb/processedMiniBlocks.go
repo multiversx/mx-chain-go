@@ -80,8 +80,8 @@ func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksHashes(metaBlockHash
 	return processedMiniBlocksHashes
 }
 
-// IsMiniBlockProcessed will return true if a mini block is processed
-func (pmb *ProcessedMiniBlockTracker) IsMiniBlockProcessed(metaBlockHash string, miniBlockHash string) bool {
+// IsMiniBlockFullyProcessed will return true if a mini block is fully processed
+func (pmb *ProcessedMiniBlockTracker) IsMiniBlockFullyProcessed(metaBlockHash string, miniBlockHash string) bool {
 	pmb.mutProcessedMiniBlocks.RLock()
 	defer pmb.mutProcessedMiniBlocks.RUnlock()
 
@@ -90,8 +90,12 @@ func (pmb *ProcessedMiniBlockTracker) IsMiniBlockProcessed(metaBlockHash string,
 		return false
 	}
 
-	_, isProcessed := miniBlocksProcessed[miniBlockHash]
-	return isProcessed
+	processedMbInfo, hashExists := miniBlocksProcessed[miniBlockHash]
+	if !hashExists {
+		return false
+	}
+
+	return processedMbInfo.IsFullyProcessed
 }
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta

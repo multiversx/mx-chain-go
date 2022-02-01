@@ -19,22 +19,22 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 	mtbHash2 := "meta2"
 
 	pmb.AddMiniBlockHash(mtbHash1, mbHash1, nil)
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
+	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
 	pmb.AddMiniBlockHash(mtbHash2, mbHash1, nil)
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash2, mbHash1))
+	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 
 	pmb.AddMiniBlockHash(mtbHash1, mbHash2, nil)
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash2))
+	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash2))
 
 	pmb.RemoveMiniBlockHash(mbHash1)
-	assert.False(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
+	assert.False(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
 	pmb.RemoveMiniBlockHash(mbHash1)
-	assert.False(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
+	assert.False(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
 	pmb.RemoveMetaBlockHash(mtbHash2)
-	assert.False(t, pmb.IsMiniBlockProcessed(mtbHash2, mbHash1))
+	assert.False(t, pmb.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 }
 
 func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
@@ -74,7 +74,7 @@ func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) 
 
 	miniBlocksInMeta := []bootstrapStorage.MiniBlocksInMeta{data1}
 	pmb.ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMeta)
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
+	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
 	convertedData := pmb.ConvertProcessedMiniBlocksMapToSlice()
 	assert.Equal(t, miniBlocksInMeta, convertedData)

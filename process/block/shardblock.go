@@ -29,7 +29,7 @@ const timeBetweenCheckForEpochStart = 100 * time.Millisecond
 type createMbsAndProcessTxsDestMeInfo struct {
 	currMetaHdr               data.HeaderHandler
 	currMetaHdrHash           []byte
-	processedMiniBlocksHashes map[string]struct{}
+	processedMiniBlocksHashes map[string]*processedMb.ProcessedMiniBlockInfo
 	haveTime                  func() bool
 	haveAdditionalTime        func() bool
 	miniBlocks                block.MiniBlockSlice
@@ -1492,7 +1492,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			processedCrossMiniBlocksHashes[hash] = sp.processedMiniBlocks.IsMiniBlockProcessed(metaBlockHash, hash)
+			processedCrossMiniBlocksHashes[hash] = sp.processedMiniBlocks.IsMiniBlockFullyProcessed(metaBlockHash, hash)
 		}
 
 		for key, miniBlockHash := range miniBlockHashes {
@@ -1501,7 +1501,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 				continue
 			}
 
-			processedCrossMiniBlocksHashes[string(miniBlockHash)] = true
+			processedCrossMiniBlocksHashes[string(miniBlockHash)] = sp.processedMiniBlocks.IsMiniBlockFullyProcessed(metaBlockHash, string(miniBlockHash))
 
 			delete(miniBlockHashes, key)
 		}
