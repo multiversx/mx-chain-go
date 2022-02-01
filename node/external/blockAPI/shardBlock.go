@@ -14,8 +14,8 @@ type shardAPIBlockProcessor struct {
 	*baseAPIBlockProcessor
 }
 
-// NewShardApiBlockProcessor will create a new instance of shard api block processor
-func NewShardApiBlockProcessor(arg *ArgAPIBlockProcessor) *shardAPIBlockProcessor {
+// newShardApiBlockProcessor will create a new instance of shard api block processor
+func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byte) *shardAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 
 	return &shardAPIBlockProcessor{
@@ -30,6 +30,7 @@ func NewShardApiBlockProcessor(arg *ArgAPIBlockProcessor) *shardAPIBlockProcesso
 			txStatusComputer:         arg.StatusComputer,
 			hasher:                   arg.Hasher,
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
+			emptyReceiptsHash:        emptyReceiptsHash,
 		},
 	}
 }

@@ -1,6 +1,7 @@
 package blockAPI
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -32,6 +33,7 @@ const (
 type baseAPIBlockProcessor struct {
 	hasDbLookupExtensions    bool
 	selfShardID              uint32
+	emptyReceiptsHash        []byte
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -45,12 +47,14 @@ type baseAPIBlockProcessor struct {
 var log = logger.GetOrCreate("node/blockAPI")
 
 func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch uint32, withTxs bool) []*api.MiniBlock {
-	// Todo check receipts hash
+	if bytes.Equal(bap.emptyReceiptsHash, receiptsHash) {
+		return nil
+	}
 
 	batchBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ReceiptsUnit, receiptsHash, epoch)
 	if err != nil {
 		log.Warn("cannot get miniblock from receipts storage",
-			"hash", hex.EncodeToString(receiptsHash),
+			"hash", receiptsHash,
 			"error", err.Error())
 		return nil
 	}
@@ -59,7 +63,7 @@ func (bap *baseAPIBlockProcessor) getIntraMiniblocks(receiptsHash []byte, epoch 
 	err = bap.marshalizer.Unmarshal(batchWithMbs, batchBytes)
 	if err != nil {
 		log.Warn("cannot unmarshal batch",
-			"hash", hex.EncodeToString(receiptsHash),
+			"hash", receiptsHash,
 			"error", err.Error())
 		return nil
 	}
@@ -76,26 +80,35 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 			continue
 		}
 
-		mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniBlock)
-		if err != nil {
-			log.Warn("cannot compute miniblock's hash", "error", err.Error())
+		miniblockAPI, ok := bap.prepareAPIMb(miniBlock, epoch, withTxs)
+		if !ok {
 			continue
-		}
-
-		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mbHash),
-			Type:             miniBlock.Type.String(),
-			SourceShard:      miniBlock.SenderShardID,
-			DestinationShard: miniBlock.ReceiverShardID,
-		}
-		if withTxs {
-			bap.getAndAttachTxsToMbByEpoch(mbHash, miniBlock, epoch, miniblockAPI)
 		}
 
 		mbs = append(mbs, miniblockAPI)
 	}
 
 	return mbs
+}
+
+func (bap *baseAPIBlockProcessor) prepareAPIMb(miniblock *block.MiniBlock, epoch uint32, withTxs bool) (*api.MiniBlock, bool) {
+	mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniblock)
+	if err != nil {
+		log.Warn("cannot compute miniblock's hash", "error", err.Error())
+		return nil, false
+	}
+
+	miniblockAPI := &api.MiniBlock{
+		Hash:             hex.EncodeToString(mbHash),
+		Type:             miniblock.Type.String(),
+		SourceShard:      miniblock.SenderShardID,
+		DestinationShard: miniblock.ReceiverShardID,
+	}
+	if withTxs {
+		bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI)
+	}
+
+	return miniblockAPI, true
 }
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader *block.MiniBlockHeader, epoch uint32, apiMb *api.MiniBlock) {
@@ -112,7 +125,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader *block.MiniBlockH
 	err = bap.marshalizer.Unmarshal(miniBlock, mbBytes)
 	if err != nil {
 		log.Warn("cannot unmarshal miniblock",
-			"hash", hex.EncodeToString(miniblockHash),
+			"hash", miniblockHash,
 			"error", err.Error())
 		return
 	}
@@ -152,8 +165,8 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 		rec := &receipt.Receipt{}
 		err = bap.marshalizer.Unmarshal(rec, recBytes)
 		if err != nil {
-			log.Warn("cannot unmarshal transaction",
-				"hash", hex.EncodeToString([]byte(recHash)),
+			log.Warn("cannot unmarshal receipt",
+				"hash", []byte(recHash),
 				"error", err.Error())
 			continue
 		}

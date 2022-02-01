@@ -2,7 +2,6 @@ package blockAPI
 
 import (
 	"errors"
-
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
