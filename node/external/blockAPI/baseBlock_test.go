@@ -1,278 +1,238 @@
 package blockAPI
 
 import (
+	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func createMockArgumentsWithTx(
-	srcShardID uint32,
-	destShardID uint32,
-	recvAddress string,
-	miniblockBytes []byte,
-	miniblockType block.Type,
-	txHash string,
-	txBytes []byte,
-	marshalizer *mock.MarshalizerFake,
-) baseAPIBlockProcessor {
-	storerMock := &mock.ChainStorerMock{
+func createMockBaseBlock() *baseAPIBlockProcessor {
+	return &baseAPIBlockProcessor{
+		hasDbLookupExtensions:    true,
+		selfShardID:              0,
+		emptyReceiptsHash:        nil,
+		store:                    &mock.ChainStorerMock{},
+		marshalizer:              &mock.MarshalizerFake{},
+		uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		historyRepo:              &dblookupext.HistoryRepositoryStub{},
+		hasher:                   &mock.HasherFake{},
+		addressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
+		txStatusComputer:         &mock.StatusComputerStub{},
+		txUnmarshaller:           &mock.TransactionAPIHandlerStub{},
+	}
+}
+
+func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
+	t.Parallel()
+
+	baseAPIBlockProc := createMockBaseBlock()
+
+	scrHash := []byte("scr1")
+	mbScrs := &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{scrHash},
+	}
+	mbScrsBytes, _ := baseAPIBlockProc.marshalizer.Marshal(mbScrs)
+
+	receiptsStorer := mock.NewStorerMock()
+
+	batchData := &batch.Batch{
+		Data: [][]byte{mbScrsBytes},
+	}
+	batchDataBytes, _ := baseAPIBlockProc.marshalizer.Marshal(batchData)
+
+	receiptsHash := []byte("recHash")
+	_ = receiptsStorer.Put(receiptsHash, batchDataBytes)
+
+	unsignedStorer := mock.NewStorerMock()
+	scResult := &smartContractResult.SmartContractResult{
+		SndAddr: []byte("snd"),
+		RcvAddr: []byte("rcv"),
+		Data:    []byte("doSomething"),
+	}
+	scResultBytes, _ := baseAPIBlockProc.marshalizer.Marshal(scResult)
+	_ = unsignedStorer.Put(scrHash, scResultBytes)
+
+	baseAPIBlockProc.store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{
-				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
-					return map[string][]byte{txHash: txBytes}, nil
-				},
-				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-					return miniblockBytes, nil
-				},
+			switch unitType {
+			case dataRetriever.ReceiptsUnit:
+				return receiptsStorer
+			case dataRetriever.UnsignedTransactionUnit:
+				return unsignedStorer
 			}
+
+			return nil
 		},
 	}
-	txUnsmarshaler := &mock.TransactionAPIHandlerStub{
+
+	baseAPIBlockProc.txUnmarshaller = &mock.TransactionAPIHandlerStub{
 		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-			var unmarshalledTx transaction.Transaction
-			_ = marshalizer.Unmarshal(&unmarshalledTx, txBytes)
 			return &transaction.ApiTransactionResult{
-				Tx:               &unmarshalledTx,
-				Type:             string(txType),
-				Nonce:            unmarshalledTx.Nonce,
-				Hash:             txHash,
-				MiniBlockType:    string(miniblockType),
-				SourceShard:      srcShardID,
-				DestinationShard: destShardID,
-				Receiver:         recvAddress,
-				Data:             []byte{},
+				Sender:   hex.EncodeToString(scResult.SndAddr),
+				Receiver: hex.EncodeToString(scResult.RcvAddr),
+				Data:     scResult.Data,
 			}, nil
 		},
 	}
-	statusComputer, _ := txstatus.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
-	return baseAPIBlockProcessor{
-		selfShardID: srcShardID,
-		marshalizer: marshalizer,
-		store:       storerMock,
-		historyRepo: &dblookupext.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
+
+	intraMbs := baseAPIBlockProc.getIntraMiniblocks(receiptsHash, 0, true)
+	require.Equal(t, &api.MiniBlock{
+		Hash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
+		Type: "SmartContractResultBlock",
+		Transactions: []*transaction.ApiTransactionResult{
+			{
+				Hash:          "73637231",
+				Sender:        "736e64",
+				Receiver:      "726376",
+				Data:          []byte("doSomething"),
+				MiniBlockType: "SmartContractResultBlock",
+				MiniBlockHash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
 			},
 		},
-		txUnmarshaller:   txUnsmarshaler,
-		txStatusComputer: statusComputer,
-	}
+	}, intraMbs[0])
 }
 
-func TestBaseApiBlockProcessor_GetNormalTxFromMiniBlock(t *testing.T) {
+func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(1)
-	nonce := uint64(0)
-	sourceShardID := uint32(1)
-	destShardID := uint32(1)
-	marshalizer := &mock.MarshalizerFake{}
+	baseAPIBlockProc := createMockBaseBlock()
 
-	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
-	mbHash := "f08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
-	recvAddress := "a08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
+	recHash := []byte("rec1")
+	recMb := &block.MiniBlock{
+		Type:     block.ReceiptBlock,
+		TxHashes: [][]byte{recHash},
+	}
+	recMbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(recMb)
 
-	mbType := block.TxBlock
-	txType := transaction.TxTypeNormal
+	receiptsStorer := mock.NewStorerMock()
 
-	tx := transaction.Transaction{
-		Nonce: nonce,
+	batchData := &batch.Batch{
+		Data: [][]byte{recMbBytes},
+	}
+	batchDataBytes, _ := baseAPIBlockProc.marshalizer.Marshal(batchData)
+
+	receiptsHash := []byte("recHash")
+	_ = receiptsStorer.Put(receiptsHash, batchDataBytes)
+
+	unsignedStorer := mock.NewStorerMock()
+	rec := &receipt.Receipt{
+		Value:   big.NewInt(1000),
+		SndAddr: []byte("sndAddr"),
+		Data:    []byte("refund"),
+		TxHash:  []byte("hash"),
+	}
+	recBytes, _ := baseAPIBlockProc.marshalizer.Marshal(rec)
+	_ = unsignedStorer.Put(recHash, recBytes)
+
+	baseAPIBlockProc.store = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.ReceiptsUnit:
+				return receiptsStorer
+			case dataRetriever.UnsignedTransactionUnit:
+				return unsignedStorer
+			}
+
+			return nil
+		},
 	}
 
-	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
-		Type:     mbType,
-	}
-
-	mbHeader := block.MiniBlockHeader{
-		Hash: []byte(mbHash),
-		Type: mbType,
-	}
-
-	txBytes, _ := marshalizer.Marshal(&tx)
-	mbBytes, _ := marshalizer.Marshal(&mb)
-
-	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardID,
-		destShardID,
-		recvAddress,
-		mbBytes,
-		mbType,
-		txHash,
-		txBytes,
-		marshalizer,
-	)
-
-	apiMB := &api.MiniBlock{}
-	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
-
-	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
-	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
+	intraMbs := baseAPIBlockProc.getIntraMiniblocks(receiptsHash, 0, true)
+	require.Equal(t, &api.MiniBlock{
+		Hash: "262b3023ca9ba61e90a60932b4db7f8b0d1dec7c2a00261cf0c5d43785f17f6f",
+		Type: "ReceiptBlock",
+		Receipts: []*transaction.ApiReceipt{
+			{
+				SndAddr: "736e6441646472",
+				Data:    "refund",
+				TxHash:  "68617368",
+				Value:   big.NewInt(1000),
+			},
+		},
+	}, intraMbs[0])
 }
 
-func TestBaseApiBlockProcessor_GetRewardsTxFromMiniBlock(t *testing.T) {
+func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(1)
-	nonce := uint64(0)
-	sourceShardID := uint32(1)
-	destShardID := uint32(1)
-	marshalizer := &mock.MarshalizerFake{}
+	baseAPIBlockProc := createMockBaseBlock()
 
-	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
-	mbHash := "f08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
-	recvAddress := "a08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
+	txHash := []byte("tx1")
+	txMb := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{txHash},
+	}
+	txMbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(txMb)
 
-	mbType := block.RewardsBlock
-	txType := transaction.TxTypeReward
+	mbStorer := mock.NewStorerMock()
+	mbHash := []byte("mbHash")
+	_ = mbStorer.Put(mbHash, txMbBytes)
 
-	tx := transaction.Transaction{
-		Nonce: nonce,
+	unsignedStorer := mock.NewStorerMock()
+	tx := &transaction.Transaction{
+		Value:   big.NewInt(1000),
+		SndAddr: []byte("sndAddr"),
+		RcvAddr: []byte("rcvAddr"),
+		Data:    []byte("refund"),
+		Nonce:   1,
+	}
+	txBytes, _ := baseAPIBlockProc.marshalizer.Marshal(tx)
+	_ = unsignedStorer.Put(txHash, txBytes)
+
+	baseAPIBlockProc.store = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.MiniBlockUnit:
+				return mbStorer
+			case dataRetriever.TransactionUnit:
+				return unsignedStorer
+			}
+
+			return nil
+		},
 	}
 
-	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
-		Type:     mbType,
+	baseAPIBlockProc.txUnmarshaller = &mock.TransactionAPIHandlerStub{
+		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+			return &transaction.ApiTransactionResult{
+				Sender:   hex.EncodeToString(tx.SndAddr),
+				Receiver: hex.EncodeToString(tx.RcvAddr),
+				Data:     tx.Data,
+				Nonce:    tx.Nonce,
+			}, nil
+		},
 	}
 
-	mbHeader := block.MiniBlockHeader{
-		Hash: []byte(mbHash),
-		Type: mbType,
+	mbHeader := &block.MiniBlockHeader{
+		Hash: mbHash,
 	}
-
-	txBytes, _ := marshalizer.Marshal(&tx)
-	mbBytes, _ := marshalizer.Marshal(&mb)
-
-	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardID,
-		destShardID,
-		recvAddress,
-		mbBytes,
-		mbType,
-		txHash,
-		txBytes,
-		marshalizer,
-	)
 
 	apiMB := &api.MiniBlock{}
-	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
-
-	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
-	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
-}
-
-func TestBaseApiBlockProcessor_GetUnsignedTxFromMiniBlock(t *testing.T) {
-	t.Parallel()
-
-	epoch := uint32(1)
-	nonce := uint64(0)
-	sourceShardID := uint32(1)
-	destShardID := uint32(1)
-	marshalizer := &mock.MarshalizerFake{}
-
-	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
-	mbHash := "f08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
-	recvAddress := "a08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
-
-	mbType := block.SmartContractResultBlock
-	txType := transaction.TxTypeUnsigned
-
-	tx := transaction.Transaction{
-		Nonce: nonce,
-	}
-
-	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
-		Type:     mbType,
-	}
-
-	mbHeader := block.MiniBlockHeader{
-		Hash: []byte(mbHash),
-		Type: mbType,
-	}
-
-	txBytes, _ := marshalizer.Marshal(&tx)
-	mbBytes, _ := marshalizer.Marshal(&mb)
-
-	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardID,
-		destShardID,
-		recvAddress,
-		mbBytes,
-		mbType,
-		txHash,
-		txBytes,
-		marshalizer,
-	)
-
-	apiMB := &api.MiniBlock{}
-	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
-
-	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
-	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
-}
-
-func TestBaseApiBlockProcessor_GetInvalidTxFromMiniBlock(t *testing.T) {
-	t.Parallel()
-
-	epoch := uint32(1)
-	nonce := uint64(0)
-	sourceShardID := uint32(1)
-	destShardID := uint32(1)
-	marshalizer := &mock.MarshalizerFake{}
-
-	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
-	mbHash := "f08089d2ab739520598ff7aeed08c427460fe94f286383047f3f61951afc4e04"
-	recvAddress := "a08089d2ab73952059  8ff7aeed08c427460fe94f286383047f3f61951afc4e04"
-
-	mbType := block.InvalidBlock
-	txType := transaction.TxTypeInvalid
-
-	tx := transaction.Transaction{
-		Nonce: nonce,
-	}
-
-	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte(txHash)},
-		Type:     mbType,
-	}
-
-	mbHeader := block.MiniBlockHeader{
-		Hash: []byte(mbHash),
-		Type: mbType,
-	}
-
-	txBytes, _ := marshalizer.Marshal(&tx)
-	mbBytes, _ := marshalizer.Marshal(&mb)
-
-	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardID,
-		destShardID,
-		recvAddress,
-		mbBytes,
-		mbType,
-		txHash,
-		txBytes,
-		marshalizer,
-	)
-
-	apiMB := &api.MiniBlock{}
-	baseAPIBlock.getAndAttachTxsToMb(&mbHeader, epoch, apiMB)
-
-	assert.Equal(t, apiMB.Transactions[0].Nonce, tx.Nonce)
-	assert.EqualValues(t, apiMB.Transactions[0].Type, txType)
-	assert.EqualValues(t, apiMB.Transactions[0].Receiver, recvAddress)
+	baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, 0, apiMB)
+	require.Equal(t, &api.MiniBlock{
+		Transactions: []*transaction.ApiTransactionResult{
+			{
+				Nonce:         1,
+				Hash:          "747831",
+				Sender:        "736e6441646472",
+				Receiver:      "72637641646472",
+				Data:          []byte("refund"),
+				MiniBlockType: "TxBlock",
+				MiniBlockHash: "6d6248617368",
+			},
+		},
+	}, apiMB)
 }
