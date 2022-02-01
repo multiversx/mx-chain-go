@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type p2pSigner struct {
@@ -19,7 +20,12 @@ func (signer *p2pSigner) Sign(payload []byte) ([]byte, error) {
 
 // Verify will check that the (payload, peer ID, signature) tuple is valid or not
 func (signer *p2pSigner) Verify(payload []byte, pid core.PeerID, signature []byte) error {
-	pubk, err := libp2pCrypto.UnmarshalPublicKey(pid.Bytes())
+	libp2pPid, err := peer.IDFromBytes(pid.Bytes())
+	if err != nil {
+		return err
+	}
+
+	pubk, err := libp2pPid.ExtractPublicKey()
 	if err != nil {
 		return fmt.Errorf("cannot extract signing key: %s", err.Error())
 	}
