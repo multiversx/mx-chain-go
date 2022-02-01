@@ -80,6 +80,7 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	metaEpoch := hdrRes.epochHandler.MetaEpoch()
 	hdrRes.mutEpochHandler.RUnlock()
 
+	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
 	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 2)
 
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
