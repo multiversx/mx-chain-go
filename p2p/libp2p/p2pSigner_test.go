@@ -121,7 +121,7 @@ func TestP2pSigner_ConcurrentOperations(t *testing.T) {
 			}
 
 			wg.Done()
-		}(i)
+		}(i % 2)
 	}
 
 	wg.Wait()
