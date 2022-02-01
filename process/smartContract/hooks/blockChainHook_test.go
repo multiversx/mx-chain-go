@@ -531,18 +531,20 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerErrorReadingFromStorage(t *tes
 			return &block.Header{Nonce: 10}
 		},
 	}
+	storer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return nil, errors.New("local error")
+		},
+	}
 	args.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
-					return nil, errors.New("local error")
-				},
-			}
+			return storer
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	_, err := bh.GetBlockhash(2)
+	hash, err := bh.GetBlockhash(2)
+	require.Nil(t, hash)
 	require.Equal(t, process.ErrMissingHashForHeaderNonce, err)
 }
 
