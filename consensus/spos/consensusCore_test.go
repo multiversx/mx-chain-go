@@ -5,11 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 	consensusCoreMock := mock.InitConsensusCore()
+
+	scheduledProcessor := &consensus.ScheduledProcessorStub{}
 
 	args := &spos.ConsensusCoreArgs{
 		BlockChain:                    consensusCoreMock.Blockchain(),
@@ -32,6 +35,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		HeaderSigVerifier:             consensusCoreMock.HeaderSigVerifier(),
 		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         consensusCoreMock.NodeRedundancyHandler(),
+		ScheduledProcessor:            scheduledProcessor,
 	}
 	return args
 }

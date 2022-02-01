@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	lastEpochIndex    = 1
-	currentEpochIndex = 0
+	lastEpochIndex             = 1
+	currentEpochIndex          = 0
+	minNumOfActiveDBsNecessary = 2
 )
 
 type triePruningStorer struct {
@@ -43,6 +44,7 @@ func NewTriePruningStorer(args *StorerArgs) (*triePruningStorer, error) {
 }
 
 func (ps *triePruningStorer) extendPersisterLife() bool {
+	numActiveDBs := 0
 	for i := 0; i < int(ps.numOfActivePersisters); i++ {
 		if i >= len(ps.activePersisters) {
 			continue
@@ -54,12 +56,16 @@ func (ps *triePruningStorer) extendPersisterLife() bool {
 		}
 
 		if bytes.Equal(val, []byte(common.ActiveDBVal)) {
-			return false
+			numActiveDBs++
 		}
 	}
 
-	log.Debug("extendPersisterLife", "path", ps.dbPath)
-	return true
+	if numActiveDBs < minNumOfActiveDBsNecessary {
+		log.Debug("extendPersisterLife", "path", ps.dbPath)
+		return true
+	}
+
+	return false
 }
 
 func initTriePersisterInEpoch(

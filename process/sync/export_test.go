@@ -80,7 +80,7 @@ func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 }
 
 // CheckBlockValidity -
-func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, headerHash []byte) error {
+func (bfd *baseForkDetector) CheckBlockValidity(header data.HeaderHandler, headerHash []byte) error {
 	return bfd.checkBlockBasicValidity(header, headerHash)
 }
 

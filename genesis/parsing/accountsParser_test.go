@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +53,7 @@ func createMockAccountsParserArgs() genesis.AccountsParserArgs {
 		MinterAddress:   "",
 		PubkeyConverter: createMockHexPubkeyConverter(),
 		KeyGenerator:    &mock.KeyGeneratorStub{},
-		Hasher:          &mock.HasherMock{},
+		Hasher:          &hashingMocks.HasherMock{},
 		Marshalizer:     &mock.MarshalizerMock{},
 	}
 }

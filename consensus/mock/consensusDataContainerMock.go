@@ -35,6 +35,7 @@ type ConsensusCoreMock struct {
 	headerSigVerifier       consensus.HeaderSigVerifier
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
+	scheduledProcessor      consensus.ScheduledProcessor
 }
 
 // GetAntiFloodHandler -
@@ -215,6 +216,11 @@ func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator
 // NodeRedundancyHandler -
 func (ccm *ConsensusCoreMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return ccm.nodeRedundancyHandler
+}
+
+// ScheduledProcessor -
+func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor{
+	return ccm.scheduledProcessor
 }
 
 // SetNodeRedundancyHandler -

@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -25,7 +27,7 @@ func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 		StorageService:   &mock.ChainStorerMock{},
 		Cache:            &mock.HeadersCacherStub{},
 		Marshalizer:      &mock.MarshalizerFake{},
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		EpochHandler:     &mock.EpochStartTriggerStub{},
 		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterStub{},
@@ -57,6 +59,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 
@@ -141,7 +144,7 @@ func TestSyncEpochStartMetaHeader_MetaBlockInStorage(t *testing.T) {
 		}}
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return json.Marshal(meta)
 			},
@@ -165,7 +168,7 @@ func TestSyncEpochStartMetaHeader_MissingHeaderTimeout(t *testing.T) {
 	localErr := errors.New("not found")
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -198,7 +201,7 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 	}}
 
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -251,7 +254,7 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 
 	metaBytes, _ := args.Marshalizer.Marshal(meta)
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return metaBytes, nil
 			},

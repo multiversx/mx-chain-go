@@ -16,8 +16,8 @@ type EconomicsHandlerMock struct {
 	SetMaxGasLimitPerBlockCalled                   func(maxGasLimitPerBlock uint64)
 	SetMinGasPriceCalled                           func(minGasPrice uint64)
 	SetMinGasLimitCalled                           func(minGasLimit uint64)
-	MaxGasLimitPerBlockCalled                      func(shard uint32) uint64
-	MaxGasLimitPerMiniBlockCalled                  func(shard uint32) uint64
+	MaxGasLimitPerBlockCalled                      func(shardID uint32) uint64
+	MaxGasLimitPerMiniBlockCalled                  func(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShardCalled     func() uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShardCalled func() uint64
 	MaxGasLimitPerTxCalled                         func() uint64
@@ -111,17 +111,17 @@ func (ehm *EconomicsHandlerMock) SetMinGasLimit(minGasLimit uint64) {
 }
 
 // MaxGasLimitPerBlock -
-func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shard uint32) uint64 {
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shardID uint32) uint64 {
 	if ehm.MaxGasLimitPerBlockCalled != nil {
-		return ehm.MaxGasLimitPerBlockCalled(shard)
+		return ehm.MaxGasLimitPerBlockCalled(shardID)
 	}
 	return 0
 }
 
 // MaxGasLimitPerMiniBlock -
-func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlock(shard uint32) uint64 {
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	if ehm.MaxGasLimitPerMiniBlockCalled != nil {
-		return ehm.MaxGasLimitPerMiniBlockCalled(shard)
+		return ehm.MaxGasLimitPerMiniBlockCalled(shardID)
 	}
 	return 0
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func TestCreateBody_ShouldErrNilHardForkBlockProcessor(t *testing.T) {
 	shardIDs := []uint32{0, 1, 2, 3, 4}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
 	}
@@ -42,7 +43,7 @@ func TestCreateBody_ShouldErrWhenCreateBodyFails(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &mock.MarshalizerMock{},
 		ShardIDs:                  shardIDs,
 		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
@@ -127,7 +128,7 @@ func TestCreateBody_ShouldWork(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &mock.MarshalizerMock{},
 		ShardIDs:                  shardIDs,
 		MapBodies:                 mapBodies,
@@ -150,7 +151,7 @@ func TestCreatePostMiniBlocks_ShouldErrNilHardForkBlockProcessor(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
 		PostMbs:     lastPostMbs,
@@ -179,7 +180,7 @@ func TestCreatePostMiniBlocks_ShouldErrWhenCreatePostMiniBlocksFails(t *testing.
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &mock.MarshalizerMock{},
 		ShardIDs:                  shardIDs,
 		PostMbs:                   lastPostMbs,
@@ -208,7 +209,7 @@ func TestCreatePostMiniBlocks_ShouldErrNilBlockBody(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &mock.MarshalizerMock{},
 		ShardIDs:                  shardIDs,
 		PostMbs:                   lastPostMbs,
@@ -343,7 +344,7 @@ func TestCreatePostMiniBlocks_ShouldWork(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:                    &mock.HasherMock{},
+		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &mock.MarshalizerMock{},
 		ShardIDs:                  shardIDs,
 		PostMbs:                   lastPostMbs,
@@ -397,7 +398,7 @@ func TestCleanDuplicates_ShouldErrNilMarshalizer(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: nil,
 		ShardIDs:    shardIDs,
 		MapBodies:   mapBodies,
@@ -415,7 +416,7 @@ func TestCleanDuplicates_ShouldErrNilBlockBody(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
 		PostMbs:     postMbs,
@@ -440,7 +441,7 @@ func TestCleanDuplicates_ShouldErrWhenCalculateHashFails(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{Fail: true},
 		ShardIDs:    shardIDs,
 		MapBodies:   mapBodies,
@@ -451,7 +452,7 @@ func TestCleanDuplicates_ShouldErrWhenCalculateHashFails(t *testing.T) {
 }
 
 func TestCleanDuplicates_ShouldWork(t *testing.T) {
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	shardIDs := []uint32{0, 1, 2, 3, 4}
 	mb10 := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0}
@@ -483,7 +484,7 @@ func TestCleanDuplicates_ShouldWork(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
 		MapBodies:   mapBodies,
