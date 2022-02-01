@@ -2,13 +2,13 @@ package mock
 
 // PayableHandlerStub -
 type PayableHandlerStub struct {
-	IsPayableCalled func(address []byte) (bool, error)
+	IsPayableCalled func(sndAddress []byte, recvAdress []byte) (bool, error)
 }
 
 // IsPayable -
-func (p *PayableHandlerStub) IsPayable(address []byte) (bool, error) {
+func (p *PayableHandlerStub) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	if p.IsPayableCalled != nil {
-		return p.IsPayableCalled(address)
+		return p.IsPayableCalled(sndAddress, recvAddress)
 	}
 	return true, nil
 }

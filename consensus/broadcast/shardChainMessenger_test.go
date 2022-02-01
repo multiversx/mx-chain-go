@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,7 @@ func createInterceptorContainer() process.InterceptorsContainer {
 
 func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
@@ -352,7 +353,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	wasCalled := atomic.Flag{}
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
-			wasCalled.Set()
+			_ = wasCalled.SetReturningPrevious()
 		},
 	}
 	args := createDefaultShardChainArgs()
@@ -365,7 +366,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	assert.Nil(t, err)
 	assert.False(t, wasCalled.IsSet())
 
-	wasCalled.Unset()
+	wasCalled.Reset()
 	_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
 	err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2)
 	time.Sleep(10 * time.Millisecond)

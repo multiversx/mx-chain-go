@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519/singlesig"
@@ -56,9 +56,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -71,7 +75,7 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Second / 10
+var StepDelay = time.Millisecond * 180
 
 // SyncDelay is used so that nodes have enough time to sync
 var SyncDelay = time.Second / 5
@@ -196,7 +200,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		//we deliberately set this, automatically choose full archive node mode
+		// we deliberately set this, automatically choose full archive node mode
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
@@ -343,6 +347,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -350,6 +355,47 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	}
 
 	return store
+}
+
+// CreateTrieStorageManagerWithPruningStorer creates the trie storage manager for the tests
+func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) common.StorageManager {
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDBSerial),
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          3,
+		SnapshotsGoroutineNum: 1,
+	}
+
+	mainStorer, err := createTriePruningStorer(coordinator, notifier)
+	if err != nil {
+		fmt.Println("err creating main storer" + err.Error())
+	}
+	checkpointsStorer, err := createTriePruningStorer(coordinator, notifier)
+	if err != nil {
+		fmt.Println("err creating checkpoints storer" + err.Error())
+	}
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     store,
+		MainStorer:             mainStorer,
+		CheckpointsStorer:      checkpointsStorer,
+		Marshalizer:            TestMarshalizer,
+		Hasher:                 TestHasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
+
+	return trieStorageManager
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
@@ -364,21 +410,79 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       3,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          3,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     store,
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
 	return trieStorageManager, store
+}
+
+func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, error) {
+	cacheConf, dbConf := getDummyConfig()
+
+	lockPersisterMap := sync.Mutex{}
+	persistersMap := make(map[string]storage.Persister)
+	persisterFactory := &storageMock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			lockPersisterMap.Lock()
+			defer lockPersisterMap.Unlock()
+
+			persister, exists := persistersMap[path]
+			if !exists {
+				persister = memorydb.New()
+				persistersMap[path] = persister
+			}
+
+			return persister, nil
+		},
+	}
+	args := &pruning.StorerArgs{
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       coordinator,
+		PathManager:            &testscommon.PathManagerStub{},
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		NumOfEpochsToKeep:      4,
+		NumOfActivePersisters:  4,
+		Notifier:               notifier,
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           10,
+	}
+
+	return pruning.NewTriePruningStorer(args)
+}
+
+func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig) {
+	cacheConf := storageUnit.CacheConfig{
+		Capacity: 10,
+		Type:     "LRU",
+		Shards:   3,
+	}
+	dbConf := storageUnit.DBConfig{
+		FilePath:          "path/Epoch_0/Shard_1",
+		Type:              "LvlDBSerial",
+		BatchDelaySeconds: 500,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      1000,
+	}
+
+	return cacheConf, dbConf
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
@@ -391,7 +495,7 @@ func CreateAccountsDB(
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm)
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm, common.Normal)
 
 	return adb, tr
 }
@@ -659,7 +763,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
-) data.HeaderHandler {
+) data.MetaHeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
@@ -768,7 +872,7 @@ func CreateGenesisMetaBlock(
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
+	metaHdr, _, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))
@@ -950,17 +1054,21 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() common.Trie {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     CreateMemUnit(),
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
 		Marshalizer:            TestMarshalizer,
 		Hasher:                 TestHasher,
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -1190,16 +1298,11 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 
 // CreateHeaderIntegrityVerifier outputs a valid header integrity verifier handler
 func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	hvh := &testscommon.HeaderVersionHandlerStub{}
+
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "*",
-			},
-		},
-		"default",
-		testscommon.NewCacherMock(),
+		hvh,
 	)
 
 	return headerVersioning
@@ -1385,7 +1488,7 @@ func createGenesisNode(
 	shardId uint32,
 	hardforkPk crypto.PublicKey,
 ) *TestProcessorNode {
-	accountParser := &mock.AccountsParserStub{}
+	accountParser := &genesisMocks.AccountsParserStub{}
 	smartContractParser, _ := parsing.NewSmartContractsParser(
 		genesisFile,
 		TestAddressPubkeyConverter,
@@ -1830,7 +1933,7 @@ func CreateMintingForSenders(
 ) {
 
 	for _, n := range nodes {
-		//only sender shard nodes will be minted
+		// only sender shard nodes will be minted
 		if n.ShardCoordinator.SelfId() != senderShard {
 			continue
 		}
@@ -1932,7 +2035,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
 func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, _ uint32) dataRetriever.PoolsHolder {
-	//not allowed to request data from the same shard
+	// not allowed requesting data from the same shard
 	return dataRetrieverMock.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false

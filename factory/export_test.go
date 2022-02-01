@@ -1,10 +1,12 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -64,6 +66,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	return pcf.newBlockProcessor(
 		requestHandler,
@@ -76,6 +79,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
 		arwenChangeLocker,
+		scheduledTxsExecutionHandler,
 	)
 }
 
@@ -87,4 +91,9 @@ func SetShardCoordinator(shardCoordinator sharding.Coordinator, holder Bootstrap
 	defer mbf.mutBootstrapComponents.Unlock()
 
 	mbf.bootstrapComponents.shardCoordinator = shardCoordinator
+}
+
+// IndexGenesisBlocks -
+func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
+	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
 }

@@ -1193,6 +1193,6 @@ func createValidatorInfoFromBody(
 }
 
 func (ihgs *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihgs.flagWaitingListFix.Toggle(epoch >= ihgs.waitingListFixEnableEpoch)
+	ihgs.flagWaitingListFix.SetValue(epoch >= ihgs.waitingListFixEnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihgs.flagWaitingListFix.IsSet())
 }

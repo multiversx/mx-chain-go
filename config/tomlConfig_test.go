@@ -22,17 +22,18 @@ func TestTomlParser(t *testing.T) {
 	receiptsStorageFile := "path1/file2"
 	receiptsStorageTypeDB := "type4"
 
+	scheduledSCRsStorageSize := 174
+	scheduledSCRsStorageType := "type7"
+	scheduledSCRsStorageFile := "path1/file4"
+	scheduledSCRsStorageTypeDB := "type8"
+
 	logsPath := "pathLogger"
 	logsStackDepth := 1010
 
 	accountsStorageSize := 172
 	accountsStorageType := "type5"
-	accountsStorageFile := "path2/file3"
+	accountsStorageFile := "path1/file3"
 	accountsStorageTypeDB := "type6"
-	accountsStorageBlomSize := 173
-	accountsStorageBlomHash1 := "hashFunc1"
-	accountsStorageBlomHash2 := "hashFunc2"
-	accountsStorageBlomHash3 := "hashFunc3"
 
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
@@ -68,6 +69,16 @@ func TestTomlParser(t *testing.T) {
 				Type:     receiptsStorageTypeDB,
 			},
 		},
+		ScheduledSCRsStorage: StorageConfig{
+			Cache: CacheConfig{
+				Capacity: uint32(scheduledSCRsStorageSize),
+				Type:     scheduledSCRsStorageType,
+			},
+			DB: DBConfig{
+				FilePath: scheduledSCRsStorageFile,
+				Type:     scheduledSCRsStorageTypeDB,
+			},
+		},
 		AccountsTrieStorage: StorageConfig{
 			Cache: CacheConfig{
 				Capacity: uint32(accountsStorageSize),
@@ -76,14 +87,6 @@ func TestTomlParser(t *testing.T) {
 			DB: DBConfig{
 				FilePath: accountsStorageFile,
 				Type:     accountsStorageTypeDB,
-			},
-			Bloom: BloomFilterConfig{
-				Size: 173,
-				HashFunc: []string{
-					accountsStorageBlomHash1,
-					accountsStorageBlomHash2,
-					accountsStorageBlomHash3,
-				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -142,6 +145,14 @@ func TestTomlParser(t *testing.T) {
         FilePath = "` + receiptsStorageFile + `"
         Type = "` + receiptsStorageTypeDB + `"
 
+[ScheduledSCRsStorage]
+    [ScheduledSCRsStorage.Cache]
+        Capacity = ` + strconv.Itoa(scheduledSCRsStorageSize) + `
+        Type = "` + scheduledSCRsStorageType + `"
+    [ScheduledSCRsStorage.DB]
+        FilePath = "` + scheduledSCRsStorageFile + `"
+        Type = "` + scheduledSCRsStorageTypeDB + `"
+
 [Logger]
     Path = "` + logsPath + `"
     StackTraceDepth = ` + strconv.Itoa(logsStackDepth) + `
@@ -153,10 +164,6 @@ func TestTomlParser(t *testing.T) {
     [AccountsTrieStorage.DB]
         FilePath = "` + accountsStorageFile + `"
         Type = "` + accountsStorageTypeDB + `"
-    [AccountsTrieStorage.Bloom]
-        Size = ` + strconv.Itoa(accountsStorageBlomSize) + `
-		HashFunc = ["` + accountsStorageBlomHash1 + `", "` + accountsStorageBlomHash2 + `", "` +
-		accountsStorageBlomHash3 + `"]
 
 [Hasher]
 	Type = "` + hasherType + `"
@@ -272,7 +279,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MinGasLimit = "` + minGasLimit + `"}] 
+	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
     MinGasPrice = "` + minGasPrice + `"
 `
 	cfg := EconomicsConfig{}
@@ -616,6 +623,24 @@ func TestEnableEpochConfig(t *testing.T) {
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
     OptimizeNFTStoreEnableEpoch = 46
 
+    # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
+    CreateNFTThroughExecByCallerEnableEpoch = 47
+
+    # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
+    IsPayableBySCEnableEpoch = 48
+
+	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
+	CleanUpInformativeSCRsEnableEpoch = 49
+
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    StorageAPICostOptimizationEnableEpoch = 50
+
+    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
+	TransformToMultiShardCreateEnableEpoch = 51
+
+    # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
+    ESDTRegisterAndSetAllRolesEnableEpoch = 52
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -689,6 +714,12 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOOGReturnCodeEnableEpoch:                 44,
 			RemoveNonUpdatedStorageEnableEpoch:          45,
 			OptimizeNFTStoreEnableEpoch:                 46,
+			CreateNFTThroughExecByCallerEnableEpoch:     47,
+			IsPayableBySCEnableEpoch:                    48,
+			CleanUpInformativeSCRsEnableEpoch:           49,
+			StorageAPICostOptimizationEnableEpoch:       50,
+			TransformToMultiShardCreateEnableEpoch:      51,
+			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

@@ -118,16 +118,16 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 30000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 22356926, int(context.LastConsumedFee))
+	require.Equal(t, 22313926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 21915926, int(context.LastConsumedFee))
+	require.Equal(t, 21872926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
-	require.Equal(t, errors.New("user error"), err)
+	require.Equal(t, errors.New("unknown caller"), err)
 }
 
 func TestDelegation_WithManyUsers_Claims(t *testing.T) {
@@ -278,9 +278,9 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 	ownerNonce++
 
 	testAddresses := createTestAddresses(uint64(txPerBenchmark * 2))

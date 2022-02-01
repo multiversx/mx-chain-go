@@ -482,8 +482,24 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 }
 
 // GetTokenSupply returns the provided token supply from current shard
-func (n *Node) GetTokenSupply(token string) (string, error) {
-	return n.processComponents.HistoryRepository().GetESDTSupply(token)
+func (n *Node) GetTokenSupply(token string) (*api.ESDTSupply, error) {
+	esdtSupply, err := n.processComponents.HistoryRepository().GetESDTSupply(token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.ESDTSupply{
+		Supply: bigToString(esdtSupply.Supply),
+		Burned: bigToString(esdtSupply.Burned),
+		Minted: bigToString(esdtSupply.Minted),
+	}, nil
+}
+
+func bigToString(bigValue *big.Int) string {
+	if bigValue == nil {
+		return "0"
+	}
+	return bigValue.String()
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
@@ -812,7 +828,7 @@ func (n *Node) commonTransactionValidation(
 		txSingleSigner,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.processComponents.ShardCoordinator(),
-		n.coreComponents.EconomicsData(),
+		n.coreComponents.APIEconomicsData(),
 		whiteListerVerifiedTxs,
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),

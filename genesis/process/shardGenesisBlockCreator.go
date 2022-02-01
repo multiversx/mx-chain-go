@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
@@ -45,33 +46,72 @@ type deployedScMetrics struct {
 
 func createGenesisConfig() config.EnableEpochs {
 	return config.EnableEpochs{
-		BuiltInFunctionsEnableEpoch:                 0,
-		SCDeployEnableEpoch:                         unreachableEpoch,
-		RelayedTransactionsEnableEpoch:              unreachableEpoch,
-		PenalizedTooMuchGasEnableEpoch:              unreachableEpoch,
-		AheadOfTimeGasUsageEnableEpoch:              unreachableEpoch,
-		BelowSignedThresholdEnableEpoch:             unreachableEpoch,
-		GasPriceModifierEnableEpoch:                 unreachableEpoch,
-		MetaProtectionEnableEpoch:                   unreachableEpoch,
-		TransactionSignedWithTxHashEnableEpoch:      unreachableEpoch,
-		SwitchHysteresisForMinNodesEnableEpoch:      unreachableEpoch,
-		SwitchJailWaitingEnableEpoch:                unreachableEpoch,
-		BlockGasAndFeesReCheckEnableEpoch:           unreachableEpoch,
-		RelayedTransactionsV2EnableEpoch:            unreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            unreachableEpoch,
-		ComputeRewardCheckpointEnableEpoch:          unreachableEpoch,
-		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
-		SCRSizeInvariantCheckEnableEpoch:            unreachableEpoch,
-		BackwardCompSaveKeyValueEnableEpoch:         unreachableEpoch,
-		RepairCallbackEnableEpoch:                   unreachableEpoch,
-		MetaESDTSetEnableEpoch:                      unreachableEpoch,
-		AddTokensToDelegationEnableEpoch:            unreachableEpoch,
-		MultiESDTTransferFixOnCallBackOnEnableEpoch: unreachableEpoch,
-		SenderInOutTransferEnableEpoch:              unreachableEpoch,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: unreachableEpoch,
-		FixOOGReturnCodeEnableEpoch:                 unreachableEpoch,
-		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
-		OptimizeNFTStoreEnableEpoch:                 unreachableEpoch,
+		SCDeployEnableEpoch:                    unreachableEpoch,
+		BuiltInFunctionsEnableEpoch:            0,
+		RelayedTransactionsEnableEpoch:         unreachableEpoch,
+		PenalizedTooMuchGasEnableEpoch:         unreachableEpoch,
+		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
+		BelowSignedThresholdEnableEpoch:        unreachableEpoch,
+		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
+		MetaProtectionEnableEpoch:              unreachableEpoch,
+		AheadOfTimeGasUsageEnableEpoch:         unreachableEpoch,
+		GasPriceModifierEnableEpoch:            unreachableEpoch,
+		RepairCallbackEnableEpoch:              unreachableEpoch,
+		MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            unreachableEpoch,
+				MaxNumNodes:            0,
+				NodesToShufflePerShard: 0,
+			},
+		},
+		BlockGasAndFeesReCheckEnableEpoch:                 unreachableEpoch,
+		StakingV2EnableEpoch:                              unreachableEpoch,
+		StakeEnableEpoch:                                  0,
+		DoubleKeyProtectionEnableEpoch:                    0,
+		ESDTEnableEpoch:                                   unreachableEpoch,
+		GovernanceEnableEpoch:                             unreachableEpoch,
+		DelegationManagerEnableEpoch:                      unreachableEpoch,
+		DelegationSmartContractEnableEpoch:                unreachableEpoch,
+		CorrectLastUnjailedEnableEpoch:                    unreachableEpoch,
+		BalanceWaitingListsEnableEpoch:                    unreachableEpoch,
+		ReturnDataToLastTransferEnableEpoch:               unreachableEpoch,
+		SenderInOutTransferEnableEpoch:                    unreachableEpoch,
+		RelayedTransactionsV2EnableEpoch:                  unreachableEpoch,
+		UnbondTokensV2EnableEpoch:                         unreachableEpoch,
+		SaveJailedAlwaysEnableEpoch:                       unreachableEpoch,
+		ValidatorToDelegationEnableEpoch:                  unreachableEpoch,
+		ReDelegateBelowMinCheckEnableEpoch:                unreachableEpoch,
+		WaitingListFixEnableEpoch:                         unreachableEpoch,
+		IncrementSCRNonceInMultiTransferEnableEpoch:       unreachableEpoch,
+		ESDTMultiTransferEnableEpoch:                      unreachableEpoch,
+		GlobalMintBurnDisableEpoch:                        unreachableEpoch,
+		ESDTTransferRoleEnableEpoch:                       unreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:                  unreachableEpoch,
+		ComputeRewardCheckpointEnableEpoch:                unreachableEpoch,
+		SCRSizeInvariantCheckEnableEpoch:                  unreachableEpoch,
+		BackwardCompSaveKeyValueEnableEpoch:               unreachableEpoch,
+		ESDTNFTCreateOnMultiShardEnableEpoch:              unreachableEpoch,
+		MetaESDTSetEnableEpoch:                            unreachableEpoch,
+		AddTokensToDelegationEnableEpoch:                  unreachableEpoch,
+		MultiESDTTransferFixOnCallBackOnEnableEpoch:       unreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       unreachableEpoch,
+		CorrectFirstQueuedEpoch:                           unreachableEpoch,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
+		FixOOGReturnCodeEnableEpoch:                       unreachableEpoch,
+		RemoveNonUpdatedStorageEnableEpoch:                unreachableEpoch,
+		DeleteDelegatorAfterClaimRewardsEnableEpoch:       unreachableEpoch,
+		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
+		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
+		DisableOldTrieStorageEpoch:                        unreachableEpoch,
+		IsPayableBySCEnableEpoch:                          unreachableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 	}
 }
 
@@ -81,50 +121,63 @@ func CreateShardGenesisBlock(
 	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
+
 	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	deployMetrics := &deployedScMetrics{}
 
-	scAddresses, err := deployInitialSmartContracts(processors, arg, deployMetrics)
+	scAddresses, scTxs, err := deployInitialSmartContracts(processors, arg, deployMetrics)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	indexingData.DeployInitialScTxs = scTxs
 
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
+		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	numStaked, err := increaseStakersNonces(processors, arg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
+		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	delegationResult, err := executeDelegation(processors, arg, nodesListSplitter)
+	delegationResult, delegationTxs, err := executeDelegation(processors, arg, nodesListSplitter)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
+		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
 			err, arg.ShardCoordinator.SelfId())
 	}
+	indexingData.DelegationTxs = delegationTxs
 
 	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
+		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
+	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	indexingData.ScrsTxs = scrsTxs
+
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
+		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
@@ -160,24 +213,24 @@ func CreateShardGenesisBlock(
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	err = processors.vmContainersFactory.Close()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return header, scAddresses, nil
+	return header, scAddresses, indexingData, nil
 }
 
 func createShardGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, error) {
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
-		return nil, nil, update.ErrNilHardForkBlockProcessor
+		return nil, nil, nil, update.ErrNilHardForkBlockProcessor
 	}
 
 	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
@@ -188,16 +241,28 @@ func createShardGenesisBlockAfterHardFork(
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	hdrHandler.SetTimeStamp(arg.GenesisTime)
+
+	err = hdrHandler.SetTimeStamp(arg.GenesisTime)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return hdrHandler, make([][]byte, 0), nil
+	indexingData := &genesis.IndexingData{
+		DelegationTxs:      make([]data.TransactionHandler, 0),
+		ScrsTxs:            make(map[string]data.TransactionHandler),
+		StakingTxs:         make([]data.TransactionHandler, 0),
+		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
+		DeployInitialScTxs: make([]data.TransactionHandler, 0),
+	}
+
+	return hdrHandler, make([][]byte, 0), indexingData, nil
 }
 
 func createArgsShardBlockCreatorAfterHardFork(
@@ -288,10 +353,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Accounts:                     arg.Accounts,
 		ShardCoordinator:             arg.ShardCoordinator,
 		EpochNotifier:                epochNotifier,
-		ESDTMultiTransferEnableEpoch: unreachableEpoch,
-		ESDTTransferRoleEnableEpoch:  unreachableEpoch,
-		GlobalMintBurnDisableEpoch:   unreachableEpoch,
-		ESDTTransferMetaEnableEpoch:  unreachableEpoch,
+		ESDTMultiTransferEnableEpoch: enableEpochs.ESDTMultiTransferEnableEpoch,
+		ESDTTransferRoleEnableEpoch:  enableEpochs.ESDTTransferRoleEnableEpoch,
+		GlobalMintBurnDisableEpoch:   enableEpochs.GlobalMintBurnDisableEpoch,
+		ESDTTransferMetaEnableEpoch:  enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
@@ -310,7 +375,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           arg.Data.Datapool(),
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
+		EnableEpochs:       enableEpochs,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -365,6 +432,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	if err != nil {
 		return nil, err
 	}
+	scForwarder.GetCreatedInShardMiniBlock()
 
 	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
 	if err != nil {
@@ -408,6 +476,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
 		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
 		ScrForwarder:        scForwarder,
@@ -468,6 +537,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -489,6 +559,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledBalanceComputationHandler,
 		epochNotifier,
 		enableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		enableEpochs.FrontRunningProtectionEnableEpoch,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		disabledScheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -516,6 +590,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 		TransactionsLogProcessor:          arg.TxLogsProcessor,
+		EpochNotifier:                     epochNotifier,
+		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
+		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -528,6 +605,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
 		BlockChain:        arg.Data.Blockchain(),
 		ArwenChangeLocker: genesisArwenLocker,
+		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -552,26 +630,28 @@ func deployInitialSmartContracts(
 	processors *genesisProcessors,
 	arg ArgsGenesisBlockCreator,
 	deployMetrics *deployedScMetrics,
-) ([][]byte, error) {
+) ([][]byte, []data.TransactionHandler, error) {
 	smartContracts, err := arg.SmartContractParser.InitialSmartContractsSplitOnOwnersShards(arg.ShardCoordinator)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	allScTxs := make([]data.TransactionHandler, 0)
 	var scAddresses = make([][]byte, 0)
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
 		var scResulted [][]byte
-		scResulted, err = deployInitialSmartContract(processors, sc, arg, deployMetrics)
+		scResulted, scTxs, err := deployInitialSmartContract(processors, sc, arg, deployMetrics)
 		if err != nil {
-			return nil, fmt.Errorf("%w for owner %s and filename %s",
+			return nil, nil, fmt.Errorf("%w for owner %s and filename %s",
 				err, sc.GetOwner(), sc.GetFilename())
 		}
 
 		scAddresses = append(scAddresses, scResulted...)
+		allScTxs = append(allScTxs, scTxs...)
 	}
 
-	return scAddresses, nil
+	return scAddresses, allScTxs, nil
 }
 
 func deployInitialSmartContract(
@@ -579,11 +659,11 @@ func deployInitialSmartContract(
 	sc genesis.InitialSmartContractHandler,
 	arg ArgsGenesisBlockCreator,
 	deployMetrics *deployedScMetrics,
-) ([][]byte, error) {
+) ([][]byte, []data.TransactionHandler, error) {
 
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var deployProc genesis.DeployProcessor
@@ -599,7 +679,7 @@ func deployInitialSmartContract(
 		}
 		deployProc, err = intermediate.NewDeployLibrarySC(argDeployLibrary)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	case genesis.DelegationType:
 		deployMetrics.numDelegation++
@@ -613,11 +693,12 @@ func deployInitialSmartContract(
 		}
 		deployProc, err = intermediate.NewDeployProcessor(argDeploy)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return deployProc.Deploy(sc)
+	dpResult, err := deployProc.Deploy(sc)
+	return dpResult, txExecutor.GetExecutedTransactions(), err
 }
 
 func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
@@ -655,10 +736,10 @@ func executeDelegation(
 	processors *genesisProcessors,
 	arg ArgsGenesisBlockCreator,
 	nodesListSplitter genesis.NodesListSplitter,
-) (genesis.DelegationResult, error) {
+) (genesis.DelegationResult, []data.TransactionHandler, error) {
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
 	argDP := intermediate.ArgStandardDelegationProcessor{
@@ -673,7 +754,7 @@ func executeDelegation(
 
 	delegationProcessor, err := intermediate.NewStandardDelegationProcessor(argDP)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
 	return delegationProcessor.ExecuteDelegation()

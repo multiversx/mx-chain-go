@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 const (
@@ -13,6 +14,10 @@ const (
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
+	NumLeaves() uint64
+	NumBytes() uint64
+	NumTrieNodes() uint64
+	Duration() time.Duration
 	IsInterfaceNil() bool
 }
 

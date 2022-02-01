@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -38,7 +39,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &mock.BlockChainStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -46,6 +47,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments
@@ -62,7 +64,7 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
@@ -81,7 +83,7 @@ func TestNewVMContainerFactory_NilESDTTransferParserShouldErr(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: nil,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
@@ -101,7 +103,7 @@ func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  nil,
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
@@ -121,7 +123,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
@@ -142,7 +144,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ArgBlockChainHook:  createMockVMAccountsArguments(),
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  &sync.RWMutex{},
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)

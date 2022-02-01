@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 )
 
 // FeeHandler represents a disabled fee handler implementation
@@ -61,6 +62,11 @@ func (fh *FeeHandler) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	return math.MaxUint64
 }
 
+// MaxGasLimitPerTx returns max uint64
+func (fh *FeeHandler) MaxGasLimitPerTx() uint64 {
+	return math.MaxUint64
+}
+
 // ComputeGasLimit returns 0
 func (fh *FeeHandler) ComputeGasLimit(_ data.TransactionWithFeeHandler) uint64 {
 	return 0
@@ -87,7 +93,7 @@ func (fh *FeeHandler) CheckValidityTxValues(_ data.TransactionWithFeeHandler) er
 }
 
 // CreateBlockStarted does nothing
-func (fh *FeeHandler) CreateBlockStarted() {
+func (fh *FeeHandler) CreateBlockStarted(_ scheduled.GasAndFees) {
 }
 
 // GetAccumulatedFees returns 0

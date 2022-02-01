@@ -65,7 +65,7 @@ func (p *peerMiniBlockSyncer) init() {
 }
 
 // SyncMiniBlocks processes an epochstart block asyncrhonous, processing the PeerMiniblocks
-func (p *peerMiniBlockSyncer) SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error) {
+func (p *peerMiniBlockSyncer) SyncMiniBlocks(metaBlock data.HeaderHandler) ([][]byte, data.BodyHandler, error) {
 	if check.IfNil(metaBlock) {
 		return nil, nil, epochStart.ErrNilMetaBlock
 	}
@@ -109,37 +109,37 @@ func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
 	}
 }
 
-func (p *peerMiniBlockSyncer) getAllPeerMiniBlocks(metaBlock *block.MetaBlock) data.BodyHandler {
+func (p *peerMiniBlockSyncer) getAllPeerMiniBlocks(metaBlock data.HeaderHandler) data.BodyHandler {
 	p.mutMiniBlocksForBlock.Lock()
 	defer p.mutMiniBlocksForBlock.Unlock()
 
 	peerBlockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}
-	for _, peerMiniBlock := range metaBlock.MiniBlockHeaders {
-		if peerMiniBlock.Type != block.PeerBlock {
+	for _, peerMiniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if peerMiniBlock.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
 
-		mb := p.mapAllPeerMiniblocks[string(peerMiniBlock.Hash)]
+		mb := p.mapAllPeerMiniblocks[string(peerMiniBlock.GetHash())]
 		peerBlockBody.MiniBlocks = append(peerBlockBody.MiniBlocks, mb)
 	}
 
 	return peerBlockBody
 }
 
-func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock *block.MetaBlock) {
+func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock data.HeaderHandler) {
 	numMissingPeerMiniblocks := uint32(0)
 	p.mutMiniBlocksForBlock.Lock()
 
-	for _, mb := range metaBlock.MiniBlockHeaders {
-		if mb.Type != block.PeerBlock {
+	for _, mb := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if mb.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
 
-		p.mapAllPeerMiniblocks[string(mb.Hash)] = nil
+		p.mapAllPeerMiniblocks[string(mb.GetHash())] = nil
 
-		mbObjectFound, ok := p.miniBlocksPool.Peek(mb.Hash)
+		mbObjectFound, ok := p.miniBlocksPool.Peek(mb.GetHash())
 		if !ok {
 			numMissingPeerMiniblocks++
 			continue
@@ -151,7 +151,7 @@ func (p *peerMiniBlockSyncer) computeMissingPeerBlocks(metaBlock *block.MetaBloc
 			continue
 		}
 
-		p.mapAllPeerMiniblocks[string(mb.Hash)] = mbFound
+		p.mapAllPeerMiniblocks[string(mb.GetHash())] = mbFound
 	}
 
 	p.numMissingPeerMiniblocks = numMissingPeerMiniblocks

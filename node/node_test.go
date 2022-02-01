@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
@@ -30,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -38,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -1508,7 +1511,7 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxValueLength)
 			bi := big.NewInt(0)
@@ -1577,7 +1580,7 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1641,7 +1644,7 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1704,7 +1707,7 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1763,7 +1766,7 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1822,7 +1825,7 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -1878,7 +1881,7 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			str := strings.Repeat("1", maxLength)
 			bi := big.NewInt(0)
@@ -2037,7 +2040,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		return chainID
 	}
 
-	feeHandler := &mock.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -2130,7 +2133,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		},
 	}
 
-	feeHandler := &mock.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -2910,7 +2913,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			return nil, nil
 		},
 	}
-	feeHandler := &mock.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 100
 		},
@@ -2991,7 +2994,7 @@ func TestNode_DirectTrigger(t *testing.T) {
 		TriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
 			wasCalled = true
 			atomic.StoreUint32(&recoveredEpoch, epoch)
-			recoveredWithEarlyEndOfEpoch.Toggle(withEarlyEndOfEpoch)
+			recoveredWithEarlyEndOfEpoch.SetValue(withEarlyEndOfEpoch)
 
 			return nil
 		},
@@ -3638,4 +3641,52 @@ func TestNode_VerifyProof(t *testing.T) {
 	response, err := n.VerifyProof(rootHash, address, proof)
 	assert.True(t, response)
 	assert.Nil(t, err)
+}
+
+func TestGetESDTSupplyError(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local error")
+	historyProc := &dblookupext.HistoryRepositoryStub{
+		GetESDTSupplyCalled: func(token string) (*esdtSupply.SupplyESDT, error) {
+			return nil, localErr
+		},
+	}
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+
+	n, _ := node.NewNode(
+		node.WithProcessComponents(processComponentsMock),
+	)
+
+	_, err := n.GetTokenSupply("my-token")
+	require.Equal(t, localErr, err)
+}
+
+func TestGetESDTSupply(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &dblookupext.HistoryRepositoryStub{
+		GetESDTSupplyCalled: func(token string) (*esdtSupply.SupplyESDT, error) {
+			return &esdtSupply.SupplyESDT{
+				Supply: big.NewInt(100),
+				Minted: big.NewInt(15),
+			}, nil
+		},
+	}
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+
+	n, _ := node.NewNode(
+		node.WithProcessComponents(processComponentsMock),
+	)
+
+	supply, err := n.GetTokenSupply("my-token")
+	require.Nil(t, err)
+
+	require.Equal(t, &api.ESDTSupply{
+		Supply: "100",
+		Burned: "0",
+		Minted: "15",
+	}, supply)
 }

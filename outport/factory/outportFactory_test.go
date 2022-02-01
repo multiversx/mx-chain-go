@@ -3,12 +3,14 @@ package factory_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 	"github.com/stretchr/testify/require"
@@ -25,6 +27,7 @@ func createMockArgsOutportHandler(indexerEnabled, notifierEnabled, covalentEnabl
 		Enabled: covalentEnabled,
 	}
 	return &factory.OutportFactoryArgs{
+		RetrialInterval:            time.Second,
 		ElasticIndexerFactoryArgs:  mockElasticArgs,
 		EventNotifierFactoryArgs:   mockNotifierArgs,
 		CovalentIndexerFactoryArgs: mockCovalentArgs,
@@ -44,6 +47,15 @@ func TestNewIndexerFactory(t *testing.T) {
 				return nil
 			},
 			exError: outport.ErrNilArgsOutportFactory,
+		},
+		{
+			name: "invalid retrial duration",
+			argsFunc: func() *factory.OutportFactoryArgs {
+				args := createMockArgsOutportHandler(false, false, false)
+				args.RetrialInterval = 0
+				return args
+			},
+			exError: outport.ErrInvalidRetrialInterval,
 		},
 		{
 			name: "AllOkShouldWork",
@@ -93,7 +105,7 @@ func TestCreateOutport_EnabledDriversNilMockArgsExpectErrorSubscribingDrivers(t 
 func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
 	args := createMockArgsOutportHandler(false, false, true)
 
-	args.CovalentIndexerFactoryArgs.Hasher = &mock.HasherMock{}
+	args.CovalentIndexerFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	args.CovalentIndexerFactoryArgs.ShardCoordinator = &mock.ShardCoordinatorStub{}
 	args.CovalentIndexerFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.CovalentIndexerFactoryArgs.Accounts = &stateMock.AccountsStub{}
@@ -113,7 +125,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	args := createMockArgsOutportHandler(false, true, false)
 
 	args.EventNotifierFactoryArgs.Marshalizer = &mock.MarshalizerMock{}
-	args.EventNotifierFactoryArgs.Hasher = &mock.HasherMock{}
+	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	outPort, err := factory.CreateOutport(args)
 
 	defer func(c outport.OutportHandler) {

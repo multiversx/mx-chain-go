@@ -13,7 +13,6 @@ type ChainHandlerStub struct {
 	SetGenesisHeaderHashCalled  func(hash []byte)
 	SetCurrentBlockHeaderCalled func(bh data.HeaderHandler) error
 	GetCurrentBlockHeaderCalled func() data.HeaderHandler
-	CreateNewHeaderCalled       func() data.HeaderHandler
 }
 
 // GetGenesisHeader -
@@ -66,13 +65,4 @@ func (chs *ChainHandlerStub) SetCurrentBlockHeaderHash(_ []byte) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (chs *ChainHandlerStub) IsInterfaceNil() bool {
 	return chs == nil
-}
-
-// CreateNewHeader -
-func (chs *ChainHandlerStub) CreateNewHeader() data.HeaderHandler {
-	if chs.CreateNewHeaderCalled != nil {
-		return chs.CreateNewHeaderCalled()
-	}
-
-	return nil
 }

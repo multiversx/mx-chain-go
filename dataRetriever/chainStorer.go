@@ -1,6 +1,7 @@
 package dataRetriever
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -77,7 +78,7 @@ func (bc *ChainStorer) Put(unitType UnitType, key []byte, value []byte) error {
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		return ErrNoSuchStorageUnit
+		return fmt.Errorf("%w for unit type %s", ErrNoSuchStorageUnit, unitType.String())
 	}
 
 	return storer.Put(key, value)

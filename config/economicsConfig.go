@@ -2,10 +2,11 @@ package config
 
 // GlobalSettings will hold general economic values
 type GlobalSettings struct {
-	GenesisTotalSupply string
-	MinimumInflation   float64
-	YearSettings       []*YearSetting
-	Denomination       int
+	GenesisTotalSupply          string
+	MinimumInflation            float64
+	YearSettings                []*YearSetting
+	Denomination                int
+	GenesisMintingSenderAddress string
 }
 
 // YearSetting will hold the maximum inflation rate for year
@@ -37,6 +38,7 @@ type GasLimitSetting struct {
 	MaxGasLimitPerMiniBlock     string
 	MaxGasLimitPerMetaBlock     string
 	MaxGasLimitPerMetaMiniBlock string
+	MaxGasLimitPerTx            string
 	MinGasLimit                 string
 }
 
