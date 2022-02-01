@@ -5,10 +5,10 @@ import "errors"
 // ErrTransactionNotFound signals that a transaction was not found
 var ErrTransactionNotFound = errors.New("transaction not found")
 
-// ErrCannotRetrieveTransaction signals that a transaction was not found
+// ErrCannotRetrieveTransaction signals that a transaction cannot be retrieved
 var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
 
-// ErrNilStatusComputer signals that user account has a nil data trie
+// ErrNilStatusComputer signals that the status computer is nil
 var ErrNilStatusComputer = errors.New("nil transaction status computer")
 
 // ErrNilAPITransactionProcessorArg signals that a nil arguments structure has been provided

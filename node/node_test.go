@@ -32,11 +32,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
-	factoryGo "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/node/mock/factory"
+	nodeMockFactory "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -3393,7 +3393,7 @@ func TestNode_getClosableComponentName(t *testing.T) {
 	assert.Equal(t, coreComponents.String(), n.GetClosableComponentName(coreComponents, 0))
 
 	component := &struct {
-		factoryGo.Closer
+		factory.Closer
 	}{}
 
 	index := 45
@@ -3696,8 +3696,8 @@ func TestGetESDTSupply(t *testing.T) {
 	}, supply)
 }
 
-func getDefaultCoreComponents() *factory.CoreComponentsMock {
-	return &factory.CoreComponentsMock{
+func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
+	return &nodeMockFactory.CoreComponentsMock{
 		IntMarsh:            &testscommon.MarshalizerMock{},
 		TxMarsh:             &testscommon.MarshalizerMock{},
 		VmMarsh:             &testscommon.MarshalizerMock{},
@@ -3760,8 +3760,8 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 	}
 }
 
-func getDefaultDataComponents() *factory.DataComponentsMock {
-	return &factory.DataComponentsMock{
+func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
+	return &nodeMockFactory.DataComponentsMock{
 		BlockChain: &mock.ChainHandlerStub{},
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
