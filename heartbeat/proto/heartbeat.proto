@@ -12,13 +12,15 @@ message HeartbeatV2 {
   string  NodeDisplayName = 3;
   string  Identity        = 4;
   uint64  Nonce           = 5;
+  uint32  PeerSubType     = 6;
 }
 
 // PeerAuthentication represents the DTO used to pass peer authentication information such as public key, peer id,
-// payload and the signature. This message is used to link the peerID with the associated public key
+// signature, payload and the signature. This message is used to link the peerID with the associated public key
 message PeerAuthentication {
   bytes   Pubkey           = 1;
-  bytes   Pid              = 2;
-  bytes   Payload          = 3;
-  bytes   PayloadSignature = 4;
+  bytes   Signature        = 2;
+  bytes   Pid              = 3;
+  bytes   Payload          = 4;
+  bytes   PayloadSignature = 5;
 }
