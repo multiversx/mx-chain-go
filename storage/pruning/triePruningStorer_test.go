@@ -104,7 +104,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 			if !exists {
 				persister = &mock.PersisterStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, storage.ErrSerialDBIsClosed
+						return nil, storage.ErrDBIsClosed
 					},
 				}
 				persistersMap[path] = persister
@@ -123,7 +123,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 
 	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
 	assert.Nil(t, val)
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
 
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentStorer(t *testing.T) {
@@ -290,18 +290,18 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 
 	assert.Equal(t, 2, tps.GetNumActivePersisters())
 	_ = tps.ChangeEpochSimple(2)
-	assert.Equal(t, 2, tps.GetNumActivePersisters())
-	_ = tps.ChangeEpochSimple(3)
 	assert.Equal(t, 3, tps.GetNumActivePersisters())
-	_ = tps.ChangeEpochSimple(4)
+	_ = tps.ChangeEpochSimple(3)
 	assert.Equal(t, 4, tps.GetNumActivePersisters())
+	_ = tps.ChangeEpochSimple(4)
+	assert.Equal(t, 5, tps.GetNumActivePersisters())
 
 	tps.SetEpochForPutOperation(4)
 	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 	assert.Nil(t, err)
 
 	_ = tps.ChangeEpochSimple(5)
-	assert.Equal(t, 2, tps.GetNumActivePersisters())
+	assert.Equal(t, 6, tps.GetNumActivePersisters())
 
 	err = tps.Close()
 	assert.Nil(t, err)

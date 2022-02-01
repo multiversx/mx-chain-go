@@ -131,7 +131,10 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 
 	// get marshalled block header without signature and bitmap
 	// as this is the message that was signed
-	headerCopy := hsv.copyHeaderWithoutSig(header)
+	headerCopy, err := hsv.copyHeaderWithoutSig(header)
+	if err != nil {
+		return err
+	}
 
 	hash, err := core.CalculateHash(hsv.marshalizer, hsv.hasher, headerCopy)
 	if err != nil {
@@ -251,7 +254,11 @@ func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, head
 }
 
 func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
-	headerCopy := hsv.copyHeaderWithoutLeaderSig(header)
+	headerCopy, err := hsv.copyHeaderWithoutLeaderSig(header)
+	if err != nil {
+		return err
+	}
+
 	headerBytes, err := hsv.marshalizer.Marshal(headerCopy)
 	if err != nil {
 		return err
@@ -278,18 +285,32 @@ func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.Publi
 	return hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
 }
 
-func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) data.HeaderHandler {
-	headerCopy := header.Clone()
-	headerCopy.SetSignature(nil)
-	headerCopy.SetPubKeysBitmap(nil)
-	headerCopy.SetLeaderSignature(nil)
+func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (data.HeaderHandler, error) {
+	headerCopy := header.ShallowClone()
+	err := headerCopy.SetSignature(nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return headerCopy
+	err = headerCopy.SetPubKeysBitmap(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return headerCopy, nil
 }
 
-func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
-	headerCopy := header.Clone()
-	headerCopy.SetLeaderSignature(nil)
+func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandler) (data.HeaderHandler, error) {
+	headerCopy := header.ShallowClone()
+	err := headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return headerCopy
+	return headerCopy, nil
 }

@@ -91,6 +91,11 @@ func (m *metaBlockCreator) CreateBlock(
 	}
 
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
+	epochStart, ok:= hardForkMeta.GetEpochStartHandler().(*block.EpochStart)
+	if !ok{
+		return nil, update.ErrWrongTypeAssertion
+	}
+
 	metaHeader := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,
@@ -98,7 +103,7 @@ func (m *metaBlockCreator) CreateBlock(
 		RandSeed:               rootHash,
 		RootHash:               rootHash,
 		ValidatorStatsRootHash: validatorRootHash,
-		EpochStart:             hardForkMeta.EpochStart,
+		EpochStart:             *epochStart,
 		ChainID:                []byte(chainID),
 		SoftwareVersion:        []byte(""),
 		AccumulatedFees:        big.NewInt(0),

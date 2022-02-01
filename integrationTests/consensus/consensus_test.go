@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
+	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -126,6 +127,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 			ProcessComponents:   n.node.GetProcessComponents(),
 			StateComponents:     n.node.GetStateComponents(),
 			StatusComponents:    statusComponents,
+			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:      n.node.IsInImportMode(),
 		}
 

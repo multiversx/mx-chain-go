@@ -14,7 +14,6 @@ type BlockChainStub struct {
 	SetCurrentBlockHeaderCalled     func(data.HeaderHandler) error
 	GetCurrentBlockHeaderHashCalled func() []byte
 	SetCurrentBlockHeaderHashCalled func([]byte)
-	CreateNewHeaderCalled           func() data.HeaderHandler
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -82,13 +81,4 @@ func (bcs *BlockChainStub) SetCurrentBlockHeaderHash(hash []byte) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bcs *BlockChainStub) IsInterfaceNil() bool {
 	return bcs == nil
-}
-
-// CreateNewHeader -
-func (bcs *BlockChainStub) CreateNewHeader() data.HeaderHandler {
-	if bcs.CreateNewHeaderCalled != nil {
-		return bcs.CreateNewHeaderCalled()
-	}
-
-	return nil
 }

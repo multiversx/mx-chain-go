@@ -14,3 +14,7 @@ type gasConsumedProvider interface {
 	TotalGasPenalized() uint64
 	IsInterfaceNil() bool
 }
+
+type peerAccountsDBHandler interface {
+	MarkSnapshotDone()
+}

@@ -216,3 +216,6 @@ var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 
 // ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilScheduledProcessor signals that the provided scheduled processor is nil
+var ErrNilScheduledProcessor = errors.New("nil scheduled processor")

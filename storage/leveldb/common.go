@@ -2,6 +2,8 @@ package leveldb
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -12,6 +14,9 @@ import (
 const resourceUnavailable = "resource temporarily unavailable"
 const maxRetries = 10
 const timeBetweenRetries = time.Second
+
+// loggingDBCounter this variable should be used only used in logging prints
+var loggingDBCounter = uint32(0)
 
 func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 	retries := 0
@@ -69,7 +74,31 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 }
 
 type baseLevelDb struct {
-	db *leveldb.DB
+	mutDb sync.RWMutex
+	path  string
+	db    *leveldb.DB
+}
+
+func (bldb *baseLevelDb) getDbPointer() *leveldb.DB {
+	bldb.mutDb.RLock()
+	defer bldb.mutDb.RUnlock()
+
+	return bldb.db
+}
+
+func (bldb *baseLevelDb) makeDbPointerNilReturningLast() *leveldb.DB {
+	bldb.mutDb.Lock()
+	defer bldb.mutDb.Unlock()
+
+	if bldb.db != nil {
+		crtCounter := atomic.AddUint32(&loggingDBCounter, ^uint32(0)) // subtract 1
+		log.Debug("makeDbPointerNilReturningLast", "path", bldb.path, "nilled pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
+	}
+
+	db := bldb.db
+	bldb.db = nil
+
+	return db
 }
 
 // RangeKeys will call the handler function for each (key, value) pair
@@ -79,7 +108,12 @@ func (bldb *baseLevelDb) RangeKeys(handler func(key []byte, value []byte) bool) 
 		return
 	}
 
-	iterator := bldb.db.NewIterator(nil, nil)
+	db := bldb.getDbPointer()
+	if db == nil {
+		return
+	}
+
+	iterator := db.NewIterator(nil, nil)
 	for {
 		if !iterator.Next() {
 			break

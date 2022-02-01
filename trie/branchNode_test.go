@@ -12,11 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -77,7 +78,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hsh.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := NewTrieStorageManager(args)
 	tr := &patriciaMerkleTrie{
@@ -209,7 +210,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage1, _ := NewTrieStorageManager(args)
 	args = NewTrieStorageManagerArgs{
@@ -221,7 +222,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage2, _ := NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -1152,7 +1153,7 @@ func BenchmarkMarshallNodeJson(b *testing.B) {
 func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bn, err := newBranchNode(nil, testscommon.HasherMock{})
+	bn, err := newBranchNode(nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, bn)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }

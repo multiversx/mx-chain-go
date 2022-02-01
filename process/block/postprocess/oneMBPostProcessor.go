@@ -100,7 +100,7 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
 	})
 
-	log.Trace("oneMBPostProcessor.CreateAllInterMiniBlocks",
+	log.Debug("oneMBPostProcessor.CreateAllInterMiniBlocks",
 		"type", miniBlock.Type,
 		"senderShardID", miniBlock.SenderShardID,
 		"receiverShardID", miniBlock.ReceiverShardID,
