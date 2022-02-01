@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -687,7 +690,13 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	bh.SetCurrentHeader(hdr)
+	assert.Equal(t, nonce, bh.CurrentNonce())
+	assert.Equal(t, round, bh.CurrentRound())
+	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
+	assert.Equal(t, epoch, bh.CurrentEpoch())
+	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
 
+	bh.SetCurrentHeader(nil)
 	assert.Equal(t, nonce, bh.CurrentNonce())
 	assert.Equal(t, round, bh.CurrentRound())
 	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
@@ -870,7 +879,7 @@ func TestTestBlockChainHookImpl_IsPayableErrorGettingReceiverNotPayable(t *testi
 	require.Equal(t, errGetAccount, err)
 }
 
-func TestBlockChainHookImpl_GetBuiltinFunctionNames(t *testing.T) {
+func TestBlockChainHookImpl_GetBuiltinFunctionNamesAndContainer(t *testing.T) {
 	t.Parallel()
 
 	builtInFunctionContainer := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
@@ -887,6 +896,153 @@ func TestBlockChainHookImpl_GetBuiltinFunctionNames(t *testing.T) {
 		"func2": {},
 	}
 	require.Equal(t, expectedFuncNames, funcNames)
+	require.Equal(t, builtInFunctionContainer, bh.GetBuiltinFunctionsContainer())
+}
+
+func TestBlockChainHookImpl_NumberOfShards(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{NoShards: 4}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	require.Equal(t, uint32(4), bh.NumberOfShards())
+}
+
+func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
+	t.Parallel()
+
+	code := []byte("code")
+	codeHash := []byte("codeHash")
+
+	t.Run("get compiled code from compiled sc pool", func(t *testing.T) {
+		args := createMockBlockChainHookArgs()
+
+		wasCodeSavedInPool := &atomic.Flag{}
+		args.CompiledSCPool = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, codeHash, key)
+				return code, true
+			},
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				wasCodeSavedInPool.SetValue(true)
+				return false
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		found, actualCode := bh.GetCompiledCode(codeHash)
+		require.True(t, found)
+		require.Equal(t, code, actualCode)
+		require.False(t, wasCodeSavedInPool.IsSet())
+	})
+
+	t.Run("compiled code found in compiled sc pool, but not as byte slice, error getting it from storage", func(t *testing.T) {
+		args := createMockBlockChainHookArgs()
+		args.NilCompiledSCStore = true
+
+		wasCodeSavedInPool := &atomic.Flag{}
+		args.CompiledSCPool = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, codeHash, key)
+				return struct{}{}, true
+			},
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				wasCodeSavedInPool.SetValue(true)
+				return false
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		found, actualCode := bh.GetCompiledCode(codeHash)
+		require.False(t, found)
+		require.Nil(t, actualCode)
+		require.False(t, wasCodeSavedInPool.IsSet())
+	})
+
+	t.Run("compiled code found in storage, but nil", func(t *testing.T) {
+		args := createMockBlockChainHookArgs()
+		args.NilCompiledSCStore = false
+		args.ConfigSCStorage = config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10,
+				Type:     string(storageUnit.LRUCache),
+			},
+			DB: config.DBConfig{
+				FilePath:     "test1",
+				Type:         string(storageUnit.LvlDB),
+				MaxBatchSize: 1,
+				MaxOpenFiles: 10,
+			},
+		}
+		wasCodeSavedInPool := &atomic.Flag{}
+		args.CompiledSCPool = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, codeHash, key)
+				return nil, false
+			},
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				wasCodeSavedInPool.SetValue(true)
+				return false
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh.SaveCompiledCode(codeHash, nil)
+
+		wasCodeSavedInPool.Reset()
+		found, actualCode := bh.GetCompiledCode(codeHash)
+		require.False(t, found)
+		require.Nil(t, actualCode)
+		require.False(t, wasCodeSavedInPool.IsSet())
+
+		_ = bh.Close()
+		_ = os.RemoveAll("compiledSCStorage")
+	})
+
+	t.Run("compiled code not found in compiled sc pool, get it from storage", func(t *testing.T) {
+		args := createMockBlockChainHookArgs()
+		args.ConfigSCStorage = config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10,
+				Type:     string(storageUnit.LRUCache),
+			},
+			DB: config.DBConfig{
+				FilePath:     "test2",
+				Type:         string(storageUnit.LvlDB),
+				MaxBatchSize: 1,
+				MaxOpenFiles: 10,
+			},
+		}
+		args.NilCompiledSCStore = false
+		args.CompiledSCPool = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, codeHash, key)
+				return nil, false
+			},
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				require.Equal(t, codeHash, key)
+				require.Equal(t, code, value)
+				require.Equal(t, len(code), sizeInBytes)
+				return false
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		bh.SaveCompiledCode(codeHash, code)
+		found, actualCode := bh.GetCompiledCode(codeHash)
+		require.True(t, found)
+		require.Equal(t, code, actualCode)
+
+		bh.DeleteCompiledCode(codeHash)
+		found, actualCode = bh.GetCompiledCode(codeHash)
+		require.False(t, found)
+		require.Nil(t, actualCode)
+
+		_ = bh.Close()
+		_ = os.RemoveAll("compiledSCStorage")
+	})
 }
 
 func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
