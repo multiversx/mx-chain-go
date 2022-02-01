@@ -365,7 +365,7 @@ func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
 	log.Debug("scheduledTxsExecution.RollBackToBlock",
 		"header hash", headerHash,
 		"scheduled root hash", scheduledRootHash,
-		"num of scheduled scrs", len(mapScheduledSCRs),
+		"num of scheduled scrs", getNumScheduledSCRs(mapScheduledSCRs),
 		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"developerFees", gasAndFees.DeveloperFees.String(),
 		"gasProvided", gasAndFees.GasProvided,
@@ -389,7 +389,7 @@ func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
 		"header hash", headerHash,
 		"scheduled root hash", scheduledRootHash,
 		"num of scheduled txs", numScheduledTxs,
-		"num of scheduled scrs", len(mapScheduledSCRs),
+		"num of scheduled scrs", getNumScheduledSCRs(mapScheduledSCRs),
 		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"developerFees", gasAndFees.DeveloperFees.String(),
 		"gasProvided", gasAndFees.GasProvided,
@@ -417,7 +417,7 @@ func (ste *scheduledTxsExecution) SaveState(
 	log.Debug("scheduledTxsExecution.SaveState Put",
 		"header hash", headerHash,
 		"scheduled root hash", scheduledRootHash,
-		"num of scheduled scrs", len(mapScheduledSCRs),
+		"num of scheduled scrs", getNumScheduledSCRs(mapScheduledSCRs),
 		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
 		"gasAndFees.GasProvided", gasAndFees.GasProvided,
@@ -486,6 +486,15 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 	ste.mutScheduledTxs.RUnlock()
 
 	return ok
+}
+
+func getNumScheduledSCRs(mapScheduledSCRs map[block.Type][]data.TransactionHandler) int {
+	numScheduledSCRs := 0
+	for _, scheduledSCRs := range mapScheduledSCRs {
+		numScheduledSCRs += len(scheduledSCRs)
+	}
+
+	return numScheduledSCRs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
