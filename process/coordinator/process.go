@@ -634,7 +634,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		processedMbInfo, ok := processedMiniBlocksHashes[string(miniBlockInfo.Hash)]
-		if ok && processedMbInfo.IsFullyProcessed {
+		if !ok {
+			processedMbInfo = &processedMb.ProcessedMiniBlockInfo{
+				IndexOfLastTxProcessed: -1,
+				IsFullyProcessed:       false,
+			}
+		}
+
+		if processedMbInfo.IsFullyProcessed {
 			numAlreadyMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,
@@ -702,7 +709,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
@@ -712,6 +719,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"type", miniBlock.Type,
 				"round", miniBlockInfo.Round,
 				"num txs", len(miniBlock.TxHashes),
+				"num txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
+				"fully processed", processedMbInfo.IsFullyProcessed,
 				"total gas provided", tc.gasHandler.TotalGasProvided(),
 				"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 				"total gas penalized", tc.gasHandler.TotalGasPenalized(),
@@ -726,12 +735,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"type", miniBlock.Type,
 			"round", miniBlockInfo.Round,
 			"num txs", len(miniBlock.TxHashes),
+			"num txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
+			"fully processed", processedMbInfo.IsFullyProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 		)
 
-		processedTxHashes = append(processedTxHashes, miniBlock.TxHashes...)
+		processedTxHashes = append(processedTxHashes, miniBlock.TxHashes[:processedMbInfo.IndexOfLastTxProcessed+1]...)
 
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)

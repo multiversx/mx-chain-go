@@ -12,7 +12,7 @@ var log = logger.GetOrCreate("process/processedMb")
 // ProcessedMiniBlockInfo will keep the info about processed mini blocks
 type ProcessedMiniBlockInfo struct {
 	IsFullyProcessed       bool
-	IndexOfLastTxProcessed uint32
+	IndexOfLastTxProcessed int32
 }
 
 // MiniBlockHashes will keep a list of miniblock hashes as keys in a map for easy access
