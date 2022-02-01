@@ -206,7 +206,7 @@ func TestListForSender_SelectBatchToWithLimitedGasBandwidth(t *testing.T) {
 	txGasHandler, txFeeHelper := dummyParams()
 
 	for index := 0; index < 40; index++ {
-		wtx := createTx([]byte{byte(index)},".", uint64(index))
+		wtx := createTx([]byte{byte(index)}, ".", uint64(index))
 		tx, _ := wtx.Tx.(*transaction.Transaction)
 		tx.GasLimit = 1000000
 		list.AddTx(wtx, txGasHandler, txFeeHelper)
@@ -221,7 +221,7 @@ func TestListForSender_SelectBatchToWithLimitedGasBandwidth(t *testing.T) {
 	require.Nil(t, destination[1])
 
 	// Second batch
-	journal = list.selectBatchTo(false, destination[1:], 50,20000000)
+	journal = list.selectBatchTo(false, destination[1:], 50, 20000000)
 	require.Equal(t, 20, journal.copied)
 	require.NotNil(t, destination[20])
 	require.Nil(t, destination[21])
@@ -418,7 +418,7 @@ func dummyParamsWithGasPriceAndGasLimit(minGasPrice uint64, minGasLimit uint64) 
 	return txGasHandler, txFeeHelper
 }
 
-func dummyParamsWithGasPrice(minGasPrice uint64)(TxGasHandler, feeHelper) {
+func dummyParamsWithGasPrice(minGasPrice uint64) (TxGasHandler, feeHelper) {
 	return dummyParamsWithGasPriceAndGasLimit(minGasPrice, 50000)
 }
 

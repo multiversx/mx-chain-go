@@ -393,5 +393,5 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	wg.Wait()
 
 	elapsedTime := time.Since(startTime)
-	require.True(t, elapsedTime < 10 * time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
+	require.True(t, elapsedTime < 10*time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
 }

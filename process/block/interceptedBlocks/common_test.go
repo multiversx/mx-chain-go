@@ -517,7 +517,6 @@ func TestCheckMiniblocks_ReservedPopulatedCorrectly(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-
 func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 

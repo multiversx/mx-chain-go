@@ -136,7 +136,7 @@ func NewShardProcessorEmptyWith3shards(
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:      &mock.RoundNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},

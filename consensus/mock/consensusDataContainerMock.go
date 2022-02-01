@@ -219,7 +219,7 @@ func (ccm *ConsensusCoreMock) NodeRedundancyHandler() consensus.NodeRedundancyHa
 }
 
 // ScheduledProcessor -
-func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor{
+func (ccm *ConsensusCoreMock) ScheduledProcessor() consensus.ScheduledProcessor {
 	return ccm.scheduledProcessor
 }
 

@@ -176,7 +176,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
 	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
-	for i, mbHeader := range  mbHeaderHandlers{
+	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
