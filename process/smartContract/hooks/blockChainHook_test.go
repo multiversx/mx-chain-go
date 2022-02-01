@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -16,7 +19,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/pkg/errors"
@@ -42,7 +48,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 	return arguments
@@ -357,14 +363,14 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
 	args.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			if uint8(unitType) >= uint8(dataRetriever.ShardHdrNonceHashDataUnit) {
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
 						return hashToRet, nil
 					},
 				}
 			}
 
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return marshaledData, nil
 				},
@@ -534,4 +540,201 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 	output, err := bh.ProcessBuiltInFunction(input)
 	require.NoError(t, err)
 	require.Equal(t, vmcommon.Ok, output.ReturnCode)
+}
+
+func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
+	t.Parallel()
+
+	address := []byte("address")
+	token := []byte("tkn")
+	nonce := uint64(0)
+	emptyESDTData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	expectedErr := errors.New("expected error")
+	completeEsdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(token))
+	testESDTData := &esdt.ESDigitalToken{
+		Type:       uint32(core.Fungible),
+		Value:      big.NewInt(1),
+		Properties: []byte("properties"),
+		TokenMetaData: &esdt.MetaData{
+			Nonce:      1,
+			Name:       []byte("name"),
+			Creator:    []byte("creator"),
+			Royalties:  2,
+			Hash:       []byte("hash"),
+			URIs:       [][]byte{[]byte("uri1"), []byte("uri2")},
+			Attributes: []byte("attributes"),
+		},
+		Reserved: []byte("reserved"),
+	}
+
+	t.Run("account not found returns an empty esdt data", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return nil, state.ErrAccNotFound
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		esdtData, err := bh.GetESDTToken(address, token, nonce)
+		assert.Nil(t, err)
+		require.NotNil(t, esdtData)
+		assert.Equal(t, emptyESDTData, esdtData)
+	})
+	t.Run("accountsDB errors returns error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return nil, expectedErr
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		esdtData, err := bh.GetESDTToken(address, token, nonce)
+		assert.Nil(t, esdtData)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("backwards compatibility - retrieve value errors, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+				addressHandler := mock.NewAccountWrapMock(address)
+				addressHandler.SetDataTrie(nil)
+
+				return addressHandler, nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh.SetFlagOptimizeNFTStore(false)
+
+		esdtData, err := bh.GetESDTToken(address, token, nonce)
+		assert.Nil(t, esdtData)
+		assert.Equal(t, state.ErrNilTrie, err)
+	})
+	t.Run("backwards compatibility - empty byte slice should return empty esdt token", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+				addressHandler := mock.NewAccountWrapMock(address)
+				addressHandler.SetDataTrie(&trie.TrieStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return make([]byte, 0), nil
+					},
+				})
+
+				return addressHandler, nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh.SetFlagOptimizeNFTStore(false)
+
+		esdtData, err := bh.GetESDTToken(address, token, nonce)
+		assert.Equal(t, emptyESDTData, esdtData)
+		assert.Nil(t, err)
+	})
+	t.Run("backwards compatibility - should load the esdt data in case of an NFT", func(t *testing.T) {
+		t.Parallel()
+
+		nftNonce := uint64(44)
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+				addressHandler := mock.NewAccountWrapMock(address)
+				buffToken, _ := args.Marshalizer.Marshal(testESDTData)
+				key := append(completeEsdtTokenKey, big.NewInt(0).SetUint64(nftNonce).Bytes()...)
+				_ = addressHandler.DataTrieTracker().SaveKeyValue(key, buffToken)
+
+				return addressHandler, nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh.SetFlagOptimizeNFTStore(false)
+
+		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
+		assert.Equal(t, testESDTData, esdtData)
+		assert.Nil(t, err)
+	})
+	t.Run("backwards compatibility - should load the esdt data", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+				addressHandler := mock.NewAccountWrapMock(address)
+				buffToken, _ := args.Marshalizer.Marshal(testESDTData)
+				_ = addressHandler.DataTrieTracker().SaveKeyValue(completeEsdtTokenKey, buffToken)
+
+				return addressHandler, nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		bh.SetFlagOptimizeNFTStore(false)
+
+		esdtData, err := bh.GetESDTToken(address, token, nonce)
+		assert.Equal(t, testESDTData, esdtData)
+		assert.Nil(t, err)
+	})
+	t.Run("new optimized implementation - NFTStorageHandler errors", func(t *testing.T) {
+		t.Parallel()
+
+		nftNonce := uint64(44)
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+				return mock.NewAccountWrapMock(address), nil
+			},
+		}
+		args.NFTStorageHandler = &testscommon.SimpleNFTStorageHandlerStub{
+			GetESDTNFTTokenOnDestinationCalled: func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+				assert.Equal(t, completeEsdtTokenKey, esdtTokenKey)
+				assert.Equal(t, nftNonce, nonce)
+
+				return nil, false, expectedErr
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
+		assert.Nil(t, esdtData)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("new optimized implementation - should return the esdt by calling NFTStorageHandler", func(t *testing.T) {
+		t.Parallel()
+
+		nftNonce := uint64(44)
+		args := createMockVMAccountsArguments()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+				return mock.NewAccountWrapMock(address), nil
+			},
+		}
+		args.NFTStorageHandler = &testscommon.SimpleNFTStorageHandlerStub{
+			GetESDTNFTTokenOnDestinationCalled: func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+				assert.Equal(t, completeEsdtTokenKey, esdtTokenKey)
+				assert.Equal(t, nftNonce, nonce)
+				copyToken := *testESDTData
+
+				return &copyToken, false, nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
+		assert.Equal(t, testESDTData, esdtData)
+		assert.Nil(t, err)
+	})
 }

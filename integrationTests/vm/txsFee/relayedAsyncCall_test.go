@@ -43,7 +43,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 	secondSCAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	innerTx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, gasPrice, gasLimit, []byte("doSomething"))
 

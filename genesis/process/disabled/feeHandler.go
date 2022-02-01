@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 )
 
 // FeeHandler represents a disabled fee handler implementation
@@ -92,7 +93,7 @@ func (fh *FeeHandler) CheckValidityTxValues(_ data.TransactionWithFeeHandler) er
 }
 
 // CreateBlockStarted does nothing
-func (fh *FeeHandler) CreateBlockStarted() {
+func (fh *FeeHandler) CreateBlockStarted(_ scheduled.GasAndFees) {
 }
 
 // GetAccumulatedFees returns 0

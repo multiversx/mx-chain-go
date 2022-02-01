@@ -31,7 +31,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -75,7 +75,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 
 	scAddress, initialOwner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	sndAddr := []byte("12345678901234567890123456789113")
 	newOwner := []byte("12345678901234567890123456789112")
@@ -121,7 +121,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 
 	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("invalidAddress")
 	gasPrice := uint64(10)
@@ -163,7 +163,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("12345678901234567890123456789112")
 	gasPrice := uint64(10)
@@ -201,7 +201,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 
 	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("12345678901234567890123456789112")
 	gasPrice := uint64(10)

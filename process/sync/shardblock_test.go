@@ -26,8 +26,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,7 +63,7 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 func createStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nil, process.ErrMissingHeader
 				},
@@ -97,6 +99,7 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 
@@ -106,9 +109,12 @@ func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 			_ = blk.SetCurrentBlockHeader(hdr.(*block.Header))
 			return nil
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			return nil
+		},
+		ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			return nil
 		},
 	}
@@ -174,30 +180,31 @@ func initRoundHandler() consensus.RoundHandler {
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:          createMockPools(),
-		Store:                createStore(),
-		ChainHandler:         initBlockchain(),
-		RoundHandler:         &mock.RoundHandlerMock{},
-		BlockProcessor:       &mock.BlockProcessorMock{},
-		WaitTime:             waitTime,
-		Hasher:               &mock.HasherMock{},
-		Marshalizer:          &mock.MarshalizerMock{},
-		ForkDetector:         &mock.ForkDetectorMock{},
-		RequestHandler:       &testscommon.RequestHandlerStub{},
-		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		Accounts:             &stateMock.AccountsStub{},
-		BlackListHandler:     &mock.BlackListHandlerStub{},
-		NetworkWatcher:       initNetworkWatcher(),
-		BootStorer:           &mock.BoostrapStorerMock{},
-		StorageBootstrapper:  &mock.StorageBootstrapperMock{},
-		EpochHandler:         &mock.EpochStartTriggerStub{},
-		MiniblocksProvider:   &mock.MiniBlocksProviderStub{},
-		Uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-		OutportHandler:       &testscommon.OutportStub{},
-		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
-		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
-		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
+		PoolsHolder:                  createMockPools(),
+		Store:                        createStore(),
+		ChainHandler:                 initBlockchain(),
+		RoundHandler:                 &mock.RoundHandlerMock{},
+		BlockProcessor:               &mock.BlockProcessorMock{},
+		WaitTime:                     waitTime,
+		Hasher:                       &hashingMocks.HasherMock{},
+		Marshalizer:                  &mock.MarshalizerMock{},
+		ForkDetector:                 &mock.ForkDetectorMock{},
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
+		Accounts:                     &stateMock.AccountsStub{},
+		BlackListHandler:             &mock.BlackListHandlerStub{},
+		NetworkWatcher:               initNetworkWatcher(),
+		BootStorer:                   &mock.BoostrapStorerMock{},
+		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
+		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
+		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
+		OutportHandler:               &testscommon.OutportStub{},
+		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -462,7 +469,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blockBodyUnit := &testscommon.StorerStub{
+	blockBodyUnit := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, nil
 		},
@@ -1410,7 +1417,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	args.ChainHandler = blkc
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
@@ -1550,7 +1557,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	args.ChainHandler = blkc
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
@@ -1665,7 +1672,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
 
-	txBlockUnit := &testscommon.StorerStub{
+	txBlockUnit := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			return nil, errors.New("not found")
 		},

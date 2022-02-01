@@ -111,13 +111,14 @@ type baseBootstrap struct {
 	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
 
-	chRcvMiniBlocks    chan bool
-	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksProvider process.MiniBlockProvider
-	poolsHolder        dataRetriever.PoolsHolder
-	mutRequestHeaders  sync.Mutex
-	cancelFunc         func()
-	isInImportMode     bool
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
+	isInImportMode               bool
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -289,8 +290,16 @@ func (boot *baseBootstrap) computeNodeState() {
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == genesisNonce
+		log.Debug("computeNodeState",
+			"probableHighestNonce", boot.forkDetector.ProbableHighestNonce(),
+			"currentBlockNonce", nil,
+			"boot.hasLastBlock", boot.hasLastBlock)
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
+		log.Debug("computeNodeState",
+			"probableHighestNonce", boot.forkDetector.ProbableHighestNonce(),
+			"currentBlockNonce", boot.chainHandler.GetCurrentBlockHeader().GetNonce(),
+			"boot.hasLastBlock", boot.hasLastBlock)
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
@@ -312,6 +321,9 @@ func (boot *baseBootstrap) computeNodeState() {
 	}
 
 	boot.statusHandler.SetUInt64Value(common.MetricIsSyncing, result)
+	log.Debug("computeNodeState",
+		"isNodeStateCalculated", boot.isNodeStateCalculated,
+		"isNodeSynchronized", boot.isNodeSynchronized)
 
 	if boot.shouldTryToRequestHeaders() {
 		go boot.requestHeadersIfSyncIsStuck()
@@ -463,6 +475,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.HistoryRepo) {
 		return process.ErrNilHistoryRepository
+	}
+	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
 	}
 
 	return nil
@@ -631,6 +646,16 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
+	startProcessScheduledBlockTime := time.Now()
+	err = boot.blockProcessor.ProcessScheduledBlock(header, body, haveTime)
+	elapsedTime = time.Since(startProcessScheduledBlockTime)
+	log.Debug("elapsed time to process scheduled block",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return err
+	}
+
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
@@ -685,10 +710,31 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		return process.ErrNilHeadersNonceHashStorage
 	}
 
+	var roleBackOneBlockExecuted bool
+	var err error
+	var currHeaderHash []byte
+	var currHeader data.HeaderHandler
+	var prevHeader data.HeaderHandler
+	var currBody data.BodyHandler
+
+	defer func() {
+		if !roleBackOneBlockExecuted {
+			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+			if err != nil {
+				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
+				if currHeader != nil {
+					rootHash = currHeader.GetRootHash()
+				}
+				gasAndFees := process.GetZeroGasAndFees()
+				boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(rootHash, make(map[block.Type][]data.TransactionHandler), gasAndFees)
+			}
+		}
+	}()
+
 	log.Debug("starting roll back")
 	for {
-		currHeaderHash := boot.chainHandler.GetCurrentBlockHeaderHash()
-		currHeader, err := boot.blockBootstrapper.getCurrHeader()
+		currHeaderHash = boot.chainHandler.GetCurrentBlockHeaderHash()
+		currHeader, err = boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
 		}
@@ -702,7 +748,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 
 		prevHeaderHash := currHeader.GetPrevHash()
-		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
+		prevHeader, err = boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
 			return err
 		}
@@ -715,13 +761,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			"nonce", boot.forkDetector.GetHighestFinalBlockNonce(),
 		)
 
-		currBody, err := boot.rollBackOneBlock(
+		currBody, err = boot.rollBackOneBlock(
 			currHeaderHash,
 			currHeader,
 			prevHeaderHash,
 			prevHeader,
 		)
-
+		roleBackOneBlockExecuted = true
 		if err != nil {
 			return err
 		}
@@ -743,6 +789,12 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 
 			return err
+		}
+
+		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
+		if err != nil {
+			gasAndFees := process.GetZeroGasAndFees()
+			boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
 		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
@@ -791,11 +843,18 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
+	prevHeaderRootHash := prevHeader.GetRootHash()
+	scheduledPrevHeaderRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
+	if err == nil {
+		prevHeaderRootHash = scheduledPrevHeaderRootHash
+	}
+
+	err = boot.blockProcessor.RevertStateToBlock(prevHeader, prevHeaderRootHash)
 	if err != nil {
 		return nil, err
 	}
-	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
+
+	boot.blockProcessor.PruneStateOnRollback(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
 
 	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
 	if errNotCritical != nil {
@@ -877,7 +936,13 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.blockProcessor.RevertStateToBlock(currHeader)
+	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+	if err != nil {
+		gasAndFees := process.GetZeroGasAndFees()
+		boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+	}
+
+	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
 	if err != nil {
 		log.Debug("RevertState", "error", err.Error())
 	}

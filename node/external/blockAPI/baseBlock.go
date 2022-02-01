@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -111,8 +112,8 @@ func (bap *baseAPIBlockProcessor) prepareAPIMb(miniblock *block.MiniBlock, epoch
 	return miniblockAPI, true
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader *block.MiniBlockHeader, epoch uint32, apiMb *api.MiniBlock) {
-	miniblockHash := mbHeader.Hash
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMb *api.MiniBlock) {
+	miniblockHash := mbHeader.GetHash()
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		log.Warn("cannot get miniblock from storage",
