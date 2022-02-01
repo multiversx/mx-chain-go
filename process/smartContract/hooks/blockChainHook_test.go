@@ -1045,6 +1045,35 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 	})
 }
 
+func TestBlockChainHookImpl_GetSnapshot(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.Accounts = &stateMock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 444
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	require.Equal(t, 444, bh.GetSnapshot())
+}
+
+func TestBlockChainHookImpl_RevertToSnapshot(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.Accounts = &stateMock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			require.Equal(t, 444, snapshot)
+			return nil
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	require.Nil(t, bh.RevertToSnapshot(444))
+}
+
 func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
