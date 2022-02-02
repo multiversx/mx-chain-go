@@ -906,11 +906,11 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 }
 
 func (txs *transactions) getRemainingGasPerBlock() uint64 {
-	gasProvided := txs.getTotalGasConsumed()
+	gasConsumed := txs.getTotalGasConsumed()
 	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	gasBandwidth := uint64(0)
-	if gasProvided < maxGasPerBlock {
-		gasBandwidth = maxGasPerBlock - gasProvided
+	if gasConsumed < maxGasPerBlock {
+		gasBandwidth = maxGasPerBlock - gasConsumed
 	}
 	return gasBandwidth
 }
