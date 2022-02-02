@@ -114,16 +114,16 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 func Test_interceptedHeartbeat_CheckValidity(t *testing.T) {
 	t.Parallel()
 	t.Run("payloadProperty too short", testInterceptedHeartbeatPropertyLen(payloadProperty, false))
-	t.Run("payloadProperty too short", testInterceptedHeartbeatPropertyLen(payloadProperty, true))
+	t.Run("payloadProperty too long", testInterceptedHeartbeatPropertyLen(payloadProperty, true))
 
 	t.Run("versionNumberProperty too short", testInterceptedHeartbeatPropertyLen(versionNumberProperty, false))
-	t.Run("versionNumberProperty too short", testInterceptedHeartbeatPropertyLen(versionNumberProperty, true))
+	t.Run("versionNumberProperty too long", testInterceptedHeartbeatPropertyLen(versionNumberProperty, true))
 
 	t.Run("nodeDisplayNameProperty too short", testInterceptedHeartbeatPropertyLen(nodeDisplayNameProperty, false))
-	t.Run("nodeDisplayNameProperty too short", testInterceptedHeartbeatPropertyLen(nodeDisplayNameProperty, true))
+	t.Run("nodeDisplayNameProperty too long", testInterceptedHeartbeatPropertyLen(nodeDisplayNameProperty, true))
 
 	t.Run("identityProperty too short", testInterceptedHeartbeatPropertyLen(identityProperty, false))
-	t.Run("identityProperty too short", testInterceptedHeartbeatPropertyLen(identityProperty, true))
+	t.Run("identityProperty too long", testInterceptedHeartbeatPropertyLen(identityProperty, true))
 
 	t.Run("invalid peer subtype should error", func(t *testing.T) {
 		t.Parallel()
