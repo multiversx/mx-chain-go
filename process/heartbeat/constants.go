@@ -3,6 +3,8 @@ package heartbeat
 const (
 	minSizeInBytes                    = 1
 	maxSizeInBytes                    = 128
+	minDurationInSec                  = 10
+	payloadExpiryThresholdInSec       = 10
 	interceptedPeerAuthenticationType = "intercepted peer authentication"
 	interceptedHeartbeatType          = "intercepted heartbeat"
 	publicKeyProperty                 = "public key"

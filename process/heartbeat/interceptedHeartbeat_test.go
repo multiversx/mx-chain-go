@@ -3,18 +3,28 @@ package heartbeat
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
+	payload := &heartbeat.Payload{
+		Timestamp:       uint64(time.Now().Unix()),
+		HardforkMessage: "hardfork message",
+	}
+	marshalizer := mock.MarshalizerMock{}
+	payloadBytes, err := marshalizer.Marshal(payload)
+	if err != nil {
+		return nil
+	}
+
 	return &heartbeat.HeartbeatV2{
-		Payload:         []byte("payload"),
+		Payload:         payloadBytes,
 		VersionNumber:   "version number",
 		NodeDisplayName: "node display name",
 		Identity:        "identity",
@@ -26,8 +36,8 @@ func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
 func createMockInterceptedHeartbeatArg(interceptedData *heartbeat.HeartbeatV2) ArgInterceptedHeartbeat {
 	arg := ArgInterceptedHeartbeat{}
 	arg.Marshalizer = &mock.MarshalizerMock{}
-	arg.Hasher = &hashingMocks.HasherMock{}
 	arg.DataBuff, _ = arg.Marshalizer.Marshal(interceptedData)
+	arg.PeerId = "pid"
 
 	return arg
 }
@@ -55,15 +65,15 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 		assert.Nil(t, ihb)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 	})
-	t.Run("nil hasher should error", func(t *testing.T) {
+	t.Run("empty pid should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
-		arg.Hasher = nil
+		arg.PeerId = ""
 
 		ihb, err := NewInterceptedHeartbeat(arg)
 		assert.Nil(t, ihb)
-		assert.Equal(t, process.ErrNilHasher, err)
+		assert.Equal(t, process.ErrEmptyPeerID, err)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
@@ -78,6 +88,17 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 		ihb, err := NewInterceptedHeartbeat(arg)
 		assert.Nil(t, ihb)
 		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("unmarshalable payload returns error", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := createDefaultInterceptedHeartbeat()
+		interceptedData.Payload = []byte("invalid data")
+		arg := createMockInterceptedHeartbeatArg(interceptedData)
+
+		ihb, err := NewInterceptedHeartbeat(arg)
+		assert.Nil(t, ihb)
+		assert.NotNil(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -154,20 +175,6 @@ func testInterceptedHeartbeatPropertyLen(property string, tooLong bool) func(t *
 	}
 }
 
-func Test_interceptedHeartbeat_Hash(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
-	ihb, _ := NewInterceptedHeartbeat(arg)
-	hash := ihb.Hash()
-	expectedHash := arg.Hasher.Compute(string(arg.DataBuff))
-	assert.Equal(t, expectedHash, hash)
-
-	identifiers := ihb.Identifiers()
-	assert.Equal(t, 1, len(identifiers))
-	assert.Equal(t, expectedHash, identifiers[0])
-}
-
 func Test_interceptedHeartbeat_Getters(t *testing.T) {
 	t.Parallel()
 
@@ -178,4 +185,6 @@ func Test_interceptedHeartbeat_Getters(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, ihb.IsForCurrentShard())
 	assert.Equal(t, interceptedHeartbeatType, ihb.Type())
+	assert.Equal(t, []byte(""), ihb.Hash())
+	assert.Equal(t, arg.PeerId.Bytes(), ihb.Identifiers()[0])
 }

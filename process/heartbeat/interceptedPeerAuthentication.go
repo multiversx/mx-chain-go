@@ -2,10 +2,12 @@ package heartbeat
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,19 +15,27 @@ import (
 
 // ArgInterceptedPeerAuthentication is the argument used in the intercepted peer authentication constructor
 type ArgInterceptedPeerAuthentication struct {
-	argBaseInterceptedHeartbeat
+	ArgBaseInterceptedHeartbeat
+	NodesCoordinator     NodesCoordinator
+	SignaturesHandler    SignaturesHandler
+	PeerSignatureHandler crypto.PeerSignatureHandler
+	ExpiryTimespanInSec  uint64
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
 type interceptedPeerAuthentication struct {
-	peerAuthentication heartbeat.PeerAuthentication
-	peerId             core.PeerID
-	hash               []byte
+	peerAuthentication   heartbeat.PeerAuthentication
+	marshalizer          marshal.Marshalizer
+	peerId               core.PeerID
+	nodesCoordinator     NodesCoordinator
+	signaturesHandler    SignaturesHandler
+	peerSignatureHandler crypto.PeerSignatureHandler
+	expiryTimespanInSec  uint64
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
 func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*interceptedPeerAuthentication, error) {
-	err := checkBaseArg(arg.argBaseInterceptedHeartbeat)
+	err := checkArg(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +46,36 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 	}
 
 	intercepted := &interceptedPeerAuthentication{
-		peerAuthentication: *peerAuthentication,
+		peerAuthentication:   *peerAuthentication,
+		marshalizer:          arg.Marshalizer,
+		nodesCoordinator:     arg.NodesCoordinator,
+		signaturesHandler:    arg.SignaturesHandler,
+		peerSignatureHandler: arg.PeerSignatureHandler,
+		expiryTimespanInSec:  arg.ExpiryTimespanInSec,
 	}
-
-	intercepted.processFields(arg.Hasher, arg.DataBuff)
+	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
 	return intercepted, nil
+}
+
+func checkArg(arg ArgInterceptedPeerAuthentication) error {
+	err := checkBaseArg(arg.ArgBaseInterceptedHeartbeat)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(arg.NodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
+	if arg.SignaturesHandler == nil {
+		return process.ErrNilSignaturesHandler
+	}
+	if arg.ExpiryTimespanInSec < minDurationInSec {
+		return process.ErrInvalidExpiryTimespan
+	}
+	if check.IfNil(arg.PeerSignatureHandler) {
+		return process.ErrNilPeerSignatureHandler
+	}
+	return nil
 }
 
 func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.PeerAuthentication, error) {
@@ -50,17 +84,18 @@ func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*he
 	if err != nil {
 		return nil, err
 	}
+	payload := &heartbeat.Payload{}
+	err = marshalizer.Unmarshal(payload, peerAuthentication.Payload)
+	if err != nil {
+		return nil, err
+	}
 
 	return peerAuthentication, nil
 }
 
-func (ipa *interceptedPeerAuthentication) processFields(hasher hashing.Hasher, buff []byte) {
-	ipa.hash = hasher.Compute(string(buff))
-	ipa.peerId = core.PeerID(ipa.peerAuthentication.Pid)
-}
-
 // CheckValidity will check the validity of the received peer authentication. This call won't trigger the signature validation.
 func (ipa *interceptedPeerAuthentication) CheckValidity() error {
+	// Verify properties len
 	err := verifyPropertyLen(publicKeyProperty, ipa.peerAuthentication.Pubkey)
 	if err != nil {
 		return err
@@ -82,6 +117,30 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		return err
 	}
 
+	// Verify validator
+	_, _, err = ipa.nodesCoordinator.GetValidatorWithPublicKey(ipa.peerAuthentication.Pubkey)
+	if err != nil {
+		return err
+	}
+
+	// Verify payload signature
+	err = ipa.signaturesHandler.Verify(ipa.peerAuthentication.Payload, ipa.peerId, ipa.peerAuthentication.PayloadSignature)
+	if err != nil {
+		return err
+	}
+
+	// Verify payload
+	err = ipa.verifyPayload()
+	if err != nil {
+		return err
+	}
+
+	// Verify message bls signature
+	err = ipa.peerSignatureHandler.VerifyPeerSignature(ipa.peerAuthentication.Pubkey, ipa.peerId, ipa.peerAuthentication.Signature)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -90,9 +149,9 @@ func (ipa *interceptedPeerAuthentication) IsForCurrentShard() bool {
 	return true
 }
 
-// Hash returns the hash of this intercepted peer authentication
+// Hash always returns an empty string
 func (ipa *interceptedPeerAuthentication) Hash() []byte {
-	return ipa.hash
+	return []byte("")
 }
 
 // Type returns the type of this intercepted data
@@ -134,6 +193,25 @@ func (ipa *interceptedPeerAuthentication) String() string {
 		logger.DisplayByteSlice(ipa.peerAuthentication.Payload),
 		logger.DisplayByteSlice(ipa.peerAuthentication.PayloadSignature),
 	)
+}
+
+func (ipa *interceptedPeerAuthentication) verifyPayload() error {
+	payload := &heartbeat.Payload{}
+	err := ipa.marshalizer.Unmarshal(payload, ipa.peerAuthentication.Payload)
+	if err != nil {
+		return err
+	}
+
+	currentTimeStamp := uint64(time.Now().Unix())
+	messageTimeStamp := uint64(time.Unix(int64(payload.Timestamp), 0).Unix())
+	minTimestampAllowed := currentTimeStamp - ipa.expiryTimespanInSec
+	maxTimestampAllowed := currentTimeStamp + payloadExpiryThresholdInSec
+	if messageTimeStamp < minTimestampAllowed || messageTimeStamp > maxTimestampAllowed {
+		return process.ErrMessageExpired
+	}
+	// TODO: check for payload hardfork
+
+	return nil
 }
 
 // verifyPropertyLen returns an error if the provided value is longer than accepted by the network

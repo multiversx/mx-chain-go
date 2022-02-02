@@ -5,35 +5,37 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// argBaseInterceptedHeartbeat is the base argument used for messages
-type argBaseInterceptedHeartbeat struct {
+// ArgBaseInterceptedHeartbeat is the base argument used for messages
+type ArgBaseInterceptedHeartbeat struct {
 	DataBuff    []byte
 	Marshalizer marshal.Marshalizer
-	Hasher      hashing.Hasher
 }
 
 // ArgInterceptedHeartbeat is the argument used in the intercepted heartbeat constructor
 type ArgInterceptedHeartbeat struct {
-	argBaseInterceptedHeartbeat
+	ArgBaseInterceptedHeartbeat
+	PeerId core.PeerID
 }
 
 type interceptedHeartbeat struct {
 	heartbeat heartbeat.HeartbeatV2
-	hash      []byte
+	peerId    core.PeerID
 }
 
 // NewInterceptedHeartbeat tries to create a new intercepted heartbeat instance
 func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat, error) {
-	err := checkBaseArg(arg.argBaseInterceptedHeartbeat)
+	err := checkBaseArg(arg.ArgBaseInterceptedHeartbeat)
 	if err != nil {
 		return nil, err
+	}
+	if len(arg.PeerId) == 0 {
+		return nil, process.ErrEmptyPeerID
 	}
 
 	hb, err := createHeartbeat(arg.Marshalizer, arg.DataBuff)
@@ -43,21 +45,18 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 
 	intercepted := &interceptedHeartbeat{
 		heartbeat: *hb,
+		peerId:    arg.PeerId,
 	}
-	intercepted.hash = arg.Hasher.Compute(string(arg.DataBuff))
 
 	return intercepted, nil
 }
 
-func checkBaseArg(arg argBaseInterceptedHeartbeat) error {
+func checkBaseArg(arg ArgBaseInterceptedHeartbeat) error {
 	if len(arg.DataBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.Hasher) {
-		return process.ErrNilHasher
 	}
 	return nil
 }
@@ -65,6 +64,11 @@ func checkBaseArg(arg argBaseInterceptedHeartbeat) error {
 func createHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.HeartbeatV2, error) {
 	hb := &heartbeat.HeartbeatV2{}
 	err := marshalizer.Unmarshal(hb, buff)
+	if err != nil {
+		return nil, err
+	}
+	payload := &heartbeat.Payload{}
+	err = marshalizer.Unmarshal(payload, hb.Payload)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +104,9 @@ func (ihb *interceptedHeartbeat) IsForCurrentShard() bool {
 	return true
 }
 
-// Hash returns the hash of this intercepted heartbeat
+// Hash always returns an empty string
 func (ihb *interceptedHeartbeat) Hash() []byte {
-	return ihb.hash
+	return []byte("")
 }
 
 // Type returns the type of this intercepted data
@@ -112,12 +116,13 @@ func (ihb *interceptedHeartbeat) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (ihb *interceptedHeartbeat) Identifiers() [][]byte {
-	return [][]byte{ihb.hash}
+	return [][]byte{ihb.peerId.Bytes()}
 }
 
 // String returns the most important fields as string
 func (ihb *interceptedHeartbeat) String() string {
-	return fmt.Sprintf("version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s",
+	return fmt.Sprintf("pid=%s, version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s",
+		ihb.peerId.Pretty(),
 		ihb.heartbeat.VersionNumber,
 		ihb.heartbeat.NodeDisplayName,
 		ihb.heartbeat.Identity,

@@ -1066,3 +1066,15 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrInvalidPeerSubType signals that an invalid peer subtype was provided
 var ErrInvalidPeerSubType = errors.New("invalid peer subtype")
+
+// ErrNilSignaturesHandler signals that a nil signatures handler was provided
+var ErrNilSignaturesHandler = errors.New("nil signatures handler")
+
+// ErrMessageExpired signals that a received message is expired
+var ErrMessageExpired = errors.New("message expired")
+
+// ErrInvalidExpiryTimespan signals that an invalid expiry timespan was provided
+var ErrInvalidExpiryTimespan = errors.New("invalid expiry timespan")
+
+// ErrNilPeerSignatureHandler signals that a nil peer signature handler was provided
+var ErrNilPeerSignatureHandler = errors.New("nil peer signature handler")
