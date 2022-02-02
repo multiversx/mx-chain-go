@@ -481,6 +481,7 @@ func (txs *transactions) processTxsToMe(
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
@@ -491,6 +492,7 @@ func (txs *transactions) processTxsToMe(
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 			"num scrs processed", numTXsProcessed,
 			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 		)
@@ -1384,6 +1386,7 @@ func (txs *transactions) ProcessMiniBlock(
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
@@ -1394,6 +1397,7 @@ func (txs *transactions) ProcessMiniBlock(
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 			"num txs processed", numTXsProcessed,
 			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 		)
