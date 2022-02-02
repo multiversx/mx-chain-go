@@ -39,6 +39,9 @@ func createStubMessengerForDefineOptions(notifeeCalled func(), setStreamHandlerC
 	}
 
 	mes := &networkMessenger{
+		p2pSigner: &p2pSigner{
+			privateKey: generatePrivateKey(),
+		},
 		p2pHost: stubHost,
 		ctx:     context.Background(),
 	}
@@ -57,7 +60,7 @@ func createStubMessengerFailingIfTriggered(t *testing.T) *networkMessenger {
 	return createStubMessengerForDefineOptions(notifeeCalled, setStreamHandlerCalled)
 }
 
-//------- WithAuthentication
+// ------- WithAuthentication
 
 func TestWithAuthentication_NilNetworkShardingCollectorShouldErr(t *testing.T) {
 	t.Parallel()
