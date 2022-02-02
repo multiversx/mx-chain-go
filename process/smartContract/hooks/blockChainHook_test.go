@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 	"testing"
 
@@ -991,7 +990,7 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 			},
 			DB: config.DBConfig{
 				FilePath:     "test1",
-				Type:         string(storageUnit.LvlDB),
+				Type:         string(storageUnit.MemoryDB),
 				MaxBatchSize: 1,
 				MaxOpenFiles: 10,
 			},
@@ -1018,7 +1017,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		require.False(t, wasCodeSavedInPool.IsSet())
 
 		_ = bh.Close()
-		_ = os.RemoveAll("compiledSCStorage")
 	})
 
 	t.Run("compiled code not found in compiled sc pool, get it from storage", func(t *testing.T) {
@@ -1030,7 +1028,7 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 			},
 			DB: config.DBConfig{
 				FilePath:     "test2",
-				Type:         string(storageUnit.LvlDB),
+				Type:         string(storageUnit.MemoryDB),
 				MaxBatchSize: 1,
 				MaxOpenFiles: 10,
 			},
@@ -1062,7 +1060,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		require.Nil(t, actualCode)
 
 		_ = bh.Close()
-		_ = os.RemoveAll("compiledSCStorage")
 	})
 }
 
@@ -1480,7 +1477,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		require.NotNil(t, esdtData)
 		assert.Equal(t, emptyESDTData, esdtData)
 	})
-	t.Run("error unmarshall", func(t *testing.T) {
+	t.Run("error unmarshal", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
@@ -1530,7 +1527,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
 				addressHandler.SetDataTrie(nil)
 
@@ -1550,7 +1547,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
 				addressHandler.SetDataTrie(&trie.TrieStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -1575,7 +1572,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		nftNonce := uint64(44)
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
 				buffToken, _ := args.Marshalizer.Marshal(testESDTData)
 				key := append(completeEsdtTokenKey, big.NewInt(0).SetUint64(nftNonce).Bytes()...)
@@ -1597,7 +1594,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := mock.NewAccountWrapMock(address)
 				buffToken, _ := args.Marshalizer.Marshal(testESDTData)
 				_ = addressHandler.DataTrieTracker().SaveKeyValue(completeEsdtTokenKey, buffToken)
@@ -1619,7 +1616,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		nftNonce := uint64(44)
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		}
@@ -1644,7 +1641,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		nftNonce := uint64(44)
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(addres []byte) (vmcommon.AccountHandler, error) {
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		}
