@@ -75,3 +75,26 @@ func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	assert.Nil(t, mc.GetGenesisHeader())
 	assert.Nil(t, mc.GetCurrentBlockHeader())
 }
+
+func TestMetaChain_GetCurrentBlockCommittedRootHash(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("root hash")
+	t.Run("nil header should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+		assert.Nil(t, mc.GetCurrentBlockCommittedRootHash())
+	})
+	t.Run("header exists should return root hash", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlock{
+			RootHash: rootHash,
+		}
+
+		mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+		_ = mc.SetCurrentBlockHeader(header)
+		assert.Equal(t, rootHash, mc.GetCurrentBlockCommittedRootHash())
+	})
+}

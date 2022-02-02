@@ -449,9 +449,13 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	args := CreateMetaBootstrapMockArguments()
 
 	hdr := block.MetaBlock{Nonce: 1}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -485,9 +489,13 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
@@ -517,9 +525,13 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
@@ -600,9 +612,13 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	hdr := block.MetaBlock{Nonce: 1}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -671,9 +687,13 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -782,9 +802,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *t
 	args := CreateMetaBootstrapMockArguments()
 
 	hdr := block.MetaBlock{Nonce: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -810,9 +834,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 	args := CreateMetaBootstrapMockArguments()
 
 	hdr := block.MetaBlock{Nonce: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -843,9 +871,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 	hdr2 := block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
 	hash2 := []byte("hash2")
 
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr1
+	blkc := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr1
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -904,9 +936,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 	hdr2 := block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
 	hash2 := []byte("hash2")
 
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr2
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr2
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -1241,7 +1277,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	args.PoolsHolder = pools
 
 	// a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainStub{}
+	blkc := &testscommon.ChainHandlerStub{}
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
 		// empty bitmap
@@ -1376,7 +1412,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 	args.PoolsHolder = pools
 
-	blkc := &mock.BlockChainStub{
+	blkc := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return prevHdr
 		},
@@ -1553,9 +1589,13 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
 	}
 	args.ChainHandler = blkc
 

@@ -67,9 +67,6 @@ var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username len
 // ErrDataFieldTooBig signals that the data field is too big
 var ErrDataFieldTooBig = errors.New("data field is too big")
 
-// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
-var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
-
 // ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
 var ErrNilTxAccumulator = errors.New("nil tx accumulator")
 
@@ -136,11 +133,8 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 // ErrNilStatusComputer signals that user account has a nil data trie
 var ErrNilStatusComputer = errors.New("nil transaction status computer")
 
-// ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
-var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
-
-// ErrNilBlockHeader signals that current block header is nil
-var ErrNilBlockHeader = errors.New("nil block header")
+// ErrNilCommittedRootHash signals that the current committed root hash is nil
+var ErrNilCommittedRootHash = errors.New("nil committed root hash")
 
 // ErrInvalidESDTRole signals that an invalid ESDT role has been provided
 var ErrInvalidESDTRole = errors.New("invalid ESDT role")

@@ -104,7 +104,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	rootHashBeforeExecution := make([]byte, 0)
 
 	if shouldCheckRootHashChanges {
-		rootHashBeforeExecution = service.blockChain.GetCurrentBlockHeader().GetRootHash()
+		rootHashBeforeExecution = service.blockChain.GetCurrentBlockCommittedRootHash()
 	}
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
@@ -144,7 +144,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 }
 
 func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
-	rootHashAfter := service.blockChain.GetCurrentBlockHeader().GetRootHash()
+	rootHashAfter := service.blockChain.GetCurrentBlockCommittedRootHash()
 
 	if bytes.Equal(rootHashBefore, rootHashAfter) {
 		return nil

@@ -21,8 +21,8 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/pkg/errors"
@@ -40,7 +40,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainStub{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -331,7 +331,7 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 	hdrToRet := &block.Header{Nonce: 2}
 	hashToRet := []byte("hash")
 	args := createMockVMAccountsArguments()
-	args.BlockChain = &mock.BlockChainStub{
+	args.BlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},
@@ -355,7 +355,7 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
 
 	marshaledData, _ := args.Marshalizer.Marshal(hdrToRet)
 
-	args.BlockChain = &mock.BlockChainStub{
+	args.BlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 10, Epoch: 10}
 		},
@@ -402,7 +402,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 	}
 
 	args := createMockVMAccountsArguments()
-	args.BlockChain = &mock.BlockChainStub{
+	args.BlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},

@@ -74,6 +74,29 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	return nil
 }
 
+// GetCurrentBlockCommittedRootHash returns the current committed block root hash. If the schedule root hash is available,
+// it will return that value, otherwise the block's root hash. If there is no current block set, it will return nil
+func (bc *blockChain) GetCurrentBlockCommittedRootHash() []byte {
+	bc.mut.RLock()
+	currHead := bc.currentBlockHeader
+	bc.mut.RUnlock()
+
+	if check.IfNil(currHead) {
+		return nil
+	}
+	rootHash := currHead.GetRootHash()
+	additionalData := currHead.GetAdditionalData()
+	if additionalData == nil {
+		return rootHash
+	}
+	scheduledRootHash := additionalData.GetScheduledRootHash()
+	if len(scheduledRootHash) == 0 {
+		return rootHash
+	}
+
+	return scheduledRootHash
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *blockChain) IsInterfaceNil() bool {
 	return bc == nil || bc.baseBlockChain == nil

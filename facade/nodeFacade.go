@@ -409,13 +409,12 @@ func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key stri
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
 func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
-	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil, ErrNilBlockHeader
+	committedRootHash := nf.blockchain.GetCurrentBlockCommittedRootHash()
+	if len(committedRootHash) == 0 {
+		return nil, ErrNilCommittedRootHash
 	}
 
-	rootHash := currentBlockHeader.GetRootHash()
-	hexRootHash := hex.EncodeToString(rootHash)
+	hexRootHash := hex.EncodeToString(committedRootHash)
 
 	return nf.node.GetProof(hexRootHash, address)
 }

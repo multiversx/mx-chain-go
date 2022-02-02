@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -596,7 +596,11 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 
 func getDefaultDataComponents() *factory.DataComponentsMock {
 	return &factory.DataComponentsMock{
-		BlockChain: &mock.ChainHandlerStub{},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockCommittedRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},

@@ -76,6 +76,20 @@ func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	return nil
 }
 
+// GetCurrentBlockCommittedRootHash returns the current committed metablock root hash. Since the scheduled txs feature
+// does not work on metablocks, it will not consider the scheduled root hash value. If there is no current block set, it will return nil
+func (mc *metaChain) GetCurrentBlockCommittedRootHash() []byte {
+	mc.mut.RLock()
+	currHead := mc.currentBlockHeader
+	mc.mut.RUnlock()
+
+	if check.IfNil(currHead) {
+		return nil
+	}
+
+	return currHead.GetRootHash()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mc *metaChain) IsInterfaceNil() bool {
 	return mc == nil || mc.baseBlockChain == nil
