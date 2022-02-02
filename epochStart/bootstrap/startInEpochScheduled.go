@@ -236,7 +236,7 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 	header data.HeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
 ) error {
-	scheduledTxHashes, err := ses.getScheduledTransactionHashes(prevHeader)
+	scheduledTxHashes, err := ses.getScheduledTransactionHashesWithDestMe(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -280,6 +280,15 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
 		_, isScheduledSCR := scheduledTxHashes[string(scr.PrevTxHash)]
 		if isScheduledSCR {
 			scheduledSCRs[txHash] = allTxs[txHash]
+			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledSCRs",
+				"scr hash", txHash,
+				"scr original sender", string(scr.OriginalSender),
+				"scr original tx hash", scr.OriginalTxHash,
+				"scr prev tx hash", scr.PrevTxHash,
+				"scr nonce", scr.Nonce,
+				"scr sender address", string(scr.SndAddr),
+				"scr receiver address", string(scr.RcvAddr),
+			)
 		}
 	}
 
@@ -311,7 +320,7 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
 		"headerHash", headerHash,
 		"scheduledRootHash", scheduledRootHash,
-		"num of scheduled scrs", len(mapScheduledSCRs),
+		"num of scheduled scrs", len(scheduledSCRs),
 		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
 		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
 		"gasAndFees.GasProvided", gasAndFees.GasProvided,
@@ -346,7 +355,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(hea
 	return schMiniBlockHeaders
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(header data.HeaderHandler) (map[string]struct{}, error) {
+func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashesWithDestMe(header data.HeaderHandler) (map[string]struct{}, error) {
 	miniBlockHeaders := ses.getScheduledMiniBlockHeaders(header)
 	miniBlocks, err := ses.getRequiredMiniBlocksByMbHeader(miniBlockHeaders)
 	if err != nil {
@@ -355,8 +364,12 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(he
 
 	scheduledTxs := make(map[string]struct{})
 	for _, mb := range miniBlocks {
+		if mb.GetReceiverShardID() != header.GetShardID() {
+			continue
+		}
 		for _, txHash := range mb.TxHashes {
 			scheduledTxs[string(txHash)] = struct{}{}
+			log.Debug("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashesWithDestMe", "hash", txHash)
 		}
 	}
 
