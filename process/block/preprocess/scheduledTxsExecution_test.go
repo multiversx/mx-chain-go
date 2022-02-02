@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -383,3 +386,295 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 }
 
 //TODO: Add unit tests for computeScheduledSCRs, getAllIntermediateTxsAfterScheduledExecution, GetScheduledSCRs and SetScheduledSCRs methods
+
+func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := &mock.ShardCoordinatorStub{
+		SameShardCalled: func(_, _ []byte) bool {
+			return false
+		},
+	}
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		shardCoordinator,
+	)
+
+	mapAllIntermediateTxsBeforeScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
+		0: {
+			"txHash1": &transaction.Transaction{Nonce: 1},
+			"txHash2": &transaction.Transaction{Nonce: 2},
+		},
+	}
+	mapAllIntermediateTxsAfterScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
+		1: {
+			"txHash3": &transaction.Transaction{Nonce: 3},
+			"txHash4": &transaction.Transaction{Nonce: 4},
+		},
+	}
+
+	t.Run("nil maps, empty scheduled scrs", func(t *testing.T) {
+		scheduledTxsExec.computeScheduledSCRs(nil, nil)
+
+		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
+	})
+	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
+		scheduledTxsExec.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, nil)
+
+		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
+	})
+	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
+		mapAllIntermediateTxsAfterScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
+			0: {
+				"txHash1": &transaction.Transaction{Nonce: 1},
+				"txHash2": &transaction.Transaction{Nonce: 2},
+			},
+		}
+		scheduledTxsExec.computeScheduledSCRs(
+			mapAllIntermediateTxsBeforeScheduledExecution,
+			mapAllIntermediateTxsAfterScheduledExecution,
+		)
+
+		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
+	})
+	t.Run("should work", func(t *testing.T) {
+		scheduledTxsExec.computeScheduledSCRs(
+			mapAllIntermediateTxsBeforeScheduledExecution,
+			mapAllIntermediateTxsAfterScheduledExecution,
+		)
+
+		assert.Equal(t, 1, len(scheduledTxsExec.mapScheduledSCRs))
+		assert.Equal(t, 2, len(scheduledTxsExec.mapScheduledSCRs[1]))
+	})
+}
+
+func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *testing.T) {
+	t.Parallel()
+
+	allTxsBeforeExec := map[block.Type]map[string]data.TransactionHandler{
+		0: {
+			"txHash1": &transaction.Transaction{Nonce: 1},
+			"txHash2": &transaction.Transaction{Nonce: 2},
+		},
+	}
+	allTxsAfterExec := map[string]data.TransactionHandler{
+		"txHash3": &transaction.Transaction{Nonce: 3},
+		"txHash4": &transaction.Transaction{Nonce: 4},
+	}
+
+	t.Run("not already existing txs, different shard", func(t *testing.T) {
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return false
+				},
+			},
+		)
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec,
+			allTxsAfterExec,
+			0,
+		)
+
+		assert.Equal(t, 2, len(scrsInfo))
+	})
+	t.Run("not already existing txs, same shard", func(t *testing.T) {
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return true
+				},
+			},
+		)
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec,
+			allTxsAfterExec,
+			0,
+		)
+
+		assert.Equal(t, 0, len(scrsInfo))
+	})
+	t.Run("not existing block type, different shard", func(t *testing.T) {
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return false
+				},
+			},
+		)
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec,
+			allTxsAfterExec,
+			1,
+		)
+
+		assert.Equal(t, 2, len(scrsInfo))
+	})
+	t.Run("already existing txs, different shard", func(t *testing.T) {
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return false
+				},
+			},
+		)
+
+		allTxsAfterExec := map[string]data.TransactionHandler{
+			"txHash1": &transaction.Transaction{Nonce: 1},
+			"txHash2": &transaction.Transaction{Nonce: 2},
+		}
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec,
+			allTxsAfterExec,
+			0,
+		)
+
+		assert.Equal(t, 0, len(scrsInfo))
+	})
+}
+
+func TestScheduledTxsExecution_GetSchedulesSCRsNonEmptySCRsMap(t *testing.T) {
+	t.Parallel()
+
+	allTxsAfterExec := map[block.Type]map[string]data.TransactionHandler{
+		0: {
+			"txHash1": &transaction.Transaction{Nonce: 1},
+			"txHash2": &transaction.Transaction{Nonce: 2},
+		},
+		1: {
+			"txHash3": &transaction.Transaction{Nonce: 3},
+			"txHash4": &transaction.Transaction{Nonce: 4},
+		},
+	}
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{
+			SameShardCalled: func(_, _ []byte) bool {
+				return false
+			},
+		},
+	)
+
+	scheduledTxsExec.computeScheduledSCRs(
+		nil,
+		allTxsAfterExec,
+	)
+
+	scheduledSCRs := scheduledTxsExec.GetScheduledSCRs()
+
+	assert.Equal(t, 2, len(scheduledSCRs))
+	assert.Equal(t, 2, len(scheduledSCRs[0]))
+	assert.Equal(t, 2, len(scheduledSCRs[1]))
+}
+
+func TestScheduledTxsExecution_GetSchedulesSCRsEmptySCRsMap(t *testing.T) {
+	t.Parallel()
+
+	allTxsAfterExec := make(map[block.Type]map[string]data.TransactionHandler)
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{
+			SameShardCalled: func(_, _ []byte) bool {
+				return false
+			},
+		},
+	)
+
+	scheduledTxsExec.computeScheduledSCRs(
+		nil,
+		allTxsAfterExec,
+	)
+
+	scheduledSCRs := scheduledTxsExec.GetScheduledSCRs()
+
+	assert.Equal(t, 0, len(scheduledSCRs))
+}
+
+func TestScheduledTxsExecution_SetSchedulesRootHashSCRsGasAndFees(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{},
+	)
+
+	rootHash := []byte("root hash")
+	gasAndFees := scheduled.GasAndFees{}
+	mapSCRs := map[block.Type][]data.TransactionHandler{
+		0: {
+			&transaction.Transaction{Nonce: 1},
+			&transaction.Transaction{Nonce: 2},
+		},
+		1: {
+			&transaction.Transaction{Nonce: 3},
+			&transaction.Transaction{Nonce: 4},
+		},
+	}
+
+	scheduledTxsExec.SetScheduledRootHashSCRsGasAndFees(
+		rootHash, mapSCRs, gasAndFees,
+	)
+
+	assert.Equal(t, rootHash, scheduledTxsExec.GetScheduledRootHash())
+	assert.Equal(t, gasAndFees, scheduledTxsExec.GetScheduledGasAndFees())
+	assert.Equal(t, mapSCRs, scheduledTxsExec.GetScheduledSCRs())
+}
+
+func TestScheduledTxsExecution_Setters(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("root hash")
+	gasAndFees := scheduled.GasAndFees{}
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{},
+	)
+	scheduledTxsExec.SetTransactionCoordinator(&mock.TransactionCoordinatorMock{})
+	scheduledTxsExec.SetTransactionProcessor(&testscommon.TxProcessorMock{})
+
+	scheduledTxsExec.SetScheduledGasAndFees(gasAndFees)
+	assert.Equal(t, gasAndFees, scheduledTxsExec.GetScheduledGasAndFees())
+
+	scheduledTxsExec.SetScheduledRootHash(rootHash)
+	assert.Equal(t, rootHash, scheduledTxsExec.GetScheduledRootHash())
+
+}
