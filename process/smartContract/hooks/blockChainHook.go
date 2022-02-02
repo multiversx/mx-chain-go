@@ -600,7 +600,7 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	bh.compiledScPool.Put(codeHash, code, len(code))
 	err := bh.compiledScStorage.Put(codeHash, code)
-	log.LogIfError(err, "codeHash", codeHash)
+	log.LogIfError(err, "func", "BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put", "codeHash", codeHash)
 }
 
 // GetCompiledCode returns the compiled code if it is found in the cache or storage
@@ -627,7 +627,7 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	bh.compiledScPool.Remove(codeHash)
 	err := bh.compiledScStorage.Remove(codeHash)
-	log.LogIfError(err, "codeHash", codeHash)
+	log.LogIfError(err, "func", "BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove", "codeHash", codeHash)
 }
 
 // Close closes/cleans up the blockchain hook
