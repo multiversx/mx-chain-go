@@ -168,7 +168,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
 		"erd_max_nodes_change_enable_epoch":                      nil,
 		"erd_total_supply":                                       "12345",
-		"erd_hysteresis":                                         "0.000000",
+		"erd_hysteresis":                                         "0.100000",
 		"erd_adaptivity":                                         "true",
 	}
 
@@ -183,7 +183,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			return true
 		},
 		GetHysteresisCalled: func() float32 {
-			return 0
+			return 0.1
 		},
 	}
 
@@ -212,6 +212,23 @@ func TestInitConfigMetrics(t *testing.T) {
 	for k, v := range expectedValues {
 		assert.Equal(t, v, keys[k])
 	}
+
+	genesisNodesConfig = &testscommon.NodesSetupStub{
+		GetAdaptivityCalled: func() bool {
+			return false
+		},
+		GetHysteresisCalled: func() float32 {
+			return 0
+		},
+	}
+	expectedValues["erd_adaptivity"] = "false"
+	expectedValues["erd_hysteresis"] = "0.000000"
+
+	err = InitConfigMetrics(sm, cfg, economicsConfig, genesisNodesConfig)
+	require.Nil(t, err)
+
+	assert.Equal(t, expectedValues["erd_adaptivity"], keys["erd_adaptivity"])
+	assert.Equal(t, expectedValues["erd_hysteresis"], keys["erd_hysteresis"])
 }
 
 func TestInitRatingsMetrics(t *testing.T) {
