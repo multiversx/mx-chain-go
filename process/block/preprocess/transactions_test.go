@@ -1643,7 +1643,7 @@ func TestTransactionsPreProcessor_getRemainingGasPerBlock(t *testing.T) {
 	require.Equal(t, expectedGasPerBlock, gasPerBlock)
 }
 
-func TestTransactionsPreProcessor_getRemainingGasAsScheduledPerBlock(t *testing.T) {
+func TestTransactionsPreProcessor_getRemainingGasPerBlockAsScheduled(t *testing.T) {
 	totalGasProvided := uint64(1000)
 	maxGasPerBlock := uint64(100000)
 	expectedGasPerBlock := maxGasPerBlock - totalGasProvided
@@ -1668,7 +1668,7 @@ func TestTransactionsPreProcessor_getRemainingGasAsScheduledPerBlock(t *testing.
 		},
 	}
 
-	gasPerBlock := txsProcessor.getRemainingGasAsScheduledPerBlock()
+	gasPerBlock := txsProcessor.getRemainingGasPerBlockAsScheduled()
 	require.Equal(t, expectedGasPerBlock, gasPerBlock)
 }
 

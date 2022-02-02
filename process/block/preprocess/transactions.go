@@ -915,7 +915,7 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 	return gasBandwidth
 }
 
-func (txs *transactions) getRemainingGasAsScheduledPerBlock() uint64 {
+func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 	gasProvided := txs.gasHandler.TotalGasProvidedAsScheduled()
 	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	gasBandwidth := uint64(0)
@@ -934,7 +934,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.flagScheduledMiniBlocks.IsSet() {
-		gasBandwidthForScheduled = txs.getRemainingGasAsScheduledPerBlock() * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
