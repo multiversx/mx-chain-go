@@ -480,13 +480,13 @@ const (
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
 	// EpochEnableSuffix represents the suffix for EpochEnable item in MaxNodesChangeEnableEpoch list
-	EpochEnableSuffix = "_epoch_enable"
+	EpochEnableSuffix = "erd_epoch_enable"
 
 	// MaxNumNodesSuffix represents the suffix for MaxNumNodes item in MaxNodesChangeEnableEpoch list
-	MaxNumNodesSuffix = "_max_num_nodes"
+	MaxNumNodesSuffix = "erd_max_num_nodes"
 
 	// NodesToShufflePerShardSuffix represents the suffix for NodesToShufflePerShard item in MaxNodesChangeEnableEpoch list
-	NodesToShufflePerShardSuffix = "_nodes_to_shuffle_per_shard"
+	NodesToShufflePerShardSuffix = "erd_nodes_to_shuffle_per_shard"
 
 	// MetricHysteresis represents the hysteresis threshold
 	MetricHysteresis = "erd_hysteresis"
@@ -512,10 +512,10 @@ const (
 	MetricRatingsGeneralSelectionChances = "erd_ratings_general_selection_chances"
 
 	// SelectionChancesMaxThresholdSuffix represents the SelectionChances suffix for MaxThreshold
-	SelectionChancesMaxThresholdSuffix = "_max_threshold"
+	SelectionChancesMaxThresholdSuffix = "erd_max_threshold"
 
 	// SelectionChancesChancePercentSuffix represents the SelectionChances suffix for ChancePercent
-	SelectionChancesChancePercentSuffix = "_chance_percent"
+	SelectionChancesChancePercentSuffix = "erd_chance_percent"
 
 	// MetricRatingsShardChainHoursToMaxRatingFromStartRating represents the hours to max rating from start rating
 	MetricRatingsShardChainHoursToMaxRatingFromStartRating = "erd_ratings_shardchain_hours_to_max_rating_from_start_rating"
