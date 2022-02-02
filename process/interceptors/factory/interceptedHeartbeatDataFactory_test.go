@@ -15,13 +15,6 @@ import (
 func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil arg should error", func(t *testing.T) {
-		t.Parallel()
-
-		ihdf, err := NewInterceptedHeartbeatDataFactory(nil)
-		assert.Nil(t, ihdf)
-		assert.Equal(t, process.ErrNilArgumentStruct, err)
-	})
 	t.Run("nil InternalMarshalizer should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -29,7 +22,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 		coreComp.IntMarsh = nil
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		ihdf, err := NewInterceptedHeartbeatDataFactory(arg)
+		ihdf, err := NewInterceptedHeartbeatDataFactory(*arg)
 		assert.Nil(t, ihdf)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 	})
@@ -40,7 +33,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.PeerID = ""
 
-		ihdf, err := NewInterceptedHeartbeatDataFactory(arg)
+		ihdf, err := NewInterceptedHeartbeatDataFactory(*arg)
 		assert.Nil(t, ihdf)
 		assert.Equal(t, process.ErrEmptyPeerID, err)
 	})
@@ -50,7 +43,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 		coreComp, cryptoComp := createMockComponentHolders()
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		ihdf, err := NewInterceptedHeartbeatDataFactory(arg)
+		ihdf, err := NewInterceptedHeartbeatDataFactory(*arg)
 		assert.False(t, ihdf.IsInterfaceNil())
 		assert.Nil(t, err)
 
@@ -62,7 +55,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 		payloadBytes, err := marshalizer.Marshal(payload)
 		assert.Nil(t, err)
 
-		peerAuthentication := &heartbeat.HeartbeatV2{
+		hb := &heartbeat.HeartbeatV2{
 			Payload:         payloadBytes,
 			VersionNumber:   "version number",
 			NodeDisplayName: "node display name",
@@ -70,10 +63,10 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 			Nonce:           10,
 			PeerSubType:     0,
 		}
-		marshalizedPAMessage, err := marshalizer.Marshal(peerAuthentication)
+		marshaledHeartbeat, err := marshalizer.Marshal(hb)
 		assert.Nil(t, err)
 
-		interceptedData, err := ihdf.Create(marshalizedPAMessage)
+		interceptedData, err := ihdf.Create(marshaledHeartbeat)
 		assert.NotNil(t, interceptedData)
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*heartbeat.interceptedHeartbeat"))

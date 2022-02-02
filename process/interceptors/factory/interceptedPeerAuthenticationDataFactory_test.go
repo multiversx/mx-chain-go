@@ -15,13 +15,6 @@ import (
 func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil arg should error", func(t *testing.T) {
-		t.Parallel()
-
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(nil)
-		assert.Nil(t, ipadf)
-		assert.Equal(t, process.ErrNilArgumentStruct, err)
-	})
 	t.Run("nil CoreComponents should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -29,7 +22,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.CoreComponents = nil
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrNilCoreComponentsHolder, err)
 	})
@@ -40,7 +33,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		coreComp.IntMarsh = nil
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 	})
@@ -51,7 +44,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.NodesCoordinator = nil
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrNilNodesCoordinator, err)
 	})
@@ -62,7 +55,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.SignaturesHandler = nil
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrNilSignaturesHandler, err)
 	})
@@ -73,7 +66,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.PeerSignatureHandler = nil
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrNilPeerSignatureHandler, err)
 	})
@@ -84,7 +77,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.HeartbeatExpiryTimespanInSec = 1
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrInvalidExpiryTimespan, err)
 	})
@@ -94,7 +87,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		coreComp, cryptoComp := createMockComponentHolders()
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(arg)
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.False(t, ipadf.IsInterfaceNil())
 		assert.Nil(t, err)
 
@@ -113,10 +106,10 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 			Payload:          payloadBytes,
 			PayloadSignature: []byte("payload signature"),
 		}
-		marshalizedPAMessage, err := marshalizer.Marshal(peerAuthentication)
+		marshaledPeerAuthentication, err := marshalizer.Marshal(peerAuthentication)
 		assert.Nil(t, err)
 
-		interceptedData, err := ipadf.Create(marshalizedPAMessage)
+		interceptedData, err := ipadf.Create(marshaledPeerAuthentication)
 		assert.NotNil(t, interceptedData)
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*heartbeat.interceptedPeerAuthentication"))

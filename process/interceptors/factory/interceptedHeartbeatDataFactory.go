@@ -14,10 +14,7 @@ type interceptedHeartbeatDataFactory struct {
 }
 
 // NewInterceptedHeartbeatDataFactory creates an instance of interceptedHeartbeatDataFactory
-func NewInterceptedHeartbeatDataFactory(arg *ArgInterceptedDataFactory) (*interceptedHeartbeatDataFactory, error) {
-	if arg == nil {
-		return nil, process.ErrNilArgumentStruct
-	}
+func NewInterceptedHeartbeatDataFactory(arg ArgInterceptedDataFactory) (*interceptedHeartbeatDataFactory, error) {
 	if check.IfNil(arg.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}

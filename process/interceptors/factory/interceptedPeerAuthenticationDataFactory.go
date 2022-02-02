@@ -19,10 +19,7 @@ type interceptedPeerAuthenticationDataFactory struct {
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
-func NewInterceptedPeerAuthenticationDataFactory(arg *ArgInterceptedDataFactory) (*interceptedPeerAuthenticationDataFactory, error) {
-	if arg == nil {
-		return nil, process.ErrNilArgumentStruct
-	}
+func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) (*interceptedPeerAuthenticationDataFactory, error) {
 	if check.IfNil(arg.CoreComponents) {
 		return nil, process.ErrNilCoreComponentsHolder
 	}
