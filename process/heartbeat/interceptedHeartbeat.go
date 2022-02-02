@@ -46,8 +46,8 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 
 	intercepted := &interceptedHeartbeat{
 		heartbeat: *hb,
-		peerId:    arg.PeerId,
 		payload:   *payload,
+		peerId:    arg.PeerId,
 	}
 
 	return intercepted, nil
