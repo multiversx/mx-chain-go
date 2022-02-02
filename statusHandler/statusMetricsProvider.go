@@ -221,13 +221,13 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 		maxNodesChangeConfig := make(map[string]interface{})
 
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
-		maxNodesChangeConfig[common.EpochEnableSuffix] = sm.loadUint64Metric(epochEnable)
+		maxNodesChangeConfig[common.MetricEpochEnable] = sm.loadUint64Metric(epochEnable)
 
 		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
-		maxNodesChangeConfig[common.MaxNumNodesSuffix] = sm.loadUint64Metric(maxNumNodes)
+		maxNodesChangeConfig[common.MetricMaxNumNodes] = sm.loadUint64Metric(maxNumNodes)
 
 		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
-		maxNodesChangeConfig[common.NodesToShufflePerShardSuffix] = sm.loadUint64Metric(nodesToShufflePerShard)
+		maxNodesChangeConfig[common.MetricNodesToShufflePerShard] = sm.loadUint64Metric(nodesToShufflePerShard)
 
 		nodesChangeConfig = append(nodesChangeConfig, maxNodesChangeConfig)
 	}
@@ -282,9 +282,9 @@ func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
 	for i := uint64(0); i < numSelectionChances; i++ {
 		selectionChance := make(map[string]interface{})
 		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
-		selectionChance[common.SelectionChancesMaxThresholdSuffix] = sm.loadUint64Metric(maxThresholdStr)
+		selectionChance[common.MetricSelectionChancesMaxThreshold] = sm.loadUint64Metric(maxThresholdStr)
 		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
-		selectionChance[common.SelectionChancesChancePercentSuffix] = sm.loadUint64Metric(chancePercentStr)
+		selectionChance[common.MetricSelectionChancesChancePercent] = sm.loadUint64Metric(chancePercentStr)
 		selectionChances = append(selectionChances, selectionChance)
 	}
 	ratingsMetrics[common.MetricRatingsGeneralSelectionChances] = selectionChances

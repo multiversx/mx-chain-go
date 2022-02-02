@@ -279,14 +279,14 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
-				common.EpochEnableSuffix:            uint64(0),
-				common.MaxNumNodesSuffix:            uint64(1),
-				common.NodesToShufflePerShardSuffix: uint64(2),
+				common.MetricEpochEnable:            uint64(0),
+				common.MetricMaxNumNodes:            uint64(1),
+				common.MetricNodesToShufflePerShard: uint64(2),
 			},
 			{
-				common.EpochEnableSuffix:            uint64(3),
-				common.MaxNumNodesSuffix:            uint64(4),
-				common.NodesToShufflePerShardSuffix: uint64(5),
+				common.MetricEpochEnable:            uint64(3),
+				common.MetricMaxNumNodes:            uint64(4),
+				common.MetricNodesToShufflePerShard: uint64(5),
 			},
 		},
 	}
@@ -351,12 +351,12 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 
 		common.MetricRatingsGeneralSelectionChances: []map[string]interface{}{
 			{
-				common.SelectionChancesMaxThresholdSuffix:  uint64(0),
-				common.SelectionChancesChancePercentSuffix: uint64(5),
+				common.MetricSelectionChancesMaxThreshold:  uint64(0),
+				common.MetricSelectionChancesChancePercent: uint64(5),
 			},
 			{
-				common.SelectionChancesMaxThresholdSuffix:  uint64(1000),
-				common.SelectionChancesChancePercentSuffix: uint64(10),
+				common.MetricSelectionChancesMaxThreshold:  uint64(1000),
+				common.MetricSelectionChancesChancePercent: uint64(10),
 			},
 		},
 

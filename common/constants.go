@@ -479,14 +479,23 @@ const (
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
+	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
+	MetricEpochEnable = "erd_epoch_enable"
+
 	// EpochEnableSuffix represents the suffix for EpochEnable item in MaxNodesChangeEnableEpoch list
-	EpochEnableSuffix = "erd_epoch_enable"
+	EpochEnableSuffix = "_epoch_enable"
+
+	// MetricMaxNumNodes represents the maximum number of nodes than can be enabled in a max nodes change configuration setup
+	MetricMaxNumNodes = "erd_max_num_nodes"
 
 	// MaxNumNodesSuffix represents the suffix for MaxNumNodes item in MaxNodesChangeEnableEpoch list
-	MaxNumNodesSuffix = "erd_max_num_nodes"
+	MaxNumNodesSuffix = "_max_num_nodes"
+
+	// MetricNodesToShufflePerShard represents the nodes to be shuffled per shard
+	MetricNodesToShufflePerShard = "erd_nodes_to_shuffle_per_shard"
 
 	// NodesToShufflePerShardSuffix represents the suffix for NodesToShufflePerShard item in MaxNodesChangeEnableEpoch list
-	NodesToShufflePerShardSuffix = "erd_nodes_to_shuffle_per_shard"
+	NodesToShufflePerShardSuffix = "_nodes_to_shuffle_per_shard"
 
 	// MetricHysteresis represents the hysteresis threshold
 	MetricHysteresis = "erd_hysteresis"
@@ -511,11 +520,17 @@ const (
 	// MetricRatingsGeneralSelectionChances represents the selection chances thresholds
 	MetricRatingsGeneralSelectionChances = "erd_ratings_general_selection_chances"
 
+	// MetricSelectionChancesMaxThreshold represents the max threshold for a selection chances item
+	MetricSelectionChancesMaxThreshold = "erd_max_threshold"
+
 	// SelectionChancesMaxThresholdSuffix represents the SelectionChances suffix for MaxThreshold
-	SelectionChancesMaxThresholdSuffix = "erd_max_threshold"
+	SelectionChancesMaxThresholdSuffix = "_max_threshold"
+
+	// MetricSelectionChancesChancePercent represents the chance percentage for a selection chances metric
+	MetricSelectionChancesChancePercent = "erd_chance_percent"
 
 	// SelectionChancesChancePercentSuffix represents the SelectionChances suffix for ChancePercent
-	SelectionChancesChancePercentSuffix = "erd_chance_percent"
+	SelectionChancesChancePercentSuffix = "_chance_percent"
 
 	// MetricRatingsShardChainHoursToMaxRatingFromStartRating represents the hours to max rating from start rating
 	MetricRatingsShardChainHoursToMaxRatingFromStartRating = "erd_ratings_shardchain_hours_to_max_rating_from_start_rating"
