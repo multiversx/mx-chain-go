@@ -21,6 +21,7 @@ import (
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxProcessor(t *testing.T) {
@@ -729,13 +730,13 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rootHash := []byte("root hash")
+	headerHash := []byte("root hash")
 	gasAndFees := &scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(100),
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: rootHash,
+		RootHash: headerHash,
 		Scrs: map[int32]scheduled.SmartContractResults{
 			0: {
 				TxHandlers: []*smartContractResult.SmartContractResult{},
@@ -757,9 +758,9 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledRootHash, txHandlersMap, gasAndFees2, _ := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
+	scheduledRootHash, txHandlersMap, gasAndFees2, _ := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
 
-	assert.Equal(t, rootHash, scheduledRootHash)
+	assert.Equal(t, headerHash, scheduledRootHash)
 	assert.Equal(t, gasAndFees, gasAndFees2)
 	assert.NotNil(t, txHandlersMap)
 }
@@ -767,7 +768,7 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShouldFail(t *testing.T) {
 	t.Parallel()
 
-	rootHash := []byte("root hash")
+	scheduledRootHash := []byte("root hash")
 	mapSCRs := map[block.Type][]data.TransactionHandler{
 		0: {
 			&transaction.Transaction{Nonce: 1},
@@ -786,7 +787,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 	)
 
 	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledRootHashSCRsGasAndFees(
-		rootHash, mapSCRs, gasAndFees,
+		scheduledRootHash, mapSCRs, gasAndFees,
 	)
 	assert.Nil(t, marshalledSCRs)
 	assert.Error(t, err)
@@ -795,7 +796,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFees(t *testing.T) {
 	t.Parallel()
 
-	rootHash := []byte("root hash")
+	scheduledRootHash := []byte("root hash")
 	mapSCRs := map[block.Type][]data.TransactionHandler{
 		0: {
 			&smartContractResult.SmartContractResult{
@@ -808,7 +809,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFees(t *t
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: rootHash,
+		RootHash: scheduledRootHash,
 		Scrs: map[int32]scheduled.SmartContractResults{
 			0: {
 				TxHandlers: []*smartContractResult.SmartContractResult{
@@ -831,7 +832,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFees(t *t
 	)
 
 	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledRootHashSCRsGasAndFees(
-		rootHash, mapSCRs, gasAndFees,
+		scheduledRootHash, mapSCRs, gasAndFees,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedScheduledSCRs, marshalledSCRs)
@@ -862,10 +863,10 @@ func TestScheduledTxsExecution_RollBackToBlockShouldFail(t *testing.T) {
 func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rootHash := []byte("root hash")
+	headerHash := []byte("root hash")
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: rootHash,
+		RootHash: headerHash,
 		Scrs: map[int32]scheduled.SmartContractResults{
 			0: {
 				TxHandlers: []*smartContractResult.SmartContractResult{},
@@ -892,58 +893,91 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 		&mock.ShardCoordinatorStub{},
 	)
 
-	err := scheduledTxsExec.RollBackToBlock(rootHash)
+	err := scheduledTxsExec.RollBackToBlock(headerHash)
 	assert.Nil(t, err)
 
-	hash, err := scheduledTxsExec.GetScheduledRootHashForHeader(rootHash)
+	hash, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
 	assert.Nil(t, err)
-	assert.Equal(t, rootHash, hash)
+	assert.Equal(t, headerHash, hash)
 }
 
 func TestScheduledTxsExecution_SaveState(t *testing.T) {
 	t.Parallel()
 
-	txHash1 := []byte("txHash1")
-	txHash2 := []byte("txHash2")
+	headerHash := []byte("header hash")
+	scheduledRootHash := []byte("scheduled root hash")
+	mapSCRs := map[block.Type][]data.TransactionHandler{
+		0: {
+			&smartContractResult.SmartContractResult{
+				Nonce: 1,
+			},
+		},
+	}
+	gasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(100),
+	}
+
+	scheduledSCRs := &scheduled.ScheduledSCRs{
+		RootHash: scheduledRootHash,
+		Scrs: map[int32]scheduled.SmartContractResults{
+			0: {
+				TxHandlers: []*smartContractResult.SmartContractResult{
+					{
+						Nonce: 1,
+					},
+				},
+			},
+		},
+		GasAndFees: &gasAndFees,
+	}
+	marshalledScheduledData, _ := json.Marshal(scheduledSCRs)
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			PutCalled: func(_, _ []byte) error {
+			PutCalled: func(key, data []byte) error {
+				require.Equal(t, headerHash, key)
+				require.Equal(t, marshalledScheduledData, data)
 				return nil
 			},
 		},
-		&marshal.GogoProtoMarshalizer{},
+		&testscommon.MarshalizerMock{},
 		&mock.ShardCoordinatorStub{},
 	)
-	scheduledTxsExec.Add(txHash1, &transaction.Transaction{Nonce: 0})
-	scheduledTxsExec.Add(txHash2, &transaction.Transaction{Nonce: 1})
 
-	scheduledTxsExec.SaveState(txHash1)
+	scheduledTxsExec.SaveState(
+		headerHash, scheduledRootHash, mapSCRs, gasAndFees,
+	)
 }
 
 func TestScheduledTxsExecution_SaveStateIfNeeded(t *testing.T) {
 	t.Parallel()
 
-	txHash1 := []byte("txHash1")
-	txHash2 := []byte("txHash2")
+	headerHash := []byte("header hash")
 
+	wasCalled := false
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			PutCalled: func(_, _ []byte) error {
+			PutCalled: func(key, _ []byte) error {
+				wasCalled = true
+				require.Equal(t, headerHash, key)
 				return nil
 			},
 		},
-		&marshal.GogoProtoMarshalizer{},
+		&testscommon.MarshalizerMock{},
 		&mock.ShardCoordinatorStub{},
 	)
-	scheduledTxsExec.Add(txHash1, &transaction.Transaction{Nonce: 0})
-	scheduledTxsExec.Add(txHash2, &transaction.Transaction{Nonce: 1})
 
-	scheduledTxsExec.SaveStateIfNeeded(txHash1)
+	scheduledTxsExec.SaveStateIfNeeded(headerHash)
+	assert.False(t, wasCalled)
+
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+
+	scheduledTxsExec.SaveStateIfNeeded(headerHash)
+	assert.True(t, wasCalled)
 }
 
 func TestScheduledTxsExecution_IsScheduledTx(t *testing.T) {
