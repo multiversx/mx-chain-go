@@ -731,7 +731,7 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 	t.Parallel()
 
 	headerHash := []byte("root hash")
-	gasAndFees := &scheduled.GasAndFees{
+	expectedGasAndFees := &scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(100),
 	}
 
@@ -742,7 +742,7 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 				TxHandlers: []*smartContractResult.SmartContractResult{},
 			},
 		},
-		GasAndFees: gasAndFees,
+		GasAndFees: expectedGasAndFees,
 	}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
@@ -758,10 +758,10 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledRootHash, txHandlersMap, gasAndFees2, _ := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
+	scheduledRootHash, txHandlersMap, gasAndFees, _ := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
 
 	assert.Equal(t, headerHash, scheduledRootHash)
-	assert.Equal(t, gasAndFees, gasAndFees2)
+	assert.Equal(t, expectedGasAndFees, gasAndFees)
 	assert.NotNil(t, txHandlersMap)
 }
 
@@ -873,11 +873,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 			},
 		},
 		GasAndFees: &scheduled.GasAndFees{
-			AccumulatedFees: &big.Int{},
-			DeveloperFees:   &big.Int{},
-			GasProvided:     0,
-			GasPenalized:    0,
-			GasRefunded:     0,
+			AccumulatedFees: big.NewInt(100),
 		}}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
