@@ -71,7 +71,7 @@ func createContractCallInput(function string, sender, receiver []byte) *vmcommon
 	}
 }
 
-func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
