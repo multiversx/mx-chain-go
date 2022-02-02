@@ -14,3 +14,8 @@ func (s *SignaturesHandlerStub) Verify(payload []byte, pid core.PeerID, signatur
 	}
 	return nil
 }
+
+// IsInterfaceNil -
+func (s *SignaturesHandlerStub) IsInterfaceNil() bool {
+	return false
+}

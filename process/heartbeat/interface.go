@@ -14,4 +14,5 @@ type NodesCoordinator interface {
 // SignaturesHandler defines the behavior of a struct able to handle signatures
 type SignaturesHandler interface {
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	IsInterfaceNil() bool
 }

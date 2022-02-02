@@ -14,7 +14,7 @@ import (
 
 func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
 	payload := &heartbeat.Payload{
-		Timestamp:       uint64(time.Now().Unix()),
+		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "hardfork message",
 	}
 	marshalizer := mock.MarshalizerMock{}

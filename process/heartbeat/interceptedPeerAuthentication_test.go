@@ -19,7 +19,7 @@ var expectedErr = errors.New("expected error")
 
 func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication {
 	payload := &heartbeat.Payload{
-		Timestamp:       uint64(time.Now().Unix()),
+		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "hardfork message",
 	}
 	marshalizer := mock.MarshalizerMock{}
@@ -210,15 +210,23 @@ func Test_interceptedPeerAuthentication_CheckValidity(t *testing.T) {
 	t.Run("message is expired", func(t *testing.T) {
 		t.Parallel()
 
-		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
-		ipa, _ := NewInterceptedPeerAuthentication(arg)
-		expiredTimestamp := uint64(time.Now().Unix()) - arg.ExpiryTimespanInSec - 1
+		marshalizer := mock.MarshalizerMock{}
+		expiryTimespanInSec := int64(30)
+		interceptedData := createDefaultInterceptedPeerAuthentication()
+		expiredTimestamp := time.Now().Unix() - expiryTimespanInSec - 1
 		payload := &heartbeat.Payload{
 			Timestamp: expiredTimestamp,
 		}
-		payloadBytes, err := arg.Marshalizer.Marshal(payload)
+		payloadBytes, err := marshalizer.Marshal(payload)
 		assert.Nil(t, err)
-		ipa.peerAuthentication.Payload = payloadBytes
+
+		interceptedData.Payload = payloadBytes
+		arg := createMockInterceptedPeerAuthenticationArg(interceptedData)
+		arg.Marshalizer = &marshalizer
+		arg.ExpiryTimespanInSec = expiryTimespanInSec
+
+		ipa, _ := NewInterceptedPeerAuthentication(arg)
+
 		err = ipa.CheckValidity()
 		assert.Equal(t, process.ErrMessageExpired, err)
 	})

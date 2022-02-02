@@ -27,6 +27,6 @@ message PeerAuthentication {
 
 // Payload represents the DTO used as payload for both HeartbeatV2 and PeerAuthentication messages
 message Payload {
-  uint64 Timestamp = 1;
+  int64  Timestamp       = 1;
   string HardforkMessage = 2;
 }

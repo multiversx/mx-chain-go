@@ -19,18 +19,19 @@ type ArgInterceptedPeerAuthentication struct {
 	NodesCoordinator     NodesCoordinator
 	SignaturesHandler    SignaturesHandler
 	PeerSignatureHandler crypto.PeerSignatureHandler
-	ExpiryTimespanInSec  uint64
+	ExpiryTimespanInSec  int64
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
 type interceptedPeerAuthentication struct {
 	peerAuthentication   heartbeat.PeerAuthentication
+	payload              heartbeat.Payload
 	marshalizer          marshal.Marshalizer
 	peerId               core.PeerID
 	nodesCoordinator     NodesCoordinator
 	signaturesHandler    SignaturesHandler
 	peerSignatureHandler crypto.PeerSignatureHandler
-	expiryTimespanInSec  uint64
+	expiryTimespanInSec  int64
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
@@ -40,13 +41,14 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		return nil, err
 	}
 
-	peerAuthentication, err := createPeerAuthentication(arg.Marshalizer, arg.DataBuff)
+	peerAuthentication, payload, err := createPeerAuthentication(arg.Marshalizer, arg.DataBuff)
 	if err != nil {
 		return nil, err
 	}
 
 	intercepted := &interceptedPeerAuthentication{
 		peerAuthentication:   *peerAuthentication,
+		payload:              *payload,
 		marshalizer:          arg.Marshalizer,
 		nodesCoordinator:     arg.NodesCoordinator,
 		signaturesHandler:    arg.SignaturesHandler,
@@ -66,7 +68,7 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	if check.IfNil(arg.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if arg.SignaturesHandler == nil {
+	if check.IfNil(arg.SignaturesHandler) {
 		return process.ErrNilSignaturesHandler
 	}
 	if arg.ExpiryTimespanInSec < minDurationInSec {
@@ -78,19 +80,19 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	return nil
 }
 
-func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.PeerAuthentication, error) {
+func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.PeerAuthentication, *heartbeat.Payload, error) {
 	peerAuthentication := &heartbeat.PeerAuthentication{}
 	err := marshalizer.Unmarshal(peerAuthentication, buff)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	payload := &heartbeat.Payload{}
 	err = marshalizer.Unmarshal(payload, peerAuthentication.Payload)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return peerAuthentication, nil
+	return peerAuthentication, payload, nil
 }
 
 // CheckValidity will check the validity of the received peer authentication. This call won't trigger the signature validation.
@@ -196,14 +198,8 @@ func (ipa *interceptedPeerAuthentication) String() string {
 }
 
 func (ipa *interceptedPeerAuthentication) verifyPayload() error {
-	payload := &heartbeat.Payload{}
-	err := ipa.marshalizer.Unmarshal(payload, ipa.peerAuthentication.Payload)
-	if err != nil {
-		return err
-	}
-
-	currentTimeStamp := uint64(time.Now().Unix())
-	messageTimeStamp := uint64(time.Unix(int64(payload.Timestamp), 0).Unix())
+	currentTimeStamp := time.Now().Unix()
+	messageTimeStamp := ipa.payload.Timestamp
 	minTimestampAllowed := currentTimeStamp - ipa.expiryTimespanInSec
 	maxTimestampAllowed := currentTimeStamp + payloadExpiryThresholdInSec
 	if messageTimeStamp < minTimestampAllowed || messageTimeStamp > maxTimestampAllowed {

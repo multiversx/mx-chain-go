@@ -25,6 +25,7 @@ type ArgInterceptedHeartbeat struct {
 
 type interceptedHeartbeat struct {
 	heartbeat heartbeat.HeartbeatV2
+	payload   heartbeat.Payload
 	peerId    core.PeerID
 }
 
@@ -38,7 +39,7 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 		return nil, process.ErrEmptyPeerID
 	}
 
-	hb, err := createHeartbeat(arg.Marshalizer, arg.DataBuff)
+	hb, payload, err := createHeartbeat(arg.Marshalizer, arg.DataBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +47,7 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 	intercepted := &interceptedHeartbeat{
 		heartbeat: *hb,
 		peerId:    arg.PeerId,
+		payload:   *payload,
 	}
 
 	return intercepted, nil
@@ -61,18 +63,18 @@ func checkBaseArg(arg ArgBaseInterceptedHeartbeat) error {
 	return nil
 }
 
-func createHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.HeartbeatV2, error) {
+func createHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.HeartbeatV2, *heartbeat.Payload, error) {
 	hb := &heartbeat.HeartbeatV2{}
 	err := marshalizer.Unmarshal(hb, buff)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	payload := &heartbeat.Payload{}
 	err = marshalizer.Unmarshal(payload, hb.Payload)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return hb, nil
+	return hb, payload, nil
 }
 
 // CheckValidity will check the validity of the received peer heartbeat
