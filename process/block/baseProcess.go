@@ -1600,7 +1600,7 @@ func (bp *baseProcessor) getGasAndFees() scheduled.GasAndFees {
 	return scheduled.GasAndFees{
 		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
 		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
-		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
+		GasProvided:     bp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
 		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
 		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
 	}
