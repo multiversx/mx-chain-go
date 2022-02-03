@@ -73,7 +73,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderShouldWork(t *testing.T) {
 		},
 	}
 
-	t.Run("same send and receiver shard, empty pendingMb", func(t *testing.T) {
+	t.Run("same sender and receiver shard, empty pendingMb", func(t *testing.T) {
 		header := createMockHeader(shardMiniBlockHeaders, miniBlockHeaders)
 		err := pmb.AddProcessedHeader(header)
 		assert.Nil(t, err)
@@ -112,7 +112,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderShouldWork(t *testing.T) {
 		pendingMb := pmb.GetPendingMiniBlocks(core.MetachainShardId)
 		assert.Equal(t, 0, len(pendingMb))
 	})
-	t.Run("same send and receiver shard, empty pendingMb", func(t *testing.T) {
+	t.Run("different sender and receiver shard, non empty pendingMb", func(t *testing.T) {
 		receivedShardId := uint32(1)
 		miniBlockHeaders := []block.MiniBlockHeader{
 			{
@@ -129,6 +129,36 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderShouldWork(t *testing.T) {
 			},
 		}
 		header := createMockHeader(shardMiniBlockHeaders, miniBlockHeaders)
+		err := pmb.AddProcessedHeader(header)
+		assert.Nil(t, err)
+
+		pendingMb := pmb.GetPendingMiniBlocks(receivedShardId)
+		assert.Equal(t, 2, len(pendingMb))
+	})
+	t.Run("different sender and receiver shard, delete already added, non empty pendingMb", func(t *testing.T) {
+		receivedShardId := uint32(1)
+		miniBlockHeaders := []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mb header hash"),
+				SenderShardID:   0,
+				ReceiverShardID: receivedShardId,
+			},
+		}
+		shardMiniBlockHeaders := []block.MiniBlockHeader{
+			{
+				Hash:            []byte("shard mb header hash"),
+				SenderShardID:   0,
+				ReceiverShardID: receivedShardId,
+			},
+		}
+		header := createMockHeader(shardMiniBlockHeaders, miniBlockHeaders)
+
+		mbHashes := make([][]byte, 0)
+		mbHashes = append(mbHashes, []byte("mbHash1"))
+		mbHashes = append(mbHashes, []byte("mbHash2"))
+
+		pmb.SetPendingMiniBlocks(receivedShardId, mbHashes)
+
 		err := pmb.AddProcessedHeader(header)
 		assert.Nil(t, err)
 
