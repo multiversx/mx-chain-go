@@ -932,12 +932,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	commitedRoothash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		return err
 	}
 
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, commitedRoothash)
+	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
 	if err != nil {
 		return err
 	}

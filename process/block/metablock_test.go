@@ -828,7 +828,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 	assert.Equal(t, errMarshalizer, err)
 }
 
-func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
+func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -837,6 +837,9 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
+		},
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("root hash"), nil
 		},
 	}
 	hdr := createMetaBlockHeader()

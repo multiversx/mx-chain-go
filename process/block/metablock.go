@@ -1247,7 +1247,12 @@ func (mp *metaProcessor) CommitBlock(
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
 
-	err = mp.blockChain.SetCurrentBlockHeaderAndRootHash(header, header.RootHash)
+	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	err = mp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
 	if err != nil {
 		return err
 	}
