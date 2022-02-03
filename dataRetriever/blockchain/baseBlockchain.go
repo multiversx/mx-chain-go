@@ -15,7 +15,6 @@ type baseBlockChain struct {
 	genesisHeaderHash      []byte
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
-	currentBlockRootHash   []byte
 }
 
 // GetGenesisHeader returns the genesis block header pointer

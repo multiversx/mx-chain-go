@@ -15,6 +15,7 @@ var _ data.ChainHandler = (*metaChain)(nil)
 // The MetaChain also holds pointers to the Genesis block and the current block.
 type metaChain struct {
 	*baseBlockChain
+	currentBlockRootHash []byte
 }
 
 // NewMetaChain will initialize a new metachain instance

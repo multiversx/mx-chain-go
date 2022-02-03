@@ -14,6 +14,7 @@ var _ data.ChainHandler = (*blockChain)(nil)
 // The BlockChain also holds pointers to the Genesis block header and the current block
 type blockChain struct {
 	*baseBlockChain
+	currentBlockRootHash []byte
 }
 
 // NewBlockChain returns an initialized blockchain
