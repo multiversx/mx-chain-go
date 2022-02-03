@@ -1894,6 +1894,12 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
 
+func TestCopyHeaderWithoutSigNilHeaderExpectError(t *testing.T) {
+	ret, err := process.CopyHeaderWithoutSig(nil)
+	require.Nil(t, ret)
+	require.Equal(t, process.ErrNilHeaderHandler, err)
+}
+
 func TestCopyHeaderWithoutSig(t *testing.T) {
 	errSetSignature := errors.New("err set signature")
 	errSetPubKeys := errors.New("err set pub keys bitmap")

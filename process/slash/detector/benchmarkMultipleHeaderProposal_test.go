@@ -15,10 +15,6 @@ import (
 )
 
 func BenchmarkMultipleHeaderProposalDetector_VerifyData(b *testing.B) {
-	if testing.Short() {
-		b.Skip("this is not a short test")
-	}
-
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 
@@ -27,7 +23,7 @@ func BenchmarkMultipleHeaderProposalDetector_VerifyData(b *testing.B) {
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
 	noOfSignedHeaders := uint32(3)
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	slashableHeaders, _ := generateSlashableHeaders(b, hasher, maxNoOfMaliciousValidatorsOnMetaChain, noOfSignedHeaders, args.NodesCoordinator, blsSigners, true)
 	interceptedHeaders := createInterceptedHeaders(slashableHeaders)
 
@@ -44,8 +40,9 @@ func benchmarkVerifyDataMultipleHeaderProposal(
 	hasher hashing.Hasher,
 	keyGenerator crypto.KeyGenerator,
 	blsSigners map[string]multiSignerData,
-	interceptedHeaders []process.InterceptedHeader) {
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	interceptedHeaders []process.InterceptedHeader,
+) {
+	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderProposalsDetector(args)
 	require.Nil(b, err)
 
@@ -54,10 +51,6 @@ func benchmarkVerifyDataMultipleHeaderProposal(
 }
 
 func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
-	if testing.Short() {
-		b.Skip("this is not a short test")
-	}
-
 	hasher, err := blake2b.NewBlake2bWithSize(hashSize)
 	require.Nil(b, err)
 
@@ -65,7 +58,7 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	keyGenerator := signing.NewKeyGenerator(blsSuite)
 	blsSigners := createMultiSignersBls(metaConsensusGroupSize, hasher, keyGenerator)
 
-	args := createHeaderProposalDetectorArgs(b, hasher, keyGenerator, blsSigners)
+	args := createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, blsSigners)
 	ssd, err := detector.NewMultipleHeaderProposalsDetector(args)
 	require.Nil(b, err)
 
@@ -83,16 +76,5 @@ func BenchmarkMultipleHeaderProposalDetector_ValidateProof(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		err = ssd.ValidateProof(proof)
 		require.Nil(b, err)
-	}
-}
-
-func createHeaderProposalDetectorArgs(
-	b *testing.B,
-	hasher hashing.Hasher,
-	keyGenerator crypto.KeyGenerator,
-	multiSignersData map[string]multiSignerData,
-) *detector.MultipleHeaderProposalDetectorArgs {
-	return &detector.MultipleHeaderProposalDetectorArgs{
-		MultipleHeaderDetectorArgs: createMultipleHeaderDetectorArgs(b, hasher, keyGenerator, multiSignersData),
 	}
 }

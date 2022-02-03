@@ -2,7 +2,6 @@ package notifier_test
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -338,11 +337,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t
 		},
 	}
 
-	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{coreSlash.MultipleProposalProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
-
 	expectedTx := &transaction.Transaction{
-		Data:      expectedData,
+		Data:      []byte("SlashCommitment@01@02@0186a0@6364@7369676e6174757265"),
 		Nonce:     444,
 		SndAddr:   []byte("address"),
 		Value:     big.NewInt(notifier.CommitmentProofValue),
@@ -376,10 +372,8 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleSignProof(t *te
 		},
 	}
 
-	expectedData := []byte(fmt.Sprintf("%s@%s@%d@%d@%s@%s", notifier.BuiltInFunctionSlashCommitmentProof,
-		[]byte{coreSlash.MultipleSigningProofID}, shardID, round, []byte{byte('c'), byte('d')}, []byte("signature")))
 	expectedTx := &transaction.Transaction{
-		Data:      expectedData,
+		Data:      []byte("SlashCommitment@02@02@0186a0@6364@7369676e6174757265"),
 		Nonce:     444,
 		SndAddr:   []byte("address"),
 		Value:     big.NewInt(notifier.CommitmentProofValue),

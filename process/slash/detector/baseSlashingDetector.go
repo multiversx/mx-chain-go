@@ -14,12 +14,12 @@ import (
 // MultipleHeaderDetectorArgs is a a struct containing all common arguments required
 // to create a new multiple header proposal/signing detector
 type MultipleHeaderDetectorArgs struct {
-	NodesCoordinator  sharding.NodesCoordinator
-	RoundHandler      process.RoundHandler
-	SlashingCache     RoundValidatorHeadersCache
-	Hasher            hashing.Hasher
-	Marshaller        marshal.Marshalizer
-	HeaderSigVerifier consensus.HeaderSigVerifier
+	NodesCoordinator           sharding.NodesCoordinator
+	RoundHandler               process.RoundHandler
+	RoundValidatorHeadersCache RoundValidatorHeadersCache
+	Hasher                     hashing.Hasher
+	Marshaller                 marshal.Marshalizer
+	HeaderSigVerifier          consensus.HeaderSigVerifier
 }
 
 // minNoOfSlashableHeaders represents the min number of headers required for a
@@ -46,7 +46,7 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func (bsd *baseSlashingDetector) checkAndGetHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
+func(bsd *baseSlashingDetector) getCheckedHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
 	if check.IfNil(interceptedData) {
 		return nil, process.ErrNilInterceptedData
 	}
@@ -59,6 +59,10 @@ func (bsd *baseSlashingDetector) checkAndGetHeader(interceptedData process.Inter
 	header := interceptedHeader.HeaderHandler()
 	if check.IfNil(header) {
 		return nil, process.ErrNilHeaderHandler
+	}
+	hash := interceptedHeader.Hash()
+	if hash == nil {
+		return nil, data.ErrNilHash
 	}
 
 	round := header.GetRound()
