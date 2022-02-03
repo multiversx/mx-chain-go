@@ -464,7 +464,7 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 
 	rootHashCalled := false
 	args.BlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockCommittedRootHashCalled: func() []byte {
+		GetCurrentBlockRootHashCalled: func() []byte {
 			if !rootHashCalled {
 				rootHashCalled = true
 				return []byte("first root hash")

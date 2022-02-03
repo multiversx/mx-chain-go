@@ -825,28 +825,25 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 	var err error
 
+	prevHeaderRootHash := boot.getRootHashFromBlock(prevHeader, prevHeaderHash)
+	currHeaderRootHash := boot.getRootHashFromBlock(currHeader, currHeaderHash)
+
 	defer func() {
 		if err != nil {
-			boot.restoreState(currHeaderHash, currHeader)
+			boot.restoreState(currHeaderHash, currHeader, currHeaderRootHash)
 		}
 	}()
 
 	if currHeader.GetNonce() > 1 {
-		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader)
+		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevHeaderRootHash)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err = boot.setCurrentBlockInfo(nil, nil)
+		err = boot.setCurrentBlockInfo(nil, nil, nil)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	prevHeaderRootHash := prevHeader.GetRootHash()
-	scheduledPrevHeaderRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
-	if err == nil {
-		prevHeaderRootHash = scheduledPrevHeaderRootHash
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(prevHeader, prevHeaderRootHash)
@@ -869,6 +866,16 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	boot.cleanCachesAndStorageOnRollback(currHeader)
 
 	return currBlockBody, nil
+}
+
+func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash []byte) []byte {
+	hdrRootHash := hdr.GetRootHash()
+	scheduledHdrRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(hdrHash)
+	if err == nil {
+		hdrRootHash = scheduledHdrRootHash
+	}
+
+	return hdrRootHash
 }
 
 func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
@@ -924,12 +931,13 @@ func (boot *baseBootstrap) rollBackToNonceForced() {
 func (boot *baseBootstrap) restoreState(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
+	currRootHash []byte,
 ) {
 	log.Debug("revert state to header",
 		"nonce", currHeader.GetNonce(),
 		"hash", currHeaderHash)
 
-	err := boot.chainHandler.SetCurrentBlockHeader(currHeader)
+	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(currHeader, currRootHash)
 	if err != nil {
 		log.Debug("SetCurrentBlockHeader", "error", err.Error())
 	}
@@ -951,9 +959,10 @@ func (boot *baseBootstrap) restoreState(
 func (boot *baseBootstrap) setCurrentBlockInfo(
 	headerHash []byte,
 	header data.HeaderHandler,
+	rootHash []byte,
 ) error {
 
-	err := boot.chainHandler.SetCurrentBlockHeader(header)
+	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 	if err != nil {
 		return err
 	}

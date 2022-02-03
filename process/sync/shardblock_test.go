@@ -106,7 +106,7 @@ func createFullStore() dataRetriever.StorageService {
 func createBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeader(hdr.(*block.Header))
+			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
 			return nil
 		},
 		RevertCurrentBlockCalled: func() {
@@ -484,7 +484,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	})
 
 	_ = blkc.SetGenesisHeader(&block.Header{})
-	_ = blkc.SetCurrentBlockHeader(&hdr)
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.GetRootHash())
 	args.ChainHandler = blkc
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -1442,8 +1442,10 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
 	}
-	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+	var setRootHash []byte
+	blkc.SetCurrentBlockHeaderAndRootHashCalled = func(handler data.HeaderHandler, rootHash []byte) error {
 		hdr = prevHdr
+		setRootHash = rootHash
 		return nil
 	}
 
@@ -1527,6 +1529,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
+	assert.Equal(t, prevHdr.RootHash, setRootHash)
 }
 
 func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *testing.T) {
@@ -1582,8 +1585,10 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
 	}
-	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+	var setRootHash []byte
+	blkc.SetCurrentBlockHeaderAndRootHashCalled = func(handler data.HeaderHandler, rootHash []byte) error {
 		hdr = nil
+		setRootHash = rootHash
 		return nil
 	}
 
@@ -1667,6 +1672,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
 	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())
+	assert.Nil(t, setRootHash)
 }
 
 // ------- GetTxBodyHavingHash

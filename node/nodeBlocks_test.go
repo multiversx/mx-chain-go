@@ -597,7 +597,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 func getDefaultDataComponents() *factory.DataComponentsMock {
 	return &factory.DataComponentsMock{
 		BlockChain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockCommittedRootHashCalled: func() []byte {
+			GetCurrentBlockRootHashCalled: func() []byte {
 				return []byte("root hash")
 			},
 		},

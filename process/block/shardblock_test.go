@@ -66,12 +66,12 @@ func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler,
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Round:    1,
 			Nonce:    1,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
@@ -641,11 +641,11 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 
 	randSeed := []byte("rand seed")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
@@ -682,11 +682,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	body := &block.Body{}
@@ -838,11 +838,11 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	body := &block.Body{}
@@ -926,11 +926,11 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	rootHash := []byte("rootHash")
@@ -1006,11 +1006,11 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    0,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	rootHash := []byte("rootHash")
@@ -1169,11 +1169,11 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 
 	randSeed := []byte("rand seed")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    1,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	rootHash := []byte("rootHash")
 	body := &block.Body{}
@@ -1313,11 +1313,11 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	tdp := initDataPool(txHash)
 	randSeed := []byte("rand seed")
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.Header{
 			Nonce:    1,
 			RandSeed: randSeed,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	rootHash := []byte("rootHash")

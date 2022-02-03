@@ -1,6 +1,7 @@
 package blockchain_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -40,6 +41,7 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 	}
 	hdrHash := []byte("hash")
 	genesisHash := []byte("genesis hash")
+	rootHash := []byte("root hash")
 
 	bc.SetCurrentBlockHeaderHash(hdrHash)
 	bc.SetGenesisHeaderHash(genesisHash)
@@ -47,7 +49,7 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 	err := bc.SetGenesisHeader(genesis)
 	assert.Nil(t, err)
 
-	err = bc.SetCurrentBlockHeader(hdr)
+	err = bc.SetCurrentBlockHeaderAndRootHash(hdr, rootHash)
 	assert.Nil(t, err)
 
 	assert.Equal(t, hdr, bc.GetCurrentBlockHeader())
@@ -58,71 +60,25 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 
 	assert.Equal(t, hdrHash, bc.GetCurrentBlockHeaderHash())
 	assert.Equal(t, genesisHash, bc.GetGenesisHeaderHash())
+
+	assert.Equal(t, rootHash, bc.GetCurrentBlockRootHash())
+	assert.NotEqual(t, fmt.Sprintf("%p", rootHash), fmt.Sprintf("%p", bc.GetCurrentBlockRootHash()))
 }
 
 func TestBlockChain_SettersAndGettersNilValues(t *testing.T) {
 	t.Parallel()
 
 	bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	_ = bc.SetGenesisHeader(&block.Header{})
+	_ = bc.SetCurrentBlockHeaderAndRootHash(&block.Header{}, []byte("root hash"))
 
 	err := bc.SetGenesisHeader(nil)
 	assert.Nil(t, err)
 
-	err = bc.SetCurrentBlockHeader(nil)
+	err = bc.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	assert.Nil(t, err)
 
 	assert.Nil(t, bc.GetGenesisHeader())
 	assert.Nil(t, bc.GetCurrentBlockHeader())
-}
-
-func TestBlockChain_GetCurrentBlockCommittedRootHash(t *testing.T) {
-	t.Parallel()
-
-	rootHash := []byte("root hash")
-	scheduledRootHash := []byte("scheduled root hash")
-
-	t.Run("nil current block should return nil", func(t *testing.T) {
-		t.Parallel()
-
-		bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
-		assert.Nil(t, bc.GetCurrentBlockCommittedRootHash())
-	})
-	t.Run("no additional data should return root hash", func(t *testing.T) {
-		t.Parallel()
-
-		header := &block.Header{
-			RootHash: rootHash,
-		}
-
-		bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
-		_ = bc.SetCurrentBlockHeader(header)
-		assert.Equal(t, rootHash, bc.GetCurrentBlockCommittedRootHash())
-	})
-	t.Run("additional but no scheduled root hash should return root hash", func(t *testing.T) {
-		t.Parallel()
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				RootHash: rootHash,
-			},
-		}
-
-		bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
-		_ = bc.SetCurrentBlockHeader(header)
-		assert.Equal(t, rootHash, bc.GetCurrentBlockCommittedRootHash())
-	})
-	t.Run("additional with scheduled root hash should return scheduled root hash", func(t *testing.T) {
-		t.Parallel()
-
-		header := &block.HeaderV2{
-			Header: &block.Header{
-				RootHash: rootHash,
-			},
-			ScheduledRootHash: scheduledRootHash,
-		}
-
-		bc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
-		_ = bc.SetCurrentBlockHeader(header)
-		assert.Equal(t, scheduledRootHash, bc.GetCurrentBlockCommittedRootHash())
-	})
+	assert.Empty(t, bc.GetCurrentBlockRootHash())
 }

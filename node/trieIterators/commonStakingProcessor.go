@@ -53,12 +53,12 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 }
 
 func (csp *commonStakingProcessor) getAccount(scAddress []byte) (state.UserAccountHandler, error) {
-	committedRootHash := csp.blockChain.GetCurrentBlockCommittedRootHash()
-	if len(committedRootHash) == 0 {
+	rootHash := csp.blockChain.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
 		return nil, ErrNodeNotInitialized
 	}
 
-	err := csp.accounts.RecreateTrie(committedRootHash)
+	err := csp.accounts.RecreateTrie(rootHash)
 	if err != nil {
 		return nil, err
 	}

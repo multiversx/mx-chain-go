@@ -611,12 +611,12 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHan
 }
 
 func (n *Node) getAccountHandlerForPubKey(address []byte) (vmcommon.AccountHandler, error) {
-	committedRootHash := n.dataComponents.Blockchain().GetCurrentBlockCommittedRootHash()
-	if len(committedRootHash) == 0 {
-		return nil, ErrNilCommittedRootHash
+	rootHash := n.dataComponents.Blockchain().GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		return nil, ErrEmptyRootHash
 	}
 
-	err := n.stateComponents.AccountsAdapterAPI().RecreateTrie(committedRootHash)
+	err := n.stateComponents.AccountsAdapterAPI().RecreateTrie(rootHash)
 	if err != nil {
 		return nil, err
 	}

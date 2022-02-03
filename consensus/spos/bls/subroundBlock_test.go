@@ -858,7 +858,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	consensusContainers := createConsensusContainers()
 	for _, container := range consensusContainers {
 		sr := *initSubroundBlock(blockChain, container, &statusHandler.AppStatusHandlerStub{})
-		_ = sr.BlockChain().SetCurrentBlockHeader(nil)
+		_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(nil, nil)
 		header, _ := sr.CreateHeader()
 		header, body, _ := sr.CreateBlock(header)
 		marshalizedBody, _ := sr.Marshalizer().Marshal(body)
@@ -891,9 +891,9 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	consensusContainers := createConsensusContainers()
 	for _, container := range consensusContainers {
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
+		_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(&block.Header{
 			Nonce: 1,
-		})
+		}, []byte("root hash"))
 
 		header, _ := sr.CreateHeader()
 		header, body, _ := sr.CreateBlock(header)
@@ -979,9 +979,9 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	}
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlockWithBlockProcessor(bp, container)
-	_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
+	_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(&block.Header{
 		Nonce: 1,
-	})
+	}, []byte("root hash"))
 	header, _ := sr.CreateHeader()
 	_, _, err := sr.CreateBlock(header)
 	assert.Equal(t, expectedErr, err)

@@ -3240,7 +3240,7 @@ func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 
 	dataComponents := getDefaultDataComponents()
 	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockCommittedRootHashCalled: func() []byte {
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}
@@ -3253,7 +3253,7 @@ func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 
 	res, err := n.GetKeyValuePairs("addr")
 	require.Nil(t, res)
-	require.Equal(t, node.ErrNilCommittedRootHash, err)
+	require.Equal(t, node.ErrEmptyRootHash, err)
 }
 
 func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {

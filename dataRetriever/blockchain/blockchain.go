@@ -49,11 +49,12 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeader sets current block header pointer
-func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		bc.mut.Lock()
 		bc.currentBlockHeader = nil
+		bc.currentBlockRootHash = nil
 		bc.mut.Unlock()
 
 		return nil
@@ -69,32 +70,24 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 
 	bc.mut.Lock()
 	bc.currentBlockHeader = h.ShallowClone()
+	bc.currentBlockRootHash = make([]byte, len(rootHash))
+	copy(bc.currentBlockRootHash, rootHash)
 	bc.mut.Unlock()
 
 	return nil
 }
 
-// GetCurrentBlockCommittedRootHash returns the current committed block root hash. If the schedule root hash is available,
-// it will return that value, otherwise the block's root hash. If there is no current block set, it will return nil
-func (bc *blockChain) GetCurrentBlockCommittedRootHash() []byte {
+// GetCurrentBlockRootHash returns the current committed block root hash. The returned byte slice is a new copy
+// of the contained root hash.
+func (bc *blockChain) GetCurrentBlockRootHash() []byte {
 	bc.mut.RLock()
-	currHead := bc.currentBlockHeader
+	rootHash := bc.currentBlockRootHash
 	bc.mut.RUnlock()
 
-	if check.IfNil(currHead) {
-		return nil
-	}
-	rootHash := currHead.GetRootHash()
-	additionalData := currHead.GetAdditionalData()
-	if additionalData == nil {
-		return rootHash
-	}
-	scheduledRootHash := additionalData.GetScheduledRootHash()
-	if len(scheduledRootHash) == 0 {
-		return rootHash
-	}
+	cloned := make([]byte, len(rootHash))
+	copy(cloned, rootHash)
 
-	return scheduledRootHash
+	return cloned
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -29,5 +29,5 @@ var ErrNilTransactionSimulatorProcessor = errors.New("nil transaction simulator 
 // ErrNilBlockchain signals that a nil blockchain has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
 
-// ErrNilCommittedRootHash signals that the current committed root hash is nil
-var ErrNilCommittedRootHash = errors.New("nil committed root hash")
+// ErrEmptyRootHash signals that the current root hash is empty
+var ErrEmptyRootHash = errors.New("empty current root hash")

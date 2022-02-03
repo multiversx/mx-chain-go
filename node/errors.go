@@ -133,8 +133,8 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 // ErrNilStatusComputer signals that user account has a nil data trie
 var ErrNilStatusComputer = errors.New("nil transaction status computer")
 
-// ErrNilCommittedRootHash signals that the current committed root hash is nil
-var ErrNilCommittedRootHash = errors.New("nil committed root hash")
+// ErrEmptyRootHash signals that the current committed root hash is empty
+var ErrEmptyRootHash = errors.New("empty root hash")
 
 // ErrInvalidESDTRole signals that an invalid ESDT role has been provided
 var ErrInvalidESDTRole = errors.New("invalid ESDT role")

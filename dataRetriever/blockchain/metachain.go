@@ -51,11 +51,12 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeader sets current block header pointer
-func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		mc.mut.Lock()
 		mc.currentBlockHeader = nil
+		mc.currentBlockRootHash = nil
 		mc.mut.Unlock()
 
 		return nil
@@ -71,23 +72,24 @@ func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 
 	mc.mut.Lock()
 	mc.currentBlockHeader = currHead.ShallowClone()
+	mc.currentBlockRootHash = make([]byte, len(rootHash))
+	copy(mc.currentBlockRootHash, rootHash)
 	mc.mut.Unlock()
 
 	return nil
 }
 
-// GetCurrentBlockCommittedRootHash returns the current committed metablock root hash. Since the scheduled txs feature
-// does not work on metablocks, it will not consider the scheduled root hash value. If there is no current block set, it will return nil
-func (mc *metaChain) GetCurrentBlockCommittedRootHash() []byte {
+// GetCurrentBlockRootHash returns the current committed block root hash. The returned byte slice is a new copy
+// of the contained root hash.
+func (mc *metaChain) GetCurrentBlockRootHash() []byte {
 	mc.mut.RLock()
-	currHead := mc.currentBlockHeader
+	rootHash := mc.currentBlockRootHash
 	mc.mut.RUnlock()
 
-	if check.IfNil(currHead) {
-		return nil
-	}
+	cloned := make([]byte, len(rootHash))
+	copy(cloned, rootHash)
 
-	return currHead.GetRootHash()
+	return cloned
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

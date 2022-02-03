@@ -62,7 +62,7 @@ func createMockArguments() ArgNodeFacade {
 			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
 				return &block.Header{}
 			},
-			GetCurrentBlockCommittedRootHashCalled: func() []byte {
+			GetCurrentBlockRootHashCalled: func() []byte {
 				return []byte("root hash")
 			},
 		},
@@ -880,12 +880,12 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 	assert.True(t, called)
 }
 
-func TestNodeFacade_GetProofCurrentRootHashIsNilShouldErr(t *testing.T) {
+func TestNodeFacade_GetProofCurrentRootHashIsEmptyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
 	arg.Blockchain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockCommittedRootHashCalled: func() []byte {
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}
@@ -893,7 +893,7 @@ func TestNodeFacade_GetProofCurrentRootHashIsNilShouldErr(t *testing.T) {
 
 	response, err := nf.GetProofCurrentRootHash("addr")
 	assert.Nil(t, response)
-	assert.Equal(t, ErrNilCommittedRootHash, err)
+	assert.Equal(t, ErrEmptyRootHash, err)
 }
 
 func TestNodeFacade_GetProof(t *testing.T) {

@@ -672,11 +672,11 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -698,11 +698,11 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -726,12 +726,12 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	t.Parallel()
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.MetaBlock{
 			Nonce:                  0,
 			AccumulatedFeesInEpoch: big.NewInt(0),
 			DevFeesInEpoch:         big.NewInt(0),
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	hdr := createMetaBlockHeader()
@@ -2035,7 +2035,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	dataComponents.Storage = initStore()
 	dataComponents.BlockChain, _ = blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = dataComponents.Blockchain().SetGenesisHeader(&block.MetaBlock{Nonce: 0})
-	_ = dataComponents.Blockchain().SetCurrentBlockHeader(&block.MetaBlock{Nonce: 1})
+	_ = dataComponents.Blockchain().SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{Nonce: 1}, []byte("root hash"))
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{

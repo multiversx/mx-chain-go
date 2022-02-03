@@ -32,7 +32,7 @@ func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
 		Accounts: createAccountsWrapper(),
 		BlockChain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockCommittedRootHashCalled: func() []byte {
+			GetCurrentBlockRootHashCalled: func() []byte {
 				return []byte("root hash")
 			},
 		},
@@ -136,12 +136,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTotalStakedValueProcessor_GetTotalStakedValueNilHeaderShouldError(t *testing.T) {
+func TestTotalStakedValueProcessor_GetTotalStakedValueNilRootHashShouldError(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgs()
 	arg.BlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockCommittedRootHashCalled: func() []byte {
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}

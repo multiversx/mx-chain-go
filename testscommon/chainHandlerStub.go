@@ -11,10 +11,10 @@ type ChainHandlerStub struct {
 	GetGenesisHeaderHashCalled             func() []byte
 	SetGenesisHeaderHashCalled             func([]byte)
 	GetCurrentBlockHeaderCalled            func() data.HeaderHandler
-	SetCurrentBlockHeaderCalled            func(data.HeaderHandler) error
+	SetCurrentBlockHeaderAndRootHashCalled func(header data.HeaderHandler, rootHash []byte) error
 	GetCurrentBlockHeaderHashCalled        func() []byte
 	SetCurrentBlockHeaderHashCalled        func([]byte)
-	GetCurrentBlockCommittedRootHashCalled func() []byte
+	GetCurrentBlockRootHashCalled          func() []byte
 }
 
 // GetGenesisHeader -
@@ -56,10 +56,10 @@ func (stub *ChainHandlerStub) GetCurrentBlockHeader() data.HeaderHandler {
 	return nil
 }
 
-// SetCurrentBlockHeader -
-func (stub *ChainHandlerStub) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if stub.SetCurrentBlockHeaderCalled != nil {
-		return stub.SetCurrentBlockHeaderCalled(header)
+// SetCurrentBlockHeaderAndRootHash -
+func (stub *ChainHandlerStub) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
+	if stub.SetCurrentBlockHeaderAndRootHashCalled != nil {
+		return stub.SetCurrentBlockHeaderAndRootHashCalled(header, rootHash)
 	}
 	return nil
 }
@@ -79,10 +79,10 @@ func (stub *ChainHandlerStub) SetCurrentBlockHeaderHash(hash []byte) {
 	}
 }
 
-// GetCurrentBlockCommittedRootHash -
-func (stub *ChainHandlerStub) GetCurrentBlockCommittedRootHash() []byte {
-	if stub.GetCurrentBlockCommittedRootHashCalled != nil {
-		return stub.GetCurrentBlockCommittedRootHashCalled()
+// GetCurrentBlockRootHash -
+func (stub *ChainHandlerStub) GetCurrentBlockRootHash() []byte {
+	if stub.GetCurrentBlockRootHashCalled != nil {
+		return stub.GetCurrentBlockRootHashCalled()
 	}
 
 	return nil
