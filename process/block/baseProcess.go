@@ -1575,6 +1575,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	startTime := time.Now()
 
 	normalProcessingGasAndFees := bp.getGasAndFees()
+
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1588,7 +1589,9 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	if err != nil {
 		return err
 	}
-	finalProcessingGasAndFees := bp.getGasAndFees()
+
+	finalProcessingGasAndFees := bp.getGasAndFeesWithScheduled()
+
 	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
@@ -1600,10 +1603,16 @@ func (bp *baseProcessor) getGasAndFees() scheduled.GasAndFees {
 	return scheduled.GasAndFees{
 		AccumulatedFees: bp.feeHandler.GetAccumulatedFees(),
 		DeveloperFees:   bp.feeHandler.GetDeveloperFees(),
-		GasProvided:     bp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+		GasProvided:     bp.gasConsumedProvider.TotalGasProvided(),
 		GasPenalized:    bp.gasConsumedProvider.TotalGasPenalized(),
 		GasRefunded:     bp.gasConsumedProvider.TotalGasRefunded(),
 	}
+}
+
+func (bp *baseProcessor) getGasAndFeesWithScheduled() scheduled.GasAndFees {
+	gasAndFees := bp.getGasAndFees()
+	gasAndFees.GasProvided = bp.gasConsumedProvider.TotalGasProvidedWithScheduled()
+	return gasAndFees
 }
 
 func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
