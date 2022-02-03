@@ -78,12 +78,12 @@ type BlockChainHookImpl struct {
 	workingDir         string
 	nilCompiledSCStore bool
 
-	isPayableBySCEnableEpoch               uint32
-	flagIsPayableBySC                      atomic.Flag
-	optimizeNFTStoreEnableEpoch            uint32
-	flagOptimizeNFTStore                   atomic.Flag
-	disableBlockchainOperationsEnableEpoch uint32
-	flagDisableBlockchainOperations        atomic.Flag
+	isPayableBySCEnableEpoch       uint32
+	flagIsPayableBySC              atomic.Flag
+	optimizeNFTStoreEnableEpoch    uint32
+	flagOptimizeNFTStore           atomic.Flag
+	doNotReturnOldBlockEnableEpoch uint32
+	flagDoNotReturnOldBlock        atomic.Flag
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -96,27 +96,27 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:                               args.Accounts,
-		pubkeyConv:                             args.PubkeyConv,
-		storageService:                         args.StorageService,
-		blockChain:                             args.BlockChain,
-		shardCoordinator:                       args.ShardCoordinator,
-		marshalizer:                            args.Marshalizer,
-		uint64Converter:                        args.Uint64Converter,
-		builtInFunctions:                       args.BuiltInFunctions,
-		compiledScPool:                         args.CompiledSCPool,
-		configSCStorage:                        args.ConfigSCStorage,
-		workingDir:                             args.WorkingDir,
-		nilCompiledSCStore:                     args.NilCompiledSCStore,
-		nftStorageHandler:                      args.NFTStorageHandler,
-		isPayableBySCEnableEpoch:               args.EnableEpochs.IsPayableBySCEnableEpoch,
-		optimizeNFTStoreEnableEpoch:            args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		disableBlockchainOperationsEnableEpoch: args.EnableEpochs.DisableBlockchainOperationsInBlockchainHookEnableEpoch,
+		accounts:                       args.Accounts,
+		pubkeyConv:                     args.PubkeyConv,
+		storageService:                 args.StorageService,
+		blockChain:                     args.BlockChain,
+		shardCoordinator:               args.ShardCoordinator,
+		marshalizer:                    args.Marshalizer,
+		uint64Converter:                args.Uint64Converter,
+		builtInFunctions:               args.BuiltInFunctions,
+		compiledScPool:                 args.CompiledSCPool,
+		configSCStorage:                args.ConfigSCStorage,
+		workingDir:                     args.WorkingDir,
+		nilCompiledSCStore:             args.NilCompiledSCStore,
+		nftStorageHandler:              args.NFTStorageHandler,
+		isPayableBySCEnableEpoch:       args.EnableEpochs.IsPayableBySCEnableEpoch,
+		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
 	}
 
 	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
 	log.Debug("blockchainHook: optimize nft metadata store", "epoch", blockChainHookImpl.optimizeNFTStoreEnableEpoch)
-	log.Debug("blockchainHook: disable blockchain operations", "epoch", blockChainHookImpl.disableBlockchainOperationsEnableEpoch)
+	log.Debug("blockchainHook: do not return old block", "epoch", blockChainHookImpl.doNotReturnOldBlockEnableEpoch)
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {
@@ -246,6 +246,9 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	if nonce == hdr.GetNonce() {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
+	if bh.flagDoNotReturnOldBlock.IsSet() {
+		return nil, process.ErrInvalidNonceRequest
+	}
 
 	header, hash, err := process.GetHeaderFromStorageWithNonce(
 		nonce,
@@ -267,10 +270,6 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 
 // LastNonce returns the nonce from the last committed block
 func (bh *BlockChainHookImpl) LastNonce() uint64 {
-	if bh.flagDisableBlockchainOperations.IsSet() {
-		return 0
-	}
-
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetNonce()
 	}
@@ -279,10 +278,6 @@ func (bh *BlockChainHookImpl) LastNonce() uint64 {
 
 // LastRound returns the round from the last committed block
 func (bh *BlockChainHookImpl) LastRound() uint64 {
-	if bh.flagDisableBlockchainOperations.IsSet() {
-		return 0
-	}
-
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRound()
 	}
@@ -291,10 +286,6 @@ func (bh *BlockChainHookImpl) LastRound() uint64 {
 
 // LastTimeStamp returns the timeStamp from the last committed block
 func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
-	if bh.flagDisableBlockchainOperations.IsSet() {
-		return 0
-	}
-
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
 	}
@@ -303,10 +294,6 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 
 // LastRandomSeed returns the random seed from the last committed block
 func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
-	if bh.flagDisableBlockchainOperations.IsSet() {
-		return make([]byte, 0)
-	}
-
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetRandSeed()
 	}
@@ -315,10 +302,6 @@ func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
 
 // LastEpoch returns the epoch from the last committed block
 func (bh *BlockChainHookImpl) LastEpoch() uint32 {
-	if bh.flagDisableBlockchainOperations.IsSet() {
-		return 0
-	}
-
 	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
 		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
 	}
@@ -327,10 +310,6 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
-	if bh.flagDisableBlockchainOperations.IsSet() {
-		return make([]byte, 0)
-	}
-
 	rootHash := bh.blockChain.GetCurrentBlockRootHash()
 	if len(rootHash) > 0 {
 		return rootHash
@@ -718,8 +697,8 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	bh.flagOptimizeNFTStore.SetValue(epoch >= bh.optimizeNFTStoreEnableEpoch)
 	log.Debug("blockchainHookImpl optimize nft metadata store", "enabled", bh.flagOptimizeNFTStore.IsSet())
 
-	bh.flagDisableBlockchainOperations.SetValue(epoch >= bh.disableBlockchainOperationsEnableEpoch)
-	log.Debug("blockchainHook: disable blockchain operations", "enabled", bh.flagDisableBlockchainOperations.IsSet())
+	bh.flagDoNotReturnOldBlock.SetValue(epoch >= bh.doNotReturnOldBlockEnableEpoch)
+	log.Debug("blockchainHook: do not return old block", "enabled", bh.flagDoNotReturnOldBlock.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

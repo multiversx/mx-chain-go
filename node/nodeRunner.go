@@ -168,8 +168,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("esdt: enable epoch for esdt register and set all roles function"), "epoch", enableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
-
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
+	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)

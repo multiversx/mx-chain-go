@@ -58,7 +58,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 		EnableEpochs: config.EnableEpochs{
-			DisableBlockchainOperationsInBlockchainHookEnableEpoch: math.MaxUint32,
+			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
 		},
 	}
 	return arguments
@@ -600,6 +600,53 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpoch(t *testing.T) {
 	require.Equal(t, hash, actualHash)
 }
 
+func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch = 0
+	nonce := uint64(10)
+	header := &block.Header{Nonce: nonce}
+	shardID := args.ShardCoordinator.SelfId()
+
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return header
+		},
+	}
+
+	storerBlockHeader := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			require.Fail(t, "should have not called Get operation")
+			return nil, nil
+		},
+	}
+	storerShardHdrNonceHash := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			require.Fail(t, "should have not called Get operation")
+			return nil, nil
+		},
+	}
+	args.StorageService = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID):
+				return storerShardHdrNonceHash
+			case dataRetriever.BlockHeaderUnit:
+				return storerBlockHeader
+			default:
+				require.Fail(t, "should not search in another storer")
+				return nil
+			}
+		},
+	}
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	hash, err := bh.GetBlockhash(nonce - 1)
+	require.Equal(t, process.ErrInvalidNonceRequest, err)
+	require.Nil(t, hash)
+}
+
 func TestBlockChainHookImpl_GetBlockhashFromOldEpochExpectError(t *testing.T) {
 	t.Parallel()
 
@@ -658,7 +705,6 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, []byte{}, bh.LastRandomSeed())
 		assert.Equal(t, []byte{}, bh.GetStateRootHash())
 	})
-
 	t.Run("custom header, expect correct values are returned", func(t *testing.T) {
 		t.Parallel()
 
@@ -695,7 +741,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, randSeed, bh.LastRandomSeed())
 		assert.Equal(t, rootHash, bh.GetStateRootHash())
 	})
-	t.Run("custom header, blockchain operations disabled, expect default values", func(t *testing.T) {
+	t.Run("custom header, do not return old block is set, expect default values", func(t *testing.T) {
 		t.Parallel()
 
 		nonce := uint64(37)
@@ -714,7 +760,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochs.DisableBlockchainOperationsInBlockchainHookEnableEpoch = 0
+		args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch = 0
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet
@@ -725,12 +771,12 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		assert.Equal(t, uint64(0), bh.LastNonce())
-		assert.Equal(t, uint64(0), bh.LastRound())
-		assert.Equal(t, uint64(0), bh.LastTimeStamp())
-		assert.Equal(t, make([]byte, 0), bh.LastRandomSeed())
-		assert.Equal(t, uint32(0), bh.LastEpoch())
-		assert.Equal(t, make([]byte, 0), bh.GetStateRootHash())
+		assert.Equal(t, nonce, bh.LastNonce())
+		assert.Equal(t, round, bh.LastRound())
+		assert.Equal(t, timestamp, bh.LastTimeStamp())
+		assert.Equal(t, randSeed, bh.LastRandomSeed())
+		assert.Equal(t, epoch, bh.LastEpoch())
+		assert.Equal(t, rootHash, bh.GetStateRootHash())
 	})
 }
 
