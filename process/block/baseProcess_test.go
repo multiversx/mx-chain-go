@@ -1604,25 +1604,31 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	}
 
 	initialGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(10),
-		DeveloperFees:   big.NewInt(10),
-		GasProvided:     10,
-		GasPenalized:    10,
-		GasRefunded:     10,
+		AccumulatedFees: big.NewInt(11),
+		DeveloperFees:   big.NewInt(12),
+		GasProvided:     13,
+		GasPenalized:    14,
+		GasRefunded:     15,
 	}
 
 	finalGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(100),
-		GasProvided:     100,
-		GasPenalized:    100,
-		GasRefunded:     100,
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(103),
+		GasProvided:     105,
+		GasPenalized:    107,
+		GasRefunded:     109,
 	}
 
 	feeHandler := createFeeHandlerMockForProcessScheduledBlock(initialGasAndFees, finalGasAndFees)
 	gasHandler := createGasHandlerMockForProcessScheduledBlock(initialGasAndFees, finalGasAndFees)
 
-	expectedGasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+	expectedGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(90),
+		DeveloperFees:   big.NewInt(91),
+		GasProvided:     92,
+		GasPenalized:    93,
+		GasRefunded:     94,
+	}
 
 	wasCalledSetScheduledRootHash := false
 	wasCalledSetScheduledGasAndFees := false
@@ -1709,19 +1715,19 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	zeroGasAndFees := process.GetZeroGasAndFees()
 
 	initialGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(10),
-		DeveloperFees:   big.NewInt(10),
-		GasProvided:     10,
-		GasPenalized:    10,
-		GasRefunded:     10,
+		AccumulatedFees: big.NewInt(11),
+		DeveloperFees:   big.NewInt(12),
+		GasProvided:     13,
+		GasPenalized:    14,
+		GasRefunded:     15,
 	}
 
 	finalGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(100),
-		GasProvided:     100,
-		GasPenalized:    100,
-		GasRefunded:     100,
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(103),
+		GasProvided:     105,
+		GasPenalized:    107,
+		GasRefunded:     109,
 	}
 
 	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
@@ -1752,14 +1758,14 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	})
 	t.Run("final gasProvided lower then initial gasProvided", func(t *testing.T) {
 		initialGasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(10),
-			DeveloperFees:   big.NewInt(10),
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
 			GasProvided:     100,
 		}
 
 		finalGasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(100),
-			DeveloperFees:   big.NewInt(100),
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(102),
 			GasProvided:     10,
 		}
 
@@ -1768,16 +1774,16 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	})
 	t.Run("final gasPenalized lower then initial gasPenalized", func(t *testing.T) {
 		initialGasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(10),
-			DeveloperFees:   big.NewInt(10),
-			GasProvided:     10,
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
 			GasPenalized:    100,
 		}
 
 		finalGasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(100),
-			DeveloperFees:   big.NewInt(100),
-			GasProvided:     100,
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(102),
+			GasProvided:     103,
 			GasPenalized:    10,
 		}
 
@@ -1786,18 +1792,18 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	})
 	t.Run("final gasRefunded lower then initial gasRefunded", func(t *testing.T) {
 		initialGasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(10),
-			DeveloperFees:   big.NewInt(10),
-			GasProvided:     10,
-			GasPenalized:    10,
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
+			GasPenalized:    14,
 			GasRefunded:     100,
 		}
 
 		finalGasAndFees := scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(100),
-			DeveloperFees:   big.NewInt(100),
-			GasProvided:     100,
-			GasPenalized:    100,
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(102),
+			GasProvided:     103,
+			GasPenalized:    104,
 			GasRefunded:     10,
 		}
 

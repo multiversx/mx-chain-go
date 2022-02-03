@@ -732,7 +732,11 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 
 	headerHash := []byte("root hash")
 	expectedGasAndFees := &scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(100),
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(102),
+		GasProvided:     103,
+		GasPenalized:    104,
+		GasRefunded:     105,
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
@@ -775,7 +779,11 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 		},
 	}
 	gasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(100),
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(102),
+		GasProvided:     103,
+		GasPenalized:    104,
+		GasRefunded:     105,
 	}
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -864,6 +872,13 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("root hash")
+	expectedGasAndFees := &scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(102),
+		GasProvided:     103,
+		GasPenalized:    104,
+		GasRefunded:     105,
+	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
 		RootHash: headerHash,
@@ -872,9 +887,8 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 				TxHandlers: []*smartContractResult.SmartContractResult{},
 			},
 		},
-		GasAndFees: &scheduled.GasAndFees{
-			AccumulatedFees: big.NewInt(100),
-		}}
+		GasAndFees: expectedGasAndFees,
+	}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -892,9 +906,11 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	err := scheduledTxsExec.RollBackToBlock(headerHash)
 	assert.Nil(t, err)
 
-	hash, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
-	assert.Nil(t, err)
-	assert.Equal(t, headerHash, hash)
+	scheduledRootHash, txHandlersMap, gasAndFees, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
+	require.Nil(t, err)
+	assert.Equal(t, headerHash, scheduledRootHash)
+	assert.Equal(t, expectedGasAndFees, gasAndFees)
+	assert.NotNil(t, txHandlersMap)
 }
 
 func TestScheduledTxsExecution_SaveState(t *testing.T) {
