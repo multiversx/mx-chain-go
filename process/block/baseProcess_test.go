@@ -1656,6 +1656,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	assert.True(t, wasCalledSetScheduledRootHash)
 }
 
+// get initial fees on first getGasAndFees call and final fees on second call
 func createFeeHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAndFees) process.TransactionFeeHandler {
 	runCount := 0
 	return &mock.FeeAccumulatorStub{
@@ -1676,6 +1677,7 @@ func createFeeHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAn
 	}
 }
 
+// get initial gas consumed on first getGasAndFees call and final gas consumed on second call
 func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAndFees) process.GasHandler {
 	runCount := 0
 	return &mock.GasHandlerMock{

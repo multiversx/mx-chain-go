@@ -793,7 +793,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 	assert.Error(t, err)
 }
 
-func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFees(t *testing.T) {
+func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	scheduledRootHash := []byte("root hash")
