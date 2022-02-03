@@ -3,69 +3,85 @@ package transactionAPI
 import (
 	"encoding/hex"
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 )
 
-type unmarshalerAndPreparer struct {
+type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 }
 
-func newTransactionUnmashalerAndPreparer(marshalizer marshal.Marshalizer, addressPubKeyConverter core.PubkeyConverter) *unmarshalerAndPreparer {
-	return &unmarshalerAndPreparer{
+func newTransactionUnmarshaller(marshalizer marshal.Marshalizer, addressPubKeyConverter core.PubkeyConverter) *txUnmarshaller {
+	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 	}
 }
 
-func (up *unmarshalerAndPreparer) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) unmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error) {
+	rec := &receipt.Receipt{}
+	err := tu.marshalizer.Unmarshal(rec, receiptBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &transaction.ApiReceipt{
+		Value:   rec.Value,
+		SndAddr: tu.addressPubKeyConverter.Encode(rec.SndAddr),
+		Data:    string(rec.Data),
+		TxHash:  hex.EncodeToString(rec.TxHash),
+	}, nil
+}
+
+func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
 	case transaction.TxTypeNormal:
 		var tx transaction.Transaction
-		err := up.marshalizer.Unmarshal(&tx, txBytes)
+		err := tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return up.prepareNormalTx(&tx)
+		return tu.prepareNormalTx(&tx)
 	case transaction.TxTypeInvalid:
 		var tx transaction.Transaction
-		err := up.marshalizer.Unmarshal(&tx, txBytes)
+		err := tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return up.prepareInvalidTx(&tx)
+		return tu.prepareInvalidTx(&tx)
 	case transaction.TxTypeReward:
 		var tx rewardTxData.RewardTx
-		err := up.marshalizer.Unmarshal(&tx, txBytes)
+		err := tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return up.prepareRewardTx(&tx)
+		return tu.prepareRewardTx(&tx)
 
 	case transaction.TxTypeUnsigned:
 		var tx smartContractResult.SmartContractResult
-		err := up.marshalizer.Unmarshal(&tx, txBytes)
+		err := tu.marshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return up.prepareUnsignedTx(&tx)
+		return tu.prepareUnsignedTx(&tx)
 	}
 
-	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil // this shouldn't happen
+	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil
 }
 
-func (up *unmarshalerAndPreparer) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
 		Type:             string(transaction.TxTypeNormal),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         up.addressPubKeyConverter.Encode(tx.RcvAddr),
+		Receiver:         tu.addressPubKeyConverter.Encode(tx.RcvAddr),
 		ReceiverUsername: tx.RcvUserName,
-		Sender:           up.addressPubKeyConverter.Encode(tx.SndAddr),
+		Sender:           tu.addressPubKeyConverter.Encode(tx.SndAddr),
 		SenderUsername:   tx.SndUserName,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -74,15 +90,15 @@ func (up *unmarshalerAndPreparer) prepareNormalTx(tx *transaction.Transaction) (
 	}, nil
 }
 
-func (up *unmarshalerAndPreparer) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
 		Type:             string(transaction.TxTypeInvalid),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         up.addressPubKeyConverter.Encode(tx.RcvAddr),
+		Receiver:         tu.addressPubKeyConverter.Encode(tx.RcvAddr),
 		ReceiverUsername: tx.RcvUserName,
-		Sender:           up.addressPubKeyConverter.Encode(tx.SndAddr),
+		Sender:           tu.addressPubKeyConverter.Encode(tx.SndAddr),
 		SenderUsername:   tx.SndUserName,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -91,7 +107,7 @@ func (up *unmarshalerAndPreparer) prepareInvalidTx(tx *transaction.Transaction) 
 	}, nil
 }
 
-func (up *unmarshalerAndPreparer) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:          tx,
 		Type:        string(transaction.TxTypeReward),
@@ -99,19 +115,19 @@ func (up *unmarshalerAndPreparer) prepareRewardTx(tx *rewardTxData.RewardTx) (*t
 		Epoch:       tx.GetEpoch(),
 		Value:       tx.GetValue().String(),
 		Sender:      "metachain",
-		Receiver:    up.addressPubKeyConverter.Encode(tx.GetRcvAddr()),
+		Receiver:    tu.addressPubKeyConverter.Encode(tx.GetRcvAddr()),
 		SourceShard: core.MetachainShardId,
 	}, nil
 }
 
-func (up *unmarshalerAndPreparer) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
+func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
 	txResult := &transaction.ApiTransactionResult{
 		Tx:                      tx,
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
 		Value:                   tx.GetValue().String(),
-		Receiver:                up.addressPubKeyConverter.Encode(tx.GetRcvAddr()),
-		Sender:                  up.addressPubKeyConverter.Encode(tx.GetSndAddr()),
+		Receiver:                tu.addressPubKeyConverter.Encode(tx.GetRcvAddr()),
+		Sender:                  tu.addressPubKeyConverter.Encode(tx.GetSndAddr()),
 		GasPrice:                tx.GetGasPrice(),
 		GasLimit:                tx.GetGasLimit(),
 		Data:                    tx.GetData(),
@@ -121,8 +137,8 @@ func (up *unmarshalerAndPreparer) prepareUnsignedTx(tx *smartContractResult.Smar
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
 	}
-	if len(tx.GetOriginalSender()) == up.addressPubKeyConverter.Len() {
-		txResult.OriginalSender = up.addressPubKeyConverter.Encode(tx.GetOriginalSender())
+	if len(tx.GetOriginalSender()) == tu.addressPubKeyConverter.Len() {
+		txResult.OriginalSender = tu.addressPubKeyConverter.Encode(tx.GetOriginalSender())
 	}
 
 	return txResult, nil

@@ -31,7 +31,7 @@ type apiTransactionProcessor struct {
 	storageService              dataRetriever.StorageService
 	dataPool                    dataRetriever.PoolsHolder
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
-	unmarshalerAndPreparer      *unmarshalerAndPreparer
+	txUnmarshaller              *txUnmarshaller
 	transactionResultsProcessor *apiTransactionResultsProcessor
 }
 
@@ -42,12 +42,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmashalerAndPreparer(args.Marshalizer, args.AddressPubKeyConverter)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
 		args.StorageService,
 		args.Marshalizer,
+		txUnmarshalerAndPreparer,
 		args.ShardCoordinator.SelfId(),
 	)
 
@@ -61,7 +62,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		storageService:              args.StorageService,
 		dataPool:                    args.DataPool,
 		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
-		unmarshalerAndPreparer:      txUnmarshalerAndPreparer,
+		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
 	}, nil
 }
@@ -138,7 +139,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		txType = transaction.TxTypeInvalid
 	}
 
-	tx, err := atp.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
@@ -194,7 +195,7 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 		return nil, ErrTransactionNotFound
 	}
 
-	tx, err := atp.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		return nil, err
 	}
@@ -284,19 +285,19 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 	switch txType {
 	case transaction.TxTypeNormal:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
-			return atp.unmarshalerAndPreparer.prepareNormalTx(tx)
+			return atp.txUnmarshaller.prepareNormalTx(tx)
 		}
 	case transaction.TxTypeInvalid:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
-			return atp.unmarshalerAndPreparer.prepareInvalidTx(tx)
+			return atp.txUnmarshaller.prepareInvalidTx(tx)
 		}
 	case transaction.TxTypeReward:
 		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
-			return atp.unmarshalerAndPreparer.prepareRewardTx(tx)
+			return atp.txUnmarshaller.prepareRewardTx(tx)
 		}
 	case transaction.TxTypeUnsigned:
 		if tx, ok := txObj.(*smartContractResult.SmartContractResult); ok {
-			return atp.unmarshalerAndPreparer.prepareUnsignedTx(tx)
+			return atp.txUnmarshaller.prepareUnsignedTx(tx)
 		}
 	}
 
@@ -306,7 +307,12 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
 func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	return atp.unmarshalerAndPreparer.unmarshalTransaction(txBytes, txType)
+	return atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+}
+
+// UnmarshalReceipt will try to unmarshal the provided receipts bytes
+func (atp *apiTransactionProcessor) UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error) {
+	return atp.txUnmarshaller.unmarshalReceipt(receiptBytes)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

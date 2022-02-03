@@ -68,6 +68,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		directStakedListHandler: arg.DirectStakedListHandler,
 		delegatedListHandler:    arg.DelegatedListHandler,
 		apiBlockHandler:         arg.APIBlockHandler,
+		apiTransactionHandler:   arg.APITransactionHandler,
 	}, nil
 }
 
@@ -106,11 +107,6 @@ func (nar *nodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
 	return nar.delegatedListHandler.GetDelegatorsList()
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (nar *nodeApiResolver) IsInterfaceNil() bool {
-	return nar == nil
-}
-
 // GetTransaction will return the transaction with the given hash and optionally with results
 func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	return nar.apiTransactionHandler.GetTransaction(hash, withResults)
@@ -134,4 +130,9 @@ func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Bl
 // GetBlockByRound will return the block with the given round and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nar *nodeApiResolver) IsInterfaceNil() bool {
+	return nar == nil
 }

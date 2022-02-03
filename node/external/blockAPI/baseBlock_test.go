@@ -137,6 +137,17 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	recBytes, _ := baseAPIBlockProc.marshalizer.Marshal(rec)
 	_ = unsignedStorer.Put(recHash, recBytes)
 
+	baseAPIBlockProc.txUnmarshaller = &mock.TransactionAPIHandlerStub{
+		UnmarshalReceiptCalled: func(receiptBytes []byte) (*transaction.ApiReceipt, error) {
+			return &transaction.ApiReceipt{
+				Value:   rec.Value,
+				SndAddr: baseAPIBlockProc.addressPubKeyConverter.Encode(rec.SndAddr),
+				Data:    string(rec.Data),
+				TxHash:  hex.EncodeToString(rec.TxHash),
+			}, nil
+		},
+	}
+
 	baseAPIBlockProc.store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {

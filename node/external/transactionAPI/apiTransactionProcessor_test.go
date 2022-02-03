@@ -633,10 +633,10 @@ func TestPrepareUnsignedTx(t *testing.T) {
 	}
 
 	n, _, _, _ := createAPITransactionProc(t, 0, true)
-	n.unmarshalerAndPreparer.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
+	n.txUnmarshaller.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
 	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
 
-	scrResult1, err := n.unmarshalerAndPreparer.prepareUnsignedTx(scr1)
+	scrResult1, err := n.txUnmarshaller.prepareUnsignedTx(scr1)
 	assert.Nil(t, err)
 	expectedScr1 := &transaction.ApiTransactionResult{
 		Tx:             scr1,
@@ -657,7 +657,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: bytes.Repeat([]byte{7}, addrSize),
 	}
 
-	scrResult2, err := n.unmarshalerAndPreparer.prepareUnsignedTx(scr2)
+	scrResult2, err := n.txUnmarshaller.prepareUnsignedTx(scr2)
 	assert.Nil(t, err)
 	expectedScr2 := &transaction.ApiTransactionResult{
 		Tx:             scr2,

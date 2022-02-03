@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -163,20 +162,12 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for recHash, recBytes := range marshalizedReceipts {
-		rec := &receipt.Receipt{}
-		err = bap.marshalizer.Unmarshal(rec, recBytes)
-		if err != nil {
+		apiRec, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(recBytes)
+		if errUnmarshal != nil {
 			log.Warn("cannot unmarshal receipt",
 				"hash", []byte(recHash),
-				"error", err.Error())
+				"error", errUnmarshal.Error())
 			continue
-		}
-
-		apiRec := &transaction.ApiReceipt{
-			Value:   rec.Value,
-			SndAddr: bap.addressPubKeyConverter.Encode(rec.SndAddr),
-			Data:    string(rec.Data),
-			TxHash:  hex.EncodeToString(rec.TxHash),
 		}
 
 		apiReceipts = append(apiReceipts, apiRec)
