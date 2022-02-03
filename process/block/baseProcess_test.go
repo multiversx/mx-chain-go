@@ -1555,6 +1555,8 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
 	t.Run("execute all scheduled txs fail", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
 
 		localErr := errors.New("execute all err")
@@ -1574,6 +1576,8 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		assert.Equal(t, localErr, err)
 	})
 	t.Run("get root hash fail", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
 
 		localErr := errors.New("root hash err")
@@ -1731,6 +1735,8 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	}
 
 	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
+		t.Parallel()
+
 		initialGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(100),
 		}
@@ -1743,6 +1749,8 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final devFees lower then initial devFees", func(t *testing.T) {
+		t.Parallel()
+
 		initialGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(10),
 			DeveloperFees:   big.NewInt(100),
@@ -1757,6 +1765,8 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final gasProvided lower then initial gasProvided", func(t *testing.T) {
+		t.Parallel()
+
 		initialGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(11),
 			DeveloperFees:   big.NewInt(12),
@@ -1773,6 +1783,8 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final gasPenalized lower then initial gasPenalized", func(t *testing.T) {
+		t.Parallel()
+
 		initialGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(11),
 			DeveloperFees:   big.NewInt(12),
@@ -1791,6 +1803,8 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final gasRefunded lower then initial gasRefunded", func(t *testing.T) {
+		t.Parallel()
+
 		initialGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(11),
 			DeveloperFees:   big.NewInt(12),
@@ -1811,6 +1825,8 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		expectedGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees),
 			DeveloperFees:   big.NewInt(0).Sub(finalGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees),

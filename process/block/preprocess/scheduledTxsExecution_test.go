@@ -422,16 +422,22 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 	}
 
 	t.Run("nil maps, empty scheduled scrs", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec.computeScheduledSCRs(nil, nil)
 
 		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
 	})
 	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, nil)
 
 		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
 	})
 	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
+		t.Parallel()
+
 		mapAllIntermediateTxsAfterScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
 			0: {
 				"txHash1": &transaction.Transaction{Nonce: 1},
@@ -446,6 +452,8 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
 	})
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec.computeScheduledSCRs(
 			mapAllIntermediateTxsBeforeScheduledExecution,
 			mapAllIntermediateTxsAfterScheduledExecution,
@@ -471,6 +479,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 	}
 
 	t.Run("not already existing txs, different shard", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
@@ -492,6 +502,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		assert.Equal(t, 2, len(scrsInfo))
 	})
 	t.Run("not already existing txs, same shard", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
@@ -513,6 +525,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		assert.Equal(t, 0, len(scrsInfo))
 	})
 	t.Run("not existing block type, different shard", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
@@ -534,6 +548,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		assert.Equal(t, 2, len(scrsInfo))
 	})
 	t.Run("already existing txs, different shard", func(t *testing.T) {
+		t.Parallel()
+
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
@@ -688,6 +704,8 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 	rootHash := []byte("root hash")
 
 	t.Run("failed to get SCRs saved data from storage", func(t *testing.T) {
+		t.Parallel()
+
 		expectedErr := errors.New("storer err")
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
@@ -701,10 +719,15 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 			&mock.ShardCoordinatorStub{},
 		)
 
-		_, _, _, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
+		scheduledRootHash, txHandlersMap, gasAndFees, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
+		assert.Nil(t, scheduledRootHash)
+		assert.Nil(t, gasAndFees)
+		assert.Nil(t, txHandlersMap)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("failed to unmarshal data", func(t *testing.T) {
+		t.Parallel()
+
 		expectedErr := errors.New("marshaller err")
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
@@ -722,7 +745,10 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 			&mock.ShardCoordinatorStub{},
 		)
 
-		_, _, _, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
+		scheduledRootHash, txHandlersMap, gasAndFees, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
+		assert.Nil(t, scheduledRootHash)
+		assert.Nil(t, gasAndFees)
+		assert.Nil(t, txHandlersMap)
 		assert.Equal(t, expectedErr, err)
 	})
 }
