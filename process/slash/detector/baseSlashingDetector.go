@@ -22,9 +22,9 @@ type MultipleHeaderDetectorArgs struct {
 	HeaderSigVerifier          consensus.HeaderSigVerifier
 }
 
-// minSlashableNoOfHeaders represents the min number of headers required for a
+// minNoOfSlashableHeaders represents the min number of headers required for a
 // proof to be considered slashable
-const minSlashableNoOfHeaders = 2
+const minNoOfSlashableHeaders = 2
 
 // MaxDeltaToCurrentRound represents the max delta from the current round to any
 // other round from an intercepted data in order for a detector to process it and cache it
@@ -46,7 +46,7 @@ func absDiff(x, y uint64) uint64 {
 	return x - y
 }
 
-func getCheckedHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
+func(bsd *baseSlashingDetector) getCheckedHeader(interceptedData process.InterceptedData) (data.HeaderHandler, error) {
 	if check.IfNil(interceptedData) {
 		return nil, process.ErrNilInterceptedData
 	}
@@ -63,6 +63,11 @@ func getCheckedHeader(interceptedData process.InterceptedData) (data.HeaderHandl
 	hash := interceptedHeader.Hash()
 	if hash == nil {
 		return nil, data.ErrNilHash
+	}
+
+	round := header.GetRound()
+	if !bsd.isRoundRelevant(round) {
+		return nil, process.ErrHeaderRoundNotRelevant
 	}
 
 	return header, nil
@@ -95,9 +100,9 @@ func getHeaderHandlers(headersInfo []data.HeaderInfoHandler) []data.HeaderHandle
 func computeSlashLevelBasedOnHeadersCount(headers []data.HeaderHandler) coreSlash.ThreatLevel {
 	ret := coreSlash.Zero
 
-	if len(headers) == minSlashableNoOfHeaders {
+	if len(headers) == minNoOfSlashableHeaders {
 		ret = coreSlash.Medium
-	} else if len(headers) >= minSlashableNoOfHeaders+1 {
+	} else if len(headers) >= minNoOfSlashableHeaders+1 {
 		ret = coreSlash.High
 	}
 
@@ -108,13 +113,13 @@ func checkThreatLevelBasedOnHeadersCount(headers []data.HeaderHandler, level cor
 	if level < coreSlash.Medium || level > coreSlash.High {
 		return process.ErrInvalidSlashLevel
 	}
-	if len(headers) < minSlashableNoOfHeaders {
+	if len(headers) < minNoOfSlashableHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
-	if len(headers) == minSlashableNoOfHeaders && level != coreSlash.Medium {
+	if len(headers) == minNoOfSlashableHeaders && level != coreSlash.Medium {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
-	if len(headers) > minSlashableNoOfHeaders && level != coreSlash.High {
+	if len(headers) > minNoOfSlashableHeaders && level != coreSlash.High {
 		return process.ErrSlashLevelDoesNotMatchSlashType
 	}
 

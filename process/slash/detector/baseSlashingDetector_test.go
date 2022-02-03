@@ -19,9 +19,8 @@ func TestBaseSlashingDetector_IsRoundRelevant_DifferentRelevantAndIrrelevantRoun
 	t.Parallel()
 
 	round := uint64(100)
-	bsd := baseSlashingDetector{roundHandler: &mock.RoundHandlerMock{
-		RoundIndex: int64(round),
-	}}
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	bsd := baseSlashingDetector{roundHandler: roundHandler}
 
 	tests := []struct {
 		round    func() uint64
@@ -76,7 +75,11 @@ func TestBaseSlashingDetector_IsRoundRelevant_DifferentRelevantAndIrrelevantRoun
 	}
 }
 
-func TestBaseSlashingDetector_CheckAndGetHeader(t *testing.T) {
+func TestBaseSlashingDetector_GetCheckedHeader(t *testing.T) {
+	round := uint64(10000)
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: int64(round)}
+	bsd := baseSlashingDetector{roundHandler: roundHandler}
+
 	tests := []struct {
 		interceptedData process.InterceptedData
 		expectedHeader  data.HeaderHandler
@@ -121,14 +124,19 @@ func TestBaseSlashingDetector_CheckAndGetHeader(t *testing.T) {
 			expectedError:  data.ErrNilHash,
 		},
 		{
-			interceptedData: slashMocks.CreateInterceptedHeaderData(&block.Header{Round: 1}),
-			expectedHeader:  &block.Header{Round: 1},
+			interceptedData: slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round - MaxDeltaToCurrentRound - 1}),
+			expectedHeader:  nil,
+			expectedError:   process.ErrHeaderRoundNotRelevant,
+		},
+		{
+			interceptedData: slashMocks.CreateInterceptedHeaderData(&block.Header{Round: round}),
+			expectedHeader:  &block.Header{Round: round},
 			expectedError:   nil,
 		},
 	}
 
 	for _, test := range tests {
-		header, err := getCheckedHeader(test.interceptedData)
+		header, err := bsd.getCheckedHeader(test.interceptedData)
 		require.Equal(t, test.expectedHeader, header)
 		require.Equal(t, test.expectedError, err)
 	}

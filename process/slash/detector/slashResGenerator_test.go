@@ -77,7 +77,7 @@ func generateSlashableHeaders(
 ) (headers []data.HeaderInfoHandler, signers map[string]struct{}) {
 	consensusGroupSize := len(allMultiSigners)
 	minRequiredSignatures := calcMinRequiredSignatures(consensusGroupSize)
-	bitmapSize := calcBitmapSize(consensusGroupSize)
+	bitmapSize := coreSlash.CalcBitmapSize(consensusGroupSize)
 	maliciousSigners := selectMaliciousSigners(noOfMaliciousSigners, allMultiSigners)
 
 	round := uint64(1)
@@ -120,14 +120,6 @@ func generateSlashableHeaders(
 func calcMinRequiredSignatures(consensusGroupSize int) uint32 {
 	// Min required signatures = 2/3 * consensusGroup + 1
 	return uint32(0.67*float32(consensusGroupSize)) + 1
-}
-
-func calcBitmapSize(consensusGroupSize int) uint32 {
-	bitmapSize := consensusGroupSize / 8
-	if consensusGroupSize%8 != 0 {
-		bitmapSize++
-	}
-	return uint32(bitmapSize)
 }
 
 func selectMaliciousSigners(noOfMaliciousSigners uint32, allMultiSigData map[string]multiSignerData) map[string]struct{} {

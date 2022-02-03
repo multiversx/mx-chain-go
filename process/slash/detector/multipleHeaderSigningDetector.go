@@ -82,16 +82,12 @@ func NewMultipleHeaderSigningDetector(args *MultipleHeaderSigningDetectorArgs) (
 
 // VerifyData - checks if an intercepted data represents a slashable event
 func (mhs *multipleHeaderSigningDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	header, err := getCheckedHeader(interceptedData)
+	header, err := mhs.getCheckedHeader(interceptedData)
 	if err != nil {
 		return nil, err
 	}
 
 	round := header.GetRound()
-	if !mhs.isRoundRelevant(round) {
-		return nil, process.ErrHeaderRoundNotRelevant
-	}
-
 	mhs.cachesMutex.Lock()
 	defer mhs.cachesMutex.Unlock()
 
@@ -200,13 +196,41 @@ func (mhs *multipleHeaderSigningDetector) ValidateProof(proof coreSlash.Slashing
 		return process.ErrNotEnoughPublicKeysProvided
 	}
 
+	err = mhs.checkSignatures(multipleSigningProof.GetAllHeaders())
+	if err != nil {
+		return err
+	}
+
 	for _, signer := range signers {
-		err := mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
+		err = mhs.checkSlashLevel(multipleSigningProof.GetHeaders(signer), multipleSigningProof.GetLevel(signer))
 		if err != nil {
 			return err
 		}
 
 		err = mhs.checkSignedHeaders(signer, multipleSigningProof.GetHeaders(signer))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (mhs *multipleHeaderSigningDetector) checkSignatures(headers []data.HeaderHandler) error {
+	if len(headers) < minNoOfSlashableHeaders {
+		return process.ErrNotEnoughHeadersProvided
+	}
+
+	for _, header := range headers {
+		if check.IfNil(header) {
+			return process.ErrNilHeaderHandler
+		}
+
+		err := mhs.headerSigVerifier.VerifySignature(header)
+		if err != nil {
+			return err
+		}
+		err = mhs.headerSigVerifier.VerifyLeaderSignature(header)
 		if err != nil {
 			return err
 		}
@@ -221,7 +245,7 @@ func (mhs *multipleHeaderSigningDetector) checkSlashLevel(headers slash.HeaderLi
 }
 
 func (mhs *multipleHeaderSigningDetector) checkSignedHeaders(pubKey []byte, headers slash.HeaderList) error {
-	if len(headers) < minSlashableNoOfHeaders {
+	if len(headers) < minNoOfSlashableHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 	if check.IfNil(headers[0]) {
@@ -280,13 +304,10 @@ func (mhs *multipleHeaderSigningDetector) signedHeader(pubKey []byte, header dat
 	bitmap := header.GetPubKeysBitmap()
 	for idx, validator := range group {
 		currPubKey := validator.PubKey()
-
 		samePubKey := bytes.Equal(currPubKey, pubKey)
 		isInConsensusGroup := sliceUtil.IsIndexSetInBitmap(uint32(idx), bitmap)
-		headerSigValid := mhs.headerSigVerifier.VerifySignature(header) == nil
-		leaderSigValid := mhs.headerSigVerifier.VerifyLeaderSignature(header) == nil
 
-		if samePubKey && isInConsensusGroup && headerSigValid && leaderSigValid{
+		if samePubKey && isInConsensusGroup {
 			return true
 		}
 	}

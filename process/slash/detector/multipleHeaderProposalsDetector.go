@@ -64,16 +64,12 @@ func NewMultipleHeaderProposalsDetector(args MultipleHeaderDetectorArgs) (*multi
 // slash.MultipleProposal is provided, otherwise a nil proof, along with an error is provided indicating that
 // no slashing event has been detected or an error occurred verifying the data.
 func (mhp *multipleHeaderProposalsDetector) VerifyData(interceptedData process.InterceptedData) (coreSlash.SlashingProofHandler, error) {
-	header, err := getCheckedHeader(interceptedData)
+	header, err := mhp.getCheckedHeader(interceptedData)
 	if err != nil {
 		return nil, err
 	}
 
 	round := header.GetRound()
-	if !mhp.isRoundRelevant(round) {
-		return nil, process.ErrHeaderRoundNotRelevant
-	}
-
 	proposer, err := mhp.getProposerPubKey(header)
 	if err != nil {
 		return nil, err
@@ -111,7 +107,7 @@ func (mhp *multipleHeaderProposalsDetector) getProposerPubKey(header data.Header
 
 func (mhp *multipleHeaderProposalsDetector) getSlashingResult(currRound uint64, proposerPubKey []byte) *coreSlash.SlashingResult {
 	proposedHeadersInfo := mhp.cache.GetHeaders(currRound, proposerPubKey)
-	if len(proposedHeadersInfo) >= minSlashableNoOfHeaders {
+	if len(proposedHeadersInfo) >= minNoOfSlashableHeaders {
 		headerHandlers := getHeaderHandlers(proposedHeadersInfo)
 		return &coreSlash.SlashingResult{
 			SlashingLevel: mhp.computeSlashLevel(headerHandlers),
@@ -156,7 +152,7 @@ func (mhp *multipleHeaderProposalsDetector) checkThreatLevel(headers []data.Head
 }
 
 func (mhp *multipleHeaderProposalsDetector) checkProposedHeaders(headers []data.HeaderHandler) error {
-	if len(headers) < minSlashableNoOfHeaders {
+	if len(headers) < minNoOfSlashableHeaders {
 		return process.ErrNotEnoughHeadersProvided
 	}
 	if check.IfNil(headers[0]) {
