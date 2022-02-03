@@ -414,6 +414,56 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
+func TestNode_GetESDTDataForNFTShouldWorkForBothMetadataInAccountOrSystemAccount(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken1 := "newToken1"
+	nonce1 := int64(100)
+	esdtKey1 := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken1 + string(big.NewInt(100).Bytes()))
+
+	esdtData1 := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: 100}}
+	marshalledData1, _ := getMarshalizer().Marshal(esdtData1)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey1, marshalledData1)
+
+	acc2, _ := state.NewUserAccount(core.SystemAccountAddress)
+	esdtToken2 := "newToken2"
+	nonce2 := int64(101)
+	esdtKey2 := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken2 + string(big.NewInt(101).Bytes()))
+
+	esdtData2WithoutMetaData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10)}
+	marshalledData2, _ := getMarshalizer().Marshal(esdtData2WithoutMetaData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey2, marshalledData2)
+
+	esdtData2WithMetaData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: 101}}
+	marshalledData2, _ = getMarshalizer().Marshal(esdtData2WithMetaData)
+	_ = acc2.DataTrieTracker().SaveKeyValue(esdtKey2, marshalledData2)
+
+	accDB := &stateMock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		if bytes.Compare(address, core.SystemAccountAddress) == 0 {
+			return acc2, nil
+		}
+
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken1, uint64(nonce1))
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData1.TokenMetaData.Nonce, esdtTokenData.TokenMetaData.Nonce)
+
+	esdtTokenData2, err := n.GetESDTData(createDummyHexAddress(64), esdtToken2, uint64(nonce2))
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData2WithMetaData.TokenMetaData.Nonce, esdtTokenData2.TokenMetaData.Nonce)
+}
+
 func TestNode_GetAllESDTTokens(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := "newToken"
@@ -499,7 +549,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftKey = append(nftKey, nftNonce.Bytes()...)
 	nftSuffix := append(nftKey, acc.AddressBytes()...)
 
-	nftData := &esdt.ESDigitalToken{Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
+	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
 	acc.DataTrieTracker().SetDataTrie(
@@ -563,6 +613,108 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	expectedNftFormattedKey := "TCKR-67tgv3-01"
 	assert.NotNil(t, tokens[expectedNftFormattedKey])
 	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
+func TestNode_GetAllESDTTokensShouldReturnNftWithMetaDataFromBothAccountAndSystemAccount(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	nftToken1 := "TCKR-67tgv3"
+	nftNonce1 := big.NewInt(1)
+	nftKey1 := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken1)
+	nftKey1 = append(nftKey1, nftNonce1.Bytes()...)
+	nftSuffix1 := append(nftKey1, acc.AddressBytes()...)
+
+	nftToken2 := "TCKR-67tgv3"
+	nftNonce2 := big.NewInt(2)
+	nftKey2 := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken2)
+	nftKey2 = append(nftKey2, nftNonce2.Bytes()...)
+	nftSuffix2 := append(nftKey2, acc.AddressBytes()...)
+
+	sysAccount, _ := state.NewUserAccount(core.SystemAccountAddress)
+
+	nftEsDigitalToken := esdt.ESDigitalToken{
+		TokenMetaData: &esdt.MetaData{
+			Nonce: nftNonce2.Uint64(),
+		},
+	}
+	marshalledNft, _ := getMarshalizer().Marshal(nftEsDigitalToken)
+	_ = sysAccount.DataTrieTracker().SaveKeyValue(nftKey2, marshalledNft)
+
+	hexAddress := createDummyHexAddress(64)
+
+	nftData1 := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce1.Uint64()}}
+	nftData2 := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10)}
+	marshalledNftData1, _ := getMarshalizer().Marshal(nftData1)
+	marshalledNftData2, _ := getMarshalizer().Marshal(nftData2)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder, 2)
+
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(nftKey1, append(marshalledNftData1, nftSuffix1...))
+					ch <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(nftKey2, append(marshalledNftData2, nftSuffix2...))
+					ch <- trieLeaf
+
+					wg.Done()
+					close(ch)
+				}()
+
+				wg.Wait()
+
+				return ch, nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		if bytes.Compare(address, core.SystemAccountAddress) == 0 {
+			return sysAccount, nil
+		}
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	tokens, err := n.GetAllESDTTokens(hexAddress)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(tokens))
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey1 := "TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey1])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey1].TokenMetaData.Nonce)
+
+	expectedNftFormattedKey2 := "TCKR-67tgv3-02"
+	assert.NotNil(t, tokens[expectedNftFormattedKey2])
+	assert.Equal(t, uint64(2), tokens[expectedNftFormattedKey2].TokenMetaData.Nonce)
 }
 
 func TestNode_GetAllIssuedESDTs(t *testing.T) {

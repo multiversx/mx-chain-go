@@ -371,6 +371,25 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 		return nil, err
 	}
 
+	if core.ESDTType(esdtToken.Type) != core.Fungible {
+		if esdtToken.TokenMetaData == nil {
+			// TODO: analyze why n.getSystemAccount() doesn't work here. The difference is that here we use AccountsAdapter
+			// and in that function AccountsAdapterAPI is used
+
+			sysAcc, err := n.stateComponents.AccountsAdapter().GetExistingAccount(vmcommon.SystemAccountAddress)
+			if err != nil {
+				return nil, err
+			}
+
+			systemAccount, ok := sysAcc.(state.UserAccountHandler)
+			if !ok {
+				return nil, ErrAccountNotFound
+			}
+
+			esdtToken.TokenMetaData = n.getMetaDataFromSystemAccount(systemAccount, []byte(tokenKey))
+		}
+	}
+
 	if esdtToken.TokenMetaData != nil {
 		esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
 	}
@@ -531,12 +550,15 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 	if err != nil {
 		return nil, err
 	}
+
+	var systemAccount state.UserAccountHandler
 	for leaf := range chLeaves {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
 		}
 
-		tokenName := string(leaf.Key()[lenESDTPrefix:])
+		tokenKey := leaf.Key()
+		tokenName := string(tokenKey[lenESDTPrefix:])
 		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 
 		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
@@ -552,7 +574,24 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 			continue
 		}
 
-		if esdtToken.TokenMetaData != nil {
+		if core.ESDTType(esdtToken.Type) != core.Fungible {
+			if esdtToken.TokenMetaData == nil {
+				// in older versions, metadata was kept under the account. otherwise, it is to be be found under the
+				// system account
+				if check.IfNil(systemAccount) { // first hit
+					systemAccount, err = n.getSystemAccount()
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				esdtToken.TokenMetaData = n.getMetaDataFromSystemAccount(systemAccount, tokenKey)
+				if esdtToken.TokenMetaData == nil {
+					log.Warn("cannot get metadata from system account", "token name", tokenName, "error", err)
+					continue
+				}
+			}
+
 			esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
@@ -580,6 +619,35 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 		hex.EncodeToString(nonceBytes))
 
 	return formattedTokenIdentifier
+}
+
+func (n *Node) getSystemAccount() (state.UserAccountHandler, error) {
+	systemSCAccount, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(vmcommon.SystemAccountAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAcc, ok := systemSCAccount.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	return userAcc, nil
+}
+
+func (n *Node) getMetaDataFromSystemAccount(sysAccount state.UserAccountHandler, tokenKey []byte) *esdt.MetaData {
+	marshaledData, err := sysAccount.DataTrieTracker().RetrieveValue(tokenKey)
+	if err != nil || len(marshaledData) == 0 {
+		return nil
+	}
+
+	esdtData := &esdt.ESDigitalToken{}
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtData, marshaledData)
+	if err != nil {
+		return nil
+	}
+
+	return esdtData.TokenMetaData
 }
 
 func (n *Node) getAccountHandler(address string) (vmcommon.AccountHandler, error) {
