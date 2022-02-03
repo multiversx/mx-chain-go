@@ -23,12 +23,9 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	return resolvers.ArgMiniblockResolver{
-		SenderResolver:   &mock.TopicResolverSenderStub{},
+		ArgBaseResolver:  createMockArgBaseResolver(),
 		MiniBlockPool:    testscommon.NewCacherStub(),
 		MiniBlockStorage: &storageStubs.StorerStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		Throttler:        &mock.ThrottlerStub{},
 		DataPacker:       &mock.DataPackerStub{},
 	}
 }

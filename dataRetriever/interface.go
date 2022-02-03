@@ -153,6 +153,12 @@ type MiniBlocksResolver interface {
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
+// PeerAuthenticationResolver defines what a peer authentication resolver should do
+type PeerAuthenticationResolver interface {
+	Resolver
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+}
+
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error

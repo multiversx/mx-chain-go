@@ -23,11 +23,8 @@ var fromConnectedPeer = core.PeerID("from connected peer")
 
 func createMockArgTrieNodeResolver() resolvers.ArgTrieNodeResolver {
 	return resolvers.ArgTrieNodeResolver{
-		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TrieDataGetter:   &trieMock.TrieStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		Throttler:        &mock.ThrottlerStub{},
+		ArgBaseResolver: createMockArgBaseResolver(),
+		TrieDataGetter:  &trieMock.TrieStub{},
 	}
 }
 

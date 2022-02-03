@@ -220,3 +220,12 @@ var ErrNilPathManager = errors.New("nil path manager")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
+var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
+
+// ErrNilHeartbeatPool signals that a nil heartbeat pool has been provided
+var ErrNilHeartbeatPool = errors.New("nil heartbeat pool")
+
+// ErrNotFound signals that a data is missing
+var ErrNotFound = errors.New("data not found")
