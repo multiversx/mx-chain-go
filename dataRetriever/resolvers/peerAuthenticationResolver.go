@@ -11,7 +11,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -23,7 +22,6 @@ type ArgPeerAuthenticationResolver struct {
 	ArgBaseResolver
 	PeerAuthenticationPool storage.Cacher
 	DataPacker             dataRetriever.DataPacker
-	PeerShardMapper        process.PeerShardMapper
 }
 
 // peerAuthenticationResolver is a wrapper over Resolver that is specialized in resolving peer authentication requests
@@ -32,7 +30,6 @@ type peerAuthenticationResolver struct {
 	messageProcessor
 	peerAuthenticationPool storage.Cacher
 	dataPacker             dataRetriever.DataPacker
-	peerShardMapper        process.PeerShardMapper
 }
 
 // NewPeerAuthenticationResolver creates a peer authentication resolver
@@ -54,7 +51,6 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 		},
 		peerAuthenticationPool: arg.PeerAuthenticationPool,
 		dataPacker:             arg.DataPacker,
-		peerShardMapper:        arg.PeerShardMapper,
 	}, nil
 }
 
@@ -68,9 +64,6 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	}
 	if check.IfNil(arg.DataPacker) {
 		return dataRetriever.ErrNilDataPacker
-	}
-	if check.IfNil(arg.PeerShardMapper) {
-		return process.ErrNilPeerShardMapper
 	}
 	return nil
 }
