@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	coreSlash "github.com/ElrondNetwork/elrond-go-core/data/slash"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
@@ -38,18 +39,18 @@ func TestNewSlashingNotifier(t *testing.T) {
 		{
 			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
-				args.PrivateKey = nil
+				args.KeyPairs = nil
 				return args
 			},
-			expectedErr: crypto.ErrNilPrivateKey,
+			expectedErr: process.ErrNilKeyPairs,
 		},
 		{
 			args: func() *notifier.SlashingNotifierArgs {
 				args := generateSlashingNotifierArgs()
-				args.PublicKey = nil
+				args.KeyPairs = make(map[uint32]notifier.KeyPair)
 				return args
 			},
-			expectedErr: crypto.ErrNilPublicKey,
+			expectedErr: process.ErrNotEnoughKeyPairs,
 		},
 		{
 			args: func() *notifier.SlashingNotifierArgs {
@@ -93,6 +94,14 @@ func TestNewSlashingNotifier(t *testing.T) {
 		},
 		{
 			args: func() *notifier.SlashingNotifierArgs {
+				args := generateSlashingNotifierArgs()
+				args.ShardCoordinator = nil
+				return args
+			},
+			expectedErr: process.ErrNilShardCoordinator,
+		},
+		{
+			args: func() *notifier.SlashingNotifierArgs {
 				return generateSlashingNotifierArgs()
 			},
 			expectedErr: nil,
@@ -108,12 +117,20 @@ func TestNewSlashingNotifier(t *testing.T) {
 func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidPubKey_ExpectError(t *testing.T) {
 	args := generateSlashingNotifierArgs()
 	errPubKey := errors.New("pub key error")
-	args.PublicKey = &cryptoMocks.PublicKeyStub{
+
+	pubKey := &cryptoMocks.PublicKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
 			return nil, errPubKey
 		},
 	}
-
+	keyPair := notifier.KeyPair{
+		PublicKey:  pubKey,
+		PrivateKey: &mock.PrivateKeyMock{},
+	}
+	keyPairs := map[uint32]notifier.KeyPair{
+		0: keyPair,
+	}
+	args.KeyPairs = keyPairs
 	sn, _ := notifier.NewSlashingNotifier(args)
 	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
 	require.Nil(t, tx)
@@ -222,6 +239,83 @@ func TestSlashingNotifier_CreateShardSlashingTransaction_InvalidTxSignature_Expe
 	require.Equal(t, errSign, err)
 }
 
+func TestSlashingNotifier_CreateShardSlashingTransaction_SelectKeyPairFromDifferentShard(t *testing.T) {
+	shardID1 := uint32(1)
+	shardID2 := uint32(2)
+
+	pubKey1 := []byte("pubKey1")
+	pubKey2 := []byte("pubKey2")
+
+	flagPublicKey1 := atomic.Flag{}
+	flagPublicKey2 := atomic.Flag{}
+
+	privateKey1 := &mock.PrivateKeyMock{}
+	publicKey1 := &mock.PublicKeyMock{
+		ToByteArrayCalled: func() ([]byte, error) {
+			flagPublicKey1.Set()
+			return pubKey1, nil
+		},
+	}
+	keyPair1 := notifier.KeyPair{
+		PrivateKey: privateKey1,
+		PublicKey:  publicKey1,
+	}
+
+	privateKey2 := &mock.PrivateKeyMock{}
+	publicKey2 := &mock.PublicKeyMock{
+		ToByteArrayCalled: func() ([]byte, error) {
+			flagPublicKey2.Set()
+			return pubKey2, nil
+		},
+	}
+	keyPair2 := notifier.KeyPair{
+		PrivateKey: privateKey2,
+		PublicKey:  publicKey2,
+	}
+
+	keyPairs := map[uint32]notifier.KeyPair{
+		shardID1: keyPair1,
+		shardID2: keyPair2,
+	}
+
+	shardCoordinator := &testscommon.ShardsCoordinatorMock{
+		SelfIDCalled: func() uint32 {
+			return shardID1
+		},
+	}
+	signer := &mockIntegration.SignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			require.True(t, privateKey2 == private)
+			return []byte("signature"), nil
+		},
+	}
+
+	expectedAccount := &mockGenesis.BaseAccountMock{
+		Nonce:             123456,
+		AddressBytesField: []byte("accPubKey2"),
+	}
+	accountAdapter := &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, pubKey2, addressContainer)
+			return expectedAccount, nil
+		},
+	}
+
+	args := generateSlashingNotifierArgs()
+	args.Signer = signer
+	args.KeyPairs = keyPairs
+	args.AccountAdapter = accountAdapter
+	args.ShardCoordinator = shardCoordinator
+
+	sn, _ := notifier.NewSlashingNotifier(args)
+	tx, err := sn.CreateShardSlashingTransaction(&slashMocks.MultipleHeaderProposalProofStub{})
+	require.Nil(t, err)
+	require.Equal(t, expectedAccount.GetNonce(), tx.GetNonce())
+	require.Equal(t, expectedAccount.AddressBytes(), tx.GetSndAddr())
+	require.False(t, flagPublicKey1.IsSet())
+	require.True(t, flagPublicKey2.IsSet())
+}
+
 func TestSlashingNotifier_CreateShardSlashingTransaction_MultipleProposalProof(t *testing.T) {
 	round := uint64(100000)
 	shardID := uint32(2)
@@ -307,14 +401,27 @@ func generateSlashingNotifierArgs() *notifier.SlashingNotifierArgs {
 			return nil, nil
 		},
 	}
+	shardID := uint32(0)
+	shardCoordinatorMock := &testscommon.ShardsCoordinatorMock{
+		SelfIDCalled: func() uint32 {
+			return shardID
+		},
+	}
+	keyPair := notifier.KeyPair{
+		PrivateKey: &mock.PrivateKeyMock{},
+		PublicKey:  &mock.PublicKeyMock{},
+	}
+	keyPairs := map[uint32]notifier.KeyPair{
+		shardID: keyPair,
+	}
 
 	return &notifier.SlashingNotifierArgs{
-		PrivateKey:      &mock.PrivateKeyMock{},
-		PublicKey:       &mock.PublicKeyMock{},
-		PubKeyConverter: &testscommon.PubkeyConverterMock{},
-		Signer:          &mockIntegration.SignerMock{},
-		AccountAdapter:  accountsAdapter,
-		Hasher:          &hashingMocks.HasherMock{},
-		Marshaller:      marshaller,
+		KeyPairs:         keyPairs,
+		PubKeyConverter:  &testscommon.PubkeyConverterMock{},
+		Signer:           &mockIntegration.SignerMock{},
+		AccountAdapter:   accountsAdapter,
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshaller:       marshaller,
+		ShardCoordinator: shardCoordinatorMock,
 	}
 }

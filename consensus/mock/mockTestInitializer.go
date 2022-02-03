@@ -118,10 +118,10 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 		return []byte("byteArray"), nil
 	}
 	privKeyMock := &PrivateKeyMock{
-		ToByteArrayMock: toByteArrayMock,
+		ToByteArrayCalled: toByteArrayMock,
 	}
 	pubKeyMock := &PublicKeyMock{
-		ToByteArrayMock: toByteArrayMock,
+		ToByteArrayCalled: toByteArrayMock,
 	}
 	privKeyFromByteArr := func(b []byte) (crypto.PrivateKey, error) {
 		return privKeyMock, nil
