@@ -813,7 +813,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFees(t *t
 		Scrs: map[int32]scheduled.SmartContractResults{
 			0: {
 				TxHandlers: []*smartContractResult.SmartContractResult{
-					&smartContractResult.SmartContractResult{
+					{
 						Nonce: 1,
 					},
 				},
