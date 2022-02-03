@@ -935,7 +935,8 @@ func (boot *baseBootstrap) restoreState(
 ) {
 	log.Debug("revert state to header",
 		"nonce", currHeader.GetNonce(),
-		"hash", currHeaderHash)
+		"hash", currHeaderHash,
+		"current root hash", currRootHash)
 
 	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(currHeader, currRootHash)
 	if err != nil {

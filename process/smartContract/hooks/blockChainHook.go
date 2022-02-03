@@ -698,7 +698,7 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("blockchainHookImpl optimize nft metadata store", "enabled", bh.flagOptimizeNFTStore.IsSet())
 
 	bh.flagDoNotReturnOldBlock.SetValue(epoch >= bh.doNotReturnOldBlockEnableEpoch)
-	log.Debug("blockchainHook: do not return old block", "enabled", bh.flagDoNotReturnOldBlock.IsSet())
+	log.Debug("blockchainHookImpl: do not return old block", "enabled", bh.flagDoNotReturnOldBlock.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
