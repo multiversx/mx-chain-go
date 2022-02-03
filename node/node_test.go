@@ -439,7 +439,7 @@ func TestNode_GetESDTDataForNFTShouldWorkForBothMetadataInAccountOrSystemAccount
 
 	accDB := &stateMock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		if bytes.Compare(address, core.SystemAccountAddress) == 0 {
+		if bytes.Equal(address, core.SystemAccountAddress) {
 			return acc2, nil
 		}
 
@@ -680,7 +680,7 @@ func TestNode_GetAllESDTTokensShouldReturnNftWithMetaDataFromBothAccountAndSyste
 		},
 	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		if bytes.Compare(address, core.SystemAccountAddress) == 0 {
+		if bytes.Equal(address, core.SystemAccountAddress) {
 			return sysAccount, nil
 		}
 		return acc, nil
