@@ -299,10 +299,11 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
-	// TODO decide here, in this PR if we should use the block's root hash or the committed root hash from the chain handler
-	if !check.IfNil(bh.blockChain.GetCurrentBlockHeader()) {
-		return bh.blockChain.GetCurrentBlockHeader().GetRootHash()
+	rootHash := bh.blockChain.GetCurrentBlockRootHash()
+	if len(rootHash) > 0 {
+		return rootHash
 	}
+
 	return []byte{}
 }
 

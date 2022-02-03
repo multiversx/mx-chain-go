@@ -406,6 +406,9 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
 		},
+		GetCurrentBlockRootHashCalled: func() []byte {
+			return hdrToRet.RootHash
+		},
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
