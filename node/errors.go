@@ -76,6 +76,9 @@ var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
 // ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")
 
+// ErrNilESDTNFTStorageHandler signals that a nil esdt and nft storage handler has been provided
+var ErrNilESDTNFTStorageHandler = errors.New("nil esdt and nft storage handler")
+
 // ErrNilQueryHandler signals that a nil query handler has been provided
 var ErrNilQueryHandler = errors.New("nil query handler")
 
@@ -144,3 +147,6 @@ var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on met
 
 // ErrCannotCastAccountHandlerToUserAccountHandler signals that an account handler cannot be cast to user account handler
 var ErrCannotCastAccountHandlerToUserAccountHandler = errors.New("cannot cast account handler to user account handler")
+
+// ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler signals that an user account handler cannot be cast to vm common user account handler
+var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("cannot cast user account handler to vm common user account handler")

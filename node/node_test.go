@@ -3787,3 +3787,27 @@ func TestGetESDTSupply(t *testing.T) {
 		Minted: "15",
 	}, supply)
 }
+
+func TestExtractTokenIDAndNonceFromTokenKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("regular esdt, should work", func(t *testing.T) {
+		t.Parallel()
+
+		id := "ALC-1q2w3e"
+		tokenName, nonce := node.ExtractTokenIDAndNonceFromTokenKey([]byte(id))
+		require.Equal(t, uint64(0), nonce)
+		require.Equal(t, []byte(id), tokenName)
+	})
+
+	t.Run("non fungible, should work", func(t *testing.T) {
+		t.Parallel()
+
+		nonceBI := big.NewInt(37)
+		id := "ALC-1q2w3e"
+		tokenKey := id + string(nonceBI.Bytes())
+		tokenName, nonce := node.ExtractTokenIDAndNonceFromTokenKey([]byte(tokenKey))
+		require.Equal(t, nonceBI.Uint64(), nonce)
+		require.Equal(t, []byte(id), tokenName)
+	})
+}

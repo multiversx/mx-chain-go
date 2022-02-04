@@ -73,6 +73,7 @@ type Node struct {
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	hardforkTrigger     HardforkTrigger
+	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
 
 	consensusType string
 
@@ -328,34 +329,15 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 		return nil, err
 	}
 
-	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID
-	if nonce > 0 {
-		tokenKey += string(big.NewInt(0).SetUint64(nonce).Bytes())
+	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+	if !ok {
+		return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
-	dataBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
-	if err != nil || len(dataBytes) == 0 {
-		return esdtToken, nil
-	}
-
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, dataBytes)
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
+	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
 	if err != nil {
 		return nil, err
-	}
-
-	if core.ESDTType(esdtToken.Type) != core.Fungible {
-		if esdtToken.TokenMetaData == nil {
-			// TODO: analyze why n.getSystemAccount() doesn't work here. The difference is that here we use AccountsAdapter
-			// and in that function AccountsAdapterAPI is used
-
-			systemAccount, err := n.getAccountHandlerForPubKey(core.SystemAccountAddress)
-			if err != nil {
-				return nil, err
-			}
-
-			esdtToken.TokenMetaData = n.getMetaDataFromSystemAccount(systemAccount, []byte(tokenKey))
-		}
 	}
 
 	if esdtToken.TokenMetaData != nil {
@@ -509,7 +491,6 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		return nil, err
 	}
 
-	var systemAccount state.UserAccountHandler
 	for leaf := range chLeaves {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
@@ -519,37 +500,27 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		tokenName := string(tokenKey[lenESDTPrefix:])
 		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
+		userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+		if !ok {
+			return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
-		err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+		if strings.Contains(tokenName, "EGLDRIDEF-2bb26a") {
+			fmt.Println("here")
+		}
+
+		tokenID, nonce := extractTokenIDAndNonceFromTokenKey([]byte(tokenName))
+
+		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+		// sending the nonce as 0 will work for both fungible and non fungible tokens because the key is already im the
+		// format the function expects it.
+		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
 		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
 			continue
 		}
 
-		if core.ESDTType(esdtToken.Type) != core.Fungible {
-			if esdtToken.TokenMetaData == nil {
-				// in older versions, metadata was kept under the account. otherwise, it is to be be found under the
-				// system account
-				if check.IfNil(systemAccount) { // first hit
-					systemAccount, err = n.getSystemAccount()
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				esdtToken.TokenMetaData = n.getMetaDataFromSystemAccount(systemAccount, tokenKey)
-				if esdtToken.TokenMetaData == nil {
-					log.Warn("cannot get metadata from system account", "token name", tokenName, "error", err)
-					continue
-				}
-			}
-
+		if esdtToken.TokenMetaData != nil {
 			esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
@@ -558,6 +529,29 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 	}
 
 	return allESDTs, nil
+}
+
+func extractTokenIDAndNonceFromTokenKey(tokenKey []byte) ([]byte, uint64) {
+	// ALC-1q2w3e for fungible
+	// ALC-2w3e4rX for non fungible
+	token := string(tokenKey)
+	splitToken := strings.Split(token, "-")
+	if len(splitToken) < 2 {
+		return tokenKey, 0
+	}
+
+	if len(splitToken[1]) < esdtTickerNumChars + 1 {
+		return tokenKey, 0
+	}
+
+	// ALC-1q2w3eX - X is the nonce
+	nonceStr := splitToken[1][esdtTickerNumChars:]
+	nonceBigInt := big.NewInt(0).SetBytes([]byte(nonceStr))
+
+	numCharsSinceNonce := len(token) - len(nonceStr)
+	tokenID := token[:numCharsSinceNonce]
+
+	return []byte(tokenID), nonceBigInt.Uint64()
 }
 
 func adjustNftTokenIdentifier(token string, nonce uint64) string {
