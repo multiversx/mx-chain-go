@@ -48,10 +48,15 @@ func (accountsDB *accountsDBApi) recreateTrieIfNecessary() error {
 		return nil
 	}
 
+	return accountsDB.doRecreateTrie(targetRootHash)
+}
+
+func (accountsDB *accountsDBApi) doRecreateTrie(targetRootHash []byte) error {
 	accountsDB.mutLastRootHash.Lock()
 	defer accountsDB.mutLastRootHash.Unlock()
 
-	// eliminate possible multiple re-entrances here
+	// early exit for possible multiple re-entrances here
+	lastRootHash := accountsDB.lastRootHash
 	if bytes.Equal(lastRootHash, targetRootHash) {
 		return nil
 	}

@@ -141,6 +141,24 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 	})
 }
 
+func TestAccountsDBAPi_doRecreateTrieWhenReEntranceHappened(t *testing.T) {
+	t.Parallel()
+
+	targetRootHash := []byte("root hash")
+	numCalled := 0
+	accountsAdapter := &mockState.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			numCalled++
+			return nil
+		},
+	}
+
+	accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, &testscommon.ChainHandlerStub{})
+	assert.Nil(t, accountsApi.DoRecreateTrie(targetRootHash))
+	assert.Nil(t, accountsApi.DoRecreateTrie(targetRootHash))
+	assert.Equal(t, 1, numCalled)
+}
+
 func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	t.Parallel()
 
