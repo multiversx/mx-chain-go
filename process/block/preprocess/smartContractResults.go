@@ -243,6 +243,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	log.Debug("smartContractResults.ProcessBlockTransactions: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", scr.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
 		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
 	)
@@ -252,6 +253,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 			"num scrs processed", numSCRsProcessed,
 			"total gas provided", scr.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
 			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
 		)
@@ -541,6 +543,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", scr.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
 		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
 	)
@@ -550,6 +553,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 			"num scrs processed", numSCRsProcessed,
 			"total gas provided", scr.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
 			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
 		)
