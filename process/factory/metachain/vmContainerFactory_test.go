@@ -37,7 +37,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		},
 		PubkeyConv:         mock.NewPubkeyConverterMock(32),
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainStub{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},

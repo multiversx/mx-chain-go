@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -24,13 +25,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-//TODO increase code coverage
+// TODO increase code coverage
 
 func createMockArguments() ArgNodeFacade {
 	return ArgNodeFacade{
@@ -56,11 +58,18 @@ func createMockArguments() ArgNodeFacade {
 		}},
 		AccountsState: &stateMock.AccountsStub{},
 		PeerState:     &stateMock.AccountsStub{},
-		Blockchain:    &mock.ChainHandlerStub{},
+		Blockchain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 	}
 }
 
-//------- NewNodeFacade
+// ------- NewNodeFacade
 
 func TestNewNodeFacade_WithNilNodeShouldErr(t *testing.T) {
 	t.Parallel()
@@ -138,7 +147,7 @@ func TestNewNodeFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Methods
+// ------- Methods
 
 func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) {
 	t.Parallel()
@@ -603,7 +612,7 @@ func TestNodeFacade_GetThrottlerForEndpointNoConfigShouldReturnNilAndFalse(t *te
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} //ensure it is empty
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} // ensure it is empty
 	nf, _ := NewNodeFacade(arg)
 
 	thr, ok := nf.GetThrottlerForEndpoint("any-endpoint")
@@ -870,12 +879,12 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 	assert.True(t, called)
 }
 
-func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
+func TestNodeFacade_GetProofCurrentRootHashIsEmptyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.Blockchain = &mock.ChainHandlerStub{
-		GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+	arg.Blockchain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}
@@ -883,7 +892,7 @@ func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
 
 	response, err := nf.GetProofCurrentRootHash("addr")
 	assert.Nil(t, response)
-	assert.Equal(t, ErrNilBlockHeader, err)
+	assert.Equal(t, ErrEmptyRootHash, err)
 }
 
 func TestNodeFacade_GetProof(t *testing.T) {

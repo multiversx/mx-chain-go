@@ -14,6 +14,7 @@ var _ data.ChainHandler = (*blockChain)(nil)
 // The BlockChain also holds pointers to the Genesis block header and the current block
 type blockChain struct {
 	*baseBlockChain
+	currentBlockRootHash []byte
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -49,11 +50,12 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeader sets current block header pointer
-func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		bc.mut.Lock()
 		bc.currentBlockHeader = nil
+		bc.currentBlockRootHash = nil
 		bc.mut.Unlock()
 
 		return nil
@@ -69,9 +71,24 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 
 	bc.mut.Lock()
 	bc.currentBlockHeader = h.ShallowClone()
+	bc.currentBlockRootHash = make([]byte, len(rootHash))
+	copy(bc.currentBlockRootHash, rootHash)
 	bc.mut.Unlock()
 
 	return nil
+}
+
+// GetCurrentBlockRootHash returns the current committed block root hash. The returned byte slice is a new copy
+// of the contained root hash.
+func (bc *blockChain) GetCurrentBlockRootHash() []byte {
+	bc.mut.RLock()
+	rootHash := bc.currentBlockRootHash
+	bc.mut.RUnlock()
+
+	cloned := make([]byte, len(rootHash))
+	copy(cloned, rootHash)
+
+	return cloned
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
