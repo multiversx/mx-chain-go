@@ -283,7 +283,7 @@ func createConsensusOnlyNode(
 	blockChain := createTestBlockChain()
 	blockProcessor := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 			return nil
 		},
 		RevertCurrentBlockCalled: func() {
@@ -307,7 +307,7 @@ func createConsensusOnlyNode(
 
 	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
-		_ = blockChain.SetCurrentBlockHeader(header)
+		_ = blockChain.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
@@ -452,6 +452,7 @@ func createConsensusOnlyNode(
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
 	stateComponents.Accounts = accntAdapter
+	stateComponents.AccountsAPI = accntAdapter
 
 	networkComponents := integrationTests.GetDefaultNetworkComponents()
 	networkComponents.Messenger = messenger

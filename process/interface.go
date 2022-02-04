@@ -705,6 +705,7 @@ type GasHandler interface {
 	GasPenalized(hash []byte) uint64
 	TotalGasProvided() uint64
 	TotalGasProvidedAsScheduled() uint64
+	TotalGasProvidedWithScheduled() uint64
 	TotalGasRefunded() uint64
 	TotalGasPenalized() uint64
 	RemoveGasProvided(hashes [][]byte)
