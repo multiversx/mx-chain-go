@@ -2,7 +2,6 @@ package disabled
 
 type disabledGlobalSettingsHandler struct{}
 
-
 // NewDisabledGlobalSettingHandler returns a new instance of disabledGlobalSettingsHandler
 func NewDisabledGlobalSettingHandler() *disabledGlobalSettingsHandler {
 	return &disabledGlobalSettingsHandler{}

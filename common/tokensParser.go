@@ -20,7 +20,7 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 		return tokenKey, 0
 	}
 
-	if len(splitToken[1]) < esdtTickerNumRandChars+ 1 {
+	if len(splitToken[1]) < esdtTickerNumRandChars+1 {
 		return tokenKey, 0
 	}
 
