@@ -29,4 +29,13 @@ func TestExtractTokenIDAndNonceFromTokenStorageKey(t *testing.T) {
 		require.Equal(t, nonceBI.Uint64(), nonce)
 		require.Equal(t, []byte(id), tokenName)
 	})
+
+	t.Run("invalid key, should return provided key", func(t *testing.T) {
+		t.Parallel()
+
+		id := "INVALID_KEY"
+		tokenName, nonce := ExtractTokenIDAndNonceFromTokenStorageKey([]byte(id))
+		require.Equal(t, uint64(0), nonce)
+		require.Equal(t, []byte(id), tokenName)
+	})
 }
