@@ -41,8 +41,3 @@ func (n *Node) GetClosableComponentName(component factory.Closer, index int) str
 func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
 	return n.getProof(rootHash, key)
 }
-
-// ExtractTokenIDAndNonceFromTokenKey -
-func ExtractTokenIDAndNonceFromTokenKey(tokenKey []byte) ([]byte, uint64) {
-	return extractTokenIDAndNonceFromTokenKey(tokenKey)
-}

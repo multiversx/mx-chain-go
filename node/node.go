@@ -505,11 +505,7 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 			return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
-		if strings.Contains(tokenName, "EGLDRIDEF-2bb26a") {
-			fmt.Println("here")
-		}
-
-		tokenID, nonce := extractTokenIDAndNonceFromTokenKey([]byte(tokenName))
+		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
 		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
@@ -529,29 +525,6 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 	return allESDTs, nil
 }
 
-func extractTokenIDAndNonceFromTokenKey(tokenKey []byte) ([]byte, uint64) {
-	// ALC-1q2w3e for fungible
-	// ALC-2w3e4rX for non fungible
-	token := string(tokenKey)
-	splitToken := strings.Split(token, "-")
-	if len(splitToken) < 2 {
-		return tokenKey, 0
-	}
-
-	if len(splitToken[1]) < esdtTickerNumChars + 1 {
-		return tokenKey, 0
-	}
-
-	// ALC-1q2w3eX - X is the nonce
-	nonceStr := splitToken[1][esdtTickerNumChars:]
-	nonceBigInt := big.NewInt(0).SetBytes([]byte(nonceStr))
-
-	numCharsSinceNonce := len(token) - len(nonceStr)
-	tokenID := token[:numCharsSinceNonce]
-
-	return []byte(tokenID), nonceBigInt.Uint64()
-}
-
 func adjustNftTokenIdentifier(token string, nonce uint64) string {
 	splitToken := strings.Split(token, "-")
 	if len(splitToken) < 2 {
@@ -569,25 +542,6 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 		hex.EncodeToString(nonceBytes))
 
 	return formattedTokenIdentifier
-}
-
-func (n *Node) getSystemAccount() (state.UserAccountHandler, error) {
-	return n.getAccountHandlerForPubKey(core.SystemAccountAddress)
-}
-
-func (n *Node) getMetaDataFromSystemAccount(sysAccount state.UserAccountHandler, tokenKey []byte) *esdt.MetaData {
-	marshaledData, err := sysAccount.DataTrieTracker().RetrieveValue(tokenKey)
-	if err != nil || len(marshaledData) == 0 {
-		return nil
-	}
-
-	esdtData := &esdt.ESDigitalToken{}
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtData, marshaledData)
-	if err != nil {
-		return nil
-	}
-
-	return esdtData.TokenMetaData
 }
 
 func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
