@@ -391,6 +391,7 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
 		txHash := miniBlock.TxHashes[i]
+		log.Debug("got txhash in miniblock", "hash", txHash)
 		txs.txsForCurrBlock.mutTxsForBlock.RLock()
 		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 		txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
@@ -580,6 +581,10 @@ func (txs *transactions) processTxsFromMe(
 	}
 	haveAdditionalTimeFalse := func() bool {
 		return false
+	}
+
+	for _, tx := range txsFromMe {
+		log.Debug("computed transactions to be executed", "hash", tx.TxHash)
 	}
 
 	calculatedMiniBlocks, _, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
