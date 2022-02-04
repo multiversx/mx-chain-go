@@ -80,7 +80,7 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 			continue
 		}
 
-		miniblockAPI, ok := bap.prepareAPIMb(miniBlock, epoch, withTxs)
+		miniblockAPI, ok := bap.prepareAPIMiniblock(miniBlock, epoch, withTxs)
 		if !ok {
 			continue
 		}
@@ -91,7 +91,7 @@ func (bap *baseAPIBlockProcessor) extractMbsFromBatch(batchWithMbs *batch.Batch,
 	return mbs
 }
 
-func (bap *baseAPIBlockProcessor) prepareAPIMb(miniblock *block.MiniBlock, epoch uint32, withTxs bool) (*api.MiniBlock, bool) {
+func (bap *baseAPIBlockProcessor) prepareAPIMiniblock(miniblock *block.MiniBlock, epoch uint32, withTxs bool) (*api.MiniBlock, bool) {
 	mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniblock)
 	if err != nil {
 		log.Warn("cannot compute miniblock's hash", "error", err.Error())
@@ -111,7 +111,7 @@ func (bap *baseAPIBlockProcessor) prepareAPIMb(miniblock *block.MiniBlock, epoch
 	return miniblockAPI, true
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMb *api.MiniBlock) {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHeaderHandler, epoch uint32, apiMiniblock *api.MiniBlock) {
 	miniblockHash := mbHeader.GetHash()
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
@@ -130,21 +130,21 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(mbHeader data.MiniBlockHea
 		return
 	}
 
-	bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMb)
+	bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock)
 }
 
-func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMb *api.MiniBlock) {
+func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(miniblockHash []byte, miniBlock *block.MiniBlock, epoch uint32, apiMiniblock *api.MiniBlock) {
 	switch miniBlock.Type {
 	case block.TxBlock:
-		apiMb.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
+		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		apiMb.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
+		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
-		apiMb.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
+		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
 	case block.InvalidBlock:
-		apiMb.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
+		apiMiniblock.Transactions = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
 	case block.ReceiptBlock:
-		apiMb.Receipts = bap.getReceiptsFromMiniblock(miniBlock, epoch)
+		apiMiniblock.Receipts = bap.getReceiptsFromMiniblock(miniBlock, epoch)
 	default:
 		return
 	}
@@ -162,7 +162,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
 	for recHash, recBytes := range marshalizedReceipts {
-		apiRec, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(recBytes)
+		receipt, errUnmarshal := bap.txUnmarshaller.UnmarshalReceipt(recBytes)
 		if errUnmarshal != nil {
 			log.Warn("cannot unmarshal receipt",
 				"hash", []byte(recHash),
@@ -170,7 +170,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 			continue
 		}
 
-		apiReceipts = append(apiReceipts, apiRec)
+		apiReceipts = append(apiReceipts, receipt)
 	}
 
 	return apiReceipts

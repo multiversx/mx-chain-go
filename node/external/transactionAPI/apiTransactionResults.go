@@ -54,11 +54,11 @@ func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, 
 	arp.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
 }
 
-func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transaction.ApiTransactionResult, recHash []byte, epoch uint32) {
-	rec, err := arp.getReceiptFromStorage(recHash, epoch)
+func (arp *apiTransactionResultsProcessor) putReceiptInTransaction(tx *transaction.ApiTransactionResult, receiptHash []byte, epoch uint32) {
+	rec, err := arp.getReceiptFromStorage(receiptHash, epoch)
 	if err != nil {
 		log.Warn("nodeTransactionEvents.putReceiptInTransaction() cannot get receipt from storage",
-			"hash", recHash,
+			"hash", receiptHash,
 			"error", err.Error())
 		return
 	}
