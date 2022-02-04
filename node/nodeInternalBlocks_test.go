@@ -3,7 +3,7 @@ package node_test
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -38,10 +38,8 @@ func TestCreateInternalBlockProcessor_NilStoreShouldErr(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	expectedErr := errors.New(
-		"error creating transaction status computer " + txstatus.ErrNiStorageService.Error())
 	err := n.CreateInternalBlockProcessor()
-	assert.Equal(t, err, expectedErr)
+	assert.True(t, strings.Contains(err.Error(), txstatus.ErrNiStorageService.Error()))
 }
 
 func TestCreateInternalBlockProcessor_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
@@ -61,10 +59,8 @@ func TestCreateInternalBlockProcessor_NilUint64ByteSliceConverterShouldErr(t *te
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	expectedErr := errors.New(
-		"error creating transaction status computer " + txstatus.ErrNilUint64ByteSliceConverter.Error())
 	err := n.CreateInternalBlockProcessor()
-	assert.Equal(t, err, expectedErr)
+	assert.True(t, strings.Contains(err.Error(), txstatus.ErrNilUint64ByteSliceConverter.Error()))
 }
 
 // ---- GetInternalMetaBlockByHash
