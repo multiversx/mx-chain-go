@@ -1404,6 +1404,7 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	return hex.DecodeString(key)
 }
 
+// createInternalBlockProcessor creates the block processor for handling internal block header
 func (n *Node) createInternalBlockProcessor() error {
 	statusComputer, err := txstatus.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {

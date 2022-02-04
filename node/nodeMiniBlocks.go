@@ -6,10 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 )
 
 // GetInternalMiniBlock will return the miniblock based on the hash
-func (n *Node) GetInternalMiniBlock(format common.OutportFormat, txHash string) (interface{}, error) {
+func (n *Node) GetInternalMiniBlock(format common.ApiOutputFormat, txHash string) (interface{}, error) {
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
 		return nil, err
@@ -23,9 +24,9 @@ func (n *Node) GetInternalMiniBlock(format common.OutportFormat, txHash string) 
 	return n.convertMiniBlockBytesByOutportFormat(format, blockBytes)
 }
 
-func (n *Node) convertMiniBlockBytesByOutportFormat(format common.OutportFormat, blockBytes []byte) (interface{}, error) {
+func (n *Node) convertMiniBlockBytesByOutportFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
 	switch format {
-	case common.Internal:
+	case common.ApiOutputFormatInternal:
 		marshalizer := n.coreComponents.InternalMarshalizer()
 
 		miniBlock := &block.MiniBlock{}
@@ -35,10 +36,10 @@ func (n *Node) convertMiniBlockBytesByOutportFormat(format common.OutportFormat,
 		}
 
 		return miniBlock, nil
-	case common.Proto:
+	case common.ApiOutputFormatProto:
 		return blockBytes, nil
 	default:
-		return nil, ErrInvalidOutportFormat
+		return nil, blockAPI.ErrInvalidOutputFormat
 	}
 }
 

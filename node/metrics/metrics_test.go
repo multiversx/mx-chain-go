@@ -198,3 +198,103 @@ func TestInitConfigMetrics(t *testing.T) {
 		assert.Equal(t, v, keys[k])
 	}
 }
+
+func TestInitRatingsMetrics(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.RatingsConfig{
+		General: config.General{
+			StartRating:           1,
+			MaxRating:             10,
+			MinRating:             0,
+			SignedBlocksThreshold: 0.1,
+			SelectionChances: []*config.SelectionChance{
+				{
+					MaxThreshold:  10,
+					ChancePercent: 5,
+				},
+			},
+		},
+		ShardChain: config.ShardChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 10,
+				ProposerValidatorImportance:     0.1,
+				ProposerDecreaseFactor:          0.1,
+				ValidatorDecreaseFactor:         0.1,
+				ConsecutiveMissedBlocksPenalty:  0.1,
+			},
+		},
+		MetaChain: config.MetaChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 10,
+				ProposerValidatorImportance:     0.1,
+				ProposerDecreaseFactor:          0.1,
+				ValidatorDecreaseFactor:         0.1,
+				ConsecutiveMissedBlocksPenalty:  0.1,
+			},
+		},
+		PeerHonesty: config.PeerHonestyConfig{
+			DecayCoefficient:             0.1,
+			DecayUpdateIntervalInSeconds: 10,
+			MaxScore:                     0.1,
+			MinScore:                     0.1,
+			BadPeerThreshold:             0.1,
+			UnitValue:                    0.1,
+		},
+	}
+
+	maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, 0, common.SelectionChancesMaxThresholdSuffix)
+	chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, 0, common.SelectionChancesChancePercentSuffix)
+
+	expectedValues := map[string]interface{}{
+		common.MetricRatingsGeneralStartRating:                 uint64(1),
+		common.MetricRatingsGeneralMaxRating:                   uint64(10),
+		common.MetricRatingsGeneralMinRating:                   uint64(0),
+		common.MetricRatingsGeneralSignedBlocksThreshold:       "0.100000",
+		common.MetricRatingsGeneralSelectionChances + "_count": uint64(1),
+		maxThresholdStr:  uint64(10),
+		chancePercentStr: uint64(5),
+		common.MetricRatingsShardChainHoursToMaxRatingFromStartRating: uint64(10),
+		common.MetricRatingsShardChainProposerValidatorImportance:     "0.100000",
+		common.MetricRatingsShardChainProposerDecreaseFactor:          "0.100000",
+		common.MetricRatingsShardChainValidatorDecreaseFactor:         "0.100000",
+		common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty:  "0.100000",
+		common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating:  uint64(10),
+		common.MetricRatingsMetaChainProposerValidatorImportance:      "0.100000",
+		common.MetricRatingsMetaChainProposerDecreaseFactor:           "0.100000",
+		common.MetricRatingsMetaChainValidatorDecreaseFactor:          "0.100000",
+		common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty:   "0.100000",
+		common.MetricRatingsPeerHonestyDecayCoefficient:               "0.100000",
+		common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds:   uint64(10),
+		common.MetricRatingsPeerHonestyMaxScore:                       "0.100000",
+		common.MetricRatingsPeerHonestyMinScore:                       "0.100000",
+		common.MetricRatingsPeerHonestyBadPeerThreshold:               "0.100000",
+		common.MetricRatingsPeerHonestyUnitValue:                      "0.100000",
+	}
+
+	keys := make(map[string]interface{})
+
+	ash := &statusHandler.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			keys[key] = uint64(value)
+		},
+		SetStringValueHandler: func(key string, value string) {
+			keys[key] = value
+		},
+	}
+
+	sm := &statusHandler.StatusHandlersUtilsMock{
+		AppStatusHandler: ash,
+	}
+
+	err := InitRatingsMetrics(nil, cfg)
+	require.Equal(t, ErrNilStatusHandlerUtils, err)
+
+	err = InitRatingsMetrics(sm, cfg)
+	require.Nil(t, err)
+
+	assert.Equal(t, len(expectedValues), len(keys))
+	for k, v := range expectedValues {
+		assert.Equal(t, v, keys[k])
+	}
+}

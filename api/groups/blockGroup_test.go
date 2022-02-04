@@ -42,16 +42,6 @@ type blockResponse struct {
 	Code  string            `json:"code"`
 }
 
-type rawBlockResponseData struct {
-	Block []byte `json:"block"`
-}
-
-type rawBlockResponse struct {
-	Data  rawBlockResponseData `json:"data"`
-	Error string               `json:"error"`
-	Code  string               `json:"code"`
-}
-
 func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 

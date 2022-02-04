@@ -41,14 +41,14 @@ type NodeStub struct {
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                          func(round uint64, withTxs bool) (*api.Block, error)
-	GetInternalShardBlockByNonceCalled             func(format common.OutportFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled              func(format common.OutportFormat, hash string) (interface{}, error)
-	GetInternalShardBlockByRoundCalled             func(format common.OutportFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled              func(format common.OutportFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled               func(format common.OutportFormat, hash string) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled              func(format common.OutportFormat, round uint64) (interface{}, error)
+	GetInternalShardBlockByNonceCalled             func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled              func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRoundCalled             func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled              func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled               func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled              func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 
-	GetInternalMiniBlockCalled              func(format common.OutportFormat, txHash string) (interface{}, error)
+	GetInternalMiniBlockCalled              func(format common.ApiOutputFormat, txHash string) (interface{}, error)
 	GetUsernameCalled                       func(address string) (string, error)
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -140,7 +140,7 @@ func (ns *NodeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, err
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash
-func (ns *NodeStub) GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+func (ns *NodeStub) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	if ns.GetInternalMetaBlockByHashCalled != nil {
 		return ns.GetInternalMetaBlockByHashCalled(format, hash)
 	}
@@ -148,7 +148,7 @@ func (ns *NodeStub) GetInternalMetaBlockByHash(format common.OutportFormat, hash
 }
 
 // GetInternalMetaBlockByNonce returns the meta block for a given nonce
-func (ns *NodeStub) GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+func (ns *NodeStub) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	if ns.GetInternalMetaBlockByNonceCalled != nil {
 		return ns.GetInternalMetaBlockByNonceCalled(format, nonce)
 	}
@@ -156,7 +156,7 @@ func (ns *NodeStub) GetInternalMetaBlockByNonce(format common.OutportFormat, non
 }
 
 // GetInternalMetaBlockByRound returns the meta block for a given round
-func (ns *NodeStub) GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+func (ns *NodeStub) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	if ns.GetInternalMetaBlockByRoundCalled != nil {
 		return ns.GetInternalMetaBlockByRoundCalled(format, round)
 	}
@@ -164,7 +164,7 @@ func (ns *NodeStub) GetInternalMetaBlockByRound(format common.OutportFormat, rou
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash
-func (ns *NodeStub) GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error) {
+func (ns *NodeStub) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	if ns.GetInternalShardBlockByHashCalled != nil {
 		return ns.GetInternalShardBlockByHashCalled(format, hash)
 	}
@@ -172,7 +172,7 @@ func (ns *NodeStub) GetInternalShardBlockByHash(format common.OutportFormat, has
 }
 
 // GetInternalShardBlockByNonce returns the shard block for a given nonce
-func (ns *NodeStub) GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error) {
+func (ns *NodeStub) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
 	if ns.GetInternalShardBlockByNonceCalled != nil {
 		return ns.GetInternalShardBlockByNonceCalled(format, nonce)
 	}
@@ -180,7 +180,7 @@ func (ns *NodeStub) GetInternalShardBlockByNonce(format common.OutportFormat, no
 }
 
 // GetInternalShardBlockByRound returns the shard block for a given round
-func (ns *NodeStub) GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error) {
+func (ns *NodeStub) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	if ns.GetInternalShardBlockByRoundCalled != nil {
 		return ns.GetInternalShardBlockByRoundCalled(format, round)
 	}
@@ -188,7 +188,7 @@ func (ns *NodeStub) GetInternalShardBlockByRound(format common.OutportFormat, ro
 }
 
 // GetInternalMiniBlock return the miniblock for a given hash
-func (ns *NodeStub) GetInternalMiniBlock(format common.OutportFormat, txHash string) (interface{}, error) {
+func (ns *NodeStub) GetInternalMiniBlock(format common.ApiOutputFormat, txHash string) (interface{}, error) {
 	if ns.GetInternalMiniBlockCalled != nil {
 		return ns.GetInternalMiniBlockCalled(format, txHash)
 	}

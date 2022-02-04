@@ -754,13 +754,13 @@ const (
 	ActiveDBVal = "yes"
 )
 
-// OutportFormat represents the format type returned by api
-type OutportFormat uint8
+// ApiOutputFormat represents the format type returned by api
+type ApiOutputFormat uint8
 
 const (
-	// Internal outport format returns struct directly, will be serialized into JSON by gin
-	Internal OutportFormat = 0
+	// ApiOutputFormatInternal outport format returns struct directly, will be serialized into JSON by gin
+	ApiOutputFormatInternal ApiOutputFormat = 0
 
-	// Proto outport format returns the bytes of the proto object
-	Proto OutportFormat = 1
+	// ApiOutputFormatProto outport format returns the bytes of the proto object
+	ApiOutputFormatProto ApiOutputFormat = 1
 )

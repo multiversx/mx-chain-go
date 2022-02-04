@@ -250,3 +250,92 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	epochsMetrics := sm.EnableEpochsMetrics()
 	assert.Equal(t, expectedMetrics, epochsMetrics)
 }
+
+func TestStatusMetrics_RatingsConfig(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricRatingsGeneralStartRating, uint64(5001))
+	sm.SetUInt64Value(common.MetricRatingsGeneralMaxRating, uint64(10000))
+	sm.SetUInt64Value(common.MetricRatingsGeneralMinRating, uint64(1))
+	sm.SetStringValue(common.MetricRatingsGeneralSignedBlocksThreshold, "0.01")
+
+	selectionChances := []map[string]uint64{
+		{
+			"MaxThreshold":  0,
+			"ChancePercent": 5,
+		},
+		{
+			"MaxThreshold":  1000,
+			"ChancePercent": 10,
+		},
+	}
+
+	for i, selectionChance := range selectionChances {
+		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
+		sm.SetUInt64Value(maxThresholdStr, selectionChance["MaxThreshold"])
+		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
+		sm.SetUInt64Value(chancePercentStr, selectionChance["ChancePercent"])
+	}
+	sm.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+"_count", uint64(len(selectionChances)))
+
+	sm.SetUInt64Value(common.MetricRatingsShardChainHoursToMaxRatingFromStartRating, uint64(72))
+	sm.SetStringValue(common.MetricRatingsShardChainProposerValidatorImportance, "1.0")
+	sm.SetStringValue(common.MetricRatingsShardChainProposerDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsShardChainValidatorDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty, "1.50")
+
+	sm.SetUInt64Value(common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating, uint64(55))
+	sm.SetStringValue(common.MetricRatingsMetaChainProposerValidatorImportance, "1.0")
+	sm.SetStringValue(common.MetricRatingsMetaChainProposerDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsMetaChainValidatorDecreaseFactor, "-4.0")
+	sm.SetStringValue(common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty, "1.50")
+
+	sm.SetStringValue(common.MetricRatingsPeerHonestyDecayCoefficient, "0.97")
+	sm.SetUInt64Value(common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds, uint64(10))
+	sm.SetStringValue(common.MetricRatingsPeerHonestyMaxScore, "100.0")
+	sm.SetStringValue(common.MetricRatingsPeerHonestyMinScore, "-100.0")
+	sm.SetStringValue(common.MetricRatingsPeerHonestyBadPeerThreshold, "-80.0")
+	sm.SetStringValue(common.MetricRatingsPeerHonestyUnitValue, "1.0")
+
+	expectedConfig := map[string]interface{}{
+		common.MetricRatingsGeneralStartRating:           uint64(5001),
+		common.MetricRatingsGeneralMaxRating:             uint64(10000),
+		common.MetricRatingsGeneralMinRating:             uint64(1),
+		common.MetricRatingsGeneralSignedBlocksThreshold: "0.01",
+
+		common.MetricRatingsGeneralSelectionChances: []map[string]uint64{
+			{
+				common.SelectionChancesMaxThresholdSuffix:  uint64(0),
+				common.SelectionChancesChancePercentSuffix: uint64(5),
+			},
+			{
+				common.SelectionChancesMaxThresholdSuffix:  uint64(1000),
+				common.SelectionChancesChancePercentSuffix: uint64(10),
+			},
+		},
+
+		common.MetricRatingsShardChainHoursToMaxRatingFromStartRating: uint64(72),
+		common.MetricRatingsShardChainProposerValidatorImportance:     "1.0",
+		common.MetricRatingsShardChainProposerDecreaseFactor:          "-4.0",
+		common.MetricRatingsShardChainValidatorDecreaseFactor:         "-4.0",
+		common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty:  "1.50",
+
+		common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating: uint64(55),
+		common.MetricRatingsMetaChainProposerValidatorImportance:     "1.0",
+		common.MetricRatingsMetaChainProposerDecreaseFactor:          "-4.0",
+		common.MetricRatingsMetaChainValidatorDecreaseFactor:         "-4.0",
+		common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty:  "1.50",
+
+		common.MetricRatingsPeerHonestyDecayCoefficient:             "0.97",
+		common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds: uint64(10),
+		common.MetricRatingsPeerHonestyMaxScore:                     "100.0",
+		common.MetricRatingsPeerHonestyMinScore:                     "-100.0",
+		common.MetricRatingsPeerHonestyBadPeerThreshold:             "-80.0",
+		common.MetricRatingsPeerHonestyUnitValue:                    "1.0",
+	}
+
+	configMetrics := sm.RatingsMetrics()
+	assert.Equal(t, expectedConfig, configMetrics)
+}

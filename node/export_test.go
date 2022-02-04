@@ -41,3 +41,8 @@ func (n *Node) GetClosableComponentName(component factory.Closer, index int) str
 func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
 	return n.getProof(rootHash, key)
 }
+
+// CreateInternalBlockProcessor -
+func (n *Node) CreateInternalBlockProcessor() error {
+	return n.createInternalBlockProcessor()
+}
