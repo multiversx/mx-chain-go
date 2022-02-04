@@ -1,15 +1,10 @@
 package blockAPI
 
 import (
-	"errors"
-
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
-
-// ErrInvalidOutportFormat signals that the outport format type is not valid
-var ErrInvalidOutportFormat = errors.New("the outport format type is invalid")
 
 type internalBlockProcessor struct {
 	*baseAPIBlockProcessor
@@ -48,7 +43,7 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.Ap
 		return nil, err
 	}
 
-	return ibp.convertShardBlockBytesByOutportFormat(format, blockBytes)
+	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
 // GetInternalShardBlockByHash wil return a shard block by hash
@@ -58,7 +53,7 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByHash(format common.Api
 		return nil, err
 	}
 
-	return ibp.convertShardBlockBytesByOutportFormat(format, blockBytes)
+	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
 // GetInternalShardBlockByRound wil return a shard block by round
@@ -68,7 +63,7 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.Ap
 		return nil, err
 	}
 
-	return ibp.convertShardBlockBytesByOutportFormat(format, blockBytes)
+	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (*block.Header, error) {
@@ -81,14 +76,14 @@ func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBy
 	return blockHeader, nil
 }
 
-func (ibp *internalBlockProcessor) convertShardBlockBytesByOutportFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
+func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
 	switch format {
 	case common.ApiOutputFormatInternal:
 		return ibp.convertShardBlockBytesToInternalBlock(blockBytes)
 	case common.ApiOutputFormatProto:
 		return blockBytes, nil
 	default:
-		return nil, ErrInvalidOutportFormat
+		return nil, ErrInvalidOutputFormat
 	}
 }
 
@@ -107,7 +102,7 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByNonce(format common.Api
 		return nil, err
 	}
 
-	return ibp.convertMetaBlockBytesByOutportFormat(format, blockBytes)
+	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
 // GetInternalMetaBlockByHash wil return a meta block by hash
@@ -117,7 +112,7 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByHash(format common.ApiO
 		return nil, err
 	}
 
-	return ibp.convertMetaBlockBytesByOutportFormat(format, blockBytes)
+	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
 // GetInternalMetaBlockByRound wil return a meta block by round
@@ -127,7 +122,7 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByRound(format common.Api
 		return nil, err
 	}
 
-	return ibp.convertMetaBlockBytesByOutportFormat(format, blockBytes)
+	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
 func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockBytes []byte) (*block.MetaBlock, error) {
@@ -140,13 +135,13 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockByt
 	return blockHeader, nil
 }
 
-func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutportFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
+func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
 	switch format {
 	case common.ApiOutputFormatInternal:
 		return ibp.convertMetaBlockBytesToInternalBlock(blockBytes)
 	case common.ApiOutputFormatProto:
 		return blockBytes, nil
 	default:
-		return nil, ErrInvalidOutportFormat
+		return nil, ErrInvalidOutputFormat
 	}
 }

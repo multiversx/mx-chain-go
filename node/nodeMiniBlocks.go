@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 )
 
 // GetInternalMiniBlock will return the miniblock based on the hash
@@ -38,7 +39,7 @@ func (n *Node) convertMiniBlockBytesByOutportFormat(format common.ApiOutputForma
 	case common.ApiOutputFormatProto:
 		return blockBytes, nil
 	default:
-		return nil, ErrInvalidOutportFormat
+		return nil, blockAPI.ErrInvalidOutputFormat
 	}
 }
 

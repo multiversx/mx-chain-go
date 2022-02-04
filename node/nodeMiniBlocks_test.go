@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -151,7 +152,7 @@ func TestGetInternalMiniBlock_WrongEncodedHashShoudFail(t *testing.T) {
 	assert.Nil(t, blk)
 }
 
-func TestGetInternalMiniBlock_InvalidOutputFormat_ShouldFail(t *testing.T) {
+func TestGetInternalMiniBlock_InvalidOutputFormatShouldFail(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
@@ -159,7 +160,7 @@ func TestGetInternalMiniBlock_InvalidOutputFormat_ShouldFail(t *testing.T) {
 	n, _ := prepareInternalMiniBlockNode(headerHash)
 
 	blk, err := n.GetInternalMiniBlock(2, hex.EncodeToString(headerHash))
-	assert.Equal(t, node.ErrInvalidOutportFormat, err)
+	assert.Equal(t, blockAPI.ErrInvalidOutputFormat, err)
 	assert.Nil(t, blk)
 }
 
