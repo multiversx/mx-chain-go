@@ -175,14 +175,12 @@ func (n *Node) GetConsensusGroupSize() int {
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
+		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
+			return big.NewInt(0), nil
+		}
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return big.NewInt(0), nil
 	}
 
 	return userAccount.GetBalance(), nil
@@ -190,14 +188,9 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 
 // GetUsername gets the username for a specific address
 func (n *Node) GetUsername(address string) (string, error) {
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return "", err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return "", ErrAccountNotFound
 	}
 
 	username := userAccount.GetUserName()
@@ -210,14 +203,9 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	tokens := make([]string, 0)
@@ -279,14 +267,9 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
-	account, err := n.getAccountHandlerAPIAccounts(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
@@ -325,14 +308,9 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 		return "", fmt.Errorf("invalid key: %w", err)
 	}
 
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return "", err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return "", ErrAccountNotFound
 	}
 
 	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
@@ -345,14 +323,9 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 
 // GetESDTData returns the esdt balance and properties from a given account
 func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
@@ -376,14 +349,9 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 			// TODO: analyze why n.getSystemAccount() doesn't work here. The difference is that here we use AccountsAdapter
 			// and in that function AccountsAdapterAPI is used
 
-			sysAcc, err := n.stateComponents.AccountsAdapter().GetExistingAccount(vmcommon.SystemAccountAddress)
+			systemAccount, err := n.getAccountHandlerForPubKey(core.SystemAccountAddress)
 			if err != nil {
 				return nil, err
-			}
-
-			systemAccount, ok := sysAcc.(state.UserAccountHandler)
-			if !ok {
-				return nil, ErrAccountNotFound
 			}
 
 			esdtToken.TokenMetaData = n.getMetaDataFromSystemAccount(systemAccount, []byte(tokenKey))
@@ -404,14 +372,9 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	tokens := make([]string, 0)
@@ -523,14 +486,9 @@ func bigToString(bigValue *big.Int) string {
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
-	account, err := n.getAccountHandlerAPIAccounts(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	allESDTs := make(map[string]*esdt.ESDigitalToken)
@@ -622,17 +580,7 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 }
 
 func (n *Node) getSystemAccount() (state.UserAccountHandler, error) {
-	systemSCAccount, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(vmcommon.SystemAccountAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	userAcc, ok := systemSCAccount.(state.UserAccountHandler)
-	if !ok {
-		return nil, ErrAccountNotFound
-	}
-
-	return userAcc, nil
+	return n.getAccountHandlerForPubKey(core.SystemAccountAddress)
 }
 
 func (n *Node) getMetaDataFromSystemAccount(sysAccount state.UserAccountHandler, tokenKey []byte) *esdt.MetaData {
@@ -650,19 +598,7 @@ func (n *Node) getMetaDataFromSystemAccount(sysAccount state.UserAccountHandler,
 	return esdtData.TokenMetaData
 }
 
-func (n *Node) getAccountHandler(address string) (vmcommon.AccountHandler, error) {
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
-		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
-	}
-
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from: " + err.Error())
-	}
-	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
-}
-
-func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHandler, error) {
+func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
 	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
 		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
 		check.IfNil(n.dataComponents.Blockchain())
@@ -678,7 +614,7 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHan
 	return n.getAccountHandlerForPubKey(addr)
 }
 
-func (n *Node) getAccountHandlerForPubKey(address []byte) (vmcommon.AccountHandler, error) {
+func (n *Node) getAccountHandlerForPubKey(address []byte) (state.UserAccountHandler, error) {
 	rootHash := n.dataComponents.Blockchain().GetCurrentBlockRootHash()
 	if len(rootHash) == 0 {
 		return nil, ErrEmptyRootHash
@@ -689,7 +625,17 @@ func (n *Node) getAccountHandlerForPubKey(address []byte) (vmcommon.AccountHandl
 		return nil, err
 	}
 
-	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
+	account, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
+	}
+
+	return userAccount, nil
 }
 
 func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, bool) {
@@ -861,7 +807,7 @@ func (n *Node) commonTransactionValidation(
 	checkSignature bool,
 ) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
-		n.stateComponents.AccountsAdapter(),
+		n.stateComponents.AccountsAdapterAPI(),
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
@@ -990,7 +936,7 @@ func (n *Node) CreateTransaction(
 	if check.IfNil(addrPubKeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.stateComponents.AccountsAdapter()) {
+	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return nil, nil, ErrNilAccountsAdapter
 	}
 	if len(signatureHex) > n.addressSignatureHexSize {
@@ -1066,7 +1012,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return api.AccountResponse{}, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.stateComponents.AccountsAdapter()) {
+	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return api.AccountResponse{}, ErrNilAccountsAdapter
 	}
 
@@ -1075,7 +1021,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 		return api.AccountResponse{}, err
 	}
 
-	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
+	accWrp, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			return api.AccountResponse{
@@ -1113,7 +1059,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 
 // GetCode returns the code for the given code hash
 func (n *Node) GetCode(codeHash []byte) []byte {
-	return n.stateComponents.AccountsAdapter().GetCode(codeHash)
+	return n.stateComponents.AccountsAdapterAPI().GetCode(codeHash)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
@@ -1418,7 +1364,7 @@ func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]
 }
 
 func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []byte) ([]byte, []byte, error) {
-	account, err := n.stateComponents.AccountsAdapter().GetAccountFromBytes(address, accBytes)
+	account, err := n.stateComponents.AccountsAdapterAPI().GetAccountFromBytes(address, accBytes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1442,7 +1388,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 }
 
 func (n *Node) getProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
-	tr, err := n.stateComponents.AccountsAdapter().GetTrie(rootHash)
+	tr, err := n.stateComponents.AccountsAdapterAPI().GetTrie(rootHash)
 	if err != nil {
 		return nil, err
 	}

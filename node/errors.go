@@ -141,3 +141,6 @@ var ErrInvalidESDTRole = errors.New("invalid ESDT role")
 
 // ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
 var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")
+
+// ErrCannotCastAccountHandlerToUserAccountHandler signals that an account handler cannot be cast to user account handler
+var ErrCannotCastAccountHandlerToUserAccountHandler = errors.New("cannot cast account handler to user account handler")
