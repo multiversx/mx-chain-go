@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -136,7 +137,7 @@ func NewShardProcessorEmptyWith3shards(
 			Version:                        "softwareVersion",
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:      &mock.RoundNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
 			GasHandler:                     &mock.GasHandlerMock{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 			ScheduledMiniBlocksEnableEpoch: 2,
@@ -414,4 +415,8 @@ func (bp *baseProcessor) UpdateState(
 	statePruningQueue core.Queue,
 ) {
 	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts, statePruningQueue)
+}
+
+func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
+	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 }

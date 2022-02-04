@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func initSubroundBlock(
 	appStatusHandler core.AppStatusHandler,
 ) bls.SubroundBlock {
 	if blockChain == nil {
-		blockChain = &mock.BlockChainMock{
+		blockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{}
 			},
@@ -104,7 +105,7 @@ func initSubroundBlockWithBlockProcessor(
 	bp *mock.BlockProcessorMock,
 	container *mock.ConsensusCoreMock,
 ) bls.SubroundBlock {
-	blockChain := &mock.BlockChainMock{
+	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce:     uint64(0),
@@ -838,7 +839,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
-	blockChain := &mock.BlockChainMock{
+	blockChain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return nil
 		},
@@ -857,7 +858,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	consensusContainers := createConsensusContainers()
 	for _, container := range consensusContainers {
 		sr := *initSubroundBlock(blockChain, container, &statusHandler.AppStatusHandlerStub{})
-		_ = sr.BlockChain().SetCurrentBlockHeader(nil)
+		_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(nil, nil)
 		header, _ := sr.CreateHeader()
 		header, body, _ := sr.CreateBlock(header)
 		marshalizedBody, _ := sr.Marshalizer().Marshal(body)
@@ -890,9 +891,9 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	consensusContainers := createConsensusContainers()
 	for _, container := range consensusContainers {
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
+		_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(&block.Header{
 			Nonce: 1,
-		})
+		}, []byte("root hash"))
 
 		header, _ := sr.CreateHeader()
 		header, body, _ := sr.CreateBlock(header)
@@ -928,7 +929,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 2},
 		{Hash: []byte("mb3"), SenderShardID: 2, ReceiverShardID: 3},
 	}
-	blockChainMock := mock.BlockChainMock{
+	blockChainMock := testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce: 1,
@@ -978,9 +979,9 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	}
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlockWithBlockProcessor(bp, container)
-	_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
+	_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(&block.Header{
 		Nonce: 1,
-	})
+	}, []byte("root hash"))
 	header, _ := sr.CreateHeader()
 	_, _, err := sr.CreateBlock(header)
 	assert.Equal(t, expectedErr, err)

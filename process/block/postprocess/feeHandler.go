@@ -61,7 +61,7 @@ func (f *feeHandler) GetAccumulatedFees() *big.Int {
 // GetDeveloperFees returns the total accumulated developer fees
 func (f *feeHandler) GetDeveloperFees() *big.Int {
 	f.mut.RLock()
-	developerFees := f.developerFees
+	developerFees := big.NewInt(0).Set(f.developerFees)
 	f.mut.RUnlock()
 
 	return developerFees
