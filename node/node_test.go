@@ -132,7 +132,7 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
-	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first", err.Error())
+	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter first", err.Error())
 }
 
 func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
@@ -147,7 +147,7 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
-	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first", err.Error())
+	assert.Equal(t, "initialize AccountsAdapterAPI, PubkeyConverter first", err.Error())
 }
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
@@ -3417,65 +3417,6 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 	res, err := n.GetKeyValuePairs("addr")
 	require.Nil(t, res)
 	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
-}
-
-func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
-	t.Parallel()
-
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
-		DecodeCalled: func(humanReadable string) ([]byte, error) {
-			return nil, nil
-		},
-	}
-
-	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return nil
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithStateComponents(getDefaultStateComponents()),
-		node.WithDataComponents(dataComponents),
-		node.WithCoreComponents(coreComponents),
-	)
-
-	res, err := n.GetKeyValuePairs("addr")
-	require.Nil(t, res)
-	require.Equal(t, node.ErrEmptyRootHash, err)
-}
-
-func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
-		DecodeCalled: func(humanReadable string) ([]byte, error) {
-			return nil, nil
-		},
-	}
-
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			return expectedErr
-		},
-	}
-
-	dataComponents := getDefaultDataComponents()
-
-	n, _ := node.NewNode(
-		node.WithStateComponents(stateComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithCoreComponents(coreComponents),
-	)
-
-	res, err := n.GetKeyValuePairs("addr")
-	require.Nil(t, res)
-	require.Equal(t, expectedErr, err)
 }
 
 func TestNode_Close(t *testing.T) {

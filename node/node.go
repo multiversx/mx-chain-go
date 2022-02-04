@@ -600,10 +600,9 @@ func (n *Node) getMetaDataFromSystemAccount(sysAccount state.UserAccountHandler,
 
 func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
 	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
-		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
-		check.IfNil(n.dataComponents.Blockchain())
+		check.IfNil(n.stateComponents.AccountsAdapterAPI())
 	if componentsNotInitialized {
-		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first")
+		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter first")
 	}
 
 	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
@@ -615,16 +614,6 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHa
 }
 
 func (n *Node) getAccountHandlerForPubKey(address []byte) (state.UserAccountHandler, error) {
-	rootHash := n.dataComponents.Blockchain().GetCurrentBlockRootHash()
-	if len(rootHash) == 0 {
-		return nil, ErrEmptyRootHash
-	}
-
-	err := n.stateComponents.AccountsAdapterAPI().RecreateTrie(rootHash)
-	if err != nil {
-		return nil, err
-	}
-
 	account, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
 	if err != nil {
 		return nil, err
