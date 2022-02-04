@@ -195,9 +195,9 @@ func (accountsDB *accountsDBApi) RecreateAllTries(_ []byte) (map[string]common.T
 	return nil, ErrOperationNotPermitted
 }
 
-// GetTrie is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) GetTrie(_ []byte) (common.Trie, error) {
-	return nil, ErrOperationNotPermitted
+// GetTrie will call the inner accountsAdapter method
+func (accountsDB *accountsDBApi) GetTrie(rootHash []byte) (common.Trie, error) {
+	return accountsDB.innerAccountsAdapter.GetTrie(rootHash)
 }
 
 // GetStackDebugFirstEntry will call the inner accountsAdapter method

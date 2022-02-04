@@ -6,9 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -167,10 +169,6 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	resultedMap, err := accountsApi.RecreateAllTries(nil)
 	assert.Nil(t, resultedMap)
 	assert.Equal(t, state.ErrOperationNotPermitted, err)
-
-	resultedTrie, err := accountsApi.GetTrie(nil)
-	assert.Nil(t, resultedTrie)
-	assert.Equal(t, state.ErrOperationNotPermitted, err)
 }
 
 func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
@@ -200,6 +198,7 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 	isPruningEnabledCalled := false
 	getStackDebugFirstEntryCalled := false
 	closeCalled := false
+	getTrieCalled := false
 	accountsAdapter := &mockState.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			require.Fail(t, "should have not called RecreateTrieCalled")
@@ -218,6 +217,10 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 			closeCalled = true
 			return nil
 		},
+		GetTrieCalled: func(i []byte) (common.Trie, error) {
+			getTrieCalled = true
+			return &trie.TrieStub{}, nil
+		},
 	}
 
 	accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, &testscommon.ChainHandlerStub{})
@@ -226,9 +229,14 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 	assert.Nil(t, accountsApi.GetStackDebugFirstEntry())
 	assert.Nil(t, accountsApi.Close())
 
+	tr, err := accountsApi.GetTrie(nil)
+	assert.False(t, check.IfNil(tr))
+	assert.Nil(t, err)
+
 	assert.True(t, isPruningEnabledCalled)
 	assert.True(t, getStackDebugFirstEntryCalled)
 	assert.True(t, closeCalled)
+	assert.True(t, getTrieCalled)
 }
 
 func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
