@@ -11,7 +11,7 @@ import (
 )
 
 func initConsensusDataContainer() *ConsensusCore {
-	blockChain := &mock.BlockChainMock{}
+	blockChain := &testscommon.ChainHandlerStub{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstrapperMock := &mock.BootstrapperStub{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
