@@ -1083,6 +1083,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		Core:             coreComponents,
 		StorageService:   dataComponents.StorageService(),
 		ProcessingMode:   processingMode,
+		ChainHandler:     dataComponents.Blockchain(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
