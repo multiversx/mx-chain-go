@@ -255,3 +255,47 @@ func TestTxExecutionProcessor_AddNonceShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+
+func TestTxExecutionProcessor_GetExecutedTransactionsEmpty(t *testing.T) {
+	t.Parallel()
+
+	tep, err := intermediate.NewTxExecutionProcessor(&testscommon.TxProcessorStub{}, &stateMock.AccountsStub{})
+	assert.Nil(t, err)
+
+	txs := tep.GetExecutedTransactions()
+	assert.Equal(t, 0, len(txs))
+}
+
+func TestTxExecutionProcessor_GetExecutedTransactionsNonEmpty(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(0)
+	sndAddr := []byte("sender")
+	recvAddr := []byte("receiver")
+	value := big.NewInt(1000)
+	data := []byte("data")
+
+	tep, _ := intermediate.NewTxExecutionProcessor(
+		&testscommon.TxProcessorStub{
+			ProcessTransactionCalled: func(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				if tx.Nonce == nonce && bytes.Equal(tx.SndAddr, sndAddr) && bytes.Equal(tx.RcvAddr, recvAddr) &&
+					value.Cmp(tx.Value) == 0 && bytes.Equal(tx.Data, data) {
+					return 0, nil
+				}
+
+				return 0, errors.New("should not happened")
+			},
+		},
+		&stateMock.AccountsStub{},
+	)
+
+	err := tep.ExecuteTransaction(nonce, sndAddr, recvAddr, value, data)
+	assert.Nil(t, err)
+
+	txs := tep.GetExecutedTransactions()
+	assert.Equal(t, 1, len(txs))
+	assert.Equal(t, []byte("sender"), txs[0].GetSndAddr())
+	assert.Equal(t, []byte("receiver"), txs[0].GetRcvAddr())
+	assert.Equal(t, uint64(0), txs[0].GetNonce())
+	assert.Equal(t, big.NewInt(1000), txs[0].GetValue())
+}

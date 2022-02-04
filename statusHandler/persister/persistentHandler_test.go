@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +62,7 @@ func TestPersistentStatusHandler_SetStorage(t *testing.T) {
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	marshalizer := &mock.MarshalizerStub{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
-	storer := &testscommon.StorerStub{}
+	storer := &storageStubs.StorerStub{}
 
 	err := persistentHandler.SetStorage(storer)
 	assert.Nil(t, err)
@@ -172,7 +172,7 @@ func TestPersistentStatusHandler_saveMetricsInDbMarshalError(t *testing.T) {
 		flag++
 		return nil, errors.New("error")
 	}
-	storer := &testscommon.StorerStub{}
+	storer := &storageStubs.StorerStub{}
 	uit64Converter := &mock.Uint64ByteSliceConverterMock{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
 	_ = persistentHandler.SetStorage(storer)
@@ -191,7 +191,7 @@ func TestPersistentStatusHandler_saveMetricsInDbPutError(t *testing.T) {
 		flag++
 		return nil, nil
 	}
-	storer := &testscommon.StorerStub{}
+	storer := &storageStubs.StorerStub{}
 	storer.PutCalled = func(key, data []byte) error {
 		flag++
 		return errors.New("error")
@@ -253,7 +253,7 @@ func TestPersistentStatusHandler_SetMetricNonce(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	storer := &testscommon.StorerStub{}
+	storer := &storageStubs.StorerStub{}
 	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 			called = true

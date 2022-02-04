@@ -12,7 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +54,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 func createStoreForShard() dataRetriever.StorageService {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{}
+			return &storageStubs.StorerStub{}
 		},
 	}
 }
@@ -181,8 +183,10 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 func getArgumentsShard() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
 		GeneralConfig: config.Config{
-			AccountsTrieStorage:     getMockStorageConfig(),
-			PeerAccountsTrieStorage: getMockStorageConfig(),
+			AccountsTrieStorageOld:     getMockStorageConfig(),
+			AccountsTrieStorage:        getMockStorageConfig(),
+			PeerAccountsTrieStorage:    getMockStorageConfig(),
+			PeerAccountsTrieStorageOld: getMockStorageConfig(),
 			TrieSnapshotDB: config.DBConfig{
 				FilePath:          "",
 				Type:              "MemoryDB",
@@ -206,7 +210,7 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		ShardIDForTries:          0,
 		ChainID:                  "T",
 		WorkingDirectory:         "",
-		Hasher:                   mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForShard("", ""),
 		Store:                    createStoreForShard(),
@@ -215,5 +219,6 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
+		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
 	}
 }

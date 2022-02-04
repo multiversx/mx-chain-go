@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -221,7 +222,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		VersionNumber:        version,
 		NodeDisplayName:      nodeName,
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
-		CurrentBlockProvider: &mock.BlockChainMock{},
+		CurrentBlockProvider: &testscommon.ChainHandlerStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 

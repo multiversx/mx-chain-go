@@ -43,7 +43,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 	secondSCAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	testContext.TxFeeHandler.CreateBlockStarted()
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	innerTx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, gasPrice, gasLimit, []byte("doSomething"))
 
@@ -69,7 +69,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(50001950), testContext.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(4999988), testContext.TxFeeHandler.GetDeveloperFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

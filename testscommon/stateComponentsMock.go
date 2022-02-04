@@ -10,7 +10,7 @@ type StateComponentsMock struct {
 	PeersAcc        state.AccountsAdapter
 	Accounts        state.AccountsAdapter
 	AccountsAPI     state.AccountsAdapter
-	Tries           state.TriesHolder
+	Tries           common.TriesHolder
 	StorageManagers map[string]common.StorageManager
 }
 
@@ -45,7 +45,7 @@ func (scm *StateComponentsMock) AccountsAdapterAPI() state.AccountsAdapter {
 }
 
 // TriesContainer -
-func (scm *StateComponentsMock) TriesContainer() state.TriesHolder {
+func (scm *StateComponentsMock) TriesContainer() common.TriesHolder {
 	return scm.Tries
 }
 

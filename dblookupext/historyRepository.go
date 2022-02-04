@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
 
 package dblookupext
 
@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -121,14 +122,12 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 
 // RecordBlock records a block
 // This function is not called on a goroutine, but synchronously instead, right after committing a block
-func (hr *historyRepository) RecordBlock(
-	blockHeaderHash []byte,
+func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	blockHeader data.HeaderHandler,
 	blockBody data.BodyHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
-	logs map[string]data.LogHandler,
-) error {
+	logs []*data.LogData) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
@@ -471,7 +470,7 @@ func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBo
 }
 
 // GetESDTSupply will return the supply from the storage for the given token
-func (hr *historyRepository) GetESDTSupply(token string) (string, error) {
+func (hr *historyRepository) GetESDTSupply(token string) (*esdtSupply.SupplyESDT, error) {
 	return hr.esdtSuppliesHandler.GetESDTSupply(token)
 }
 

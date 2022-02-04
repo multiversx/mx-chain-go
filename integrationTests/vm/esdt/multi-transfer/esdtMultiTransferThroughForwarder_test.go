@@ -48,8 +48,8 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 	_ = net.SignAndSendTx(owner, tx)
 	net.Steps(4)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, sftID, 1, supply)
-	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, supply)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, supply)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, supply)
 
 	// transfer to a user from another shard
 	transfers := []*esdtTransfer{
@@ -67,8 +67,8 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		transfers,
 		destAddress)
 
-	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, 900)
-	esdt.CheckAddressHasESDTTokens(t, destAddress, net.Nodes, tokenID, 100)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 900)
+	esdt.CheckAddressHasTokens(t, destAddress, net.Nodes, []byte(tokenID), 0, 100)
 
 	// transfer to vault, same shard
 	multiTransferThroughForwarder(
@@ -79,8 +79,8 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		transfers,
 		vault)
 
-	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, 800)
-	esdt.CheckAddressHasESDTTokens(t, vault, net.Nodes, tokenID, 100)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 800)
+	esdt.CheckAddressHasTokens(t, vault, net.Nodes, []byte(tokenID), 0, 100)
 
 	// transfer fungible and non-fungible
 	// transfer to vault, same shard
@@ -104,11 +104,11 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		transfers,
 		vault)
 
-	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, 700)
-	esdt.CheckAddressHasESDTTokens(t, vault, net.Nodes, tokenID, 200)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 700)
+	esdt.CheckAddressHasTokens(t, vault, net.Nodes, []byte(tokenID), 0, 200)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, sftID, 1, 900)
-	esdt.CheckAddressHasTokens(t, vault, net.Nodes, sftID, 1, 100)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 900)
+	esdt.CheckAddressHasTokens(t, vault, net.Nodes, []byte(sftID), 1, 100)
 
 	// transfer fungible and non-fungible
 	// transfer to vault, cross shard via transfer and execute
@@ -132,11 +132,11 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		transfers,
 		vaultOtherShard)
 
-	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, 600)
-	esdt.CheckAddressHasESDTTokens(t, vaultOtherShard, net.Nodes, tokenID, 100)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 600)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(tokenID), 0, 100)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, sftID, 1, 800)
-	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, sftID, 1, 100)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 800)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(sftID), 1, 100)
 
 	// transfer to vault, cross shard, via async call
 	transfers = []*esdtTransfer{
@@ -159,11 +159,11 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 		transfers,
 		vaultOtherShard)
 
-	esdt.CheckAddressHasESDTTokens(t, forwarder, net.Nodes, tokenID, 500)
-	esdt.CheckAddressHasESDTTokens(t, vaultOtherShard, net.Nodes, tokenID, 200)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, 500)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(tokenID), 0, 200)
 
-	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, sftID, 1, 700)
-	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, sftID, 1, 200)
+	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(sftID), 1, 700)
+	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(sftID), 1, 200)
 }
 
 func multiTransferThroughForwarder(

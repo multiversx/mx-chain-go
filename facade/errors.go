@@ -29,8 +29,5 @@ var ErrNilTransactionSimulatorProcessor = errors.New("nil transaction simulator 
 // ErrNilBlockchain signals that a nil blockchain has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
 
-// ErrNilBlockHeader signals that the current block header is nil
-var ErrNilBlockHeader = errors.New("nil block header")
-
-// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
-var ErrNilMarshalizer = errors.New("nil Marshalizer")
+// ErrEmptyRootHash signals that the current root hash is empty
+var ErrEmptyRootHash = errors.New("empty current root hash")

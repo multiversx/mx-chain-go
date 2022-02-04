@@ -1,0 +1,46 @@
+{
+    "name": "adder",
+    "comment": "add then check",
+    "gasSchedule": "v3",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "comment": "preset of accounts and transactions",
+            "path": "external_steps_for_adder_1.scen.json"
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "1",
+                    "balance": "48",
+                    "storage": {},
+                    "code": ""
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "address:adder",
+                "nonce": "1",
+                "value": "0",
+                "function": "add",
+                "arguments": [
+                    "3"
+                ],
+                "gasLimit": "5,000,000",
+                "gasPrice": "1"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

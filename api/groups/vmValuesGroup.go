@@ -76,11 +76,13 @@ func NewVmValuesGroup(facade vmValuesFacadeHandler) (*vmValuesGroup, error) {
 
 // VMValueRequest represents the structure on which user input for generating a new transaction will validate against
 type VMValueRequest struct {
-	ScAddress  string   `form:"scAddress" json:"scAddress"`
-	FuncName   string   `form:"funcName" json:"funcName"`
-	CallerAddr string   `form:"caller" json:"caller"`
-	CallValue  string   `form:"value" json:"value"`
-	Args       []string `form:"args"  json:"args"`
+	ScAddress      string   `json:"scAddress"`
+	FuncName       string   `json:"funcName"`
+	CallerAddr     string   `json:"caller"`
+	CallValue      string   `json:"value"`
+	Args           []string `json:"args"`
+	SameScState    bool     `json:"sameScState"`
+	ShouldBeSynced bool     `json:"shouldBeSynced"`
 }
 
 // getHex returns the data as bytes, hex-encoded
@@ -168,9 +170,11 @@ func (vvg *vmValuesGroup) createSCQuery(request *VMValueRequest) (*process.SCQue
 	}
 
 	scQuery := &process.SCQuery{
-		ScAddress: decodedAddress,
-		FuncName:  request.FuncName,
-		Arguments: arguments,
+		ScAddress:      decodedAddress,
+		FuncName:       request.FuncName,
+		Arguments:      arguments,
+		SameScState:    request.SameScState,
+		ShouldBeSynced: request.ShouldBeSynced,
 	}
 
 	if len(request.CallerAddr) > 0 {

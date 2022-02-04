@@ -11,10 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -36,7 +38,8 @@ import (
 const accountStartNonce = uint64(0)
 
 type genesisBlockCreator struct {
-	arg ArgsGenesisBlockCreator
+	arg                 ArgsGenesisBlockCreator
+	initialIndexingData map[uint32]*genesis.IndexingData
 }
 
 // NewGenesisBlockCreator creates a new genesis block creator instance able to create genesis blocks on all initial shards
@@ -46,8 +49,11 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		return nil, fmt.Errorf("%w while creating NewGenesisBlockCreator", err)
 	}
 
+	indexingData := make(map[uint32]*genesis.IndexingData)
+
 	gbc := &genesisBlockCreator{
-		arg: arg,
+		arg:                 arg,
+		initialIndexingData: indexingData,
 	}
 
 	conversionBase := 10
@@ -81,7 +87,7 @@ func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint6
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
 
-	//TODO remove duplicate code found in update/factory/exportHandlerFactory.go
+	// TODO remove duplicate code found in update/factory/exportHandlerFactory.go
 	keysStorer, err := createStorer(gbc.arg.HardForkConfig.ImportKeysStorageConfig, importFolder)
 	if err != nil {
 		return fmt.Errorf("%w while creating keys storer", err)
@@ -124,7 +130,6 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 	store, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
-		factory.GetBloomFromConfig(storageConfig.Bloom),
 	)
 	if err != nil {
 		return nil, err
@@ -215,7 +220,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeDNSAddresses()
+	err := gbc.computeDNSAddresses(createGenesisConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -235,10 +240,16 @@ func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.Head
 			Nonce:     nonce,
 			Epoch:     epoch,
 			TimeStamp: gbc.arg.GenesisTime,
+			ShardID:   i,
 		}
 	}
 
 	return mapEmptyGenesisBlocks, nil
+}
+
+// GetIndexingData will return the initial data used for indexing
+func (gbc *genesisBlockCreator) GetIndexingData() map[uint32]*genesis.IndexingData {
+	return gbc.initialIndexingData
 }
 
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
@@ -256,7 +267,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeDNSAddresses()
+		err = gbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +321,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, err
 	}
 
-	//TODO call here trie pruning on all roothashes not from current shard
+	// TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
 }
@@ -345,14 +356,14 @@ func (gbc *genesisBlockCreator) createHeaders(
 			}
 
 			metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
-			genesisBlock, scResults, err = CreateMetaGenesisBlock(
+			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
 				mapBodies[core.MetachainShardId],
 				nodesListSplitter,
 				mapHardForkBlockProcessor[core.MetachainShardId],
 			)
 		} else {
-			genesisBlock, scResults, err = CreateShardGenesisBlock(
+			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateShardGenesisBlock(
 				mapArgsGenesisBlockCreator[shardID],
 				mapBodies[shardID],
 				nodesListSplitter,
@@ -391,7 +402,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses() error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochs config.EnableEpochs) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -403,7 +414,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	if dnsSC == nil || check.IfNil(dnsSC) {
 		return nil
 	}
-
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     gbc.arg.StartEpochNum,
+		TimeStamp: gbc.arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           gbc.arg.Accounts,
@@ -414,9 +430,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		Marshalizer:        gbc.arg.Core.InternalMarshalizer(),
 		Uint64Converter:    gbc.arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &disabled.SimpleNFTStorage{},
 		DataPool:           gbc.arg.Data.Datapool(),
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
+		EnableEpochs:       enableEpochs,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
@@ -451,7 +470,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		return newArgument, nil
 	}
 
-	newArgument := gbc.arg //copy the arguments
+	newArgument := gbc.arg // copy the arguments
 	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),

@@ -6,11 +6,22 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
 )
+
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+}
 
 func TestSCCallCostTransactionCost(t *testing.T) {
 	if testing.Short() {
@@ -103,7 +114,8 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeployNoChecks(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
-	testContext.TxFeeHandler.CreateBlockStarted()
+	gasAndFees := getZeroGasAndFees()
+	testContext.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -170,7 +182,8 @@ func TestAsyncESDTTransfer(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	gasAndFees := getZeroGasAndFees()
+	testContext.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	tx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), 0, 0)
@@ -178,5 +191,5 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(34207), res.GasUnits)
+	require.Equal(t, uint64(34157), res.GasUnits)
 }

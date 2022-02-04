@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func TestNewHeartbeatStorer_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hs, err := storage.NewHeartbeatDbStorer(
-		&testscommon.StorerStub{},
+		&storageStubs.StorerStub{},
 		nil,
 	)
 	assert.Nil(t, hs)
@@ -42,7 +42,7 @@ func TestNewHeartbeatStorer_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hs, err := storage.NewHeartbeatDbStorer(
-		&testscommon.StorerStub{},
+		&storageStubs.StorerStub{},
 		&mock.MarshalizerStub{},
 	)
 	assert.Nil(t, err)
@@ -233,7 +233,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutNotSucceededShouldErr(t *testing.T) 
 
 	expectedErr := errors.New("error putting")
 	hs, _ := storage.NewHeartbeatDbStorer(
-		&testscommon.StorerStub{
+		&storageStubs.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				return expectedErr
 			},

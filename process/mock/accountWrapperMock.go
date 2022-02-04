@@ -20,9 +20,10 @@ type AccountWrapMock struct {
 	address           []byte
 	trackableDataTrie state.DataTrieTracker
 
-	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
-	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
-	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
+	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
+	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
+	SetCodeWithJournalCalled     func(codeHash []byte) error        `json:"-"`
+	AccountDataHandlerCalled     func() vmcommon.AccountDataHandler `json:"-"`
 }
 
 // NewAccountWrapMock -
@@ -155,10 +156,13 @@ func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 
 // AccountDataHandler -
 func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
+	if awm.AccountDataHandlerCalled != nil {
+		return awm.AccountDataHandlerCalled()
+	}
 	return awm.trackableDataTrie
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
 }

@@ -1,5 +1,3 @@
-// +build !race
-
 package process
 
 import (
@@ -22,8 +20,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -37,7 +37,7 @@ import (
 
 var nodePrice = big.NewInt(5000)
 
-//TODO improve code coverage of this package
+// TODO improve code coverage of this package
 func createMockArgument(
 	t *testing.T,
 	genesisFilename string,
@@ -58,7 +58,7 @@ func createMockArgument(
 		Core: &mock.CoreComponentsMock{
 			IntMarsh:            &mock.MarshalizerMock{},
 			TxMarsh:             &mock.MarshalizerMock{},
-			Hash:                &mock.HasherMock{},
+			Hash:                &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 			Chain:               "chainID",
@@ -70,7 +70,7 @@ func createMockArgument(
 					return mock.NewStorerMock()
 				},
 			},
-			Blkc:     &mock.BlockChainStub{},
+			Blkc:     &testscommon.ChainHandlerStub{},
 			DataPool: dataRetrieverMock.NewPoolsHolderMock(),
 		},
 		InitialNodesSetup: &mock.InitialNodesSetupHandlerStub{},
@@ -140,7 +140,7 @@ func createMockArgument(
 	var err error
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
 		trieStorageManagers[factory.UserAccountTrie],
 	)
@@ -168,18 +168,23 @@ func createMockArgument(
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return math.MaxUint64
 		},
 	}
 	arg.Economics = ted
 
-	arg.AccountsParser, err = parsing.NewAccountsParser(
-		genesisFilename,
-		arg.Economics.GenesisTotalSupply(),
-		arg.Core.AddressPubKeyConverter(),
-		&mock.KeyGeneratorStub{},
-	)
+	args := genesis.AccountsParserArgs{
+		GenesisFilePath: genesisFilename,
+		EntireSupply:    arg.Economics.GenesisTotalSupply(),
+		MinterAddress:   "",
+		PubkeyConverter: arg.Core.AddressPubKeyConverter(),
+		KeyGenerator:    &mock.KeyGeneratorStub{},
+		Hasher:          &hashingMocks.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+	}
+
+	arg.AccountsParser, err = parsing.NewAccountsParser(args)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
@@ -247,7 +252,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddresses()
+	err = hardForkGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
@@ -375,6 +380,116 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
+}
+
+func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Arwen fix")
+	}
+
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
+	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
+	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")
+	initialGenesisNodes := map[uint32][]sharding.GenesisNodeInfoHandler{
+		0: {
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr,
+				PubKeyBytesValue:  bytes.Repeat([]byte{2}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr2,
+				PubKeyBytesValue:  bytes.Repeat([]byte{8}, 96),
+			},
+		},
+		1: {
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{4}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: scAddressBytes,
+				PubKeyBytesValue:  bytes.Repeat([]byte{5}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr2,
+				PubKeyBytesValue:  bytes.Repeat([]byte{6}, 96),
+			},
+			&mock.GenesisNodeInfoHandlerMock{
+				AddressBytesValue: stakedAddr2,
+				PubKeyBytesValue:  bytes.Repeat([]byte{7}, 96),
+			},
+		},
+	}
+	initialNodesSetup := &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return initialGenesisNodes, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest2.json",
+		initialNodesSetup,
+		big.NewInt(47000),
+	)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
+
+	blocks, err := gbc.CreateGenesisBlocks()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(blocks))
+
+	indexingData := gbc.GetIndexingData()
+
+	numDNSTypeScTxs := 256
+	numDefaultTypeScTxs := 1
+	numSystemSC := 4
+
+	numInitialNodes := 0
+	for k := range initialGenesisNodes {
+		numInitialNodes += len(initialGenesisNodes[k])
+	}
+
+	reqNumDeployInitialScTxs := numDNSTypeScTxs + numDefaultTypeScTxs
+	reqNumScrs := getRequiredNumScrsTxs(indexingData, 0)
+	reqNumDelegationTxs := 4
+	assert.Equal(t, reqNumDeployInitialScTxs, len(indexingData[0].DeployInitialScTxs))
+	assert.Equal(t, 0, len(indexingData[0].DeploySystemScTxs))
+	assert.Equal(t, reqNumDelegationTxs, len(indexingData[0].DelegationTxs))
+	assert.Equal(t, 0, len(indexingData[0].StakingTxs))
+	assert.Equal(t, reqNumScrs, len(indexingData[0].ScrsTxs))
+
+	reqNumDeployInitialScTxs = numDNSTypeScTxs
+	reqNumScrs = getRequiredNumScrsTxs(indexingData, 1)
+	assert.Equal(t, reqNumDeployInitialScTxs, len(indexingData[1].DeployInitialScTxs))
+	assert.Equal(t, 0, len(indexingData[1].DeploySystemScTxs))
+	assert.Equal(t, 0, len(indexingData[1].DelegationTxs))
+	assert.Equal(t, 0, len(indexingData[1].StakingTxs))
+	assert.Equal(t, reqNumScrs, len(indexingData[1].ScrsTxs))
+
+	reqNumScrs = getRequiredNumScrsTxs(indexingData, core.MetachainShardId)
+	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].DeployInitialScTxs))
+	assert.Equal(t, numSystemSC, len(indexingData[core.MetachainShardId].DeploySystemScTxs))
+	assert.Equal(t, 0, len(indexingData[core.MetachainShardId].DelegationTxs))
+	assert.Equal(t, numInitialNodes, len(indexingData[core.MetachainShardId].StakingTxs))
+	assert.Equal(t, reqNumScrs, len(indexingData[core.MetachainShardId].ScrsTxs))
+}
+
+func getRequiredNumScrsTxs(idata map[uint32]*genesis.IndexingData, shardId uint32) int {
+	n := 2 * (len(idata[shardId].DeployInitialScTxs) + len(idata[shardId].DeploySystemScTxs) + len(idata[shardId].DelegationTxs))
+	n += 3 * len(idata[shardId].StakingTxs)
+	return n
 }
 
 func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {

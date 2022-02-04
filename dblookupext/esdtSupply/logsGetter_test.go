@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +22,7 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 	logTx := &transaction.Log{}
 	logSCR := &transaction.Log{}
 
-	storer := &testscommon.StorerStub{
+	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if bytes.Equal(key, txHash) {
 				return marshalizer.Marshal(logTx)
@@ -61,7 +62,7 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 func TestGetLogsWrongBodyType(t *testing.T) {
 	t.Parallel()
 
-	getter := newLogsGetter(&testscommon.MarshalizerMock{}, &testscommon.StorerStub{})
+	getter := newLogsGetter(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{})
 
 	_, err := getter.getLogsBasedOnBody(nil)
 	require.Equal(t, errCannotCastToBlockBody, err)

@@ -57,7 +57,7 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 	require.Equal(t, big.NewInt(1000), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -97,7 +97,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -112,7 +111,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 	require.Equal(t, big.NewInt(1000), accumulatedFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -159,7 +158,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -169,7 +167,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	require.Equal(t, big.NewInt(1630), accumulatedFees)
 
 	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, false, testContextSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -181,7 +179,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)
@@ -196,7 +193,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	require.Equal(t, big.NewInt(1000), accumulatedFees)
 
 	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -241,7 +238,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -253,7 +249,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	require.Equal(t, big.NewInt(2630), accumulatedFees)
 
 	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, true, testContextSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -311,7 +307,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSource.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -327,7 +322,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
 	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, false, testContextSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -339,7 +334,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextDst.GetLatestError())
 
 	utils.TestAccount(t, testContextDst.Accounts, sndAddr, 1, big.NewInt(0))
 
@@ -351,7 +345,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[0]
 
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -406,7 +400,6 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	retCode, err := testContextRelayer.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextRelayer.GetLatestError())
 
 	// check relayed balance
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(97270))
@@ -422,7 +415,7 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -434,7 +427,6 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	retCode, err = testContextInnerSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextInnerSource.GetLatestError())
 
 	utils.TestAccount(t, testContextInnerSource.Accounts, sndAddr, 1, big.NewInt(0))
 
@@ -447,7 +439,7 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 	scr := txs[0]
 
-	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, true, testContextInnerSource.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)

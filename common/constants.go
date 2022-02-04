@@ -57,6 +57,9 @@ const NodesSetupJsonFileName = "nodesSetup.json"
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
+// GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
+const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
+
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
@@ -660,3 +663,31 @@ const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
 
 // RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
 const RetrialIntervalForOutportDriver = time.Second * 10
+
+// NodeProcessingMode represents the processing mode in which the node was started
+type NodeProcessingMode int
+
+const (
+	// Normal means that the node has started in the normal processing mode
+	Normal NodeProcessingMode = iota
+
+	// ImportDb means that the node has started in the import-db mode
+	ImportDb
+)
+
+// ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
+const ScheduledMode = "Scheduled"
+
+const (
+	// ActiveDBKey is the key at which ActiveDBVal will be saved
+	ActiveDBKey = "activeDB"
+
+	// ActiveDBVal is the value that will be saved at ActiveDBKey
+	ActiveDBVal = "yes"
+
+	// TrieSyncedKey is the key at which TrieSyncedVal will be saved
+	TrieSyncedKey = "synced"
+
+	// TrieSyncedVal is the value that will be saved at TrieSyncedKey
+	TrieSyncedVal = "yes"
+)

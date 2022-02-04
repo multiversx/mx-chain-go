@@ -36,6 +36,7 @@ func (ed *economicsData) GetGasLimitSetting() *config.GasLimitSetting {
 	gasLimitSetting.MaxGasLimitPerMiniBlock = strconv.FormatUint(ed.maxGasLimitPerMiniBlock, 10)
 	gasLimitSetting.MaxGasLimitPerMetaBlock = strconv.FormatUint(ed.maxGasLimitPerMetaBlock, 10)
 	gasLimitSetting.MaxGasLimitPerMetaMiniBlock = strconv.FormatUint(ed.maxGasLimitPerMetaMiniBlock, 10)
+	gasLimitSetting.MaxGasLimitPerTx = strconv.FormatUint(ed.maxGasLimitPerTx, 10)
 	gasLimitSetting.MinGasLimit = strconv.FormatUint(ed.minGasLimit, 10)
 
 	return gasLimitSetting

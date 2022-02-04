@@ -38,7 +38,8 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInner, pathToContract)
-	testContextInner.TxFeeHandler.CreateBlockStarted()
+	gasAndFees := getZeroGasAndFees()
+	testContextInner.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextInner)
 
 	require.Equal(t, uint32(1), testContextInner.ShardCoordinator.ComputeId(scAddr))
@@ -72,7 +73,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Equal(t, expectedFees, accumulatedFees)
 
 	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -92,18 +93,18 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Equal(t, expectedFees, accumulatedFees)
 
 	txs := testContextInner.GetIntermediateTransactions(t)
-	scr := txs[1]
+	scr := txs[0]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
 
 	expectedRelayerBalance = big.NewInt(10760)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 	intermediateTxs = testContextInner.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData, true, testContextInner.TxsLogsProcessor)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10390", indexerTx.Fee)
+	require.Equal(t, uint64(424), indexerTx.GasUsed)
+	require.Equal(t, "4240", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }

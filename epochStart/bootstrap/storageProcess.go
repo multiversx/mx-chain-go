@@ -19,10 +19,12 @@ import (
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -69,6 +71,8 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
+	defer sesb.closeTrieComponents()
+
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return sesb.bootstrapFromLocalStorage()
 	}
@@ -78,12 +82,16 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		if !check.IfNil(sesb.resolvers) {
 			err := sesb.resolvers.Close()
-			log.Debug("non critical error closing resolvers", "error", err)
+			if err != nil {
+				log.Debug("non critical error closing resolvers", "error", err)
+			}
 		}
 
 		if !check.IfNil(sesb.store) {
 			err := sesb.store.CloseAll()
-			log.Debug("non critical error closing resolvers", "error", err)
+			if err != nil {
+				log.Debug("non critical error closing storage service", "error", err)
+			}
 		}
 	}()
 
@@ -120,7 +128,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Debug("start in epoch bootstrap: got epoch start meta header from storage", "epoch", sesb.epochStartMeta.Epoch, "nonce", sesb.epochStartMeta.Nonce)
+	log.Debug("start in epoch bootstrap: got epoch start meta header from storage", "epoch", sesb.epochStartMeta.GetEpoch(), "nonce", sesb.epochStartMeta.GetNonce())
 	sesb.setEpochStartMetrics()
 
 	err = sesb.createSyncers()
@@ -137,10 +145,22 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 }
 
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
-	err := sesb.createTriesComponentsForShardId(core.MetachainShardId)
+	sesb.closeTrieComponents()
+	sesb.storageService = disabled.NewChainStorer()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		sesb.generalConfig,
+		sesb.coreComponentsHolder,
+		core.MetachainShardId,
+		sesb.storageService,
+		sesb.enableEpochs.DisableOldTrieStorageEpoch,
+		sesb.epochNotifier,
+	)
 	if err != nil {
 		return err
 	}
+
+	sesb.trieContainer = triesContainer
+	sesb.trieStorageManagers = trieStorageManagers
 
 	err = sesb.createStorageRequestHandler()
 	if err != nil {
@@ -220,19 +240,21 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:            sesb.generalConfig,
-		ShardIDForTries:          sesb.importDbConfig.ImportDBTargetShardID,
-		ChainID:                  sesb.chainID,
-		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
-		Hasher:                   sesb.coreComponentsHolder.Hasher(),
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                sesb.messenger,
-		Store:                    sesb.store,
-		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
-		DataPacker:               dataPacker,
-		ManualEpochStartNotifier: mesn,
-		ChanGracefullyClose:      sesb.chanGracefullyClose,
+		GeneralConfig:              sesb.generalConfig,
+		ShardIDForTries:            sesb.importDbConfig.ImportDBTargetShardID,
+		ChainID:                    sesb.chainID,
+		WorkingDirectory:           sesb.importDbConfig.ImportDBWorkingDir,
+		Hasher:                     sesb.coreComponentsHolder.Hasher(),
+		ShardCoordinator:           shardCoordinator,
+		Messenger:                  sesb.messenger,
+		Store:                      sesb.store,
+		Marshalizer:                sesb.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:   sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
+		DataPacker:                 dataPacker,
+		ManualEpochStartNotifier:   mesn,
+		ChanGracefullyClose:        sesb.chanGracefullyClose,
+		DisableOldTrieStorageEpoch: sesb.enableEpochs.DisableOldTrieStorageEpoch,
+		EpochNotifier:              sesb.epochNotifier,
 	}
 
 	var resolversContainerFactory dataRetriever.ResolversContainerFactory
@@ -262,31 +284,20 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		return nil, err
 	}
 
-	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&sesb.generalConfig,
-		&sesb.prefsConfig,
+	return sesb.createStorageService(
 		shardCoordinator,
 		pathManager,
 		mesn,
-		sesb.coreComponentsHolder.NodeTypeProvider(),
 		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
+		sesb.importDbConfig.ImportDBTargetShardID,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
-		return storageServiceCreator.CreateForMeta()
-	} else {
-		return storageServiceCreator.CreateForShard()
-	}
 }
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
 	var err error
-	sesb.baseData.numberOfShards = uint32(len(sesb.epochStartMeta.EpochStart.LastFinalizedHeaders))
-	sesb.baseData.lastEpoch = sesb.epochStartMeta.Epoch
+	sesb.baseData.numberOfShards = uint32(len(sesb.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
+	sesb.baseData.lastEpoch = sesb.epochStartMeta.GetEpoch()
 
 	sesb.syncedHeaders, err = sesb.syncHeadersFromStorage(sesb.epochStartMeta, sesb.destinationShardAsObserver)
 	if err != nil {
@@ -294,7 +305,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	}
 	log.Debug("start in epoch bootstrap: got shard header and previous epoch start meta block")
 
-	prevEpochStartMetaHash := sesb.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
+	prevEpochStartMetaHash := sesb.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
 	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
@@ -330,11 +341,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.createTriesComponentsForShardId(sesb.shardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
-
 		err = sesb.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err
@@ -351,23 +357,23 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	return parameters, nil
 }
 
-func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta *block.MetaBlock, syncingShardID uint32) (map[string]data.HeaderHandler, error) {
-	hashesToRequest := make([][]byte, 0, len(meta.EpochStart.LastFinalizedHeaders)+1)
-	shardIds := make([]uint32, 0, len(meta.EpochStart.LastFinalizedHeaders)+1)
+func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta data.MetaHeaderHandler, syncingShardID uint32) (map[string]data.HeaderHandler, error) {
+	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
+	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 
-	for _, epochStartData := range meta.EpochStart.LastFinalizedHeaders {
-		shouldSkipHeaderFetch := epochStartData.ShardID != syncingShardID &&
+	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		shouldSkipHeaderFetch := epochStartData.GetShardID() != syncingShardID &&
 			sesb.importDbConfig.ImportDBTargetShardID != core.MetachainShardId
 		if shouldSkipHeaderFetch {
 			continue
 		}
 
-		hashesToRequest = append(hashesToRequest, epochStartData.HeaderHash)
-		shardIds = append(shardIds, epochStartData.ShardID)
+		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
+		shardIds = append(shardIds, epochStartData.GetShardID())
 	}
 
-	if meta.Epoch > sesb.startEpoch+1 { // no need to request genesis block
-		hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
+	if meta.GetEpoch() > sesb.startEpoch+1 { // no need to request genesis block
+		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
@@ -383,8 +389,8 @@ func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta *block.MetaB
 		return nil, err
 	}
 
-	if meta.Epoch == sesb.startEpoch+1 {
-		syncedHeaders[string(meta.EpochStart.Economics.PrevEpochStartHash)] = &block.MetaBlock{}
+	if meta.GetEpoch() == sesb.startEpoch+1 {
+		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
 	}
 
 	return syncedHeaders, nil
@@ -415,19 +421,26 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		return err
 	}
 
-	clonedHeader := sesb.epochStartMeta.Clone()
+	clonedHeader := sesb.epochStartMeta.ShallowClone()
 	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
 		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
-	sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
+	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
+	if err != nil {
+		return err
+	}
 
-	clonedHeader = sesb.prevEpochStartMeta.Clone()
+	clonedHeader = sesb.prevEpochStartMeta.ShallowClone()
 	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
 		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
-	sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)
+
+	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)
+	if err != nil {
+		return err
+	}
 
 	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
 	sesb.baseData.shardId = sesb.applyShardIDAsObserverIfNeeded(sesb.baseData.shardId)
@@ -440,13 +453,23 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 // on the available resolver and should be called only from this storage-base bootstrap instance.
 // This method also copies the MiniBlockHeaders slice pointer. Otherwise the node will end up stating
 // "start of epoch metablock mismatch"
-func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock *block.MetaBlock) {
-	originalMiniblocksHeaders := metablock.MiniBlockHeaders
-	metablock.MiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(originalMiniblocksHeaders))
-	for _, mbh := range originalMiniblocksHeaders {
-		mbh.SenderShardID = sesb.importDbConfig.ImportDBTargetShardID //it is safe to modify here as mbh is passed by value
-		metablock.MiniBlockHeaders = append(metablock.MiniBlockHeaders, mbh)
+func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
+	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
+	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
+	var err error
+
+	for i := range originalMiniblocksHeaders {
+		mb := originalMiniblocksHeaders[i].ShallowClone()
+		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) //it is safe to modify here as mbh is passed by value
+		if err != nil {
+			return err
+		}
+
+		mbsHeaderHandlersToSet = append(mbsHeaderHandlersToSet, mb)
 	}
+
+	err = metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

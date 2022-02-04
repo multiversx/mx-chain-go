@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -22,7 +24,7 @@ import (
 
 func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
-		Hasher:           &mock.HasherMock{},
+		Hasher:           &hashingMocks.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		Accounts:         &stateMock.AccountsStub{},
 		PubkeyConv:       createMockPubkeyConverter(),
@@ -31,7 +33,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	}
 	return args
 }
@@ -358,7 +360,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		ESDTTransferParser: esdtTransferParser,
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -421,13 +423,13 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	txProc.ToggleFlagMetaBuiltIn(false)
+	txProc.SetValueFlagMetaBuiltIn(false)
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
 
-	txProc.ToggleFlagMetaBuiltIn(true)
+	txProc.SetValueFlagMetaBuiltIn(true)
 
 	builtInCalled := false
 	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
