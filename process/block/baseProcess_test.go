@@ -1694,25 +1694,24 @@ func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAn
 	runCount := 0
 	return &mock.GasHandlerMock{
 		TotalGasProvidedCalled: func() uint64 {
-			if runCount%6 >= 3 {
-				return final.GasProvided
-			}
-			runCount++
 			return initial.GasProvided
 		},
 		TotalGasPenalizedCalled: func() uint64 {
-			if runCount%6 >= 3 {
+			if runCount%4 >= 2 {
 				return final.GasPenalized
 			}
 			runCount++
 			return initial.GasPenalized
 		},
 		TotalGasRefundedCalled: func() uint64 {
-			if runCount%6 >= 3 {
+			if runCount%4 >= 2 {
 				return final.GasRefunded
 			}
 			runCount++
 			return initial.GasRefunded
+		},
+		TotalGasProvidedWithScheduledCalled: func() uint64 {
+			return final.GasProvided
 		},
 	}
 }
