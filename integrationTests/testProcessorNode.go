@@ -2244,6 +2244,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
+	stateComponents.AccountsAPI = tpn.AccntState
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),

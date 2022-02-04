@@ -164,3 +164,24 @@ func (gc *gasComputation) GetTxHashesWithGasRefundedSinceLastReset() [][]byte {
 func (gc *gasComputation) GetTxHashesWithGasPenalizedSinceLastReset() [][]byte {
 	return gc.getTxHashesWithGasPenalizedSinceLastReset()
 }
+
+func (ste *scheduledTxsExecution) ComputeScheduledSCRs(
+	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
+	mapAllIntermediateTxsAfterScheduledExecution map[block.Type]map[string]data.TransactionHandler,
+) {
+	ste.mutScheduledTxs.Lock()
+	ste.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
+	ste.mutScheduledTxs.Unlock()
+}
+
+func (ste *scheduledTxsExecution) GetMapScheduledSCRs() map[block.Type][]data.TransactionHandler {
+	ste.mutScheduledTxs.RLock()
+	defer ste.mutScheduledTxs.RUnlock()
+
+	newMap := make(map[block.Type][]data.TransactionHandler)
+	for key, value := range ste.mapScheduledSCRs {
+		newMap[key] = value
+	}
+
+	return newMap
+}
