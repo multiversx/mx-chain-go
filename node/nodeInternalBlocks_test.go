@@ -3,6 +3,7 @@ package node_test
 import (
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
@@ -37,7 +39,7 @@ func TestCreateInternalBlockProcessor_NilStoreShouldErr(t *testing.T) {
 	)
 
 	err := n.CreateInternalBlockProcessor()
-	assert.Error(t, err)
+	assert.True(t, strings.Contains(err.Error(), txstatus.ErrNiStorageService.Error()))
 }
 
 func TestCreateInternalBlockProcessor_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
@@ -58,7 +60,7 @@ func TestCreateInternalBlockProcessor_NilUint64ByteSliceConverterShouldErr(t *te
 	)
 
 	err := n.CreateInternalBlockProcessor()
-	assert.Error(t, err)
+	assert.True(t, strings.Contains(err.Error(), txstatus.ErrNilUint64ByteSliceConverter.Error()))
 }
 
 // ---- GetInternalMetaBlockByHash
@@ -88,7 +90,7 @@ func TestGetInternalMetaBlockByHash_WrongEncodedHashShoudFail(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalMetaBlockByHash(common.Internal, "wronghashformat")
+	blk, err := n.GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, "wronghashformat")
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -115,7 +117,7 @@ func TestGetInternalMetaBlockByHash_MetaChainOnlyEndpointShoudFail(t *testing.T)
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalMetaBlockByHash(common.Internal, "dummyhash")
+	blk, err := n.GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, "dummyhash")
 	assert.Equal(t, node.ErrMetachainOnlyEndpoint, err)
 	assert.Nil(t, blk)
 }
@@ -131,7 +133,7 @@ func TestGetInternalMetaBlockByHash_ShouldWork(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalMetaBlockByHash(common.Proto, hex.EncodeToString(headerHash))
+	blk, err := n.GetInternalMetaBlockByHash(common.ApiOutputFormatProto, hex.EncodeToString(headerHash))
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -160,7 +162,7 @@ func TestGetInternalMetaBlockByNonce_MetaChainOnlyEndpointShoudFail(t *testing.T
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalMetaBlockByNonce(common.Internal, 1)
+	blk, err := n.GetInternalMetaBlockByNonce(common.ApiOutputFormatInternal, 1)
 	assert.Equal(t, node.ErrMetachainOnlyEndpoint, err)
 	assert.Nil(t, blk)
 }
@@ -177,7 +179,7 @@ func TestGetInternalMetaBlockByNonce_ShouldWork(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalMetaBlockByNonce(common.Proto, nonce)
+	blk, err := n.GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -206,7 +208,7 @@ func TestGetInternalMetaBlockByRound_MetaChainOnlyEndpointShoudFail(t *testing.T
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalMetaBlockByRound(common.Internal, 1)
+	blk, err := n.GetInternalMetaBlockByRound(common.ApiOutputFormatInternal, 1)
 	assert.Equal(t, node.ErrMetachainOnlyEndpoint, err)
 	assert.Nil(t, blk)
 }
@@ -223,7 +225,7 @@ func TestGetInternalMetaBlockByRound_ShouldWork(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalMetaBlockByRound(common.Proto, round)
+	blk, err := n.GetInternalMetaBlockByRound(common.ApiOutputFormatProto, round)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -312,7 +314,7 @@ func TestGetInternalShardBlockByHash_WrongEncodedHashShoudFail(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalShardBlockByHash(common.Internal, "wronghashformat")
+	blk, err := n.GetInternalShardBlockByHash(common.ApiOutputFormatInternal, "wronghashformat")
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -339,7 +341,7 @@ func TestGetInternalShardBlockByHash_ShardOnlyEndpointShoudFail(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalShardBlockByHash(common.Internal, "dummyhash")
+	blk, err := n.GetInternalShardBlockByHash(common.ApiOutputFormatInternal, "dummyhash")
 	assert.Equal(t, node.ErrShardOnlyEndpoint, err)
 	assert.Nil(t, blk)
 }
@@ -355,7 +357,7 @@ func TestGetInternalShardBlockByHash_ShouldWork(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalShardBlockByHash(common.Proto, hex.EncodeToString(headerHash))
+	blk, err := n.GetInternalShardBlockByHash(common.ApiOutputFormatProto, hex.EncodeToString(headerHash))
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -384,7 +386,7 @@ func TestGetInternalShardBlockByNonce_ShardOnlyEndpointShoudFail(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalShardBlockByNonce(common.Internal, 1)
+	blk, err := n.GetInternalShardBlockByNonce(common.ApiOutputFormatInternal, 1)
 	assert.Equal(t, node.ErrShardOnlyEndpoint, err)
 	assert.Nil(t, blk)
 }
@@ -401,7 +403,7 @@ func TestGetInternalShardBlockByNonce_ShouldWork(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalShardBlockByNonce(common.Proto, nonce)
+	blk, err := n.GetInternalShardBlockByNonce(common.ApiOutputFormatProto, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -430,7 +432,7 @@ func TestGetInternalShardBlockByRound_ShardOnlyEndpointShoudFail(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalShardBlockByRound(common.Internal, 1)
+	blk, err := n.GetInternalShardBlockByRound(common.ApiOutputFormatInternal, 1)
 	assert.Equal(t, node.ErrShardOnlyEndpoint, err)
 	assert.Nil(t, blk)
 }
@@ -447,7 +449,7 @@ func TestGetInternalShardBlockByRound_ShouldWork(t *testing.T) {
 	err := n.CreateInternalBlockProcessor()
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalShardBlockByRound(common.Proto, round)
+	blk, err := n.GetInternalShardBlockByRound(common.ApiOutputFormatProto, round)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }

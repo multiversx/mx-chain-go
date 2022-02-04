@@ -1935,7 +1935,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPreviousNodesC
 	arguments.SelfPublicKey = pk
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	ihgs.flagWaitingListFix.Unset()
+	ihgs.flagWaitingListFix.Reset()
 	validatorInfos := make([]*state.ShardValidatorInfo, 0)
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(nil, validatorInfos)
 
@@ -1947,7 +1947,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPreviousNodesC
 	assert.Nil(t, newNodesConfig)
 	assert.False(t, errors.Is(err, ErrNilPreviousEpochConfig))
 
-	ihgs.flagWaitingListFix.Set()
+	_ = ihgs.flagWaitingListFix.SetReturningPrevious()
 	newNodesConfig, err = ihgs.computeNodesConfigFromList(nil, validatorInfos)
 
 	assert.Nil(t, newNodesConfig)
@@ -2019,7 +2019,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-	ihgs.flagWaitingListFix.Set()
+	_ = ihgs.flagWaitingListFix.SetReturningPrevious()
 
 	shard0Eligible0 := &state.ShardValidatorInfo{
 		PublicKey:  []byte("pk0"),
@@ -2215,7 +2215,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 			shardMetaLeaving1,
 		}
 
-	ihgs.flagWaitingListFix.Unset()
+	ihgs.flagWaitingListFix.Reset()
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(previousConfig, validatorInfos)
 	assert.Nil(t, err)
 

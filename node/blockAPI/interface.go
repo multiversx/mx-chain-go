@@ -14,10 +14,10 @@ type APIBlockHandler interface {
 
 // APIInternalBlockHandler defines the behaviour of a component able to return internal blocks
 type APIInternalBlockHandler interface {
-	GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error)
-	GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHash(format common.OutportFormat, hash []byte) (interface{}, error)
-	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
+	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 }

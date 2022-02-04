@@ -3,12 +3,14 @@ package node_test
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -17,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetInternalMiniBlock_NotFoundInStorerShouldErr(t *testing.T) {
+func TestGetInternalMiniBlock_NotFoundInStorerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	uint64Converter := mock.NewNonceHashConverterMock()
@@ -27,13 +29,16 @@ func TestGetInternalMiniBlock_NotFoundInStorerShouldErr(t *testing.T) {
 	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{}
 	processComponentsMock.ShardCoord = &testscommon.ShardsCoordinatorMock{}
 	dataComponentsMock := getDefaultDataComponents()
-	storerMock := mock.NewStorerMock()
+
+	expectedErr := errors.New("failed to get from storage")
+	storerMock := &testscommon.StorerStub{
+		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(_ dataRetriever.UnitType) storage.Storer {
 			return storerMock
-		},
-		GetCalled: func(_ dataRetriever.UnitType, _ []byte) ([]byte, error) {
-			return nil, nil
 		},
 	}
 
@@ -43,20 +48,35 @@ func TestGetInternalMiniBlock_NotFoundInStorerShouldErr(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	miniBlock, err := n.GetInternalMiniBlock(common.Proto, hex.EncodeToString([]byte("dummyhash")))
-	assert.Error(t, err)
+	miniBlock, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString([]byte("dummyhash")))
+	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, miniBlock)
 }
 
-func TestInternalMiniBlock_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
+func TestInternalMiniBlock_NotInStorerWhenHistoryRepoDisabledShouldFail(t *testing.T) {
 	t.Parallel()
 
+	historyProc := &dblookupext.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return false
+		},
+	}
+
+	expectedErr := errors.New("failed to get from storage")
+	storerMock := &testscommon.StorerStub{}
 	coreComponentsMock := getDefaultCoreComponents()
 	processComponentsMock := getDefaultProcessComponents()
-	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{}
+	processComponentsMock.HistoryRepositoryInternal = historyProc
 	processComponentsMock.ShardCoord = &testscommon.ShardsCoordinatorMock{}
 	dataComponentsMock := getDefaultDataComponents()
-	dataComponentsMock.Store = &mock.ChainStorerMock{}
+	dataComponentsMock.Store = &mock.ChainStorerMock{
+		GetStorerCalled: func(_ dataRetriever.UnitType) storage.Storer {
+			return storerMock
+		},
+		GetCalled: func(_ dataRetriever.UnitType, key []byte) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponentsMock),
@@ -64,8 +84,44 @@ func TestInternalMiniBlock_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	miniBlock, err := n.GetInternalMiniBlock(common.Proto, hex.EncodeToString([]byte("dummyhash")))
-	assert.Nil(t, err)
+	miniBlock, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString([]byte("dummyhash")))
+	assert.Equal(t, expectedErr, err)
+	assert.Nil(t, miniBlock)
+}
+
+func TestInternalMiniBlock_GetEpochWhenHistoryRepoEnabledShouldFail(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("failed to get epoch")
+	historyProc := &dblookupext.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(_ []byte) (uint32, error) {
+			return 0, expectedErr
+		},
+	}
+
+	storerMock := &testscommon.StorerStub{}
+	coreComponentsMock := getDefaultCoreComponents()
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+	processComponentsMock.ShardCoord = &testscommon.ShardsCoordinatorMock{}
+	dataComponentsMock := getDefaultDataComponents()
+	dataComponentsMock.Store = &mock.ChainStorerMock{
+		GetStorerCalled: func(_ dataRetriever.UnitType) storage.Storer {
+			return storerMock
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponentsMock),
+		node.WithProcessComponents(processComponentsMock),
+		node.WithDataComponents(dataComponentsMock),
+	)
+
+	miniBlock, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString([]byte("dummyhash")))
+	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, miniBlock)
 }
 
@@ -91,12 +147,12 @@ func TestGetInternalMiniBlock_WrongEncodedHashShoudFail(t *testing.T) {
 		node.WithDataComponents(dataComponentsMock),
 	)
 
-	blk, err := n.GetInternalMiniBlock(common.Proto, "wronghashformat")
+	blk, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, "wronghashformat")
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
 
-func TestGetInternalMiniBlock_InvalidOutportFormat_ShouldFail(t *testing.T) {
+func TestGetInternalMiniBlock_InvalidOutputFormatShouldFail(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
@@ -104,23 +160,23 @@ func TestGetInternalMiniBlock_InvalidOutportFormat_ShouldFail(t *testing.T) {
 	n, _ := prepareInternalMiniBlockNode(headerHash)
 
 	blk, err := n.GetInternalMiniBlock(2, hex.EncodeToString(headerHash))
-	assert.Equal(t, node.ErrInvalidOutportFormat, err)
+	assert.Equal(t, blockAPI.ErrInvalidOutputFormat, err)
 	assert.Nil(t, blk)
 }
 
-func TestGetInternalMiniBlock_InvalidOutportFormat_ShouldWork(t *testing.T) {
+func TestGetInternalMiniBlock_RawDataFormatShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	n, miniBlockBytes := prepareInternalMiniBlockNode(headerHash)
 
-	blk, err := n.GetInternalMiniBlock(common.Proto, hex.EncodeToString(headerHash))
+	blk, err := n.GetInternalMiniBlock(common.ApiOutputFormatProto, hex.EncodeToString(headerHash))
 	assert.Nil(t, err)
 	assert.Equal(t, miniBlockBytes, blk)
 }
 
-func TestGetInternalMiniBlock__InvalidOutportFormat_ShouldWork(t *testing.T) {
+func TestGetInternalMiniBlock_InternalFormatShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
@@ -130,7 +186,7 @@ func TestGetInternalMiniBlock__InvalidOutportFormat_ShouldWork(t *testing.T) {
 	err := json.Unmarshal(miniBlockBytes, miniBlock)
 	require.Nil(t, err)
 
-	blk, err := n.GetInternalMiniBlock(common.Internal, hex.EncodeToString(headerHash))
+	blk, err := n.GetInternalMiniBlock(common.ApiOutputFormatInternal, hex.EncodeToString(headerHash))
 	assert.Nil(t, err)
 	assert.Equal(t, miniBlock, blk)
 }

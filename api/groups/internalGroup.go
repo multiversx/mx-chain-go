@@ -32,13 +32,13 @@ const (
 
 // internalBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
 type internalBlockFacadeHandler interface {
-	GetInternalShardBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
-	GetInternalShardBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonce(format common.OutportFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
-	GetInternalMetaBlockByRound(format common.OutportFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockByHash(format common.OutportFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -146,7 +146,7 @@ func (ib *internalBlockGroup) getRawMetaBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	rawBlock, err := ib.getFacade().GetInternalMetaBlockByNonce(common.Proto, nonce)
+	rawBlock, err := ib.getFacade().GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, nonce)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByNonce with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -172,7 +172,7 @@ func (ib *internalBlockGroup) getRawMetaBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	rawBlock, err := ib.getFacade().GetInternalMetaBlockByHash(common.Proto, hash)
+	rawBlock, err := ib.getFacade().GetInternalMetaBlockByHash(common.ApiOutputFormatProto, hash)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByHash with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -198,7 +198,7 @@ func (ib *internalBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	rawBlock, err := ib.getFacade().GetInternalMetaBlockByRound(common.Proto, round)
+	rawBlock, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatProto, round)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByRound with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -224,7 +224,7 @@ func (ib *internalBlockGroup) getRawShardBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	rawBlock, err := ib.getFacade().GetInternalShardBlockByNonce(common.Proto, nonce)
+	rawBlock, err := ib.getFacade().GetInternalShardBlockByNonce(common.ApiOutputFormatProto, nonce)
 	log.Debug(fmt.Sprintf("GetInternalShardBlockByNonce with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -250,7 +250,7 @@ func (ib *internalBlockGroup) getRawShardBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	rawBlock, err := ib.getFacade().GetInternalShardBlockByHash(common.Proto, hash)
+	rawBlock, err := ib.getFacade().GetInternalShardBlockByHash(common.ApiOutputFormatProto, hash)
 	log.Debug(fmt.Sprintf("GetInternalShardBlockByHash with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -276,7 +276,7 @@ func (ib *internalBlockGroup) getRawShardBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	rawBlock, err := ib.getFacade().GetInternalShardBlockByRound(common.Proto, round)
+	rawBlock, err := ib.getFacade().GetInternalShardBlockByRound(common.ApiOutputFormatProto, round)
 	log.Debug(fmt.Sprintf("GetInternalShardBlockByRound with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -302,7 +302,7 @@ func (ib *internalBlockGroup) getInternalMetaBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ib.getFacade().GetInternalMetaBlockByNonce(common.Internal, nonce)
+	block, err := ib.getFacade().GetInternalMetaBlockByNonce(common.ApiOutputFormatInternal, nonce)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -328,7 +328,7 @@ func (ib *internalBlockGroup) getInternalMetaBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ib.getFacade().GetInternalMetaBlockByHash(common.Internal, hash)
+	block, err := ib.getFacade().GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, hash)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -354,7 +354,7 @@ func (ib *internalBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ib.getFacade().GetInternalMetaBlockByRound(common.Internal, round)
+	block, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatInternal, round)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -380,7 +380,7 @@ func (ib *internalBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ib.getFacade().GetInternalShardBlockByNonce(common.Internal, nonce)
+	block, err := ib.getFacade().GetInternalShardBlockByNonce(common.ApiOutputFormatInternal, nonce)
 	log.Debug(fmt.Sprintf("GetInternalShardBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -406,7 +406,7 @@ func (ib *internalBlockGroup) getInternalShardBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ib.getFacade().GetInternalShardBlockByHash(common.Internal, hash)
+	block, err := ib.getFacade().GetInternalShardBlockByHash(common.ApiOutputFormatInternal, hash)
 	log.Debug(fmt.Sprintf("GetInternalShardBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -432,7 +432,7 @@ func (ib *internalBlockGroup) getInternalShardBlockByRound(c *gin.Context) {
 	}
 
 	start := time.Now()
-	block, err := ib.getFacade().GetInternalShardBlockByRound(common.Internal, round)
+	block, err := ib.getFacade().GetInternalShardBlockByRound(common.ApiOutputFormatInternal, round)
 	log.Debug(fmt.Sprintf("GetInternalShardBlockByRound took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -458,7 +458,7 @@ func (ib *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.Proto, hash)
+	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatProto, hash)
 	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -484,7 +484,7 @@ func (ib *internalBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 	}
 
 	start := time.Now()
-	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.Internal, hash)
+	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatInternal, hash)
 	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(

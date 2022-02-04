@@ -252,37 +252,37 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ bool) (*api.Block, err
 }
 
 // GetInternalMetaBlockByHash return nil and error
-func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ common.OutportFormat, _ string) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
 // GetInternalMetaBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetInternalMetaBlockByNonce(_ common.OutportFormat, _ uint64) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalMetaBlockByNonce(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
 // GetInternalMetaBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.OutportFormat, _ uint64) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
 // GetInternalShardBlockByHash return nil and error
-func (inf *initialNodeFacade) GetInternalShardBlockByHash(_ common.OutportFormat, _ string) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalShardBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
 // GetInternalShardBlockByNonce returns nil and error
-func (inf *initialNodeFacade) GetInternalShardBlockByNonce(_ common.OutportFormat, _ uint64) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalShardBlockByNonce(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
 // GetInternalShardBlockByRound returns nil and error
-func (inf *initialNodeFacade) GetInternalShardBlockByRound(_ common.OutportFormat, _ uint64) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalShardBlockByRound(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 	return nil, errNodeStarting
 }
 
 // GetInternalMiniBlockByHash return nil and error
-func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ common.OutportFormat, _ string) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
 }
 

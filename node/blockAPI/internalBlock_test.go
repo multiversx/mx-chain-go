@@ -1,8 +1,8 @@
 package blockAPI
 
 import (
-	"bytes"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,7 @@ import (
 func createMockInternalBlockProcessor(
 	shardID uint32,
 	blockHeaderHash []byte,
-	storerMock *mock.StorerMock,
+	storerMock storage.Storer,
 	withKey bool,
 ) *internalBlockProcessor {
 	return NewInternalBlockProcessor(
@@ -42,6 +43,9 @@ func createMockInternalBlockProcessor(
 				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 					return 1, nil
 				},
+				IsEnabledCalled: func() bool {
+					return false
+				},
 			},
 		},
 	)
@@ -49,46 +53,37 @@ func createMockInternalBlockProcessor(
 
 // -------- ShardBlock --------
 
-func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlock_ShouldFail(t *testing.T) {
+func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
-	internalBlockProcessor := NewInternalBlockProcessor(
+	expectedErr := errors.New("failed to unmarshal err")
+
+	ibp := NewInternalBlockProcessor(
 		&APIBlockProcessorArg{
-			Marshalizer: &mock.MarshalizerFake{},
+			Marshalizer: &testscommon.MarshalizerStub{
+				UnmarshalCalled: func(_ interface{}, buff []byte) error {
+					return expectedErr
+				},
+			},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 		},
 	)
 
-	blockHeader, err := internalBlockProcessor.convertShardBlockBytesToInternalBlock([]byte{0})
-	assert.NotNil(t, err)
+	wrongBytes := []byte{0, 1, 2}
+
+	blockHeader, err := ibp.convertShardBlockBytesToInternalBlock(wrongBytes)
+	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, blockHeader)
 }
 
-func TestInternalBlockProcessor_ConvertShardBlockBytesToOutportFormat_ShouldFail(t *testing.T) {
+func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
-		nil,
-		nil,
-		false,
-	)
-
-	headerBytes := bytes.Repeat([]byte("1"), 10)
-
-	headerOutput, err := internalBlockProcessor.convertShardBlockBytesByOutportFormat(2, headerBytes)
-	assert.Equal(t, ErrInvalidOutportFormat, err)
-	assert.Nil(t, headerOutput)
-}
-
-func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalOutportFormat(t *testing.T) {
-	t.Parallel()
-
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
-		nil,
-		nil,
-		false,
+	ibp := NewInternalBlockProcessor(
+		&APIBlockProcessorArg{
+			Marshalizer: &testscommon.MarshalizerMock{},
+			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		},
 	)
 
 	header := &block.Header{
@@ -97,87 +92,94 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalOutportFormat(t 
 	}
 	headerBytes, _ := json.Marshal(header)
 
-	headerOutput, err := internalBlockProcessor.convertShardBlockBytesByOutportFormat(common.Internal, headerBytes)
-	require.Nil(t, err)
-	assert.Equal(t, header, headerOutput)
+	blockHeader, err := ibp.convertShardBlockBytesToInternalBlock(headerBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, header, blockHeader)
 }
 
-func TestInternalBlockProcessor_ConvertShardBlockBytesToProtoOutportFormat(t *testing.T) {
+func TestInternalBlockProcessor_ConvertShardBlockBytesByOutputFormat(t *testing.T) {
 	t.Parallel()
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
+	ibp := createMockInternalBlockProcessor(
+		1,
 		nil,
 		nil,
 		false,
 	)
-
 	header := &block.Header{
 		Nonce: uint64(15),
 		Round: uint64(14),
 	}
 	headerBytes, _ := json.Marshal(header)
 
-	headerOutput, err := internalBlockProcessor.convertShardBlockBytesByOutportFormat(common.Proto, headerBytes)
-	require.Nil(t, err)
-	assert.Equal(t, headerBytes, headerOutput)
+	t.Run("invalid output format, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		headerOutput, err := ibp.convertShardBlockBytesByOutputFormat(2, headerBytes)
+		assert.Equal(t, ErrInvalidOutputFormat, err)
+		assert.Nil(t, headerOutput)
+	})
+
+	t.Run("internal format, should work", func(t *testing.T) {
+		t.Parallel()
+
+		headerOutput, err := ibp.convertShardBlockBytesByOutputFormat(common.ApiOutputFormatInternal, headerBytes)
+		require.Nil(t, err)
+		assert.Equal(t, header, headerOutput)
+	})
+
+	t.Run("proto format, should work", func(t *testing.T) {
+		t.Parallel()
+
+		headerOutput, err := ibp.convertShardBlockBytesByOutputFormat(common.ApiOutputFormatProto, headerBytes)
+		require.Nil(t, err)
+		assert.Equal(t, headerBytes, headerOutput)
+	})
+
 }
 
-func TestInternalBlockProcessor_GetInternalShardBlockByHashInvalidHashShouldErr(t *testing.T) {
+func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	expectedErr := errors.New("key not found err")
+	storerMock := &testscommon.StorerStub{
+		GetCalled: func(_ []byte) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		0,
-		headerHash,
-		storerMock,
-		false,
-	)
-
-	blk, err := internalBlockProcessor.GetInternalShardBlockByHash(common.Internal, []byte("invalidHash"))
-	assert.Nil(t, blk)
-	assert.Error(t, err)
-}
-
-func TestInternalBlockProcessor_GetInternalShardBlockByNonceInvalidNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
-	storerMock := mock.NewStorerMock()
-
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		0,
-		headerHash,
-		storerMock,
-		true,
-	)
-
-	blk, err := internalBlockProcessor.GetInternalShardBlockByNonce(common.Internal, 100)
-	assert.Nil(t, blk)
-	assert.Error(t, err)
-}
-
-func TestInternalBlockProcessor_GetInternalShardBlockByRoundInvalidRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
-	storerMock := mock.NewStorerMock()
-
-	internalBlockProcessor := createMockInternalBlockProcessor(
+	ibp := createMockInternalBlockProcessor(
 		0,
 		headerHash,
 		storerMock,
 		true,
 	)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByRound(common.Internal, 100)
-	assert.Nil(t, blk)
-	assert.Error(t, err)
+	t.Run("provided hash not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatInternal, []byte("invalidHash"))
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("provided nonce not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatInternal, 100)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("provided round not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatInternal, 100)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
 }
 
 func TestInternalBlockProcessor_GetInternalShardBlockByHash(t *testing.T) {
@@ -187,12 +189,12 @@ func TestInternalBlockProcessor_GetInternalShardBlockByHash(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
 	header := &block.Header{}
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByHash(common.Internal, headerHash)
+	blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatInternal, headerHash)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -204,9 +206,9 @@ func TestInternalBlockProcessor_GetProtoShardBlockByHash(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByHash(common.Proto, headerHash)
+	blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatProto, headerHash)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -218,12 +220,12 @@ func TestInternalBlockProcessor_GetInternalShardBlockByNonce(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
 	header := &block.Header{}
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByNonce(common.Internal, nonce)
+	blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatInternal, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -235,9 +237,9 @@ func TestInternalBlockProcessor_GetProtoShardBlockByNonce(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByNonce(common.Proto, nonce)
+	blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatProto, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -249,12 +251,12 @@ func TestInternalBlockProcessor_GetInternalShardBlockByRound(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
 	header := &block.Header{}
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByRound(common.Internal, round)
+	blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatInternal, round)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -266,9 +268,9 @@ func TestInternalBlockProcessor_GetProtoShardBlockByRound(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := preapreShardBlockProcessor(nonce, round, headerHash)
 
-	blk, err := internalBlockProcessor.GetInternalShardBlockByRound(common.Proto, round)
+	blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatProto, round)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -277,7 +279,7 @@ func preapreShardBlockProcessor(nonce uint64, round uint64, headerHash []byte) (
 	storerMock := mock.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
+	ibp := createMockInternalBlockProcessor(
 		0,
 		headerHash,
 		storerMock,
@@ -294,7 +296,7 @@ func preapreShardBlockProcessor(nonce uint64, round uint64, headerHash []byte) (
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	_ = storerMock.Put(nonceBytes, headerHash)
 
-	return internalBlockProcessor, headerBytes
+	return ibp, headerBytes
 }
 
 // -------- MetaBlock --------
@@ -302,43 +304,34 @@ func preapreShardBlockProcessor(nonce uint64, round uint64, headerHash []byte) (
 func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlock_ShouldFail(t *testing.T) {
 	t.Parallel()
 
-	internalBlockProcessor := NewInternalBlockProcessor(
+	expectedErr := errors.New("failed to unmarshal err")
+
+	ibp := NewInternalBlockProcessor(
 		&APIBlockProcessorArg{
-			Marshalizer: &mock.MarshalizerFake{},
+			Marshalizer: &testscommon.MarshalizerStub{
+				UnmarshalCalled: func(_ interface{}, buff []byte) error {
+					return expectedErr
+				},
+			},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 		},
 	)
 
-	blockHeader, err := internalBlockProcessor.convertMetaBlockBytesToInternalBlock([]byte{0})
-	assert.NotNil(t, err)
+	wrongBytes := []byte{0, 1, 2}
+
+	blockHeader, err := ibp.convertMetaBlockBytesToInternalBlock(wrongBytes)
+	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, blockHeader)
 }
 
-func TestInternalBlockProcessor_ConvertMetaBlockBytesToOutportFormat_ShouldFail(t *testing.T) {
+func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
-		nil,
-		nil,
-		false,
-	)
-
-	headerBytes := bytes.Repeat([]byte("1"), 10)
-
-	headerOutput, err := internalBlockProcessor.convertMetaBlockBytesByOutportFormat(2, headerBytes)
-	assert.Equal(t, ErrInvalidOutportFormat, err)
-	assert.Nil(t, headerOutput)
-}
-
-func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalOutportFormat(t *testing.T) {
-	t.Parallel()
-
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
-		nil,
-		nil,
-		false,
+	ibp := NewInternalBlockProcessor(
+		&APIBlockProcessorArg{
+			Marshalizer: &testscommon.MarshalizerMock{},
+			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		},
 	)
 
 	header := &block.MetaBlock{
@@ -347,87 +340,94 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalOutportFormat(t *
 	}
 	headerBytes, _ := json.Marshal(header)
 
-	headerOutput, err := internalBlockProcessor.convertMetaBlockBytesByOutportFormat(common.Internal, headerBytes)
-	require.Nil(t, err)
-	assert.Equal(t, header, headerOutput)
+	blockHeader, err := ibp.convertMetaBlockBytesToInternalBlock(headerBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, header, blockHeader)
 }
 
-func TestInternalBlockProcessor_ConvertMetaBlockBytesToProtoOutportFormat(t *testing.T) {
+func TestInternalBlockProcessor_ConvertMetaBlockBytesByOutputFormat(t *testing.T) {
 	t.Parallel()
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
+	ibp := createMockInternalBlockProcessor(
+		1,
 		nil,
 		nil,
 		false,
 	)
-
 	header := &block.MetaBlock{
 		Nonce: uint64(15),
 		Round: uint64(14),
 	}
 	headerBytes, _ := json.Marshal(header)
 
-	headerOutput, err := internalBlockProcessor.convertMetaBlockBytesByOutportFormat(common.Proto, headerBytes)
-	require.Nil(t, err)
-	assert.Equal(t, headerBytes, headerOutput)
+	t.Run("invalid output format, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		headerOutput, err := ibp.convertMetaBlockBytesByOutputFormat(2, headerBytes)
+		assert.Equal(t, ErrInvalidOutputFormat, err)
+		assert.Nil(t, headerOutput)
+	})
+
+	t.Run("internal format, should work", func(t *testing.T) {
+		t.Parallel()
+
+		headerOutput, err := ibp.convertMetaBlockBytesByOutputFormat(common.ApiOutputFormatInternal, headerBytes)
+		require.Nil(t, err)
+		assert.Equal(t, header, headerOutput)
+	})
+
+	t.Run("proto format, should work", func(t *testing.T) {
+		t.Parallel()
+
+		headerOutput, err := ibp.convertMetaBlockBytesByOutputFormat(common.ApiOutputFormatProto, headerBytes)
+		require.Nil(t, err)
+		assert.Equal(t, headerBytes, headerOutput)
+	})
+
 }
 
-func TestInternalBlockProcessor_GetInternalMetaBlockByHashInvalidHashShouldErr(t *testing.T) {
+func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	storerMock := mock.NewStorerMock()
+	expectedErr := errors.New("key not found err")
+	storerMock := &testscommon.StorerStub{
+		GetCalled: func(_ []byte) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
-		headerHash,
-		storerMock,
-		false,
-	)
-
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByHash(common.Internal, []byte("invalidHash"))
-	assert.Nil(t, blk)
-	assert.Error(t, err)
-}
-
-func TestInternalBlockProcessor_GetInternalMetaBlockByNonceInvalidNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
-	storerMock := mock.NewStorerMock()
-
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
-		headerHash,
-		storerMock,
-		true,
-	)
-
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByNonce(common.Internal, 100)
-	assert.Nil(t, blk)
-	assert.Error(t, err)
-}
-
-func TestInternalBlockProcessor_GetInternalMetaBlockByRoundInvalidRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
-	storerMock := mock.NewStorerMock()
-
-	internalBlockProcessor := createMockInternalBlockProcessor(
-		core.MetachainShardId,
+	ibp := createMockInternalBlockProcessor(
+		0,
 		headerHash,
 		storerMock,
 		true,
 	)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByRound(common.Internal, 100)
-	assert.Nil(t, blk)
-	assert.Error(t, err)
+	t.Run("provided hash not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, []byte("invalidHash"))
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("provided nonce not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatInternal, 100)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("provided round not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatInternal, 100)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
 }
 
 func TestInternalBlockProcessor_GetInternalMetaBlockByHash(t *testing.T) {
@@ -437,12 +437,12 @@ func TestInternalBlockProcessor_GetInternalMetaBlockByHash(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
 	header := &block.MetaBlock{}
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByHash(common.Internal, headerHash)
+	blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, headerHash)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -454,9 +454,9 @@ func TestInternalBlockProcessor_GetProtoMetaBlockByHash(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByHash(common.Proto, headerHash)
+	blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatProto, headerHash)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -468,12 +468,12 @@ func TestInternalBlockProcessor_GetInternalMetaBlockByNonce(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
 	header := &block.MetaBlock{}
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByNonce(common.Internal, nonce)
+	blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatInternal, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -485,9 +485,9 @@ func TestInternalBlockProcessor_GetProtoMetaBlockByNonce(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByNonce(common.Proto, nonce)
+	blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -499,12 +499,12 @@ func TestInternalBlockProcessor_GetInternalMetaBlockByRound(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
 	header := &block.MetaBlock{}
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByRound(common.Internal, nonce)
+	blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatInternal, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -516,9 +516,9 @@ func TestInternalBlockProcessor_GetProtoMetaBlockByRound(t *testing.T) {
 	round := uint64(1)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
-	internalBlockProcessor, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
+	ibp, headerBytes := prepareMetaBlockProcessor(nonce, round, headerHash)
 
-	blk, err := internalBlockProcessor.GetInternalMetaBlockByRound(common.Proto, nonce)
+	blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatProto, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, headerBytes, blk)
 }
@@ -527,7 +527,7 @@ func prepareMetaBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*
 	storerMock := mock.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
 
-	internalBlockProcessor := createMockInternalBlockProcessor(
+	ibp := createMockInternalBlockProcessor(
 		core.MetachainShardId,
 		headerHash,
 		storerMock,
@@ -544,5 +544,5 @@ func prepareMetaBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	_ = storerMock.Put(nonceBytes, headerHash)
 
-	return internalBlockProcessor, headerBytes
+	return ibp, headerBytes
 }

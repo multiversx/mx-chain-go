@@ -25,13 +25,13 @@ func newLogsGetter(
 	}
 }
 
-func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]data.LogHandler, error) {
+func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string]*data.LogData, error) {
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return nil, errCannotCastToBlockBody
 	}
 
-	logsDB := make(map[string]data.LogHandler)
+	logsDB := make(map[string]*data.LogData)
 	for _, mb := range body.MiniBlocks {
 		shouldIgnore := mb.Type != block.TxBlock && mb.Type != block.SmartContractResultBlock
 		if shouldIgnore {
@@ -43,14 +43,16 @@ func (lg *logsGetter) getLogsBasedOnBody(blockBody data.BodyHandler) (map[string
 			return nil, err
 		}
 
-		logsDB = mergeLogsMap(logsDB, dbLogsMb)
+		for _, logData := range dbLogsMb {
+			logsDB[logData.TxHash] = logData
+		}
 	}
 
 	return logsDB, nil
 }
 
-func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) (map[string]data.LogHandler, error) {
-	dbLogs := make(map[string]data.LogHandler)
+func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]*data.LogData, error) {
+	dbLogs := make([]*data.LogData, 0)
 	for _, txHash := range mb.TxHashes {
 		txLog, ok, err := lg.getTxLog(txHash)
 		if err != nil {
@@ -61,7 +63,10 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) (map[string]data.Log
 			continue
 		}
 
-		dbLogs[string(txHash)] = txLog
+		dbLogs = append(dbLogs, &data.LogData{
+			LogHandler: txLog,
+			TxHash:     string(txHash),
+		})
 	}
 
 	return dbLogs, nil
@@ -85,18 +90,4 @@ func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
 	}
 
 	return logFromDB, true, nil
-}
-
-func mergeLogsMap(m1, m2 map[string]data.LogHandler) map[string]data.LogHandler {
-	finalMap := make(map[string]data.LogHandler, len(m1)+len(m2))
-
-	for key, value := range m1 {
-		finalMap[key] = value
-	}
-
-	for key, value := range m2 {
-		finalMap[key] = value
-	}
-
-	return finalMap
 }

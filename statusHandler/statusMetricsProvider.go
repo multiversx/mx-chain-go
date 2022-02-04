@@ -278,9 +278,9 @@ func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
 	ratingsMetrics[common.MetricRatingsGeneralSignedBlocksThreshold] = sm.loadStringMetric(common.MetricRatingsGeneralSignedBlocksThreshold)
 
 	numSelectionChances := sm.loadUint64Metric(common.MetricRatingsGeneralSelectionChances + "_count")
-	selectionChances := make([]map[string]interface{}, 0)
+	selectionChances := make([]map[string]uint64, 0)
 	for i := uint64(0); i < numSelectionChances; i++ {
-		selectionChance := make(map[string]interface{})
+		selectionChance := make(map[string]uint64)
 		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
 		selectionChance[common.MetricSelectionChancesMaxThreshold] = sm.loadUint64Metric(maxThresholdStr)
 		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)

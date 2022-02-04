@@ -318,9 +318,9 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 
 	for i, selectionChance := range selectionChances {
 		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
-		sm.SetUInt64Value(maxThresholdStr, uint64(selectionChance["MaxThreshold"]))
+		sm.SetUInt64Value(maxThresholdStr, selectionChance["MaxThreshold"])
 		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
-		sm.SetUInt64Value(chancePercentStr, uint64(selectionChance["ChancePercent"]))
+		sm.SetUInt64Value(chancePercentStr, selectionChance["ChancePercent"])
 	}
 	sm.SetUInt64Value(common.MetricRatingsGeneralSelectionChances+"_count", uint64(len(selectionChances)))
 
@@ -349,7 +349,7 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 		common.MetricRatingsGeneralMinRating:             uint64(1),
 		common.MetricRatingsGeneralSignedBlocksThreshold: "0.01",
 
-		common.MetricRatingsGeneralSelectionChances: []map[string]interface{}{
+		common.MetricRatingsGeneralSelectionChances: []map[string]uint64{
 			{
 				common.MetricSelectionChancesMaxThreshold:  uint64(0),
 				common.MetricSelectionChancesChancePercent: uint64(5),
