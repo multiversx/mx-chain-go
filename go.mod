@@ -35,7 +35,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.5.5
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
 	github.com/libp2p/go-tcp-transport v0.2.8
-	github.com/mitchellh/mapstructure v1.4.2
+	github.com/mitchellh/mapstructure v1.4.3
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
