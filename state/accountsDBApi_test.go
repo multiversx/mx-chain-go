@@ -54,6 +54,33 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 	}
 	expectedErr := errors.New("expected error")
 
+	t.Run("blockchain returns nil or empty root hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		accountsAdapter := &mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				require.Fail(t, "should have not called RecreateAllTriesCalled")
+
+				return nil
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+		}
+
+		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, chainHandler)
+		accountsApi.SetLastRootHash(blockchainRootHash)
+		assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilRootHash))
+
+		accountsApi.SetLastRootHash(blockchainRootHash)
+		chainHandler.GetCurrentBlockRootHashCalled = func() []byte {
+			return make([]byte, 0)
+		}
+		assert.True(t, errors.Is(accountsApi.RecreateTrieIfNecessary(), state.ErrNilRootHash))
+	})
 	t.Run("root hash already set, return nil and do not call recreate", func(t *testing.T) {
 		t.Parallel()
 

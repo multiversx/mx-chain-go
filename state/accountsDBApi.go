@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -35,6 +36,9 @@ func NewAccountsDBApi(innerAccountsAdapter AccountsAdapter, chainHandler chainDa
 
 func (accountsDB *accountsDBApi) recreateTrieIfNecessary() error {
 	targetRootHash := accountsDB.chainHandler.GetCurrentBlockRootHash()
+	if len(targetRootHash) == 0 {
+		return fmt.Errorf("%w in accountsDBApi when fetching GetCurrentBlockRootHash", ErrNilRootHash)
+	}
 
 	accountsDB.mutLastRootHash.RLock()
 	lastRootHash := accountsDB.lastRootHash
