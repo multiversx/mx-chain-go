@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -232,6 +233,7 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 		Core:             coreComponents,
 		StorageService:   disabled.NewChainStorer(),
 		ProcessingMode:   common.Normal,
+		ChainHandler:     &testscommon.ChainHandlerStub{},
 	}
 
 	return stateComponentsFactoryArgs
