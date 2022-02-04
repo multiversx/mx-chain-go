@@ -359,7 +359,7 @@ func TestGetRawMetaBlockByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-hash/15", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
