@@ -180,6 +180,8 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[common.MetricTopUpFactor] = sm.loadStringMetric(common.MetricTopUpFactor)
 	configMetrics[common.MetricGasPriceModifier] = sm.loadStringMetric(common.MetricGasPriceModifier)
 	configMetrics[common.MetricRoundsPerEpoch] = sm.loadUint64Metric(common.MetricRoundsPerEpoch)
+	configMetrics[common.MetricAdaptivity] = sm.loadStringMetric(common.MetricAdaptivity)
+	configMetrics[common.MetricHysteresis] = sm.loadStringMetric(common.MetricHysteresis)
 
 	return configMetrics
 }
@@ -209,6 +211,27 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[common.MetricDelegationManagerEnableEpoch] = sm.loadUint64Metric(common.MetricDelegationManagerEnableEpoch)
 	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.loadUint64Metric(common.MetricDelegationSmartContractEnableEpoch)
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.loadUint64Metric(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch)
+	enableEpochsMetrics[common.MetricBalanceWaitingListsEnableEpoch] = sm.loadUint64Metric(common.MetricBalanceWaitingListsEnableEpoch)
+	enableEpochsMetrics[common.MetricWaitingListFixEnableEpoch] = sm.loadUint64Metric(common.MetricWaitingListFixEnableEpoch)
+
+	numNodesChangeConfig := sm.loadUint64Metric(common.MetricMaxNodesChangeEnableEpoch + "_count")
+
+	nodesChangeConfig := make([]map[string]interface{}, 0)
+	for i := uint64(0); i < numNodesChangeConfig; i++ {
+		maxNodesChangeConfig := make(map[string]interface{})
+
+		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
+		maxNodesChangeConfig[common.MetricEpochEnable] = sm.loadUint64Metric(epochEnable)
+
+		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
+		maxNodesChangeConfig[common.MetricMaxNumNodes] = sm.loadUint64Metric(maxNumNodes)
+
+		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
+		maxNodesChangeConfig[common.MetricNodesToShufflePerShard] = sm.loadUint64Metric(nodesToShufflePerShard)
+
+		nodesChangeConfig = append(nodesChangeConfig, maxNodesChangeConfig)
+	}
+	enableEpochsMetrics[common.MetricMaxNodesChangeEnableEpoch] = nodesChangeConfig
 
 	return enableEpochsMetrics
 }
@@ -259,9 +282,9 @@ func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
 	for i := uint64(0); i < numSelectionChances; i++ {
 		selectionChance := make(map[string]uint64)
 		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
-		selectionChance[common.SelectionChancesMaxThresholdSuffix] = sm.loadUint64Metric(maxThresholdStr)
+		selectionChance[common.MetricSelectionChancesMaxThreshold] = sm.loadUint64Metric(maxThresholdStr)
 		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
-		selectionChance[common.SelectionChancesChancePercentSuffix] = sm.loadUint64Metric(chancePercentStr)
+		selectionChance[common.MetricSelectionChancesChancePercent] = sm.loadUint64Metric(chancePercentStr)
 		selectionChances = append(selectionChances, selectionChance)
 	}
 	ratingsMetrics[common.MetricRatingsGeneralSelectionChances] = selectionChances

@@ -74,7 +74,12 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 }
 
 // InitConfigMetrics will init the "enable epochs" configuration metrics from epoch config
-func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig config.EpochConfig, economicsConfig config.EconomicsConfig) error {
+func InitConfigMetrics(
+	statusHandlerUtils StatusHandlersUtils,
+	epochConfig config.EpochConfig,
+	economicsConfig config.EconomicsConfig,
+	genesisNodesConfig sharding.GenesisNodesSetupHandler,
+) error {
 	if check.IfNil(statusHandlerUtils) {
 		return ErrNilStatusHandlerUtils
 	}
@@ -117,6 +122,22 @@ func InitConfigMetrics(statusHandlerUtils StatusHandlersUtils, epochConfig confi
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
+	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
+
+	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
+		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
+		appStatusHandler.SetUInt64Value(epochEnable, uint64(nodesChangeConfig.EpochEnable))
+
+		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
+		appStatusHandler.SetUInt64Value(maxNumNodes, uint64(nodesChangeConfig.MaxNumNodes))
+
+		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
+		appStatusHandler.SetUInt64Value(nodesToShufflePerShard, uint64(nodesChangeConfig.NodesToShufflePerShard))
+	}
+	appStatusHandler.SetUInt64Value(common.MetricMaxNodesChangeEnableEpoch+"_count", uint64(len(enableEpochs.MaxNodesChangeEnableEpoch)))
+
+	appStatusHandler.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", genesisNodesConfig.GetHysteresis()))
+	appStatusHandler.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", genesisNodesConfig.GetAdaptivity()))
 
 	return nil
 }
