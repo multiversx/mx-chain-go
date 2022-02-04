@@ -146,7 +146,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 		VmContainer:       context.VMContainer,
 		EconomicsFee:      context.EconomicsFee,
 		BlockChainHook:    context.BlockchainHook,
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
@@ -235,7 +235,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
-	blockchainMock := &mock.BlockChainMock{}
+	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
