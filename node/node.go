@@ -512,8 +512,6 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		tokenID, nonce := extractTokenIDAndNonceFromTokenKey([]byte(tokenName))
 
 		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-		// sending the nonce as 0 will work for both fungible and non fungible tokens because the key is already im the
-		// format the function expects it.
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
 		if err != nil {
 			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
