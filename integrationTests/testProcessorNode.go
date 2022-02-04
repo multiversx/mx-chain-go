@@ -2951,7 +2951,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 // GetDefaultDataComponents -
 func GetDefaultDataComponents() *mock.DataComponentsStub {
 	return &mock.DataComponentsStub{
-		BlockChain: &mock.BlockChainMock{},
+		BlockChain: &testscommon.ChainHandlerStub{},
 		Store:      &mock.ChainStorerMock{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},

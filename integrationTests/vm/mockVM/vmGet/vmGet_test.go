@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 			},
 		},
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}

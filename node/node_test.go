@@ -299,11 +299,6 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	stateComponents.AccountsAPI = accDB
 
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -513,11 +508,6 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	stateComponents.AccountsAPI = accDB
 
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -592,11 +582,6 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	stateComponents.Accounts = accDB
 	stateComponents.AccountsAPI = accDB
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -777,11 +762,6 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	stateComponents.AccountsAPI = accDB
 	stateComponents.Accounts = accDB
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -862,11 +842,6 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	stateComponents.AccountsAPI = accDB
 	stateComponents.Accounts = accDB
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -942,11 +917,6 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	stateComponents.AccountsAPI = accDB
 	stateComponents.Accounts = accDB
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -1008,11 +978,6 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	stateComponents.AccountsAPI = accDB
 	stateComponents.Accounts = accDB
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
 		SelfShardId: core.MetachainShardId,
@@ -1030,7 +995,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	require.Equal(t, string(esdtToken), tokenResult[0])
 }
 
-//------- GenerateTransaction
+// ------- GenerateTransaction
 
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	privateKey := getPrivateKey()
@@ -2634,7 +2599,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	require.Nil(t, err)
 }
 
-//------- GetAccount
+// ------- GetAccount
 
 func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
@@ -3184,7 +3149,7 @@ func TestNode_IsSelfTrigger(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-//------- Query handlers
+// ------- Query handlers
 
 func TestNode_AddQueryHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -3286,7 +3251,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = &p2pmocks.MessengerStub{
 		PeersCalled: func() []core.PeerID {
-			//return them unsorted
+			// return them unsorted
 			return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}
 		},
 		PeerAddressesCalled: func(pid core.PeerID) []string {
@@ -3308,7 +3273,7 @@ func TestNode_ShouldWork(t *testing.T) {
 		}),
 	)
 
-	vals, err := n.GetPeerInfo("3sf1k") //will return both pids, sorted
+	vals, err := n.GetPeerInfo("3sf1k") // will return both pids, sorted
 
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(vals))
@@ -3398,7 +3363,7 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 	}
 
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
@@ -3426,8 +3391,8 @@ func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 	}
 
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}
@@ -3440,7 +3405,7 @@ func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 
 	res, err := n.GetKeyValuePairs("addr")
 	require.Nil(t, res)
-	require.Equal(t, node.ErrNilBlockHeader, err)
+	require.Equal(t, node.ErrEmptyRootHash, err)
 }
 
 func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
@@ -3462,11 +3427,6 @@ func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
 	}
 
 	dataComponents := getDefaultDataComponents()
-	dataComponents.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 
 	n, _ := node.NewNode(
 		node.WithStateComponents(stateComponents),
@@ -3523,13 +3483,13 @@ func TestNode_Close(t *testing.T) {
 	err = n.Close()
 	assert.Nil(t, err)
 	require.Equal(t, 3, len(closerCalledOrder))
-	assert.True(t, c3 == closerCalledOrder[0]) //pointer testing
-	assert.True(t, c2 == closerCalledOrder[1]) //pointer testing
-	assert.True(t, c1 == closerCalledOrder[2]) //pointer testing
+	assert.True(t, c3 == closerCalledOrder[0]) // pointer testing
+	assert.True(t, c2 == closerCalledOrder[1]) // pointer testing
+	assert.True(t, c1 == closerCalledOrder[2]) // pointer testing
 
 	require.Equal(t, 2, len(queryCalled))
-	require.True(t, queryCalled["q1"] == q1) //pointer testing
-	require.True(t, queryCalled["q2"] == q2) //pointer testing
+	require.True(t, queryCalled["q1"] == q1) // pointer testing
+	require.True(t, queryCalled["q2"] == q2) // pointer testing
 }
 
 func TestNode_getClosableComponentName(t *testing.T) {
