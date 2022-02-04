@@ -196,6 +196,9 @@ func CreateNode(
 		EpochNotifier:           coreComponents.EpochNotifier(),
 		ShardCoordinator:        processComponents.ShardCoordinator(),
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	var nd *Node
 	nd, err = NewNode(
