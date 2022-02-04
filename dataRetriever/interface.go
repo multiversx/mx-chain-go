@@ -156,6 +156,7 @@ type MiniBlocksResolver interface {
 // PeerAuthenticationResolver defines what a peer authentication resolver should do
 type PeerAuthenticationResolver interface {
 	Resolver
+	RequestDataFromChunk(chunkIndex uint32, epoch uint32) error
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
@@ -418,5 +419,11 @@ type PreferredPeersHolderHandler interface {
 // SelfShardIDProvider defines the behavior of a component able to provide the self shard ID
 type SelfShardIDProvider interface {
 	SelfId() uint32
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator provides Validator methods needed for the peer processing
+type NodesCoordinator interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
 }

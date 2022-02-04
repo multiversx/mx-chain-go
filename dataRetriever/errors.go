@@ -229,3 +229,12 @@ var ErrNilHeartbeatPool = errors.New("nil heartbeat pool")
 
 // ErrNotFound signals that a data is missing
 var ErrNotFound = errors.New("data not found")
+
+// ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// InvalidChunkIndex signals that an invalid chunk was provided
+var InvalidChunkIndex = errors.New("invalid chunk index")
+
+// ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
+var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
