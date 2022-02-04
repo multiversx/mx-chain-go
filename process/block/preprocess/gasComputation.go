@@ -206,6 +206,14 @@ func (gc *gasComputation) TotalGasProvidedAsScheduled() uint64 {
 	return totalGasProvided
 }
 
+// TotalGasProvidedWithScheduled gets the total gas provided both as normal and scheduled operation
+func (gc *gasComputation) TotalGasProvidedWithScheduled() uint64 {
+	gasProvidedAsScheduled := gc.TotalGasProvidedAsScheduled()
+	gasProvidedNormalOperation := gc.TotalGasProvided()
+
+	return gasProvidedAsScheduled + gasProvidedNormalOperation
+}
+
 // TotalGasRefunded gets the total gas refunded
 func (gc *gasComputation) TotalGasRefunded() uint64 {
 	totalGasRefunded := uint64(0)

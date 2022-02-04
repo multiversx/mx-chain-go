@@ -627,7 +627,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
+	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
 	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
