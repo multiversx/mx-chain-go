@@ -35,6 +35,9 @@ type preProcessorsContainerFactory struct {
 	epochNotifier                               process.EpochNotifier
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32
 	frontRunningProtectionEnableEpoch           uint32
+	scheduledMiniBlocksEnableEpoch              uint32
+	txTypeHandler                               process.TxTypeHandler
+	scheduledTxsExecutionHandler                process.ScheduledTxsExecutionHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -57,6 +60,9 @@ func NewPreProcessorsContainerFactory(
 	epochNotifier process.EpochNotifier,
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
 	frontRunningProtectionEnableEpoch uint32,
+	scheduledMiniBlocksEnableEpoch uint32,
+	txTypeHandler process.TxTypeHandler,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -107,6 +113,12 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(epochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(txTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
+	if check.IfNil(scheduledTxsExecutionHandler) {
+		return nil, process.ErrNilScheduledTxsExecutionHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:     shardCoordinator,
@@ -127,6 +139,9 @@ func NewPreProcessorsContainerFactory(
 		epochNotifier:        epochNotifier,
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		frontRunningProtectionEnableEpoch:           frontRunningProtectionEnableEpoch,
+		scheduledMiniBlocksEnableEpoch:              scheduledMiniBlocksEnableEpoch,
+		txTypeHandler:                               txTypeHandler,
+		scheduledTxsExecutionHandler:                scheduledTxsExecutionHandler,
 	}, nil
 }
 
@@ -177,6 +192,9 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		EpochNotifier:        ppcm.epochNotifier,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: ppcm.optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		FrontRunningProtectionEnableEpoch:           ppcm.frontRunningProtectionEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              ppcm.scheduledMiniBlocksEnableEpoch,
+		TxTypeHandler:                               ppcm.txTypeHandler,
+		ScheduledTxsExecutionHandler:                ppcm.scheduledTxsExecutionHandler,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)

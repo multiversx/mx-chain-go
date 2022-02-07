@@ -96,10 +96,11 @@ func (bsc *blockSizeComputation) NumTxs() uint32 {
 }
 
 func (txs *transactions) ProcessTxsToMe(
+	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {
-	return txs.processTxsToMe(body, haveTime)
+	return txs.processTxsToMe(header, body, haveTime)
 }
 
 func (txs *transactions) AddTxForCurrentBlock(
@@ -146,4 +147,41 @@ func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {
 	}
 
 	return big.NewInt(0).Set(currValue)
+}
+
+func (gc *gasComputation) GetTxHashesWithGasProvidedSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasProvidedSinceLastReset()
+}
+
+func (gc *gasComputation) GetTxHashesWithGasProvidedAsScheduledSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasProvidedAsScheduledSinceLastReset()
+}
+
+func (gc *gasComputation) GetTxHashesWithGasRefundedSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasRefundedSinceLastReset()
+}
+
+func (gc *gasComputation) GetTxHashesWithGasPenalizedSinceLastReset() [][]byte {
+	return gc.getTxHashesWithGasPenalizedSinceLastReset()
+}
+
+func (ste *scheduledTxsExecution) ComputeScheduledSCRs(
+	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
+	mapAllIntermediateTxsAfterScheduledExecution map[block.Type]map[string]data.TransactionHandler,
+) {
+	ste.mutScheduledTxs.Lock()
+	ste.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
+	ste.mutScheduledTxs.Unlock()
+}
+
+func (ste *scheduledTxsExecution) GetMapScheduledSCRs() map[block.Type][]data.TransactionHandler {
+	ste.mutScheduledTxs.RLock()
+	defer ste.mutScheduledTxs.RUnlock()
+
+	newMap := make(map[block.Type][]data.TransactionHandler)
+	for key, value := range ste.mapScheduledSCRs {
+		newMap[key] = value
+	}
+
+	return newMap
 }

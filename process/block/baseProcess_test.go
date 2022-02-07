@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -37,8 +38,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,10 +51,12 @@ func haveTime() time.Duration {
 	return 2000 * time.Millisecond
 }
 
-func createTestBlockchain() *mock.BlockChainStub {
-	return &mock.BlockChainStub{GetGenesisHeaderCalled: func() data.HeaderHandler {
-		return &block.Header{Nonce: 0}
-	}}
+func createTestBlockchain() *testscommon.ChainHandlerStub {
+	return &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+	}
 }
 
 func generateTestCache() storage.Cacher {
@@ -215,6 +221,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 
@@ -309,6 +316,11 @@ func createComponentHolderMocks() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
@@ -326,7 +338,7 @@ func CreateMockArguments(
 ) blproc.ArgShardProcessor {
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &mock.HasherMock{},
+		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
@@ -334,7 +346,11 @@ func CreateMockArguments(
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	}
 
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
@@ -357,13 +373,15 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
-			RoundNotifier:      &mock.RoundNotifierStub{},
-			GasHandler:         &mock.GasHandlerMock{},
+			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+			Version:                        "softwareVersion",
+			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:                  &mock.RoundNotifierStub{},
+			GasHandler:                     &mock.GasHandlerMock{},
+			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch: 2,
 		},
 	}
 
@@ -376,22 +394,29 @@ func createMockTransactionCoordinatorArguments(
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          accountAdapter,
-		MiniBlockPool:                     poolsHolder.MiniBlocks(),
-		RequestHandler:                    &testscommon.RequestHandlerStub{},
-		PreProcessors:                     preProcessorsContainer,
-		InterProcessors:                   &mock.InterimProcessorContainerMock{},
-		GasHandler:                        &mock.GasHandlerMock{},
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:         accountAdapter,
+		MiniBlockPool:    poolsHolder.MiniBlocks(),
+		RequestHandler:   &testscommon.RequestHandlerStub{},
+		PreProcessors:    preProcessorsContainer,
+		InterProcessors: &mock.InterimProcessorContainerMock{
+			KeysCalled: func() []block.Type {
+				return []block.Type{block.SmartContractResultBlock}
+			},
+		},
+		GasHandler:                        &testscommon.GasHandlerStub{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                &testscommon.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
 		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
+		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
+		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch:    2,
 	}
 
 	return argsTransactionCoordinator
@@ -401,7 +426,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	blkc := createTestBlockchain()
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -487,7 +512,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr := block.Header{Nonce: 37}
-	err := bp.RevertStateToBlock(&hdr)
+	err := bp.RevertStateToBlock(&hdr, hdr.RootHash)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -665,11 +690,11 @@ func TestBaseProcessor_SaveLastNotarizedInOneShardHdrsSliceForShardIsNil(t *test
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(2, prHdrs)
 
@@ -681,13 +706,13 @@ func TestBaseProcessor_SaveLastNotarizedInMultiShardHdrsSliceForShardIsNil(t *te
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, mock.HasherMock{}, &mock.MarshalizerMock{})
+	prHdrs := createShardProcessHeadersToSaveLastNotarized(10, &block.Header{}, &hashingMocks.HasherMock{}, &mock.MarshalizerMock{})
 
 	err := sp.SaveLastNotarizedHeader(6, prHdrs)
 
@@ -699,7 +724,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -733,7 +758,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	coreComponents.IntMarsh = &mock.MarshalizerMock{}
 	bootstrapComponents.Coordinator = shardCoordinator
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -763,7 +788,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 
 func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	t.Parallel()
-	blockChain := &mock.BlockChainStub{
+	blockChain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch: 2,
@@ -789,7 +814,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	blockChain := &mock.BlockChainStub{
+	blockChain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:           1,
@@ -825,7 +850,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	blockChain := &mock.BlockChainStub{
+	blockChain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    3,
@@ -862,7 +887,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	chain := &mock.BlockChainStub{
+	chain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    2,
@@ -928,7 +953,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	t.Parallel()
 
 	randSeed := []byte("randseed")
-	chain := &mock.BlockChainStub{
+	chain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch:    2,
@@ -1029,7 +1054,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
 	}
 
-	bp.PruneStateOnRollback(currHeader, prevHeader)
+	bp.PruneStateOnRollback(currHeader, []byte("currHeaderHash"), prevHeader, []byte("prevHeaderHash"))
 	assert.Equal(t, 2, pruningCalled)
 }
 
@@ -1075,7 +1100,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
 	}
 
-	bp.PruneStateOnRollback(currHeader, prevHeader)
+	bp.PruneStateOnRollback(currHeader, []byte("currHeaderHash"), prevHeader, []byte("prevHeaderHash"))
 	assert.Equal(t, 2, pruningCalled)
 }
 
@@ -1348,7 +1373,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-		&testscommon.StorerStub{
+		&storageStubs.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 				require.NoError(t, err)
@@ -1407,7 +1432,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 
 		store := dataRetriever.NewChainStorer()
 		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-			&testscommon.StorerStub{
+			&storageStubs.StorerStub{
 				PutCalled: func(key, data []byte) error {
 					restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 					require.NoError(t, err)
@@ -1464,7 +1489,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
 	}
 
-	hdrStore := &testscommon.StorerStub{
+	hdrStore := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if len(headers) != 0 {
 				header := headers[0]
@@ -1526,4 +1551,294 @@ func TestBaseProcessor_updateState(t *testing.T) {
 
 	assert.Equal(t, []byte("rootHash"), pruneRootHash)
 	assert.Equal(t, []byte("rootHash"), cancelPruneRootHash)
+}
+
+func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
+	t.Parallel()
+
+	t.Run("execute all scheduled txs fail", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+
+		localErr := errors.New("execute all err")
+		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
+			ExecuteAllCalled: func(func() time.Duration) error {
+				return localErr
+			},
+		}
+
+		arguments.ScheduledTxsExecutionHandler = scheduledTxsExec
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.ProcessScheduledBlock(
+			&block.MetaBlock{}, &block.Body{}, haveTime,
+		)
+
+		assert.Equal(t, localErr, err)
+	})
+	t.Run("get root hash fail", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+
+		localErr := errors.New("root hash err")
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, localErr
+			},
+		}
+		arguments.AccountsDB[state.UserAccountsState] = accounts
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.ProcessScheduledBlock(
+			&block.MetaBlock{}, &block.Body{}, haveTime,
+		)
+
+		assert.Equal(t, localErr, err)
+	})
+}
+
+func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
+	t.Parallel()
+	rootHash := []byte("root hash to be tested")
+	accounts := &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+	}
+
+	initialGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(11),
+		DeveloperFees:   big.NewInt(12),
+		GasProvided:     13,
+		GasPenalized:    14,
+		GasRefunded:     15,
+	}
+
+	finalGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(103),
+		GasProvided:     105,
+		GasPenalized:    107,
+		GasRefunded:     109,
+	}
+
+	feeHandler := createFeeHandlerMockForProcessScheduledBlock(initialGasAndFees, finalGasAndFees)
+	gasHandler := createGasHandlerMockForProcessScheduledBlock(initialGasAndFees, finalGasAndFees)
+
+	expectedGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(90),
+		DeveloperFees:   big.NewInt(91),
+		GasProvided:     92,
+		GasPenalized:    93,
+		GasRefunded:     94,
+	}
+
+	wasCalledSetScheduledRootHash := false
+	wasCalledSetScheduledGasAndFees := false
+	scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
+		ExecuteAllCalled: func(func() time.Duration) error {
+			return nil
+		},
+		SetScheduledRootHashCalled: func(hash []byte) {
+			wasCalledSetScheduledRootHash = true
+			require.Equal(t, rootHash, hash)
+		},
+		SetScheduledGasAndFeesCalled: func(gasAndFees scheduled.GasAndFees) {
+			wasCalledSetScheduledGasAndFees = true
+			require.Equal(t, expectedGasAndFees, gasAndFees)
+		},
+	}
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	arguments.AccountsDB[state.UserAccountsState] = accounts
+	arguments.ScheduledTxsExecutionHandler = scheduledTxsExec
+	arguments.FeeHandler = feeHandler
+	arguments.GasHandler = gasHandler
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	err := bp.ProcessScheduledBlock(
+		&block.MetaBlock{}, &block.Body{}, haveTime,
+	)
+	require.Nil(t, err)
+
+	assert.True(t, wasCalledSetScheduledGasAndFees)
+	assert.True(t, wasCalledSetScheduledRootHash)
+}
+
+// get initial fees on first getGasAndFees call and final fees on second call
+func createFeeHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAndFees) process.TransactionFeeHandler {
+	runCount := 0
+	return &mock.FeeAccumulatorStub{
+		GetAccumulatedFeesCalled: func() *big.Int {
+			if runCount%4 >= 2 {
+				return final.AccumulatedFees
+			}
+			runCount++
+			return initial.AccumulatedFees
+		},
+		GetDeveloperFeesCalled: func() *big.Int {
+			if runCount%4 >= 2 {
+				return final.DeveloperFees
+			}
+			runCount++
+			return initial.DeveloperFees
+		},
+	}
+}
+
+// get initial gas consumed on first getGasAndFees call and final gas consumed on second call
+func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAndFees) process.GasHandler {
+	runCount := 0
+	return &mock.GasHandlerMock{
+		TotalGasProvidedCalled: func() uint64 {
+			return initial.GasProvided
+		},
+		TotalGasPenalizedCalled: func() uint64 {
+			if runCount%4 >= 2 {
+				return final.GasPenalized
+			}
+			runCount++
+			return initial.GasPenalized
+		},
+		TotalGasRefundedCalled: func() uint64 {
+			if runCount%4 >= 2 {
+				return final.GasRefunded
+			}
+			runCount++
+			return initial.GasRefunded
+		},
+		TotalGasProvidedWithScheduledCalled: func() uint64 {
+			return final.GasProvided
+		},
+	}
+}
+
+func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
+	zeroGasAndFees := process.GetZeroGasAndFees()
+
+	initialGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(11),
+		DeveloperFees:   big.NewInt(12),
+		GasProvided:     13,
+		GasPenalized:    14,
+		GasRefunded:     15,
+	}
+
+	finalGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(103),
+		GasProvided:     105,
+		GasPenalized:    107,
+		GasRefunded:     109,
+	}
+
+	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
+		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(100),
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(10),
+		}
+
+		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		assert.Equal(t, zeroGasAndFees, gasAndFees)
+	})
+	t.Run("final devFees lower then initial devFees", func(t *testing.T) {
+		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(10),
+			DeveloperFees:   big.NewInt(100),
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(100),
+			DeveloperFees:   big.NewInt(10),
+		}
+
+		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		assert.Equal(t, zeroGasAndFees, gasAndFees)
+	})
+	t.Run("final gasProvided lower then initial gasProvided", func(t *testing.T) {
+		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     100,
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(102),
+			GasProvided:     10,
+		}
+
+		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		assert.Equal(t, zeroGasAndFees, gasAndFees)
+	})
+	t.Run("final gasPenalized lower then initial gasPenalized", func(t *testing.T) {
+		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
+			GasPenalized:    100,
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(102),
+			GasProvided:     103,
+			GasPenalized:    10,
+		}
+
+		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		assert.Equal(t, zeroGasAndFees, gasAndFees)
+	})
+	t.Run("final gasRefunded lower then initial gasRefunded", func(t *testing.T) {
+		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
+			GasPenalized:    14,
+			GasRefunded:     100,
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(102),
+			GasProvided:     103,
+			GasPenalized:    104,
+			GasRefunded:     10,
+		}
+
+		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		assert.Equal(t, zeroGasAndFees, gasAndFees)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees),
+			DeveloperFees:   big.NewInt(0).Sub(finalGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees),
+			GasProvided:     finalGasAndFees.GasProvided - initialGasAndFees.GasProvided,
+			GasPenalized:    finalGasAndFees.GasPenalized - initialGasAndFees.GasPenalized,
+			GasRefunded:     finalGasAndFees.GasRefunded - initialGasAndFees.GasRefunded,
+		}
+
+		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+
+		assert.Equal(t, expectedGasAndFees, gasAndFees)
+	})
+
 }

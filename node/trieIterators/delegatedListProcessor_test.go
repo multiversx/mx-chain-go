@@ -10,9 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -120,11 +118,6 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 			}
 
 			return nil, fmt.Errorf("not an expected call")
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{

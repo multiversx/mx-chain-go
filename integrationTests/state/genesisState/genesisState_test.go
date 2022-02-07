@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +43,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 		MinterAddress:   "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 		PubkeyConverter: integrationTests.TestAddressPubkeyConverter,
 		KeyGenerator:    &mock.KeyGenMock{},
-		Hasher:          &testscommon.HasherMock{},
+		Hasher:          &hashingMocks.HasherMock{},
 		Marshalizer:     &testscommon.MarshalizerMock{},
 	}
 

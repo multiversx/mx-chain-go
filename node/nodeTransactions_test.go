@@ -22,10 +22,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -220,19 +220,19 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
 				}
 			case dataRetriever.UnsignedTransactionUnit:
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
 				}
 			case dataRetriever.TxLogsUnit:
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},

@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -19,7 +21,7 @@ import (
 
 func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
 	return ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{},
+		Storage: &storageStubs.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 		},
@@ -90,7 +92,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	mbHash := []byte("mbHash")
 	mb := &block.MiniBlock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{},
+		Storage: &storageStubs.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -118,7 +120,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 			},
 		},
 	}
-	unFinished := make(map[string]*block.MetaBlock)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
@@ -144,7 +146,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 		Type:            block.RewardsBlock,
 	}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{},
+		Storage: &storageStubs.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -192,7 +194,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 			},
 		},
 	}
-	unFinished := make(map[string]*block.MetaBlock)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
@@ -213,7 +215,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 	mbHash := []byte("mbHash")
 	localErr := errors.New("not found")
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{
+		Storage: &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -247,7 +249,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 			},
 		},
 	}
-	unFinished := make(map[string]*block.MetaBlock)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	// we need a value larger than the request interval as to also test what happens after the normal request interval has expired
 	timeout := time.Second + time.Millisecond*500
@@ -264,7 +266,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 	mb := &block.MiniBlock{}
 	localErr := errors.New("not found")
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{
+		Storage: &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				return nil, localErr
 			},
@@ -293,7 +295,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 			},
 		},
 	}
-	unFinished := make(map[string]*block.MetaBlock)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 
 	go func() {
@@ -314,7 +316,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 	mb := &block.MiniBlock{}
 	marshalizer := &mock.MarshalizerMock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{
+		Storage: &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				mbBytes, _ := marshalizer.Marshal(mb)
 				return mbBytes, nil
@@ -346,7 +348,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 			},
 		},
 	}
-	unFinished := make(map[string]*block.MetaBlock)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -365,7 +367,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 	localErr := errors.New("not found")
 	marshalizer := &mock.MarshalizerMock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{
+		Storage: &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				mbBytes, _ := marshalizer.Marshal(mb)
 				return mbBytes, nil
@@ -400,7 +402,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 			},
 		},
 	}
-	unFinished := make(map[string]*block.MetaBlock)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

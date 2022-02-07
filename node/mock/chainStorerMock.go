@@ -3,7 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/pkg/errors"
 )
 
@@ -51,7 +51,7 @@ func (bc *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 		return bc.GetStorerCalled(unitType)
 	}
 
-	return &testscommon.StorerStub{}
+	return &storageStubs.StorerStub{}
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

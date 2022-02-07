@@ -220,7 +220,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeDNSAddresses()
+	err := gbc.computeDNSAddresses(createGenesisConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +240,7 @@ func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.Head
 			Nonce:     nonce,
 			Epoch:     epoch,
 			TimeStamp: gbc.arg.GenesisTime,
+			ShardID:   i,
 		}
 	}
 
@@ -266,7 +267,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeDNSAddresses()
+		err = gbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 		if err != nil {
 			return nil, err
 		}
@@ -401,7 +402,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses() error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochs config.EnableEpochs) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -434,6 +435,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		CompiledSCPool:     gbc.arg.Data.Datapool().SmartContracts(),
 		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
+		EnableEpochs:       enableEpochs,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

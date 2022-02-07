@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -208,16 +209,16 @@ func TestExportAll(t *testing.T) {
 	}()
 
 	metaBlock := &block.MetaBlock{Round: 2, ChainID: []byte("chainId")}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"hash": {Round: 1, ChainID: []byte("chainId")},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"hash": &block.MetaBlock{Round: 1, ChainID: []byte("chainId")},
 	}
 	miniBlock := &block.MiniBlock{}
 	tx := &transaction.Transaction{Nonce: 1, Value: big.NewInt(100), SndAddr: []byte("snd"), RcvAddr: []byte("rcv")}
 	stateSyncer := &mock.StateSyncStub{
-		GetEpochStartMetaBlockCalled: func() (block *block.MetaBlock, err error) {
+		GetEpochStartMetaBlockCalled: func() (block data.MetaHeaderHandler, err error) {
 			return metaBlock, nil
 		},
-		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
+		GetUnFinishedMetaBlocksCalled: func() (map[string]data.MetaHeaderHandler, error) {
 			return unFinishedMetaBlocks, nil
 		},
 		GetAllMiniBlocksCalled: func() (m map[string]*block.MiniBlock, err error) {
@@ -263,7 +264,7 @@ func TestExportAll(t *testing.T) {
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              stateSyncer,
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
 		ExportFolder:             "test",
@@ -309,7 +310,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              &mock.StateSyncStub{},
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ExportFolder:             testFolderName,
 		AddressPubKeyConverter:   pubKeyConv,
 		ValidatorPubKeyConverter: pubKeyConv,
@@ -372,7 +373,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              &mock.StateSyncStub{},
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		ExportFolder:             testFolderName,
 		AddressPubKeyConverter:   pubKeyConv,
 		ValidatorPubKeyConverter: pubKeyConv,
@@ -419,11 +420,11 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"hash": {Round: 1, ChainID: []byte("chainId")},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"hash": &block.MetaBlock{Round: 1, ChainID: []byte("chainId")},
 	}
 	stateSyncer := &mock.StateSyncStub{
-		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
+		GetUnFinishedMetaBlocksCalled: func() (map[string]data.MetaHeaderHandler, error) {
 			return unFinishedMetaBlocks, nil
 		},
 	}
@@ -443,7 +444,7 @@ func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
 		Marshalizer:              &mock.MarshalizerMock{},
 		StateSyncer:              stateSyncer,
 		HardforkStorer:           hs,
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
 		ExportFolder:             "test",

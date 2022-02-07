@@ -63,8 +63,9 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextFirstContract)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextSecondContract)
-	testContextFirstContract.TxFeeHandler.CreateBlockStarted()
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+
+	testContextFirstContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	gasLimit := uint64(5000000)
 	tx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, gasPrice, gasLimit, []byte("doSomething"))
@@ -116,7 +117,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	intermediateTxs = testContextFirstContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
 
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	scr = intermediateTxs[0]
 	utils.ProcessSCRResult(t, testContextSecondContract, scr, vmcommon.Ok, nil)
 
