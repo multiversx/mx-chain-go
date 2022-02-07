@@ -65,11 +65,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
-	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
-	if check.IfNil(genesisHdr) {
-		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
-	}
 
+	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
 		blockSizeThrottler:             arguments.BlockSizeThrottler,

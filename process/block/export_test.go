@@ -2,7 +2,6 @@ package block
 
 import (
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -420,8 +419,4 @@ func (bp *baseProcessor) UpdateState(
 
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
-}
-
-func (sp *shardProcessor) RequestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
-	return sp.requestEpochStartInfo(header, haveTime)
 }
