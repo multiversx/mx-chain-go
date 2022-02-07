@@ -575,6 +575,145 @@ func TestSyncUserAccountsState(t *testing.T) {
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 
+func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	t.Run("find self shard epoch start data not found", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+			},
+		}
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+		epochStartProvider.epochStartMeta = metaBlock
+
+		err := epochStartProvider.requestAndProcessForShard()
+		assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
+	})
+	t.Run("fail to sync pending miniblocks", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
+				},
+			},
+		}
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+		epochStartProvider.epochStartMeta = metaBlock
+
+		expectedErr := errors.New("sync pending miniblocks error")
+		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+				return expectedErr
+			},
+		}
+
+		err := epochStartProvider.requestAndProcessForShard()
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("fail to get pending miniblocks", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
+				},
+			},
+		}
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+		epochStartProvider.epochStartMeta = metaBlock
+
+		expectedErr := errors.New("get pending miniblocks error")
+		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+			GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
+				return nil, expectedErr
+			},
+		}
+
+		err := epochStartProvider.requestAndProcessForShard()
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("fail to sync missing headers", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
+				},
+			},
+		}
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+		epochStartProvider.epochStartMeta = metaBlock
+
+		expectedErr := errors.New("sync miniBlocksSyncer headers by hash error")
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
+				return expectedErr
+			},
+		}
+
+		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+
+		err := epochStartProvider.requestAndProcessForShard()
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("fail to get needed headers", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
+				},
+			},
+		}
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+		epochStartProvider.epochStartMeta = metaBlock
+
+		expectedErr := errors.New("get pending miniblocks error")
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
+				return nil, expectedErr
+			},
+		}
+
+		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+
+		err := epochStartProvider.requestAndProcessForShard()
+		assert.Equal(t, expectedErr, err)
+	})
+}
+
 func TestRequestAndProcessForShard(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
