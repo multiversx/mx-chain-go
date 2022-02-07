@@ -180,6 +180,10 @@
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
     CorrectJailedNotUnstakedEmptyQueueEpoch = 2
 
+    # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
+    # disabled in the blockchain hook component
+    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

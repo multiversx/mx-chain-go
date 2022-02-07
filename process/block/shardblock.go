@@ -635,7 +635,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	gasProvidedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvided()
+	gasProvidedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
 	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
@@ -940,7 +940,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	err = sp.blockChain.SetCurrentBlockHeader(header)
+	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
 	if err != nil {
 		return err
 	}
