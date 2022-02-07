@@ -22,8 +22,8 @@ type ArgInterceptedPeerAuthentication struct {
 	ExpiryTimespanInSec  int64
 }
 
-// interceptedPeerAuthentication is a wrapper over PeerAuthentication
-type interceptedPeerAuthentication struct {
+// InterceptedPeerAuthentication is a wrapper over PeerAuthentication
+type InterceptedPeerAuthentication struct {
 	peerAuthentication   heartbeat.PeerAuthentication
 	payload              heartbeat.Payload
 	marshalizer          marshal.Marshalizer
@@ -35,7 +35,7 @@ type interceptedPeerAuthentication struct {
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
-func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*interceptedPeerAuthentication, error) {
+func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*InterceptedPeerAuthentication, error) {
 	err := checkArg(arg)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		return nil, err
 	}
 
-	intercepted := &interceptedPeerAuthentication{
+	intercepted := &InterceptedPeerAuthentication{
 		peerAuthentication:   *peerAuthentication,
 		payload:              *payload,
 		marshalizer:          arg.Marshalizer,
@@ -96,7 +96,7 @@ func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*he
 }
 
 // CheckValidity will check the validity of the received peer authentication. This call won't trigger the signature validation.
-func (ipa *interceptedPeerAuthentication) CheckValidity() error {
+func (ipa *InterceptedPeerAuthentication) CheckValidity() error {
 	// Verify properties len
 	err := verifyPropertyLen(publicKeyProperty, ipa.peerAuthentication.Pubkey)
 	if err != nil {
@@ -147,47 +147,52 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 }
 
 // IsForCurrentShard always returns true
-func (ipa *interceptedPeerAuthentication) IsForCurrentShard() bool {
+func (ipa *InterceptedPeerAuthentication) IsForCurrentShard() bool {
 	return true
 }
 
 // Hash always returns an empty string
-func (ipa *interceptedPeerAuthentication) Hash() []byte {
+func (ipa *InterceptedPeerAuthentication) Hash() []byte {
 	return []byte("")
 }
 
 // Type returns the type of this intercepted data
-func (ipa *interceptedPeerAuthentication) Type() string {
+func (ipa *InterceptedPeerAuthentication) Type() string {
 	return interceptedPeerAuthenticationType
 }
 
 // Identifiers returns the identifiers used in requests
-func (ipa *interceptedPeerAuthentication) Identifiers() [][]byte {
+func (ipa *InterceptedPeerAuthentication) Identifiers() [][]byte {
 	return [][]byte{ipa.peerAuthentication.Pubkey, ipa.peerAuthentication.Pid}
 }
 
 // PeerID returns the peer ID
-func (ipa *interceptedPeerAuthentication) PeerID() core.PeerID {
+func (ipa *InterceptedPeerAuthentication) PeerID() core.PeerID {
 	return core.PeerID(ipa.peerAuthentication.Pid)
 }
 
 // Signature returns the signature for the peer authentication
-func (ipa *interceptedPeerAuthentication) Signature() []byte {
+func (ipa *InterceptedPeerAuthentication) Signature() []byte {
 	return ipa.peerAuthentication.Signature
 }
 
 // Payload returns the payload data
-func (ipa *interceptedPeerAuthentication) Payload() []byte {
+func (ipa *InterceptedPeerAuthentication) Payload() []byte {
 	return ipa.peerAuthentication.Payload
 }
 
+// SetPayload returns the payload data
+func (ipa *InterceptedPeerAuthentication) SetPayload(payload []byte) {
+	ipa.peerAuthentication.Payload = payload
+}
+
 // PayloadSignature returns the signature done on the payload
-func (ipa *interceptedPeerAuthentication) PayloadSignature() []byte {
+func (ipa *InterceptedPeerAuthentication) PayloadSignature() []byte {
 	return ipa.peerAuthentication.PayloadSignature
 }
 
 // String returns the most important fields as string
-func (ipa *interceptedPeerAuthentication) String() string {
+func (ipa *InterceptedPeerAuthentication) String() string {
 	return fmt.Sprintf("pk=%s, pid=%s, sig=%s, payload=%s, payloadSig=%s",
 		logger.DisplayByteSlice(ipa.peerAuthentication.Pubkey),
 		ipa.peerId.Pretty(),
@@ -197,7 +202,7 @@ func (ipa *interceptedPeerAuthentication) String() string {
 	)
 }
 
-func (ipa *interceptedPeerAuthentication) verifyPayload() error {
+func (ipa *InterceptedPeerAuthentication) verifyPayload() error {
 	currentTimeStamp := time.Now().Unix()
 	messageTimeStamp := ipa.payload.Timestamp
 	minTimestampAllowed := currentTimeStamp - ipa.expiryTimespanInSec
@@ -208,6 +213,15 @@ func (ipa *interceptedPeerAuthentication) verifyPayload() error {
 	// TODO: check for payload hardfork
 
 	return nil
+}
+
+// SizeInBytes returns the size in bytes held by this instance
+func (ipa *InterceptedPeerAuthentication) SizeInBytes() int {
+	return len(ipa.peerAuthentication.Pubkey) +
+		len(ipa.peerAuthentication.Signature) +
+		len(ipa.peerAuthentication.Pid) +
+		len(ipa.peerAuthentication.Payload) +
+		len(ipa.peerAuthentication.PayloadSignature)
 }
 
 // verifyPropertyLen returns an error if the provided value is longer than accepted by the network
@@ -223,6 +237,6 @@ func verifyPropertyLen(property string, value []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ipa *interceptedPeerAuthentication) IsInterfaceNil() bool {
+func (ipa *InterceptedPeerAuthentication) IsInterfaceNil() bool {
 	return ipa == nil
 }

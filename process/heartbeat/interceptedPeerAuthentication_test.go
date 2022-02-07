@@ -16,6 +16,7 @@ import (
 )
 
 var expectedErr = errors.New("expected error")
+var providedSize int
 
 func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication {
 	payload := &heartbeat.Payload{
@@ -28,13 +29,18 @@ func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication 
 		return nil
 	}
 
-	return &heartbeat.PeerAuthentication{
+	pa := &heartbeat.PeerAuthentication{
 		Pubkey:           []byte("public key"),
 		Signature:        []byte("signature"),
 		Pid:              []byte("peer id"),
 		Payload:          payloadBytes,
 		PayloadSignature: []byte("payload signature"),
 	}
+	providedSize = len(pa.Pubkey) + len(pa.Pid) +
+		len(pa.Signature) + len(pa.Payload) +
+		len(pa.PayloadSignature)
+
+	return pa
 }
 
 func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerAuthentication) ArgInterceptedPeerAuthentication {
@@ -151,7 +157,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 	})
 }
 
-func Test_interceptedPeerAuthentication_CheckValidity(t *testing.T) {
+func Test_InterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 	t.Parallel()
 	t.Run("publicKeyProperty too short", testInterceptedPeerAuthenticationPropertyLen(publicKeyProperty, false))
 	t.Run("publicKeyProperty too short", testInterceptedPeerAuthenticationPropertyLen(publicKeyProperty, true))
@@ -273,7 +279,7 @@ func testInterceptedPeerAuthenticationPropertyLen(property string, tooLong bool)
 	}
 }
 
-func Test_interceptedPeerAuthentication_Getters(t *testing.T) {
+func Test_InterceptedPeerAuthentication_Getters(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
@@ -293,4 +299,5 @@ func Test_interceptedPeerAuthentication_Getters(t *testing.T) {
 	assert.Equal(t, 2, len(identifiers))
 	assert.Equal(t, expectedPeerAuthentication.Pubkey, identifiers[0])
 	assert.Equal(t, expectedPeerAuthentication.Pid, identifiers[1])
+	assert.Equal(t, providedSize, ipa.SizeInBytes())
 }
