@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
 
@@ -346,7 +347,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoSchedu
 
 	sds := &startInEpochWithScheduledDataSyncer{
 		scheduledTxsHandler: &testscommon.ScheduledTxsExecutionStub{
-			SaveStateCalled: func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
+			SaveStateCalled: func(headerHash []byte, scheduledInfo *process.ScheduledInfo) {
 				t.Error("should not be called")
 			},
 		},
@@ -374,7 +375,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 
 	expectedHeaderHash := headerHash
 	expectedScheduledRootHash := scheduledRootHash
-	expectedScheduledSCRsMap := map[block.Type][]data.TransactionHandler{
+	expectedScheduledIntermediateTxs := map[block.Type][]data.TransactionHandler{
 		block.SmartContractResultBlock: {scr1, scr2},
 	}
 	gasAndFees := scheduled.GasAndFees{
@@ -389,14 +390,14 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 
 	sds := &startInEpochWithScheduledDataSyncer{
 		scheduledTxsHandler: &testscommon.ScheduledTxsExecutionStub{
-			SaveStateCalled: func(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
+			SaveStateCalled: func(headerHash []byte, scheduledInfo *process.ScheduledInfo) {
 				require.Equal(t, expectedHeaderHash, headerHash)
 				require.Equal(t, expectedScheduledRootHash, scheduledRootHash)
 				require.Equal(t, expectedGasAndFees, gasAndFees)
-				for i, v := range mapScheduledSCRs {
-					require.Equal(t, len(expectedScheduledSCRsMap[i]), len(v))
+				for i, v := range scheduledInfo.IntermediateTxs {
+					require.Equal(t, len(expectedScheduledIntermediateTxs[i]), len(v))
 					for j := range v {
-						require.Contains(t, expectedScheduledSCRsMap[i], v[j])
+						require.Contains(t, expectedScheduledIntermediateTxs[i], v[j])
 					}
 				}
 			},

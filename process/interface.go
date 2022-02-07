@@ -1134,13 +1134,14 @@ type ScheduledTxsExecutionHandler interface {
 	AddMiniBlocks(miniBlocks block.MiniBlockSlice)
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
-	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
+	GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler
+	GetScheduledMBs() block.MiniBlockSlice
 	GetScheduledGasAndFees() scheduled.GasAndFees
-	SetScheduledRootHashSCRsGasAndFees(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
-	SaveState(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees)
