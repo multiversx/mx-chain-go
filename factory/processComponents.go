@@ -582,7 +582,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		nodeRedundancyHandler:        nodeRedundancyHandler,
 		currentEpochProvider:         currentEpochProvider,
 		vmFactoryForTxSimulator:      blockProcessorComponents.vmFactoryForTxSimulate,
-		scheduledTxsExecutionHandler: blockProcessorComponents.vmFactoryForProcessing,
+		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
+		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 	}, nil
 }
 
