@@ -13,6 +13,7 @@ type NodeConfig struct {
 	Seed                       string
 	MaximumExpectedPeerCount   uint64
 	ThresholdMinConnectedPeers uint32
+	ConnectionWatcherType      string
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
