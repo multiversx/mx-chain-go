@@ -181,11 +181,6 @@ func (ipa *InterceptedPeerAuthentication) Payload() []byte {
 	return ipa.peerAuthentication.Payload
 }
 
-// SetPayload returns the payload data
-func (ipa *InterceptedPeerAuthentication) SetPayload(payload []byte) {
-	ipa.peerAuthentication.Payload = payload
-}
-
 // PayloadSignature returns the signature done on the payload
 func (ipa *InterceptedPeerAuthentication) PayloadSignature() []byte {
 	return ipa.peerAuthentication.PayloadSignature
