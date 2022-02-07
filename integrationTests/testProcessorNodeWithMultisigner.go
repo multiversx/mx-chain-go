@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -148,11 +149,11 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	validatorsMap := GenValidatorsFromPubKeysAndTxPubKeys(blsPubKeys, txPubKeys)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	waitingMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+	waitingMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	for i := 0; i < nbShards; i++ {
-		waitingMap[uint32(i)] = make([]sharding.GenesisNodeInfoHandler, 0)
+		waitingMap[uint32(i)] = make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 	}
-	waitingMap[core.MetachainShardId] = make([]sharding.GenesisNodeInfoHandler, 0)
+	waitingMap[core.MetachainShardId] = make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 
 	waitingMapForNodesCoordinator := make(map[uint32][]nodesCoordinator.Validator)
 	for i := 0; i < nbShards; i++ {
@@ -160,7 +161,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	}
 	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]nodesCoordinator.Validator, 0)
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
 	}}
 
@@ -328,7 +329,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 	numNodes := nbShards*nodesPerShard + nbMetaNodes
 
 	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return validatorsMap, waitingMap
 		},
 		MinNumberOfNodesCalled: func() uint32 {
@@ -494,7 +495,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, nil
 	}}
 
@@ -588,10 +589,10 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
-	nodeShuffler := &mock.NodeShufflerMock{}
+	nodeShuffler := &shardingMocks.NodeShufflerMock{}
 
 	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return validatorsMap, waitingMap
 		},
 	}
