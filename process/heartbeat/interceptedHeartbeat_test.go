@@ -111,7 +111,7 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 	})
 }
 
-func Test_interceptedHeartbeat_CheckValidity(t *testing.T) {
+func Test_InterceptedHeartbeat_CheckValidity(t *testing.T) {
 	t.Parallel()
 	t.Run("payloadProperty too short", testInterceptedHeartbeatPropertyLen(payloadProperty, false))
 	t.Run("payloadProperty too long", testInterceptedHeartbeatPropertyLen(payloadProperty, true))
@@ -175,7 +175,7 @@ func testInterceptedHeartbeatPropertyLen(property string, tooLong bool) func(t *
 	}
 }
 
-func Test_interceptedHeartbeat_Getters(t *testing.T) {
+func Test_InterceptedHeartbeat_Getters(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())

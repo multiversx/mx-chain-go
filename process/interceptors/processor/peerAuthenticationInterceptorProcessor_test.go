@@ -1,4 +1,4 @@
-package processor
+package processor_test
 
 import (
 	"bytes"
@@ -9,13 +9,14 @@ import (
 	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
-func createPeerAuthenticationInterceptorProcessArg() ArgPeerAuthenticationInterceptorProcessor {
-	return ArgPeerAuthenticationInterceptorProcessor{
+func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthenticationInterceptorProcessor {
+	return processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: testscommon.NewCacherStub(),
 	}
 }
@@ -26,10 +27,7 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 		HardforkMessage: "hardfork message",
 	}
 	marshalizer := mock.MarshalizerMock{}
-	payloadBytes, err := marshalizer.Marshal(payload)
-	if err != nil {
-		return nil
-	}
+	payloadBytes, _ := marshalizer.Marshal(payload)
 
 	return &heartbeatMessages.PeerAuthentication{
 		Pubkey:           []byte("public key"),
@@ -64,14 +62,14 @@ func TestNewPeerAuthenticationInterceptorProcessor(t *testing.T) {
 
 		arg := createPeerAuthenticationInterceptorProcessArg()
 		arg.PeerAuthenticationCacher = nil
-		paip, err := NewPeerAuthenticationInterceptorProcessor(arg)
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
 		assert.Equal(t, process.ErrNilPeerAuthenticationCacher, err)
 		assert.Nil(t, paip)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		paip, err := NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 	})
@@ -83,7 +81,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 	t.Run("invalid data should error", func(t *testing.T) {
 		t.Parallel()
 
-		paip, err := NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(nil, "", ""))
@@ -108,7 +106,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 				return false
 			},
 		}
-		paip, err := NewPeerAuthenticationInterceptorProcessor(arg)
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 
@@ -121,7 +119,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 func TestPeerAuthenticationInterceptorProcessor_Validate(t *testing.T) {
 	t.Parallel()
 
-	paip, err := NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
+	paip, err := processor.NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
 	assert.Nil(t, err)
 	assert.False(t, paip.IsInterfaceNil())
 	assert.Nil(t, paip.Validate(nil, ""))

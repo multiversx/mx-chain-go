@@ -35,7 +35,7 @@ func (paip *PeerAuthenticationInterceptorProcessor) Validate(_ process.Intercept
 	return nil
 }
 
-// Save will save the intercepted peer authentication inside the peer authentication cache
+// Save will save the intercepted peer authentication inside the peer authentication cacher
 func (paip *PeerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
 	interceptedPeerAuthenticationData, ok := data.(*heartbeat.InterceptedPeerAuthentication)
 	if !ok {

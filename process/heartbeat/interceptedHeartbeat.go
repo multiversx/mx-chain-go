@@ -11,6 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const uint32Size = 4
+const uint64Size = 8
+
 // ArgBaseInterceptedHeartbeat is the base argument used for messages
 type ArgBaseInterceptedHeartbeat struct {
 	DataBuff    []byte
@@ -23,14 +26,14 @@ type ArgInterceptedHeartbeat struct {
 	PeerId core.PeerID
 }
 
-type interceptedHeartbeat struct {
+type InterceptedHeartbeat struct {
 	heartbeat heartbeat.HeartbeatV2
 	payload   heartbeat.Payload
 	peerId    core.PeerID
 }
 
 // NewInterceptedHeartbeat tries to create a new intercepted heartbeat instance
-func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat, error) {
+func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*InterceptedHeartbeat, error) {
 	err := checkBaseArg(arg.ArgBaseInterceptedHeartbeat)
 	if err != nil {
 		return nil, err
@@ -44,7 +47,7 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 		return nil, err
 	}
 
-	intercepted := &interceptedHeartbeat{
+	intercepted := &InterceptedHeartbeat{
 		heartbeat: *hb,
 		payload:   *payload,
 		peerId:    arg.PeerId,
@@ -78,7 +81,7 @@ func createHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.H
 }
 
 // CheckValidity will check the validity of the received peer heartbeat
-func (ihb *interceptedHeartbeat) CheckValidity() error {
+func (ihb *InterceptedHeartbeat) CheckValidity() error {
 	err := verifyPropertyLen(payloadProperty, ihb.heartbeat.Payload)
 	if err != nil {
 		return err
@@ -102,27 +105,27 @@ func (ihb *interceptedHeartbeat) CheckValidity() error {
 }
 
 // IsForCurrentShard always returns true
-func (ihb *interceptedHeartbeat) IsForCurrentShard() bool {
+func (ihb *InterceptedHeartbeat) IsForCurrentShard() bool {
 	return true
 }
 
 // Hash always returns an empty string
-func (ihb *interceptedHeartbeat) Hash() []byte {
+func (ihb *InterceptedHeartbeat) Hash() []byte {
 	return []byte("")
 }
 
 // Type returns the type of this intercepted data
-func (ihb *interceptedHeartbeat) Type() string {
+func (ihb *InterceptedHeartbeat) Type() string {
 	return interceptedHeartbeatType
 }
 
 // Identifiers returns the identifiers used in requests
-func (ihb *interceptedHeartbeat) Identifiers() [][]byte {
+func (ihb *InterceptedHeartbeat) Identifiers() [][]byte {
 	return [][]byte{ihb.peerId.Bytes()}
 }
 
 // String returns the most important fields as string
-func (ihb *interceptedHeartbeat) String() string {
+func (ihb *InterceptedHeartbeat) String() string {
 	return fmt.Sprintf("pid=%s, version=%s, name=%s, identity=%s, nonce=%d, subtype=%d, payload=%s",
 		ihb.peerId.Pretty(),
 		ihb.heartbeat.VersionNumber,
@@ -133,7 +136,16 @@ func (ihb *interceptedHeartbeat) String() string {
 		logger.DisplayByteSlice(ihb.heartbeat.Payload))
 }
 
+// SizeInBytes returns the size in bytes held by this instance
+func (ihb *InterceptedHeartbeat) SizeInBytes() int {
+	return len(ihb.heartbeat.Payload) +
+		len(ihb.heartbeat.VersionNumber) +
+		len(ihb.heartbeat.NodeDisplayName) +
+		len(ihb.heartbeat.Identity) +
+		uint64Size + uint32Size
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (ihb *interceptedHeartbeat) IsInterfaceNil() bool {
+func (ihb *InterceptedHeartbeat) IsInterfaceNil() bool {
 	return ihb == nil
 }
