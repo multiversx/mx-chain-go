@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func TestNewInterceptedRewardTransaction_NilTxBuffShouldErr(t *testing.T) {
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -39,7 +40,7 @@ func TestNewInterceptedRewardTransaction_NilMarshalizerShouldErr(t *testing.T) {
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		nil,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -69,7 +70,7 @@ func TestNewInterceptedRewardTransaction_NilPubkeyConverterShouldErr(t *testing.
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -84,7 +85,7 @@ func TestNewInterceptedRewardTransaction_NilShardCoordinatorShouldErr(t *testing
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		nil)
 
@@ -107,7 +108,7 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -136,7 +137,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		shardCoord)
 
@@ -167,7 +168,7 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -190,7 +191,7 @@ func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -213,7 +214,7 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -237,7 +238,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *tes
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -260,7 +261,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -284,7 +285,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -308,7 +309,7 @@ func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
@@ -324,7 +325,7 @@ func TestInterceptedRewardTransaction_Type(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		[]byte{},
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
@@ -357,7 +358,7 @@ func TestInterceptedRewardTransaction_String(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		rewTwBytes,
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
@@ -380,7 +381,7 @@ func TestInterceptedRewardTransaction_IsInterfaceNil(t *testing.T) {
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)

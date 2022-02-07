@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -257,12 +258,12 @@ func getStorageListProviderWithOldEpoch(epoch uint32) StorageListProviderHandler
 	return &mock.StorageListProviderStub{
 		GetAllStorersCalled: func() map[dataRetriever.UnitType]storage.Storer {
 			return map[dataRetriever.UnitType]storage.Storer{
-				dataRetriever.TransactionUnit: &testscommon.StorerStub{
+				dataRetriever.TransactionUnit: &storageStubs.StorerStub{
 					GetOldestEpochCalled: func() (uint32, error) {
 						return epoch + 1, nil
 					},
 				},
-				dataRetriever.BlockHeaderUnit: &testscommon.StorerStub{
+				dataRetriever.BlockHeaderUnit: &storageStubs.StorerStub{
 					GetOldestEpochCalled: func() (uint32, error) {
 						return epoch, nil
 					},

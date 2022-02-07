@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,9 @@ func TestFeeHandler_CreateBlockStarted(t *testing.T) {
 
 	feeHandler, _ := postprocess.NewFeeAccumulator()
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(50), []byte("txhash"))
-	feeHandler.CreateBlockStarted()
+
+	zeroGasAndFees := process.GetZeroGasAndFees()
+	feeHandler.CreateBlockStarted(zeroGasAndFees)
 
 	devFees := feeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), devFees)

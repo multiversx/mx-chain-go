@@ -27,17 +27,10 @@ type DBConfig struct {
 	UseTmpAsFilePath  bool
 }
 
-// BloomFilterConfig will map the bloom filter configuration
-type BloomFilterConfig struct {
-	Size     uint
-	HashFunc []string
-}
-
 // StorageConfig will map the storage unit configuration
 type StorageConfig struct {
 	Cache CacheConfig
 	DB    DBConfig
-	Bloom BloomFilterConfig
 }
 
 // TrieSyncStorageConfig will map trie sync storage configuration
@@ -121,6 +114,7 @@ type Config struct {
 	MetaHdrNonceHashStorage         StorageConfig
 	StatusMetricsStorage            StorageConfig
 	ReceiptsStorage                 StorageConfig
+	ScheduledSCRsStorage            StorageConfig
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig

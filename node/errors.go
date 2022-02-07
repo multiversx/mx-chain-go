@@ -64,11 +64,17 @@ var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username len
 // ErrDataFieldTooBig signals that the data field is too big
 var ErrDataFieldTooBig = errors.New("data field is too big")
 
+// ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
+var ErrNilTxAccumulator = errors.New("nil tx accumulator")
+
 // ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
 var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
 
 // ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")
+
+// ErrNilESDTNFTStorageHandler signals that a nil esdt and nft storage handler has been provided
+var ErrNilESDTNFTStorageHandler = errors.New("nil esdt and nft storage handler")
 
 // ErrNilQueryHandler signals that a nil query handler has been provided
 var ErrNilQueryHandler = errors.New("nil query handler")
@@ -127,11 +133,20 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 // ErrNilStatusComputer signals that user account has a nil data trie
 var ErrNilStatusComputer = errors.New("nil transaction status computer")
 
-// ErrNilBlockHeader signals that current block header is nil
-var ErrNilBlockHeader = errors.New("nil block header")
+// ErrEmptyRootHash signals that the current committed root hash is empty
+var ErrEmptyRootHash = errors.New("empty root hash")
 
 // ErrInvalidESDTRole signals that an invalid ESDT role has been provided
 var ErrInvalidESDTRole = errors.New("invalid ESDT role")
 
 // ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
 var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")
+
+// ErrCannotCastAccountHandlerToUserAccountHandler signals that an account handler cannot be cast to user account handler
+var ErrCannotCastAccountHandlerToUserAccountHandler = errors.New("cannot cast account handler to user account handler")
+
+// ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler signals that an user account handler cannot be cast to vm common user account handler
+var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("cannot cast user account handler to vm common user account handler")
+
+// ErrNilBlockHeader signals that current block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")

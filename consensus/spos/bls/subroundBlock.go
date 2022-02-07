@@ -94,7 +94,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	sentWithSuccess := sr.sendBlock(body, header)
+	sentWithSuccess := sr.sendBlock(header, body)
 	if !sentWithSuccess {
 		return false
 	}
@@ -104,6 +104,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
 		return false
 	}
+
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.RoundTimeStamp)
 
 	return true
 }
@@ -117,7 +119,7 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler) bool {
 	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -131,7 +133,7 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 	}
 
 	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
-		return sr.sendBlockBodyAndHeader(body, header, marshalizedBody, marshalizedHeader)
+		return sr.sendHeaderAndBlockBody(header, body, marshalizedBody, marshalizedHeader)
 	}
 
 	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
@@ -169,10 +171,10 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 	return finalHeader, blockBody, nil
 }
 
-// sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
-func (sr *subroundBlock) sendBlockBodyAndHeader(
-	bodyHandler data.BodyHandler,
+// sendHeaderAndBlockBody method sends the proposed header and block body in the subround Block
+func (sr *subroundBlock) sendHeaderAndBlockBody(
 	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
 	marshalizedBody []byte,
 	marshalizedHeader []byte,
 ) bool {
@@ -196,7 +198,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("sendHeaderAndBlockBody.BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 
@@ -295,25 +297,51 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	round := uint64(sr.RoundHandler().Index())
-	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
-	hdr.SetPrevHash(prevHash)
+	hdr, err := sr.BlockProcessor().CreateNewHeader(round, nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetPrevHash(prevHash)
+	if err != nil {
+		return nil, err
+	}
 
 	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr.SetShardID(sr.ShardCoordinator().SelfId())
-	hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
-	hdr.SetPrevRandSeed(prevRandSeed)
-	hdr.SetRandSeed(randSeed)
-	hdr.SetChainID(sr.ChainID())
+	err = hdr.SetShardID(sr.ShardCoordinator().SelfId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetPrevRandSeed(prevRandSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetRandSeed(randSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetChainID(sr.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	return hdr, nil
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received
-func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta *consensus.Message) bool {
 	sw := core.NewStopWatch()
 	sw.Start("receivedBlockBodyAndHeader")
 
@@ -363,7 +391,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 		"hash", cnsDta.BlockHeaderHash)
 
 	sw.Start("processReceivedBlock")
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 	sw.Stop("processReceivedBlock")
 
 	sr.PeerHonestyHandler().ChangeScore(
@@ -376,7 +404,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
-func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -405,7 +433,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 
 	log.Debug("step 1: block body has been received")
 
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -419,7 +447,7 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 // receivedBlockHeader method is called when a block header is received through the block header channel.
 // If the block header is valid, than the validatorRoundStates map corresponding to the node which sent it,
 // is set on true for the subround Block
-func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if sr.IsConsensusDataSet() {
@@ -454,7 +482,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -465,7 +493,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {
 	if check.IfNil(sr.Body) {
 		return false
 	}
@@ -517,11 +545,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	}
 
 	if err != nil {
-		log.Debug("canceled round",
-			"round", sr.RoundHandler().Index(),
-			"subround", sr.Name(),
-			"error", err.Error())
-
+		sr.printCancelRoundLogMessage(ctx, err)
 		sr.RoundCanceled = true
 
 		return false
@@ -529,14 +553,25 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
-		log.Debug("canceled round",
-			"round", sr.RoundHandler().Index(),
-			"subround", sr.Name(),
-			"error", err.Error())
+		sr.printCancelRoundLogMessage(ctx, err)
 		return false
 	}
 
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.Header, sr.Body, sr.RoundTimeStamp)
+
 	return true
+}
+
+func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err error) {
+	if common.IsContextDone(ctx) {
+		log.Debug("canceled round as the context is closing")
+		return
+	}
+
+	log.Debug("canceled round",
+		"round", sr.RoundHandler().Index(),
+		"subround", sr.Name(),
+		"error", err.Error())
 }
 
 func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, metric string) {

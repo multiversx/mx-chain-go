@@ -1,0 +1,41 @@
+{
+    "name": "adder",
+    "comment": "add then check",
+    "gasSchedule": "v3",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:bob": {
+                    "nonce": "3",
+                    "balance": "30000000",
+                    "storage": {},
+                    "code": ""
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:bob",
+                "to": "address:adder",
+                "value": "0",
+                "nonce": "3",
+                "function": "add",
+                "arguments": [
+                    "3"
+                ],
+                "gasLimit": "5,000,000",
+                "gasPrice": "1"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

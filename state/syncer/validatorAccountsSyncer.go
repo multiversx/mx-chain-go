@@ -72,7 +72,15 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	tss := statistics.NewTrieSyncStatistics()
 	go v.printStatistics(tss, ctx)
 
-	_, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
+	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
+	if err != nil {
+		return err
+	}
 
-	return err
+	err = mainTrie.GetStorageManager().Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
+	if err != nil {
+		log.Warn("error while putting trieSynced value into main storer after sync", "error", err)
+	}
+
+	return nil
 }

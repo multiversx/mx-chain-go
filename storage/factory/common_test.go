@@ -45,18 +45,3 @@ func TestGetDBFromConfig(t *testing.T) {
 		MaxOpenFiles:      cfg.MaxOpenFiles,
 	}, storageDBConfig)
 }
-
-func TestGetBloomFromConfig(t *testing.T) {
-	t.Parallel()
-
-	cfg := config.BloomFilterConfig{
-		Size:     100,
-		HashFunc: []string{"hashFunc"},
-	}
-
-	storageBloomConfig := GetBloomFromConfig(cfg)
-	assert.Equal(t, storageUnit.BloomConfig{
-		HashFunc: []storageUnit.HasherType{storageUnit.HasherType(cfg.HashFunc[0])},
-		Size:     cfg.Size,
-	}, storageBloomConfig)
-}
