@@ -31,19 +31,19 @@ type NodesCoordinatorRegistry struct {
 // TODO: add proto marshalizer for these package - replace all json marshalizers
 
 // LoadState loads the nodes coordinator state from the used boot storage
-func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
-	return ihgs.baseLoadState(key)
+func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte) error {
+	return ihnc.baseLoadState(key)
 }
 
-func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
+func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("getting nodes coordinator config", "key", ncInternalkey)
 
-	ihgs.loadingFromDisk.Store(true)
-	defer ihgs.loadingFromDisk.Store(false)
+	ihnc.loadingFromDisk.Store(true)
+	defer ihnc.loadingFromDisk.Store(false)
 
-	data, err := ihgs.bootStorer.Get(ncInternalkey)
+	data, err := ihnc.bootStorer.Get(ncInternalkey)
 	if err != nil {
 		return err
 	}
@@ -54,22 +54,22 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 		return err
 	}
 
-	ihgs.mutSavedStateKey.Lock()
-	ihgs.savedStateKey = key
-	ihgs.mutSavedStateKey.Unlock()
+	ihnc.mutSavedStateKey.Lock()
+	ihnc.savedStateKey = key
+	ihnc.mutSavedStateKey.Unlock()
 
-	ihgs.currentEpoch = config.CurrentEpoch
+	ihnc.currentEpoch = config.CurrentEpoch
 	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
 
-	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
+	nodesConfig, err := ihnc.registryToNodesCoordinator(config)
 	if err != nil {
 		return err
 	}
 
 	displayNodesConfigInfo(nodesConfig)
-	ihgs.mutNodesConfig.Lock()
-	ihgs.nodesConfig = nodesConfig
-	ihgs.mutNodesConfig.Unlock()
+	ihnc.mutNodesConfig.Lock()
+	ihnc.nodesConfig = nodesConfig
+	ihnc.mutNodesConfig.Unlock()
 
 	return nil
 }
@@ -83,8 +83,8 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	}
 }
 
-func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihgs.NodesCoordinatorToRegistry()
+func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
+	registry := ihnc.NodesCoordinatorToRegistry()
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
@@ -94,27 +94,27 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 
-	return ihgs.bootStorer.Put(ncInternalkey, data)
+	return ihnc.bootStorer.Put(ncInternalkey, data)
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
-func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
-	ihgs.mutNodesConfig.RLock()
-	defer ihgs.mutNodesConfig.RUnlock()
+func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
+	ihnc.mutNodesConfig.RLock()
+	defer ihnc.mutNodesConfig.RUnlock()
 
 	registry := &NodesCoordinatorRegistry{
-		CurrentEpoch: ihgs.currentEpoch,
+		CurrentEpoch: ihnc.currentEpoch,
 		EpochsConfig: make(map[string]*EpochValidators),
 	}
 
 	minEpoch := 0
-	lastEpoch := ihgs.getLastEpochConfig()
+	lastEpoch := ihnc.getLastEpochConfig()
 	if lastEpoch >= nodesCoordinatorStoredEpochs {
 		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
 	}
 
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
-		epochNodesData, ok := ihgs.nodesConfig[epoch]
+		epochNodesData, ok := ihnc.nodesConfig[epoch]
 		if !ok {
 			continue
 		}
@@ -125,9 +125,9 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	return registry
 }
 
-func (ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
+func (ihnc *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 	lastEpoch := uint32(0)
-	for epoch := range ihgs.nodesConfig {
+	for epoch := range ihnc.nodesConfig {
 		if lastEpoch < epoch {
 			lastEpoch = epoch
 		}
@@ -136,7 +136,7 @@ func (ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 	return lastEpoch
 }
 
-func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
+func (ihnc *indexHashedNodesCoordinator) registryToNodesCoordinator(
 	config *NodesCoordinatorRegistry,
 ) (map[uint32]*epochNodesConfig, error) {
 	var err error
@@ -162,11 +162,11 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardID, _ = ihgs.computeShardForSelfPublicKey(nodesConfig)
+		nodesConfig.shardID, _ = ihnc.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 		log.Debug("registry to nodes coordinator", "epoch", epoch32)
-		result[epoch32].selectors, err = ihgs.createSelectors(nodesConfig)
+		result[epoch32].selectors, err = ihnc.createSelectors(nodesConfig)
 		if err != nil {
 			return nil, err
 		}

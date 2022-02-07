@@ -5,20 +5,19 @@ import (
 )
 
 // SetNodesConfigFromValidatorsInfo sets epoch config based on validators list configuration
-func (ihgs *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error {
-	copiedPrevious := &epochNodesConfig{}
-	newNodesConfig, err := ihgs.computeNodesConfigFromList(copiedPrevious, validatorsInfo)
+func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error {
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorsInfo)
 	if err != nil {
 		return err
 	}
 
-	additionalLeavingMap, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(validatorsInfo)
+	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(validatorsInfo)
 	if err != nil {
 		return err
 	}
 
-	unStakeLeavingList := ihgs.createSortedListFromMap(newNodesConfig.leavingMap)
-	additionalLeavingList := ihgs.createSortedListFromMap(additionalLeavingMap)
+	unStakeLeavingList := ihnc.createSortedListFromMap(newNodesConfig.leavingMap)
+	additionalLeavingList := ihnc.createSortedListFromMap(additionalLeavingMap)
 
 	shufflerArgs := ArgsUpdateNodes{
 		Eligible:          newNodesConfig.eligibleMap,
@@ -31,7 +30,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		Epoch:             epoch,
 	}
 
-	resUpdateNodes, err := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	resUpdateNodes, err := ihnc.shuffler.UpdateNodeLists(shufflerArgs)
 	if err != nil {
 		return err
 	}
@@ -42,33 +41,33 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		resUpdateNodes.Leaving,
 	)
 
-	err = ihgs.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, epoch)
+	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, epoch)
 	if err != nil {
 		return err
 	}
 
-	ihgs.removeOldEpochs(epoch)
+	ihnc.removeOldEpochs(epoch, nodesCoordinatorStoredEpochs)
 
 	return nil
 }
 
-// IsEpochInConfig checks wether the specified epoch is already in map
-func (ihgs *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
-	ihgs.mutNodesConfig.Lock()
-	_, status := ihgs.nodesConfig[epoch]
-	defer ihgs.mutNodesConfig.Unlock()
+// IsEpochInConfig checks whether the specified epoch is already in map
+func (ihnc *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
+	ihnc.mutNodesConfig.Lock()
+	_, exists := ihnc.nodesConfig[epoch]
+	defer ihnc.mutNodesConfig.Unlock()
 
-	return status
+	return exists
 }
 
-func (ihgs *indexHashedNodesCoordinator) removeOldEpochs(epoch uint32) {
-	ihgs.mutNodesConfig.Lock()
-	if len(ihgs.nodesConfig) >= nodesCoordinatorStoredEpochs {
-		for currEpoch := range ihgs.nodesConfig {
-			if currEpoch <= uint32(epoch-nodesCoordinatorStoredEpochs) {
-				delete(ihgs.nodesConfig, currEpoch)
+func (ihnc *indexHashedNodesCoordinator) removeOldEpochs(epoch uint32, maxDelta uint32) {
+	ihnc.mutNodesConfig.Lock()
+	if len(ihnc.nodesConfig) >= int(maxDelta) {
+		for currEpoch := range ihnc.nodesConfig {
+			if currEpoch <= epoch-maxDelta {
+				delete(ihnc.nodesConfig, currEpoch)
 			}
 		}
 	}
-	ihgs.mutNodesConfig.Unlock()
+	ihnc.mutNodesConfig.Unlock()
 }

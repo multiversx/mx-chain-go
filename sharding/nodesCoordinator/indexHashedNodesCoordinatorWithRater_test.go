@@ -23,16 +23,16 @@ import (
 
 func TestNewIndexHashedNodesCoordinatorWithRater_NilRaterShouldErr(t *testing.T) {
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, nil)
+	ihnc, err := NewIndexHashedNodesCoordinatorWithRater(nc, nil)
 
-	assert.Nil(t, ihgs)
+	assert.Nil(t, ihnc)
 	assert.Equal(t, ErrNilChanceComputer, err)
 }
 
 func TestNewIndexHashedNodesCoordinatorWithRater_NilNodesCoordinatorShouldErr(t *testing.T) {
-	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nil, &mock.RaterMock{})
+	ihnc, err := NewIndexHashedNodesCoordinatorWithRater(nil, &mock.RaterMock{})
 
-	assert.Nil(t, ihgs)
+	assert.Nil(t, ihnc)
 	assert.Equal(t, ErrNilNodesCoordinator, err)
 }
 
@@ -40,8 +40,8 @@ func TestNewIndexHashedGroupSelectorWithRater_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.NotNil(t, ihgs)
+	ihnc, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	assert.NotNil(t, ihnc)
 	assert.Nil(t, err)
 }
 
@@ -51,8 +51,8 @@ func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing
 	t.Parallel()
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.Equal(t, ErrNilInputNodesMap, ihgs.setNodesPerShards(nil, waiting, nil, 0))
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	assert.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waiting, nil, 0))
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
@@ -99,10 +99,10 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	assert.Equal(t, eligibleMap[0], readEligible)
 
 	rater := &mock.RaterMock{}
-	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
+	ihnc, err := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 	assert.Nil(t, err)
 
-	readEligible = ihgs.nodesConfig[0].eligibleMap[0]
+	readEligible = ihnc.nodesConfig[0].eligibleMap[0]
 	assert.Equal(t, eligibleMap[0], readEligible)
 }
 
@@ -128,9 +128,9 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
 	assert.Equal(t, false, chancesCalled)
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 	assert.Equal(t, true, chancesCalled)
-	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
+	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(list2))
@@ -187,16 +187,16 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
 	}
-	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
-	ihgsRater, err := NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
+	ihncRater, err := NewIndexHashedNodesCoordinatorWithRater(ihnc, &mock.RaterMock{})
 	require.Nil(b, err)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(0)
-		list2, _ := ihgsRater.ComputeConsensusGroup([]byte(randomness), uint64(0), 0, 0)
+		list2, _ := ihncRater.ComputeConsensusGroup([]byte(randomness), uint64(0), 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
@@ -260,12 +260,12 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
 	}
-	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
 	hasher := sha256.NewSha256()
 	for i := uint64(0); i < numRounds; i++ {
 		randomness := hasher.Compute(fmt.Sprintf("%v%v", i, time.Millisecond))
-		consensusGroup, _ := ihgs.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
+		consensusGroup, _ := ihnc.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
 		leaderAppearances[string(consensusGroup[0].PubKey())]++
 		for _, v := range consensusGroup {
 			consensusAppearances[string(v.PubKey())]++
@@ -334,9 +334,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		IsFullArchive:              false,
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 
-	_, _, err = ihgs.GetValidatorWithPublicKey(nil)
+	_, _, err = ihnc.GetValidatorWithPublicKey(nil)
 	assert.Equal(t, ErrNilPubKey, err)
 }
 
@@ -386,9 +386,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		IsFullArchive:              false,
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 
-	_, _, err = ihgs.GetValidatorWithPublicKey([]byte("pk1"))
+	_, _, err = ihnc.GetValidatorWithPublicKey([]byte("pk1"))
 	assert.Equal(t, ErrValidatorNotFound, err)
 }
 
@@ -452,17 +452,17 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		IsFullArchive:              false,
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 
-	_, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"))
+	_, shardId, err := ihnc.GetValidatorWithPublicKey([]byte("pk0_meta"))
 	assert.Nil(t, err)
 	assert.Equal(t, core.MetachainShardId, shardId)
 
-	_, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"))
+	_, shardId, err = ihnc.GetValidatorWithPublicKey([]byte("pk1_shard0"))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), shardId)
 
-	_, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"))
+	_, shardId, err = ihnc.GetValidatorWithPublicKey([]byte("pk2_shard1"))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), shardId)
 }
@@ -536,10 +536,10 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
-	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	ihnc, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 	assert.Nil(t, err)
 
-	allValidatorsPublicKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
+	allValidatorsPublicKeys, err := ihnc.GetAllEligibleValidatorsPublicKeys(0)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
 }
@@ -550,7 +550,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving(t *testing.T
 	minChances := uint32(5)
 	belowRatingThresholdChances := uint32(1)
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
 		GetChancesCalled: func(rating uint32) uint32 {
 			if rating == 0 {
 				return minChances
@@ -574,7 +574,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving(t *testing.T
 		leavingValidator,
 	}
 
-	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	additionalLeaving, err := ihnc.ComputeAdditionalLeaving(shardValidatorInfo)
 	assert.NotNil(t, additionalLeaving)
 	assert.Nil(t, err)
 
@@ -594,7 +594,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddNew
 	minChances := uint32(5)
 
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
 		GetChancesCalled: func(rating uint32) uint32 {
 			if rating == 0 {
 				return minChances
@@ -631,7 +631,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddNew
 		waitingValidator,
 	}
 
-	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	additionalLeaving, err := ihnc.ComputeAdditionalLeaving(shardValidatorInfo)
 	assert.NotNil(t, additionalLeaving)
 	assert.Nil(t, err)
 
@@ -651,7 +651,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldNotAdd
 	minChances := uint32(5)
 
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
 		GetChancesCalled: func(rating uint32) uint32 {
 			if rating == 0 {
 				return minChances
@@ -680,7 +680,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldNotAdd
 		jailedValidator,
 	}
 
-	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	additionalLeaving, err := ihnc.ComputeAdditionalLeaving(shardValidatorInfo)
 	assert.NotNil(t, additionalLeaving)
 	assert.Nil(t, err)
 
@@ -698,7 +698,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddBel
 	minChances := uint32(5)
 
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
 		GetChancesCalled: func(rating uint32) uint32 {
 			if rating == 0 {
 				return minChances
@@ -730,7 +730,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddBel
 		belowRatingValidator,
 	}
 
-	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	additionalLeaving, err := ihnc.ComputeAdditionalLeaving(shardValidatorInfo)
 	assert.NotNil(t, additionalLeaving)
 	assert.Nil(t, err)
 
@@ -838,16 +838,16 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
 	}
-	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
-	ihgsRater, err := NewIndexHashedNodesCoordinatorWithRater(ihgs, &mock.RaterMock{})
+	ihncRater, err := NewIndexHashedNodesCoordinatorWithRater(ihnc, &mock.RaterMock{})
 	require.Nil(b, err)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihgsRater.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
+		list2, _ := ihncRater.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}

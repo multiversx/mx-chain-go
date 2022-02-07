@@ -55,14 +55,14 @@ func NewIndexHashedNodesCoordinatorWithRater(
 }
 
 // ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
-func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
+func (ihnc *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
 	extraLeavingNodesMap := make(map[uint32][]Validator)
-	minChances := ihgs.GetChance(0)
+	minChances := ihnc.GetChance(0)
 	for _, vInfo := range allValidators {
 		if vInfo.List == string(common.InactiveList) || vInfo.List == string(common.JailedList) {
 			continue
 		}
-		chances := ihgs.GetChance(vInfo.TempRating)
+		chances := ihnc.GetChance(vInfo.TempRating)
 		if chances < minChances {
 			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)
 			if err != nil {
@@ -77,18 +77,18 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allVa
 }
 
 //IsInterfaceNil verifies that the underlying value is nil
-func (ihgs *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
-	return ihgs == nil
+func (ihnc *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
+	return ihnc == nil
 }
 
 // GetChance returns the chance from an actual rating
-func (ihgs *indexHashedNodesCoordinatorWithRater) GetChance(rating uint32) uint32 {
-	return ihgs.chanceComputer.GetChance(rating)
+func (ihnc *indexHashedNodesCoordinatorWithRater) GetChance(rating uint32) uint32 {
+	return ihnc.chanceComputer.GetChance(rating)
 }
 
 // ValidatorsWeights returns the weights/chances for each given validator
-func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
-	minChance := ihgs.GetChance(0)
+func (ihnc *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
+	minChance := ihnc.GetChance(0)
 	weights := make([]uint32, len(validators))
 
 	for i, validatorInShard := range validators {
@@ -103,6 +103,6 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators [
 }
 
 // LoadState loads the nodes coordinator state from the used boot storage
-func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
-	return ihgs.baseLoadState(key)
+func (ihnc *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+	return ihnc.baseLoadState(key)
 }
