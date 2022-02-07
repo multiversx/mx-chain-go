@@ -615,7 +615,7 @@ func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	err := bh.compiledScStorage.Put(codeHash, code)
 	if err != nil {
 		log.Debug("BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put",
-			"err", err, "codeHash", codeHash)
+			"error", err, "codeHash", codeHash)
 	}
 }
 
@@ -645,7 +645,7 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	err := bh.compiledScStorage.Remove(codeHash)
 	if err != nil {
 		log.Debug("BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove",
-			"err", err, "codeHash", codeHash)
+			"error", err, "codeHash", codeHash)
 	}
 }
 
@@ -660,12 +660,12 @@ func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
-		log.Debug("BlockChainHookImpl.ClearCompiledCodes: compiledScStorage.DestroyUnit", "err", err)
+		log.Debug("BlockChainHookImpl.ClearCompiledCodes: compiledScStorage.DestroyUnit", "error", err)
 	}
 
 	err = bh.makeCompiledSCStorage()
 	if err != nil {
-		log.Debug("BlockChainHookImpl.ClearCompiledCodes: makeCompiledSCStorage", "err", err)
+		log.Debug("BlockChainHookImpl.ClearCompiledCodes: makeCompiledSCStorage", "error", err)
 	}
 }
 
