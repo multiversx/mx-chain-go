@@ -8,7 +8,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
-var log = logger.GetOrCreate("sharding")
+var log = logger.GetOrCreate("sharding/nodesCoordinator")
 
 func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, idx int64) (int64, int64) {
 	val := expEligibleList[idx]

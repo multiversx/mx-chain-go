@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +29,7 @@ func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
 		PeerIdPkCache:         testscommon.NewCacherMock(),
 		FallbackPkShardCache:  testscommon.NewCacherMock(),
 		FallbackPidShardCache: testscommon.NewCacherMock(),
-		NodesCoordinator:      &nodesCoordinatorStub{},
+		NodesCoordinator:      &shardingMocks.NodesCoordinatorMock{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		StartEpoch:            epochZero,
 	}
@@ -273,7 +274,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			if bytes.Equal(publicKey, pk) {
 				return nil, shardId, nil
@@ -321,7 +322,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
@@ -346,7 +347,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
@@ -373,7 +374,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
@@ -398,7 +399,7 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
@@ -421,7 +422,7 @@ func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *t
 	t.Parallel()
 
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},
@@ -447,7 +448,7 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
 	arg := createMockArgumentForPeerShardMapper()
-	arg.NodesCoordinator = &nodesCoordinatorStub{
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, u uint32, e error) {
 			return nil, 0, errors.New("not found")
 		},

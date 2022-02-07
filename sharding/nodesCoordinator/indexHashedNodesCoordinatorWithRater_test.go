@@ -112,7 +112,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 
 	arguments := createArguments()
@@ -144,11 +144,11 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
+		list = append(list, newValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -211,11 +211,11 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 
 	//generate 400 validators
 	for i := uint32(0); i < shardSize; i++ {
-		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
+		list = append(list, newValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
 	}
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	consensusAppearances := make(map[string]uint64)
@@ -294,7 +294,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 	eligibleMap := make(map[uint32][]Validator)
 	waitingMap := make(map[uint32][]Validator)
@@ -344,7 +344,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -396,19 +396,19 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	t.Parallel()
 
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -479,19 +479,19 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -793,12 +793,12 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {
-		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
+		list = append(list, newValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)

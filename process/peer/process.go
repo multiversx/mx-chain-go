@@ -288,7 +288,7 @@ func (vs *validatorStatistics) saveInitialState(nodesConfig sharding.GenesisNode
 }
 
 func (vs *validatorStatistics) saveInitialValueForMap(
-	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
+	nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler,
 	peerType common.PeerType,
 ) error {
 	if len(nodesInfo) == 0 {
@@ -947,7 +947,7 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 }
 
 func (vs *validatorStatistics) initializeNode(
-	node sharding.GenesisNodeInfoHandler,
+	node nodesCoordinator.GenesisNodeInfoHandler,
 	shardID uint32,
 	peerType common.PeerType,
 	index uint32,
@@ -962,7 +962,7 @@ func (vs *validatorStatistics) initializeNode(
 
 func (vs *validatorStatistics) savePeerAccountData(
 	peerAccount state.PeerAccountHandler,
-	node sharding.GenesisNodeInfoHandler,
+	node nodesCoordinator.GenesisNodeInfoHandler,
 	startRating uint32,
 	shardID uint32,
 	peerType common.PeerType,

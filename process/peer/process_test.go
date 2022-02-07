@@ -285,8 +285,8 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapters
-	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-		oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+		oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
 	}}
@@ -307,8 +307,8 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
-	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-		oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+		oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
 	}}
@@ -332,8 +332,8 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	}
 
 	arguments := createMockArguments()
-	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-		oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+		oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
 	}}

@@ -1,5 +1,7 @@
 package sharding
 
+import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
 	NumberOfShards() uint32
@@ -40,12 +42,12 @@ type PeerAccountListAndRatingHandler interface {
 
 // GenesisNodesSetupHandler returns the genesis nodes info
 type GenesisNodesSetupHandler interface {
-	AllInitialNodes() []GenesisNodeInfoHandler
+	AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler
 	InitialNodesPubKeys() map[uint32][]string
 	GetShardIDForPubKey(pubkey []byte) (uint32, error)
 	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
-	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
-	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
+	InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	GetStartTime() int64
 	GetRoundDuration() uint64
 	GetShardConsensusGroupSize() uint32

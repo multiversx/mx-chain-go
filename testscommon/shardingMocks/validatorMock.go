@@ -3,6 +3,7 @@ package shardingMocks
 const uint32Size = 4
 const numUint32 = 2
 
+// ValidatorMock defines a mocked validator
 type ValidatorMock struct {
 	pubKey  []byte
 	chances uint32
@@ -11,7 +12,7 @@ type ValidatorMock struct {
 	PubKeyCalled func() []byte
 }
 
-// NewValidator creates a new instance of a validator
+// NewValidatorMock creates a new instance of a validator
 func NewValidatorMock(pubKey []byte, chances uint32, index uint32) *ValidatorMock {
 	return &ValidatorMock{
 		pubKey:  pubKey,

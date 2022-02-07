@@ -147,3 +147,7 @@ func getExpandedEligibleList(num int) []uint32 {
 
 	return sliceToRet
 }
+
+func newValidatorMock(pubKey []byte, chances uint32, index uint32) *validator {
+	return &validator{pubKey: pubKey, index: index, chances: chances}
+}

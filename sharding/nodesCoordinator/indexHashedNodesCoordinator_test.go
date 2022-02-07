@@ -33,7 +33,7 @@ func createDummyNodesList(nbNodes uint32, suffix string) []Validator {
 
 	for j := uint32(0); j < nbNodes; j++ {
 		pk := hasher.Compute(fmt.Sprintf("pk%s_%d", suffix, j))
-		list = append(list, mock.NewValidatorMock(pk, 1, defaultSelectionChances))
+		list = append(list, newValidatorMock(pk, 1, defaultSelectionChances))
 	}
 
 	return list
@@ -350,7 +350,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	t.Parallel()
 
 	list := []Validator{
-		mock.NewValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0"), 1, defaultSelectionChances),
 	}
 	tmp := createDummyNodesMap(2, 1, "meta")
 	nodesMap := make(map[uint32][]Validator)
@@ -869,19 +869,19 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	t.Parallel()
 
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0_meta"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk1_meta"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2_meta"), 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0_shard0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk1_shard0"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2_shard0"), 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk0_shard1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk1_shard1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2_shard1"), 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -950,19 +950,19 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
 	}
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -1022,19 +1022,19 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	}
 
 	listMeta := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
 	}
 	listShard0 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
 	}
 	listShard1 := []Validator{
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
-		mock.NewValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
 	}
 
 	waitingMap := make(map[uint32][]Validator)
@@ -1057,8 +1057,8 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	bootStorer := mock.NewStorerMock()
 
 	eligibleMap := make(map[uint32][]Validator)
-	eligibleMap[core.MetachainShardId] = []Validator{&mock.ValidatorMock{}}
-	eligibleMap[shardZeroId] = []Validator{&mock.ValidatorMock{}}
+	eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
+	eligibleMap[shardZeroId] = []Validator{&validator{}}
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -1169,7 +1169,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldTriggerWrongConfigur
 
 	eligibleMap := map[uint32][]Validator{
 		core.MetachainShardId: {
-			mock.NewValidatorMock(pk, 1, 1),
+			newValidatorMock(pk, 1, 1),
 		},
 	}
 
@@ -1195,7 +1195,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldNotTriggerWrongConfi
 
 	eligibleMap := map[uint32][]Validator{
 		core.MetachainShardId: {
-			mock.NewValidatorMock(pk, 1, 1),
+			newValidatorMock(pk, 1, 1),
 		},
 	}
 
@@ -1227,7 +1227,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeValidator
 
 	eligibleMap := map[uint32][]Validator{
 		core.MetachainShardId: {
-			mock.NewValidatorMock(pk, 1, 1),
+			newValidatorMock(pk, 1, 1),
 		},
 	}
 
@@ -1259,7 +1259,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeObserver(
 
 	eligibleMap := map[uint32][]Validator{
 		core.MetachainShardId: {
-			mock.NewValidatorMock([]byte("validator pk"), 1, 1),
+			newValidatorMock([]byte("validator pk"), 1, 1),
 		},
 	}
 
@@ -1290,7 +1290,7 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 		epoch: {
 			shardID: validatorShard,
 			eligibleMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+				validatorShard: {newValidatorMock(pk, 1, 1)},
 			},
 		},
 	}
@@ -1325,7 +1325,7 @@ func TestIndexHashedNodesCoordinator_EpochStartInWaiting(t *testing.T) {
 		epoch: {
 			shardID: validatorShard,
 			waitingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+				validatorShard: {newValidatorMock(pk, 1, 1)},
 			},
 		},
 	}
@@ -1360,11 +1360,11 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 			shardID: validatorShard,
 			eligibleMap: map[uint32][]Validator{
 				validatorShard: {
-					mock.NewValidatorMock([]byte("eligiblePk"), 1, 1),
+					newValidatorMock([]byte("eligiblePk"), 1, 1),
 				},
 			},
 			leavingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+				validatorShard: {newValidatorMock(pk, 1, 1)},
 			},
 		},
 	}
@@ -1387,8 +1387,8 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 	pk2 := []byte{1}
 
 	list := []Validator{
-		mock.NewValidatorMock(pk1, 1, 1),
-		mock.NewValidatorMock(pk2, 1, 1),
+		newValidatorMock(pk1, 1, 1),
+		newValidatorMock(pk2, 1, 1),
 	}
 	eligibleMap[core.MetachainShardId] = list
 
@@ -1769,7 +1769,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithEligible(t *testing.T) {
 		epoch: {
 			shardID: validatorShard,
 			eligibleMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+				validatorShard: {newValidatorMock(pk, 1, 1)},
 			},
 		},
 	}
@@ -1804,7 +1804,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithWaiting(t *testing.T) {
 		epoch: {
 			shardID: validatorShard,
 			waitingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+				validatorShard: {newValidatorMock(pk, 1, 1)},
 			},
 		},
 	}
@@ -1839,13 +1839,13 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithObserver(t *testing.T) {
 		epoch: {
 			shardID: validatorShard,
 			eligibleMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock([]byte("eligibleKey"), 1, 1)},
+				validatorShard: {newValidatorMock([]byte("eligibleKey"), 1, 1)},
 			},
 			waitingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
+				validatorShard: {newValidatorMock([]byte("waitingKey"), 1, 1)},
 			},
 			leavingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)}},
+				validatorShard: {newValidatorMock(pk, 1, 1)}},
 		},
 	}
 
@@ -1880,13 +1880,13 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 		epoch: {
 			shardID: validatorShard,
 			eligibleMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock([]byte("eligibleKey"), 1, 1)},
+				validatorShard: {newValidatorMock([]byte("eligibleKey"), 1, 1)},
 			},
 			waitingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
+				validatorShard: {newValidatorMock([]byte("waitingKey"), 1, 1)},
 			},
 			leavingMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock([]byte("observerKey"), 1, 1)},
+				validatorShard: {newValidatorMock([]byte("observerKey"), 1, 1)},
 			},
 		},
 	}
@@ -2086,21 +2086,21 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix
 	previousConfig := &epochNodesConfig{
 		eligibleMap: map[uint32][]Validator{
 			0: {
-				mock.NewValidatorMock(shard0Eligible0.PublicKey, 0, 0),
-				mock.NewValidatorMock(shard0Eligible1.PublicKey, 0, 0),
-				mock.NewValidatorMock(shard0Leaving0.PublicKey, 0, 0),
+				newValidatorMock(shard0Eligible0.PublicKey, 0, 0),
+				newValidatorMock(shard0Eligible1.PublicKey, 0, 0),
+				newValidatorMock(shard0Leaving0.PublicKey, 0, 0),
 			},
 			core.MetachainShardId: {
-				mock.NewValidatorMock(shardmetaEligible0.PublicKey, 0, 0),
+				newValidatorMock(shardmetaEligible0.PublicKey, 0, 0),
 			},
 		},
 		waitingMap: map[uint32][]Validator{
 			0: {
-				mock.NewValidatorMock(shard0Waiting0.PublicKey, 0, 0),
+				newValidatorMock(shard0Waiting0.PublicKey, 0, 0),
 			},
 			core.MetachainShardId: {
-				mock.NewValidatorMock(shardmetaWaiting0.PublicKey, 0, 0),
-				mock.NewValidatorMock(shardMetaLeaving1.PublicKey, 0, 0),
+				newValidatorMock(shardmetaWaiting0.PublicKey, 0, 0),
+				newValidatorMock(shardMetaLeaving1.PublicKey, 0, 0),
 			},
 		},
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -631,7 +632,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	t.Parallel()
 
 	args := getRewardsArguments()
-	args.NodesConfigProvider = &mock.NodesCoordinatorStub{
+	args.NodesConfigProvider = &shardingMocks.NodesCoordinatorStub{
 		ConsensusGroupSizeCalled: func(shardID uint32) int {
 			if shardID == core.MetachainShardId {
 				return 400
@@ -737,7 +738,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 	t.Parallel()
 
 	args := getRewardsArguments()
-	args.NodesConfigProvider = &mock.NodesCoordinatorStub{}
+	args.NodesConfigProvider = &shardingMocks.NodesCoordinatorStub{}
 	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(1, core.MetachainShardId)
 	rwdc, _ := NewRewardsCreator(args)
 	metaBlk := &block.MetaBlock{

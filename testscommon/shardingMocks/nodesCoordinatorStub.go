@@ -77,7 +77,6 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	shardId uint32,
 	epoch uint32,
 ) (validatorsGroup []nodesCoordinator.Validator, err error) {
-
 	if ncm.ComputeValidatorsGroupCalled != nil {
 		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId, epoch)
 	}
@@ -135,9 +134,7 @@ func (ncm *NodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
-func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(
-	_ uint32,
-) (map[string]struct{}, error) {
+func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(_ uint32) (map[string]struct{}, error) {
 	panic("not implemented")
 }
 

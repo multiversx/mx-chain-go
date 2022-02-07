@@ -106,7 +106,7 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 		},
 	}
 
-	nc := &shardingMocks.NodesCoordinatorMock{GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
+	nc := &shardingMocks.NodesCoordinatorMock{GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 		return map[uint32][][]byte{0: {initialInfo.PublicKey}}, nil
 	}}
 
@@ -198,7 +198,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 
 	pk := []byte("pk")
 	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
-	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func(_ uint32) (map[uint32][][]byte, error) {
+	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func(epoch uint32) (map[uint32][][]byte, error) {
 		return map[uint32][][]byte{
 			0: {pk},
 		}, nil
@@ -471,7 +471,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 	nodesCoordinatorEligibleShardId := uint32(5)
 	nodesCoordinatorLeavingShardId := uint32(6)
-	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func(_ uint32) (map[uint32][][]byte, error) {
+	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func(epoch uint32) (map[uint32][][]byte, error) {
 		return map[uint32][][]byte{
 			nodesCoordinatorEligibleShardId: {pkEligibleInTrie},
 			nodesCoordinatorLeavingShardId:  {pkLeavingInTrie},
