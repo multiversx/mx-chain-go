@@ -519,9 +519,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
-			0,
 		)
 
 		assert.Equal(t, 2, len(scrsInfo))
@@ -542,9 +541,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
-			0,
 		)
 
 		assert.Equal(t, 0, len(scrsInfo))
@@ -565,9 +563,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
-			1,
 		)
 
 		assert.Equal(t, 2, len(scrsInfo))
@@ -593,9 +590,8 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		}
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
-			0,
 		)
 
 		assert.Equal(t, 0, len(scrsInfo))

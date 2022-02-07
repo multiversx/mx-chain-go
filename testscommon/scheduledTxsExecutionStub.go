@@ -15,6 +15,7 @@ import (
 type ScheduledTxsExecutionStub struct {
 	InitCalled                               func()
 	AddCalled                                func([]byte, data.TransactionHandler) bool
+	AddMiniBlocksCalled                      func(miniBlocks block.MiniBlockSlice)
 	ExecuteCalled                            func([]byte) error
 	ExecuteAllCalled                         func(func() time.Duration) error
 	GetScheduledSCRsCalled                   func() map[block.Type][]data.TransactionHandler
@@ -47,6 +48,13 @@ func (stes *ScheduledTxsExecutionStub) Add(txHash []byte, tx data.TransactionHan
 		return stes.AddCalled(txHash, tx)
 	}
 	return true
+}
+
+// AddMiniBlocks -
+func (stes *ScheduledTxsExecutionStub) AddMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	if stes.AddMiniBlocksCalled != nil {
+		stes.AddMiniBlocksCalled(miniBlocks)
+	}
 }
 
 // Execute -

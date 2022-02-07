@@ -23,6 +23,10 @@ func (steh *ScheduledTxsExecutionHandler) Add(_ []byte, _ data.TransactionHandle
 	return true
 }
 
+// AddMiniBlocks does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) AddMiniBlocks(_ block.MiniBlockSlice) {
+}
+
 // Execute does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) Execute(_ []byte) error {
 	return nil
