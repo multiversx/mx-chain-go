@@ -1083,7 +1083,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.lastSnapshot.epoch = epoch
 	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
 	if err != nil {
-		log.Warn("could not set lastSnapshotStarted", "err", err)
+		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
 	}
 
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
