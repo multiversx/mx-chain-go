@@ -117,7 +117,7 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilStateComponentsHolder, err)
 }
 
-//------------ Test Old Use Cases --------------------
+// ------------ Test Old Use Cases --------------------
 func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -128,7 +128,7 @@ func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t
 
 	dataComponents := consensusArgs.DataComponents
 
-	dataComponents.SetBlockchain(&mock.ChainHandlerStub{
+	dataComponents.SetBlockchain(&testscommon.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
 			return nil
 		},
@@ -433,7 +433,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 
 func getDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
-		Blkc:              &mock.ChainHandlerStub{},
+		Blkc:              &testscommon.ChainHandlerStub{},
 		Storage:           &mock.ChainStorerStub{},
 		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},

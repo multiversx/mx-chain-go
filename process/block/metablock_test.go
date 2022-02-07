@@ -673,11 +673,11 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -699,11 +699,11 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 	t.Parallel()
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.MetaBlock{
 			Round: 1,
 			Nonce: 1,
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -727,12 +727,12 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	t.Parallel()
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeader(
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
 		&block.MetaBlock{
 			Nonce:                  0,
 			AccumulatedFeesInEpoch: big.NewInt(0),
 			DevFeesInEpoch:         big.NewInt(0),
-		},
+		}, []byte("root hash"),
 	)
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	hdr := createMetaBlockHeader()
@@ -829,7 +829,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 	assert.Equal(t, errMarshalizer, err)
 }
 
-func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
+func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -838,6 +838,9 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
+		},
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("root hash"), nil
 		},
 	}
 	hdr := createMetaBlockHeader()
@@ -969,7 +972,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = mdp
 	dataComponents.Storage = store
-	dataComponents.BlockChain = &mock.BlockChainStub{
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 0}
 		},
@@ -2036,7 +2039,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	dataComponents.Storage = initStore()
 	dataComponents.BlockChain, _ = blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = dataComponents.Blockchain().SetGenesisHeader(&block.MetaBlock{Nonce: 0})
-	_ = dataComponents.Blockchain().SetCurrentBlockHeader(&block.MetaBlock{Nonce: 1})
+	_ = dataComponents.Blockchain().SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{Nonce: 1}, []byte("root hash"))
 	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
@@ -2320,7 +2323,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 
 	marshalizerMock := &mock.MarshalizerMock{}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.BlockChain = &mock.BlockChainStub{
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0}
 		},
@@ -2760,7 +2763,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		},
 	}
 
-	blkc := &mock.BlockChainStub{
+	blkc := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: big.NewInt(0)}
 		},
@@ -2906,7 +2909,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		},
 	}
 
-	blkc := &mock.BlockChainStub{
+	blkc := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{
 				Nonce:                  0,

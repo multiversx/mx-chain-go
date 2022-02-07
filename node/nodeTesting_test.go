@@ -62,7 +62,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		node.WithCryptoComponents(cryptoComponents),
 	)
 
-	stateComponents.Accounts = nil
+	stateComponents.AccountsAPI = nil
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk, nil, []byte("chainID"), 1)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
@@ -270,7 +270,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = singleSigner
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = accAdapter
+	stateComponents.AccountsAPI = accAdapter
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -358,7 +358,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = signer
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = accAdapter
+	stateComponents.AccountsAPI = accAdapter
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = mes
 
