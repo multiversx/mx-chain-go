@@ -380,8 +380,6 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 	log.Debug("createScheduledMiniBlocks has been finished")
 
-	txs.scheduledTxsExecutionHandler.AddMiniBlocks(miniBlocks)
-
 	return miniBlocks
 }
 

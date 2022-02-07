@@ -174,12 +174,12 @@ func (ste *scheduledTxsExecution) ComputeScheduledSCRs(
 	ste.mutScheduledTxs.Unlock()
 }
 
-func (ste *scheduledTxsExecution) GetMapScheduledSCRs() map[block.Type][]data.TransactionHandler {
+func (ste *scheduledTxsExecution) GetMapScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
 	newMap := make(map[block.Type][]data.TransactionHandler)
-	for key, value := range ste.mapScheduledSCRs {
+	for key, value := range ste.mapScheduledIntermediateTxs {
 		newMap[key] = value
 	}
 
