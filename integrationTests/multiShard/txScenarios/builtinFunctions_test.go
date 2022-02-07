@@ -22,7 +22,7 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	nodes, idxProposers, players := createGeneralSetupForTxTest(initialBalance)
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

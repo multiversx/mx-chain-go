@@ -32,7 +32,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
-		_ = n.Messenger.Close()
+		n.Close()
 	}()
 
 	time.Sleep(integrationTests.P2pBootstrapDelay)

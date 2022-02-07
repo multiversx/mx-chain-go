@@ -2286,7 +2286,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
 func CloseProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		_ = n.Messenger.Close()
+		n.Close()
 	}
 }
 
