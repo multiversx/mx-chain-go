@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,12 +26,39 @@ func createGenesisBlock(shardId uint32) *block.Header {
 	}
 }
 
+func TestDisplayBlock_NewTransactionCounterShouldErrWhenHasherIsNil(t *testing.T) {
+	t.Parallel()
+
+	txCounter, err := NewTransactionCounter(nil, &mock.MarshalizerMock{})
+
+	assert.Nil(t, txCounter)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestDisplayBlock_NewTransactionCounterShouldErrWhenMarshalizerIsNil(t *testing.T) {
+	t.Parallel()
+
+	txCounter, err := NewTransactionCounter(&mock.HasherMock{}, nil)
+
+	assert.Nil(t, txCounter)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestDisplayBlock_NewTransactionCounterShouldWork(t *testing.T) {
+	t.Parallel()
+
+	txCounter, err := NewTransactionCounter(&mock.HasherMock{}, &mock.MarshalizerMock{})
+
+	assert.NotNil(t, txCounter)
+	assert.Nil(t, err)
+}
+
 func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 	t.Parallel()
 
 	shardLines := make([]*display.LineData, 0)
 	header := createGenesisBlock(0)
-	txCounter := NewTransactionCounter()
+	txCounter, _ := NewTransactionCounter(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	lines := txCounter.displayMetaHashesIncluded(
 		shardLines,
 		header,
@@ -50,9 +79,10 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")},
 	}
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
-	txCounter := NewTransactionCounter()
+	txCounter, _ := NewTransactionCounter(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	lines := txCounter.displayTxBlockBody(
 		shardLines,
+		&block.Header{},
 		body,
 	)
 

@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -15,6 +14,7 @@ var _ data.ChainHandler = (*blockChain)(nil)
 // The BlockChain also holds pointers to the Genesis block header and the current block
 type blockChain struct {
 	*baseBlockChain
+	currentBlockRootHash []byte
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -39,45 +39,56 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 		return nil
 	}
 
-	gb, ok := genesisBlock.(*block.Header)
+	gb, ok := genesisBlock.(data.ShardHeaderHandler)
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
 	bc.mut.Lock()
-	bc.genesisHeader = gb.Clone()
+	bc.genesisHeader = gb.ShallowClone()
 	bc.mut.Unlock()
 
 	return nil
 }
 
-// SetCurrentBlockHeader sets current block header pointer
-func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		bc.mut.Lock()
 		bc.currentBlockHeader = nil
+		bc.currentBlockRootHash = nil
 		bc.mut.Unlock()
 
 		return nil
 	}
 
-	h, ok := header.(*block.Header)
+	h, ok := header.(data.ShardHeaderHandler)
 	if !ok {
 		return data.ErrInvalidHeaderType
 	}
 
-	bc.appStatusHandler.SetUInt64Value(common.MetricNonce, h.Nonce)
-	bc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, h.Round)
+	bc.appStatusHandler.SetUInt64Value(common.MetricNonce, h.GetNonce())
+	bc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, h.GetRound())
 
 	bc.mut.Lock()
-	bc.currentBlockHeader = h.Clone()
+	bc.currentBlockHeader = h.ShallowClone()
+	bc.currentBlockRootHash = make([]byte, len(rootHash))
+	copy(bc.currentBlockRootHash, rootHash)
 	bc.mut.Unlock()
 
 	return nil
 }
 
-// CreateNewHeader creates a new header
-func (bc *blockChain) CreateNewHeader() data.HeaderHandler {
-	return &block.Header{}
+// GetCurrentBlockRootHash returns the current committed block root hash. The returned byte slice is a new copy
+// of the contained root hash.
+func (bc *blockChain) GetCurrentBlockRootHash() []byte {
+	bc.mut.RLock()
+	rootHash := bc.currentBlockRootHash
+	bc.mut.RUnlock()
+
+	cloned := make([]byte, len(rootHash))
+	copy(cloned, rootHash)
+
+	return cloned
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

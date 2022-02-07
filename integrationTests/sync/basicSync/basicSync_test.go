@@ -5,12 +5,15 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
+
+var log = logger.GetOrCreate("basicSync")
 
 func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	if testing.Short() {
@@ -158,7 +161,10 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 
 func proposeBlockWithPubKeyBitmap(n *integrationTests.TestProcessorNode, round uint64, nonce uint64, pubKeys []byte) {
 	body, header, _ := n.ProposeBlock(round, nonce)
-	header.SetPubKeysBitmap(pubKeys)
+	err := header.SetPubKeysBitmap(pubKeys)
+	if err != nil {
+		log.Error("header.SetPubKeysBitmap", "error", err.Error())
+	}
 	n.BroadcastBlock(body, header)
 	n.CommitBlock(body, header)
 }

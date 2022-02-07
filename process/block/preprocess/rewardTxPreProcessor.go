@@ -85,10 +85,13 @@ func NewRewardTxPreprocessor(
 	}
 
 	bpp := &basePreProcess{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		shardCoordinator:     shardCoordinator,
-		gasHandler:           gasHandler,
+		hasher:      hasher,
+		marshalizer: marshalizer,
+		gasTracker: gasTracker{
+			shardCoordinator: shardCoordinator,
+			gasHandler:       gasHandler,
+			economicsFee:     nil,
+		},
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
@@ -205,9 +208,9 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
+	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-	_ []byte,
 ) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
@@ -424,7 +427,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.RewardsBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
