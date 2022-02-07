@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
