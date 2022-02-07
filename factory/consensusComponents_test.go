@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -127,7 +128,7 @@ func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t
 
 	dataComponents := consensusArgs.DataComponents
 
-	dataComponents.SetBlockchain(&mock.ChainHandlerStub{
+	dataComponents.SetBlockchain(&testscommon.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
 			return nil
 		},
@@ -386,6 +387,13 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		processComponents.NodesCoordinator(),
 	)
 
+	args := spos.ScheduledProcessorWrapperArgs{
+		SyncTimer:                coreComponents.SyncTimer(),
+		Processor:                processComponents.BlockProcessor(),
+		RoundTimeDurationHandler: coreComponents.RoundHandler(),
+	}
+	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
+
 	return factory.ConsensusComponentsFactoryArgs{
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
@@ -397,6 +405,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		ProcessComponents:   processComponents,
 		StateComponents:     stateComponents,
 		StatusComponents:    statusComponents,
+		ScheduledProcessor:  scheduledProcessor,
 	}
 }
 
@@ -424,7 +433,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 
 func getDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
-		Blkc:              &mock.ChainHandlerStub{},
+		Blkc:              &testscommon.ChainHandlerStub{},
 		Storage:           &mock.ChainStorerStub{},
 		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},

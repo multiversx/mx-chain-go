@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 )
 
 func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
@@ -57,7 +58,7 @@ func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser
 		initialAccounts:    make([]*data.InitialAccount, 0),
 		minterAddressBytes: []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"),
 		keyGenerator:       &mock.KeyGeneratorStub{},
-		hasher:             &mock.HasherMock{},
+		hasher:             &hashingMocks.HasherMock{},
 		marshalizer:        &mock.MarshalizerMock{},
 	}
 }

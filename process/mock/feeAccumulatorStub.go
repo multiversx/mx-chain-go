@@ -1,10 +1,14 @@
 package mock
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+)
 
 // FeeAccumulatorStub is a stub which implements TransactionFeeHandler interface
 type FeeAccumulatorStub struct {
-	CreateBlockStartedCalled    func()
+	CreateBlockStartedCalled    func(gasAndFees scheduled.GasAndFees)
 	GetAccumulatedFeesCalled    func() *big.Int
 	GetDeveloperFeesCalled      func() *big.Int
 	ProcessTransactionFeeCalled func(cost *big.Int, devFee *big.Int, hash []byte)
@@ -19,9 +23,9 @@ func (f *FeeAccumulatorStub) RevertFees(txHashes [][]byte) {
 }
 
 // CreateBlockStarted -
-func (f *FeeAccumulatorStub) CreateBlockStarted() {
+func (f *FeeAccumulatorStub) CreateBlockStarted(gasAndFees scheduled.GasAndFees) {
 	if f.CreateBlockStartedCalled != nil {
-		f.CreateBlockStartedCalled()
+		f.CreateBlockStartedCalled(gasAndFees)
 	}
 }
 

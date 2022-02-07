@@ -18,7 +18,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
-	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -54,7 +54,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
-	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),

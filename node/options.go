@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // WithBootstrapComponents sets up the Node bootstrap components
@@ -337,6 +338,18 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
+		return nil
+	}
+}
+
+// WithESDTNFTStorageHandler sets the esdt nft storage handler
+func WithESDTNFTStorageHandler(storageHandler vmcommon.ESDTNFTStorageHandler) Option {
+	return func(node *Node) error {
+		if check.IfNil(storageHandler) {
+			return ErrNilESDTNFTStorageHandler
+		}
+
+		node.esdtStorageHandler = storageHandler
 		return nil
 	}
 }

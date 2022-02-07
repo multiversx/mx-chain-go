@@ -44,7 +44,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -134,7 +134,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -268,7 +268,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -69,7 +70,7 @@ func TestTrieStorageManagerWithoutPruning_Close(t *testing.T) {
 	t.Parallel()
 
 	closeCalled := false
-	ts, _ := NewTrieStorageManagerWithoutPruning(&testscommon.StorerStub{
+	ts, _ := NewTrieStorageManagerWithoutPruning(&storageStubs.StorerStub{
 		CloseCalled: func() error {
 			closeCalled = true
 			return nil
