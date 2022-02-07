@@ -264,10 +264,6 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		wasSent := false
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				b := &batch.Batch{}
-				err := arg.Marshalizer.Unmarshal(b, buff)
-				assert.Nil(t, err)
-				assert.Equal(t, 0, len(b.Data))
 				wasSent = true
 				return nil
 			},
@@ -280,19 +276,19 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		chunkIndex := uint32(0)
 		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
 		assert.True(t, errors.Is(err, dataRetriever.ErrNotFound))
-		expectedSubstrErr := fmt.Sprintf("%s %d %s", "from", arg.MaxNumOfPeerAuthenticationInResponse, "encountered errors")
+		expectedSubstrErr := fmt.Sprintf("%s %d", "from chunk", chunkIndex)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
-		assert.True(t, wasSent)
+		assert.False(t, wasSent)
 	})
-	t.Run("resolveChunkRequest: some data not found in cache should error", func(t *testing.T) {
+	t.Run("resolveChunkRequest: some data not found in cache should work", func(t *testing.T) {
 		t.Parallel()
 
-		expectedNumOfErrors := 3
+		expectedNumOfMissing := 3
 		cache := testscommon.NewCacherStub()
-		errorsCount := 0
+		missingCount := 0
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if errorsCount < expectedNumOfErrors {
-				errorsCount++
+			if missingCount < expectedNumOfMissing {
+				missingCount++
 				return nil, false
 			}
 			return key, true
@@ -303,6 +299,11 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		messagesSent := 0
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
+				b := &batch.Batch{}
+				err := arg.Marshalizer.Unmarshal(b, buff)
+				assert.Nil(t, err)
+				expectedDataLen := arg.MaxNumOfPeerAuthenticationInResponse - expectedNumOfMissing
+				assert.Equal(t, expectedDataLen, len(b.Data))
 				messagesSent++
 				return nil
 			},
@@ -314,9 +315,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		epoch := uint32(0)
 		chunkIndex := uint32(0)
 		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
-		assert.True(t, errors.Is(err, dataRetriever.ErrNotFound))
-		expectedSubstrErr := fmt.Sprintf("%s %d %s", "from", expectedNumOfErrors, "encountered errors")
-		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
+		assert.Nil(t, err)
 		assert.Equal(t, 1, messagesSent)
 	})
 	t.Run("resolveChunkRequest: Send returns error", func(t *testing.T) {
@@ -382,7 +381,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, []byte("invalid data")), fromConnectedPeer)
 		assert.NotNil(t, err)
 	})
-	t.Run("resolveMultipleHashesRequest: all hashes missing from cache", func(t *testing.T) {
+	t.Run("resolveMultipleHashesRequest: all hashes missing from cache should error", func(t *testing.T) {
 		t.Parallel()
 
 		cache := testscommon.NewCacherStub()
@@ -395,10 +394,6 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		wasSent := false
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				b := &batch.Batch{}
-				err := arg.Marshalizer.Unmarshal(b, buff)
-				assert.Nil(t, err)
-				assert.Equal(t, 0, len(b.Data))
 				wasSent = true
 				return nil
 			},
@@ -411,11 +406,11 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		providedHashes, err := arg.Marshalizer.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer)
-		expectedSubstrErr := fmt.Sprintf("%s %d %s", "from", len(hashes), "encountered errors")
+		expectedSubstrErr := fmt.Sprintf("%s %s", "from buff", providedHashes)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
-		assert.True(t, wasSent)
+		assert.False(t, wasSent)
 	})
-	t.Run("resolveMultipleHashesRequest: some data missing from cache", func(t *testing.T) {
+	t.Run("resolveMultipleHashesRequest: some data missing from cache should work", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgPeerAuthenticationResolver()
@@ -430,8 +425,8 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		pks = append(pks, []byte(pk2))
 
 		hashes := make([][]byte, 0)
-		hashes = append(hashes, []byte("pk0")) // 2 entries, both pk1 and pk2
-		hashes = append(hashes, []byte("pk1")) // no entries
+		hashes = append(hashes, []byte("pk01")) // exists in cache
+		hashes = append(hashes, []byte("pk1"))  // no entries
 		providedHashes, err := arg.Marshalizer.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
 
@@ -451,7 +446,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				b := &batch.Batch{}
 				err = arg.Marshalizer.Unmarshal(b, buff)
 				assert.Nil(t, err)
-				assert.Equal(t, 2, len(b.Data)) // 2 entries for one of the hashes in the keys
+				assert.Equal(t, 1, len(b.Data)) // 1 entry for provided hashes
 				wasSent = true
 				return nil
 			},
@@ -461,8 +456,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.False(t, res.IsInterfaceNil())
 
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer)
-		expectedSubstrErr := fmt.Sprintf("%s %d %s", "from", 1, "encountered errors")
-		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
+		assert.Nil(t, err)
 		assert.True(t, wasSent)
 	})
 	t.Run("resolveMultipleHashesRequest: Send returns error", func(t *testing.T) {
@@ -533,10 +527,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		epoch := uint32(0)
 		chunkIndex := uint32(0)
-		hashes := make([][]byte, 0)
-		hashes = append(hashes, []byte("pk")) // all entries start with pk, so we should have len(pksMap) = 9 entries
-
-		providedHashes, err := arg.Marshalizer.Marshal(batch.Batch{Data: hashes})
+		providedHashes, err := arg.Marshalizer.Marshal(batch.Batch{Data: providedKeys})
 		assert.Nil(t, err)
 		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.HashArrayType, providedHashes, epoch, chunkIndex), fromConnectedPeer)
 		assert.Nil(t, err)

@@ -167,28 +167,12 @@ func (res *peerAuthenticationResolver) resolveChunkRequest(chunkIndex int, epoch
 		return err
 	}
 
-	var lastErr error
-	errorsFound := 0
-	dataSlice := make([][]byte, 0, res.maxNumOfPeerAuthenticationInResponse)
-	for _, pk := range pksChunk {
-		peerAuth, tmpErr := res.fetchPeerAuthenticationAsByteSlice(pk)
-		if tmpErr != nil {
-			lastErr = fmt.Errorf("%w for public key %s", tmpErr, logger.DisplayByteSlice(pk))
-			errorsFound++
-			continue
-		}
-		dataSlice = append(dataSlice, peerAuth)
-	}
-
-	err = res.sendData(dataSlice, nil, chunkIndex, maxChunks, pid)
+	dataSlice, err := res.fetchPeerAuthenticationSlicesForPublicKeys(pksChunk)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolveChunkRequest error %w from chunk %d", err, chunkIndex)
 	}
 
-	if lastErr != nil {
-		lastErr = fmt.Errorf("resolveChunkRequest last error %w from %d encountered errors", lastErr, errorsFound)
-	}
-	return lastErr
+	return res.sendData(dataSlice, nil, chunkIndex, maxChunks, pid)
 }
 
 // getSortedValidatorsKeys returns the sorted slice of validators keys from all shards
@@ -234,29 +218,12 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 	}
 	hashes := b.Data
 
-	var lastErr error
-	errorsFound := 0
-	peerAuthsForHashes := make([][]byte, 0)
-	for _, hash := range hashes {
-		peerAuthSlicesForHash := res.fetchPeerAuthenticationSlicesForHash(hash)
-		if peerAuthSlicesForHash == nil {
-			lastErr = fmt.Errorf("could not find any peerAuthentication for hash %s", logger.DisplayByteSlice(hash))
-			errorsFound++
-			continue
-		}
-
-		peerAuthsForHashes = append(peerAuthsForHashes, peerAuthSlicesForHash...)
-	}
-
-	err = res.sendPeerAuthsForHashes(peerAuthsForHashes, hashesBuff, pid)
+	peerAuthsForHashes, err := res.fetchPeerAuthenticationSlicesForPublicKeys(hashes)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, hashesBuff)
 	}
 
-	if lastErr != nil {
-		lastErr = fmt.Errorf("resolveMultipleHashes last error %w from %d encountered errors", lastErr, errorsFound)
-	}
-	return lastErr
+	return res.sendPeerAuthsForHashes(peerAuthsForHashes, hashesBuff, pid)
 }
 
 // sendPeerAuthsForHashes sends multiple peer authentication messages for specific hashes
@@ -309,19 +276,21 @@ func (res *peerAuthenticationResolver) sendData(dataSlice [][]byte, reference []
 	return res.Send(buffToSend, pid)
 }
 
-// fetchPeerAuthenticationSlicesForHash fetches all peer authentications for the matching pks to hash
-func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForHash(hash []byte) [][]byte {
-	var messages [][]byte
-
-	keys := res.peerAuthenticationPool.Keys()
-	for _, key := range keys {
-		if bytes.Equal(hash, key[:len(hash)]) {
-			peerAuth, _ := res.fetchPeerAuthenticationAsByteSlice(key)
-			messages = append(messages, peerAuth)
+// fetchPeerAuthenticationSlicesForPublicKeys fetches all peer authentications for all pks
+func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKeys(pks [][]byte) ([][]byte, error) {
+	peerAuths := make([][]byte, 0)
+	for _, pk := range pks {
+		peerAuthForHash, _ := res.fetchPeerAuthenticationAsByteSlice(pk)
+		if peerAuthForHash != nil {
+			peerAuths = append(peerAuths, peerAuthForHash)
 		}
 	}
 
-	return messages
+	if len(peerAuths) == 0 {
+		return nil, dataRetriever.ErrNotFound
+	}
+
+	return peerAuths, nil
 }
 
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists
