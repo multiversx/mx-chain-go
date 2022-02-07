@@ -35,7 +35,7 @@ import (
 
 var nodePrice = big.NewInt(5000)
 
-//TODO improve code coverage of this package
+// TODO improve code coverage of this package
 func createMockArgument(
 	t *testing.T,
 	genesisFilename string,
@@ -250,7 +250,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddresses()
+	err = hardForkGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
