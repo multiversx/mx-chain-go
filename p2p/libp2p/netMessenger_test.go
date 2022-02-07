@@ -80,7 +80,8 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -973,8 +974,8 @@ func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T
 	_ = mes3.ConnectToPeer(adr2)
 	_ = mes1.ConnectToPeer(adr3)
 	// connected peers:  1 ----- 2
-	//                  |       |
-	//                  3 ------+
+	//                   |       |
+	//                   3 ------+
 
 	_ = mes1.CreateTopic("topic123", false)
 	_ = mes2.CreateTopic("topic123", false)
@@ -1290,7 +1291,8 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1354,7 +1356,8 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1425,7 +1428,8 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1487,7 +1491,8 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
-				Port: "0",
+				Port:                  "0",
+				ConnectionWatcherType: "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
@@ -1758,6 +1763,7 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Seed:                       "",
 				MaximumExpectedPeerCount:   1,
 				ThresholdMinConnectedPeers: 1,
+				ConnectionWatcherType:      "print",
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,

@@ -19,10 +19,11 @@ import (
 	p2pDebug "github.com/ElrondNetwork/elrond-go/debug/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
-	connMonitorFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor/factory"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/disabled"
 	discoveryFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics"
+	metricsFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/metrics/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
@@ -53,6 +54,7 @@ const (
 	durationCheckConnections        = time.Second
 	refreshPeersOnTopic             = time.Second * 3
 	ttlPeersOnTopic                 = time.Second * 10
+	ttlConnectionsWatcher           = time.Hour * 2
 	pubsubTimeCacheDuration         = 10 * time.Minute
 	acceptMessagesInAdvanceDuration = 20 * time.Second // we are accepting the messages with timestamp in the future only for this delta
 	pollWaitForConnectionsInterval  = time.Second
@@ -124,6 +126,7 @@ type networkMessenger struct {
 	marshalizer          p2p.Marshalizer
 	syncTimer            p2p.SyncTimer
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
+	connectionsWatcher   p2p.ConnectionsWatcher
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -194,6 +197,11 @@ func constructNode(
 		})
 	}
 
+	connWatcher, err := metricsFactory.NewConnectionsWatcher(args.P2pConfig.Node.ConnectionWatcherType, ttlConnectionsWatcher)
+	if err != nil {
+		return nil, err
+	}
+
 	address := fmt.Sprintf(args.ListenAddress+"%d", port)
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
@@ -214,10 +222,11 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
-		p2pHost:    NewConnectableHost(h),
-		port:       port,
+		ctx:                ctx,
+		cancelFunc:         cancelFunc,
+		p2pHost:            NewConnectableHost(h),
+		port:               port,
+		connectionsWatcher: connWatcher,
 	}
 
 	return p2pNode, nil
@@ -419,12 +428,16 @@ func (netMes *networkMessenger) createSharder(argsNetMes ArgsNetworkMessenger) e
 
 func (netMes *networkMessenger) createDiscoverer(p2pConfig config.P2PConfig) error {
 	var err error
-	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(
-		netMes.ctx,
-		netMes.p2pHost,
-		netMes.sharder,
-		p2pConfig,
-	)
+
+	args := discoveryFactory.ArgsPeerDiscoverer{
+		Context:            netMes.ctx,
+		Host:               netMes.p2pHost,
+		Sharder:            netMes.sharder,
+		P2pConfig:          p2pConfig,
+		ConnectionsWatcher: netMes.connectionsWatcher,
+	}
+
+	netMes.peerDiscoverer, err = discoveryFactory.NewPeerDiscoverer(args)
 
 	return err
 }
@@ -435,15 +448,20 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		return fmt.Errorf("%w when converting peerDiscoverer to reconnecter interface", p2p.ErrWrongTypeAssertion)
 	}
 
-	args := connMonitorFactory.ArgsConnectionMonitorFactory{
+	sharder, ok := netMes.sharder.(connectionMonitor.Sharder)
+	if !ok {
+		return fmt.Errorf("%w in networkMessenger.createConnectionMonitor", p2p.ErrWrongTypeAssertions)
+	}
+
+	args := connectionMonitor.ArgsConnectionMonitorSimple{
 		Reconnecter:                reconnecter,
-		Sharder:                    netMes.sharder,
+		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
-		TargetCount:                int(p2pConfig.Sharding.TargetPeerCount),
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
+		ConnectionsWatcher:         netMes.connectionsWatcher,
 	}
 	var err error
-	netMes.connMonitor, err = connMonitorFactory.NewConnectionMonitor(args)
+	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
 	if err != nil {
 		return err
 	}
@@ -591,8 +609,16 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
-	log.Debug("closing network messenger's outgoing load balancer...")
+	log.Debug("closing network messenger's connection watcher...")
+	errConnWatcher := netMes.connectionsWatcher.Close()
+	if errConnWatcher != nil {
+		err = errConnWatcher
+		log.Warn("networkMessenger.Close",
+			"component", "connectionsWatcher",
+			"error", err)
+	}
 
+	log.Debug("closing network messenger's outgoing load balancer...")
 	errOplb := netMes.outgoingPLB.Close()
 	if errOplb != nil {
 		err = errOplb

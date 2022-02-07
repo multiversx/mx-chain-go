@@ -311,12 +311,6 @@ type ConnectionMonitorWrapper interface {
 	IsInterfaceNil() bool
 }
 
-// Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
-type Cacher interface {
-	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
-	IsInterfaceNil() bool
-}
-
 // Debugger represent a p2p debugger able to print p2p statistics (messages received/sent per topic)
 type Debugger interface {
 	AddIncomingMessage(topic string, size uint64, isRejected bool)
@@ -328,5 +322,12 @@ type Debugger interface {
 // SyncTimer represent an entity able to tell the current time
 type SyncTimer interface {
 	CurrentTime() time.Time
+	IsInterfaceNil() bool
+}
+
+// ConnectionsWatcher represent an entity able to watch new connections
+type ConnectionsWatcher interface {
+	NewKnownConnection(pid core.PeerID, connection string)
+	Close() error
 	IsInterfaceNil() bool
 }
