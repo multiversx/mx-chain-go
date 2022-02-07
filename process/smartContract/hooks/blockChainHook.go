@@ -613,7 +613,10 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	bh.compiledScPool.Put(codeHash, code, len(code))
 	err := bh.compiledScStorage.Put(codeHash, code)
-	log.LogIfError(err, "func", "BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put", "codeHash", codeHash)
+	if err != nil {
+		log.Debug("BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put",
+			"err", err, "codeHash", codeHash)
+	}
 }
 
 // GetCompiledCode returns the compiled code if it is found in the cache or storage
@@ -640,7 +643,10 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	bh.compiledScPool.Remove(codeHash)
 	err := bh.compiledScStorage.Remove(codeHash)
-	log.LogIfError(err, "func", "BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove", "codeHash", codeHash)
+	if err != nil {
+		log.Debug("BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove",
+			"err", err, "codeHash", codeHash)
+	}
 }
 
 // Close closes/cleans up the blockchain hook
@@ -653,10 +659,14 @@ func (bh *BlockChainHookImpl) Close() error {
 func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
 	err := bh.compiledScStorage.DestroyUnit()
-	log.LogIfError(err, "func", "BlockChainHookImpl.ClearCompiledCodes().compiledScStorage.DestroyUnit")
+	if err != nil {
+		log.Debug("BlockChainHookImpl.ClearCompiledCodes: compiledScStorage.DestroyUnit", "err", err)
+	}
 
 	err = bh.makeCompiledSCStorage()
-	log.LogIfError(err, "func", "BlockChainHookImpl.makeCompiledSCStorage")
+	if err != nil {
+		log.Debug("BlockChainHookImpl.ClearCompiledCodes: makeCompiledSCStorage", "err", err)
+	}
 }
 
 func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
