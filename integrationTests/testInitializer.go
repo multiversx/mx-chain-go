@@ -2121,6 +2121,7 @@ func generateValidTx(
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
+	stateComponents.AccountsAPI = accnts
 
 	mockNode, _ := node.NewNode(
 		node.WithAddressSignatureSize(64),
