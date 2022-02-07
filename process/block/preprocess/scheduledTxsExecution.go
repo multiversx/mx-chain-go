@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type scrInfo struct {
+type intermediateTxInfo struct {
 	txHash    []byte
 	txHandler data.TransactionHandler
 }
@@ -30,6 +30,7 @@ type scheduledTxsExecution struct {
 	mapScheduledTxs   map[string]data.TransactionHandler
 	mapScheduledSCRs  map[block.Type][]data.TransactionHandler
 	scheduledTxs      []data.TransactionHandler
+	scheduledMbs      block.MiniBlockSlice
 	scheduledRootHash []byte
 	gasAndFees        scheduled.GasAndFees
 	storer            storage.Storer
@@ -69,6 +70,7 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:   make(map[string]data.TransactionHandler),
 		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:      make([]data.TransactionHandler, 0),
+		scheduledMbs:      make(block.MiniBlockSlice, 0),
 		gasAndFees:        process.GetZeroGasAndFees(),
 		storer:            storer,
 		marshaller:        marshaller,
@@ -102,6 +104,17 @@ func (ste *scheduledTxsExecution) Add(txHash []byte, tx data.TransactionHandler)
 	ste.scheduledTxs = append(ste.scheduledTxs, tx)
 
 	return true
+}
+
+// AddMiniBlocks method adds all the scheduled mini blocks to be executed
+func (ste *scheduledTxsExecution) AddMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	ste.mutScheduledTxs.Lock()
+	defer ste.mutScheduledTxs.Unlock()
+
+	ste.scheduledMbs = make(block.MiniBlockSlice, len(miniBlocks))
+	for index, miniBlock := range miniBlocks {
+		ste.scheduledMbs[index] = miniBlock.Clone()
+	}
 }
 
 // Execute method executes the given scheduled transaction
@@ -181,9 +194,8 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
 	for blockType, allIntermediateTxsAfterScheduledExecution := range mapAllIntermediateTxsAfterScheduledExecution {
 		scrsInfo := ste.getAllIntermediateTxsAfterScheduledExecution(
-			mapAllIntermediateTxsBeforeScheduledExecution,
+			mapAllIntermediateTxsBeforeScheduledExecution[blockType],
 			allIntermediateTxsAfterScheduledExecution,
-			blockType,
 		)
 		if len(scrsInfo) == 0 {
 			continue
@@ -192,6 +204,10 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 		sort.Slice(scrsInfo, func(a, b int) bool {
 			return bytes.Compare(scrsInfo[a].txHash, scrsInfo[b].txHash) < 0
 		})
+
+		if blockType == block.InvalidBlock {
+			ste.removeInvalidTxsFromScheduledMiniBlocks(scrsInfo)
+		}
 
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrsInfo))
 		for scrIndex, scrInfo := range scrsInfo {
@@ -205,19 +221,39 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	log.Debug("scheduledTxsExecution.computeScheduledSCRs", "num of scheduled scrs created", numScheduledSCRs)
 }
 
-func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
-	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
-	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
-	blockType block.Type,
-) []*scrInfo {
-	scrsInfo := make([]*scrInfo, 0)
-	for txHash, txHandler := range allIntermediateTxsAfterScheduledExecution {
-		scrs, blockTypeExists := mapAllIntermediateTxsBeforeScheduledExecution[blockType]
-		if blockTypeExists {
-			_, txExists := scrs[txHash]
-			if txExists {
-				continue
+func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(scrsInfo []*intermediateTxInfo) {
+	for _, scrInfo := range scrsInfo {
+		for index, miniBlock := range ste.scheduledMbs {
+			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(scrInfo.txHash, miniBlock)
+			if indexOfTxHashInMiniBlock >= 0 {
+				ste.scheduledMbs[index].TxHashes = append(miniBlock.TxHashes[0:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
+				break
 			}
+		}
+	}
+}
+
+func getIndexOfTxHashInMiniBlock(txHash []byte, miniBlock *block.MiniBlock) int {
+	indexOfTxHashInMiniBlock := -1
+	for index, hash := range miniBlock.TxHashes {
+		if bytes.Equal(txHash, hash) {
+			indexOfTxHashInMiniBlock = index
+			break
+		}
+	}
+
+	return indexOfTxHashInMiniBlock
+}
+
+func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
+	allIntermediateTxsBeforeScheduledExecution map[string]data.TransactionHandler,
+	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
+) []*intermediateTxInfo {
+	intermediateTxsInfo := make([]*intermediateTxInfo, 0)
+	for txHash, txHandler := range allIntermediateTxsAfterScheduledExecution {
+		_, txExists := allIntermediateTxsBeforeScheduledExecution[txHash]
+		if txExists {
+			continue
 		}
 
 		if ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) {
@@ -225,13 +261,13 @@ func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
 			continue
 		}
 
-		scrsInfo = append(scrsInfo, &scrInfo{
+		intermediateTxsInfo = append(intermediateTxsInfo, &intermediateTxInfo{
 			txHash:    []byte(txHash),
 			txHandler: txHandler,
 		})
 	}
 
-	return scrsInfo
+	return intermediateTxsInfo
 }
 
 // GetScheduledSCRs gets the resulted SCRs after the execution of scheduled transactions

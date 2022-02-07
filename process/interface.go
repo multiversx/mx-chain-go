@@ -1131,6 +1131,7 @@ type CurrentNetworkEpochProviderHandler interface {
 type ScheduledTxsExecutionHandler interface {
 	Init()
 	Add(txHash []byte, tx data.TransactionHandler) bool
+	AddMiniBlocks(miniBlocks block.MiniBlockSlice)
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
