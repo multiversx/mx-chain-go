@@ -635,6 +635,12 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 	return GetConnectableAddress(tpn.Messenger)
 }
 
+// Close -
+func (tpn *TestProcessorNode) Close() {
+	_ = tpn.Messenger.Close()
+	_ = tpn.VMContainer.Close()
+}
+
 func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer(
 	store storage.Storer,
 ) {

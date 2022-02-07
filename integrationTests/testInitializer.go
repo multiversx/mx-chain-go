@@ -127,7 +127,8 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
+			Port:                  "0",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -214,8 +215,9 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "",
+			Port:                  "0",
+			Seed:                  "",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -2284,7 +2286,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
 func CloseProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		_ = n.Messenger.Close()
+		n.Close()
 	}
 }
 
