@@ -141,8 +141,19 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 		}
 
 		err := ste.execute(txHandler)
-		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-			return err
+		if err != nil {
+			log.Debug("scheduledTxsExecution.ExecuteAll: execute(txHandler)",
+				"nonce", txHandler.GetNonce(),
+				"value", txHandler.GetValue(),
+				"gas limit", txHandler.GetGasLimit(),
+				"gas price", txHandler.GetGasPrice(),
+				"sender address", string(txHandler.GetSndAddr()),
+				"receiver address", string(txHandler.GetRcvAddr()),
+				"data", string(txHandler.GetData()),
+				"error", err.Error())
+			if !errors.Is(err, process.ErrFailedTransaction) {
+				return err
+			}
 		}
 	}
 
