@@ -45,7 +45,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -99,6 +98,7 @@ type processComponents struct {
 	nodeRedundancyHandler        consensus.NodeRedundancyHandler
 	currentEpochProvider         dataRetriever.CurrentNetworkEpochProviderHandler
 	vmFactoryForTxSimulator      process.VirtualMachinesContainerFactory
+	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
 }
@@ -480,7 +480,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	blockProcessor, vmFactoryTxSimulator, err := pcf.newBlockProcessor(
+	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
 		epochStartTrigger,
@@ -571,7 +571,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversFinder:              resolversFinder,
 		roundHandler:                 pcf.coreData.RoundHandler(),
 		forkDetector:                 forkDetector,
-		blockProcessor:               blockProcessor,
+		blockProcessor:               blockProcessorComponents.blockProcessor,
 		epochStartTrigger:            epochStartTrigger,
 		epochStartNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:             blackListHandler,
@@ -598,7 +598,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:                pcf.importHandler,
 		nodeRedundancyHandler:        nodeRedundancyHandler,
 		currentEpochProvider:         currentEpochProvider,
-		vmFactoryForTxSimulator:      vmFactoryTxSimulator,
+		vmFactoryForTxSimulator:      blockProcessorComponents.vmFactoryForTxSimulate,
+		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
 	}, nil
@@ -1506,6 +1507,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.vmFactoryForTxSimulator) {
 		log.LogIfError(pc.vmFactoryForTxSimulator.Close())
+	}
+	if !check.IfNil(pc.vmFactoryForProcessing) {
+		log.LogIfError(pc.vmFactoryForProcessing.Close())
 	}
 	if !check.IfNil(pc.txsSender) {
 		log.LogIfError(pc.txsSender.Close())
