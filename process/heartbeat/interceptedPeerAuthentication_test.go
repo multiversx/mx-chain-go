@@ -157,7 +157,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 	})
 }
 
-func Test_InterceptedPeerAuthentication_CheckValidity(t *testing.T) {
+func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 	t.Parallel()
 	t.Run("publicKeyProperty too short", testInterceptedPeerAuthenticationPropertyLen(publicKeyProperty, false))
 	t.Run("publicKeyProperty too short", testInterceptedPeerAuthenticationPropertyLen(publicKeyProperty, true))
@@ -279,7 +279,7 @@ func testInterceptedPeerAuthenticationPropertyLen(property string, tooLong bool)
 	}
 }
 
-func Test_InterceptedPeerAuthentication_Getters(t *testing.T) {
+func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
