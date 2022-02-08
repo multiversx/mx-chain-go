@@ -16,7 +16,6 @@ import (
 )
 
 var expectedErr = errors.New("expected error")
-var providedSize int
 
 func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication {
 	payload := &heartbeat.Payload{
@@ -29,18 +28,19 @@ func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication 
 		return nil
 	}
 
-	pa := &heartbeat.PeerAuthentication{
+	return &heartbeat.PeerAuthentication{
 		Pubkey:           []byte("public key"),
 		Signature:        []byte("signature"),
 		Pid:              []byte("peer id"),
 		Payload:          payloadBytes,
 		PayloadSignature: []byte("payload signature"),
 	}
-	providedSize = len(pa.Pubkey) + len(pa.Pid) +
+}
+
+func getSizeOfPA(pa *heartbeat.PeerAuthentication) int {
+	return len(pa.Pubkey) + len(pa.Pid) +
 		len(pa.Signature) + len(pa.Payload) +
 		len(pa.PayloadSignature)
-
-	return pa
 }
 
 func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerAuthentication) ArgInterceptedPeerAuthentication {
@@ -282,7 +282,8 @@ func testInterceptedPeerAuthenticationPropertyLen(property string, tooLong bool)
 func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
+	providedPA := createDefaultInterceptedPeerAuthentication()
+	arg := createMockInterceptedPeerAuthenticationArg(providedPA)
 	ipa, _ := NewInterceptedPeerAuthentication(arg)
 	expectedPeerAuthentication := &heartbeat.PeerAuthentication{}
 	err := arg.Marshalizer.Unmarshal(expectedPeerAuthentication, arg.DataBuff)
@@ -299,5 +300,6 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	assert.Equal(t, 2, len(identifiers))
 	assert.Equal(t, expectedPeerAuthentication.Pubkey, identifiers[0])
 	assert.Equal(t, expectedPeerAuthentication.Pid, identifiers[1])
-	assert.Equal(t, providedSize, ipa.SizeInBytes())
+	providedPASize := getSizeOfPA(providedPA)
+	assert.Equal(t, providedPASize, ipa.SizeInBytes())
 }
