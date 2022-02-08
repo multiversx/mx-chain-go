@@ -1086,7 +1086,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
 	}
 
-	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
 	stats := newSnapshotStatistics(1)
