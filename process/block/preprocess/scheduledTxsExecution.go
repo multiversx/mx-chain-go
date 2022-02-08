@@ -241,7 +241,7 @@ func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(interm
 			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(interTxInfo.txHash, miniBlock)
 			if indexOfTxHashInMiniBlock >= 0 {
 				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "tx hash", interTxInfo.txHash)
-				ste.scheduledMBs[index].TxHashes = append(miniBlock.TxHashes[0:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
+				ste.scheduledMBs[index].TxHashes = append(miniBlock.TxHashes[:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
 				numInvalidTxsRemoved++
 				break
 			}
@@ -336,6 +336,10 @@ func (ste *scheduledTxsExecution) GetScheduledIntermediateTxs() map[block.Type][
 func (ste *scheduledTxsExecution) GetScheduledMBs() block.MiniBlockSlice {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
+
+	if len(ste.scheduledMBs) == 0 {
+		return nil
+	}
 
 	miniBlocks := make(block.MiniBlockSlice, len(ste.scheduledMBs))
 	for index, scheduledMb := range ste.scheduledMBs {
