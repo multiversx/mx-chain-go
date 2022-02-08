@@ -938,12 +938,8 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldWork(t *testing.T)
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: headerHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{},
-			},
-		},
+		RootHash:   headerHash,
+		Scrs:       []*smartContractResult.SmartContractResult{},
 		GasAndFees: &expectedGasAndFees,
 	}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
@@ -964,43 +960,8 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldWork(t *testing.T)
 
 	assert.Equal(t, headerHash, scheduledInfo.RootHash)
 	assert.Equal(t, expectedGasAndFees, scheduledInfo.GasAndFees)
-	assert.NotNil(t, scheduledInfo.IntermediateTxs)
-	assert.Equal(t, make(block.MiniBlockSlice, 0), scheduledInfo.MiniBlocks)
-}
-
-func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldFail(t *testing.T) {
-	t.Parallel()
-
-	scheduledRootHash := []byte("root hash")
-	mapSCRs := map[block.Type][]data.TransactionHandler{
-		0: {
-			&transaction.Transaction{Nonce: 1},
-		},
-	}
-	gasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(102),
-		GasProvided:     103,
-		GasPenalized:    104,
-		GasRefunded:     105,
-	}
-
-	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&testscommon.TxProcessorMock{},
-		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
-		&testscommon.MarshalizerMock{},
-		&mock.ShardCoordinatorStub{},
-	)
-
-	scheduledInfo := &process.ScheduledInfo{
-		RootHash:        scheduledRootHash,
-		IntermediateTxs: mapSCRs,
-		GasAndFees:      gasAndFees,
-	}
-	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledInfo(scheduledInfo)
-	assert.Nil(t, marshalledSCRs)
-	assert.Error(t, err)
+	assert.Nil(t, scheduledInfo.IntermediateTxs)
+	assert.Equal(t, block.MiniBlockSlice(nil), scheduledInfo.MiniBlocks)
 }
 
 func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldWork(t *testing.T) {
@@ -1008,7 +969,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldWork(t *testing.T
 
 	scheduledRootHash := []byte("root hash")
 	mapSCRs := map[block.Type][]data.TransactionHandler{
-		0: {
+		block.SmartContractResultBlock: {
 			&smartContractResult.SmartContractResult{
 				Nonce: 1,
 			},
@@ -1020,13 +981,9 @@ func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldWork(t *testing.T
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
 		RootHash: scheduledRootHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{
-					{
-						Nonce: 1,
-					},
-				},
+		Scrs: []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 1,
 			},
 		},
 		GasAndFees: &gasAndFees,
@@ -1087,9 +1044,9 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
 		RootHash: headerHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{},
+		Scrs: []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 0,
 			},
 		},
 		GasAndFees: &expectedGasAndFees,
@@ -1116,7 +1073,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	assert.Equal(t, headerHash, scheduledInfo.RootHash)
 	assert.Equal(t, expectedGasAndFees, scheduledInfo.GasAndFees)
 	assert.NotNil(t, scheduledInfo.IntermediateTxs)
-	assert.Equal(t, make(block.MiniBlockSlice, 0), scheduledInfo.MiniBlocks)
+	assert.Equal(t, block.MiniBlockSlice(nil), scheduledInfo.MiniBlocks)
 }
 
 func TestScheduledTxsExecution_SaveState(t *testing.T) {
@@ -1125,9 +1082,14 @@ func TestScheduledTxsExecution_SaveState(t *testing.T) {
 	headerHash := []byte("header hash")
 	scheduledRootHash := []byte("scheduled root hash")
 	mapSCRs := map[block.Type][]data.TransactionHandler{
-		0: {
+		block.SmartContractResultBlock: {
 			&smartContractResult.SmartContractResult{
 				Nonce: 1,
+			},
+		},
+		block.InvalidBlock: {
+			&transaction.Transaction{
+				Nonce: 2,
 			},
 		},
 	}
@@ -1137,18 +1099,20 @@ func TestScheduledTxsExecution_SaveState(t *testing.T) {
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
 		RootHash: scheduledRootHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{
-					{
-						Nonce: 1,
-					},
-				},
+		Scrs: []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 1,
+			},
+		},
+		InvalidTransactions: []*transaction.Transaction{
+			{
+				Nonce: 2,
 			},
 		},
 		GasAndFees: &gasAndFees,
 	}
-	marshalledScheduledData, _ := json.Marshal(scheduledSCRs)
+	marshalledScheduledData, err := json.Marshal(scheduledSCRs)
+	require.Nil(t, err)
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},

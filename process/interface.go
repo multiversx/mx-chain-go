@@ -1148,6 +1148,5 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
-	SetScheduledMiniBlocksAsExecuted()
 	IsInterfaceNil() bool
 }
