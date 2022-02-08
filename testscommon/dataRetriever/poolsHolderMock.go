@@ -24,6 +24,8 @@ type PoolsHolderMock struct {
 	trieNodesChunks      storage.Cacher
 	smartContracts       storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
+	peerAuthentications  storage.Cacher
+	heartbeats           storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -82,6 +84,12 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.peerAuthentications, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.heartbeats, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
@@ -145,6 +153,16 @@ func (holder *PoolsHolderMock) TrieNodesChunks() storage.Cacher {
 // SmartContracts -
 func (holder *PoolsHolderMock) SmartContracts() storage.Cacher {
 	return holder.smartContracts
+}
+
+// PeerAuthentications -
+func (holder *PoolsHolderMock) PeerAuthentications() storage.Cacher {
+	return holder.peerAuthentications
+}
+
+// Heartbeats -
+func (holder *PoolsHolderMock) Heartbeats() storage.Cacher {
+	return holder.heartbeats
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

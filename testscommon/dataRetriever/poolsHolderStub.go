@@ -19,6 +19,8 @@ type PoolsHolderStub struct {
 	TrieNodesChunksCalled      func() storage.Cacher
 	PeerChangesBlocksCalled    func() storage.Cacher
 	SmartContractsCalled       func() storage.Cacher
+	PeerAuthenticationsCalled  func() storage.Cacher
+	HeartbeatsCalled           func() storage.Cacher
 }
 
 // NewPoolsHolderStub -
@@ -120,6 +122,24 @@ func (holder *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 func (holder *PoolsHolderStub) SmartContracts() storage.Cacher {
 	if holder.SmartContractsCalled != nil {
 		return holder.SmartContractsCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}
+
+// PeerAuthentications -
+func (holder *PoolsHolderStub) PeerAuthentications() storage.Cacher {
+	if holder.PeerAuthenticationsCalled != nil {
+		return holder.PeerAuthenticationsCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}
+
+// Heartbeats -
+func (holder *PoolsHolderStub) Heartbeats() storage.Cacher {
+	if holder.HeartbeatsCalled != nil {
+		return holder.HeartbeatsCalled()
 	}
 
 	return testscommon.NewCacherStub()

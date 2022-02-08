@@ -579,3 +579,113 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
+
+//------- PeerAuthentication interceptor
+
+func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptor() error {
+	identifierPeerAuthentication := factory.PeerAuthenticationTopic + bicf.shardCoordinator.CommunicationIdentifier(core.AllShardId)
+
+	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
+		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
+	}
+	peerAuthenticationProcessor, err := processor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
+	if err != nil {
+		return err
+	}
+
+	peerAuthenticationFactory, err := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(*bicf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
+		interceptors.ArgMultiDataInterceptor{
+			Topic:                identifierPeerAuthentication,
+			Marshalizer:          internalMarshalizer,
+			DataFactory:          peerAuthenticationFactory,
+			Processor:            peerAuthenticationProcessor,
+			Throttler:            bicf.globalThrottler,
+			AntifloodHandler:     bicf.antifloodHandler,
+			WhiteListRequest:     bicf.whiteListHandler,
+			PreferredPeersHolder: bicf.preferredPeersHolder,
+			CurrentPeerId:        bicf.messenger.ID(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	interceptor, err := bicf.createTopicAndAssignHandler(identifierPeerAuthentication, mdInterceptor, true)
+	if err != nil {
+		return err
+	}
+
+	return bicf.container.Add(identifierPeerAuthentication, interceptor)
+}
+
+//------- Heartbeat interceptors
+
+func (bicf *baseInterceptorsContainerFactory) generateHearbeatInterceptors() error {
+	shardC := bicf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+	keys := make([]string, noOfShards)
+	interceptorsSlice := make([]process.Interceptor, noOfShards)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(idx)
+		interceptor, err := bicf.createOneHeartbeatInterceptor(identifierHeartbeat)
+		if err != nil {
+			return err
+		}
+
+		keys[int(idx)] = identifierHeartbeat
+		interceptorsSlice[int(idx)] = interceptor
+	}
+
+	identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	interceptor, err := bicf.createOneHeartbeatInterceptor(identifierHeartbeat)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierHeartbeat)
+	interceptorsSlice = append(interceptorsSlice, interceptor)
+
+	return bicf.container.AddMultiple(keys, interceptorsSlice)
+}
+
+func (bicf *baseInterceptorsContainerFactory) createOneHeartbeatInterceptor(identifier string) (process.Interceptor, error) {
+	argHeartbeatProcessor := processor.ArgHeartbeatInterceptorProcessor{
+		HeartbeatCacher: bicf.dataPool.Heartbeats(),
+	}
+	heartbeatProcessor, err := processor.NewHeartbeatInterceptorProcessor(argHeartbeatProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	heartbeatFactory, err := interceptorFactory.NewInterceptedHeartbeatDataFactory(*bicf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	interceptor, err := interceptors.NewMultiDataInterceptor(
+		interceptors.ArgMultiDataInterceptor{
+			Topic:                identifier,
+			Marshalizer:          internalMarshalizer,
+			DataFactory:          heartbeatFactory,
+			Processor:            heartbeatProcessor,
+			Throttler:            bicf.globalThrottler,
+			AntifloodHandler:     bicf.antifloodHandler,
+			WhiteListRequest:     bicf.whiteListHandler,
+			PreferredPeersHolder: bicf.preferredPeersHolder,
+			CurrentPeerId:        bicf.messenger.ID(),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return bicf.createTopicAndAssignHandler(identifier, interceptor, true)
+}
