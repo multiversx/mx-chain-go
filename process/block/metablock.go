@@ -267,12 +267,15 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
+	miniBlocks := body.MiniBlocks[mbIndex:]
+
 	if header.IsStartOfEpochBlock() {
-		err = mp.processEpochStartMetaBlock(header, body)
+		err = mp.processEpochStartMetaBlock(header, &block.Body{MiniBlocks: miniBlocks})
 		return err
 	}
 
-	mp.txCoordinator.RequestBlockTransactions(body)
+	mp.txCoordinator.RequestBlockTransactions(&block.Body{MiniBlocks: miniBlocks})
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -340,17 +343,17 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	if err != nil {
 		return err
 	}
 
-	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
 		return err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(body, header.Nonce)
+	err = mp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: miniBlocks}, header.Nonce)
 	if err != nil {
 		return err
 	}
@@ -944,7 +947,7 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMBs()
+	miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 
 	if !haveTime() {
 		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)

@@ -1598,71 +1598,6 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 
 		assert.Equal(t, localErr, err)
 	})
-	t.Run("wrong type assertion", func(t *testing.T) {
-		t.Parallel()
-
-		arguments := CreateMockArguments(createComponentHolderMocks())
-
-		bp, _ := blproc.NewShardProcessor(arguments)
-
-		err := bp.ProcessScheduledBlock(
-			&block.MetaBlock{}, &wrongBody{}, haveTime,
-		)
-
-		assert.Equal(t, process.ErrWrongTypeAssertion, err)
-
-	})
-}
-
-func TestBaseProcessor_ProcessScheduledBlockWithDifferentReserved(t *testing.T) {
-	t.Parallel()
-
-	var addedMiniBlocks block.MiniBlockSlice
-
-	arguments := CreateMockArguments(createComponentHolderMocks())
-	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
-		AddScheduledMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
-			addedMiniBlocks = miniBlocks
-		},
-	}
-	bp, _ := blproc.NewShardProcessor(arguments)
-
-	metaBlock := &block.MetaBlock{}
-	metaBlock.MiniBlockHeaders = make([]block.MiniBlockHeader, 3)
-
-	noReservedMBH := block.MiniBlockHeader{
-		Reserved: nil,
-	}
-	reservedWithScheduledMBH := block.MiniBlockHeader{
-		Reserved: []byte{byte(block.Scheduled)},
-	}
-	reservedWithoutScheduledMBH := block.MiniBlockHeader{
-		Reserved: []byte{byte(block.Normal)},
-	}
-
-	metaBlock.MiniBlockHeaders[0] = noReservedMBH
-	metaBlock.MiniBlockHeaders[1] = reservedWithScheduledMBH
-	metaBlock.MiniBlockHeaders[2] = reservedWithoutScheduledMBH
-
-	miniBlocks := block.MiniBlockSlice{}
-	miniBlocks = append(miniBlocks, &block.MiniBlock{})
-	expectedMiniBlock := &block.MiniBlock{}
-	miniBlocks = append(miniBlocks, expectedMiniBlock)
-	miniBlocks = append(miniBlocks, &block.MiniBlock{})
-
-	body := &block.Body{
-		MiniBlocks: miniBlocks,
-	}
-
-	err := bp.ProcessScheduledBlock(
-		metaBlock,
-		body,
-		haveTime,
-	)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(addedMiniBlocks))
-	assert.Equal(t, expectedMiniBlock, addedMiniBlocks[0])
 }
 
 func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
@@ -1907,3 +1842,5 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	})
 
 }
+
+//TODO: Add unit test for method getIndexOfFirstMiniBlockToBeExecuted

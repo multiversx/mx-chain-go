@@ -206,7 +206,10 @@ func (sp *shardProcessor) ProcessBlock(
 
 	sp.blockChainHook.SetCurrentHeader(header)
 
-	sp.txCoordinator.RequestBlockTransactions(body)
+	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
+	miniBlocks := body.MiniBlocks[mbIndex:]
+
+	sp.txCoordinator.RequestBlockTransactions(&block.Body{MiniBlocks: miniBlocks})
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
 
 	if haveTime() < 0 {
@@ -291,7 +294,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}()
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -300,12 +303,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
 		return err
 	}
@@ -1897,7 +1900,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMBs()
+	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.createMiniBlocks",

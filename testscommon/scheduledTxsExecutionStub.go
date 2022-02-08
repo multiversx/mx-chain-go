@@ -13,27 +13,28 @@ import (
 
 // ScheduledTxsExecutionStub -
 type ScheduledTxsExecutionStub struct {
-	InitCalled                             func()
-	AddScheduledTxCalled                   func([]byte, data.TransactionHandler) bool
-	AddScheduledMiniBlocksCalled           func(miniBlocks block.MiniBlockSlice)
-	ExecuteCalled                          func([]byte) error
-	ExecuteAllCalled                       func(func() time.Duration) error
-	GetScheduledIntermediateTxsCalled      func() map[block.Type][]data.TransactionHandler
-	GetScheduledMBsCalled                  func() block.MiniBlockSlice
-	SetScheduledInfoCalled                 func(scheduledInfo *process.ScheduledInfo)
-	GetScheduledRootHashForHeaderCalled    func(headerHash []byte) ([]byte, error)
-	RollBackToBlockCalled                  func(headerHash []byte) error
-	GetScheduledRootHashCalled             func() []byte
-	GetScheduledGasAndFeesCalled           func() scheduled.GasAndFees
-	SetScheduledRootHashCalled             func([]byte)
-	SetScheduledGasAndFeesCalled           func(gasAndFees scheduled.GasAndFees)
-	SetTransactionProcessorCalled          func(process.TransactionProcessor)
-	SetTransactionCoordinatorCalled        func(process.TransactionCoordinator)
-	HaveScheduledTxsCalled                 func() bool
-	SaveStateIfNeededCalled                func(headerHash []byte)
-	SaveStateCalled                        func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
-	LoadStateCalled                        func(headerHash []byte)
-	IsScheduledTxCalled                    func([]byte) bool
+	InitCalled                          func()
+	AddScheduledTxCalled                func([]byte, data.TransactionHandler) bool
+	AddScheduledMiniBlocksCalled        func(miniBlocks block.MiniBlockSlice)
+	ExecuteCalled                       func([]byte) error
+	ExecuteAllCalled                    func(func() time.Duration) error
+	GetScheduledIntermediateTxsCalled   func() map[block.Type][]data.TransactionHandler
+	GetScheduledMiniBlocksCalled        func() block.MiniBlockSlice
+	SetScheduledInfoCalled              func(scheduledInfo *process.ScheduledInfo)
+	GetScheduledRootHashForHeaderCalled func(headerHash []byte) ([]byte, error)
+	RollBackToBlockCalled               func(headerHash []byte) error
+	GetScheduledRootHashCalled          func() []byte
+	GetScheduledGasAndFeesCalled        func() scheduled.GasAndFees
+	SetScheduledRootHashCalled          func([]byte)
+	SetScheduledGasAndFeesCalled        func(gasAndFees scheduled.GasAndFees)
+	SetTransactionProcessorCalled       func(process.TransactionProcessor)
+	SetTransactionCoordinatorCalled     func(process.TransactionCoordinator)
+	HaveScheduledTxsCalled              func() bool
+	SaveStateIfNeededCalled             func(headerHash []byte)
+	SaveStateCalled                     func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
+	LoadStateCalled                     func(headerHash []byte)
+	IsScheduledTxCalled                 func([]byte) bool
+	IsMiniBlockExecutedCalled           func([]byte) bool
 }
 
 // Init -
@@ -82,10 +83,10 @@ func (stes *ScheduledTxsExecutionStub) GetScheduledIntermediateTxs() map[block.T
 	return nil
 }
 
-// GetScheduledMBs -
-func (stes *ScheduledTxsExecutionStub) GetScheduledMBs() block.MiniBlockSlice {
-	if stes.GetScheduledMBsCalled != nil {
-		return stes.GetScheduledMBsCalled()
+// GetScheduledMiniBlocks -
+func (stes *ScheduledTxsExecutionStub) GetScheduledMiniBlocks() block.MiniBlockSlice {
+	if stes.GetScheduledMiniBlocksCalled != nil {
+		return stes.GetScheduledMiniBlocksCalled()
 	}
 	return nil
 }
@@ -185,6 +186,14 @@ func (stes *ScheduledTxsExecutionStub) SetTransactionCoordinator(txCoordinator p
 func (stes *ScheduledTxsExecutionStub) IsScheduledTx(txHash []byte) bool {
 	if stes.IsScheduledTxCalled != nil {
 		return stes.IsScheduledTxCalled(txHash)
+	}
+	return false
+}
+
+// IsMiniBlockExecuted -
+func (stes *ScheduledTxsExecutionStub) IsMiniBlockExecuted(mbHash []byte) bool {
+	if stes.IsMiniBlockExecutedCalled != nil {
+		return stes.IsMiniBlockExecutedCalled(mbHash)
 	}
 	return false
 }

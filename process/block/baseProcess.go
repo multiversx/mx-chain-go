@@ -1569,28 +1569,13 @@ func (bp *baseProcessor) Close() error {
 }
 
 // ProcessScheduledBlock processes a scheduled block
-func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
 		}
 	}()
-
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	miniBlocks := make(block.MiniBlockSlice, 0)
-	mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
-	for index, mbHeader := range mbHeaders {
-		reserved := mbHeader.GetReserved()
-		if len(reserved) > 0 && reserved[0] == byte(block.Scheduled) {
-			miniBlocks = append(miniBlocks, body.MiniBlocks[index])
-		}
-	}
-	bp.scheduledTxsExecutionHandler.AddScheduledMiniBlocks(miniBlocks)
 
 	normalProcessingGasAndFees := bp.getGasAndFees()
 
@@ -1690,6 +1675,24 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 		GasPenalized:    uint64(deltaGasPenalized),
 		GasRefunded:     uint64(deltaGasRefunded),
 	}
+}
+
+func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler, body *block.Body) int {
+	var mbIndex int
+	for index := range body.MiniBlocks {
+		mbHash := header.GetMiniBlockHeadersHashes()[index]
+		if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
+			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
+				"mb hash", mbHash,
+				"mb index", index)
+			continue
+		}
+
+		mbIndex = index
+		break
+	}
+
+	return mbIndex
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
