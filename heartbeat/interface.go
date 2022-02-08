@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"io"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -15,17 +14,9 @@ import (
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
-	io.Closer
-	Bootstrap() error
 	Broadcast(topic string, buff []byte)
-	BroadcastOnChannel(channel string, topic string, buff []byte)
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
-	CreateTopic(name string, createChannelForTopic bool) error
-	HasTopic(name string) bool
-	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
-	PeerAddresses(pid core.PeerID) []string
-	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
+	Sign(payload []byte) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -42,7 +33,7 @@ type EligibleListProvider interface {
 	IsInterfaceNil() bool
 }
 
-//Timer defines an interface for tracking time
+// Timer defines an interface for tracking time
 type Timer interface {
 	Now() time.Time
 	IsInterfaceNil() bool
