@@ -224,11 +224,8 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 // ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
 var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
 
-// ErrNilHeartbeatPool signals that a nil heartbeat pool has been provided
-var ErrNilHeartbeatPool = errors.New("nil heartbeat pool")
-
-// ErrNotFound signals that a data is missing
-var ErrNotFound = errors.New("data not found")
+// ErrPeerAuthNotFound signals that no peer authentication found
+var ErrPeerAuthNotFound = errors.New("peer authentication not found")
 
 // ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
