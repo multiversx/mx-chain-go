@@ -112,6 +112,6 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		interceptedData, err := ipadf.Create(marshaledPeerAuthentication)
 		assert.NotNil(t, interceptedData)
 		assert.Nil(t, err)
-		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*heartbeat.InterceptedPeerAuthentication"))
+		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*heartbeat.interceptedPeerAuthentication"))
 	})
 }
