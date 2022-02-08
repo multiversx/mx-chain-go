@@ -305,7 +305,7 @@ func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) bo
 	return isNew
 }
 
-// removePidAssociation remove the pid association between the pid and public key, returning old public key stored, if existing
+// removePidAssociation removes the pid association between the pid and public key, returning old public key stored, if existing
 func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) []byte {
 	oldPk, found := psm.peerIdPkCache.Get([]byte(pid))
 	if !found {
