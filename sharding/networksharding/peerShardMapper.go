@@ -259,7 +259,7 @@ func (psm *PeerShardMapper) updatePeerIdShardId(pid core.PeerID, shardId uint32)
 	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 
-// updatePeerIDPublicKey will update the pis <-> pk mapping, returning true if the pair is a new known pair
+// updatePeerIDPublicKey will update the pid <-> pk mapping, returning true if the pair is a new known pair
 func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) bool {
 	// mutUpdatePeerIdPublicKey is used as to consider this function a critical section
 	psm.mutUpdatePeerIdPublicKey.Lock()
