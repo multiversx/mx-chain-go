@@ -37,6 +37,8 @@ type MessengerStub struct {
 	GetConnectedPeersInfoCalled            func() *p2p.ConnectedPeersInfo
 	UnjoinAllTopicsCalled                  func() error
 	PortCalled                             func() int
+	SignCalled                             func(payload []byte) ([]byte, error)
+	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -303,6 +305,24 @@ func (ms *MessengerStub) Port() int {
 	}
 
 	return 0
+}
+
+// Sign -
+func (ms *MessengerStub) Sign(payload []byte) ([]byte, error) {
+	if ms.SignCalled != nil {
+		return ms.SignCalled(payload)
+	}
+
+	return make([]byte, 0), nil
+}
+
+// Verify -
+func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byte) error {
+	if ms.VerifyCalled != nil {
+		return ms.VerifyCalled(payload, pid, signature)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -29,7 +29,7 @@ import (
 
 var timeoutWait = time.Second
 
-//------- GenerateAndSendBulkTransactions
+// ------- GenerateAndSendBulkTransactions
 
 func TestGenerateAndSendBulkTransactions_ZeroTxShouldErr(t *testing.T) {
 	n, _ := node.NewNode()
@@ -308,7 +308,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
-				//handler to capture sent data
+				// handler to capture sent data
 				b := &batch.Batch{}
 				err := marshalizer.Unmarshal(b, buff)
 				if err != nil {
