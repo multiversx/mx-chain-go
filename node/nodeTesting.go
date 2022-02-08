@@ -14,10 +14,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 const maxGoRoutinesSendMessage = 30
+
+var currentSendingGoRoutines = int32(0)
 
 var minTxGasPrice = uint64(100)
 var minTxGasLimit = uint64(1000)
@@ -39,7 +42,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 		return ErrNilPrivateKey
 	}
 
-	if atomic.LoadInt32(&n.currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
+	if atomic.LoadInt32(&currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
 		return ErrSystemBusyGeneratingTransactions
 	}
 
@@ -121,11 +124,11 @@ func (n *Node) GenerateAndSendBulkTransactions(
 		return err
 	}
 
-	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
+	atomic.AddInt32(&currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
 			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
-				SendTransactionsPipe,
+				txsSender.SendTransactionsPipe,
 				identifier,
 				bufferToSend,
 			)
@@ -133,7 +136,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
 			}
 
-			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
+			atomic.AddInt32(&currentSendingGoRoutines, -1)
 		}(buff)
 	}
 
