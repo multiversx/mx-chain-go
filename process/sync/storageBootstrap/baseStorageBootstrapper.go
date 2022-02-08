@@ -2,6 +2,7 @@ package storageBootstrap
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -270,7 +271,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
-	err = st.applyBlock(headerFromStorage, headerHash)
+	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
@@ -414,8 +415,8 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 		"hash", headerInfo.Hash)
 }
 
-func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
-	err := st.blkc.SetCurrentBlockHeader(header)
+func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte) error {
+	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 	if err != nil {
 		return err
 	}
@@ -432,7 +433,7 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
 	}
 
-	err = st.blkc.SetCurrentBlockHeader(nil)
+	err = st.blkc.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	if err != nil {
 		log.Debug("cannot set current block header", "error", err.Error())
 	}

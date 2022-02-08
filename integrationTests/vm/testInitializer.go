@@ -253,7 +253,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		VmContainer:       vmContainer,
 		EconomicsFee:      feeHandler,
 		BlockChainHook:    blockChainHook,
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
@@ -436,7 +436,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   oneShardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -541,7 +541,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   oneShardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -590,7 +590,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   shardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -661,7 +661,7 @@ func CreateVMAndBlockchainHookMeta(
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   shardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
@@ -1345,7 +1345,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		VmContainer:       vmContainer,
 		EconomicsFee:      feeHandler,
 		BlockChainHook:    blockChainHook,
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
 	}
@@ -1378,7 +1378,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		VmContainer:    vmContainer,
 		EconomicsFee:   testContext.EconomicsData,
 		BlockChainHook: blockChainHook,
-		BlockChain: &mock.BlockChainMock{
+		BlockChain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					ShardID: testContext.ShardCoordinator.SelfId(),
