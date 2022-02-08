@@ -153,7 +153,7 @@ func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
 	if check.IfNil(n.processComponents.ShardCoordinator()) {
 		return ErrNilShardCoordinator
 	}
-	if check.IfNil(n.stateComponents.AccountsAdapter()) {
+	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return ErrNilAccountsAdapter
 	}
 
@@ -178,7 +178,7 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return newNonce, senderAddressBytes, receiverAddress, senderShardId, nil
 	}
 
-	senderAccount, err := n.stateComponents.AccountsAdapter().GetExistingAccount(senderAddressBytes)
+	senderAccount, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(senderAddressBytes)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
@@ -271,7 +271,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.stateComponents.AccountsAdapter()) {
+	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return nil, ErrNilAccountsAdapter
 	}
 	if check.IfNil(privateKey) {
@@ -286,7 +286,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
-	senderAccount, err := n.stateComponents.AccountsAdapter().GetExistingAccount(senderAddress)
+	senderAccount, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(senderAddress)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
