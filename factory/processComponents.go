@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -102,6 +103,7 @@ type processComponents struct {
 	vmFactoryForTxSimulator      process.VirtualMachinesContainerFactory
 	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	txsSender                    process.TxsSenderHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -199,6 +201,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochNotifier:          args.CoreData.EpochNotifier(),
 	}, nil
 }
+
+//TODO: Think if it would make sense here to create an array of closable interfaces
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
@@ -547,6 +551,22 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+	args := txsSender.ArgsTxsSenderWithAccumulator{
+		Marshaller:        pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
+		NetworkMessenger:  pcf.network.NetworkMessenger(),
+		AccumulatorConfig: pcf.config.Antiflood.TxAccumulator,
+		DataPacker:        dataPacker,
+	}
+	txsSenderWithAccumulator, err := txsSender.NewTxsSenderWithAccumulator(args)
+	if err != nil {
+		return nil, err
+	}
+
 	return &processComponents{
 		nodesCoordinator:             pcf.nodesCoordinator,
 		shardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
@@ -584,6 +604,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		vmFactoryForTxSimulator:      blockProcessorComponents.vmFactoryForTxSimulate,
 		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		txsSender:                    txsSenderWithAccumulator,
 	}, nil
 }
 
@@ -1492,6 +1513,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.vmFactoryForProcessing) {
 		log.LogIfError(pc.vmFactoryForProcessing.Close())
+	}
+	if !check.IfNil(pc.txsSender) {
+		log.LogIfError(pc.txsSender.Close())
 	}
 
 	return nil

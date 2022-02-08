@@ -1148,3 +1148,10 @@ type ScheduledTxsExecutionHandler interface {
 	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
 }
+
+// TxsSenderHandler handles transactions sending
+type TxsSenderHandler interface {
+	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
+	Close() error
+	IsInterfaceNil() bool
+}
