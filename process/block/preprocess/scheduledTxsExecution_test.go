@@ -400,14 +400,6 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		},
 	}
 
-	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&testscommon.TxProcessorMock{},
-		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
-		&marshal.GogoProtoMarshalizer{},
-		shardCoordinator,
-	)
-
 	mapAllIntermediateTxsBeforeScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
 		0: {
 			"txHash1": &transaction.Transaction{Nonce: 1},
@@ -424,29 +416,53 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 	t.Run("nil maps, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
 
-		scheduledTxsExec.computeScheduledSCRs(nil, nil)
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			shardCoordinator,
+		)
 
-		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
+		scheduledTxsExec.ComputeScheduledSCRs(nil, nil)
+
+		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledSCRs()))
 	})
 	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
 
-		scheduledTxsExec.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, nil)
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			shardCoordinator,
+		)
 
-		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
+		scheduledTxsExec.ComputeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, nil)
+
+		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledSCRs()))
 	})
 	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
 
-		mapAllIntermediateTxsAfterScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			shardCoordinator,
+		)
+
+		localMapAllIntermediateTxsAfterScheduledExecution := map[block.Type]map[string]data.TransactionHandler{
 			0: {
 				"txHash1": &transaction.Transaction{Nonce: 1},
 				"txHash2": &transaction.Transaction{Nonce: 2},
 			},
 		}
-		scheduledTxsExec.computeScheduledSCRs(
+		scheduledTxsExec.ComputeScheduledSCRs(
 			mapAllIntermediateTxsBeforeScheduledExecution,
-			mapAllIntermediateTxsAfterScheduledExecution,
+			localMapAllIntermediateTxsAfterScheduledExecution,
 		)
 
 		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
@@ -454,13 +470,22 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		scheduledTxsExec.computeScheduledSCRs(
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			shardCoordinator,
+		)
+
+		scheduledTxsExec.ComputeScheduledSCRs(
 			mapAllIntermediateTxsBeforeScheduledExecution,
 			mapAllIntermediateTxsAfterScheduledExecution,
 		)
 
-		assert.Equal(t, 1, len(scheduledTxsExec.mapScheduledSCRs))
-		assert.Equal(t, 2, len(scheduledTxsExec.mapScheduledSCRs[1]))
+		mapScheduledSCRs := scheduledTxsExec.GetMapScheduledSCRs()
+		assert.Equal(t, 1, len(mapScheduledSCRs))
+		assert.Equal(t, 2, len(mapScheduledSCRs[1]))
 	})
 }
 
@@ -603,7 +628,7 @@ func TestScheduledTxsExecution_GetSchedulesSCRsNonEmptySCRsMap(t *testing.T) {
 		},
 	)
 
-	scheduledTxsExec.computeScheduledSCRs(
+	scheduledTxsExec.ComputeScheduledSCRs(
 		nil,
 		allTxsAfterExec,
 	)
@@ -632,7 +657,7 @@ func TestScheduledTxsExecution_GetSchedulesSCRsEmptySCRsMap(t *testing.T) {
 		},
 	)
 
-	scheduledTxsExec.computeScheduledSCRs(
+	scheduledTxsExec.ComputeScheduledSCRs(
 		nil,
 		allTxsAfterExec,
 	)

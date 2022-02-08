@@ -24,6 +24,12 @@
     #the sync and consensus mechanisms
     ThresholdMinConnectedPeers = 3
 
+    # ConnectionWatcherType represents the type of a connection watcher needed.
+    # possible options:
+    #  - "disabled" - no connection wathing should be made
+    #  - "print" - new knwon connection will be printed in the log file
+    ConnectionWatcherType = "disabled"
+
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered
