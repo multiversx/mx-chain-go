@@ -8,12 +8,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -31,8 +30,12 @@ func createAccountsWrapper() *AccountsWrapper {
 
 func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
-		Accounts:           createAccountsWrapper(),
-		BlockChain:         &mock.BlockChainMock{},
+		Accounts: createAccountsWrapper(),
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 		QueryService:       &mock.SCQueryServiceStub{},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 	}
@@ -126,11 +129,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 			return nil, expectedErr
 		},
 	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
-		},
-	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
@@ -138,12 +136,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTotalStakedValueProcessor_GetTotalStakedValueNilHeaderShouldError(t *testing.T) {
+func TestTotalStakedValueProcessor_GetTotalStakedValueNilRootHashShouldError(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgs()
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+	arg.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}
@@ -162,11 +160,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *tes
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -188,11 +181,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -220,11 +208,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -255,11 +238,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -330,11 +308,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	arg.QueryService = &mock.SCQueryServiceStub{

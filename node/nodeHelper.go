@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	nodeDisabled "github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -20,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
 // CreateHardForkTrigger is the hard fork trigger factory
@@ -146,6 +148,7 @@ func CreateNode(
 	statusComponents factory.StatusComponentsHandler,
 	heartbeatComponents factory.HeartbeatComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
+	epochConfig config.EpochConfig,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
@@ -185,6 +188,18 @@ func CreateNode(
 		return nil, err
 	}
 
+	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
+		Accounts:                stateComponents.AccountsAdapterAPI(),
+		GlobalSettingsHandler:   nodeDisabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:             coreComponents.InternalMarshalizer(),
+		SaveToSystemEnableEpoch: epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		EpochNotifier:           coreComponents.EpochNotifier(),
+		ShardCoordinator:        processComponents.ShardCoordinator(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	var nd *Node
 	nd, err = NewNode(
 		WithCoreComponents(coreComponents),
@@ -212,6 +227,7 @@ func CreateNode(
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
+		WithESDTNFTStorageHandler(esdtNftStorage),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

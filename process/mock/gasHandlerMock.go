@@ -19,6 +19,7 @@ type GasHandlerMock struct {
 	GasPenalizedCalled                  func(hash []byte) uint64
 	TotalGasProvidedCalled              func() uint64
 	TotalGasProvidedAsScheduledCalled   func() uint64
+	TotalGasProvidedWithScheduledCalled func() uint64
 	TotalGasRefundedCalled              func() uint64
 	TotalGasPenalizedCalled             func() uint64
 	RemoveGasProvidedCalled             func(hashes [][]byte)
@@ -116,6 +117,14 @@ func (ghm *GasHandlerMock) TotalGasProvided() uint64 {
 func (ghm *GasHandlerMock) TotalGasProvidedAsScheduled() uint64 {
 	if ghm.TotalGasProvidedAsScheduledCalled != nil {
 		return ghm.TotalGasProvidedAsScheduledCalled()
+	}
+	return 0
+}
+
+// TotalGasProvidedWithScheduled -
+func (ghm *GasHandlerMock) TotalGasProvidedWithScheduled() uint64 {
+	if ghm.TotalGasProvidedWithScheduledCalled != nil {
+		return ghm.TotalGasProvidedWithScheduledCalled()
 	}
 	return 0
 }

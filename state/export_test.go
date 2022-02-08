@@ -35,3 +35,20 @@ func GetCode(account baseAccountHandler) []byte {
 func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
 	return getCodeEntry(codeHash, trie, marshalizer)
 }
+
+// RecreateTrieIfNecessary -
+func (accountsDB *accountsDBApi) RecreateTrieIfNecessary() error {
+	return accountsDB.recreateTrieIfNecessary()
+}
+
+// DoRecreateTrie -
+func (accountsDB *accountsDBApi) DoRecreateTrie(targetRootHash []byte) error {
+	return accountsDB.doRecreateTrie(targetRootHash)
+}
+
+// SetLastRootHash -
+func (accountsDB *accountsDBApi) SetLastRootHash(rootHash []byte) {
+	accountsDB.mutLastRootHash.Lock()
+	accountsDB.lastRootHash = rootHash
+	accountsDB.mutLastRootHash.Unlock()
+}

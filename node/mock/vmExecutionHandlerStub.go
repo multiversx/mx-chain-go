@@ -53,6 +53,11 @@ func (vm *VMExecutionHandlerStub) GasScheduleChange(newGasSchedule map[string]ma
 	}
 }
 
+// Close -
+func (vm *VMExecutionHandlerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (vm *VMExecutionHandlerStub) IsInterfaceNil() bool {
 	return vm == nil

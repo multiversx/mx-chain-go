@@ -235,48 +235,31 @@ func TestVirtualMachinesContainer_Close(t *testing.T) {
 	c := containers.NewVirtualMachinesContainer()
 
 	closeCalledItem1 := false
-	item1 := struct {
-		*mock.CloserStub
-		vmcommon.VMExecutionHandler
-	}{
-		CloserStub: &mock.CloserStub{
-			CloseCalled: func() error {
-				closeCalledItem1 = true
+	item1 := &mock.VMExecutionHandlerStub{
+		CloseCalled: func() error {
+			closeCalledItem1 = true
 
-				return nil
-			},
+			return nil
 		},
 	}
 
 	closeCalledItem2 := false
 	expectedErr := errors.New("expected Error")
-	item2 := struct {
-		*mock.CloserStub
-		vmcommon.VMExecutionHandler
-	}{
-		CloserStub: &mock.CloserStub{
-			CloseCalled: func() error {
-				closeCalledItem2 = true
+	item2 := &mock.VMExecutionHandlerStub{
+		CloseCalled: func() error {
+			closeCalledItem2 = true
 
-				return expectedErr
-			},
+			return expectedErr
 		},
 	}
 
-	item3 := struct {
-		vmcommon.VMExecutionHandler
-	}{}
+	item3 := &mock.VMExecutionHandlerStub{}
 	closeCalledItem4 := false
-	item4 := struct {
-		*mock.CloserStub
-		vmcommon.VMExecutionHandler
-	}{
-		CloserStub: &mock.CloserStub{
-			CloseCalled: func() error {
-				closeCalledItem4 = true
+	item4 := &mock.VMExecutionHandlerStub{
+		CloseCalled: func() error {
+			closeCalledItem4 = true
 
-				return nil
-			},
+			return nil
 		},
 	}
 
