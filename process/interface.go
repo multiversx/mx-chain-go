@@ -1130,8 +1130,8 @@ type CurrentNetworkEpochProviderHandler interface {
 // ScheduledTxsExecutionHandler defines the functionality for execution of scheduled transactions
 type ScheduledTxsExecutionHandler interface {
 	Init()
-	Add(txHash []byte, tx data.TransactionHandler) bool
-	AddMiniBlocks(miniBlocks block.MiniBlockSlice)
+	AddScheduledTx(txHash []byte, tx data.TransactionHandler) bool
+	AddScheduledMiniBlocks(miniBlocks block.MiniBlockSlice)
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler
@@ -1148,5 +1148,6 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
+	SetScheduledMiniBlocksAsExecuted()
 	IsInterfaceNil() bool
 }

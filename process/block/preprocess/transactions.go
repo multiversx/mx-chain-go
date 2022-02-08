@@ -538,7 +538,7 @@ func (txs *transactions) processTxsToMe(
 		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 
 		if scheduledMode {
-			txs.scheduledTxsExecutionHandler.Add(txHash, tx)
+			txs.scheduledTxsExecutionHandler.AddScheduledTx(txHash, tx)
 		} else {
 			err = txs.processAndRemoveBadTransaction(
 				txHash,
@@ -1490,7 +1490,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	if scheduledMode {
 		for index := range miniBlockTxs {
-			txs.scheduledTxsExecutionHandler.Add(miniBlockTxHashes[index], miniBlockTxs[index])
+			txs.scheduledTxsExecutionHandler.AddScheduledTx(miniBlockTxHashes[index], miniBlockTxs[index])
 		}
 	}
 

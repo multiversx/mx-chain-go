@@ -1897,6 +1897,8 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
+	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMBs()
+
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.createMiniBlocks",
 			"error", process.ErrAccountStateDirty,
