@@ -352,6 +352,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 
 		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
 		if err != nil {
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 			continue
 		}
 

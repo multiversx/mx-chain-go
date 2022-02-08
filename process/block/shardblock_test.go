@@ -1372,17 +1372,66 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-
+	headerHash := []byte("hash")
+	headerEpoch := uint32(101)
 	blockStartOfEpoch := &block.Header{
-		Epoch:              101,
-		EpochStartMetaHash: []byte("hash"),
+		Epoch:              headerEpoch,
+		EpochStartMetaHash: headerHash,
 	}
 
-	t.Run("is epoch start", func(t *testing.T) {
+	t.Run("header is not start of epoch, should not request any header", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Fail(t, "should not try to request meta header")
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		header := &testscommon.HeaderHandlerStub{
+			IsStartOfEpochBlockCalled: func() bool {
+				return false
+			},
+		}
+		err := shardProc.RequestEpochStartInfo(header, haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("meta epoch greater than header epoch, should not request any header", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Fail(t, "should not try to request meta header")
+			},
+		}
+		args.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return headerEpoch + 1
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("is epoch start, should not request meta header", func(t *testing.T) {
+		t.Parallel()
+
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
 			IsEpochStartCalled: func() bool {
 				return true
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Fail(t, "should not try to request meta header")
 			},
 		}
 
@@ -1391,22 +1440,122 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("no time left", func(t *testing.T) {
+	t.Run("epoch start triggered while trying to request header from pool", func(t *testing.T) {
+		t.Parallel()
+
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
+		flag := &atomicCore.Flag{}
+		args.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				if flag.IsSet() {
+					return true
+				}
+
+				flag.SetValue(true)
+				return false
+			},
+		}
+		requestsCt := &atomicCore.Counter{}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Equal(t, headerHash, hash)
+				requestsCt.Increment()
+			},
+		}
+
 		shardProc, _ := blproc.NewShardProcessor(args)
-		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, func() time.Duration { return -1 * time.Millisecond })
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		require.Nil(t, err)
+		require.Equal(t, int64(1), requestsCt.Get())
+	})
+
+	t.Run("no time left", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		shardProc, _ := blproc.NewShardProcessor(args)
+		noTimeFunc := func() time.Duration {
+			return -1 * time.Millisecond
+		}
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, noTimeFunc)
 		require.Equal(t, process.ErrTimeIsOut, err)
 	})
 
-	t.Run("get headers by nonce and shard id from headers pool should work", func(t *testing.T) {
+	t.Run("cannot get meta header by hash first time, expect second time is returned", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeaderNonce := uint64(1)
+		requestsCt := &atomicCore.Counter{}
+		errGetHeader := errors.New("error getting headers by nonce and shard id")
 		headersPool := &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				require.Equal(t, []byte("hash"), hash)
-				return &block.Header{Nonce: 1, ShardID: core.MetachainShardId}, nil
+				require.Equal(t, headerHash, hash)
+
+				switch requestsCt.Get() {
+				case 1:
+					return nil, errGetHeader
+				case 2:
+					return &block.Header{Nonce: metaHeaderNonce, ShardID: core.MetachainShardId}, nil
+				default:
+					require.Fail(t, "should not try to get header from pool more than 2 times")
+					return nil, nil
+				}
 			},
 			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-				require.Equal(t, uint64(2), hdrNonce)
+				require.Equal(t, metaHeaderNonce+1, hdrNonce)
+				require.Equal(t, core.MetachainShardId, shardId)
+
+				return nil, nil, nil
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+		}
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.DataComponents = &mock.DataComponentsMock{
+			Storage:  &mock.ChainStorerMock{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				require.Fail(t, "should not try to request meta header by nonce, expect we have it in pool")
+			},
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Equal(t, headerHash, hash)
+				requestsCt.Increment()
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		require.Nil(t, err)
+		require.Equal(t, int64(2), requestsCt.Get())
+	})
+
+	t.Run("get headers by nonce and shard id from headers pool should work without any additional requests", func(t *testing.T) {
+		t.Parallel()
+
+		headerNonce := uint64(1)
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, headerHash, hash)
+				return &block.Header{Nonce: headerNonce, ShardID: core.MetachainShardId}, nil
+			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				require.Equal(t, headerNonce+1, hdrNonce)
 				require.Equal(t, core.MetachainShardId, shardId)
 				return nil, nil, nil
 			},
@@ -1431,11 +1580,88 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			},
 		}
 
-		shardProc, err := blproc.NewShardProcessor(args)
+		requestMetaHeaderCt := &atomicCore.Counter{}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				require.Fail(t, "should have this header in pool")
+			},
+			RequestMetaHeaderCalled: func(hash []byte) {
+				requestMetaHeaderCt.Increment()
+				require.Equal(t, headerHash, hash)
+			},
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
 		require.Nil(t, err)
-		err = shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
-		require.Nil(t, err)
+		require.Equal(t, int64(1), requestMetaHeaderCt.Get())
 	})
+
+	t.Run("cannot get header by nonce and shard id from headers pool from first try, request it and expect we get it", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeaderNonce := uint64(1)
+		wasMetaHeaderRequested := &atomicCore.Flag{}
+		errGetHeader := errors.New("error getting headers by nonce and shard id")
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, headerHash, hash)
+				return &block.Header{Nonce: metaHeaderNonce, ShardID: core.MetachainShardId}, nil
+			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				require.Equal(t, metaHeaderNonce+1, hdrNonce)
+				require.Equal(t, core.MetachainShardId, shardId)
+				if wasMetaHeaderRequested.IsSet() {
+					return nil, nil, nil
+				}
+
+				return nil, nil, errGetHeader
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+		}
+
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.DataComponents = &mock.DataComponentsMock{
+			Storage:  &mock.ChainStorerMock{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				wasMetaHeaderRequested.SetValue(true)
+				require.Equal(t, metaHeaderNonce+1, nonce)
+			},
+		}
+
+		ct := &atomicCore.Counter{}
+		timeLeft := func() time.Duration {
+			ct.Increment()
+			switch ct.Get() {
+			case 1, 2:
+				return time.Millisecond
+			default:
+				require.Fail(t, "should only try to get header twice")
+				return -time.Millisecond
+			}
+		}
+
+		shardProc, _ := blproc.NewShardProcessor(args)
+		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, timeLeft)
+		require.Nil(t, err)
+		require.Equal(t, int64(2), ct.Get())
+	})
+
 }
 
 // ------- checkAndRequestIfMetaHeadersMissing
