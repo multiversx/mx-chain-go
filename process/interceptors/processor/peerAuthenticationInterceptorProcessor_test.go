@@ -15,6 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type interceptedDataHandler interface {
+	PeerID() core.PeerID
+	Payload() []byte
+	Signature() []byte
+	PayloadSignature() []byte
+	SizeInBytes() int
+}
+
 func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthenticationInterceptorProcessor {
 	return processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: testscommon.NewCacherStub(),
@@ -38,7 +46,7 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 	}
 }
 
-func createMockInterceptedPeerAuthentication() *heartbeat.InterceptedPeerAuthentication {
+func createMockInterceptedPeerAuthentication() process.InterceptedData {
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			Marshalizer: &mock.MarshalizerMock{},
@@ -96,12 +104,13 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-				ipa := value.(*heartbeat.InterceptedPeerAuthentication)
-				assert.Equal(t, providedIPA.PeerID(), ipa.PeerID())
-				assert.Equal(t, providedIPA.Payload(), ipa.Payload())
-				assert.Equal(t, providedIPA.Signature(), ipa.Signature())
-				assert.Equal(t, providedIPA.PayloadSignature(), ipa.PayloadSignature())
-				assert.Equal(t, providedIPA.SizeInBytes(), ipa.SizeInBytes())
+				ipa := value.(interceptedDataHandler)
+				providedIPAHandler := providedIPA.(interceptedDataHandler)
+				assert.Equal(t, providedIPAHandler.PeerID(), ipa.PeerID())
+				assert.Equal(t, providedIPAHandler.Payload(), ipa.Payload())
+				assert.Equal(t, providedIPAHandler.Signature(), ipa.Signature())
+				assert.Equal(t, providedIPAHandler.PayloadSignature(), ipa.PayloadSignature())
+				assert.Equal(t, providedIPAHandler.SizeInBytes(), ipa.SizeInBytes())
 				wasCalled = true
 				return false
 			},
@@ -124,4 +133,19 @@ func TestPeerAuthenticationInterceptorProcessor_Validate(t *testing.T) {
 	assert.False(t, paip.IsInterfaceNil())
 	assert.Nil(t, paip.Validate(nil, ""))
 	paip.RegisterHandler(nil) // for coverage only, method only logs
+}
+
+func TestPeerAuthenticationInterceptorProcessor_RegisterHandler(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	paip, err := processor.NewPeerAuthenticationInterceptorProcessor(createPeerAuthenticationInterceptorProcessArg())
+	assert.Nil(t, err)
+	assert.False(t, paip.IsInterfaceNil())
+	paip.RegisterHandler(nil)
 }
