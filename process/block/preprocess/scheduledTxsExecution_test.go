@@ -1265,7 +1265,57 @@ func TestScheduledTxsExecution_GetScheduledTxs(t *testing.T) {
 	assert.True(t, reflect.DeepEqual(secondTransaction, scheduledTxs[1]))
 }
 
-func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldFail(t *testing.T) {
+func TestScheduledTxsExecution_GetScheduledMBs(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{},
+	)
+
+	miniBlocks := block.MiniBlockSlice{}
+	mb1 := &block.MiniBlock{
+		TxHashes:        nil,
+		ReceiverShardID: 1,
+		SenderShardID:   2,
+		Type:            3,
+		Reserved:        make([]byte, 2),
+	}
+	mb2 := &block.MiniBlock{
+		TxHashes:        make([][]byte, 5),
+		ReceiverShardID: 3,
+		SenderShardID:   1,
+		Type:            2,
+		Reserved:        nil,
+	}
+	mb3 := &block.MiniBlock{
+		TxHashes:        make([][]byte, 10),
+		ReceiverShardID: 2,
+		SenderShardID:   2,
+		Type:            2,
+		Reserved:        make([]byte, 10),
+	}
+
+	miniBlocks = append(miniBlocks, mb1)
+	miniBlocks = append(miniBlocks, mb2)
+	miniBlocks = append(miniBlocks, mb3)
+
+	scheduledTxsExec.AddMiniBlocks(miniBlocks)
+
+	scheduledMBs := scheduledTxsExec.GetScheduledMBs()
+
+	expectedLen := 3
+	assert.Equal(t, expectedLen, len(scheduledMBs))
+
+	assert.True(t, reflect.DeepEqual(mb1, scheduledMBs[0]))
+	assert.True(t, reflect.DeepEqual(mb2, scheduledMBs[1]))
+	assert.True(t, reflect.DeepEqual(mb3, scheduledMBs[2]))
+}
+
+func TestScheduledTxsExecution_GetScheduledRootHashForHeaderWithErrorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("root hash")
