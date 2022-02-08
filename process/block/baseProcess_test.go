@@ -1621,7 +1621,7 @@ func TestBaseProcessor_ProcessScheduledBlockWithDifferentReserved(t *testing.T) 
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
-		AddMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
+		AddScheduledMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
 			addedMiniBlocks = miniBlocks
 		},
 	}

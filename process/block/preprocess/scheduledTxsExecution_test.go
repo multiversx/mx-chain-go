@@ -541,8 +541,8 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldRemoveInvalidSCRs(t *te
 		&block.MiniBlock{TxHashes: mb1TxHashes},
 	}
 
-	scheduledTxsExec.AddMiniBlocks(mbs)
-	scheduledTxsExec.ComputeScheduledSCRs(
+	scheduledTxsExec.AddScheduledMiniBlocks(mbs)
+	scheduledTxsExec.ComputeScheduledIntermediateTxs(
 		mapAllIntermediateTxsBeforeScheduledExecutionWithInvalid,
 		mapAllIntermediateTxsAfterScheduledExecutionWithInvalid,
 	)
@@ -1245,7 +1245,7 @@ func TestScheduledTxsExecution_AddMiniBlocksWithNilReservedNilTxHashes(t *testin
 		}
 		miniBlocks = append(miniBlocks, mb)
 
-		scheduledTxsExec.AddMiniBlocks(miniBlocks)
+		scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
 
 		assert.Nil(t, scheduledTxsExec.scheduledMBs[0].Reserved)
 		assert.NotNil(t, scheduledTxsExec.scheduledMBs[0].TxHashes)
@@ -1271,7 +1271,7 @@ func TestScheduledTxsExecution_AddMiniBlocksWithNilReservedNilTxHashes(t *testin
 		}
 		miniBlocks = append(miniBlocks, mb)
 
-		scheduledTxsExec.AddMiniBlocks(miniBlocks)
+		scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
 
 		assert.Nil(t, scheduledTxsExec.scheduledMBs[0].TxHashes)
 		assert.NotNil(t, scheduledTxsExec.scheduledMBs[0].Reserved)
@@ -1307,7 +1307,7 @@ func TestScheduledTxsExecution_AddMiniBlocksShouldWork(t *testing.T) {
 	miniBlocks = append(miniBlocks, mb1)
 	miniBlocks = append(miniBlocks, mb2)
 
-	scheduledTxsExec.AddMiniBlocks(miniBlocks)
+	scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
 
 	expectedLen := 2
 	assert.Equal(t, expectedLen, len(scheduledTxsExec.scheduledMBs))
@@ -1327,8 +1327,8 @@ func TestScheduledTxsExecution_GetScheduledTxs(t *testing.T) {
 	)
 	firstTransaction := &transaction.Transaction{Nonce: 0}
 	secondTransaction := &transaction.Transaction{Nonce: 1}
-	scheduledTxsExec.Add([]byte("txHash1"), firstTransaction)
-	scheduledTxsExec.Add([]byte("txHash2"), secondTransaction)
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), firstTransaction)
+	scheduledTxsExec.AddScheduledTx([]byte("txHash2"), secondTransaction)
 
 	scheduledTxs := scheduledTxsExec.GetScheduledTxs()
 
@@ -1376,7 +1376,7 @@ func TestScheduledTxsExecution_GetScheduledMBs(t *testing.T) {
 	miniBlocks = append(miniBlocks, mb2)
 	miniBlocks = append(miniBlocks, mb3)
 
-	scheduledTxsExec.AddMiniBlocks(miniBlocks)
+	scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
 
 	scheduledMBs := scheduledTxsExec.GetScheduledMBs()
 
