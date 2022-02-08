@@ -627,7 +627,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvided()
+	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
 	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
 	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
 	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
@@ -1247,7 +1247,12 @@ func (mp *metaProcessor) CommitBlock(
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
 
-	err = mp.blockChain.SetCurrentBlockHeader(header)
+	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	err = mp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
 	if err != nil {
 		return err
 	}

@@ -152,3 +152,9 @@ var ErrMessageProcessorAlreadyDefined = errors.New("message processor already de
 
 // ErrMessageProcessorDoesNotExists signals that a message processor does not exist on the provided topic and identifier
 var ErrMessageProcessorDoesNotExists = errors.New("message processor does not exists")
+
+// ErrWrongTypeAssertions signals that a wrong type assertion occurred
+var ErrWrongTypeAssertions = errors.New("wrong type assertion")
+
+// ErrNilConnectionsWatcher signals that a nil connections watcher has been provided
+var ErrNilConnectionsWatcher = errors.New("nil connections watcher")

@@ -153,8 +153,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 
 // InitConsensusCoreWithMultiSigner -
 func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
-
-	blockChain := &BlockChainMock{
+	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},

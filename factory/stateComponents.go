@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	chainData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -16,7 +17,7 @@ import (
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
-//TODO: merge this with data components
+// TODO: merge this with data components
 
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
@@ -26,6 +27,7 @@ type StateComponentsFactoryArgs struct {
 	Core             CoreComponentsHolder
 	StorageService   dataRetriever.StorageService
 	ProcessingMode   common.NodeProcessingMode
+	ChainHandler     chainData.ChainHandler
 }
 
 type stateComponentsFactory struct {
@@ -35,6 +37,7 @@ type stateComponentsFactory struct {
 	storageService   dataRetriever.StorageService
 	enableEpochs     config.EnableEpochs
 	processingMode   common.NodeProcessingMode
+	chainHandler     chainData.ChainHandler
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -66,6 +69,9 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.StorageService) {
 		return nil, errors.ErrNilStorageService
 	}
+	if check.IfNil(args.ChainHandler) {
+		return nil, errors.ErrNilBlockChainHandler
+	}
 
 	return &stateComponentsFactory{
 		config:           args.Config,
@@ -74,6 +80,7 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		storageService:   args.StorageService,
 		enableEpochs:     args.EnableEpochs,
 		processingMode:   args.ProcessingMode,
+		chainHandler:     args.ChainHandler,
 	}, nil
 }
 
@@ -142,7 +149,12 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	return accountsAdapter, accountsAdapterAPI, nil
+	wrapper, err := state.NewAccountsDBApi(accountsAdapterAPI, scf.chainHandler)
+	if err != nil {
+		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+	}
+
+	return accountsAdapter, wrapper, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
