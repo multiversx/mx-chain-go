@@ -210,6 +210,15 @@ func (ipa *interceptedPeerAuthentication) verifyPayload() error {
 	return nil
 }
 
+// SizeInBytes returns the size in bytes held by this instance
+func (ipa *interceptedPeerAuthentication) SizeInBytes() int {
+	return len(ipa.peerAuthentication.Pubkey) +
+		len(ipa.peerAuthentication.Signature) +
+		len(ipa.peerAuthentication.Pid) +
+		len(ipa.peerAuthentication.Payload) +
+		len(ipa.peerAuthentication.PayloadSignature)
+}
+
 // verifyPropertyLen returns an error if the provided value is longer than accepted by the network
 func verifyPropertyLen(property string, value []byte) error {
 	if len(value) > maxSizeInBytes {

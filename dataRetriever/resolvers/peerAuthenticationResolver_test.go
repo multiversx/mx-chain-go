@@ -549,20 +549,14 @@ func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
 	assert.False(t, res.IsInterfaceNil())
 
 	t.Run("RequestDataFromHash", func(t *testing.T) {
-		t.Parallel()
-
 		err = res.RequestDataFromHash([]byte(""), 0)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("RequestDataFromChunk", func(t *testing.T) {
-		t.Parallel()
-
 		err = res.RequestDataFromChunk(0, 0)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("RequestDataFromChunk - error on SendOnRequestTopic", func(t *testing.T) {
-		t.Parallel()
-
 		hashes := make([][]byte, 0)
 		hashes = append(hashes, []byte("pk"))
 		err = res.RequestDataFromHashArray(hashes, 0)
@@ -585,14 +579,10 @@ func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
 	assert.False(t, res.IsInterfaceNil())
 
 	t.Run("RequestDataFromHash", func(t *testing.T) {
-		t.Parallel()
-
 		err = res.RequestDataFromHash([]byte(""), 0)
 		assert.Nil(t, err)
 	})
 	t.Run("RequestDataFromChunk", func(t *testing.T) {
-		t.Parallel()
-
 		err = res.RequestDataFromChunk(0, 0)
 		assert.Nil(t, err)
 	})
