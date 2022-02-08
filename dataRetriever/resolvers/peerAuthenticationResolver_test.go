@@ -140,7 +140,7 @@ func TestNewPeerAuthenticationResolver(t *testing.T) {
 	})
 }
 
-func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
+func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil message should error", func(t *testing.T) {
@@ -275,7 +275,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		epoch := uint32(0)
 		chunkIndex := uint32(0)
 		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.ChunkType, []byte(""), epoch, chunkIndex), fromConnectedPeer)
-		assert.True(t, errors.Is(err, dataRetriever.ErrNotFound))
+		assert.True(t, errors.Is(err, dataRetriever.ErrPeerAuthNotFound))
 		expectedSubstrErr := fmt.Sprintf("%s %d", "from chunk", chunkIndex)
 		assert.True(t, strings.Contains(fmt.Sprintf("%s", err), expectedSubstrErr))
 		assert.False(t, wasSent)
@@ -535,7 +535,7 @@ func Test_peerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 	})
 }
 
-func Test_peerAuthenticationResolver_RequestShouldError(t *testing.T) {
+func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgPeerAuthenticationResolver()
@@ -571,7 +571,7 @@ func Test_peerAuthenticationResolver_RequestShouldError(t *testing.T) {
 
 }
 
-func Test_peerAuthenticationResolver_RequestShouldWork(t *testing.T) {
+func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgPeerAuthenticationResolver()

@@ -120,7 +120,7 @@ func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte,
 	)
 }
 
-// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
 func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := res.canProcessMessage(message, fromConnectedPeer)
@@ -287,7 +287,7 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKey
 	}
 
 	if len(peerAuths) == 0 {
-		return nil, dataRetriever.ErrNotFound
+		return nil, dataRetriever.ErrPeerAuthNotFound
 	}
 
 	return peerAuths, nil
@@ -300,7 +300,7 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []b
 		return res.marshalizer.Marshal(value)
 	}
 
-	return nil, dataRetriever.ErrNotFound
+	return nil, dataRetriever.ErrPeerAuthNotFound
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
