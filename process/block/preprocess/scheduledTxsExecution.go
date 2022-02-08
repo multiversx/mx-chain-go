@@ -471,10 +471,13 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	headerHash []byte,
 ) ([]byte, error) {
 	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
 
-	return scheduledInfo.RootHash, err
+	return scheduledInfo.RootHash, nil
 }
 
 // RollBackToBlock rolls back the scheduled txs execution handler to the given header
