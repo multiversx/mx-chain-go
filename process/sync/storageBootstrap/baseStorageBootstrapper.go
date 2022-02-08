@@ -179,11 +179,13 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
 	if err != nil {
-		gasAndFees := process.GetZeroGasAndFees()
-		st.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(
-			st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
-			make(map[block.Type][]data.TransactionHandler),
-			gasAndFees)
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+		st.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce

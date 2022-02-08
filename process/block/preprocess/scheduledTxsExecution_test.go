@@ -125,9 +125,9 @@ func TestScheduledTxsExecution_InitShouldWork(t *testing.T) {
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
-	scheduledTxsExec.Add([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
-	scheduledTxsExec.Add([]byte("txHash3"), &transaction.Transaction{Nonce: 2})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash3"), &transaction.Transaction{Nonce: 2})
 
 	assert.Equal(t, 3, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 3, len(scheduledTxsExec.scheduledTxs))
@@ -149,27 +149,27 @@ func TestScheduledTxsExecution_AddShouldWork(t *testing.T) {
 		&mock.ShardCoordinatorStub{},
 	)
 
-	res := scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	res := scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	assert.True(t, res)
 	assert.Equal(t, 1, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 1, len(scheduledTxsExec.scheduledTxs))
 
-	res = scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	res = scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	assert.False(t, res)
 	assert.Equal(t, 1, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 1, len(scheduledTxsExec.scheduledTxs))
 
-	res = scheduledTxsExec.Add([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
+	res = scheduledTxsExec.AddScheduledTx([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
 	assert.True(t, res)
 	assert.Equal(t, 2, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 2, len(scheduledTxsExec.scheduledTxs))
 
-	res = scheduledTxsExec.Add([]byte("txHash3"), &transaction.Transaction{Nonce: 1})
+	res = scheduledTxsExec.AddScheduledTx([]byte("txHash3"), &transaction.Transaction{Nonce: 1})
 	assert.True(t, res)
 	assert.Equal(t, 3, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 3, len(scheduledTxsExec.scheduledTxs))
 
-	res = scheduledTxsExec.Add([]byte("txHash2"), &transaction.Transaction{Nonce: 2})
+	res = scheduledTxsExec.AddScheduledTx([]byte("txHash2"), &transaction.Transaction{Nonce: 2})
 	assert.False(t, res)
 	assert.Equal(t, 3, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 3, len(scheduledTxsExec.scheduledTxs))
@@ -206,7 +206,7 @@ func TestScheduledTxsExecution_ExecuteShouldErr(t *testing.T) {
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	err := scheduledTxsExec.Execute([]byte("txHash1"))
 	assert.Equal(t, localError, err)
 }
@@ -226,7 +226,7 @@ func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testin
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	err := scheduledTxsExec.Execute([]byte("txHash1"))
 	assert.Nil(t, err)
 }
@@ -246,7 +246,7 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	err := scheduledTxsExec.Execute([]byte("txHash1"))
 	assert.Nil(t, err)
 }
@@ -278,7 +278,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(-1) }
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
 	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
 	assert.Equal(t, process.ErrTimeIsOut, err)
@@ -301,7 +301,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
 	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
 	assert.Equal(t, localError, err)
@@ -323,7 +323,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *tes
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
 	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
 	assert.Nil(t, err)
@@ -347,9 +347,9 @@ func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
-	scheduledTxsExec.Add([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
-	scheduledTxsExec.Add([]byte("txHash3"), &transaction.Transaction{Nonce: 2})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash3"), &transaction.Transaction{Nonce: 2})
 
 	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
 	assert.Nil(t, err)
@@ -424,9 +424,9 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 			shardCoordinator,
 		)
 
-		scheduledTxsExec.ComputeScheduledSCRs(nil, nil)
+		scheduledTxsExec.ComputeScheduledIntermediateTxs(nil, nil)
 
-		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledSCRs()))
+		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledIntermediateTxs()))
 	})
 	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
@@ -439,9 +439,9 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 			shardCoordinator,
 		)
 
-		scheduledTxsExec.ComputeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, nil)
+		scheduledTxsExec.ComputeScheduledIntermediateTxs(mapAllIntermediateTxsBeforeScheduledExecution, nil)
 
-		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledSCRs()))
+		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledIntermediateTxs()))
 	})
 	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
@@ -460,12 +460,12 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 				"txHash2": &transaction.Transaction{Nonce: 2},
 			},
 		}
-		scheduledTxsExec.ComputeScheduledSCRs(
+		scheduledTxsExec.ComputeScheduledIntermediateTxs(
 			mapAllIntermediateTxsBeforeScheduledExecution,
 			localMapAllIntermediateTxsAfterScheduledExecution,
 		)
 
-		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledSCRs))
+		assert.Equal(t, 0, len(scheduledTxsExec.mapScheduledIntermediateTxs))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -478,12 +478,12 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 			shardCoordinator,
 		)
 
-		scheduledTxsExec.ComputeScheduledSCRs(
+		scheduledTxsExec.ComputeScheduledIntermediateTxs(
 			mapAllIntermediateTxsBeforeScheduledExecution,
 			mapAllIntermediateTxsAfterScheduledExecution,
 		)
 
-		mapScheduledSCRs := scheduledTxsExec.GetMapScheduledSCRs()
+		mapScheduledSCRs := scheduledTxsExec.GetMapScheduledIntermediateTxs()
 		assert.Equal(t, 1, len(mapScheduledSCRs))
 		assert.Equal(t, 2, len(mapScheduledSCRs[1]))
 	})
@@ -519,14 +519,14 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
 			0,
 		)
 
 		assert.Equal(t, 2, len(scrsInfo))
 	})
-	t.Run("not already existing txs, same shard", func(t *testing.T) {
+	t.Run("not already existing txs, same shard, scr", func(t *testing.T) {
 		t.Parallel()
 
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -542,12 +542,81 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
-			0,
+			block.SmartContractResultBlock,
 		)
 
 		assert.Equal(t, 0, len(scrsInfo))
+	})
+	t.Run("not already existing txs, same shard, receipt", func(t *testing.T) {
+		t.Parallel()
+
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return true
+				},
+			},
+		)
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec[0],
+			allTxsAfterExec,
+			block.ReceiptBlock,
+		)
+
+		assert.Equal(t, 0, len(scrsInfo))
+	})
+	t.Run("not already existing txs, same shard, transaction", func(t *testing.T) {
+		t.Parallel()
+
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return true
+				},
+			},
+		)
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec[0],
+			allTxsAfterExec,
+			block.TxBlock,
+		)
+
+		assert.Equal(t, 2, len(scrsInfo))
+	})
+	t.Run("not already existing txs, same shard, invalid", func(t *testing.T) {
+		t.Parallel()
+
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&marshal.GogoProtoMarshalizer{},
+			&mock.ShardCoordinatorStub{
+				SameShardCalled: func(_, _ []byte) bool {
+					return true
+				},
+			},
+		)
+
+		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
+			allTxsBeforeExec[0],
+			allTxsAfterExec,
+			block.InvalidBlock,
+		)
+
+		assert.Equal(t, 2, len(scrsInfo))
 	})
 	t.Run("not existing block type, different shard", func(t *testing.T) {
 		t.Parallel()
@@ -565,9 +634,9 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		)
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
-			1,
+			0,
 		)
 
 		assert.Equal(t, 2, len(scrsInfo))
@@ -593,7 +662,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 		}
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
-			allTxsBeforeExec,
+			allTxsBeforeExec[0],
 			allTxsAfterExec,
 			0,
 		)
@@ -602,7 +671,7 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 	})
 }
 
-func TestScheduledTxsExecution_GetSchedulesSCRsNonEmptySCRsMap(t *testing.T) {
+func TestScheduledTxsExecution_GetScheduledIntermediateTxsNonEmptySCRsMap(t *testing.T) {
 	t.Parallel()
 
 	allTxsAfterExec := map[block.Type]map[string]data.TransactionHandler{
@@ -628,19 +697,19 @@ func TestScheduledTxsExecution_GetSchedulesSCRsNonEmptySCRsMap(t *testing.T) {
 		},
 	)
 
-	scheduledTxsExec.ComputeScheduledSCRs(
+	scheduledTxsExec.ComputeScheduledIntermediateTxs(
 		nil,
 		allTxsAfterExec,
 	)
 
-	scheduledSCRs := scheduledTxsExec.GetScheduledSCRs()
+	scheduledIntermediateTxs := scheduledTxsExec.GetScheduledIntermediateTxs()
 
-	assert.Equal(t, 2, len(scheduledSCRs))
-	assert.Equal(t, 2, len(scheduledSCRs[0]))
-	assert.Equal(t, 2, len(scheduledSCRs[1]))
+	assert.Equal(t, 2, len(scheduledIntermediateTxs))
+	assert.Equal(t, 2, len(scheduledIntermediateTxs[0]))
+	assert.Equal(t, 2, len(scheduledIntermediateTxs[1]))
 }
 
-func TestScheduledTxsExecution_GetSchedulesSCRsEmptySCRsMap(t *testing.T) {
+func TestScheduledTxsExecution_GetScheduledIntermediateTxsEmptySCRsMap(t *testing.T) {
 	t.Parallel()
 
 	allTxsAfterExec := make(map[block.Type]map[string]data.TransactionHandler)
@@ -657,17 +726,17 @@ func TestScheduledTxsExecution_GetSchedulesSCRsEmptySCRsMap(t *testing.T) {
 		},
 	)
 
-	scheduledTxsExec.ComputeScheduledSCRs(
+	scheduledTxsExec.ComputeScheduledIntermediateTxs(
 		nil,
 		allTxsAfterExec,
 	)
 
-	scheduledSCRs := scheduledTxsExec.GetScheduledSCRs()
+	scheduledIntermediateTxs := scheduledTxsExec.GetScheduledIntermediateTxs()
 
-	assert.Equal(t, 0, len(scheduledSCRs))
+	assert.Equal(t, 0, len(scheduledIntermediateTxs))
 }
 
-func TestScheduledTxsExecution_SetSchedulesRootHashSCRsGasAndFees(t *testing.T) {
+func TestScheduledTxsExecution_SetScheduledInfo(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -680,7 +749,7 @@ func TestScheduledTxsExecution_SetSchedulesRootHashSCRsGasAndFees(t *testing.T) 
 
 	rootHash := []byte("root hash")
 	gasAndFees := scheduled.GasAndFees{}
-	mapSCRs := map[block.Type][]data.TransactionHandler{
+	intermediateTxs := map[block.Type][]data.TransactionHandler{
 		0: {
 			&transaction.Transaction{Nonce: 1},
 			&transaction.Transaction{Nonce: 2},
@@ -690,14 +759,24 @@ func TestScheduledTxsExecution_SetSchedulesRootHashSCRsGasAndFees(t *testing.T) 
 			&transaction.Transaction{Nonce: 4},
 		},
 	}
+	mbs := block.MiniBlockSlice{
+		0: {
+			Type: block.InvalidBlock,
+		},
+	}
 
-	scheduledTxsExec.SetScheduledRootHashSCRsGasAndFees(
-		rootHash, mapSCRs, gasAndFees,
-	)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        rootHash,
+		IntermediateTxs: intermediateTxs,
+		GasAndFees:      gasAndFees,
+		MiniBlocks:      mbs,
+	}
+	scheduledTxsExec.SetScheduledInfo(scheduledInfo)
 
 	assert.Equal(t, rootHash, scheduledTxsExec.GetScheduledRootHash())
 	assert.Equal(t, gasAndFees, scheduledTxsExec.GetScheduledGasAndFees())
-	assert.Equal(t, mapSCRs, scheduledTxsExec.GetScheduledSCRs())
+	assert.Equal(t, intermediateTxs, scheduledTxsExec.GetScheduledIntermediateTxs())
+	assert.Equal(t, mbs, scheduledTxsExec.GetScheduledMBs())
 }
 
 func TestScheduledTxsExecution_Setters(t *testing.T) {
@@ -723,7 +802,7 @@ func TestScheduledTxsExecution_Setters(t *testing.T) {
 	assert.Equal(t, rootHash, scheduledTxsExec.GetScheduledRootHash())
 }
 
-func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShouldFail(t *testing.T) {
+func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("root hash")
@@ -744,10 +823,8 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 			&mock.ShardCoordinatorStub{},
 		)
 
-		scheduledRootHash, txHandlersMap, gasAndFees, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
-		assert.Nil(t, scheduledRootHash)
-		assert.Nil(t, gasAndFees)
-		assert.Nil(t, txHandlersMap)
+		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash)
+		assert.Nil(t, scheduledInfo)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("failed to unmarshal data", func(t *testing.T) {
@@ -770,19 +847,17 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 			&mock.ShardCoordinatorStub{},
 		)
 
-		scheduledRootHash, txHandlersMap, gasAndFees, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(rootHash)
-		assert.Nil(t, scheduledRootHash)
-		assert.Nil(t, gasAndFees)
-		assert.Nil(t, txHandlersMap)
+		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash)
+		assert.Nil(t, scheduledInfo)
 		assert.Equal(t, expectedErr, err)
 	})
 }
 
-func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShouldWork(t *testing.T) {
+func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("root hash")
-	expectedGasAndFees := &scheduled.GasAndFees{
+	expectedGasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(101),
 		DeveloperFees:   big.NewInt(102),
 		GasProvided:     103,
@@ -797,7 +872,7 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 				TxHandlers: []*smartContractResult.SmartContractResult{},
 			},
 		},
-		GasAndFees: expectedGasAndFees,
+		GasAndFees: &expectedGasAndFees,
 	}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
@@ -813,14 +888,15 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledRootHash, txHandlersMap, gasAndFees, _ := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
+	scheduledInfo, _ := scheduledTxsExec.getScheduledInfoForHeader(headerHash)
 
-	assert.Equal(t, headerHash, scheduledRootHash)
-	assert.Equal(t, expectedGasAndFees, gasAndFees)
-	assert.NotNil(t, txHandlersMap)
+	assert.Equal(t, headerHash, scheduledInfo.RootHash)
+	assert.Equal(t, expectedGasAndFees, scheduledInfo.GasAndFees)
+	assert.NotNil(t, scheduledInfo.IntermediateTxs)
+	assert.Equal(t, make(block.MiniBlockSlice, 0), scheduledInfo.MiniBlocks)
 }
 
-func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShouldFail(t *testing.T) {
+func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldFail(t *testing.T) {
 	t.Parallel()
 
 	scheduledRootHash := []byte("root hash")
@@ -845,14 +921,17 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 		&mock.ShardCoordinatorStub{},
 	)
 
-	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledRootHashSCRsGasAndFees(
-		scheduledRootHash, mapSCRs, gasAndFees,
-	)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledRootHash,
+		IntermediateTxs: mapSCRs,
+		GasAndFees:      gasAndFees,
+	}
+	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledInfo(scheduledInfo)
 	assert.Nil(t, marshalledSCRs)
 	assert.Error(t, err)
 }
 
-func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShouldWork(t *testing.T) {
+func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldWork(t *testing.T) {
 	t.Parallel()
 
 	scheduledRootHash := []byte("root hash")
@@ -890,9 +969,12 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 		&mock.ShardCoordinatorStub{},
 	)
 
-	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledRootHashSCRsGasAndFees(
-		scheduledRootHash, mapSCRs, gasAndFees,
-	)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledRootHash,
+		IntermediateTxs: mapSCRs,
+		GasAndFees:      gasAndFees,
+	}
+	marshalledSCRs, err := scheduledTxsExec.getMarshalledScheduledInfo(scheduledInfo)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedScheduledSCRs, marshalledSCRs)
 }
@@ -923,7 +1005,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("root hash")
-	expectedGasAndFees := &scheduled.GasAndFees{
+	expectedGasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(101),
 		DeveloperFees:   big.NewInt(102),
 		GasProvided:     103,
@@ -938,7 +1020,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 				TxHandlers: []*smartContractResult.SmartContractResult{},
 			},
 		},
-		GasAndFees: expectedGasAndFees,
+		GasAndFees: &expectedGasAndFees,
 	}
 	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
@@ -957,11 +1039,12 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	err := scheduledTxsExec.RollBackToBlock(headerHash)
 	assert.Nil(t, err)
 
-	scheduledRootHash, txHandlersMap, gasAndFees, err := scheduledTxsExec.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
+	scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(headerHash)
 	require.Nil(t, err)
-	assert.Equal(t, headerHash, scheduledRootHash)
-	assert.Equal(t, expectedGasAndFees, gasAndFees)
-	assert.NotNil(t, txHandlersMap)
+	assert.Equal(t, headerHash, scheduledInfo.RootHash)
+	assert.Equal(t, expectedGasAndFees, scheduledInfo.GasAndFees)
+	assert.NotNil(t, scheduledInfo.IntermediateTxs)
+	assert.Equal(t, make(block.MiniBlockSlice, 0), scheduledInfo.MiniBlocks)
 }
 
 func TestScheduledTxsExecution_SaveState(t *testing.T) {
@@ -1009,9 +1092,12 @@ func TestScheduledTxsExecution_SaveState(t *testing.T) {
 		&mock.ShardCoordinatorStub{},
 	)
 
-	scheduledTxsExec.SaveState(
-		headerHash, scheduledRootHash, mapSCRs, gasAndFees,
-	)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledRootHash,
+		IntermediateTxs: mapSCRs,
+		GasAndFees:      gasAndFees,
+	}
+	scheduledTxsExec.SaveState(headerHash, scheduledInfo)
 }
 
 func TestScheduledTxsExecution_SaveStateIfNeeded(t *testing.T) {
@@ -1037,7 +1123,7 @@ func TestScheduledTxsExecution_SaveStateIfNeeded(t *testing.T) {
 	scheduledTxsExec.SaveStateIfNeeded(headerHash)
 	assert.False(t, wasCalled)
 
-	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
 	scheduledTxsExec.SaveStateIfNeeded(headerHash)
 	assert.True(t, wasCalled)
@@ -1056,7 +1142,7 @@ func TestScheduledTxsExecution_IsScheduledTx(t *testing.T) {
 		&marshal.GogoProtoMarshalizer{},
 		&mock.ShardCoordinatorStub{},
 	)
-	scheduledTxsExec.Add(txHash1, &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.AddScheduledTx(txHash1, &transaction.Transaction{Nonce: 0})
 
 	ok := scheduledTxsExec.IsScheduledTx(txHash1)
 	assert.True(t, ok)

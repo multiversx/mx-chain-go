@@ -778,3 +778,11 @@ func GetZeroGasAndFees() scheduled.GasAndFees {
 		GasRefunded:     0,
 	}
 }
+
+// ScheduledInfo holds all the info needed for scheduled SC execution
+type ScheduledInfo struct {
+	RootHash        []byte
+	IntermediateTxs map[block.Type][]data.TransactionHandler
+	GasAndFees      scheduled.GasAndFees
+	MiniBlocks      block.MiniBlockSlice
+}

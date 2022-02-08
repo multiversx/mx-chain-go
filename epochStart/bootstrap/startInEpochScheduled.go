@@ -305,16 +305,17 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 		return
 	}
 
-	// prepare the scheduledSCRs in the form of map[block.Type][]data.TransactionHandler
-	// the order should not matter, as the processing is done after sorting by scr hash
-	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
+	// prepare the scheduledIntermediateTxsMap in the form of map[block.Type][]data.TransactionHandler
+	// the order should not matter, as the processing is done after sorting by intermediate tx hash
+	scheduledIntermediateTxsMap := make(map[block.Type][]data.TransactionHandler)
 	if len(scheduledSCRs) > 0 {
-		scheduledSCRsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
+		scheduledIntermediateTxsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
 		for scrHash := range scheduledSCRs {
-			scheduledSCRsList = append(scheduledSCRsList, scheduledSCRs[scrHash])
+			scheduledIntermediateTxsList = append(scheduledIntermediateTxsList, scheduledSCRs[scrHash])
 		}
 
-		mapScheduledSCRs[block.SmartContractResultBlock] = scheduledSCRsList
+		//TODO: The block type should not be harded here, should be sent via parameter to this method
+		scheduledIntermediateTxsMap[block.SmartContractResultBlock] = scheduledIntermediateTxsList
 	}
 
 	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
@@ -328,7 +329,14 @@ func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
 		"gasAndFees.GasRefunded", gasAndFees.GasRefunded,
 	)
 
-	ses.scheduledTxsHandler.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs, gasAndFees)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledRootHash,
+		IntermediateTxs: scheduledIntermediateTxsMap,
+		GasAndFees:      gasAndFees,
+		//TODO: Replace the next line with the real scheduledMiniBlock taken from scheduledSCRs DTO
+		MiniBlocks: make(block.MiniBlockSlice, 0),
+	}
+	ses.scheduledTxsHandler.SaveState(headerHash, scheduledInfo)
 }
 
 func (ses *startInEpochWithScheduledDataSyncer) getAllTransactionsForMiniBlocks(miniBlocks map[string]*block.MiniBlock, epoch uint32) (map[string]data.TransactionHandler, error) {

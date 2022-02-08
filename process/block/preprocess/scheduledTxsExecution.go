@@ -19,23 +19,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type scrInfo struct {
+type intermediateTxInfo struct {
 	txHash    []byte
 	txHandler data.TransactionHandler
 }
 
 type scheduledTxsExecution struct {
-	txProcessor       process.TransactionProcessor
-	txCoordinator     process.TransactionCoordinator
-	mapScheduledTxs   map[string]data.TransactionHandler
-	mapScheduledSCRs  map[block.Type][]data.TransactionHandler
-	scheduledTxs      []data.TransactionHandler
-	scheduledRootHash []byte
-	gasAndFees        scheduled.GasAndFees
-	storer            storage.Storer
-	marshaller        marshal.Marshalizer
-	mutScheduledTxs   sync.RWMutex
-	shardCoordinator  sharding.Coordinator
+	txProcessor                 process.TransactionProcessor
+	txCoordinator               process.TransactionCoordinator
+	mapScheduledTxs             map[string]data.TransactionHandler
+	mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler
+	scheduledTxs                []data.TransactionHandler
+	scheduledMBs                block.MiniBlockSlice
+	scheduledRootHash           []byte
+	gasAndFees                  scheduled.GasAndFees
+	storer                      storage.Storer
+	marshaller                  marshal.Marshalizer
+	mutScheduledTxs             sync.RWMutex
+	shardCoordinator            sharding.Coordinator
 }
 
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
@@ -64,16 +65,17 @@ func NewScheduledTxsExecution(
 	}
 
 	ste := &scheduledTxsExecution{
-		txProcessor:       txProcessor,
-		txCoordinator:     txCoordinator,
-		mapScheduledTxs:   make(map[string]data.TransactionHandler),
-		mapScheduledSCRs:  make(map[block.Type][]data.TransactionHandler),
-		scheduledTxs:      make([]data.TransactionHandler, 0),
-		gasAndFees:        process.GetZeroGasAndFees(),
-		storer:            storer,
-		marshaller:        marshaller,
-		scheduledRootHash: nil,
-		shardCoordinator:  shardCoordinator,
+		txProcessor:                 txProcessor,
+		txCoordinator:               txCoordinator,
+		mapScheduledTxs:             make(map[string]data.TransactionHandler),
+		mapScheduledIntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+		scheduledTxs:                make([]data.TransactionHandler, 0),
+		scheduledMBs:                make(block.MiniBlockSlice, 0),
+		gasAndFees:                  process.GetZeroGasAndFees(),
+		storer:                      storer,
+		marshaller:                  marshaller,
+		scheduledRootHash:           nil,
+		shardCoordinator:            shardCoordinator,
 	}
 
 	return ste, nil
@@ -88,8 +90,8 @@ func (ste *scheduledTxsExecution) Init() {
 	ste.mutScheduledTxs.Unlock()
 }
 
-// Add method adds a scheduled transaction to be executed
-func (ste *scheduledTxsExecution) Add(txHash []byte, tx data.TransactionHandler) bool {
+// AddScheduledTx method adds a scheduled transaction to be executed
+func (ste *scheduledTxsExecution) AddScheduledTx(txHash []byte, tx data.TransactionHandler) bool {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
@@ -101,7 +103,28 @@ func (ste *scheduledTxsExecution) Add(txHash []byte, tx data.TransactionHandler)
 	ste.mapScheduledTxs[string(txHash)] = tx
 	ste.scheduledTxs = append(ste.scheduledTxs, tx)
 
+	log.Trace("scheduledTxsExecution.Add", "tx hash", txHash, "num of scheduled txs", len(ste.scheduledTxs))
 	return true
+}
+
+// AddScheduledMiniBlocks method adds all the scheduled mini blocks to be executed
+func (ste *scheduledTxsExecution) AddScheduledMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	ste.mutScheduledTxs.Lock()
+	defer ste.mutScheduledTxs.Unlock()
+
+	ste.scheduledMBs = make(block.MiniBlockSlice, len(miniBlocks))
+	for index, miniBlock := range miniBlocks {
+		ste.scheduledMBs[index] = miniBlock.Clone()
+		//TODO: Remove both if when method clone will be fixed
+		if miniBlock.Reserved == nil {
+			ste.scheduledMBs[index].Reserved = nil
+		}
+		if miniBlock.TxHashes == nil {
+			ste.scheduledMBs[index].TxHashes = nil
+		}
+	}
+
+	log.Debug("scheduledTxsExecution.AddMiniBlocks", "num of scheduled mbs", len(ste.scheduledMBs))
 }
 
 // Execute method executes the given scheduled transaction
@@ -158,7 +181,7 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 	}
 
 	mapAllIntermediateTxsAfterScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
-	ste.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
+	ste.computeScheduledIntermediateTxs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
 
 	return nil
 }
@@ -173,125 +196,217 @@ func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) err
 	return err
 }
 
-func (ste *scheduledTxsExecution) computeScheduledSCRs(
+func (ste *scheduledTxsExecution) computeScheduledIntermediateTxs(
 	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 	mapAllIntermediateTxsAfterScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 ) {
-	numScheduledSCRs := 0
-	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
+	numScheduledIntermediateTxs := 0
+	ste.mapScheduledIntermediateTxs = make(map[block.Type][]data.TransactionHandler)
 	for blockType, allIntermediateTxsAfterScheduledExecution := range mapAllIntermediateTxsAfterScheduledExecution {
-		scrsInfo := ste.getAllIntermediateTxsAfterScheduledExecution(
-			mapAllIntermediateTxsBeforeScheduledExecution,
+		intermediateTxsInfo := ste.getAllIntermediateTxsAfterScheduledExecution(
+			mapAllIntermediateTxsBeforeScheduledExecution[blockType],
 			allIntermediateTxsAfterScheduledExecution,
 			blockType,
 		)
-		if len(scrsInfo) == 0 {
+		if len(intermediateTxsInfo) == 0 {
 			continue
 		}
 
-		sort.Slice(scrsInfo, func(a, b int) bool {
-			return bytes.Compare(scrsInfo[a].txHash, scrsInfo[b].txHash) < 0
+		sort.Slice(intermediateTxsInfo, func(a, b int) bool {
+			return bytes.Compare(intermediateTxsInfo[a].txHash, intermediateTxsInfo[b].txHash) < 0
 		})
 
-		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrsInfo))
-		for scrIndex, scrInfo := range scrsInfo {
-			ste.mapScheduledSCRs[blockType][scrIndex] = scrInfo.txHandler
-			log.Trace("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
+		if blockType == block.InvalidBlock {
+			ste.removeInvalidTxsFromScheduledMiniBlocks(intermediateTxsInfo)
 		}
 
-		numScheduledSCRs += len(scrsInfo)
+		ste.mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(intermediateTxsInfo))
+		for index, interTxInfo := range intermediateTxsInfo {
+			ste.mapScheduledIntermediateTxs[blockType][index] = interTxInfo.txHandler
+			log.Trace("scheduledTxsExecution.computeScheduledIntermediateTxs", "blockType", blockType, "sender", ste.mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", ste.mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
+		}
+
+		numScheduledIntermediateTxs += len(intermediateTxsInfo)
 	}
 
-	log.Debug("scheduledTxsExecution.computeScheduledSCRs", "num of scheduled scrs created", numScheduledSCRs)
+	log.Debug("scheduledTxsExecution.computeScheduledIntermediateTxs", "num of scheduled intermediate txs created", numScheduledIntermediateTxs)
+}
+
+func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(intermediateTxsInfo []*intermediateTxInfo) {
+	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs", len(intermediateTxsInfo))
+
+	numInvalidTxsRemoved := 0
+	for _, interTxInfo := range intermediateTxsInfo {
+		for index, miniBlock := range ste.scheduledMBs {
+			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(interTxInfo.txHash, miniBlock)
+			if indexOfTxHashInMiniBlock >= 0 {
+				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "tx hash", interTxInfo.txHash)
+				ste.scheduledMBs[index].TxHashes = append(miniBlock.TxHashes[:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
+				numInvalidTxsRemoved++
+				break
+			}
+		}
+	}
+
+	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs removed", numInvalidTxsRemoved)
+}
+
+func getIndexOfTxHashInMiniBlock(txHash []byte, miniBlock *block.MiniBlock) int {
+	indexOfTxHashInMiniBlock := -1
+	for index, hash := range miniBlock.TxHashes {
+		if bytes.Equal(txHash, hash) {
+			indexOfTxHashInMiniBlock = index
+			break
+		}
+	}
+
+	return indexOfTxHashInMiniBlock
 }
 
 func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
-	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
+	allIntermediateTxsBeforeScheduledExecution map[string]data.TransactionHandler,
 	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
 	blockType block.Type,
-) []*scrInfo {
-	scrsInfo := make([]*scrInfo, 0)
+) []*intermediateTxInfo {
+	intermediateTxsInfo := make([]*intermediateTxInfo, 0)
 	for txHash, txHandler := range allIntermediateTxsAfterScheduledExecution {
-		scrs, blockTypeExists := mapAllIntermediateTxsBeforeScheduledExecution[blockType]
-		if blockTypeExists {
-			_, txExists := scrs[txHash]
-			if txExists {
-				continue
-			}
-		}
-
-		if ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) {
-			log.Trace("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard scr skipped", "hash", []byte(txHash))
+		_, txExists := allIntermediateTxsBeforeScheduledExecution[txHash]
+		if txExists {
 			continue
 		}
 
-		scrsInfo = append(scrsInfo, &scrInfo{
+		isInShardUnsignedTx := ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) &&
+			(blockType == block.ReceiptBlock || blockType == block.SmartContractResultBlock)
+		if isInShardUnsignedTx {
+			log.Trace("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard unsigned tx skipped", "hash", []byte(txHash))
+			continue
+		}
+
+		intermediateTxsInfo = append(intermediateTxsInfo, &intermediateTxInfo{
 			txHash:    []byte(txHash),
 			txHandler: txHandler,
 		})
 	}
 
-	return scrsInfo
+	return intermediateTxsInfo
 }
 
-// GetScheduledSCRs gets the resulted SCRs after the execution of scheduled transactions
-func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
+// GetScheduledTxs gets all the scheduled txs to be executed
+func (ste *scheduledTxsExecution) GetScheduledTxs() []data.TransactionHandler {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
-	numScheduledSCRs := 0
-	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
-	for blockType, scheduledSCRs := range ste.mapScheduledSCRs {
-		if len(scheduledSCRs) == 0 {
+	scheduledTxs := make([]data.TransactionHandler, len(ste.scheduledTxs))
+	for index, scheduledTx := range ste.scheduledTxs {
+		scheduledTxs[index] = scheduledTx
+		log.Trace("scheduledTxsExecution.GetScheduledTxs", "sender", scheduledTxs[index].GetSndAddr(), "receiver", scheduledTxs[index].GetRcvAddr())
+	}
+
+	log.Debug("scheduledTxsExecution.GetScheduledTxs", "num of scheduled txs", len(scheduledTxs))
+
+	return scheduledTxs
+}
+
+// GetScheduledIntermediateTxs gets the resulted intermediate txs after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler {
+	ste.mutScheduledTxs.RLock()
+	defer ste.mutScheduledTxs.RUnlock()
+
+	numScheduledIntermediateTxs := 0
+	mapScheduledIntermediateTxs := make(map[block.Type][]data.TransactionHandler)
+	for blockType, scheduledIntermediateTxs := range ste.mapScheduledIntermediateTxs {
+		if len(scheduledIntermediateTxs) == 0 {
 			continue
 		}
 
-		mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
-		for scrIndex, txHandler := range scheduledSCRs {
-			mapScheduledSCRs[blockType][scrIndex] = txHandler
-			log.Trace("scheduledTxsExecution.GetScheduledSCRs", "blockType", blockType, "sender", mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
+		mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(scheduledIntermediateTxs))
+		for index, scheduledIntermediateTx := range scheduledIntermediateTxs {
+			mapScheduledIntermediateTxs[blockType][index] = scheduledIntermediateTx
+			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs", "blockType", blockType, "sender", mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
 		}
-		numScheduledSCRs += len(scheduledSCRs)
+		numScheduledIntermediateTxs += len(scheduledIntermediateTxs)
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledSCRs", "num of scheduled scrs", numScheduledSCRs)
+	log.Debug("scheduledTxsExecution.GetScheduledIntermediateTxs", "num of scheduled intermediate txs", numScheduledIntermediateTxs)
 
-	return mapScheduledSCRs
+	return mapScheduledIntermediateTxs
 }
 
-// SetScheduledRootHashSCRsGasAndFees sets the resulted scheduled root hash, SCRs, gas and fees after the execution of scheduled transactions
-func (ste *scheduledTxsExecution) SetScheduledRootHashSCRsGasAndFees(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees) {
+// GetScheduledMBs gets the resulted mini blocks after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) GetScheduledMBs() block.MiniBlockSlice {
+	ste.mutScheduledTxs.RLock()
+	defer ste.mutScheduledTxs.RUnlock()
+
+	if len(ste.scheduledMBs) == 0 {
+		return nil
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, len(ste.scheduledMBs))
+	for index, scheduledMb := range ste.scheduledMBs {
+		miniBlock := scheduledMb.Clone()
+		//TODO: Remove both if when method clone will be fixed
+		if scheduledMb.Reserved == nil {
+			miniBlock.Reserved = nil
+		}
+		if scheduledMb.TxHashes == nil {
+			miniBlock.TxHashes = nil
+		}
+		miniBlocks[index] = miniBlock
+	}
+
+	log.Debug("scheduledTxsExecution.GetScheduledMBs", "num of scheduled mbs", len(miniBlocks))
+
+	return miniBlocks
+}
+
+// SetScheduledInfo sets the resulted scheduled mini blocks, root hash, intermediate txs, gas and fees after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) SetScheduledInfo(scheduledInfo *process.ScheduledInfo) {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
-	ste.scheduledRootHash = rootHash
+	ste.scheduledRootHash = scheduledInfo.RootHash
 
-	numScheduledSCRs := 0
-	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
-	for blockType, scrs := range mapSCRs {
-		if len(scrs) == 0 {
+	numScheduledIntermediateTxs := 0
+	ste.mapScheduledIntermediateTxs = make(map[block.Type][]data.TransactionHandler)
+	for blockType, intermediateTxs := range scheduledInfo.IntermediateTxs {
+		if len(intermediateTxs) == 0 {
 			continue
 		}
 
-		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scrs))
-		for scrIndex, txHandler := range scrs {
-			ste.mapScheduledSCRs[blockType][scrIndex] = txHandler
-			log.Trace("scheduledTxsExecution.SetScheduledRootHashSCRsGasAndFees", "blockType", blockType, "sender", ste.mapScheduledSCRs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledSCRs[blockType][scrIndex].GetRcvAddr())
+		ste.mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(intermediateTxs))
+		for index, intermediateTx := range intermediateTxs {
+			ste.mapScheduledIntermediateTxs[blockType][index] = intermediateTx
+			log.Trace("scheduledTxsExecution.SetScheduledInfo", "blockType", blockType, "sender", ste.mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", ste.mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
 		}
 
-		numScheduledSCRs += len(scrs)
+		numScheduledIntermediateTxs += len(intermediateTxs)
 	}
 
-	ste.gasAndFees = gasAndFees
+	ste.gasAndFees = scheduledInfo.GasAndFees
 
-	log.Debug("scheduledTxsExecution.SetScheduledRootHashSCRsGasAndFees",
-		"scheduled root hash", rootHash,
-		"num of scheduled scrs", numScheduledSCRs,
-		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"developerFees", gasAndFees.DeveloperFees.String(),
-		"gasProvided", gasAndFees.GasProvided,
-		"gasPenalized", gasAndFees.GasPenalized,
-		"gasRefunded", gasAndFees.GasRefunded)
+	ste.scheduledMBs = make(block.MiniBlockSlice, len(scheduledInfo.MiniBlocks))
+	for index, scheduledMiniBlock := range scheduledInfo.MiniBlocks {
+		miniBlock := scheduledMiniBlock.Clone()
+		//TODO: Remove both if when method clone will be fixed
+		if scheduledMiniBlock.Reserved == nil {
+			miniBlock.Reserved = nil
+		}
+		if scheduledMiniBlock.TxHashes == nil {
+			miniBlock.TxHashes = nil
+		}
+
+		ste.scheduledMBs[index] = miniBlock
+	}
+
+	log.Debug("scheduledTxsExecution.SetScheduledInfo",
+		"scheduled root hash", ste.scheduledRootHash,
+		"num of scheduled mbs", len(ste.scheduledMBs),
+		"num of scheduled intermediate txs", numScheduledIntermediateTxs,
+		"accumulatedFees", ste.gasAndFees.AccumulatedFees.String(),
+		"developerFees", ste.gasAndFees.DeveloperFees.String(),
+		"gasProvided", ste.gasAndFees.GasProvided,
+		"gasPenalized", ste.gasAndFees.GasPenalized,
+		"gasRefunded", ste.gasAndFees.GasRefunded)
 }
 
 // GetScheduledRootHash gets the resulted root hash after the execution of scheduled transactions
@@ -325,24 +440,24 @@ func (ste *scheduledTxsExecution) GetScheduledGasAndFees() scheduled.GasAndFees 
 // SetScheduledRootHash sets the resulted root hash after the execution of scheduled transactions
 func (ste *scheduledTxsExecution) SetScheduledRootHash(rootHash []byte) {
 	ste.mutScheduledTxs.Lock()
-	ste.scheduledRootHash = rootHash
-	ste.mutScheduledTxs.Unlock()
+	defer ste.mutScheduledTxs.Unlock()
 
-	log.Debug("scheduledTxsExecution.SetScheduledRootHash", "scheduled root hash", rootHash)
+	ste.scheduledRootHash = rootHash
+	log.Debug("scheduledTxsExecution.SetScheduledRootHash", "scheduled root hash", ste.scheduledRootHash)
 }
 
 // SetScheduledGasAndFees sets the gas and fees for the scheduled transactions
 func (ste *scheduledTxsExecution) SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees) {
 	ste.mutScheduledTxs.Lock()
-	ste.gasAndFees = gasAndFees
-	ste.mutScheduledTxs.Unlock()
+	defer ste.mutScheduledTxs.Unlock()
 
+	ste.gasAndFees = gasAndFees
 	log.Debug("scheduledTxsExecution.SetScheduledGasAndFees",
-		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"developerFees", gasAndFees.DeveloperFees.String(),
-		"gasProvided", gasAndFees.GasProvided,
-		"gasPenalized", gasAndFees.GasPenalized,
-		"gasRefunded", gasAndFees.GasRefunded)
+		"accumulatedFees", ste.gasAndFees.AccumulatedFees.String(),
+		"developerFees", ste.gasAndFees.DeveloperFees.String(),
+		"gasProvided", ste.gasAndFees.GasProvided,
+		"gasPenalized", ste.gasAndFees.GasPenalized,
+		"gasRefunded", ste.gasAndFees.GasRefunded)
 }
 
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component
@@ -359,96 +474,98 @@ func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator proces
 func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 	headerHash []byte,
 ) ([]byte, error) {
-	rootHash, _, _, err := ste.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", rootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
 
-	return rootHash, err
+	return scheduledInfo.RootHash, nil
 }
 
 // RollBackToBlock rolls back the scheduled txs execution handler to the given header
 func (ste *scheduledTxsExecution) RollBackToBlock(headerHash []byte) error {
-	scheduledRootHash, mapScheduledSCRs, gasAndFees, err := ste.getScheduledRootHashSCRsGasAndFeesForHeader(headerHash)
+	scheduledInfo, err := ste.getScheduledInfoForHeader(headerHash)
 	if err != nil {
 		return err
 	}
 
 	log.Debug("scheduledTxsExecution.RollBackToBlock",
 		"header hash", headerHash,
-		"scheduled root hash", scheduledRootHash,
-		"num of scheduled scrs", getNumScheduledSCRs(mapScheduledSCRs),
-		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"developerFees", gasAndFees.DeveloperFees.String(),
-		"gasProvided", gasAndFees.GasProvided,
-		"gasPenalized", gasAndFees.GasPenalized,
-		"gasRefunded", gasAndFees.GasRefunded)
+		"scheduled root hash", scheduledInfo.RootHash,
+		"num of scheduled mbs", len(scheduledInfo.MiniBlocks),
+		"num of scheduled intermediate txs", getNumScheduledIntermediateTxs(scheduledInfo.IntermediateTxs),
+		"accumulatedFees", scheduledInfo.GasAndFees.AccumulatedFees.String(),
+		"developerFees", scheduledInfo.GasAndFees.DeveloperFees.String(),
+		"gasProvided", scheduledInfo.GasAndFees.GasProvided,
+		"gasPenalized", scheduledInfo.GasAndFees.GasPenalized,
+		"gasRefunded", scheduledInfo.GasAndFees.GasRefunded)
 
-	ste.SetScheduledRootHashSCRsGasAndFees(scheduledRootHash, mapScheduledSCRs, *gasAndFees)
+	ste.SetScheduledInfo(scheduledInfo)
 
 	return nil
 }
 
-// SaveStateIfNeeded saves the scheduled Txs Execution state for the given header hash, if there are scheduled TXs
+// SaveStateIfNeeded saves the scheduled SC execution state for the given header hash, if there are scheduled txs
 func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
-	scheduledRootHash := ste.GetScheduledRootHash()
-	mapScheduledSCRs := ste.GetScheduledSCRs()
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        ste.GetScheduledRootHash(),
+		IntermediateTxs: ste.GetScheduledIntermediateTxs(),
+		GasAndFees:      ste.GetScheduledGasAndFees(),
+		MiniBlocks:      ste.GetScheduledMBs(),
+	}
+
 	ste.mutScheduledTxs.RLock()
-	gasAndFees := ste.gasAndFees
 	numScheduledTxs := len(ste.scheduledTxs)
 	ste.mutScheduledTxs.RUnlock()
+
 	log.Debug("scheduledTxsExecution.SaveStateIfNeeded",
 		"header hash", headerHash,
-		"scheduled root hash", scheduledRootHash,
+		"scheduled root hash", scheduledInfo.RootHash,
 		"num of scheduled txs", numScheduledTxs,
-		"num of scheduled scrs", getNumScheduledSCRs(mapScheduledSCRs),
-		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"developerFees", gasAndFees.DeveloperFees.String(),
-		"gasProvided", gasAndFees.GasProvided,
-		"gasPenalized", gasAndFees.GasPenalized,
-		"gasRefunded", gasAndFees.GasRefunded)
+		"num of scheduled intermediate txs", getNumScheduledIntermediateTxs(scheduledInfo.IntermediateTxs),
+		"accumulatedFees", scheduledInfo.GasAndFees.AccumulatedFees.String(),
+		"developerFees", scheduledInfo.GasAndFees.DeveloperFees.String(),
+		"gasProvided", scheduledInfo.GasAndFees.GasProvided,
+		"gasPenalized", scheduledInfo.GasAndFees.GasPenalized,
+		"gasRefunded", scheduledInfo.GasAndFees.GasRefunded)
 
 	if numScheduledTxs > 0 {
-		ste.SaveState(headerHash, scheduledRootHash, mapScheduledSCRs, gasAndFees)
+		ste.SaveState(headerHash, scheduledInfo)
 	}
 }
 
 // SaveState saves the scheduled SC execution state
-func (ste *scheduledTxsExecution) SaveState(
-	headerHash []byte,
-	scheduledRootHash []byte,
-	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
-	gasAndFees scheduled.GasAndFees,
-) {
-	marshalledScheduledData, err := ste.getMarshalledScheduledRootHashSCRsGasAndFees(scheduledRootHash, mapScheduledSCRs, gasAndFees)
+func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *process.ScheduledInfo) {
+	marshalledScheduledInfo, err := ste.getMarshalledScheduledInfo(scheduledInfo)
 	if err != nil {
-		log.Warn("scheduledTxsExecution.SaveState getMarshalledScheduledRootHashSCRsGasAndFees", "error", err.Error())
+		log.Warn("scheduledTxsExecution.SaveState: getMarshalledScheduledInfo", "error", err.Error())
 		return
 	}
 
-	log.Debug("scheduledTxsExecution.SaveState Put",
+	log.Debug("scheduledTxsExecution.SaveState: Put",
 		"header hash", headerHash,
-		"scheduled root hash", scheduledRootHash,
-		"num of scheduled scrs", getNumScheduledSCRs(mapScheduledSCRs),
-		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
-		"gasAndFees.GasProvided", gasAndFees.GasProvided,
-		"gasAndFees.GasPenalized", gasAndFees.GasPenalized,
-		"gasAndFees.GasRefunded", gasAndFees.GasRefunded,
-		"length of marshalized scheduled SCRs", len(marshalledScheduledData))
-	err = ste.storer.Put(headerHash, marshalledScheduledData)
+		"scheduled root hash", scheduledInfo.RootHash,
+		"num of scheduled intermediate txs", getNumScheduledIntermediateTxs(scheduledInfo.IntermediateTxs),
+		"gasAndFees.AccumulatedFees", scheduledInfo.GasAndFees.AccumulatedFees.String(),
+		"gasAndFees.DeveloperFees", scheduledInfo.GasAndFees.DeveloperFees.String(),
+		"gasAndFees.GasProvided", scheduledInfo.GasAndFees.GasProvided,
+		"gasAndFees.GasPenalized", scheduledInfo.GasAndFees.GasPenalized,
+		"gasAndFees.GasRefunded", scheduledInfo.GasAndFees.GasRefunded,
+		"length of marshalized scheduled info", len(marshalledScheduledInfo))
+	err = ste.storer.Put(headerHash, marshalledScheduledInfo)
 	if err != nil {
-		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledSCRsUnit", "error", err.Error())
+		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledIntermediateTxsUnit", "error", err.Error())
 	}
 }
 
-// getScheduledRootHashSCRsGasAndFeesForHeader gets scheduled root hash, the SCRs, gas and fees of the given header from storage
-func (ste *scheduledTxsExecution) getScheduledRootHashSCRsGasAndFeesForHeader(
-	headerHash []byte,
-) ([]byte, map[block.Type][]data.TransactionHandler, *scheduled.GasAndFees, error) {
+// getScheduledInfoForHeader gets scheduled mini blocks, root hash, intermediate txs, gas and fees of the given header from storage
+func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (*process.ScheduledInfo, error) {
 	var err error
 	defer func() {
 		if err != nil {
-			log.Trace("getScheduledRootHashSCRsGasAndFeesForHeader: given header does not have scheduled txs",
+			log.Trace("getScheduledInfoForHeader: given header does not have scheduled txs",
 				"header hash", headerHash,
 			)
 		}
@@ -456,33 +573,36 @@ func (ste *scheduledTxsExecution) getScheduledRootHashSCRsGasAndFeesForHeader(
 
 	marshalledSCRsSavedData, err := ste.storer.Get(headerHash)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{}
 	err = ste.marshaller.Unmarshal(scheduledSCRs, marshalledSCRsSavedData)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	scheduledRootHash := scheduledSCRs.RootHash
-	txHandlersMap := scheduledSCRs.GetTransactionHandlersMap()
-	gasAndFees := *scheduledSCRs.GasAndFees
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledSCRs.RootHash,
+		IntermediateTxs: scheduledSCRs.GetTransactionHandlersMap(),
+		GasAndFees:      *scheduledSCRs.GasAndFees,
+		//TODO: Replace the next line with the real scheduledMiniBlock taken from scheduledSCRs DTO
+		MiniBlocks: make(block.MiniBlockSlice, 0),
+	}
 
-	return scheduledRootHash, txHandlersMap, &gasAndFees, nil
+	return scheduledInfo, nil
 }
 
-func (ste *scheduledTxsExecution) getMarshalledScheduledRootHashSCRsGasAndFees(
-	scheduledRootHash []byte,
-	mapScheduledSCRs map[block.Type][]data.TransactionHandler,
-	gasAndFees scheduled.GasAndFees,
+func (ste *scheduledTxsExecution) getMarshalledScheduledInfo(
+	scheduledInfo *process.ScheduledInfo,
 ) ([]byte, error) {
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash:   scheduledRootHash,
-		GasAndFees: &gasAndFees,
+		RootHash:   scheduledInfo.RootHash,
+		GasAndFees: &scheduledInfo.GasAndFees,
 	}
 
-	err := scheduledSCRs.SetTransactionHandlersMap(mapScheduledSCRs)
+	//TODO: Set separately SCRs and invalid txs depending of the block type
+	err := scheduledSCRs.SetTransactionHandlersMap(scheduledInfo.IntermediateTxs)
 	if err != nil {
 		return nil, err
 	}
@@ -499,13 +619,24 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 	return ok
 }
 
-func getNumScheduledSCRs(mapScheduledSCRs map[block.Type][]data.TransactionHandler) int {
-	numScheduledSCRs := 0
-	for _, scheduledSCRs := range mapScheduledSCRs {
-		numScheduledSCRs += len(scheduledSCRs)
+// SetScheduledMiniBlocksAsExecuted sets all the scheduled mini blocks as executed
+func (ste *scheduledTxsExecution) SetScheduledMiniBlocksAsExecuted() {
+	ste.mutScheduledTxs.Lock()
+	defer ste.mutScheduledTxs.Unlock()
+
+	for index := range ste.scheduledMBs {
+		//TODO: Here should be set each mini block as executed with the real value when elrond-go-core PR will be done
+		ste.scheduledMBs[index].Reserved = nil
+	}
+}
+
+func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {
+	numScheduledIntermediateTxs := 0
+	for _, scheduledIntermediateTxs := range mapScheduledIntermediateTxs {
+		numScheduledIntermediateTxs += len(scheduledIntermediateTxs)
 	}
 
-	return numScheduledSCRs
+	return numScheduledIntermediateTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

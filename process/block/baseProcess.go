@@ -513,7 +513,7 @@ func (bp *baseProcessor) createBlockStarted() error {
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
-	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
+	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs())
 	if err != nil {
 		return err
 	}
@@ -1206,8 +1206,13 @@ func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
 		log.Trace("baseProcessor.revertScheduledRootHashSCRsAndGas", "error", err.Error())
-		gasAndFees := process.GetZeroGasAndFees()
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        header.GetRootHash(),
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+		bp.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 }
 
@@ -1564,7 +1569,7 @@ func (bp *baseProcessor) Close() error {
 }
 
 // ProcessScheduledBlock processes a scheduled block
-func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
 	defer func() {
 		if err != nil {
@@ -1572,10 +1577,24 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 		}
 	}()
 
-	startTime := time.Now()
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
+	for index, mbHeader := range mbHeaders {
+		reserved := mbHeader.GetReserved()
+		if len(reserved) > 0 && reserved[0] == byte(block.Scheduled) {
+			miniBlocks = append(miniBlocks, body.MiniBlocks[index])
+		}
+	}
+	bp.scheduledTxsExecutionHandler.AddScheduledMiniBlocks(miniBlocks)
 
 	normalProcessingGasAndFees := bp.getGasAndFees()
 
+	startTime := time.Now()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1595,6 +1614,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
+	bp.scheduledTxsExecutionHandler.SetScheduledMiniBlocksAsExecuted()
 
 	return nil
 }
