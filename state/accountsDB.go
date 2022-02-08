@@ -146,7 +146,13 @@ func NewAccountsDB(
 func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
 	if err != nil {
-		log.Error("startSnapshotAfterRestart root hash", "error", err)
+		log.Warn("startSnapshotAfterRestart root hash", "error", err)
+
+		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		if err != nil {
+			log.Warn("error while putting active DB value into main storer", "error", err)
+		}
+
 		return
 	}
 	log.Debug("snapshot hash after restart", "hash", rootHash)
