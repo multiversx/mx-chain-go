@@ -44,6 +44,7 @@ type ProcessComponentsStub struct {
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
+	TxsSenderHandlerField                process.TxsSenderHandler
 }
 
 // Create -
@@ -219,6 +220,11 @@ func (pcs *ProcessComponentsStub) String() string {
 // ScheduledTxsExecutionHandler -
 func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcs.ScheduledTxsExecutionHandlerInternal
+}
+
+// TxsSenderHandler -
+func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
+	return pcs.TxsSenderHandlerField
 }
 
 // IsInterfaceNil -
