@@ -430,7 +430,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 
 		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledIntermediateTxs()))
 	})
-	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
+	t.Run("nil map after txs execution, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
 
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -445,7 +445,7 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 
 		assert.Equal(t, 0, len(scheduledTxsExec.GetMapScheduledIntermediateTxs()))
 	})
-	t.Run("nil map after txs execition, empty scheduled scrs", func(t *testing.T) {
+	t.Run("nil map after txs execution, empty scheduled scrs", func(t *testing.T) {
 		t.Parallel()
 
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -489,6 +489,76 @@ func TestScheduledTxsExecution_computeScheduledSCRsShouldWork(t *testing.T) {
 		assert.Equal(t, 1, len(mapScheduledSCRs))
 		assert.Equal(t, 2, len(mapScheduledSCRs[1]))
 	})
+}
+
+func TestScheduledTxsExecution_computeScheduledSCRsShouldRemoveInvalidSCRs(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.ShardCoordinatorStub{
+			SameShardCalled: func(_, _ []byte) bool {
+				return false
+			},
+		},
+	)
+
+	txHash1 := "txHash1"
+	txHash2 := "txHash2"
+	txHash3 := "txHash3"
+
+	tx1 := &transaction.Transaction{Nonce: 1}
+	tx2 := &transaction.Transaction{Nonce: 2}
+	tx3 := &transaction.Transaction{Nonce: 3}
+
+	mapAllIntermediateTxsBeforeScheduledExecutionWithInvalid := map[block.Type]map[string]data.TransactionHandler{
+		block.SmartContractResultBlock: {
+			"txHashNoScheduled0": &transaction.Transaction{Nonce: 11},
+			"txHashNoScheduled1": &transaction.Transaction{Nonce: 12},
+		},
+	}
+
+	mapAllIntermediateTxsAfterScheduledExecutionWithInvalid := map[block.Type]map[string]data.TransactionHandler{
+		block.SmartContractResultBlock: {
+			txHash1: tx1,
+			txHash3: tx3,
+		},
+		block.InvalidBlock: {
+			txHash2: tx2,
+		},
+	}
+
+	mb1TxHashes := [][]byte{
+		[]byte(txHash1),
+		[]byte(txHash2),
+		[]byte(txHash3),
+	}
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{TxHashes: mb1TxHashes},
+	}
+
+	scheduledTxsExec.AddMiniBlocks(mbs)
+	scheduledTxsExec.ComputeScheduledSCRs(
+		mapAllIntermediateTxsBeforeScheduledExecutionWithInvalid,
+		mapAllIntermediateTxsAfterScheduledExecutionWithInvalid,
+	)
+
+	mapScheduledSCRs := scheduledTxsExec.mapScheduledIntermediateTxs
+
+	assert.Equal(t, 2, len(mapScheduledSCRs))
+
+	scheduledSCRs := mapScheduledSCRs[block.SmartContractResultBlock]
+	assert.Equal(t, 2, len(scheduledSCRs))
+	assert.True(t, reflect.DeepEqual(tx1, scheduledSCRs[0]))
+	assert.True(t, reflect.DeepEqual(tx3, scheduledSCRs[1]))
+
+	invalidSCRs := mapScheduledSCRs[block.InvalidBlock]
+	assert.Equal(t, 1, len(invalidSCRs))
+	assert.True(t, reflect.DeepEqual(tx2, invalidSCRs[0]))
 }
 
 func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *testing.T) {
@@ -1195,54 +1265,63 @@ func TestScheduledTxsExecution_GetScheduledTxs(t *testing.T) {
 	assert.True(t, reflect.DeepEqual(secondTransaction, scheduledTxs[1]))
 }
 
-func TestScheduledTxsExecution_GetScheduledMBs(t *testing.T) {
+func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldFail(t *testing.T) {
 	t.Parallel()
 
+	headerHash := []byte("root hash")
+	expectedErr := errors.New("storer err")
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
+		&storageMocks.StorerStub{
+			GetCalled: func(_ []byte) ([]byte, error) {
+				return nil, expectedErr
+			},
+		},
 		&marshal.GogoProtoMarshalizer{},
 		&mock.ShardCoordinatorStub{},
 	)
 
-	miniBlocks := block.MiniBlockSlice{}
-	mb1 := &block.MiniBlock{
-		TxHashes:        nil,
-		ReceiverShardID: 1,
-		SenderShardID:   2,
-		Type:            3,
-		Reserved:        make([]byte, 2),
-	}
-	mb2 := &block.MiniBlock{
-		TxHashes:        make([][]byte, 5),
-		ReceiverShardID: 3,
-		SenderShardID:   1,
-		Type:            2,
-		Reserved:        nil,
-	}
-	mb3 := &block.MiniBlock{
-		TxHashes:        make([][]byte, 10),
-		ReceiverShardID: 2,
-		SenderShardID:   2,
-		Type:            2,
-		Reserved:        make([]byte, 10),
+	scheduledInfo, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
+	assert.Nil(t, scheduledInfo)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("root hash")
+	scheduledHash := []byte("scheduled hash")
+	expectedGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(101),
+		DeveloperFees:   big.NewInt(102),
+		GasProvided:     103,
+		GasPenalized:    104,
+		GasRefunded:     105,
 	}
 
-	miniBlocks = append(miniBlocks, mb1)
-	miniBlocks = append(miniBlocks, mb2)
-	miniBlocks = append(miniBlocks, mb3)
+	scheduledSCRs := &scheduled.ScheduledSCRs{
+		RootHash:   scheduledHash,
+		GasAndFees: &expectedGasAndFees,
+	}
+	marshalledSCRsSavedData, _ := json.Marshal(scheduledSCRs)
 
-	scheduledTxsExec.AddMiniBlocks(miniBlocks)
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&storageMocks.StorerStub{
+			GetCalled: func(_ []byte) ([]byte, error) {
+				return marshalledSCRsSavedData, nil
+			},
+		},
+		&testscommon.MarshalizerMock{},
+		&mock.ShardCoordinatorStub{},
+	)
 
-	scheduledMBs := scheduledTxsExec.GetScheduledMBs()
+	scheduledRootHash, err := scheduledTxsExec.GetScheduledRootHashForHeader(headerHash)
 
-	expectedLen := 3
-	assert.Equal(t, expectedLen, len(scheduledMBs))
-
-	assert.True(t, reflect.DeepEqual(mb1, scheduledMBs[0]))
-	assert.True(t, reflect.DeepEqual(mb2, scheduledMBs[1]))
-	assert.True(t, reflect.DeepEqual(mb3, scheduledMBs[2]))
+	assert.Nil(t, err)
+	assert.Equal(t, scheduledHash, scheduledRootHash)
 }
 
 func TestScheduledTxsExecution_removeInvalidTxsFromScheduledMiniBlocks(t *testing.T) {
