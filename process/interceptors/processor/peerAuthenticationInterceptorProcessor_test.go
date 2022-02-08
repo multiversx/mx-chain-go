@@ -132,7 +132,6 @@ func TestPeerAuthenticationInterceptorProcessor_Validate(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, paip.IsInterfaceNil())
 	assert.Nil(t, paip.Validate(nil, ""))
-	paip.RegisterHandler(nil) // for coverage only, method only logs
 }
 
 func TestPeerAuthenticationInterceptorProcessor_RegisterHandler(t *testing.T) {

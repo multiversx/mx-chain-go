@@ -124,7 +124,6 @@ func TestHeartbeatInterceptorProcessor_Validate(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, hip.IsInterfaceNil())
 	assert.Nil(t, hip.Validate(nil, ""))
-	hip.RegisterHandler(nil) // for coverage only, method only logs
 }
 
 func TestHeartbeatInterceptorProcessor_RegisterHandler(t *testing.T) {
