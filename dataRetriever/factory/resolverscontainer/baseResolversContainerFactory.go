@@ -149,13 +149,15 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	}
 
 	arg := resolvers.ArgTxResolver{
-		SenderResolver:    resolverSender,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshalizer:      brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.throttler,
+		},
 		TxPool:            dataPool,
 		TxStorage:         txStorer,
-		Marshalizer:       brcf.marshalizer,
 		DataPacker:        brcf.dataPacker,
-		AntifloodHandler:  brcf.inputAntifloodHandler,
-		Throttler:         brcf.throttler,
 		IsFullHistoryNode: brcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewTxResolver(arg)
@@ -226,12 +228,14 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 	}
 
 	arg := resolvers.ArgMiniblockResolver{
-		SenderResolver:    resolverSender,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshalizer:      brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.throttler,
+		},
 		MiniBlockPool:     brcf.dataPools.MiniBlocks(),
 		MiniBlockStorage:  miniBlocksStorer,
-		Marshalizer:       brcf.marshalizer,
-		AntifloodHandler:  brcf.inputAntifloodHandler,
-		Throttler:         brcf.throttler,
 		DataPacker:        brcf.dataPacker,
 		IsFullHistoryNode: brcf.isFullHistoryNode,
 	}
@@ -328,11 +332,13 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 
 	trie := brcf.triesContainer.Get([]byte(trieId))
 	argTrie := resolvers.ArgTrieNodeResolver{
-		SenderResolver:   resolverSender,
-		TrieDataGetter:   trie,
-		Marshalizer:      brcf.marshalizer,
-		AntifloodHandler: brcf.inputAntifloodHandler,
-		Throttler:        brcf.throttler,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshalizer:      brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.throttler,
+		},
+		TrieDataGetter: trie,
 	}
 	resolver, err := resolvers.NewTrieNodeResolver(argTrie)
 	if err != nil {

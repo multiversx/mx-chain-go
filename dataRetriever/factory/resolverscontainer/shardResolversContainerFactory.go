@@ -137,15 +137,17 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardC.SelfId())
 	hdrNonceStore := srcf.store.GetStorer(hdrNonceHashDataUnit)
 	arg := resolvers.ArgHeaderResolver{
-		SenderResolver:       resolverSender,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshalizer:      srcf.marshalizer,
+			AntifloodHandler: srcf.inputAntifloodHandler,
+			Throttler:        srcf.throttler,
+		},
 		Headers:              srcf.dataPools.Headers(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
-		Marshalizer:          srcf.marshalizer,
 		NonceConverter:       srcf.uint64ByteSliceConverter,
 		ShardCoordinator:     srcf.shardCoordinator,
-		AntifloodHandler:     srcf.inputAntifloodHandler,
-		Throttler:            srcf.throttler,
 		IsFullHistoryNode:    srcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)
@@ -176,15 +178,17 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 
 	hdrNonceStore := srcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	arg := resolvers.ArgHeaderResolver{
-		SenderResolver:       resolverSender,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshalizer:      srcf.marshalizer,
+			AntifloodHandler: srcf.inputAntifloodHandler,
+			Throttler:        srcf.throttler,
+		},
 		Headers:              srcf.dataPools.Headers(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
-		Marshalizer:          srcf.marshalizer,
 		NonceConverter:       srcf.uint64ByteSliceConverter,
 		ShardCoordinator:     srcf.shardCoordinator,
-		AntifloodHandler:     srcf.inputAntifloodHandler,
-		Throttler:            srcf.throttler,
 		IsFullHistoryNode:    srcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)

@@ -23,13 +23,10 @@ var connectedPeerId = core.PeerID("connected peer id")
 
 func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
-		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TxPool:           testscommon.NewShardedDataStub(),
-		TxStorage:        &storageStubs.StorerStub{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		DataPacker:       &mock.DataPackerStub{},
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		Throttler:        &mock.ThrottlerStub{},
+		ArgBaseResolver: createMockArgBaseResolver(),
+		TxPool:          testscommon.NewShardedDataStub(),
+		TxStorage:       &storageStubs.StorerStub{},
+		DataPacker:      &mock.DataPackerStub{},
 	}
 }
 

@@ -17,17 +17,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockArgBaseResolver() resolvers.ArgBaseResolver {
+	return resolvers.ArgBaseResolver{
+		SenderResolver:   &mock.TopicResolverSenderStub{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
+		Throttler:        &mock.ThrottlerStub{},
+	}
+}
+
 func createMockArgHeaderResolver() resolvers.ArgHeaderResolver {
 	return resolvers.ArgHeaderResolver{
-		SenderResolver:       &mock.TopicResolverSenderStub{},
+		ArgBaseResolver:      createMockArgBaseResolver(),
 		Headers:              &mock.HeadersCacherStub{},
 		HdrStorage:           &storageStubs.StorerStub{},
 		HeadersNoncesStorage: &storageStubs.StorerStub{},
-		Marshalizer:          &mock.MarshalizerMock{},
 		NonceConverter:       mock.NewNonceHashConverterMock(),
 		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		Throttler:            &mock.ThrottlerStub{},
 	}
 }
 
