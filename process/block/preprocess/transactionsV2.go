@@ -863,5 +863,5 @@ func (txs *transactions) applyVerifiedTransaction(
 
 	mapSCTxs[string(txHash)] = struct{}{}
 	mbInfo.schedulingInfo.numScheduledTxsAdded++
-	txs.scheduledTxsExecutionHandler.Add(txHash, tx)
+	txs.scheduledTxsExecutionHandler.AddScheduledTx(txHash, tx)
 }

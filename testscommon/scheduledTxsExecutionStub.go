@@ -13,27 +13,28 @@ import (
 
 // ScheduledTxsExecutionStub -
 type ScheduledTxsExecutionStub struct {
-	InitCalled                          func()
-	AddCalled                           func([]byte, data.TransactionHandler) bool
-	AddMiniBlocksCalled                 func(miniBlocks block.MiniBlockSlice)
-	ExecuteCalled                       func([]byte) error
-	ExecuteAllCalled                    func(func() time.Duration) error
-	GetScheduledIntermediateTxsCalled   func() map[block.Type][]data.TransactionHandler
-	GetScheduledMBsCalled               func() block.MiniBlockSlice
-	SetScheduledInfoCalled              func(scheduledInfo *process.ScheduledInfo)
-	GetScheduledRootHashForHeaderCalled func(headerHash []byte) ([]byte, error)
-	RollBackToBlockCalled               func(headerHash []byte) error
-	GetScheduledRootHashCalled          func() []byte
-	GetScheduledGasAndFeesCalled        func() scheduled.GasAndFees
-	SetScheduledRootHashCalled          func([]byte)
-	SetScheduledGasAndFeesCalled        func(gasAndFees scheduled.GasAndFees)
-	SetTransactionProcessorCalled       func(process.TransactionProcessor)
-	SetTransactionCoordinatorCalled     func(process.TransactionCoordinator)
-	HaveScheduledTxsCalled              func() bool
-	SaveStateIfNeededCalled             func(headerHash []byte)
-	SaveStateCalled                     func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
-	LoadStateCalled                     func(headerHash []byte)
-	IsScheduledTxCalled                 func([]byte) bool
+	InitCalled                             func()
+	AddScheduledTxCalled                   func([]byte, data.TransactionHandler) bool
+	AddScheduledMiniBlocksCalled           func(miniBlocks block.MiniBlockSlice)
+	ExecuteCalled                          func([]byte) error
+	ExecuteAllCalled                       func(func() time.Duration) error
+	GetScheduledIntermediateTxsCalled      func() map[block.Type][]data.TransactionHandler
+	GetScheduledMBsCalled                  func() block.MiniBlockSlice
+	SetScheduledInfoCalled                 func(scheduledInfo *process.ScheduledInfo)
+	GetScheduledRootHashForHeaderCalled    func(headerHash []byte) ([]byte, error)
+	RollBackToBlockCalled                  func(headerHash []byte) error
+	GetScheduledRootHashCalled             func() []byte
+	GetScheduledGasAndFeesCalled           func() scheduled.GasAndFees
+	SetScheduledRootHashCalled             func([]byte)
+	SetScheduledGasAndFeesCalled           func(gasAndFees scheduled.GasAndFees)
+	SetTransactionProcessorCalled          func(process.TransactionProcessor)
+	SetTransactionCoordinatorCalled        func(process.TransactionCoordinator)
+	HaveScheduledTxsCalled                 func() bool
+	SaveStateIfNeededCalled                func(headerHash []byte)
+	SaveStateCalled                        func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
+	LoadStateCalled                        func(headerHash []byte)
+	IsScheduledTxCalled                    func([]byte) bool
+	SetScheduledMiniBlocksAsExecutedCalled func()
 }
 
 // Init -
@@ -43,18 +44,18 @@ func (stes *ScheduledTxsExecutionStub) Init() {
 	}
 }
 
-// Add -
-func (stes *ScheduledTxsExecutionStub) Add(txHash []byte, tx data.TransactionHandler) bool {
-	if stes.AddCalled != nil {
-		return stes.AddCalled(txHash, tx)
+// AddScheduledTx -
+func (stes *ScheduledTxsExecutionStub) AddScheduledTx(txHash []byte, tx data.TransactionHandler) bool {
+	if stes.AddScheduledTxCalled != nil {
+		return stes.AddScheduledTxCalled(txHash, tx)
 	}
 	return true
 }
 
-// AddMiniBlocks -
-func (stes *ScheduledTxsExecutionStub) AddMiniBlocks(miniBlocks block.MiniBlockSlice) {
-	if stes.AddMiniBlocksCalled != nil {
-		stes.AddMiniBlocksCalled(miniBlocks)
+// AddScheduledMiniBlocks -
+func (stes *ScheduledTxsExecutionStub) AddScheduledMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	if stes.AddScheduledMiniBlocksCalled != nil {
+		stes.AddScheduledMiniBlocksCalled(miniBlocks)
 	}
 }
 
@@ -187,6 +188,13 @@ func (stes *ScheduledTxsExecutionStub) IsScheduledTx(txHash []byte) bool {
 		return stes.IsScheduledTxCalled(txHash)
 	}
 	return false
+}
+
+// SetScheduledMiniBlocksAsExecuted -
+func (stes *ScheduledTxsExecutionStub) SetScheduledMiniBlocksAsExecuted() {
+	if stes.SetScheduledMiniBlocksAsExecutedCalled != nil {
+		stes.SetScheduledMiniBlocksAsExecutedCalled()
+	}
 }
 
 // IsInterfaceNil -

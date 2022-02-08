@@ -1590,7 +1590,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 			miniBlocks = append(miniBlocks, body.MiniBlocks[index])
 		}
 	}
-	bp.scheduledTxsExecutionHandler.AddMiniBlocks(miniBlocks)
+	bp.scheduledTxsExecutionHandler.AddScheduledMiniBlocks(miniBlocks)
 
 	normalProcessingGasAndFees := bp.getGasAndFees()
 
@@ -1614,6 +1614,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
+	bp.scheduledTxsExecutionHandler.SetScheduledMiniBlocksAsExecuted()
 
 	return nil
 }

@@ -944,8 +944,17 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
+	miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMBs()
+
 	if !haveTime() {
 		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
+
+		interMBs := mp.txCoordinator.CreatePostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 

@@ -18,13 +18,13 @@ type ScheduledTxsExecutionHandler struct {
 func (steh *ScheduledTxsExecutionHandler) Init() {
 }
 
-// Add does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) Add(_ []byte, _ data.TransactionHandler) bool {
+// AddScheduledTx does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) AddScheduledTx(_ []byte, _ data.TransactionHandler) bool {
 	return true
 }
 
-// AddMiniBlocks does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) AddMiniBlocks(_ block.MiniBlockSlice) {
+// AddScheduledMiniBlocks does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) AddScheduledMiniBlocks(_ block.MiniBlockSlice) {
 }
 
 // Execute does nothing as it is a disabled component
@@ -107,6 +107,10 @@ func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.Tr
 // IsScheduledTx always returns false as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(_ []byte) bool {
 	return false
+}
+
+// SetScheduledMiniBlocksAsExecuted does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledMiniBlocksAsExecuted() {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -90,8 +90,8 @@ func (ste *scheduledTxsExecution) Init() {
 	ste.mutScheduledTxs.Unlock()
 }
 
-// Add method adds a scheduled transaction to be executed
-func (ste *scheduledTxsExecution) Add(txHash []byte, tx data.TransactionHandler) bool {
+// AddScheduledTx method adds a scheduled transaction to be executed
+func (ste *scheduledTxsExecution) AddScheduledTx(txHash []byte, tx data.TransactionHandler) bool {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
@@ -103,11 +103,12 @@ func (ste *scheduledTxsExecution) Add(txHash []byte, tx data.TransactionHandler)
 	ste.mapScheduledTxs[string(txHash)] = tx
 	ste.scheduledTxs = append(ste.scheduledTxs, tx)
 
+	log.Trace("scheduledTxsExecution.Add", "tx hash", txHash, "num of scheduled txs", len(ste.scheduledTxs))
 	return true
 }
 
-// AddMiniBlocks method adds all the scheduled mini blocks to be executed
-func (ste *scheduledTxsExecution) AddMiniBlocks(miniBlocks block.MiniBlockSlice) {
+// AddScheduledMiniBlocks method adds all the scheduled mini blocks to be executed
+func (ste *scheduledTxsExecution) AddScheduledMiniBlocks(miniBlocks block.MiniBlockSlice) {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
@@ -180,7 +181,7 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 	}
 
 	mapAllIntermediateTxsAfterScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
-	ste.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
+	ste.computeScheduledIntermediateTxs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
 
 	return nil
 }
@@ -195,50 +196,51 @@ func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) err
 	return err
 }
 
-func (ste *scheduledTxsExecution) computeScheduledSCRs(
+func (ste *scheduledTxsExecution) computeScheduledIntermediateTxs(
 	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 	mapAllIntermediateTxsAfterScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 ) {
-	numScheduledSCRs := 0
+	numScheduledIntermediateTxs := 0
 	ste.mapScheduledIntermediateTxs = make(map[block.Type][]data.TransactionHandler)
 	for blockType, allIntermediateTxsAfterScheduledExecution := range mapAllIntermediateTxsAfterScheduledExecution {
-		scrsInfo := ste.getAllIntermediateTxsAfterScheduledExecution(
+		intermediateTxsInfo := ste.getAllIntermediateTxsAfterScheduledExecution(
 			mapAllIntermediateTxsBeforeScheduledExecution[blockType],
 			allIntermediateTxsAfterScheduledExecution,
+			blockType,
 		)
-		if len(scrsInfo) == 0 {
+		if len(intermediateTxsInfo) == 0 {
 			continue
 		}
 
-		sort.Slice(scrsInfo, func(a, b int) bool {
-			return bytes.Compare(scrsInfo[a].txHash, scrsInfo[b].txHash) < 0
+		sort.Slice(intermediateTxsInfo, func(a, b int) bool {
+			return bytes.Compare(intermediateTxsInfo[a].txHash, intermediateTxsInfo[b].txHash) < 0
 		})
 
 		if blockType == block.InvalidBlock {
-			ste.removeInvalidTxsFromScheduledMiniBlocks(scrsInfo)
+			ste.removeInvalidTxsFromScheduledMiniBlocks(intermediateTxsInfo)
 		}
 
-		ste.mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(scrsInfo))
-		for scrIndex, scrInfo := range scrsInfo {
-			ste.mapScheduledIntermediateTxs[blockType][scrIndex] = scrInfo.txHandler
-			log.Trace("scheduledTxsExecution.computeScheduledSCRs", "blockType", blockType, "sender", ste.mapScheduledIntermediateTxs[blockType][scrIndex].GetSndAddr(), "receiver", ste.mapScheduledIntermediateTxs[blockType][scrIndex].GetRcvAddr())
+		ste.mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(intermediateTxsInfo))
+		for index, interTxInfo := range intermediateTxsInfo {
+			ste.mapScheduledIntermediateTxs[blockType][index] = interTxInfo.txHandler
+			log.Trace("scheduledTxsExecution.computeScheduledIntermediateTxs", "blockType", blockType, "sender", ste.mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", ste.mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
 		}
 
-		numScheduledSCRs += len(scrsInfo)
+		numScheduledIntermediateTxs += len(intermediateTxsInfo)
 	}
 
-	log.Debug("scheduledTxsExecution.computeScheduledSCRs", "num of scheduled scrs created", numScheduledSCRs)
+	log.Debug("scheduledTxsExecution.computeScheduledIntermediateTxs", "num of scheduled intermediate txs created", numScheduledIntermediateTxs)
 }
 
-func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(scrsInfo []*intermediateTxInfo) {
-	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs", len(scrsInfo))
+func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(intermediateTxsInfo []*intermediateTxInfo) {
+	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs", len(intermediateTxsInfo))
 
 	numInvalidTxsRemoved := 0
-	for _, scrInfo := range scrsInfo {
+	for _, interTxInfo := range intermediateTxsInfo {
 		for index, miniBlock := range ste.scheduledMBs {
-			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(scrInfo.txHash, miniBlock)
+			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(interTxInfo.txHash, miniBlock)
 			if indexOfTxHashInMiniBlock >= 0 {
-				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "tx hash", scrInfo.txHash)
+				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "tx hash", interTxInfo.txHash)
 				ste.scheduledMBs[index].TxHashes = append(miniBlock.TxHashes[0:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
 				numInvalidTxsRemoved++
 				break
@@ -264,6 +266,7 @@ func getIndexOfTxHashInMiniBlock(txHash []byte, miniBlock *block.MiniBlock) int 
 func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
 	allIntermediateTxsBeforeScheduledExecution map[string]data.TransactionHandler,
 	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
+	blockType block.Type,
 ) []*intermediateTxInfo {
 	intermediateTxsInfo := make([]*intermediateTxInfo, 0)
 	for txHash, txHandler := range allIntermediateTxsAfterScheduledExecution {
@@ -272,8 +275,10 @@ func (ste *scheduledTxsExecution) getAllIntermediateTxsAfterScheduledExecution(
 			continue
 		}
 
-		if ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) {
-			log.Trace("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard scr skipped", "hash", []byte(txHash))
+		isInShardUnsignedTx := ste.shardCoordinator.SameShard(txHandler.GetSndAddr(), txHandler.GetRcvAddr()) &&
+			(blockType == block.ReceiptBlock || blockType == block.SmartContractResultBlock)
+		if isInShardUnsignedTx {
+			log.Trace("scheduledTxsExecution.getAllIntermediateTxsAfterScheduledExecution: intra shard unsigned tx skipped", "hash", []byte(txHash))
 			continue
 		}
 
@@ -297,7 +302,7 @@ func (ste *scheduledTxsExecution) GetScheduledTxs() []data.TransactionHandler {
 		log.Trace("scheduledTxsExecution.GetScheduledTxs", "sender", scheduledTxs[index].GetSndAddr(), "receiver", scheduledTxs[index].GetRcvAddr())
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledTxs", "num of scheduled txs", len(ste.scheduledTxs))
+	log.Debug("scheduledTxsExecution.GetScheduledTxs", "num of scheduled txs", len(scheduledTxs))
 
 	return scheduledTxs
 }
@@ -308,23 +313,23 @@ func (ste *scheduledTxsExecution) GetScheduledIntermediateTxs() map[block.Type][
 	defer ste.mutScheduledTxs.RUnlock()
 
 	numScheduledIntermediateTxs := 0
-	mapScheduleIntermediateTxs := make(map[block.Type][]data.TransactionHandler)
+	mapScheduledIntermediateTxs := make(map[block.Type][]data.TransactionHandler)
 	for blockType, scheduledIntermediateTxs := range ste.mapScheduledIntermediateTxs {
 		if len(scheduledIntermediateTxs) == 0 {
 			continue
 		}
 
-		mapScheduleIntermediateTxs[blockType] = make([]data.TransactionHandler, len(scheduledIntermediateTxs))
+		mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(scheduledIntermediateTxs))
 		for index, scheduledIntermediateTx := range scheduledIntermediateTxs {
-			mapScheduleIntermediateTxs[blockType][index] = scheduledIntermediateTx
-			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs", "blockType", blockType, "sender", mapScheduleIntermediateTxs[blockType][index].GetSndAddr(), "receiver", ste.mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
+			mapScheduledIntermediateTxs[blockType][index] = scheduledIntermediateTx
+			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs", "blockType", blockType, "sender", mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
 		}
 		numScheduledIntermediateTxs += len(scheduledIntermediateTxs)
 	}
 
 	log.Debug("scheduledTxsExecution.GetScheduledIntermediateTxs", "num of scheduled intermediate txs", numScheduledIntermediateTxs)
 
-	return ste.mapScheduledIntermediateTxs
+	return mapScheduledIntermediateTxs
 }
 
 // GetScheduledMBs gets the resulted mini blocks after the execution of scheduled transactions
@@ -345,12 +350,12 @@ func (ste *scheduledTxsExecution) GetScheduledMBs() block.MiniBlockSlice {
 		miniBlocks[index] = miniBlock
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledMBs", "num of scheduled mbs", len(ste.scheduledMBs))
+	log.Debug("scheduledTxsExecution.GetScheduledMBs", "num of scheduled mbs", len(miniBlocks))
 
 	return miniBlocks
 }
 
-// SetScheduledInfo sets the resulted scheduled mini blocks, root hash, SCRs, gas and fees after the execution of scheduled transactions
+// SetScheduledInfo sets the resulted scheduled mini blocks, root hash, intermediate txs, gas and fees after the execution of scheduled transactions
 func (ste *scheduledTxsExecution) SetScheduledInfo(scheduledInfo *process.ScheduledInfo) {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
@@ -440,15 +445,15 @@ func (ste *scheduledTxsExecution) SetScheduledRootHash(rootHash []byte) {
 // SetScheduledGasAndFees sets the gas and fees for the scheduled transactions
 func (ste *scheduledTxsExecution) SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees) {
 	ste.mutScheduledTxs.Lock()
-	ste.gasAndFees = gasAndFees
-	ste.mutScheduledTxs.Unlock()
+	defer ste.mutScheduledTxs.Unlock()
 
+	ste.gasAndFees = gasAndFees
 	log.Debug("scheduledTxsExecution.SetScheduledGasAndFees",
-		"accumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"developerFees", gasAndFees.DeveloperFees.String(),
-		"gasProvided", gasAndFees.GasProvided,
-		"gasPenalized", gasAndFees.GasPenalized,
-		"gasRefunded", gasAndFees.GasRefunded)
+		"accumulatedFees", ste.gasAndFees.AccumulatedFees.String(),
+		"developerFees", ste.gasAndFees.DeveloperFees.String(),
+		"gasProvided", ste.gasAndFees.GasProvided,
+		"gasPenalized", ste.gasAndFees.GasPenalized,
+		"gasRefunded", ste.gasAndFees.GasRefunded)
 }
 
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component
@@ -544,11 +549,11 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 		"length of marshalized scheduled info", len(marshalledScheduledInfo))
 	err = ste.storer.Put(headerHash, marshalledScheduledInfo)
 	if err != nil {
-		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledSCRsUnit", "error", err.Error())
+		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledIntermediateTxsUnit", "error", err.Error())
 	}
 }
 
-// getScheduledInfoForHeader gets scheduled mini blocks, root hash, SCRs, gas and fees of the given header from storage
+// getScheduledInfoForHeader gets scheduled mini blocks, root hash, intermediate txs, gas and fees of the given header from storage
 func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (*process.ScheduledInfo, error) {
 	var err error
 	defer func() {
@@ -605,6 +610,17 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 	ste.mutScheduledTxs.RUnlock()
 
 	return ok
+}
+
+// SetScheduledMiniBlocksAsExecuted sets all the scheduled mini blocks as executed
+func (ste *scheduledTxsExecution) SetScheduledMiniBlocksAsExecuted() {
+	ste.mutScheduledTxs.Lock()
+	defer ste.mutScheduledTxs.Unlock()
+
+	for index := range ste.scheduledMBs {
+		//TODO: Here should be set each mini block as executed with the real value when elrond-go-core PR will be done
+		ste.scheduledMBs[index].Reserved = nil
+	}
 }
 
 func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {
