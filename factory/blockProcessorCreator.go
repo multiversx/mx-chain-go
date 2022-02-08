@@ -824,10 +824,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 func (pcf *processComponentsFactory) createAlteredAccountsProvider() (process.AlteredAccountsProviderHandler, error) {
 	return alteredaccounts.NewAlteredAccountsProvider(alteredaccounts.ArgsAlteredAccountsProvider{
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		AddressConverter: pcf.coreData.AddressPubKeyConverter(),
-		AccountsDB:       pcf.state.AccountsAdapter(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AccountsDB:             pcf.state.AccountsAdapter(),
+		Marshalizer:            pcf.coreData.InternalMarshalizer(),
+		EsdtDataStorageHandler: pcf.esdtNftStorage,
 	})
 }
 

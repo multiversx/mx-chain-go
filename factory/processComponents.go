@@ -57,6 +57,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -101,6 +103,7 @@ type processComponents struct {
 	currentEpochProvider         dataRetriever.CurrentNetworkEpochProviderHandler
 	vmFactoryForTxSimulator      process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	esdtDataStorageForApi        vmcommon.ESDTNFTStorageHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -153,6 +156,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -478,6 +482,18 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	pcf.esdtNftStorage, err = vmcommonBuiltInFunctions.NewESDTDataStorage(vmcommonBuiltInFunctions.ArgsNewESDTDataStorage{
+		Accounts:                pcf.state.AccountsAdapterAPI(),
+		GlobalSettingsHandler:   disabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		SaveToSystemEnableEpoch: pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		EpochNotifier:           pcf.coreData.EpochNotifier(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessor, vmFactoryTxSimulator, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -582,6 +598,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		currentEpochProvider:         currentEpochProvider,
 		vmFactoryForTxSimulator:      vmFactoryTxSimulator,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		esdtDataStorageForApi:        pcf.esdtNftStorage,
 	}, nil
 }
 

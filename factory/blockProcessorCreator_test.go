@@ -115,6 +115,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts
 		},
+		AccountsAdapterAPICalled: func() state.AccountsAdapter {
+			return accounts
+		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &mock.TriesHolderStub{}
 		},

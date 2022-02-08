@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -260,6 +261,7 @@ type ProcessComponentsHolder interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	IsInterfaceNil() bool
 }
 

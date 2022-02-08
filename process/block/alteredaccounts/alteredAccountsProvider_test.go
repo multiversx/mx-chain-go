@@ -66,6 +66,17 @@ func TestNewAlteredAccountsProvider(t *testing.T) {
 		require.Equal(t, errNilMarshalizer, err)
 	})
 
+	t.Run("nil esdt data storage handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.EsdtDataStorageHandler = nil
+
+		aap, err := NewAlteredAccountsProvider(args)
+		require.Nil(t, aap)
+		require.Equal(t, errNilESDTDataStorageHandler, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -348,14 +359,14 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 		Properties: []byte("ok"),
 	}
 	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{
-				RetrieveValueFromDataTrieTrackerCalled: func(_ []byte) ([]byte, error) {
-					tokenBytes, _ := args.Marshalizer.Marshal(expectedToken)
-					return tokenBytes, nil
-				},
-			}, nil
+			return &state.UserAccountStub{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -410,14 +421,14 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 		},
 	}
 	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{
-				RetrieveValueFromDataTrieTrackerCalled: func(_ []byte) ([]byte, error) {
-					tokenBytes, _ := args.Marshalizer.Marshal(expectedToken)
-					return tokenBytes, nil
-				},
-			}, nil
+			return &state.UserAccountStub{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -463,14 +474,14 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 		},
 	}
 	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{
-				RetrieveValueFromDataTrieTrackerCalled: func(_ []byte) ([]byte, error) {
-					tokenBytes, _ := args.Marshalizer.Marshal(expectedToken)
-					return tokenBytes, nil
-				},
-			}, nil
+			return &state.UserAccountStub{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -522,14 +533,14 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 		},
 	}
 	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{
-				RetrieveValueFromDataTrieTrackerCalled: func(_ []byte) ([]byte, error) {
-					tokenBytes, _ := args.Marshalizer.Marshal(expectedToken)
-					return tokenBytes, nil
-				},
-			}, nil
+			return &state.UserAccountStub{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)
@@ -592,6 +603,25 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 		},
 	}
 	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			if strings.Contains(string(esdtTokenKey), "esdttoken") {
+				return &expectedToken0, false, nil
+			}
+
+			firstNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(5).Bytes()))
+			if strings.Contains(string(esdtTokenKey), firstNftKey) {
+				return &expectedToken1, false, nil
+			}
+
+			secondNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(6).Bytes()))
+			if strings.Contains(string(esdtTokenKey), secondNftKey) {
+				return &expectedToken2, false, nil
+			}
+
+			return nil, false, nil
+		},
+	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &state.UserAccountStub{
@@ -690,9 +720,10 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 
 func getMockArgs() ArgsAlteredAccountsProvider {
 	return ArgsAlteredAccountsProvider{
-		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
-		AddressConverter: &testscommon.PubkeyConverterMock{},
-		Marshalizer:      &testscommon.MarshalizerMock{},
-		AccountsDB:       &state.AccountsStub{},
+		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		Marshalizer:            &testscommon.MarshalizerMock{},
+		AccountsDB:             &state.AccountsStub{},
+		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 	}
 }

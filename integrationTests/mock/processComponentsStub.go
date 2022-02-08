@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ProcessComponentsStub -
@@ -44,6 +45,7 @@ type ProcessComponentsStub struct {
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
 // Create -
@@ -219,6 +221,11 @@ func (pcs *ProcessComponentsStub) String() string {
 // ScheduledTxsExecutionHandler -
 func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcs.ScheduledTxsExecutionHandlerInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcs.ESDTDataStorageHandlerForAPIInternal
 }
 
 // IsInterfaceNil -

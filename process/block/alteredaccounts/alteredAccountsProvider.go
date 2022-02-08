@@ -7,13 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var (
@@ -33,19 +33,21 @@ type markedAlteredAccount struct {
 
 // ArgsAlteredAccountsProvider holds the arguments needed for creating a new instance of alteredAccountsProvider
 type ArgsAlteredAccountsProvider struct {
-	ShardCoordinator sharding.Coordinator
-	AddressConverter core.PubkeyConverter
-	AccountsDB       state.AccountsAdapter
-	Marshalizer      marshal.Marshalizer
+	ShardCoordinator       sharding.Coordinator
+	AddressConverter       core.PubkeyConverter
+	AccountsDB             state.AccountsAdapter
+	Marshalizer            marshal.Marshalizer
+	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 }
 
 type alteredAccountsProvider struct {
-	shardCoordinator   sharding.Coordinator
-	addressConverter   core.PubkeyConverter
-	accountsDB         state.AccountsAdapter
-	marshalizer        marshal.Marshalizer
-	tokensProc         *tokensProcessor
-	mutExtractAccounts sync.Mutex
+	shardCoordinator       sharding.Coordinator
+	addressConverter       core.PubkeyConverter
+	accountsDB             state.AccountsAdapter
+	marshalizer            marshal.Marshalizer
+	tokensProc             *tokensProcessor
+	esdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
+	mutExtractAccounts     sync.Mutex
 }
 
 // NewAlteredAccountsProvider returns a new instance of alteredAccountsProvider
@@ -62,13 +64,17 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 	if check.IfNil(args.Marshalizer) {
 		return nil, errNilMarshalizer
 	}
+	if check.IfNil(args.EsdtDataStorageHandler) {
+		return nil, errNilESDTDataStorageHandler
+	}
 
 	return &alteredAccountsProvider{
-		shardCoordinator: args.ShardCoordinator,
-		addressConverter: args.AddressConverter,
-		accountsDB:       args.AccountsDB,
-		marshalizer:      args.Marshalizer,
-		tokensProc:       newTokensProcessor(args.ShardCoordinator),
+		shardCoordinator:       args.ShardCoordinator,
+		addressConverter:       args.AddressConverter,
+		accountsDB:             args.AccountsDB,
+		marshalizer:            args.Marshalizer,
+		tokensProc:             newTokensProcessor(args.ShardCoordinator),
+		esdtDataStorageHandler: args.EsdtDataStorageHandler,
 	}, nil
 }
 
@@ -152,17 +158,13 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	storageKey = append(storageKey, tokenKey...)
 
-	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(storageKey)
-	if err != nil {
-		log.Warn("cannot get ESDT data for address",
-			"address", encodedAddress,
-			"tokenKey", tokenKey,
-			"error", err)
+	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+	if !ok {
+		log.Warn("state.UserAccountHandler cannot be cast to vmcommon.UserAccountHandler", "address", aap.addressConverter.Encode(userAccount.GetOwnerAddress()))
 		return nil
 	}
 
-	var esdtToken esdt.ESDigitalToken
-	err = aap.marshalizer.Unmarshal(&esdtToken, esdtTokenBytes)
+	esdtToken, _,  err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)
 	if err != nil {
 		return err
 	}

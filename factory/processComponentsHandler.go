@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ ComponentHandler = (*managedProcessComponents)(nil)
@@ -150,6 +151,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
 		return errors.ErrNilScheduledTxsExecutionHandler
+	}
+	if check.IfNil(m.processComponents.esdtDataStorageForApi) {
+		return errors.ErrNilESDTDataStorage
 	}
 
 	return nil
@@ -525,6 +529,18 @@ func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.Schedu
 	}
 
 	return m.processComponents.scheduledTxsExecutionHandler
+}
+
+// ESDTDataStorageHandlerForAPI returns the esdt data storage handler to be used for API calls
+func (m *managedProcessComponents) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.esdtDataStorageForApi == nil {
+		return nil
+	}
+
+	return m.processComponents.esdtDataStorageForApi
 }
 
 // IsInterfaceNil returns true if the interface is nil

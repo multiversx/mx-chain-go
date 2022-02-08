@@ -13,3 +13,6 @@ var errNilAccountsDB = errors.New("nil accounts DB")
 
 // errNilMarshalizer signals that a nil marshalizer has been provided
 var errNilMarshalizer = errors.New("nil marshalizer")
+
+// errNilESDTDataStorageHandler signals that a nil esdt data storage handler has been provided
+var errNilESDTDataStorageHandler = errors.New("nil esdt data storage handler")

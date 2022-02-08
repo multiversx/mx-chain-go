@@ -455,9 +455,6 @@ var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 // ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
-// ErrNilLocker signals that a nil locker was provided
-var ErrNilLocker = errors.New("nil locker")
-
 // ErrNilCurrentEpochProvider signals that a nil current epoch provider was provided
 var ErrNilCurrentEpochProvider = errors.New("nil current epoch provider")
 
@@ -466,3 +463,6 @@ var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions 
 
 // ErrNilScheduledProcessor signals that a nil scheduled processor was provided
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
+var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
