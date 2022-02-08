@@ -15,6 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type interceptedDataSizeHandler interface {
+	SizeInBytes() int
+}
+
 func createHeartbeatInterceptorProcessArg() processor.ArgHeartbeatInterceptorProcessor {
 	return processor.ArgHeartbeatInterceptorProcessor{
 		HeartbeatCacher: testscommon.NewCacherStub(),
@@ -39,7 +43,7 @@ func createInterceptedHeartbeat() *heartbeatMessages.HeartbeatV2 {
 	}
 }
 
-func createMockInterceptedHeartbeat() *heartbeat.InterceptedHeartbeat {
+func createMockInterceptedHeartbeat() process.InterceptedData {
 	arg := heartbeat.ArgInterceptedHeartbeat{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			Marshalizer: &mock.MarshalizerMock{},
@@ -94,9 +98,11 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		arg.HeartbeatCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-				ihb := value.(*heartbeat.InterceptedHeartbeat)
+				ihb := value.(process.InterceptedData)
 				assert.True(t, bytes.Equal(providedHb.Identifiers()[0], ihb.Identifiers()[0]))
-				assert.Equal(t, providedHb.SizeInBytes(), ihb.SizeInBytes())
+				ihbSizeHandler := value.(interceptedDataSizeHandler)
+				providedHbSizeHandler := providedHb.(interceptedDataSizeHandler)
+				assert.Equal(t, providedHbSizeHandler.SizeInBytes(), ihbSizeHandler.SizeInBytes())
 				wasCalled = true
 				return false
 			},
@@ -119,4 +125,19 @@ func TestHeartbeatInterceptorProcessor_Validate(t *testing.T) {
 	assert.False(t, hip.IsInterfaceNil())
 	assert.Nil(t, hip.Validate(nil, ""))
 	hip.RegisterHandler(nil) // for coverage only, method only logs
+}
+
+func TestHeartbeatInterceptorProcessor_RegisterHandler(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	hip, err := processor.NewHeartbeatInterceptorProcessor(createHeartbeatInterceptorProcessArg())
+	assert.Nil(t, err)
+	assert.False(t, hip.IsInterfaceNil())
+	hip.RegisterHandler(nil)
 }
