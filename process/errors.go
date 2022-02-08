@@ -1078,3 +1078,9 @@ var ErrInvalidExpiryTimespan = errors.New("invalid expiry timespan")
 
 // ErrNilPeerSignatureHandler signals that a nil peer signature handler was provided
 var ErrNilPeerSignatureHandler = errors.New("nil peer signature handler")
+
+// ErrNilPeerAuthenticationCacher signals that a nil peer authentication cacher was provided
+var ErrNilPeerAuthenticationCacher = errors.New("nil peer authentication cacher")
+
+// ErrNilHeartbeatCacher signals that a nil heartbeat cacher was provided
+var ErrNilHeartbeatCacher = errors.New("nil heartbeat cacher")

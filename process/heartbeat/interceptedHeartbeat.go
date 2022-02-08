@@ -11,6 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const uint32Size = 4
+const uint64Size = 8
+
 // ArgBaseInterceptedHeartbeat is the base argument used for messages
 type ArgBaseInterceptedHeartbeat struct {
 	DataBuff    []byte
@@ -23,6 +26,7 @@ type ArgInterceptedHeartbeat struct {
 	PeerId core.PeerID
 }
 
+// interceptedHeartbeat is a wrapper over HeartbeatV2
 type interceptedHeartbeat struct {
 	heartbeat heartbeat.HeartbeatV2
 	payload   heartbeat.Payload
@@ -131,6 +135,15 @@ func (ihb *interceptedHeartbeat) String() string {
 		ihb.heartbeat.Nonce,
 		ihb.heartbeat.PeerSubType,
 		logger.DisplayByteSlice(ihb.heartbeat.Payload))
+}
+
+// SizeInBytes returns the size in bytes held by this instance
+func (ihb *interceptedHeartbeat) SizeInBytes() int {
+	return len(ihb.heartbeat.Payload) +
+		len(ihb.heartbeat.VersionNumber) +
+		len(ihb.heartbeat.NodeDisplayName) +
+		len(ihb.heartbeat.Identity) +
+		uint64Size + uint32Size
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

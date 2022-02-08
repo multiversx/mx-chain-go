@@ -33,6 +33,12 @@ func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
 	}
 }
 
+func getSizeOfHeartbeat(hb *heartbeat.HeartbeatV2) int {
+	return len(hb.Payload) + len(hb.VersionNumber) +
+		len(hb.NodeDisplayName) + len(hb.Identity) +
+		uint64Size + uint32Size
+}
+
 func createMockInterceptedHeartbeatArg(interceptedData *heartbeat.HeartbeatV2) ArgInterceptedHeartbeat {
 	arg := ArgInterceptedHeartbeat{}
 	arg.Marshalizer = &mock.MarshalizerMock{}
@@ -111,7 +117,7 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 	})
 }
 
-func Test_interceptedHeartbeat_CheckValidity(t *testing.T) {
+func TestInterceptedHeartbeat_CheckValidity(t *testing.T) {
 	t.Parallel()
 	t.Run("payloadProperty too short", testInterceptedHeartbeatPropertyLen(payloadProperty, false))
 	t.Run("payloadProperty too long", testInterceptedHeartbeatPropertyLen(payloadProperty, true))
@@ -175,10 +181,11 @@ func testInterceptedHeartbeatPropertyLen(property string, tooLong bool) func(t *
 	}
 }
 
-func Test_interceptedHeartbeat_Getters(t *testing.T) {
+func TestInterceptedHeartbeat_Getters(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
+	providedHB := createDefaultInterceptedHeartbeat()
+	arg := createMockInterceptedHeartbeatArg(providedHB)
 	ihb, _ := NewInterceptedHeartbeat(arg)
 	expectedHeartbeat := &heartbeat.HeartbeatV2{}
 	err := arg.Marshalizer.Unmarshal(expectedHeartbeat, arg.DataBuff)
@@ -187,4 +194,6 @@ func Test_interceptedHeartbeat_Getters(t *testing.T) {
 	assert.Equal(t, interceptedHeartbeatType, ihb.Type())
 	assert.Equal(t, []byte(""), ihb.Hash())
 	assert.Equal(t, arg.PeerId.Bytes(), ihb.Identifiers()[0])
+	providedHBSize := getSizeOfHeartbeat(providedHB)
+	assert.Equal(t, providedHBSize, ihb.SizeInBytes())
 }
