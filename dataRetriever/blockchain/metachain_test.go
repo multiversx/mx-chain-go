@@ -1,6 +1,7 @@
 package blockchain_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -41,6 +42,7 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 	}
 	hdrHash := []byte("hash")
 	genesisHash := []byte("genesis hash")
+	rootHash := []byte("root hash")
 
 	mc.SetCurrentBlockHeaderHash(hdrHash)
 	mc.SetGenesisHeaderHash(genesisHash)
@@ -48,7 +50,7 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 	err := mc.SetGenesisHeader(genesis)
 	assert.Nil(t, err)
 
-	err = mc.SetCurrentBlockHeader(hdr)
+	err = mc.SetCurrentBlockHeaderAndRootHash(hdr, rootHash)
 	assert.Nil(t, err)
 
 	assert.Equal(t, hdr, mc.GetCurrentBlockHeader())
@@ -59,19 +61,25 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 
 	assert.Equal(t, hdrHash, mc.GetCurrentBlockHeaderHash())
 	assert.Equal(t, genesisHash, mc.GetGenesisHeaderHash())
+
+	assert.Equal(t, rootHash, mc.GetCurrentBlockRootHash())
+	assert.NotEqual(t, fmt.Sprintf("%p", rootHash), fmt.Sprintf("%p", mc.GetCurrentBlockRootHash()))
 }
 
 func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	t.Parallel()
 
 	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
+	_ = mc.SetGenesisHeader(&block.MetaBlock{})
+	_ = mc.SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{}, []byte("root hash"))
 
 	err := mc.SetGenesisHeader(nil)
 	assert.Nil(t, err)
 
-	err = mc.SetCurrentBlockHeader(nil)
+	err = mc.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	assert.Nil(t, err)
 
 	assert.Nil(t, mc.GetGenesisHeader())
 	assert.Nil(t, mc.GetCurrentBlockHeader())
+	assert.Empty(t, mc.GetCurrentBlockRootHash())
 }

@@ -17,7 +17,7 @@ import (
 )
 
 func getMockChainHandler() data.ChainHandler {
-	return &mock.BlockChainStub{
+	return &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Epoch: 0,
@@ -48,7 +48,7 @@ func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go boot.syncBlocks(ctx)
 
-	//make sure go routine started and waited a few cycles of boot.syncBlocks
+	// make sure go routine started and waited a few cycles of boot.syncBlocks
 	time.Sleep(time.Second + sleepTime*10)
 	cancelFunc()
 
@@ -82,7 +82,7 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go boot.syncBlocks(ctx)
 
-	//make sure go routine started and waited a few cycles of boot.syncBlocks
+	// make sure go routine started and waited a few cycles of boot.syncBlocks
 	time.Sleep(time.Second + sleepTime*10)
 	cancelFunc()
 
@@ -187,7 +187,7 @@ func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {
 
 	genesisEpoch := uint32(1123)
 	boot := &baseBootstrap{
-		chainHandler: &mock.BlockChainStub{
+		chainHandler: &testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					Epoch: genesisEpoch,
@@ -209,7 +209,7 @@ func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 	genesisEpoch := uint32(1123)
 	headerEpoch := uint32(97493)
 	boot := &baseBootstrap{
-		chainHandler: &mock.BlockChainStub{
+		chainHandler: &testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					Epoch: genesisEpoch,
