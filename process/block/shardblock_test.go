@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -135,193 +136,88 @@ func CreateMockArgumentsMultiShard(
 
 // ------- NewBlockProcessor
 
-func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
+func TestNewShardProcessor(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
 
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
-	assert.Nil(t, sp)
-}
+	tests := []struct {
+		args        func() blproc.ArgShardProcessor
+		expectedErr error
+	}{
+		{
+			args: func() blproc.ArgShardProcessor {
+				return CreateMockArgumentsMultiShard(coreComponents, nil, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilDataComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = nil
 
-func TestNewBlockProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return nil
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilDataPoolHolder,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = &dataRetrieverMock.PoolsHolderStub{
+					HeadersCalled: func() dataRetriever.HeadersPool {
+						return nil
+					},
+				}
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilHeadersDataPool,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = &dataRetrieverMock.PoolsHolderStub{
+					HeadersCalled: func() dataRetriever.HeadersPool {
+						return &mock.HeadersCacherStub{}
+					},
+					TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+						return nil
+					},
+				}
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilTransactionPool,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.BlockChain = &testscommon.ChainHandlerStub{
+					GetGenesisHeaderCalled: func() data.HeaderHandler {
+						return nil
+					},
+				}
+				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilHeaderHandler,
+		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				return CreateMockArgumentsMultiShard(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: nil,
 		},
 	}
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
 
-	assert.Equal(t, process.ErrNilHeadersDataPool, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.Storage = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilStorage, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.Hash = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilHasher, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.IntMarsh = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilAccountsAdapter, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	bootstrapComponents.Coordinator = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilForkDetectorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.ForkDetector = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilForkDetector, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.RequestHandler = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilRequestHandler, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool([]byte("tx_hash1"))
-	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return nil
+	for _, test := range tests {
+		sp, err := blproc.NewShardProcessor(test.args())
+		if test.expectedErr != nil {
+			require.Nil(t, sp)
+			require.Error(t, err)
+			require.True(t, strings.Contains(err.Error(), test.expectedErr.Error()))
+		} else {
+			require.NotNil(t, sp)
+			require.Nil(t, err)
+		}
 	}
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = tdp
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilTransactionPool, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.TxCoordinator = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilTransactionCoordinator, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	coreComponents.UInt64ByteSliceConv = nil
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilUint64Converter, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.BlockSizeThrottler = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments(createComponentHolderMocks())
-	arguments.ScheduledTxsExecutionHandler = nil
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
-	assert.Nil(t, sp)
-}
-
-func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, err := blproc.NewShardProcessor(arguments)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, sp)
-	assert.False(t, sp.IsInterfaceNil())
 }
 
 // ------- ProcessBlock
