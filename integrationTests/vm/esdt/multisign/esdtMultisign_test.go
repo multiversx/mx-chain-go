@@ -49,7 +49,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
