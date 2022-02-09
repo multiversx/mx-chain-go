@@ -1,6 +1,8 @@
 package dataRetriever
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -8,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
@@ -86,8 +89,10 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.peerAuthentications, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
-	panicIfError("NewPoolsHolderMock", err)
+	holder.peerAuthentications = mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+		DefaultSpan: 10 * time.Second,
+		CacheExpiry: 10 * time.Second,
+	})
 
 	holder.heartbeats, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)

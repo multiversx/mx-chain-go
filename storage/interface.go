@@ -199,10 +199,17 @@ type SizedLRUCacheHandler interface {
 
 // TimeCacher defines the cache that can keep a record for a bounded time
 type TimeCacher interface {
+	Add(key string) error
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
+	RegisterHandler(handler SweepHandler)
 	IsInterfaceNil() bool
+}
+
+// SweepHandler defines a component which can be registered on TimeCaher
+type SweepHandler interface {
+	OnSweep(key []byte)
 }
 
 // AdaptedSizedLRUCache defines a cache that returns the evicted value

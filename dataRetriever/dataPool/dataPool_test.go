@@ -25,6 +25,8 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		TrieNodesChunks:          testscommon.NewCacherStub(),
 		CurrentBlockTransactions: &mock.TxForCurrentBlockStub{},
 		SmartContracts:           testscommon.NewCacherStub(),
+		PeerAuthentications:      testscommon.NewCacherStub(),
+		Heartbeats:               testscommon.NewCacherStub(),
 	}
 }
 
@@ -149,6 +151,8 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 		TrieNodesChunks:          testscommon.NewCacherStub(),
 		CurrentBlockTransactions: &mock.TxForCurrentBlockStub{},
 		SmartContracts:           testscommon.NewCacherStub(),
+		PeerAuthentications:      testscommon.NewCacherStub(),
+		Heartbeats:               testscommon.NewCacherStub(),
 	}
 
 	tdp, err := dataPool.NewDataPool(args)

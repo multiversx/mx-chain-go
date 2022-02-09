@@ -102,6 +102,12 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
+type PeerAuthenticationPoolConfig struct {
+	DefaultSpanInSec int
+	CacheExpiryInSec int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage               StorageConfig
@@ -144,6 +150,8 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	PeerAuthenticationPool      PeerAuthenticationPoolConfig
+	HeartbeatPool               CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -186,6 +194,8 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
+
+	HeartbeatExpiryTimespanInSec int64
 }
 
 // LogsConfig will hold settings related to the logging sub-system

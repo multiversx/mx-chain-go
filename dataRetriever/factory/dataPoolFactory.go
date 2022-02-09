@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -141,6 +143,17 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
+	peerAuthPool := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+		DefaultSpan: time.Duration(mainConfig.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(mainConfig.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
+	})
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatPool)
+	heartbeatPool, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)
+	}
+
 	currBlockTxs := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
@@ -153,6 +166,8 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currBlockTxs,
 		SmartContracts:           smartContracts,
+		PeerAuthentications:      peerAuthPool,
+		Heartbeats:               heartbeatPool,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

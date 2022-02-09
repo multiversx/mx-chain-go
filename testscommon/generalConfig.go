@@ -192,6 +192,7 @@ func GetGeneralConfig() config.Config {
 		},
 		TrieNodesChunksDataPool: getLRUCacheConfig(),
 		SmartContractDataPool:   getLRUCacheConfig(),
+		HeartbeatPool:           getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{

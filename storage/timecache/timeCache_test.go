@@ -1,11 +1,13 @@
 package timecache
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -213,6 +215,50 @@ func TestTimeCache_UpsertmoreSpanShouldUpdate(t *testing.T) {
 	recovered, ok := tc.Value(key)
 	require.True(t, ok)
 	assert.Equal(t, highSpan, recovered.span)
+}
+
+//------- RegisterHandler
+
+func TestTimeCache_RegisterNilHandler(t *testing.T) {
+	t.Parallel()
+
+	tc := NewTimeCache(time.Second)
+	tc.RegisterHandler(nil)
+	assert.Equal(t, 0, len(tc.sweepHandlers))
+	key := "key1"
+	_ = tc.Add(key)
+	tc.ClearMap()
+	tc.Sweep()
+
+	exists := tc.Has(key)
+
+	assert.False(t, exists)
+	assert.Equal(t, 0, len(tc.Keys()))
+}
+
+func TestTimeCache_RegisterHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	providedKey := "key1"
+	wasCalled := false
+	sh := &mock.SweepHandlerStub{
+		OnSweepCalled: func(key []byte) {
+			assert.True(t, bytes.Equal([]byte(providedKey), key))
+			wasCalled = true
+		},
+	}
+	tc := NewTimeCache(time.Second)
+	tc.RegisterHandler(sh)
+	assert.Equal(t, 1, len(tc.sweepHandlers))
+	_ = tc.Add(providedKey)
+	time.Sleep(time.Second)
+	tc.Sweep()
+
+	exists := tc.Has(providedKey)
+
+	assert.False(t, exists)
+	assert.Equal(t, 0, len(tc.Keys()))
+	assert.True(t, wasCalled)
 }
 
 //------- IsInterfaceNil
