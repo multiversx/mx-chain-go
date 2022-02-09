@@ -1268,12 +1268,14 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
 	headerHash := []byte("hash")
 	headerEpoch := uint32(101)
 	blockStartOfEpoch := &block.Header{
 		Epoch:              headerEpoch,
 		EpochStartMetaHash: headerHash,
 	}
+	errGetHeader := errors.New("error getting headers")
 
 	t.Run("header is not start of epoch, should not request any header", func(t *testing.T) {
 		t.Parallel()
@@ -1383,7 +1385,6 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		metaHeaderNonce := uint64(1)
 		requestsCt := &atomicCore.Counter{}
-		errGetHeader := errors.New("error getting headers by nonce and shard id")
 		headersPool := &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				require.Equal(t, headerHash, hash)
@@ -1498,7 +1499,6 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		metaHeaderNonce := uint64(1)
 		wasMetaHeaderRequested := &atomicCore.Flag{}
-		errGetHeader := errors.New("error getting headers by nonce and shard id")
 		headersPool := &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				require.Equal(t, headerHash, hash)
