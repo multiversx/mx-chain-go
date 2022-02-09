@@ -125,7 +125,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
 		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", encodedAddress)
-		return err
+		return errCannotCastToUserAccountHandler
 	}
 
 	alteredAccounts[encodedAddress] = &indexer.AlteredAccount{
@@ -160,8 +160,9 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 
 	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 	if !ok {
-		log.Warn("state.UserAccountHandler cannot be cast to vmcommon.UserAccountHandler", "address", aap.addressConverter.Encode(userAccount.GetOwnerAddress()))
-		return nil
+		log.Warn("state.UserAccountHandler cannot be cast to vmcommon.UserAccountHandler",
+			"address", aap.addressConverter.Encode(userAccount.GetOwnerAddress()))
+		return errCannotCastToVmCommonUserAccountHandler
 	}
 
 	esdtToken, _,  err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)

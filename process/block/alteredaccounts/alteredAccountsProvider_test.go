@@ -97,6 +97,7 @@ func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Run("should return all addresses in self shard", testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards)
 	t.Run("should return addresses from scrs, invalid and rewards", testExtractAlteredAccountsFromPoolScrsInvalidRewards)
 	t.Run("should check data from trie", testExtractAlteredAccountsFromPoolTrieDataChecks)
+	t.Run("should error when casting to vm common user account handler", testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUserAccountHandler)
 	t.Run("should include esdt data", testExtractAlteredAccountsFromPoolShouldIncludeESDT)
 	t.Run("should include nft data", testExtractAlteredAccountsFromPoolShouldIncludeNFT)
 	t.Run("should include receiver from tokens logs", testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTopics)
@@ -349,6 +350,55 @@ func testExtractAlteredAccountsFromPoolScrsInvalidRewards(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, res, 5)
+}
+
+func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUserAccountHandler(t *testing.T) {
+	t.Parallel()
+
+	expectedToken := esdt.ESDigitalToken{
+		Value:      big.NewInt(37),
+		Properties: []byte("ok"),
+	}
+	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
+	args.AccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &state.AccountWrapMock{}, nil
+		},
+	}
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+		Logs: []*data.LogData{
+			{
+				LogHandler: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+							},
+						},
+						{
+							Address:    []byte("addr"), // other event for the same token, to ensure it isn't added twice
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.Equal(t, errCannotCastToVmCommonUserAccountHandler, err)
+	require.Nil(t, res)
 }
 
 func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {

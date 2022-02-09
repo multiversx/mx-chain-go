@@ -482,14 +482,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	pcf.esdtNftStorage, err = vmcommonBuiltInFunctions.NewESDTDataStorage(vmcommonBuiltInFunctions.ArgsNewESDTDataStorage{
+	esdtDataStorageArgs := vmcommonBuiltInFunctions.ArgsNewESDTDataStorage{
 		Accounts:                pcf.state.AccountsAdapterAPI(),
 		GlobalSettingsHandler:   disabled.NewDisabledGlobalSettingHandler(),
 		Marshalizer:             pcf.coreData.InternalMarshalizer(),
 		SaveToSystemEnableEpoch: pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		EpochNotifier:           pcf.coreData.EpochNotifier(),
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
-	})
+	}
+	pcf.esdtNftStorage, err = vmcommonBuiltInFunctions.NewESDTDataStorage(esdtDataStorageArgs)
 	if err != nil {
 		return nil, err
 	}
