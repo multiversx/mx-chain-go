@@ -183,9 +183,6 @@ func createMockEpochStartBootstrapArgs(
 				Shards:   10,
 			},
 			Resolvers: generalCfg.Resolvers,
-			GeneralSettings: config.GeneralSettingsConfig{
-				StartInEpochEnabled: false,
-			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {
@@ -218,6 +215,311 @@ func createMockEpochStartBootstrapArgs(
 	}
 }
 
+func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	tests := []struct {
+		args          func() ArgsEpochStartBootstrap
+		expectedError error
+	}{
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.GenesisShardCoordinator = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilShardCoordinator,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.Messenger = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilMessenger,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.EconomicsData = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilEconomicsData,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.CoreComponentsHolder = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilCoreComponentsHolder,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.CryptoComponentsHolder = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilCryptoComponentsHolder,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				cryptoComp.PubKey = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilPubKey,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.Hash = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilHasher,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.IntMarsh = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilMarshalizer,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				cryptoComp.BlKeyGen = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilBlockKeyGen,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				cryptoComp.TxKeyGen = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilKeyGen,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				cryptoComp.TxSig = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilSingleSigner,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				cryptoComp.BlockSig = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilBlockSingleSigner,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.Marsh = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilTxSignMarshalizer,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.PathHdl = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilPathManager,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.GenesisNodesConfig = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilGenesisNodesConfig,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.Rater = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilRater,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.AddrPubKeyConv = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilPubkeyConverter,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.RoundHandler = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilRoundHandler,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.StorageUnitOpener = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilStorageUnitOpener,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.LatestStorageDataProvider = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilLatestStorageDataProvider,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.UInt64ByteSliceConv = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilUint64Converter,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.NodeShuffler = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilShuffler,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.GeneralConfig.EpochStartConfig.MinNumOfPeersToConsiderBlockValid = minNumPeersToConsiderMetaBlockValid - 1
+				return args
+			},
+			expectedError: epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart = minNumConnectedPeers - 1
+				return args
+			},
+			expectedError: epochStart.ErrNotEnoughNumConnectedPeers,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.ArgumentsParser = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilArgumentsParser,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.StatusHandler = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilStatusHandler,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.HeaderIntegrityVerifier = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilHeaderIntegrityVerifier,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.DataSyncerCreator = nil
+				return args
+			},
+			expectedError: epochStart.ErrNilScheduledDataSyncerFactory,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.TxSignHasherField = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilHasher,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				coreComp, cryptoComp := createComponentsForEpochStart()
+				coreComp.EpochNotifierField = nil
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				return args
+			},
+			expectedError: epochStart.ErrNilEpochNotifier,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes = 0
+				return args
+			},
+			expectedError: epochStart.ErrInvalidMaxHardCapForMissingNodes,
+		},
+		{
+			args: func() ArgsEpochStartBootstrap {
+				args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+				args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers = 0
+				return args
+			},
+			expectedError: epochStart.ErrInvalidNumConcurrentTrieSyncers,
+		},
+	}
+
+	for _, test := range tests {
+		epochStartProvider, err := NewEpochStartBootstrap(test.args())
+		require.Error(t, err)
+		require.True(t, errors.Is(err, test.expectedError))
+		require.True(t, epochStartProvider.IsInterfaceNil())
+	}
+}
+
+func TestNewEpochStartBootstrap_ShouldFail(t *testing.T) {
+	t.Parallel()
+
+	t.Run("fail to create whiteList cache", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.GeneralConfig.WhiteListPool = config.CacheConfig{}
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		assert.Error(t, err)
+		assert.Equal(t, storage.ErrNotSupportedCacheType, err)
+		assert.Nil(t, epochStartProvider)
+	})
+}
+
 func TestNewEpochStartBootstrap(t *testing.T) {
 	t.Parallel()
 
@@ -229,52 +531,16 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 	assert.False(t, check.IfNil(epochStartProvider))
 }
 
-func TestNewEpochStartBootstrap_NilTxSignHasherShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	coreComp.TxSignHasherField = nil
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	epochStartProvider, err := NewEpochStartBootstrap(args)
-	assert.Nil(t, epochStartProvider)
-	assert.True(t, errors.Is(err, epochStart.ErrNilHasher))
-}
-
-func TestNewEpochStartBootstrap_NilEpochNotifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	coreComp.EpochNotifierField = nil
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	epochStartProvider, err := NewEpochStartBootstrap(args)
-	assert.Nil(t, epochStartProvider)
-	assert.True(t, errors.Is(err, epochStart.ErrNilEpochNotifier))
-}
-
-func TestNewEpochStartBootstrap_InvalidMaxHardCapForMissingNodesShouldErr(t *testing.T) {
+func TestNewEpochStartBootstrap_HardForkShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes = 0
+	args.GeneralConfig.Hardfork.AfterHardFork = true
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)
-	assert.Nil(t, epochStartProvider)
-	assert.True(t, errors.Is(err, epochStart.ErrInvalidMaxHardCapForMissingNodes))
-}
-
-func TestNewEpochStartBootstrap_InvalidNumConcurrentTrieSyncersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers = 0
-
-	epochStartProvider, err := NewEpochStartBootstrap(args)
-	assert.Nil(t, epochStartProvider)
-	assert.True(t, errors.Is(err, epochStart.ErrInvalidNumConcurrentTrieSyncers))
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(epochStartProvider))
 }
 
 func TestIsStartInEpochZero(t *testing.T) {
