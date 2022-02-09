@@ -16,6 +16,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -140,6 +141,8 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
+	debug.ClearAll()
+	defer debug.PrintAll()
 
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
@@ -318,6 +321,15 @@ func (sp *shardProcessor) ProcessBlock(
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
 		return err
+	}
+
+	for _, mb := range body.MiniBlocks {
+		mbHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, mb)
+		log.Debug("executed miniblock", "hash", mbHash, "type", mb.Type.String())
+
+		for _, txHash := range mb.TxHashes {
+			debug.DetectorForIncoming.AddTxHash(txHash, mbHash)
+		}
 	}
 
 	return nil
@@ -742,6 +754,9 @@ func (sp *shardProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	debug.ClearAll()
+	defer debug.PrintAll()
+
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}
@@ -782,6 +797,15 @@ func (sp *shardProcessor) CreateBlock(
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
 			"num txs", len(miniBlock.TxHashes))
+	}
+
+	for _, mb := range finalBody.MiniBlocks {
+		mbHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, mb)
+		log.Debug("created miniblock", "hash", mbHash, "type", mb.Type.String())
+
+		for _, txHash := range mb.TxHashes {
+			debug.DetectorForProcessing.AddTxHash(txHash, mbHash)
+		}
 	}
 
 	return shardHdr, finalBody, nil

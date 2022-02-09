@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -1329,10 +1330,17 @@ func (txs *transactions) computeSortedTxs(
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+	for _, stx := range sortedTxs {
+		debug.DetectorForGetSortedTransactions.AddTxHash(stx.TxHash, debug.GenericMiniBlockHash)
+	}
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
+
+	for _, stx := range sortedTxs {
+		debug.DetectorForSortTransactionsBySenderAndNonce.AddTxHash(stx.TxHash, debug.GenericMiniBlockHash)
+	}
 
 	return selectedTxs, remainingTxs, nil
 }

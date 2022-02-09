@@ -672,11 +672,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		//TODO: Should be removed this condition, just to allow processing of any kind of mbs as scheduled in destination shard?
-		//If this will be removed avoid to process mini blocks of type SmartContractResults or implement scheduled support there
+		// TODO: Should be removed this condition, just to allow processing of any kind of mbs as scheduled in destination shard?
+		//  If this will be removed avoid to process mini blocks of type SmartContractResults or implement scheduled support there
 		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			//TODO: Change this to log.Trace
+			// TODO: Change this to log.Trace
 			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block was not scheduled in sender shard",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
