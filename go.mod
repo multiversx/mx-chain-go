@@ -28,13 +28,22 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-libp2p v0.14.4
+	github.com/libp2p/go-conn-security v0.1.0 // indirect
+	github.com/libp2p/go-libp2p v6.0.23+incompatible
 	github.com/libp2p/go-libp2p-core v0.8.6
+	github.com/libp2p/go-libp2p-host v0.1.0 // indirect
+	github.com/libp2p/go-libp2p-interface-connmgr v0.1.0 // indirect
+	github.com/libp2p/go-libp2p-interface-pnet v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
+	github.com/libp2p/go-libp2p-metrics v0.1.0 // indirect
+	github.com/libp2p/go-libp2p-net v0.1.0 // indirect
+	github.com/libp2p/go-libp2p-protocol v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.5.5
+	github.com/libp2p/go-libp2p-transport v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.6
 	github.com/libp2p/go-tcp-transport v0.2.8
+	github.com/libp2p/go-testutil v0.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pelletier/go-toml v1.9.3
@@ -43,7 +52,11 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.5
+	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible // indirect
+	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible // indirect
+	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
+	github.com/whyrusleeping/yamux v1.2.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
