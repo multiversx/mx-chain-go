@@ -823,13 +823,29 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 	return nil
 }
 
-func (bp *baseProcessor) removeTxsFromPools(bodyHandler data.BodyHandler) error {
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
+func (bp *baseProcessor) removeTxsFromPools(body *block.Body) error {
+	miniBlocks := bp.getAllMiniBlocksWithoutScheduledFromMe(body)
+	return bp.txCoordinator.RemoveTxsFromPool(&block.Body{MiniBlocks: miniBlocks})
+}
+
+func (bp *baseProcessor) getAllMiniBlocksWithoutScheduledFromMe(body *block.Body) block.MiniBlockSlice {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return body.MiniBlocks
 	}
 
-	return bp.txCoordinator.RemoveTxsFromPool(body)
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	for _, miniBlock := range body.MiniBlocks {
+		isMiniBlockNotEmpty := len(miniBlock.TxHashes) > 0
+		isScheduledMiniBlock := isMiniBlockNotEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
+		isScheduledMiniBlockFromMe := isScheduledMiniBlock && miniBlock.SenderShardID == bp.shardCoordinator.SelfId()
+		if isScheduledMiniBlockFromMe {
+			continue
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return miniBlocks
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
@@ -1189,7 +1205,7 @@ func (bp *baseProcessor) updateStateStorage(
 // RevertCurrentBlock reverts the current block for cleanup failed process
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
-	bp.revertScheduledRootHashSCRsGasAndFees()
+	bp.revertScheduledInfo()
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1201,11 +1217,11 @@ func (bp *baseProcessor) revertAccountState() {
 	}
 }
 
-func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
+func (bp *baseProcessor) revertScheduledInfo() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		log.Trace("baseProcessor.revertScheduledRootHashSCRsAndGas", "error", err.Error())
+		log.Trace("baseProcessor.revertScheduledInfo", "error", err.Error())
 		scheduledInfo := &process.ScheduledInfo{
 			RootHash:        header.GetRootHash(),
 			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
@@ -1677,7 +1693,13 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	}
 }
 
+// For the expected results, this method should not be called anymore after the call of method txCoordinator.ProcessBlockTransaction
+// from ProcessBlock (shardblock.go and metablock.go), as the executed scheduled mini blocks will be overwritten with those for the new block
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler, body *block.Body) int {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return 0
+	}
+
 	var mbIndex int
 	for index := range body.MiniBlocks {
 		mbHash := header.GetMiniBlockHeadersHashes()[index]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 
@@ -304,7 +305,7 @@ func TestStartInEpochWithScheduledDataSyncer_prepareScheduledSCRs(t *testing.T) 
 	// TODO: add test
 }
 
-func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_filterScheduledIntermediateTxs(t *testing.T) {
 	t.Parallel()
 
 	sds := &startInEpochWithScheduledDataSyncer{}
@@ -330,15 +331,71 @@ func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
 		scheduledSCR2Hash: allTxsMap[scheduledSCR2Hash],
 	}
 
-	scheduledTxs, err := sds.filterScheduledSCRs(scheduledTxHashesMap, allTxsMap)
+	miniBlocks := make(map[string]*block.MiniBlock)
+	miniBlocks["1"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("scheduledSCR1Hash")},
+	}
+	miniBlocks["2"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("scheduledSCR2Hash")},
+	}
+	miniBlocks["3"] = &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("regularTxHash1")},
+	}
+	miniBlocks["1"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("regularTxHash2")},
+	}
+
+	scheduledTxs, err := sds.filterScheduledIntermediateTxs(miniBlocks, scheduledTxHashesMap, allTxsMap)
 	require.Nil(t, err)
 	require.Equal(t, expectedScheduledTxsMap, scheduledTxs)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoScheduledRootHash(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_getScheduledIntermediateTxsMap(t *testing.T) {
+	tx1 := &smartContractResult.SmartContractResult{Nonce: 0}
+	tx2 := &smartContractResult.SmartContractResult{Nonce: 1}
+	tx3 := &transaction.Transaction{Nonce: 2}
+	tx4 := &smartContractResult.SmartContractResult{Nonce: 3}
+
+	intermediateTxs := map[string]data.TransactionHandler{
+		"hash1": tx1,
+		"hash2": tx2,
+		"hash3": tx3,
+		"hash4": tx4,
+	}
+
+	miniBlocks := make(map[string]*block.MiniBlock)
+	miniBlocks["1"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("hash1")},
+	}
+	miniBlocks["2"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("hash2")},
+	}
+	miniBlocks["3"] = &block.MiniBlock{
+		Type:     block.InvalidBlock,
+		TxHashes: [][]byte{[]byte("hash3")},
+	}
+	miniBlocks["4"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("hash4")},
+	}
+
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(miniBlocks, intermediateTxs)
+	require.Equal(t, 2, len(scheduledIntermediateTxsMap))
+	require.Equal(t, 3, len(scheduledIntermediateTxsMap[block.SmartContractResultBlock]))
+	require.Equal(t, 1, len(scheduledIntermediateTxsMap[block.InvalidBlock]))
+	assert.Equal(t, tx3, scheduledIntermediateTxsMap[block.InvalidBlock][0])
+}
+
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfoNoScheduledRootHash(t *testing.T) {
 	t.Parallel()
 
-	scheduledSCRs := map[string]data.TransactionHandler{}
+	scheduledIntermediateTxs := map[string]data.TransactionHandler{}
 	headerHash := []byte("header hash")
 	gasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
@@ -353,10 +410,17 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoSchedu
 		},
 	}
 
-	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, nil, headerHash, gasAndFees)
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        nil,
+		IntermediateTxs: scheduledIntermediateTxsMap,
+		GasAndFees:      gasAndFees,
+		MiniBlocks:      make(block.MiniBlockSlice, 0),
+	}
+	sds.saveScheduledInfo(headerHash, scheduledInfo)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfo(t *testing.T) {
 	t.Parallel()
 
 	scr1 := &smartContractResult.SmartContractResult{
@@ -366,7 +430,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 		Nonce: 1,
 	}
 
-	scheduledSCRs := map[string]data.TransactionHandler{
+	scheduledIntermediateTxs := map[string]data.TransactionHandler{
 		"txHash1": scr1,
 		"txHash2": scr2,
 	}
@@ -404,7 +468,14 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 		},
 	}
 
-	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, scheduledRootHash, headerHash, gasAndFees)
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledRootHash,
+		IntermediateTxs: scheduledIntermediateTxsMap,
+		GasAndFees:      gasAndFees,
+		MiniBlocks:      make(block.MiniBlockSlice, 0),
+	}
+	sds.saveScheduledInfo(headerHash, scheduledInfo)
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocksWithSyncErrorShouldErr(t *testing.T) {

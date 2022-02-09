@@ -206,10 +206,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	sp.blockChainHook.SetCurrentHeader(header)
 
-	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
-	miniBlocks := body.MiniBlocks[mbIndex:]
-
-	sp.txCoordinator.RequestBlockTransactions(&block.Body{MiniBlocks: miniBlocks})
+	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
 
 	if haveTime() < 0 {
@@ -292,6 +289,9 @@ func (sp *shardProcessor) ProcessBlock(
 			sp.RevertCurrentBlock()
 		}
 	}()
+
+	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
+	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
@@ -1001,7 +1001,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeTxsFromPools(bodyHandler)
+	errNotCritical = sp.removeTxsFromPools(body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}

@@ -267,15 +267,12 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
-	miniBlocks := body.MiniBlocks[mbIndex:]
-
 	if header.IsStartOfEpochBlock() {
-		err = mp.processEpochStartMetaBlock(header, &block.Body{MiniBlocks: miniBlocks})
+		err = mp.processEpochStartMetaBlock(header, body)
 		return err
 	}
 
-	mp.txCoordinator.RequestBlockTransactions(&block.Body{MiniBlocks: miniBlocks})
+	mp.txCoordinator.RequestBlockTransactions(body)
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -342,6 +339,9 @@ func (mp *metaProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
+
+	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
+	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	if err != nil {
@@ -1322,7 +1322,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
-	errNotCritical = mp.removeTxsFromPools(bodyHandler)
+	errNotCritical = mp.removeTxsFromPools(body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
