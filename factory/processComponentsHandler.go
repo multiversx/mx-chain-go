@@ -151,7 +151,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
 		return errors.ErrNilScheduledTxsExecutionHandler
 	}
-
+	if check.IfNil(m.processComponents.txsSender) {
+		return errors.ErrNilTxsSender
+	}
 	return nil
 }
 
@@ -525,6 +527,18 @@ func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.Schedu
 	}
 
 	return m.processComponents.scheduledTxsExecutionHandler
+}
+
+// TxsSenderHandler returns the transactions sender handler
+func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.txsSender
 }
 
 // IsInterfaceNil returns true if the interface is nil

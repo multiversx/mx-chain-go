@@ -260,6 +260,7 @@ type ProcessComponentsHolder interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	TxsSenderHandler() process.TxsSenderHandler
 	IsInterfaceNil() bool
 }
 

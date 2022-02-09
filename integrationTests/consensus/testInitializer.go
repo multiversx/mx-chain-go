@@ -452,6 +452,7 @@ func createConsensusOnlyNode(
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
 	stateComponents.Accounts = accntAdapter
+	stateComponents.AccountsAPI = accntAdapter
 
 	networkComponents := integrationTests.GetDefaultNetworkComponents()
 	networkComponents.Messenger = messenger

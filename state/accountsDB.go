@@ -78,7 +78,7 @@ type AccountsDB struct {
 	lastRootHash []byte
 	dataTries    common.TriesHolder
 	entries      []JournalEntry
-	//TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
+	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
 	mutOp                sync.RWMutex
 	processingMode       common.NodeProcessingMode
 	numCheckpoints       uint32
