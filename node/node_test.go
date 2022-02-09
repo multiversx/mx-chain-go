@@ -3546,6 +3546,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
 	}
 }
 
