@@ -12,7 +12,6 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
@@ -79,6 +78,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -2194,7 +2194,6 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
-	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond, log)
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
@@ -2235,6 +2234,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
@@ -2245,12 +2245,12 @@ func (tpn *TestProcessorNode) initNode() {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
 	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
 
-	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tpn.Messenger
-
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tpn.Messenger
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -2263,7 +2263,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	log.LogIfError(err)
@@ -2828,6 +2827,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
 
 	redundancyHandler := &mock.RedundancyHandlerStub{}
 
@@ -3068,4 +3068,25 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 	}
 
 	return nil
+}
+
+func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSender.NetworkMessenger) process.TxsSenderHandler {
+	txAccumulatorConfig := config.TxAccumulatorConfig{
+		MaxAllowedTimeInMilliseconds:   10,
+		MaxDeviationTimeInMilliseconds: 1,
+	}
+	dataPacker, err := partitioning.NewSimpleDataPacker(TestMarshalizer)
+	log.LogIfError(err)
+
+	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
+		Marshaller:        TestMarshalizer,
+		ShardCoordinator:  shardCoordinator,
+		NetworkMessenger:  messenger,
+		AccumulatorConfig: txAccumulatorConfig,
+		DataPacker:        dataPacker,
+	}
+	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
+	log.LogIfError(err)
+
+	return txsSenderHandler
 }

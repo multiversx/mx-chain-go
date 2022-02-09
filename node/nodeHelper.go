@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -152,19 +151,6 @@ func CreateNode(
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
-	var err error
-
-	var txAccumulator core.Accumulator
-	txAccumulatorConfig := config.Antiflood.TxAccumulator
-	txAccumulator, err = accumulator.NewTimeAccumulator(
-		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
-		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
-		log,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
@@ -220,7 +206,6 @@ func CreateNode(
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
 		WithPeerDenialEvaluator(peerDenialEvaluator),
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
-		WithTxAccumulator(txAccumulator),
 		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
 		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),

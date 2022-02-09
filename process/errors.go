@@ -1057,3 +1057,6 @@ var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not 
 
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
+
+// ErrNoTxToProcess signals that no transaction were sent for processing
+var ErrNoTxToProcess = errors.New("no transaction to process")
