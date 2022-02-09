@@ -55,7 +55,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()
@@ -138,7 +138,7 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()
@@ -204,7 +204,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()

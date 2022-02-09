@@ -705,6 +705,7 @@ type GasHandler interface {
 	GasPenalized(hash []byte) uint64
 	TotalGasProvided() uint64
 	TotalGasProvidedAsScheduled() uint64
+	TotalGasProvidedWithScheduled() uint64
 	TotalGasRefunded() uint64
 	TotalGasPenalized() uint64
 	RemoveGasProvided(hashes [][]byte)
@@ -1145,5 +1146,12 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// TxsSenderHandler handles transactions sending
+type TxsSenderHandler interface {
+	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }

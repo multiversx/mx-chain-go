@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -69,7 +70,7 @@ func createMockArgument(
 					return mock.NewStorerMock()
 				},
 			},
-			Blkc:     &mock.BlockChainStub{},
+			Blkc:     &testscommon.ChainHandlerStub{},
 			DataPool: dataRetrieverMock.NewPoolsHolderMock(),
 		},
 		InitialNodesSetup: &mock.InitialNodesSetupHandlerStub{},

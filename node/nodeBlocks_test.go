@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -591,12 +592,17 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
 	}
 }
 
 func getDefaultDataComponents() *factory.DataComponentsMock {
 	return &factory.DataComponentsMock{
-		BlockChain: &mock.ChainHandlerStub{},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
