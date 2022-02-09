@@ -43,9 +43,6 @@ var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
 
-// ErrNoTxToProcess signals that no transaction were sent for processing
-var ErrNoTxToProcess = errors.New("no transaction to process")
-
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
@@ -150,3 +147,6 @@ var ErrCannotCastAccountHandlerToUserAccountHandler = errors.New("cannot cast ac
 
 // ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler signals that an user account handler cannot be cast to vm common user account handler
 var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("cannot cast user account handler to vm common user account handler")
+
+// ErrNilBlockHeader signals that current block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")
