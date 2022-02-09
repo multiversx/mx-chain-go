@@ -303,22 +303,25 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, pkBytes, recoveredMessage.Pubkey)
 		assert.Equal(t, args.Messenger.ID().Pretty(), core.PeerID(recoveredMessage.Pid).Pretty())
-		// verify BLS sig on having the payload == message's pid
-		err = args.PeerSignatureHandler.VerifyPeerSignature(recoveredMessage.Pubkey, core.PeerID(recoveredMessage.Pid), recoveredMessage.Signature)
-		assert.Nil(t, err)
-		// verify ed25519 sig having the payload == message's payload
-		err = messenger.Verify(recoveredMessage.Payload, core.PeerID(recoveredMessage.Pid), recoveredMessage.PayloadSignature)
-		assert.Nil(t, err)
+		t.Run("verify BLS sig on having the payload == message's pid", func(t *testing.T) {
+			errVerify := args.PeerSignatureHandler.VerifyPeerSignature(recoveredMessage.Pubkey, core.PeerID(recoveredMessage.Pid), recoveredMessage.Signature)
+			assert.Nil(t, errVerify)
+		})
+		t.Run("verify ed25519 sig having the payload == message's payload", func(t *testing.T) {
+			errVerify := messenger.Verify(recoveredMessage.Payload, core.PeerID(recoveredMessage.Pid), recoveredMessage.PayloadSignature)
+			assert.Nil(t, errVerify)
+		})
+		t.Run("verify payload", func(t *testing.T) {
+			recoveredPayload := &heartbeat.Payload{}
+			err = args.Marshaller.Unmarshal(recoveredPayload, recoveredMessage.Payload)
+			assert.Nil(t, err)
 
-		recoveredPayload := &heartbeat.Payload{}
-		err = args.Marshaller.Unmarshal(recoveredPayload, recoveredMessage.Payload)
-		assert.Nil(t, err)
+			endTime := time.Now()
 
-		endTime := time.Now()
-
-		messageTime := time.Unix(recoveredPayload.Timestamp, 0)
-		assert.True(t, startTime.Unix() <= messageTime.Unix())
-		assert.True(t, messageTime.Unix() <= endTime.Unix())
+			messageTime := time.Unix(recoveredPayload.Timestamp, 0)
+			assert.True(t, startTime.Unix() <= messageTime.Unix())
+			assert.True(t, messageTime.Unix() <= endTime.Unix())
+		})
 	})
 }
 
