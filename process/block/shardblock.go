@@ -2087,7 +2087,7 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
-	_ data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -2101,7 +2101,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	// Remove mini blocks which are not final from "body" to avoid sending them (all the scheduled mini blocks from me)
-	newBodyToBroadcast := sp.getAllNotScheduledMiniBlocks(body)
+	newBodyToBroadcast := sp.getAllNotScheduledMiniBlocks(header, body)
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
@@ -2128,16 +2128,17 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (sp *shardProcessor) getAllNotScheduledMiniBlocks(body *block.Body) *block.Body {
+func (sp *shardProcessor) getAllNotScheduledMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
 	if !sp.flagScheduledMiniBlocks.IsSet() {
 		return body
 	}
 
 	var miniBlocks block.MiniBlockSlice
 
-	for _, miniBlock := range body.MiniBlocks {
+	for index, miniBlock := range body.MiniBlocks {
 		isScheduledMiniBlockFromMe := miniBlock.SenderShardID == sp.shardCoordinator.SelfId() && miniBlock.IsScheduledMiniBlock()
 		if isScheduledMiniBlockFromMe {
+			log.Debug("shardProcessor.getAllNotScheduledMiniBlocks: do not broadcast mini block which is not final", "mb hash", header.GetMiniBlockHeadersHashes()[index])
 			continue
 		}
 
