@@ -1294,6 +1294,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			},
 		}
 		err := shardProc.RequestEpochStartInfo(header, haveTime)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 	})
 
@@ -1315,6 +1316,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 		shardProc, _ := blproc.NewShardProcessor(args)
 
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 	})
 
@@ -1335,6 +1337,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		shardProc, _ := blproc.NewShardProcessor(args)
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 	})
 
@@ -1364,6 +1367,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		shardProc, _ := blproc.NewShardProcessor(args)
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 		require.Equal(t, int64(1), requestsCt.Get())
 	})
@@ -1377,6 +1381,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			return -1 * time.Millisecond
 		}
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, noTimeFunc)
+		time.Sleep(time.Second)
 		require.Equal(t, process.ErrTimeIsOut, err)
 	})
 
@@ -1438,6 +1443,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		shardProc, _ := blproc.NewShardProcessor(args)
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 		require.Equal(t, int64(2), requestsCt.Get())
 	})
@@ -1490,6 +1496,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		shardProc, _ := blproc.NewShardProcessor(args)
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, haveTime)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 		require.Equal(t, int64(1), requestMetaHeaderCt.Get())
 	})
@@ -1554,6 +1561,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		shardProc, _ := blproc.NewShardProcessor(args)
 		err := shardProc.RequestEpochStartInfo(blockStartOfEpoch, timeLeft)
+		time.Sleep(time.Second)
 		require.Nil(t, err)
 		require.Equal(t, int64(2), ct.Get())
 	})
