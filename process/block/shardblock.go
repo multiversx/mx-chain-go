@@ -2100,10 +2100,13 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
+	// Remove mini blocks which are not final from "body" to avoid sending them (all the scheduled mini blocks from me)
+	newBodyToBroadcast := sp.getAllNotScheduledMiniBlocks(body)
+
+	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body.MiniBlocks {
+	for _, miniBlock := range newBodyToBroadcast.MiniBlocks {
 		if miniBlock.SenderShardID != sp.shardCoordinator.SelfId() ||
 			miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
 			continue
@@ -2123,6 +2126,25 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
+}
+
+func (sp *shardProcessor) getAllNotScheduledMiniBlocks(body *block.Body) *block.Body {
+	if !sp.flagScheduledMiniBlocks.IsSet() {
+		return body
+	}
+
+	var miniBlocks block.MiniBlockSlice
+
+	for _, miniBlock := range body.MiniBlocks {
+		isScheduledMiniBlockFromMe := miniBlock.SenderShardID == sp.shardCoordinator.SelfId() && miniBlock.IsScheduledMiniBlock()
+		if isScheduledMiniBlockFromMe {
+			continue
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

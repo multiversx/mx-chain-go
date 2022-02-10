@@ -4803,3 +4803,5 @@ func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, headerV2.GetDeveloperFees())
 	assert.Equal(t, zeroInt, headerV2.GetAccumulatedFees())
 }
+
+//TODO: Add unit test for method getAllNotScheduledMiniBlocks

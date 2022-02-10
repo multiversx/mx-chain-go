@@ -9,6 +9,8 @@ import (
 )
 
 const maxLenMiniBlockReservedField = 10
+
+//TODO: This value should be increased when field "Reserved" from mini block header will contain more info
 const maxLenMiniBlockHeaderReservedField = 1
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {

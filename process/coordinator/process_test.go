@@ -3992,4 +3992,4 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	assert.Equal(t, len(txHashes), numTxsFeesReverted)
 }
 
-//TODO: Add unit tests for AddIntermediateTransactions and GetAllIntermediateTxs methods
+//TODO: Add unit tests for methods: AddIntermediateTransactions, GetAllIntermediateTxs, getAllFinalCrossMiniBlockInfos and getMiniBlockHeaderWithHash

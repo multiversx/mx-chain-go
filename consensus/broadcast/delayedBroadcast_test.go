@@ -1413,3 +1413,5 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	vbd = dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 }
+
+//TODO: Add unit tests for methods: getAllFinalCrossMiniBlockHashes, getMiniBlockHeaderWithHash and shouldSkipAddingMiniBlockHeader

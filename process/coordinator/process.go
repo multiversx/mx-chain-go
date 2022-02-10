@@ -595,7 +595,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		tc.gasHandler.Reset()
 	}
 
-	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
+	crossMiniBlockInfos := tc.getAllFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
 
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
@@ -753,6 +753,47 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	return miniBlocks, numTxAdded, allMBsProcessed, nil
+}
+
+func (tc *transactionCoordinator) getAllFinalCrossMiniBlockInfos(
+	crossMiniBlockInfos []*data.MiniBlockInfo,
+	header data.HeaderHandler,
+) []*data.MiniBlockInfo {
+
+	if !tc.flagScheduledMiniBlocks.IsSet() {
+		return crossMiniBlockInfos
+	}
+
+	miniBlockInfos := make([]*data.MiniBlockInfo, 0)
+	for _, crossMiniBlockInfo := range crossMiniBlockInfos {
+		miniBlockHeader := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
+		if miniBlockHeader != nil {
+			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
+				log.Debug("transactionCoordinator.getAllFinalCrossMiniBlockInfos: skip execution for not final mini block", "mb hash", miniBlockHeader.GetHash())
+				continue
+			}
+		}
+
+		miniBlockInfos = append(miniBlockInfos, crossMiniBlockInfo)
+	}
+
+	return miniBlockInfos
+}
+
+func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader
+		}
+	}
+	return nil
+}
+
+func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
+	//TODO: This check should be done using isFinal method later
+	reserved := miniBlockHeader.GetReserved()
+	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
+	return isScheduledFromShardID
 }
 
 func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {

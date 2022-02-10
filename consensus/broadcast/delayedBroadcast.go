@@ -733,10 +733,47 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 
 func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler, toShardID uint32) map[string]struct{} {
 	mbHashesForShard := make(map[string]struct{})
-	miniBlockHeaders := header.GetMiniBlockHeadersWithDst(toShardID)
-	for key := range miniBlockHeaders {
-		mbHashesForShard[key] = struct{}{}
+	// Remove mini blocks which are not final to avoid sending them
+	mbHashes := dbb.getAllFinalCrossMiniBlockHashes(header.GetMiniBlockHeadersWithDst(toShardID), header)
+	for mbHash := range mbHashes {
+		mbHashesForShard[mbHash] = struct{}{}
 	}
 
 	return mbHashesForShard
+}
+
+func (dbb *delayedBlockBroadcaster) getAllFinalCrossMiniBlockHashes(
+	crossMiniBlockHashes map[string]uint32,
+	header data.HeaderHandler,
+) map[string]uint32 {
+
+	miniBlockHashes := make(map[string]uint32)
+	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
+		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
+		if miniBlockHeader != nil {
+			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
+				continue
+			}
+		}
+
+		miniBlockHashes[crossMiniBlockHash] = senderShardID
+	}
+
+	return miniBlockHashes
+}
+
+func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader
+		}
+	}
+	return nil
+}
+
+func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
+	//TODO: This check should be done using isFinal method later
+	reserved := miniBlockHeader.GetReserved()
+	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
+	return isScheduledFromShardID
 }

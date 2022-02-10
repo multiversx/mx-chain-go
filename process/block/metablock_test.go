@@ -3061,3 +3061,5 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, metaHeader.DeveloperFees)
 	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
 }
+
+// TODO: Add unit tests for methods: shouldSkipAddingMiniBlockHeader, getAllFinalMiniBlockHeaders, getAllFinalCrossMiniBlockHashes and getMiniBlockHeaderWithHash

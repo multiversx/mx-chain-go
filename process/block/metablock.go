@@ -498,20 +498,19 @@ func (mp *metaProcessor) checkEpochCorrectness(
 	return nil
 }
 
-func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
-	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(header)
+func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(metaBlock *block.MetaBlock) error {
+	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(metaBlock)
 	if err != nil {
 		return err
 	}
 
-	// if all miniblockshards hashes are in header miniblocks as well
-	mapMetaMiniBlockHdrs := make(map[string]struct{}, len(header.MiniBlockHeaders))
-	for _, metaMiniBlock := range header.MiniBlockHeaders {
-		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
+	mapMetaMiniBlockHeaders := make(map[string]struct{}, len(metaBlock.MiniBlockHeaders))
+	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
+		mapMetaMiniBlockHeaders[string(miniBlockHeader.Hash)] = struct{}{}
 	}
 
 	for hash := range miniBlockShardsHashes {
-		if _, ok := mapMetaMiniBlockHdrs[hash]; !ok {
+		if _, ok := mapMetaMiniBlockHeaders[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
 		}
 	}
@@ -550,13 +549,46 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 			continue
 		}
 
-		crossMiniBlockHashes := shardHeader.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
+		crossMiniBlockHashes := mp.getAllFinalCrossMiniBlockHashes(shardHeader.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId()), shardHeader)
 		for hash := range crossMiniBlockHashes {
 			miniBlockShardsHashes[hash] = shardInfo.HeaderHash
 		}
 	}
 
 	return miniBlockShardsHashes, nil
+}
+
+func (mp *metaProcessor) getAllFinalCrossMiniBlockHashes(
+	crossMiniBlockHashes map[string]uint32,
+	header data.HeaderHandler,
+) map[string]uint32 {
+
+	if !mp.flagScheduledMiniBlocks.IsSet() {
+		return crossMiniBlockHashes
+	}
+
+	miniBlockHashes := make(map[string]uint32)
+	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
+		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
+		if miniBlockHeader != nil {
+			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
+				continue
+			}
+		}
+
+		miniBlockHashes[crossMiniBlockHash] = senderShardID
+	}
+
+	return miniBlockHashes
+}
+
+func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader
+		}
+	}
+	return nil
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {
@@ -1740,7 +1772,9 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		if len(shardData.ShardMiniBlockHeaders) != len(shardHdr.GetMiniBlockHeaderHandlers()) {
+		miniBlockHeaders := mp.getAllFinalMiniBlockHeaders(shardHdr.GetMiniBlockHeaderHandlers(), shardHdr.GetShardID())
+
+		if len(shardData.ShardMiniBlockHeaders) != len(miniBlockHeaders) {
 			return nil, process.ErrHeaderShardDataMismatch
 		}
 		if shardData.AccumulatedFees.Cmp(shardHdr.GetAccumulatedFees()) != 0 {
@@ -1755,7 +1789,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
 		}
 
-		for _, actualMiniBlockHdr := range shardHdr.GetMiniBlockHeaderHandlers() {
+		for _, actualMiniBlockHdr := range miniBlockHeaders {
 			if _, hashExists := mapMiniBlockHeadersInMetaBlock[string(actualMiniBlockHdr.GetHash())]; !hashExists {
 				return nil, process.ErrHeaderShardDataMismatch
 			}
@@ -1763,6 +1797,27 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	}
 
 	return highestNonceHdrs, nil
+}
+
+func (mp *metaProcessor) getAllFinalMiniBlockHeaders(
+	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
+	shardID uint32,
+) []data.MiniBlockHeaderHandler {
+
+	if !mp.flagScheduledMiniBlocks.IsSet() {
+		return miniBlockHeaderHandlers
+	}
+
+	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
+	for _, mbHeader := range miniBlockHeaderHandlers {
+		if shouldSkipAddingMiniBlockHeader(mbHeader, shardID) {
+			continue
+		}
+
+		miniBlockHeaders = append(miniBlockHeaders, mbHeader)
+	}
+
+	return miniBlockHeaders
 }
 
 // check if shard headers are final by checking if newer headers were constructed upon them
@@ -1985,11 +2040,13 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.AccumulatedFees = shardHdr.GetAccumulatedFees()
 		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
-		if len(shardHdr.GetMiniBlockHeaderHandlers()) > 0 {
-			shardData.ShardMiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(shardHdr.GetMiniBlockHeaderHandlers()))
-		}
-
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
+			if mp.flagScheduledMiniBlocks.IsSet() {
+				if shouldSkipAddingMiniBlockHeader(shardHdr.GetMiniBlockHeaderHandlers()[i], shardHdr.GetShardID()) {
+					continue
+				}
+			}
+
 			shardMiniBlockHeader := block.MiniBlockHeader{}
 			shardMiniBlockHeader.SenderShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetSenderShardID()
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetReceiverShardID()
@@ -2008,6 +2065,13 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		"size", len(shardInfo),
 	)
 	return shardInfo, nil
+}
+
+func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
+	//TODO: This check should be done using isFinal method later
+	reserved := miniBlockHeader.GetReserved()
+	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
+	return isScheduledFromShardID
 }
 
 func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(metaHdr *block.MetaBlock) error {
