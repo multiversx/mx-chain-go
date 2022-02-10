@@ -114,10 +114,11 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	peerAuthPool := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
 		DefaultSpan: 10 * time.Second,
 		CacheExpiry: 10 * time.Second,
 	})
+	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	heartbeatPool, err := storageUnit.NewCache(cacherConfig)
@@ -187,14 +188,15 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	peerAuthPool := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
 		DefaultSpan: 10 * time.Second,
 		CacheExpiry: 10 * time.Second,
 	})
+	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	heartbeatPool, err := storageUnit.NewCache(cacherConfig)
-	panicIfError("CreatePoolsHolder", err)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	currentTx := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
