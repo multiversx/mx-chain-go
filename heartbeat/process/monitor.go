@@ -233,10 +233,7 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
 	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
-		receivedHbmi.totalUpTime += crtDuration
 		receivedHbmi.timeStamp = crtTime
-	} else {
-		receivedHbmi.totalDownTime += crtDuration
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
@@ -458,16 +455,11 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	for k, v := range m.heartbeatMessages {
 		v.updateMutex.RLock()
 		tmp := data.PubKeyHeartbeat{
-			PublicKey: m.validatorPubkeyConverter.Encode([]byte(k)),
-			TimeStamp: v.timeStamp,
-			MaxInactiveTime: data.Duration{
-				Duration: v.maxInactiveTime,
-			},
+			PublicKey:       m.validatorPubkeyConverter.Encode([]byte(k)),
+			TimeStamp:       v.timeStamp,
 			IsActive:        v.isActive,
 			ReceivedShardID: v.receivedShardID,
 			ComputedShardID: v.computedShardID,
-			TotalUpTime:     int64(v.totalUpTime.Seconds()),
-			TotalDownTime:   int64(v.totalDownTime.Seconds()),
 			VersionNumber:   v.versionNumber,
 			NodeDisplayName: v.nodeDisplayName,
 			Identity:        v.identity,
@@ -533,9 +525,6 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
-	ret.MaxInactiveTime = v.maxInactiveTime.Nanoseconds()
-	ret.TotalUpTime = v.totalUpTime.Nanoseconds()
-	ret.TotalDownTime = v.totalDownTime.Nanoseconds()
 	ret.LastUptimeDowntime = v.lastUptimeDowntime.UnixNano()
 	ret.GenesisTime = v.genesisTime.UnixNano()
 
@@ -558,10 +547,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		pidString:                   hbDTO.PidString,
 	}
 
-	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
 	hbmi.timeStamp = time.Unix(0, hbDTO.TimeStamp)
-	hbmi.totalUpTime = time.Duration(hbDTO.TotalUpTime)
-	hbmi.totalDownTime = time.Duration(hbDTO.TotalDownTime)
 	hbmi.lastUptimeDowntime = time.Unix(0, hbDTO.LastUptimeDowntime)
 	hbmi.genesisTime = time.Unix(0, hbDTO.GenesisTime)
 
