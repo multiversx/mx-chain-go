@@ -752,7 +752,7 @@ func (dbb *delayedBlockBroadcaster) getAllFinalCrossMiniBlockHashes(
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
 		if miniBlockHeader != nil {
 			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
-				log.Debug("delayedBlockBroadcaster.getAllFinalCrossMiniBlockHashes: do not broadcast mini block which is not final", "mb hash", []byte(crossMiniBlockHash))
+				log.Debug("delayedBlockBroadcaster.getAllFinalCrossMiniBlockHashes: do not broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}

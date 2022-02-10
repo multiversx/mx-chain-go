@@ -769,7 +769,7 @@ func (tc *transactionCoordinator) getAllFinalCrossMiniBlockInfos(
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
 		if miniBlockHeader != nil {
 			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
-				log.Debug("transactionCoordinator.getAllFinalCrossMiniBlockInfos: skip execution for not final mini block", "mb hash", miniBlockHeader.GetHash())
+				log.Debug("transactionCoordinator.getAllFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}
