@@ -183,5 +183,13 @@ func (cc *dataComponents) Close() error {
 		}
 	}
 
+	if !check.IfNil(cc.datapool) && !check.IfNil(cc.datapool.PeerAuthentications()) {
+		log.Debug("closing peer authentications data pool....")
+		err := cc.datapool.PeerAuthentications().Close()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

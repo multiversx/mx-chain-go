@@ -167,10 +167,10 @@ type ArgsEpochStartBootstrap struct {
 }
 
 type dataToSync struct {
-	ownShardHdr        data.ShardHeaderHandler
-	rootHashToSync     []byte
-	withScheduled      bool
-	additionalHeaders  map[string]data.HeaderHandler
+	ownShardHdr       data.ShardHeaderHandler
+	rootHashToSync    []byte
+	withScheduled     bool
+	additionalHeaders map[string]data.HeaderHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -1205,6 +1205,12 @@ func (e *epochStartBootstrap) Close() error {
 	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
 		log.Debug("closing trie nodes data pool....")
 		err := e.dataPool.TrieNodes().Close()
+		log.LogIfError(err)
+	}
+
+	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.PeerAuthentications()) {
+		log.Debug("closing peer authentications data pool....")
+		err := e.dataPool.PeerAuthentications().Close()
 		log.LogIfError(err)
 	}
 

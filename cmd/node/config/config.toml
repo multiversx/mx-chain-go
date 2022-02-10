@@ -905,12 +905,10 @@
 
 [HeartbeatV2]
     HeartbeatExpiryTimespanInSec = 3600 # 1h
-
-    [PeerAuthenticationPool]
+    [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h
-
-    [HeartbeatPool]
+    [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 1000
         Type = "SizeLRU"
