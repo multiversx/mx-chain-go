@@ -175,7 +175,7 @@
     ESDTRegisterAndSetAllRolesEnableEpoch = 3
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 1000000
+    ScheduledMiniBlocksEnableEpoch = 2
 
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
     CorrectJailedNotUnstakedEmptyQueueEpoch = 2
