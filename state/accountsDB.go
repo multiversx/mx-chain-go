@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	leavesChannelSize = 100
+	leavesChannelSize   = 100
+	lastSnapshotStarted = "lastSnapshot"
 )
 
 var numCheckpointsKey = []byte("state checkpoint")
@@ -143,11 +144,18 @@ func NewAccountsDB(
 }
 
 func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
-	rootHash, err := adb.RootHash()
+	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
 	if err != nil {
-		log.Error("startSnapshotAfterRestart root hash", "error", err)
+		log.Warn("startSnapshotAfterRestart root hash", "error", err)
+
+		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		if err != nil {
+			log.Warn("error while putting active DB value into main storer", "error", err)
+		}
+
 		return
 	}
+	log.Debug("snapshot hash after restart", "hash", rootHash)
 
 	if tsm.ShouldTakeSnapshot() {
 		log.Debug("startSnapshotAfterRestart")
@@ -1079,8 +1087,11 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
+	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
+	if err != nil {
+		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
+	}
 
-	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
 	stats := newSnapshotStatistics(1)
