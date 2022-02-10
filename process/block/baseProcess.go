@@ -847,6 +847,13 @@ func (bp *baseProcessor) getAllFinalMiniBlocks(header data.HeaderHandler, body *
 	return &block.Body{MiniBlocks: miniBlocks}
 }
 
+func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
+	//TODO: This check should be done using isFinal method later
+	reserved := miniBlockHeader.GetReserved()
+	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
+	return isScheduledFromShardID
+}
+
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 

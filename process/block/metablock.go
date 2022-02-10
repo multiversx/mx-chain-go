@@ -2070,13 +2070,6 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 	return shardInfo, nil
 }
 
-func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
-	//TODO: This check should be done using isFinal method later
-	reserved := miniBlockHeader.GetReserved()
-	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
-	return isScheduledFromShardID
-}
-
 func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(metaHdr *block.MetaBlock) error {
 	computedTotalFees, computedTotalDevFees, err := mp.computeAccumulatedFeesInEpoch(metaHdr)
 	if err != nil {
