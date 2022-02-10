@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -30,12 +29,7 @@ func createAccountsWrapper() *AccountsWrapper {
 
 func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
-		Accounts: createAccountsWrapper(),
-		BlockChain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return []byte("root hash")
-			},
-		},
+		Accounts:           createAccountsWrapper(),
 		QueryService:       &mock.SCQueryServiceStub{},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 	}
@@ -65,16 +59,6 @@ func TestNewTotalStakedValueProcessor(t *testing.T) {
 				return createMockArgs()
 			},
 			exError: nil,
-		},
-		{
-			name: "NilBlockChain",
-			argsFunc: func() ArgTrieIteratorProcessor {
-				arg := createMockArgs()
-				arg.BlockChain = nil
-
-				return arg
-			},
-			exError: ErrNilBlockChain,
 		},
 		{
 			name: "NilQueryService",
@@ -136,30 +120,14 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTotalStakedValueProcessor_GetTotalStakedValueNilRootHashShouldError(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgs()
-	arg.BlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			return nil
-		},
-	}
-	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
-
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
-	require.Nil(t, resTotalStaked)
-	require.Equal(t, ErrNodeNotInitialized, err)
-}
-
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			return expectedErr
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			return nil, expectedErr
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
