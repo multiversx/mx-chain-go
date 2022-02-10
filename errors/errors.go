@@ -466,3 +466,6 @@ var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions 
 
 // ErrNilScheduledProcessor signals that a nil scheduled processor was provided
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrNilTxsSender signals that a nil transactions sender has been provided
+var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
