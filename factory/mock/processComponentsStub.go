@@ -44,6 +44,7 @@ type ProcessComponentsMock struct {
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
+	TxsSenderHandlerField                process.TxsSenderHandler
 }
 
 // Create -
@@ -219,6 +220,11 @@ func (pcm *ProcessComponentsMock) String() string {
 // ScheduledTxsExecutionHandler -
 func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcm.ScheduledTxsExecutionHandlerInternal
+}
+
+// TxsSenderHandler -
+func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
+	return pcm.TxsSenderHandlerField
 }
 
 // IsInterfaceNil -
