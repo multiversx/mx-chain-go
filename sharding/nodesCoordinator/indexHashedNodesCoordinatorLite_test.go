@@ -55,25 +55,24 @@ func createDummyValidatorsInfo() []*state.ShardValidatorInfo {
 func verifyEligibleValidators(
 	t *testing.T,
 	validatorsInfo []*state.ShardValidatorInfo,
-	nodesConfig *epochNodesConfig,
+	eligibleMap map[uint32][]Validator,
 ) {
-	if nodesConfig == nil {
-		require.Fail(t, "nil nodesConfig")
-	}
+	require.NotNil(t, eligibleMap)
 
 	numEligibleValidators := 0
-	for _, validatorsInShard := range nodesConfig.eligibleMap {
-		found := false
+	for _, validatorsInShard := range eligibleMap {
 		for _, val := range validatorsInShard {
+			found := false
 			for _, validatorInfo := range validatorsInfo {
-				if bytes.Equal(val.PubKey(), validatorInfo.GetPublicKey()) &&
-					val.Index() == validatorInfo.GetIndex() {
+				samePubKey := bytes.Equal(val.PubKey(), validatorInfo.GetPublicKey())
+				sameIndex := val.Index() == validatorInfo.GetIndex()
+				if samePubKey && sameIndex {
 					found = true
 				}
 			}
+			assert.True(t, found)
+			numEligibleValidators += 1
 		}
-		assert.True(t, found)
-		numEligibleValidators += len(validatorsInShard)
 	}
 
 	assert.Equal(t, len(validatorsInfo), numEligibleValidators)
@@ -99,7 +98,7 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfo(t *testing
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, []byte("rand seed"), validatorsInfo)
 	require.Nil(t, err)
 
-	verifyEligibleValidators(t, validatorsInfo, ihnc.nodesConfig[epoch])
+	verifyEligibleValidators(t, validatorsInfo, ihnc.nodesConfig[epoch].eligibleMap)
 }
 
 func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpochs(t *testing.T) {
@@ -128,14 +127,14 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 
 	epochConfig, ok := ihnc.nodesConfig[epoch]
 	assert.True(t, ok)
-	verifyEligibleValidators(t, validatorsInfo1, epochConfig)
+	verifyEligibleValidators(t, validatorsInfo1, epochConfig.eligibleMap)
 
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+1, randomness, validatorsInfo2)
 	require.Nil(t, err)
 
 	epochConfig, ok = ihnc.nodesConfig[epoch+1]
 	assert.True(t, ok)
-	verifyEligibleValidators(t, validatorsInfo2, epochConfig)
+	verifyEligibleValidators(t, validatorsInfo2, epochConfig.eligibleMap)
 
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+nodesCoordinatorStoredEpochs, randomness, validatorsInfo1)
 	assert.Nil(t, err)
@@ -145,7 +144,7 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 
 	epochConfig, ok = ihnc.nodesConfig[epoch+1]
 	assert.True(t, ok)
-	verifyEligibleValidators(t, validatorsInfo2, epochConfig)
+	verifyEligibleValidators(t, validatorsInfo2, epochConfig.eligibleMap)
 
 	validators, err := ihnc.GetAllEligibleValidatorsPublicKeys(epoch)
 	require.Nil(t, validators)
@@ -159,14 +158,15 @@ func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
-	epoch := uint32(1)
 
+	epoch := uint32(1)
 	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
 
 	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
 	validatorsInfo, _ := createValidatorInfoFromBody(body, arguments.Marshalizer, 10)
 
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, []byte{}, validatorsInfo)
+	require.Nil(t, err)
 
 	exists := ihnc.IsEpochInConfig(epoch)
 	assert.True(t, exists)
