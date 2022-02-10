@@ -120,7 +120,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *testing.T) {
+func TestTotalStakedValueProcessor_GetTotalStakedValueAccountsAdapterErrors(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
