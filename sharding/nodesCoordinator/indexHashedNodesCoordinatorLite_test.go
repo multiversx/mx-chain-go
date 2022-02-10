@@ -1,6 +1,7 @@
 package nodesCoordinator
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -13,42 +14,69 @@ import (
 func createDummyValidatorsInfo() []*state.ShardValidatorInfo {
 	return []*state.ShardValidatorInfo{
 		{
-			PublicKey:  []uint8{1, 2, 3, 4},
+			PublicKey:  []byte("pubKey1"),
 			ShardId:    0,
 			List:       "eligible",
 			Index:      0,
 			TempRating: 10},
 		{
-			PublicKey:  []uint8{2, 3, 4, 5},
+			PublicKey:  []byte("pubKey2"),
 			ShardId:    0,
 			List:       "eligible",
 			Index:      1,
-			TempRating: 10},
+			TempRating: 11},
 		{
-			PublicKey:  []uint8{3, 4, 5, 1},
+			PublicKey:  []byte("pubKey3"),
 			ShardId:    0,
 			List:       "eligible",
 			Index:      2,
-			TempRating: 10},
+			TempRating: 12},
 		{
-			PublicKey:  []uint8{4, 5, 1, 2},
+			PublicKey:  []byte("pubKey4"),
 			ShardId:    core.MetachainShardId,
 			List:       "eligible",
 			Index:      0,
-			TempRating: 10},
+			TempRating: 13},
 		{
-			PublicKey:  []uint8{5, 1, 2, 3},
+			PublicKey:  []byte("pubKey5"),
 			ShardId:    core.MetachainShardId,
 			List:       "eligible",
 			Index:      1,
-			TempRating: 10},
+			TempRating: 14},
 		{
-			PublicKey:  []uint8{1, 2, 3, 5},
+			PublicKey:  []byte("pubKey6"),
 			ShardId:    core.MetachainShardId,
 			List:       "eligible",
 			Index:      2,
-			TempRating: 10},
+			TempRating: 15},
 	}
+}
+
+func verifyEligibleValidators(
+	t *testing.T,
+	validatorsInfo []*state.ShardValidatorInfo,
+	nodesConfig *epochNodesConfig,
+) {
+	if nodesConfig == nil {
+		require.Fail(t, "nil nodesConfig")
+	}
+
+	numEligibleValidators := 0
+	for _, validatorsInShard := range nodesConfig.eligibleMap {
+		found := false
+		for _, val := range validatorsInShard {
+			for _, validatorInfo := range validatorsInfo {
+				if bytes.Equal(val.PubKey(), validatorInfo.GetPublicKey()) &&
+					val.Index() == validatorInfo.GetIndex() {
+					found = true
+				}
+			}
+		}
+		assert.True(t, found)
+		numEligibleValidators += len(validatorsInShard)
+	}
+
+	assert.Equal(t, len(validatorsInfo), numEligibleValidators)
 }
 
 func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfo(t *testing.T) {
@@ -57,26 +85,21 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfo(t *testing
 	arguments := createArguments()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           3,
-		NodesMeta:            3,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard: 3,
+		NodesMeta:  3,
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 	arguments.Shuffler = nodeShuffler
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
+
 	epoch := uint32(1)
-
 	validatorsInfo := createDummyValidatorsInfo()
-
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, []byte("rand seed"), validatorsInfo)
 	require.Nil(t, err)
 
-	verifyValidatorsPubKeysByIndex(t, validatorsInfo, ihnc.nodesConfig[epoch])
+	verifyEligibleValidators(t, validatorsInfo, ihnc.nodesConfig[epoch])
 }
 
 func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpochs(t *testing.T) {
@@ -85,61 +108,48 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	arguments := createArguments()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           3,
-		NodesMeta:            3,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard: 3,
+		NodesMeta:  3,
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 	arguments.Shuffler = nodeShuffler
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
-	epoch := uint32(1)
 
+	epoch := uint32(1)
 	randomness := []byte("rand seed")
 
-	validatorsInfo := createDummyValidatorsInfo()
+	validatorsInfo1 := createDummyValidatorsInfo()
+	validatorsInfo2 := createDummyValidatorsInfo()
 
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, randomness, validatorsInfo)
-	require.Nil(t, err)
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+1, randomness, validatorsInfo)
+	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, randomness, validatorsInfo1)
 	require.Nil(t, err)
 
-	_, ok := ihnc.nodesConfig[epoch+1]
+	epochConfig, ok := ihnc.nodesConfig[epoch]
 	assert.True(t, ok)
-	verifyValidatorsPubKeysByIndex(t, validatorsInfo, ihnc.nodesConfig[epoch+1])
+	verifyEligibleValidators(t, validatorsInfo1, epochConfig)
 
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+nodesCoordinatorStoredEpochs, randomness, validatorsInfo)
+	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+1, randomness, validatorsInfo2)
+	require.Nil(t, err)
+
+	epochConfig, ok = ihnc.nodesConfig[epoch+1]
+	assert.True(t, ok)
+	verifyEligibleValidators(t, validatorsInfo2, epochConfig)
+
+	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+nodesCoordinatorStoredEpochs, randomness, validatorsInfo1)
 	assert.Nil(t, err)
 
 	_, ok = ihnc.nodesConfig[epoch]
 	assert.False(t, ok)
 
-	_, ok = ihnc.nodesConfig[epoch+1]
+	epochConfig, ok = ihnc.nodesConfig[epoch+1]
 	assert.True(t, ok)
-	verifyValidatorsPubKeysByIndex(t, validatorsInfo, ihnc.nodesConfig[epoch+1])
+	verifyEligibleValidators(t, validatorsInfo2, epochConfig)
 
 	validators, err := ihnc.GetAllEligibleValidatorsPublicKeys(epoch)
 	require.Nil(t, validators)
 	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
-}
-
-func verifyValidatorsPubKeysByIndex(
-	t *testing.T,
-	validatorsInfo []*state.ShardValidatorInfo,
-	nodesConfig *epochNodesConfig,
-) {
-	for i := range validatorsInfo {
-		shardId := validatorsInfo[i].ShardId
-		for j := range nodesConfig.eligibleMap[shardId] {
-			if validatorsInfo[i].Index == nodesConfig.eligibleMap[shardId][j].Index() {
-				assert.Equal(t, validatorsInfo[i].PublicKey, nodesConfig.eligibleMap[shardId][j].PubKey())
-			}
-		}
-	}
 }
 
 func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {

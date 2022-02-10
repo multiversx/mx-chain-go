@@ -46,7 +46,7 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		return err
 	}
 
-	ihnc.removeOldEpochs(epoch, nodesCoordinatorStoredEpochs)
+	ihnc.removeOlderEpochs(epoch, nodesCoordinatorStoredEpochs)
 
 	return nil
 }
@@ -60,7 +60,7 @@ func (ihnc *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
 	return exists
 }
 
-func (ihnc *indexHashedNodesCoordinator) removeOldEpochs(epoch uint32, maxDelta uint32) {
+func (ihnc *indexHashedNodesCoordinator) removeOlderEpochs(epoch uint32, maxDelta uint32) {
 	ihnc.mutNodesConfig.Lock()
 	if len(ihnc.nodesConfig) >= int(maxDelta) {
 		for currEpoch := range ihnc.nodesConfig {
