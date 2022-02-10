@@ -30,7 +30,6 @@ func NewDelegatedListProcessor(arg ArgTrieIteratorProcessor) (*delegatedListProc
 	return &delegatedListProcessor{
 		commonStakingProcessor: &commonStakingProcessor{
 			queryService: arg.QueryService,
-			blockChain:   arg.BlockChain,
 			accounts:     arg.Accounts,
 		},
 		publicKeyConverter: arg.PublicKeyConverter,
@@ -88,7 +87,7 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 	for _, delegatorAddress := range delegatorsList {
 		value, err = dlp.getActiveFund(delegationSC, delegatorAddress)
 		if err != nil {
-			//delegatorAddress byte slice might not represent a real delegator address
+			// delegatorAddress byte slice might not represent a real delegator address
 			continue
 		}
 
