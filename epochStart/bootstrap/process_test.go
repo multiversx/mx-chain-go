@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -570,6 +571,209 @@ func TestNewEpochStartBootstrap_ShouldFail(t *testing.T) {
 		assert.Equal(t, storage.ErrNotSupportedCacheType, err)
 		assert.Nil(t, epochStartProvider)
 	})
+}
+
+func TestEpochStartBootstrap_BoostrapShouldFail(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	t.Run("failed to set shard coordinator, wrong number of shards", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.GeneralConfig.GeneralSettings.StartInEpochEnabled = true
+		args.GenesisShardCoordinator = testscommon.NewMultiShardsCoordinatorMock(0)
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		params, err := epochStartProvider.Bootstrap()
+		assert.Equal(t, sharding.ErrInvalidNumberOfShards, err)
+		assert.Equal(t, Parameters{}, params)
+	})
+	t.Run("boostrap from local storage, fail to get boostrap data", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.GeneralConfig = testscommon.GetGeneralConfig()
+		args.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+		args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+			GetCalled: func() (storage.LatestDataFromStorage, error) {
+				return storage.LatestDataFromStorage{
+					Epoch:           2,
+					ShardID:         0,
+					LastRound:       10,
+					EpochStartRound: 0,
+				}, nil
+			},
+		}
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		expectedErr := errors.New("expected err")
+		epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+			GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+				return &storageMocks.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, expectedErr
+					},
+				}, nil
+			},
+		}
+
+		params, err := epochStartProvider.Bootstrap()
+		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, Parameters{}, params)
+	})
+}
+
+func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{
+				Epoch:           0,
+				ShardID:         0,
+				LastRound:       10,
+				EpochStartRound: 0,
+			}, nil
+		},
+	}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
+
+	nodesCoord := &sharding.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"0": {
+				EligibleValidators: map[string][]*sharding.SerializableValidator{
+					"0": {
+						&sharding.SerializableValidator{
+							PubKey:  pksBytes[0],
+							Chances: 1,
+							Index:   0,
+						},
+					},
+					"4294967295": {
+						&sharding.SerializableValidator{
+							PubKey:  pksBytes[4294967295],
+							Chances: 1,
+							Index:   0,
+						},
+					},
+				},
+				WaitingValidators: map[string][]*sharding.SerializableValidator{},
+				LeavingValidators: map[string][]*sharding.SerializableValidator{},
+			},
+		},
+		CurrentEpoch: 0,
+	}
+	nodesCoordBytes, _ := json.Marshal(nodesCoord)
+
+	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+			return &storageMocks.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nodesCoordBytes, nil
+				},
+				SearchFirstCalled: func(key []byte) ([]byte, error) {
+					return nodesCoordBytes, nil
+				},
+			}, nil
+		},
+	}
+
+	expectedParams := Parameters{
+		Epoch:       0,
+		SelfShardId: 0,
+		NumOfShards: 2,
+		NodesConfig: nodesCoord,
+	}
+
+	params, err := epochStartProvider.Bootstrap()
+	assert.Nil(t, err)
+	assert.Equal(t, expectedParams, params)
+}
+
+func TestEpochStartBootstrap_BoostrapFromNetworkNoShuffledOutShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{
+				Epoch:           2,
+				ShardID:         0,
+				LastRound:       10,
+				EpochStartRound: 0,
+			}, nil
+		},
+	}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
+
+	nodesCoord := &sharding.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"2": {
+				EligibleValidators: map[string][]*sharding.SerializableValidator{
+					"0": {
+						&sharding.SerializableValidator{
+							PubKey:  pksBytes[0],
+							Chances: 1,
+							Index:   0,
+						},
+					},
+					"4294967295": {
+						&sharding.SerializableValidator{
+							PubKey:  pksBytes[4294967295],
+							Chances: 1,
+							Index:   0,
+						},
+					},
+				},
+				WaitingValidators: map[string][]*sharding.SerializableValidator{},
+				LeavingValidators: map[string][]*sharding.SerializableValidator{},
+			},
+		},
+		CurrentEpoch: 0,
+	}
+	nodesCoordBytes, _ := json.Marshal(nodesCoord)
+
+	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+			return &storageMocks.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nodesCoordBytes, nil
+				},
+				SearchFirstCalled: func(key []byte) ([]byte, error) {
+					return nodesCoordBytes, nil
+				},
+			}, nil
+		},
+	}
+
+	expectedParams := Parameters{
+		Epoch:       2,
+		SelfShardId: 0,
+		NumOfShards: 2,
+		NodesConfig: nodesCoord,
+	}
+
+	params, err := epochStartProvider.Bootstrap()
+	assert.Nil(t, err)
+	assert.Equal(t, expectedParams, params)
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
