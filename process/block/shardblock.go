@@ -1001,7 +1001,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeTxsFromPools(body)
+	errNotCritical = sp.removeTxsFromPools(header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
@@ -2100,8 +2100,8 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	// Remove mini blocks which are not final from "body" to avoid sending them (all the scheduled mini blocks from me)
-	newBodyToBroadcast := sp.getAllNotScheduledMiniBlocks(header, body)
+	// Remove mini blocks which are not final from "body" to avoid sending them cross shard
+	newBodyToBroadcast := sp.getAllFinalMiniBlocks(header, body)
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
@@ -2128,7 +2128,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (sp *shardProcessor) getAllNotScheduledMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
+func (sp *shardProcessor) getAllFinalMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
 	if !sp.flagScheduledMiniBlocks.IsSet() {
 		return body
 	}
@@ -2136,9 +2136,8 @@ func (sp *shardProcessor) getAllNotScheduledMiniBlocks(header data.HeaderHandler
 	var miniBlocks block.MiniBlockSlice
 
 	for index, miniBlock := range body.MiniBlocks {
-		isScheduledMiniBlockFromMe := miniBlock.SenderShardID == sp.shardCoordinator.SelfId() && miniBlock.IsScheduledMiniBlock()
-		if isScheduledMiniBlockFromMe {
-			log.Debug("shardProcessor.getAllNotScheduledMiniBlocks: do not broadcast mini block which is not final", "mb hash", header.GetMiniBlockHeadersHashes()[index])
+		if shouldSkipAddingMiniBlockHeader(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
+			log.Debug("shardProcessor.getAllNotScheduledMiniBlocks: do not broadcast mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
 			continue
 		}
 
