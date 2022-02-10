@@ -2128,25 +2128,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (sp *shardProcessor) getAllFinalMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
-	if !sp.flagScheduledMiniBlocks.IsSet() {
-		return body
-	}
-
-	var miniBlocks block.MiniBlockSlice
-
-	for index, miniBlock := range body.MiniBlocks {
-		if shouldSkipAddingMiniBlockHeader(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
-			log.Debug("shardProcessor.getAllNotScheduledMiniBlocks: do not broadcast mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
-			continue
-		}
-
-		miniBlocks = append(miniBlocks, miniBlock)
-	}
-
-	return &block.Body{MiniBlocks: miniBlocks}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *shardProcessor) IsInterfaceNil() bool {
 	return sp == nil

@@ -824,29 +824,27 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *block.Body) error {
-	miniBlocks := bp.getAllMiniBlocksWithoutScheduledFromMe(header, body)
-	return bp.txCoordinator.RemoveTxsFromPool(&block.Body{MiniBlocks: miniBlocks})
+	newBody := bp.getAllFinalMiniBlocks(header, body)
+	return bp.txCoordinator.RemoveTxsFromPool(newBody)
 }
 
-func (bp *baseProcessor) getAllMiniBlocksWithoutScheduledFromMe(header data.HeaderHandler, body *block.Body) block.MiniBlockSlice {
+func (bp *baseProcessor) getAllFinalMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
-		return body.MiniBlocks
+		return body
 	}
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
+	var miniBlocks block.MiniBlockSlice
+
 	for index, miniBlock := range body.MiniBlocks {
-		isMiniBlockNotEmpty := len(miniBlock.TxHashes) > 0
-		isScheduledMiniBlock := isMiniBlockNotEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
-		isScheduledMiniBlockFromMe := isScheduledMiniBlock && miniBlock.SenderShardID == bp.shardCoordinator.SelfId()
-		if isScheduledMiniBlockFromMe {
-			log.Debug("baseProcessor.getAllMiniBlocksWithoutScheduledFromMe: do not remove from pool mini block which is not final", "mb hash", header.GetMiniBlockHeadersHashes()[index])
+		if shouldSkipAddingMiniBlockHeader(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
+			log.Debug("shardProcessor.getAllNotScheduledMiniBlocks: do not remove from pool / broadcast mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
 			continue
 		}
 
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return miniBlocks
+	return &block.Body{MiniBlocks: miniBlocks}
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
