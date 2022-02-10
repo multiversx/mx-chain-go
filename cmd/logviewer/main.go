@@ -69,25 +69,25 @@ VERSION:
 		Value:       "*:" + logger.LogInfo.String(),
 		Destination: &argsConfig.logLevel,
 	}
-	//logFile is used when the log output needs to be logged in a file
+	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:        "log-save",
 		Usage:       "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 		Destination: &argsConfig.logSave,
 	}
-	//useWss is used when the user require connection through wss
+	// useWss is used when the user require connection through wss
 	useWss = cli.BoolFlag{
 		Name:        "use-wss",
 		Usage:       "Will use wss instead of ws when creating the web socket",
 		Destination: &argsConfig.useWss,
 	}
-	//logWithCorrelation is used to enable log correlation elements
+	// logWithCorrelation is used to enable log correlation elements
 	logWithCorrelation = cli.BoolFlag{
 		Name:        "log-correlation",
 		Usage:       "Boolean option for enabling log correlation elements.",
 		Destination: &argsConfig.logWithCorrelation,
 	}
-	//logWithLoggerName is used to enable log correlation elements
+	// logWithLoggerName is used to enable log correlation elements
 	logWithLoggerName = cli.BoolFlag{
 		Name:        "log-logger-name",
 		Usage:       "Boolean option for logger name in the logs.",
@@ -209,7 +209,7 @@ func startLogViewer(ctx *cli.Context) error {
 		}
 	}()
 
-	//set this log's level to the lowest desired log level that matches received logs from elrond-go
+	// set this log's level to the lowest desired log level that matches received logs from elrond-go
 	lowestLogLevel := getLowestLogLevel(logLevels)
 	log.SetLevel(lowestLogLevel)
 
@@ -337,5 +337,5 @@ func outputMessage(message []byte) {
 		recoveredLogLine.Args[i] = str
 	}
 
-	log.Log(recoveredLogLine)
+	log.LogLine(recoveredLogLine)
 }
