@@ -3,10 +3,12 @@ package mapTimeCache_test
 import (
 	"bytes"
 	"encoding/gob"
+	"math"
 	"sort"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mapTimeCache"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,21 +33,43 @@ func createKeysVals(noOfPairs int) ([][]byte, [][]byte) {
 func TestNewMapTimeCache(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
-	assert.False(t, cacher.IsInterfaceNil())
+	t.Run("invalid DefaultSpan should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createArgMapTimeCache()
+		arg.DefaultSpan = time.Second - time.Nanosecond
+		cacher, err := mapTimeCache.NewMapTimeCache(arg)
+		assert.Nil(t, cacher)
+		assert.Equal(t, storage.ErrInvalidDefaultSpan, err)
+	})
+	t.Run("invalid CacheExpiry should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createArgMapTimeCache()
+		arg.CacheExpiry = time.Second - time.Nanosecond
+		cacher, err := mapTimeCache.NewMapTimeCache(arg)
+		assert.Nil(t, cacher)
+		assert.Equal(t, storage.ErrInvalidCacheExpiry, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		cacher, err := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+		assert.False(t, cacher.IsInterfaceNil())
+		assert.Nil(t, err)
+	})
 }
 
 func TestMapTimeCacher_Clear(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	noOfPairs := 3
 	providedKeys, providedVals := createKeysVals(noOfPairs)
 	for i := 0; i < noOfPairs; i++ {
-		evicted := cacher.Put(providedKeys[i], providedVals[i], len(providedVals[i]))
-		assert.False(t, evicted)
+		cacher.Put(providedKeys[i], providedVals[i], len(providedVals[i]))
 	}
 	assert.Equal(t, noOfPairs, cacher.Len())
 
@@ -56,7 +80,7 @@ func TestMapTimeCacher_Clear(t *testing.T) {
 func TestMapTimeCacher_Close(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	err := cacher.Close()
@@ -66,12 +90,11 @@ func TestMapTimeCacher_Close(t *testing.T) {
 func TestMapTimeCacher_Get(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
-	evicted := cacher.Put(providedKey, providedVal, len(providedVal))
-	assert.False(t, evicted)
+	cacher.Put(providedKey, providedVal, len(providedVal))
 
 	v, ok := cacher.Get(providedKey)
 	assert.True(t, ok)
@@ -85,12 +108,11 @@ func TestMapTimeCacher_Get(t *testing.T) {
 func TestMapTimeCacher_Has(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
-	evicted := cacher.Put(providedKey, providedVal, len(providedVal))
-	assert.False(t, evicted)
+	cacher.Put(providedKey, providedVal, len(providedVal))
 
 	assert.True(t, cacher.Has(providedKey))
 	assert.False(t, cacher.Has([]byte("missing key")))
@@ -99,7 +121,7 @@ func TestMapTimeCacher_Has(t *testing.T) {
 func TestMapTimeCacher_HasOrAdd(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -115,7 +137,7 @@ func TestMapTimeCacher_HasOrAdd(t *testing.T) {
 func TestMapTimeCacher_Keys(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	noOfPairs := 10
@@ -133,21 +155,17 @@ func TestMapTimeCacher_Keys(t *testing.T) {
 	sort.Slice(receivedKeys, func(i, j int) bool {
 		return bytes.Compare(receivedKeys[i], receivedKeys[j]) < 0
 	})
-
-	for i := 0; i < noOfPairs; i++ {
-		assert.Equal(t, providedKeys[i], receivedKeys[i])
-	}
+	assert.Equal(t, providedKeys, receivedKeys)
 }
 
-func TestMapTimeCacher_OnSweep(t *testing.T) {
+func TestMapTimeCacher_Evicted(t *testing.T) {
 	t.Parallel()
 
 	arg := createArgMapTimeCache()
 	arg.CacheExpiry = 2 * time.Second
 	arg.DefaultSpan = time.Second
-	cacher := mapTimeCache.NewMapTimeCache(arg)
+	cacher, _ := mapTimeCache.NewMapTimeCache(arg)
 	assert.False(t, cacher.IsInterfaceNil())
-	cacher.StartSweeping()
 
 	noOfPairs := 2
 	providedKeys, providedVals := createKeysVals(noOfPairs)
@@ -165,7 +183,7 @@ func TestMapTimeCacher_OnSweep(t *testing.T) {
 func TestMapTimeCacher_Peek(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -183,7 +201,7 @@ func TestMapTimeCacher_Peek(t *testing.T) {
 func TestMapTimeCacher_Put(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	noOfPairs := 2
@@ -192,14 +210,20 @@ func TestMapTimeCacher_Put(t *testing.T) {
 	assert.False(t, evicted)
 	assert.Equal(t, 1, cacher.Len())
 	evicted = cacher.Put(keys[0], vals[1], len(vals[1]))
-	assert.True(t, evicted)
+	assert.False(t, evicted)
 	assert.Equal(t, 1, cacher.Len())
 }
 
 func TestMapTimeCacher_Remove(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	defer func() {
+		if r := recover(); r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -210,15 +234,12 @@ func TestMapTimeCacher_Remove(t *testing.T) {
 	assert.Equal(t, 0, cacher.Len())
 
 	cacher.Remove(providedKey)
-	if r := recover(); r != nil {
-		assert.Fail(t, "should not panic")
-	}
 }
 
 func TestMapTimeCacher_SizeInBytesContained(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
 	providedKey, providedVal := []byte("key"), []byte("val")
@@ -233,23 +254,35 @@ func TestMapTimeCacher_SizeInBytesContained(t *testing.T) {
 func TestMapTimeCacher_RegisterHandler(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	defer func() {
+		if r := recover(); r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 	cacher.RegisterHandler(func(key []byte, value interface{}) {}, "0")
-
-	if r := recover(); r != nil {
-		assert.Fail(t, "should not panic")
-	}
 }
 
 func TestMapTimeCacher_UnRegisterHandler(t *testing.T) {
 	t.Parallel()
 
-	cacher := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	defer func() {
+		if r := recover(); r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 	cacher.UnRegisterHandler("0")
+}
 
-	if r := recover(); r != nil {
-		assert.Fail(t, "should not panic")
-	}
+func TestMapTimeCacher_MaxSize(t *testing.T) {
+	t.Parallel()
+
+	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
+	assert.False(t, cacher.IsInterfaceNil())
+	assert.Equal(t, math.MaxInt, cacher.MaxSize())
 }

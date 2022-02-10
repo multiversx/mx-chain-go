@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"math"
 	"sync"
 	"time"
 
@@ -12,7 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
-var ltcLog = logger.GetOrCreate("storage/maptimecache")
+var log = logger.GetOrCreate("storage/maptimecache")
+
+const minDurationInSec = 1
 
 // ArgMapTimeCacher is the argument used to create a new mapTimeCacher
 type ArgMapTimeCacher struct {
@@ -23,58 +26,72 @@ type ArgMapTimeCacher struct {
 // mapTimeCacher implements a map cache with eviction and inner TimeCacher
 type mapTimeCacher struct {
 	sync.RWMutex
-	dataMap         map[string]interface{}
-	timeCache       storage.TimeCacher
-	cacheExpiry     time.Duration
-	defaultTimeSpan time.Duration
-	cancelFunc      func()
+	dataMap              map[string]interface{}
+	timeCache            storage.TimeCacher
+	cacheExpiry          time.Duration
+	defaultTimeSpan      time.Duration
+	cancelFunc           func()
+	sizeInBytesContained uint64
 }
 
 // NewMapTimeCache creates a new mapTimeCacher
-func NewMapTimeCache(arg ArgMapTimeCacher) *mapTimeCacher {
-	return &mapTimeCacher{
+func NewMapTimeCache(arg ArgMapTimeCacher) (*mapTimeCacher, error) {
+	err := checkArg(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	mtc := &mapTimeCacher{
 		dataMap:         make(map[string]interface{}),
 		timeCache:       timecache.NewTimeCache(arg.DefaultSpan),
 		cacheExpiry:     arg.CacheExpiry,
 		defaultTimeSpan: arg.DefaultSpan,
 	}
-}
 
-// StartSweeping starts a go routine which handles sweeping the time cache
-func (mtc *mapTimeCacher) StartSweeping() {
-	mtc.timeCache.RegisterHandler(mtc)
+	mtc.timeCache.RegisterEvictionHandler(mtc)
 
 	var ctx context.Context
 	ctx, mtc.cancelFunc = context.WithCancel(context.Background())
+	go mtc.startSweeping(ctx)
 
-	go func(ctx context.Context) {
-		timer := time.NewTimer(mtc.cacheExpiry)
-		defer timer.Stop()
-
-		for {
-			timer.Reset(mtc.cacheExpiry)
-
-			select {
-			case <-timer.C:
-				mtc.timeCache.Sweep()
-			case <-ctx.Done():
-				ltcLog.Info("closing sweep go routine...")
-				return
-			}
-		}
-	}(ctx)
+	return mtc, nil
 }
 
-// OnSweep is the handler called on Sweep method
-func (mtc *mapTimeCacher) OnSweep(key []byte) {
+func checkArg(arg ArgMapTimeCacher) error {
+	if arg.DefaultSpan.Seconds() < minDurationInSec {
+		return storage.ErrInvalidDefaultSpan
+	}
+	if arg.CacheExpiry.Seconds() < minDurationInSec {
+		return storage.ErrInvalidCacheExpiry
+	}
+	return nil
+}
+
+// startSweeping handles sweeping the time cache
+func (mtc *mapTimeCacher) startSweeping(ctx context.Context) {
+	timer := time.NewTimer(mtc.cacheExpiry)
+	defer timer.Stop()
+
+	for {
+		timer.Reset(mtc.cacheExpiry)
+
+		select {
+		case <-timer.C:
+			mtc.timeCache.Sweep()
+		case <-ctx.Done():
+			log.Info("closing mapTimeCacher's sweep go routine...")
+			return
+		}
+	}
+}
+
+// Evicted is the handler called on Sweep method
+func (mtc *mapTimeCacher) Evicted(key []byte) {
 	if key == nil {
 		return
 	}
 
-	mtc.Lock()
-	defer mtc.Unlock()
-
-	delete(mtc.dataMap, string(key))
+	mtc.Remove(key)
 }
 
 // Clear deletes all stored data
@@ -83,6 +100,7 @@ func (mtc *mapTimeCacher) Clear() {
 	defer mtc.Unlock()
 
 	mtc.dataMap = make(map[string]interface{})
+	mtc.sizeInBytesContained = 0
 }
 
 // Put adds a value to the cache. Returns true if an eviction occurred
@@ -90,11 +108,13 @@ func (mtc *mapTimeCacher) Put(key []byte, value interface{}, _ int) (evicted boo
 	mtc.Lock()
 	defer mtc.Unlock()
 
-	_, evicted = mtc.dataMap[string(key)]
+	oldValue, found := mtc.dataMap[string(key)]
 	mtc.dataMap[string(key)] = value
-	if evicted {
+	mtc.updateSizeContained(value, false)
+	if found {
+		mtc.updateSizeContained(oldValue, true)
 		mtc.upsertToTimeCache(key)
-		return true
+		return false
 	}
 
 	mtc.addToTimeCache(key)
@@ -121,11 +141,7 @@ func (mtc *mapTimeCacher) Has(key []byte) bool {
 
 // Peek returns a key's value from the cache
 func (mtc *mapTimeCacher) Peek(key []byte) (value interface{}, ok bool) {
-	mtc.RLock()
-	defer mtc.RUnlock()
-
-	v, ok := mtc.dataMap[string(key)]
-	return v, ok
+	return mtc.Get(key)
 }
 
 // HasOrAdd checks if a key is in the cache.
@@ -140,6 +156,7 @@ func (mtc *mapTimeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, a
 	}
 
 	mtc.dataMap[string(key)] = value
+	mtc.updateSizeContained(value, false)
 	mtc.upsertToTimeCache(key)
 
 	return false, true
@@ -150,6 +167,7 @@ func (mtc *mapTimeCacher) Remove(key []byte) {
 	mtc.Lock()
 	defer mtc.Unlock()
 
+	mtc.updateSizeContained(mtc.dataMap[string(key)], true)
 	delete(mtc.dataMap, string(key))
 }
 
@@ -180,23 +198,12 @@ func (mtc *mapTimeCacher) SizeInBytesContained() uint64 {
 	mtc.RLock()
 	defer mtc.RUnlock()
 
-	totalSize := 0
-	b := new(bytes.Buffer)
-	for _, v := range mtc.dataMap {
-		err := gob.NewEncoder(b).Encode(v)
-		if err != nil {
-			ltcLog.Error(err.Error())
-		} else {
-			totalSize += b.Len()
-		}
-	}
-
-	return uint64(totalSize)
+	return mtc.sizeInBytesContained
 }
 
 // MaxSize returns the maximum number of items which can be stored in cache.
 func (mtc *mapTimeCacher) MaxSize() int {
-	return 10000
+	return math.MaxInt
 }
 
 // RegisterHandler -
@@ -219,15 +226,30 @@ func (mtc *mapTimeCacher) Close() error {
 func (mtc *mapTimeCacher) addToTimeCache(key []byte) {
 	err := mtc.timeCache.Add(string(key))
 	if err != nil {
-		ltcLog.Error("could not add key", "key", string(key))
+		log.Error("could not add key", "key", string(key))
 	}
 }
 
 func (mtc *mapTimeCacher) upsertToTimeCache(key []byte) {
 	err := mtc.timeCache.Upsert(string(key), mtc.defaultTimeSpan)
 	if err != nil {
-		ltcLog.Error("could not upsert timestamp for key", "key", string(key))
+		log.Error("could not upsert timestamp for key", "key", string(key))
 	}
+}
+
+func (mtc *mapTimeCacher) updateSizeContained(value interface{}, shouldSubstract bool) {
+	b := new(bytes.Buffer)
+	err := gob.NewEncoder(b).Encode(value)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	if shouldSubstract {
+		mtc.sizeInBytesContained -= uint64(b.Len())
+		return
+	}
+	mtc.sizeInBytesContained += uint64(b.Len())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -19,18 +19,18 @@ type span struct {
 // sweeping (clean-up) is triggered each time a new item is added or a key is present in the time cache
 // This data structure is concurrent safe.
 type TimeCache struct {
-	mut           sync.RWMutex
-	data          map[string]*span
-	defaultSpan   time.Duration
-	sweepHandlers []storage.SweepHandler
+	mut              sync.RWMutex
+	data             map[string]*span
+	defaultSpan      time.Duration
+	evictionHandlers []storage.EvictionHandler
 }
 
 // NewTimeCache creates a new time cache data structure instance
 func NewTimeCache(defaultSpan time.Duration) *TimeCache {
 	return &TimeCache{
-		data:          make(map[string]*span),
-		defaultSpan:   defaultSpan,
-		sweepHandlers: make([]storage.SweepHandler, 0),
+		data:             make(map[string]*span),
+		defaultSpan:      defaultSpan,
+		evictionHandlers: make([]storage.EvictionHandler, 0),
 	}
 }
 
@@ -122,20 +122,20 @@ func (tc *TimeCache) Len() int {
 	return len(tc.data)
 }
 
-// RegisterHandler adds a handler to the handlers slice
-func (tc *TimeCache) RegisterHandler(handler storage.SweepHandler) {
+// RegisterEvictionHandler adds a handler to the handlers slice
+func (tc *TimeCache) RegisterEvictionHandler(handler storage.EvictionHandler) {
 	if handler == nil {
 		return
 	}
 
 	tc.mut.Lock()
-	tc.sweepHandlers = append(tc.sweepHandlers, handler)
+	tc.evictionHandlers = append(tc.evictionHandlers, handler)
 	tc.mut.Unlock()
 }
 
 func (tc *TimeCache) notifyHandlers(key []byte) {
-	for _, handler := range tc.sweepHandlers {
-		handler.OnSweep(key)
+	for _, handler := range tc.evictionHandlers {
+		handler.Evicted(key)
 	}
 }
 

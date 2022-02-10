@@ -583,7 +583,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 //------- PeerAuthentication interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptor() error {
-	identifierPeerAuthentication := factory.PeerAuthenticationTopic + bicf.shardCoordinator.CommunicationIdentifier(core.AllShardId)
+	identifierPeerAuthentication := factory.PeerAuthenticationTopic
 
 	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
@@ -624,55 +624,29 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 	return bicf.container.Add(identifierPeerAuthentication, interceptor)
 }
 
-//------- Heartbeat interceptors
+//------- Heartbeat interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateHearbeatInterceptors() error {
+func (bicf *baseInterceptorsContainerFactory) generateHearbeatInterceptor() error {
 	shardC := bicf.shardCoordinator
-	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
-	interceptorsSlice := make([]process.Interceptor, noOfShards)
+	identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(idx)
-		interceptor, err := bicf.createOneHeartbeatInterceptor(identifierHeartbeat)
-		if err != nil {
-			return err
-		}
-
-		keys[int(idx)] = identifierHeartbeat
-		interceptorsSlice[int(idx)] = interceptor
-	}
-
-	identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	interceptor, err := bicf.createOneHeartbeatInterceptor(identifierHeartbeat)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierHeartbeat)
-	interceptorsSlice = append(interceptorsSlice, interceptor)
-
-	return bicf.container.AddMultiple(keys, interceptorsSlice)
-}
-
-func (bicf *baseInterceptorsContainerFactory) createOneHeartbeatInterceptor(identifier string) (process.Interceptor, error) {
 	argHeartbeatProcessor := processor.ArgHeartbeatInterceptorProcessor{
 		HeartbeatCacher: bicf.dataPool.Heartbeats(),
 	}
 	heartbeatProcessor, err := processor.NewHeartbeatInterceptorProcessor(argHeartbeatProcessor)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	heartbeatFactory, err := interceptorFactory.NewInterceptedHeartbeatDataFactory(*bicf.argInterceptorFactory)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
-	interceptor, err := interceptors.NewMultiDataInterceptor(
+	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:                identifier,
+			Topic:                identifierHeartbeat,
 			Marshalizer:          internalMarshalizer,
 			DataFactory:          heartbeatFactory,
 			Processor:            heartbeatProcessor,
@@ -684,8 +658,13 @@ func (bicf *baseInterceptorsContainerFactory) createOneHeartbeatInterceptor(iden
 		},
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return bicf.createTopicAndAssignHandler(identifier, interceptor, true)
+	interceptor, err := bicf.createTopicAndAssignHandler(identifierHeartbeat, mdInterceptor, true)
+	if err != nil {
+		return err
+	}
+
+	return bicf.container.Add(identifierHeartbeat, interceptor)
 }

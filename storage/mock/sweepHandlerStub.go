@@ -1,13 +1,13 @@
 package mock
 
-// SweepHandlerStub -
-type SweepHandlerStub struct {
-	OnSweepCalled func(key []byte)
+// EvictionHandlerStub -
+type EvictionHandlerStub struct {
+	EvictedCalled func(key []byte)
 }
 
-// OnSweep -
-func (sh *SweepHandlerStub) OnSweep(key []byte) {
-	if sh.OnSweepCalled != nil {
-		sh.OnSweepCalled(key)
+// Evicted -
+func (sh *EvictionHandlerStub) Evicted(key []byte) {
+	if sh.EvictedCalled != nil {
+		sh.EvictedCalled(key)
 	}
 }

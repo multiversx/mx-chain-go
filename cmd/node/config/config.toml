@@ -434,16 +434,6 @@
     Type = "SizeLRU"
     SizeInBytes = 209715200 #200MB
 
-[PeerAuthenticationPool]
-    DefaultSpanInSec = 3600 # 1h
-    CacheExpiryInSec = 3600 # 1h
-
-[HeartbeatPool]
-    Name = "HeartbeatPool"
-    Capacity = 1000
-    Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
-
 [WhiteListPool]
     Name = "WhiteListPool"
     Capacity = 100000
@@ -913,4 +903,15 @@
     NumIntraShardPeers  = 1
     NumFullHistoryPeers = 3
 
-HeartbeatExpiryTimespanInSec = 3600 # 1h
+[HeartbeatV2]
+    HeartbeatExpiryTimespanInSec = 3600 # 1h
+
+    [PeerAuthenticationPool]
+        DefaultSpanInSec = 3600 # 1h
+        CacheExpiryInSec = 3600 # 1h
+
+    [HeartbeatPool]
+        Name = "HeartbeatPool"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB

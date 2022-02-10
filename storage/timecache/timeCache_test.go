@@ -223,8 +223,8 @@ func TestTimeCache_RegisterNilHandler(t *testing.T) {
 	t.Parallel()
 
 	tc := NewTimeCache(time.Second)
-	tc.RegisterHandler(nil)
-	assert.Equal(t, 0, len(tc.sweepHandlers))
+	tc.RegisterEvictionHandler(nil)
+	assert.Equal(t, 0, len(tc.evictionHandlers))
 	key := "key1"
 	_ = tc.Add(key)
 	tc.ClearMap()
@@ -241,15 +241,15 @@ func TestTimeCache_RegisterHandlerShouldWork(t *testing.T) {
 
 	providedKey := "key1"
 	wasCalled := false
-	sh := &mock.SweepHandlerStub{
-		OnSweepCalled: func(key []byte) {
+	eh := &mock.EvictionHandlerStub{
+		EvictedCalled: func(key []byte) {
 			assert.True(t, bytes.Equal([]byte(providedKey), key))
 			wasCalled = true
 		},
 	}
 	tc := NewTimeCache(time.Second)
-	tc.RegisterHandler(sh)
-	assert.Equal(t, 1, len(tc.sweepHandlers))
+	tc.RegisterEvictionHandler(eh)
+	assert.Equal(t, 1, len(tc.evictionHandlers))
 	_ = tc.Add(providedKey)
 	time.Sleep(time.Second)
 	tc.Sweep()

@@ -143,12 +143,15 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	peerAuthPool := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
-		DefaultSpan: time.Duration(mainConfig.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(mainConfig.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
+	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
+		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.DefaultSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationPool.CacheExpiryInSec) * time.Second,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the peer authentication messages", err)
+	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatPool)
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatV2.HeartbeatPool)
 	heartbeatPool, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)

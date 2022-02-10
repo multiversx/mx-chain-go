@@ -102,6 +102,13 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// HeartbeatV2Config will hold the configuration for hearbeat v2
+type HeartbeatV2Config struct {
+	HeartbeatExpiryTimespanInSec int64
+	PeerAuthenticationPool       PeerAuthenticationPoolConfig
+	HeartbeatPool                CacheConfig
+}
+
 // PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
 type PeerAuthenticationPoolConfig struct {
 	DefaultSpanInSec int
@@ -150,8 +157,6 @@ type Config struct {
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
-	PeerAuthenticationPool      PeerAuthenticationPoolConfig
-	HeartbeatPool               CacheConfig
 	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
@@ -172,6 +177,7 @@ type Config struct {
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
 	Heartbeat           HeartbeatConfig
+	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig
@@ -194,8 +200,6 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
-
-	HeartbeatExpiryTimespanInSec int64
 }
 
 // LogsConfig will hold settings related to the logging sub-system

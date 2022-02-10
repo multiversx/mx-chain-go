@@ -8,11 +8,11 @@ import (
 
 // TimeCacheStub -
 type TimeCacheStub struct {
-	AddCalled             func(key string) error
-	UpsertCalled          func(key string, span time.Duration) error
-	HasCalled             func(key string) bool
-	SweepCalled           func()
-	RegisterHandlerCalled func(handler storage.SweepHandler)
+	AddCalled                     func(key string) error
+	UpsertCalled                  func(key string, span time.Duration) error
+	HasCalled                     func(key string) bool
+	SweepCalled                   func()
+	RegisterEvictionHandlerCalled func(handler storage.EvictionHandler)
 }
 
 // Add -
@@ -49,10 +49,10 @@ func (tcs *TimeCacheStub) Sweep() {
 	}
 }
 
-// RegisterHandler -
-func (tcs *TimeCacheStub) RegisterHandler(handler storage.SweepHandler) {
-	if tcs.RegisterHandlerCalled != nil {
-		tcs.RegisterHandlerCalled(handler)
+// RegisterEvictionHandler -
+func (tcs *TimeCacheStub) RegisterEvictionHandler(handler storage.EvictionHandler) {
+	if tcs.RegisterEvictionHandlerCalled != nil {
+		tcs.RegisterEvictionHandlerCalled(handler)
 	}
 }
 

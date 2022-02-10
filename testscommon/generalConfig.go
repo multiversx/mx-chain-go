@@ -192,7 +192,6 @@ func GetGeneralConfig() config.Config {
 		},
 		TrieNodesChunksDataPool: getLRUCacheConfig(),
 		SmartContractDataPool:   getLRUCacheConfig(),
-		HeartbeatPool:           getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -284,6 +283,14 @@ func GetGeneralConfig() config.Config {
 					MaxOpenFiles:      10,
 				},
 			},
+		},
+		HeartbeatV2: config.HeartbeatV2Config{
+			HeartbeatExpiryTimespanInSec: 30,
+			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
+				DefaultSpanInSec: 30,
+				CacheExpiryInSec: 30,
+			},
+			HeartbeatPool: getLRUCacheConfig(),
 		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
