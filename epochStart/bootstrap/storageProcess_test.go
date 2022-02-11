@@ -539,49 +539,22 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 		CurrentEpoch: 0,
 	}
 
-	t.Run("destination shard as observer as shardId", func(t *testing.T) {
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.GeneralConfig = testscommon.GetGeneralConfig()
-		args.GenesisNodesConfig = getNodesConfigMock(1)
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	args.GenesisNodesConfig = getNodesConfigMock(1)
 
-		sesb, _ := NewStorageEpochStartBootstrap(args)
-		sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-		sesb.requestHandler = &testscommon.RequestHandlerStub{}
-		sesb.epochStartMeta = metaBlock
-		sesb.prevEpochStartMeta = metaBlock
+	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
+	sesb.requestHandler = &testscommon.RequestHandlerStub{}
+	sesb.epochStartMeta = metaBlock
+	sesb.prevEpochStartMeta = metaBlock
 
-		pubkey := []byte("pubkey")
-		err := sesb.processNodesConfig(pubkey)
+	pubkey := []byte("pubkey")
+	err := sesb.processNodesConfig(pubkey)
 
-		assert.Nil(t, err)
-		assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
-		assert.Equal(t, sesb.baseData.shardId, args.DestinationShardAsObserver)
-	})
-
-	t.Run("genesisShardCoordinator shard id as shardId", func(t *testing.T) {
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.GeneralConfig = testscommon.GetGeneralConfig()
-		args.GenesisNodesConfig = getNodesConfigMock(1)
-		args.DestinationShardAsObserver = 3
-		args.GenesisShardCoordinator = &mock.ShardCoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return 0
-			},
-		}
-
-		sesb, _ := NewStorageEpochStartBootstrap(args)
-		sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-		sesb.requestHandler = &testscommon.RequestHandlerStub{}
-		sesb.epochStartMeta = metaBlock
-		sesb.prevEpochStartMeta = metaBlock
-
-		pubkey := []byte("pubkey")
-		err := sesb.processNodesConfig(pubkey)
-
-		assert.Nil(t, err)
-		assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
-		assert.Equal(t, sesb.baseData.shardId, args.DestinationShardAsObserver)
-	})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
+	assert.Equal(t, sesb.baseData.shardId, args.DestinationShardAsObserver)
 }
 
 func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testing.T) {
