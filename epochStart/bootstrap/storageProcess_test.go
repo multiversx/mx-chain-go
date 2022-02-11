@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
@@ -285,10 +286,6 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GenesisNodesConfig = getNodesConfigMock(1)
-
 	hdrHash1 := []byte("hdrHash1")
 	hdrHash2 := []byte("hdrHash2")
 	metaBlock := &block.MetaBlock{
@@ -305,20 +302,76 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 		},
 	}
 
-	expectedShardId := uint32(3)
-	args.ImportDbConfig = config.ImportDbConfig{
-		ImportDBTargetShardID: expectedShardId,
+	pksBytes := createPkBytes(1)
+	expectedNodesConfig := &sharding.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"0": {
+				EligibleValidators: map[string][]*sharding.SerializableValidator{
+					"0": {
+						&sharding.SerializableValidator{
+							PubKey:  pksBytes[0],
+							Chances: 1,
+							Index:   0,
+						},
+					},
+					"4294967295": {
+						&sharding.SerializableValidator{
+							PubKey:  pksBytes[4294967295],
+							Chances: 1,
+							Index:   0,
+						},
+					},
+				},
+				WaitingValidators: map[string][]*sharding.SerializableValidator{},
+				LeavingValidators: map[string][]*sharding.SerializableValidator{},
+			},
+		},
+		CurrentEpoch: 0,
 	}
-	sesb, _ := NewStorageEpochStartBootstrap(args)
-	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-	sesb.requestHandler = &testscommon.RequestHandlerStub{}
-	sesb.epochStartMeta = metaBlock
-	sesb.prevEpochStartMeta = metaBlock
 
-	pubkey := []byte("pubkey")
-	err := sesb.processNodesConfig(pubkey)
+	t.Run("destination shard as observer as shardId", func(t *testing.T) {
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.GeneralConfig = testscommon.GetGeneralConfig()
+		args.GenesisNodesConfig = getNodesConfigMock(1)
 
-	assert.Nil(t, err)
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+		sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
+		sesb.requestHandler = &testscommon.RequestHandlerStub{}
+		sesb.epochStartMeta = metaBlock
+		sesb.prevEpochStartMeta = metaBlock
+
+		pubkey := []byte("pubkey")
+		err := sesb.processNodesConfig(pubkey)
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
+		assert.Equal(t, sesb.baseData.shardId, args.DestinationShardAsObserver)
+	})
+
+	t.Run("genesisShardCoordinator shard id as shardId", func(t *testing.T) {
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.GeneralConfig = testscommon.GetGeneralConfig()
+		args.GenesisNodesConfig = getNodesConfigMock(1)
+		args.DestinationShardAsObserver = 3
+		args.GenesisShardCoordinator = &mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return 0
+			},
+		}
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+		sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
+		sesb.requestHandler = &testscommon.RequestHandlerStub{}
+		sesb.epochStartMeta = metaBlock
+		sesb.prevEpochStartMeta = metaBlock
+
+		pubkey := []byte("pubkey")
+		err := sesb.processNodesConfig(pubkey)
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
+		assert.Equal(t, sesb.baseData.shardId, args.DestinationShardAsObserver)
+	})
 }
 
 func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testing.T) {
