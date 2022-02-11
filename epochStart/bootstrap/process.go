@@ -1208,12 +1208,6 @@ func (e *epochStartBootstrap) Close() error {
 		log.LogIfError(err)
 	}
 
-	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.PeerAuthentications()) {
-		log.Debug("closing peer authentications data pool....")
-		err := e.dataPool.PeerAuthentications().Close()
-		log.LogIfError(err)
-	}
-
 	return nil
 }
 

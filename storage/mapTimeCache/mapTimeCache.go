@@ -15,7 +15,7 @@ import (
 
 var log = logger.GetOrCreate("storage/maptimecache")
 
-const minDurationInSec = 1
+const minDuration = time.Second
 
 // ArgMapTimeCacher is the argument used to create a new mapTimeCacher
 type ArgMapTimeCacher struct {
@@ -58,10 +58,10 @@ func NewMapTimeCache(arg ArgMapTimeCacher) (*mapTimeCacher, error) {
 }
 
 func checkArg(arg ArgMapTimeCacher) error {
-	if arg.DefaultSpan.Seconds() < minDurationInSec {
+	if arg.DefaultSpan < minDuration {
 		return storage.ErrInvalidDefaultSpan
 	}
-	if arg.CacheExpiry.Seconds() < minDurationInSec {
+	if arg.CacheExpiry < minDuration {
 		return storage.ErrInvalidCacheExpiry
 	}
 	return nil
@@ -110,9 +110,9 @@ func (mtc *mapTimeCacher) Put(key []byte, value interface{}, _ int) (evicted boo
 
 	oldValue, found := mtc.dataMap[string(key)]
 	mtc.dataMap[string(key)] = value
-	mtc.updateSizeContained(value, false)
+	mtc.addSizeContained(value)
 	if found {
-		mtc.updateSizeContained(oldValue, true)
+		mtc.substractSizeContained(oldValue)
 		mtc.upsertToTimeCache(key)
 		return false
 	}
@@ -156,7 +156,7 @@ func (mtc *mapTimeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, a
 	}
 
 	mtc.dataMap[string(key)] = value
-	mtc.updateSizeContained(value, false)
+	mtc.addSizeContained(value)
 	mtc.upsertToTimeCache(key)
 
 	return false, true
@@ -167,7 +167,7 @@ func (mtc *mapTimeCacher) Remove(key []byte) {
 	mtc.Lock()
 	defer mtc.Unlock()
 
-	mtc.updateSizeContained(mtc.dataMap[string(key)], true)
+	mtc.substractSizeContained(mtc.dataMap[string(key)])
 	delete(mtc.dataMap, string(key))
 }
 
@@ -237,19 +237,22 @@ func (mtc *mapTimeCacher) upsertToTimeCache(key []byte) {
 	}
 }
 
-func (mtc *mapTimeCacher) updateSizeContained(value interface{}, shouldSubstract bool) {
+func (mtc *mapTimeCacher) addSizeContained(value interface{}) {
+	mtc.sizeInBytesContained += mtc.computeSize(value)
+}
+
+func (mtc *mapTimeCacher) substractSizeContained(value interface{}) {
+	mtc.sizeInBytesContained -= mtc.computeSize(value)
+}
+
+func (mtc *mapTimeCacher) computeSize(value interface{}) uint64 {
 	b := new(bytes.Buffer)
 	err := gob.NewEncoder(b).Encode(value)
 	if err != nil {
 		log.Error(err.Error())
-		return
+		return 0
 	}
-
-	if shouldSubstract {
-		mtc.sizeInBytesContained -= uint64(b.Len())
-		return
-	}
-	mtc.sizeInBytesContained += uint64(b.Len())
+	return uint64(b.Len())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

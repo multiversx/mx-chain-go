@@ -167,11 +167,13 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 
 // Close closes all underlying components that need closing
 func (cc *dataComponents) Close() error {
+	var lastError error
 	if cc.store != nil {
 		log.Debug("closing all store units....")
 		err := cc.store.CloseAll()
 		if err != nil {
-			return err
+			log.Error("failed to close all store units", "error", err.Error())
+			lastError = err
 		}
 	}
 
@@ -179,7 +181,8 @@ func (cc *dataComponents) Close() error {
 		log.Debug("closing trie nodes data pool....")
 		err := cc.datapool.TrieNodes().Close()
 		if err != nil {
-			return err
+			log.Error("failed to close trie nodes data pool", "error", err.Error())
+			lastError = err
 		}
 	}
 
@@ -187,9 +190,10 @@ func (cc *dataComponents) Close() error {
 		log.Debug("closing peer authentications data pool....")
 		err := cc.datapool.PeerAuthentications().Close()
 		if err != nil {
-			return err
+			log.Error("failed to close peer authentications data pool", "error", err.Error())
+			lastError = err
 		}
 	}
 
-	return nil
+	return lastError
 }
