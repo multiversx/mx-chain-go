@@ -1805,3 +1805,69 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	goRoutinesNumberStart := runtime.NumGoroutine()
 	core.DumpGoRoutinesToLog(goRoutinesNumberStart, log)
 }
+
+func TestNetworkMessenger_WaitForConnections(t *testing.T) {
+	t.Parallel()
+
+	t.Run("min num of peers is 0", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		_, mes1, mes2 := createMockNetworkOf2()
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+		}()
+
+		timeToWait := time.Second * 3
+		mes1.WaitForConnections(timeToWait, 0)
+
+		assert.True(t, timeToWait <= time.Since(startTime))
+	})
+	t.Run("min num of peers is 2", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		netw, mes1, mes2 := createMockNetworkOf2()
+		mes3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+		_ = netw.LinkAll()
+
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+		go func() {
+			time.Sleep(time.Second * 2)
+			_ = mes1.ConnectToPeer(mes3.Addresses()[0])
+		}()
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+			_ = mes3.Close()
+		}()
+
+		timeToWait := time.Second * 10
+		mes1.WaitForConnections(timeToWait, 2)
+
+		assert.True(t, timeToWait > time.Since(startTime))
+		assert.True(t, libp2p.PollWaitForConnectionsInterval <= time.Since(startTime))
+	})
+	t.Run("min num of peers is 2 but we only connected to 1 peer", func(t *testing.T) {
+		t.Parallel()
+
+		startTime := time.Now()
+		_, mes1, mes2 := createMockNetworkOf2()
+
+		_ = mes1.ConnectToPeer(mes2.Addresses()[0])
+
+		defer func() {
+			_ = mes1.Close()
+			_ = mes2.Close()
+		}()
+
+		timeToWait := time.Second * 10
+		mes1.WaitForConnections(timeToWait, 2)
+
+		assert.True(t, timeToWait < time.Since(startTime))
+	})
+}
