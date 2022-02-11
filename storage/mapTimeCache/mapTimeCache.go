@@ -203,7 +203,7 @@ func (mtc *mapTimeCacher) SizeInBytesContained() uint64 {
 
 // MaxSize returns the maximum number of items which can be stored in cache.
 func (mtc *mapTimeCacher) MaxSize() int {
-	return math.MaxInt
+	return math.MaxInt32
 }
 
 // RegisterHandler -

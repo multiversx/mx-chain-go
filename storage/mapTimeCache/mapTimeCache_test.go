@@ -284,5 +284,5 @@ func TestMapTimeCacher_MaxSize(t *testing.T) {
 
 	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
-	assert.Equal(t, math.MaxInt, cacher.MaxSize())
+	assert.Equal(t, math.MaxInt32, cacher.MaxSize())
 }
