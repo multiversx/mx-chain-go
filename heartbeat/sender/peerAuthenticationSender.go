@@ -12,7 +12,7 @@ import (
 
 const minTimeBetweenSends = time.Second
 
-// ArgPeerAuthenticationSender represents the arguments for the heartbeat sender
+// ArgPeerAuthenticationSender represents the arguments for the peer authentication sender
 type ArgPeerAuthenticationSender struct {
 	Messenger                 heartbeat.P2PMessenger
 	PeerSignatureHandler      crypto.PeerSignatureHandler
