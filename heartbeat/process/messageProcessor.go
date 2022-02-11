@@ -28,7 +28,7 @@ func NewMessageProcessor(
 		return nil, heartbeat.ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(marshalizer) {
-		return nil, heartbeat.ErrNilMarshalizer
+		return nil, heartbeat.ErrNilMarshaller
 	}
 	if check.IfNil(networkShardingCollector) {
 		return nil, heartbeat.ErrNilNetworkShardingCollector

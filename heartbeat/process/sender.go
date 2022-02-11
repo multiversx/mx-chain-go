@@ -68,7 +68,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		return nil, fmt.Errorf("%w for arg.PrivKey", heartbeat.ErrNilPrivateKey)
 	}
 	if check.IfNil(arg.Marshalizer) {
-		return nil, heartbeat.ErrNilMarshalizer
+		return nil, heartbeat.ErrNilMarshaller
 	}
 	if check.IfNil(arg.ShardCoordinator) {
 		return nil, heartbeat.ErrNilShardCoordinator
@@ -144,7 +144,7 @@ func (s *Sender) SendHeartbeat() error {
 	if isHardforkTriggered {
 		isPayloadRecorded := len(triggerMessage) != 0
 		if isPayloadRecorded {
-			//beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
+			// beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
 			// so that will be spread in an epidemic manner
 			log.Debug("broadcasting stored hardfork message")
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)

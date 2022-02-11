@@ -68,7 +68,7 @@ type Monitor struct {
 // NewMonitor returns a new monitor instance
 func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.Marshalizer) {
-		return nil, heartbeat.ErrNilMarshalizer
+		return nil, heartbeat.ErrNilMarshaller
 	}
 	if check.IfNil(arg.PeerTypeProvider) {
 		return nil, heartbeat.ErrNilPeerTypeProvider
@@ -265,8 +265,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
+		// this situation is so severe that we have to black list both the message originator and the connected peer
+		// that disseminated this message.
 		reason := "blacklisted due to invalid heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -280,8 +280,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	}
 
 	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
+		// this situation is so severe that we have to black list both the message originator and the connected peer
+		// that disseminated this message.
 		reason := "blacklisted due to inconsistent heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -293,7 +293,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		)
 	}
 
-	//message is validated, process should be done async, method can return nil
+	// message is validated, process should be done async, method can return nil
 	go m.addHeartbeatMessageToMap(hbRecv)
 
 	go m.computeAllHeartbeatMessages()
