@@ -429,3 +429,18 @@ func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
 func (sp *shardProcessor) RequestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	return sp.requestEpochStartInfo(header, haveTime)
 }
+
+func (mp *metaProcessor) ProcessEpochStartMetaBlock(
+	header *block.MetaBlock,
+	body *block.Body,
+) error {
+	return mp.processEpochStartMetaBlock(header, body)
+}
+
+func (mp *metaProcessor) UpdateEpochStartHeader(metaHdr *block.MetaBlock) error {
+	return mp.updateEpochStartHeader(metaHdr)
+}
+
+func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.BodyHandler, error) {
+	return mp.createEpochStartBody(metaBlock)
+}
