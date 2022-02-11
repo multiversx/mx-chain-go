@@ -153,6 +153,8 @@ type Messenger interface {
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
+	Sign(payload []byte) ([]byte, error)
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
