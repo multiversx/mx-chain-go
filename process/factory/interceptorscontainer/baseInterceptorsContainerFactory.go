@@ -20,6 +20,7 @@ import (
 
 const numGoRoutines = 100
 const chunksProcessorRequestInterval = time.Millisecond * 400
+const minTimespanDurationInSec = int64(1)
 
 type baseInterceptorsContainerFactory struct {
 	container              process.InterceptorsContainer

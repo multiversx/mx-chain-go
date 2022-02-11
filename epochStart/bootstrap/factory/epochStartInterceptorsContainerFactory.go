@@ -40,6 +40,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	EnableSignTxWithHashEpoch uint32
 	EpochNotifier             process.EpochNotifier
 	RequestHandler            process.RequestHandler
+	SignaturesHandler         process.SignaturesHandler
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -73,29 +74,32 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:            args.CoreComponents,
-		CryptoComponents:          cryptoComponents,
-		ShardCoordinator:          args.ShardCoordinator,
-		NodesCoordinator:          nodesCoordinator,
-		Messenger:                 args.Messenger,
-		Store:                     storer,
-		DataPool:                  args.DataPool,
-		Accounts:                  accountsAdapter,
-		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:              feeHandler,
-		BlockBlackList:            blackListHandler,
-		HeaderSigVerifier:         headerSigVerifier,
-		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		SizeCheckDelta:            uint32(sizeCheckDelta),
-		ValidityAttester:          validityAttester,
-		EpochStartTrigger:         epochStartTrigger,
-		WhiteListHandler:          args.WhiteListHandler,
-		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
-		AntifloodHandler:          antiFloodHandler,
-		ArgumentsParser:           args.ArgumentsParser,
-		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		PreferredPeersHolder:      disabled.NewPreferredPeersHolder(),
-		RequestHandler:            args.RequestHandler,
+		CoreComponents:               args.CoreComponents,
+		CryptoComponents:             cryptoComponents,
+		Accounts:                     accountsAdapter,
+		ShardCoordinator:             args.ShardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		Messenger:                    args.Messenger,
+		Store:                        storer,
+		DataPool:                     args.DataPool,
+		MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                 feeHandler,
+		BlockBlackList:               blackListHandler,
+		HeaderSigVerifier:            headerSigVerifier,
+		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
+		ValidityAttester:             validityAttester,
+		EpochStartTrigger:            epochStartTrigger,
+		WhiteListHandler:             args.WhiteListHandler,
+		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
+		AntifloodHandler:             antiFloodHandler,
+		ArgumentsParser:              args.ArgumentsParser,
+		PreferredPeersHolder:         disabled.NewPreferredPeersHolder(),
+		SizeCheckDelta:               uint32(sizeCheckDelta),
+		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
+		RequestHandler:               args.RequestHandler,
+		PeerSignatureHandler:         cryptoComponents.PeerSignatureHandler(),
+		SignaturesHandler:            args.SignaturesHandler,
+		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

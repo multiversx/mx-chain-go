@@ -532,6 +532,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		EnableSignTxWithHashEpoch: e.enableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		EpochNotifier:             e.epochNotifier,
 		RequestHandler:            e.requestHandler,
+		SignaturesHandler:         e.messenger,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
