@@ -1,6 +1,7 @@
 package alteredaccounts
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -116,16 +117,12 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 
 	account, err := aap.accountsDB.LoadAccount(addressBytes)
 	if err != nil {
-		log.Warn("cannot load account when computing altered accounts",
-			"address", encodedAddress,
-			"error", err)
-		return err
+		return fmt.Errorf("%w while loading account when computing altered accounts. address: %s", err, encodedAddress)
 	}
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", encodedAddress)
-		return errCannotCastToUserAccountHandler
+		return fmt.Errorf("%w when computing altered accounts. address: %s", errCannotCastToUserAccountHandler, encodedAddress)
 	}
 
 	alteredAccounts[encodedAddress] = &indexer.AlteredAccount{
@@ -137,8 +134,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	for tokenKey, tokenData := range markedAccountTokens {
 		err = aap.addTokensDataForMarkedAccount([]byte(tokenKey), encodedAddress, userAccount, tokenData, alteredAccounts)
 		if err != nil {
-			log.Warn("cannot fetch token data for marked account", "error", err)
-			return err
+			return fmt.Errorf("%w while fetching token data when computing altered accounts", err)
 		}
 	}
 
@@ -160,9 +156,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 
 	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 	if !ok {
-		log.Warn("state.UserAccountHandler cannot be cast to vmcommon.UserAccountHandler",
-			"address", aap.addressConverter.Encode(userAccount.GetOwnerAddress()))
-		return errCannotCastToVmCommonUserAccountHandler
+		return fmt.Errorf("%w for address %s", errCannotCastToVmCommonUserAccountHandler, encodedAddress)
 	}
 
 	esdtToken, _,  err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)

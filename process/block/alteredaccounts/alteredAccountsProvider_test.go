@@ -1,6 +1,7 @@
 package alteredaccounts
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -397,7 +398,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 			},
 		},
 	})
-	require.Equal(t, errCannotCastToVmCommonUserAccountHandler, err)
+	require.True(t, errors.Is(err, errCannotCastToVmCommonUserAccountHandler))
 	require.Nil(t, res)
 }
 
