@@ -284,6 +284,14 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 		},
+		HeartbeatV2: config.HeartbeatV2Config{
+			HeartbeatExpiryTimespanInSec: 30,
+			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
+				DefaultSpanInSec: 30,
+				CacheExpiryInSec: 30,
+			},
+			HeartbeatPool: getLRUCacheConfig(),
+		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{

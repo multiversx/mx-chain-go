@@ -224,6 +224,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 // ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
 var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
 
+// ErrNilHeartbeatPool signals that a nil heartbeat pool has been provided
+var ErrNilHeartbeatPool = errors.New("nil heartbeat pool")
+
 // ErrPeerAuthNotFound signals that no peer authentication found
 var ErrPeerAuthNotFound = errors.New("peer authentication not found")
 

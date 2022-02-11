@@ -19,16 +19,18 @@ type span struct {
 // sweeping (clean-up) is triggered each time a new item is added or a key is present in the time cache
 // This data structure is concurrent safe.
 type TimeCache struct {
-	mut         sync.RWMutex
-	data        map[string]*span
-	defaultSpan time.Duration
+	mut              sync.RWMutex
+	data             map[string]*span
+	defaultSpan      time.Duration
+	evictionHandlers []storage.EvictionHandler
 }
 
 // NewTimeCache creates a new time cache data structure instance
 func NewTimeCache(defaultSpan time.Duration) *TimeCache {
 	return &TimeCache{
-		data:        make(map[string]*span),
-		defaultSpan: defaultSpan,
+		data:             make(map[string]*span),
+		defaultSpan:      defaultSpan,
+		evictionHandlers: make([]storage.EvictionHandler, 0),
 	}
 }
 
@@ -97,6 +99,7 @@ func (tc *TimeCache) Sweep() {
 		isOldElement := time.Since(element.timestamp) > element.span
 		if isOldElement {
 			delete(tc.data, key)
+			tc.notifyHandlers([]byte(key))
 		}
 	}
 }
@@ -117,6 +120,23 @@ func (tc *TimeCache) Len() int {
 	defer tc.mut.RUnlock()
 
 	return len(tc.data)
+}
+
+// RegisterEvictionHandler adds a handler to the handlers slice
+func (tc *TimeCache) RegisterEvictionHandler(handler storage.EvictionHandler) {
+	if handler == nil {
+		return
+	}
+
+	tc.mut.Lock()
+	tc.evictionHandlers = append(tc.evictionHandlers, handler)
+	tc.mut.Unlock()
+}
+
+func (tc *TimeCache) notifyHandlers(key []byte) {
+	for _, handler := range tc.evictionHandlers {
+		handler.Evicted(key)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
