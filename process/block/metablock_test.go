@@ -3061,3 +3061,165 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, metaHeader.DeveloperFees)
 	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
 }
+
+// ------ processEpochStartMetaBlock
+func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	hash := []byte("hash1")
+	hasher := &mock.HasherStub{}
+	hasher.ComputeCalled = func(s string) []byte {
+		return hash
+	}
+	coreComponents.TxSignHasherField = hasher
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+
+	arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	header := &block.MetaBlock{
+		Nonce:           1,
+		Round:           1,
+		PrevHash:        hash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				ReceiverShardID: 0,
+				SenderShardID:   0,
+			},
+			&block.MiniBlock{
+				ReceiverShardID: 1,
+				SenderShardID:   1,
+			},
+		},
+	}
+
+	err := mp.ProcessEpochStartMetaBlock(header, body)
+	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_UpdateEpochStartMetaHeaderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	accFeesInEpoch := big.NewInt(1000)
+	devFeesInEpoch := big.NewInt(100)
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
+		&block.MetaBlock{
+			Round:                  1,
+			Nonce:                  1,
+			AccumulatedFeesInEpoch: accFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
+		}, []byte("root hash"),
+	)
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.BlockChain = blkc
+	hash := []byte("hash1")
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	expectedErr := errors.New("expected error")
+	arguments.EpochEconomics = &mock.EpochEconomicsStub{
+		ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
+			return nil, expectedErr
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	header := &block.MetaBlock{
+		Nonce:                  1,
+		Round:                  1,
+		PrevHash:               hash,
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
+
+	err := mp.UpdateEpochStartHeader(header)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestMetaProcessor_UpdateEpochStartMetaHeader(t *testing.T) {
+	t.Parallel()
+
+	accFeesInEpoch := big.NewInt(1000)
+	devFeesInEpoch := big.NewInt(100)
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
+		&block.MetaBlock{
+			Round:                  1,
+			Nonce:                  1,
+			AccumulatedFeesInEpoch: accFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
+		}, []byte("root hash"),
+	)
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.BlockChain = blkc
+	hash := []byte("hash1")
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	header := &block.MetaBlock{
+		Nonce:                  1,
+		Round:                  1,
+		PrevHash:               hash,
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
+
+	err := mp.UpdateEpochStartHeader(header)
+	assert.Nil(t, err)
+	assert.Equal(t, accFeesInEpoch, header.GetAccumulatedFeesInEpoch())
+	assert.Equal(t, devFeesInEpoch, header.GetDevFeesInEpoch())
+}
+
+func TestMetaProcessor_CreateEpochStartBody(t *testing.T) {
+	t.Parallel()
+
+	accFeesInEpoch := big.NewInt(1000)
+	devFeesInEpoch := big.NewInt(100)
+	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(
+		&block.MetaBlock{
+			Round:                  1,
+			Nonce:                  1,
+			AccumulatedFeesInEpoch: accFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
+		}, []byte("root hash"),
+	)
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.BlockChain = blkc
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	header := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{},
+			Economics: block.Economics{
+				RewardsForProtocolSustainability: big.NewInt(0),
+			},
+		},
+	}
+
+	body, err := mp.CreateEpochStartBody(header)
+	assert.Nil(t, err)
+	assert.Nil(t, body)
+}
