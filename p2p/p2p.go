@@ -153,6 +153,7 @@ type Messenger interface {
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
+	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
