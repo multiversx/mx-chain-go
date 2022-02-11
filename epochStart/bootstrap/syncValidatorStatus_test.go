@@ -132,8 +132,11 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 	}
 
 	svs, _ := NewSyncValidatorStatus(args)
+
+	wasCalled := false
 	svs.nodeCoordinator = &mock.NodesCoordinatorStub{
 		EpochStartPrepareCalled: func(metaHdr data.HeaderHandler, body data.BodyHandler) {
+			wasCalled = true
 			assert.Equal(t, metaBlock, metaHdr)
 			assert.Equal(t, expectedBody, body)
 		},
@@ -154,6 +157,7 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 
 	err := svs.processValidatorChangesFor(metaBlock)
 	require.NoError(t, err)
+	assert.True(t, wasCalled)
 }
 
 func TestSyncValidatorStatus_findPeerMiniBlockHeaders(t *testing.T) {
