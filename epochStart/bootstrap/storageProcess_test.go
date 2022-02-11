@@ -1,11 +1,14 @@
 package bootstrap
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -124,4 +129,230 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	params, err := sesb.Bootstrap()
 	assert.Equal(t, process.ErrNilMetaBlockHeader, err)
 	assert.Equal(t, uint32(0), params.Epoch)
+}
+
+func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldFail(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	t.Run("fail to sync missing headers", func(t *testing.T) {
+		t.Parallel()
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: hdrHash1, ShardID: 0},
+				},
+				Economics: block.Economics{
+					PrevEpochStartHash: hdrHash2,
+				},
+			},
+		}
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+		expectedErr := errors.New("expected error")
+		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
+				return expectedErr
+			},
+		}
+
+		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+
+		assert.Nil(t, syncedHeaders)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("fail to get synced headers", func(t *testing.T) {
+		t.Parallel()
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: hdrHash1, ShardID: 0},
+				},
+				Economics: block.Economics{
+					PrevEpochStartHash: hdrHash2,
+				},
+			},
+		}
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+		expectedErr := errors.New("expected error")
+		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
+				return nil, expectedErr
+			},
+		}
+
+		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+
+		assert.Nil(t, syncedHeaders)
+		assert.Equal(t, expectedErr, err)
+	})
+}
+
+func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	hdrHash1 := []byte("hdrHash1")
+	hdrHash2 := []byte("hdrHash2")
+
+	t.Run("empty prev meta block when first epoch", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlock{
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: hdrHash1, ShardID: 0},
+				},
+				Economics: block.Economics{
+					PrevEpochStartHash: hdrHash2,
+				},
+			},
+		}
+		prevMetaBlock := &block.MetaBlock{
+			Epoch: 0,
+			Nonce: 10,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: hdrHash1, ShardID: 0},
+				},
+			},
+		}
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+		expectedHeaders := map[string]data.HeaderHandler{
+			string(hdrHash1): metaBlock,
+			string(hdrHash2): prevMetaBlock,
+		}
+		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
+				return expectedHeaders, nil
+			},
+		}
+
+		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+
+		assert.Nil(t, err)
+		assert.Equal(t, metaBlock, syncedHeaders[string(hdrHash1)])
+		assert.Equal(t, &block.MetaBlock{}, syncedHeaders[string(hdrHash2)])
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlock{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: hdrHash1, ShardID: 0},
+				},
+				Economics: block.Economics{
+					PrevEpochStartHash: hdrHash2,
+				},
+			},
+		}
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+		expectedHeaders := map[string]data.HeaderHandler{
+			string(hdrHash1): metaBlock,
+		}
+		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
+				return expectedHeaders, nil
+			},
+		}
+
+		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedHeaders, syncedHeaders)
+	})
+}
+
+func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	args.GenesisNodesConfig = getNodesConfigMock(1)
+
+	hdrHash1 := []byte("hdrHash1")
+	hdrHash2 := []byte("hdrHash2")
+	metaBlock := &block.MetaBlock{
+		Epoch: 0,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:          hdrHash1,
+				SenderShardID: 1,
+			},
+			{
+				Hash:          hdrHash2,
+				SenderShardID: 2,
+			},
+		},
+	}
+
+	expectedShardId := uint32(3)
+	args.ImportDbConfig = config.ImportDbConfig{
+		ImportDBTargetShardID: expectedShardId,
+	}
+	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
+	sesb.requestHandler = &testscommon.RequestHandlerStub{}
+	sesb.epochStartMeta = metaBlock
+	sesb.prevEpochStartMeta = metaBlock
+
+	pubkey := []byte("pubkey")
+	err := sesb.processNodesConfig(pubkey)
+
+	assert.Nil(t, err)
+}
+
+func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+
+	expectedShardId := uint32(3)
+	args.ImportDbConfig = config.ImportDbConfig{
+		ImportDBTargetShardID: expectedShardId,
+	}
+	sesb, _ := NewStorageEpochStartBootstrap(args)
+
+	hdrHash1 := []byte("hdrHash1")
+	hdrHash2 := []byte("hdrHash2")
+	metaBlock := &block.MetaBlock{
+		Epoch: 2,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:          hdrHash1,
+				SenderShardID: 1,
+			},
+			{
+				Hash:          hdrHash2,
+				SenderShardID: 2,
+			},
+		},
+	}
+	err := sesb.applyCurrentShardIDOnMiniblocksCopy(metaBlock)
+
+	assert.Nil(t, err)
+	for _, miniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
+		assert.Equal(t, expectedShardId, miniBlock.GetSenderShardID())
+	}
 }
