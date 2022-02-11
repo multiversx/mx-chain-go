@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -53,7 +52,7 @@ type ArgInterceptedDataFactory struct {
 	ArgsParser                   process.ArgumentsParser
 	EnableSignTxWithHashEpoch    uint32
 	PeerSignatureHandler         crypto.PeerSignatureHandler
-	SignaturesHandler            heartbeat.SignaturesHandler
+	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
 	PeerID                       core.PeerID
 }
