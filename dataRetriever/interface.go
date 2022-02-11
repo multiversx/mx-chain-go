@@ -329,6 +329,7 @@ type PoolsHolder interface {
 	CurrentBlockTxs() TransactionCacher
 	PeerAuthentications() storage.Cacher
 	Heartbeats() storage.Cacher
+	Close() error
 	IsInterfaceNil() bool
 }
 

@@ -2,11 +2,14 @@ package dataPool
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
+
+var log = logger.GetOrCreate("dataRetriever/dataPool")
 
 type dataPool struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
@@ -152,6 +155,30 @@ func (dp *dataPool) PeerAuthentications() storage.Cacher {
 // Heartbeats returns the holder for heartbeats
 func (dp *dataPool) Heartbeats() storage.Cacher {
 	return dp.heartbeats
+}
+
+// Close closes all the components
+func (dp *dataPool) Close() error {
+	var lastError error
+	if !check.IfNil(dp.trieNodes) {
+		log.Debug("closing trie nodes data pool....")
+		err := dp.trieNodes.Close()
+		if err != nil {
+			log.Error("failed to close trie nodes data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(dp.peerAuthentications) {
+		log.Debug("closing peer authentications data pool....")
+		err := dp.peerAuthentications.Close()
+		if err != nil {
+			log.Error("failed to close peer authentications data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	return lastError
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

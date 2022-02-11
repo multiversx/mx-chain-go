@@ -1028,3 +1028,20 @@ func TestEpochStartBootstrap_getDataToSyncWithSCRStorageCloseErr(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, expectedSyncData, syncData)
 }
+
+func TestEpochStartBootstrap_Close(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		CloseCalled: func() error {
+			return expectedErr
+		}}
+
+	err := epochStartProvider.Close()
+	assert.Equal(t, expectedErr, err)
+}

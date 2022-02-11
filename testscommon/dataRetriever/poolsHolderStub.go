@@ -21,6 +21,7 @@ type PoolsHolderStub struct {
 	SmartContractsCalled       func() storage.Cacher
 	PeerAuthenticationsCalled  func() storage.Cacher
 	HeartbeatsCalled           func() storage.Cacher
+	CloseCalled                func() error
 }
 
 // NewPoolsHolderStub -
@@ -143,6 +144,15 @@ func (holder *PoolsHolderStub) Heartbeats() storage.Cacher {
 	}
 
 	return testscommon.NewCacherStub()
+}
+
+// Close -
+func (holder *PoolsHolderStub) Close() error {
+	if holder.CloseCalled != nil {
+		return holder.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

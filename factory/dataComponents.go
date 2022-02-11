@@ -177,22 +177,8 @@ func (cc *dataComponents) Close() error {
 		}
 	}
 
-	if !check.IfNil(cc.datapool) && !check.IfNil(cc.datapool.TrieNodes()) {
-		log.Debug("closing trie nodes data pool....")
-		err := cc.datapool.TrieNodes().Close()
-		if err != nil {
-			log.Error("failed to close trie nodes data pool", "error", err.Error())
-			lastError = err
-		}
-	}
-
-	if !check.IfNil(cc.datapool) && !check.IfNil(cc.datapool.PeerAuthentications()) {
-		log.Debug("closing peer authentications data pool....")
-		err := cc.datapool.PeerAuthentications().Close()
-		if err != nil {
-			log.Error("failed to close peer authentications data pool", "error", err.Error())
-			lastError = err
-		}
+	if !check.IfNil(cc.datapool) {
+		lastError = cc.datapool.Close()
 	}
 
 	return lastError

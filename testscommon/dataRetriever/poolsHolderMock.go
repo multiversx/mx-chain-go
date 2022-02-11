@@ -3,6 +3,7 @@ package dataRetriever
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -169,6 +170,25 @@ func (holder *PoolsHolderMock) PeerAuthentications() storage.Cacher {
 // Heartbeats -
 func (holder *PoolsHolderMock) Heartbeats() storage.Cacher {
 	return holder.heartbeats
+}
+
+func (holder *PoolsHolderMock) Close() error {
+	var lastError error
+	if !check.IfNil(holder.trieNodes) {
+		err := holder.trieNodes.Close()
+		if err != nil {
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(holder.peerAuthentications) {
+		err := holder.peerAuthentications.Close()
+		if err != nil {
+			lastError = err
+		}
+	}
+
+	return lastError
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
