@@ -112,7 +112,7 @@ func (mtc *mapTimeCacher) Put(key []byte, value interface{}, _ int) (evicted boo
 	mtc.dataMap[string(key)] = value
 	mtc.addSizeContained(value)
 	if found {
-		mtc.substractSizeContained(oldValue)
+		mtc.subtractSizeContained(oldValue)
 		mtc.upsertToTimeCache(key)
 		return false
 	}
@@ -167,7 +167,7 @@ func (mtc *mapTimeCacher) Remove(key []byte) {
 	mtc.Lock()
 	defer mtc.Unlock()
 
-	mtc.substractSizeContained(mtc.dataMap[string(key)])
+	mtc.subtractSizeContained(mtc.dataMap[string(key)])
 	delete(mtc.dataMap, string(key))
 }
 
@@ -241,7 +241,7 @@ func (mtc *mapTimeCacher) addSizeContained(value interface{}) {
 	mtc.sizeInBytesContained += mtc.computeSize(value)
 }
 
-func (mtc *mapTimeCacher) substractSizeContained(value interface{}) {
+func (mtc *mapTimeCacher) subtractSizeContained(value interface{}) {
 	mtc.sizeInBytesContained -= mtc.computeSize(value)
 }
 

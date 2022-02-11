@@ -172,6 +172,7 @@ func (holder *PoolsHolderMock) Heartbeats() storage.Cacher {
 	return holder.heartbeats
 }
 
+// Close -
 func (holder *PoolsHolderMock) Close() error {
 	var lastError error
 	if !check.IfNil(holder.trieNodes) {

@@ -221,7 +221,7 @@ func TestNewDataPool_Close(t *testing.T) {
 		t.Parallel()
 
 		tnExpectedErr := errors.New("tn expected error")
-		paExpectedErr := errors.New("tn expected error")
+		paExpectedErr := errors.New("pa expected error")
 		args := createMockDataPoolArgs()
 		tnCalled, paCalled := false, false
 		args.TrieNodes = &testscommon.CacherStub{
