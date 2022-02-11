@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
+var peerAuthDuration = 10 * time.Second
+
 func panicIfError(message string, err error) {
 	if err != nil {
 		panic(fmt.Sprintf("%s: %s", message, err))
@@ -189,8 +191,8 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
-		DefaultSpan: 10 * time.Second,
-		CacheExpiry: 10 * time.Second,
+		DefaultSpan: peerAuthDuration,
+		CacheExpiry: peerAuthDuration,
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 

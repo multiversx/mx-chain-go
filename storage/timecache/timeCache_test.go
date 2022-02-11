@@ -225,15 +225,6 @@ func TestTimeCache_RegisterNilHandler(t *testing.T) {
 	tc := NewTimeCache(time.Second)
 	tc.RegisterEvictionHandler(nil)
 	assert.Equal(t, 0, len(tc.evictionHandlers))
-	key := "key1"
-	_ = tc.Add(key)
-	tc.ClearMap()
-	tc.Sweep()
-
-	exists := tc.Has(key)
-
-	assert.False(t, exists)
-	assert.Equal(t, 0, len(tc.Keys()))
 }
 
 func TestTimeCache_RegisterHandlerShouldWork(t *testing.T) {

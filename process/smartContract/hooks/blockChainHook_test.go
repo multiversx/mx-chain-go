@@ -208,17 +208,22 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 func TestBlockChainHookImpl_GetCode(t *testing.T) {
 	t.Parallel()
 
-	args := createMockBlockChainHookArgs()
 	t.Run("nil account expect nil code", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 		code := bh.GetCode(nil)
 		require.Nil(t, code)
 	})
 
 	t.Run("expect correct returned code", func(t *testing.T) {
+		t.Parallel()
+
 		expectedCodeHash := []byte("codeHash")
 		expectedCode := []byte("code")
 
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetCodeCalled: func(codeHash []byte) []byte {
 				require.Equal(t, expectedCodeHash, codeHash)

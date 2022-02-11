@@ -64,6 +64,7 @@ func checkArg(arg ArgMapTimeCacher) error {
 	if arg.CacheExpiry < minDuration {
 		return storage.ErrInvalidCacheExpiry
 	}
+
 	return nil
 }
 
@@ -87,10 +88,6 @@ func (mtc *mapTimeCacher) startSweeping(ctx context.Context) {
 
 // Evicted is the handler called on Sweep method
 func (mtc *mapTimeCacher) Evicted(key []byte) {
-	if key == nil {
-		return
-	}
-
 	mtc.Remove(key)
 }
 
@@ -164,6 +161,10 @@ func (mtc *mapTimeCacher) HasOrAdd(key []byte, value interface{}, _ int) (has, a
 
 // Remove removes the key from cache
 func (mtc *mapTimeCacher) Remove(key []byte) {
+	if key == nil {
+		return
+	}
+
 	mtc.Lock()
 	defer mtc.Unlock()
 
@@ -182,6 +183,7 @@ func (mtc *mapTimeCacher) Keys() [][]byte {
 		keys[idx] = []byte(k)
 		idx++
 	}
+
 	return keys
 }
 
@@ -206,11 +208,11 @@ func (mtc *mapTimeCacher) MaxSize() int {
 	return math.MaxInt32
 }
 
-// RegisterHandler -
+// RegisterHandler registers a handler, currently not needed
 func (mtc *mapTimeCacher) RegisterHandler(_ func(key []byte, value interface{}), _ string) {
 }
 
-// UnRegisterHandler -
+// UnRegisterHandler unregisters a handler, currently not needed
 func (mtc *mapTimeCacher) UnRegisterHandler(_ string) {
 }
 
@@ -252,6 +254,7 @@ func (mtc *mapTimeCacher) computeSize(value interface{}) uint64 {
 		log.Error(err.Error())
 		return 0
 	}
+
 	return uint64(b.Len())
 }
 

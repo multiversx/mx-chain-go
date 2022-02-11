@@ -20,13 +20,14 @@ func createArgMapTimeCache() mapTimeCache.ArgMapTimeCacher {
 	}
 }
 
-func createKeysVals(noOfPairs int) ([][]byte, [][]byte) {
-	keys := make([][]byte, noOfPairs)
-	vals := make([][]byte, noOfPairs)
-	for i := 0; i < noOfPairs; i++ {
+func createKeysVals(numOfPairs int) ([][]byte, [][]byte) {
+	keys := make([][]byte, numOfPairs)
+	vals := make([][]byte, numOfPairs)
+	for i := 0; i < numOfPairs; i++ {
 		keys[i] = []byte("k" + string(rune(i)))
 		vals[i] = []byte("v" + string(rune(i)))
 	}
+
 	return keys, vals
 }
 
@@ -55,8 +56,8 @@ func TestNewMapTimeCache(t *testing.T) {
 		t.Parallel()
 
 		cacher, err := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
-		assert.False(t, cacher.IsInterfaceNil())
 		assert.Nil(t, err)
+		assert.False(t, cacher.IsInterfaceNil())
 	})
 }
 
@@ -66,12 +67,12 @@ func TestMapTimeCacher_Clear(t *testing.T) {
 	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
-	noOfPairs := 3
-	providedKeys, providedVals := createKeysVals(noOfPairs)
-	for i := 0; i < noOfPairs; i++ {
+	numOfPairs := 3
+	providedKeys, providedVals := createKeysVals(numOfPairs)
+	for i := 0; i < numOfPairs; i++ {
 		cacher.Put(providedKeys[i], providedVals[i], len(providedVals[i]))
 	}
-	assert.Equal(t, noOfPairs, cacher.Len())
+	assert.Equal(t, numOfPairs, cacher.Len())
 
 	cacher.Clear()
 	assert.Equal(t, 0, cacher.Len())
@@ -140,14 +141,14 @@ func TestMapTimeCacher_Keys(t *testing.T) {
 	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
-	noOfPairs := 10
-	providedKeys, providedVals := createKeysVals(noOfPairs)
-	for i := 0; i < noOfPairs; i++ {
+	numOfPairs := 10
+	providedKeys, providedVals := createKeysVals(numOfPairs)
+	for i := 0; i < numOfPairs; i++ {
 		cacher.Put(providedKeys[i], providedVals[i], len(providedVals[i]))
 	}
 
 	receivedKeys := cacher.Keys()
-	assert.Equal(t, noOfPairs, len(receivedKeys))
+	assert.Equal(t, numOfPairs, len(receivedKeys))
 
 	sort.Slice(providedKeys, func(i, j int) bool {
 		return bytes.Compare(providedKeys[i], providedKeys[j]) < 0
@@ -167,12 +168,12 @@ func TestMapTimeCacher_Evicted(t *testing.T) {
 	cacher, _ := mapTimeCache.NewMapTimeCache(arg)
 	assert.False(t, cacher.IsInterfaceNil())
 
-	noOfPairs := 2
-	providedKeys, providedVals := createKeysVals(noOfPairs)
-	for i := 0; i < noOfPairs; i++ {
+	numOfPairs := 2
+	providedKeys, providedVals := createKeysVals(numOfPairs)
+	for i := 0; i < numOfPairs; i++ {
 		cacher.Put(providedKeys[i], providedVals[i], len(providedVals[i]))
 	}
-	assert.Equal(t, noOfPairs, cacher.Len())
+	assert.Equal(t, numOfPairs, cacher.Len())
 
 	time.Sleep(2 * arg.CacheExpiry)
 	assert.Equal(t, 0, cacher.Len())
@@ -204,8 +205,8 @@ func TestMapTimeCacher_Put(t *testing.T) {
 	cacher, _ := mapTimeCache.NewMapTimeCache(createArgMapTimeCache())
 	assert.False(t, cacher.IsInterfaceNil())
 
-	noOfPairs := 2
-	keys, vals := createKeysVals(noOfPairs)
+	numOfPairs := 2
+	keys, vals := createKeysVals(numOfPairs)
 	evicted := cacher.Put(keys[0], vals[0], len(vals[0]))
 	assert.False(t, evicted)
 	assert.Equal(t, 1, cacher.Len())
@@ -228,6 +229,9 @@ func TestMapTimeCacher_Remove(t *testing.T) {
 
 	providedKey, providedVal := []byte("key"), []byte("val")
 	cacher.Put(providedKey, providedVal, len(providedVal))
+	assert.Equal(t, 1, cacher.Len())
+
+	cacher.Remove(nil)
 	assert.Equal(t, 1, cacher.Len())
 
 	cacher.Remove(providedKey)
