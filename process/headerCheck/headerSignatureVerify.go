@@ -8,10 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("process/headerCheck")
 type ArgsHeaderSigVerifier struct {
 	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
-	NodesCoordinator        sharding.NodesCoordinator
+	NodesCoordinator        nodesCoordinator.NodesCoordinator
 	MultiSigVerifier        crypto.MultiSigVerifier
 	SingleSigVerifier       crypto.SingleSigner
 	KeyGen                  crypto.KeyGenerator
@@ -33,7 +33,7 @@ type ArgsHeaderSigVerifier struct {
 type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
-	nodesCoordinator        sharding.NodesCoordinator
+	nodesCoordinator        nodesCoordinator.NodesCoordinator
 	multiSigVerifier        crypto.MultiSigVerifier
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator

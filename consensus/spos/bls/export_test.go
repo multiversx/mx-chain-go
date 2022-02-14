@@ -8,13 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
@@ -80,7 +81,7 @@ func (fct *factory) SyncTimer() ntp.SyncTimer {
 }
 
 // NodesCoordinator gets the nodes coordinator object
-func (fct *factory) NodesCoordinator() sharding.NodesCoordinator {
+func (fct *factory) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return fct.consensusCore.NodesCoordinator()
 }
 

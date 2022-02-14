@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -39,7 +40,7 @@ const (
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	Marshalizer                                       marshal.Marshalizer
-	NodesCoordinator                                  sharding.NodesCoordinator
+	NodesCoordinator                                  nodesCoordinator.NodesCoordinator
 	ShardCoordinator                                  sharding.Coordinator
 	DataPool                                          DataPool
 	StorageService                                    dataRetriever.StorageService
@@ -63,7 +64,7 @@ type validatorStatistics struct {
 	marshalizer                                       marshal.Marshalizer
 	dataPool                                          DataPool
 	storageService                                    dataRetriever.StorageService
-	nodesCoordinator                                  sharding.NodesCoordinator
+	nodesCoordinator                                  nodesCoordinator.NodesCoordinator
 	shardCoordinator                                  sharding.Coordinator
 	pubkeyConv                                        core.PubkeyConverter
 	peerAdapter                                       state.AccountsAdapter
@@ -287,7 +288,7 @@ func (vs *validatorStatistics) saveInitialState(nodesConfig sharding.GenesisNode
 }
 
 func (vs *validatorStatistics) saveInitialValueForMap(
-	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
+	nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler,
 	peerType common.PeerType,
 ) error {
 	if len(nodesInfo) == 0 {
@@ -829,7 +830,7 @@ func (vs *validatorStatistics) computeDecrease(
 }
 
 func (vs *validatorStatistics) decreaseForConsensusValidators(
-	consensusGroup []sharding.Validator,
+	consensusGroup []nodesCoordinator.Validator,
 	shardId uint32,
 	epoch uint32,
 ) error {
@@ -946,7 +947,7 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 }
 
 func (vs *validatorStatistics) initializeNode(
-	node sharding.GenesisNodeInfoHandler,
+	node nodesCoordinator.GenesisNodeInfoHandler,
 	shardID uint32,
 	peerType common.PeerType,
 	index uint32,
@@ -961,7 +962,7 @@ func (vs *validatorStatistics) initializeNode(
 
 func (vs *validatorStatistics) savePeerAccountData(
 	peerAccount state.PeerAccountHandler,
-	node sharding.GenesisNodeInfoHandler,
+	node nodesCoordinator.GenesisNodeInfoHandler,
 	startRating uint32,
 	shardID uint32,
 	peerType common.PeerType,
@@ -989,7 +990,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
-	validatorList []sharding.Validator,
+	validatorList []nodesCoordinator.Validator,
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
 	shardId uint32,

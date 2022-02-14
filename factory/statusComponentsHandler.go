@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ ComponentHandler = (*managedStatusComponents)(nil)
@@ -357,7 +358,7 @@ func registerMemStatistics(_ context.Context, appStatusPollingHandler *appStatus
 	})
 }
 
-func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier sharding.EpochStartEventNotifier) error {
+func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier nodesCoordinator.EpochStartEventNotifier) error {
 	netStats := machine.NewNetStatistics()
 	notifier.RegisterHandler(netStats.EpochStartEventHandler())
 	go func() {
