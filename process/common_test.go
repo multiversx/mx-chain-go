@@ -1893,3 +1893,4 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
 
+//TODO: Add unit tests for methods: shouldSkipMiniBlock

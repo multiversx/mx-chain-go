@@ -3010,7 +3010,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
-	err = tc.verifyGasLimit(body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyGasLimit(&block.Header{}, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached, err)
 }
 
@@ -3102,7 +3102,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
-	err = tc.verifyGasLimit(body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyGasLimit(&block.Header{}, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
 }
 
@@ -3628,9 +3628,11 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 	mapAllTxs[txHash1] = tx1
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
+	reserved := []byte{byte(block.Normal)}
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(10),
+		AccumulatedFees:  big.NewInt(101),
+		DeveloperFees:    big.NewInt(10),
+		MiniBlockHeaders: []block.MiniBlockHeader{{Reserved: reserved}, {Reserved: reserved}},
 	}
 
 	body := &block.Body{
@@ -3706,9 +3708,11 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 	mapAllTxs[txHash1] = tx1
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
+	reserved := []byte{byte(block.Normal)}
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(11),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(11),
+		MiniBlockHeaders: []block.MiniBlockHeader{{Reserved: reserved}, {Reserved: reserved}},
 	}
 
 	body := &block.Body{
@@ -3807,9 +3811,11 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 
 	tc.EpochConfirmed(2, 0)
 
+	reserved := []byte{byte(block.Normal)}
 	header = &block.Header{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(11),
+		AccumulatedFees:  big.NewInt(101),
+		DeveloperFees:    big.NewInt(11),
+		MiniBlockHeaders: []block.MiniBlockHeader{{Reserved: reserved}, {Reserved: reserved}},
 	}
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)

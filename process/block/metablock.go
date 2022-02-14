@@ -571,7 +571,7 @@ func (mp *metaProcessor) getAllFinalCrossMiniBlockHashes(
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
 		if miniBlockHeader != nil {
-			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
+			if process.ShouldSkipMiniBlock(miniBlockHeader, header.GetShardID()) {
 				log.Debug("metaProcessor.getAllFinalCrossMiniBlockHashes: do not check validity for mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
@@ -1811,7 +1811,7 @@ func (mp *metaProcessor) getAllFinalMiniBlockHeaders(
 
 	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 	for _, mbHeader := range miniBlockHeaderHandlers {
-		if shouldSkipAddingMiniBlockHeader(mbHeader, shardID) {
+		if process.ShouldSkipMiniBlock(mbHeader, shardID) {
 			log.Debug("metaProcessor.getAllFinalMiniBlockHeaders: do not check validity for mini block which is not final", "mb hash", mbHeader.GetHash())
 			continue
 		}
@@ -2044,7 +2044,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
 			if mp.flagScheduledMiniBlocks.IsSet() {
-				if shouldSkipAddingMiniBlockHeader(shardHdr.GetMiniBlockHeaderHandlers()[i], shardHdr.GetShardID()) {
+				if process.ShouldSkipMiniBlock(shardHdr.GetMiniBlockHeaderHandlers()[i], shardHdr.GetShardID()) {
 					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", shardHdr.GetMiniBlockHeaderHandlers()[i].GetHash())
 					continue
 				}

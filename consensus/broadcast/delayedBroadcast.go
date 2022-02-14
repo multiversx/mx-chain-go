@@ -751,7 +751,7 @@ func (dbb *delayedBlockBroadcaster) getAllFinalCrossMiniBlockHashes(
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
 		if miniBlockHeader != nil {
-			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
+			if process.ShouldSkipMiniBlock(miniBlockHeader, header.GetShardID()) {
 				log.Debug("delayedBlockBroadcaster.getAllFinalCrossMiniBlockHashes: do not broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
@@ -770,11 +770,4 @@ func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 		}
 	}
 	return nil
-}
-
-func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
-	//TODO: This check should be done using isFinal method later
-	reserved := miniBlockHeader.GetReserved()
-	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
-	return isScheduledFromShardID
 }

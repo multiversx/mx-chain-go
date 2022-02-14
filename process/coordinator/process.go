@@ -768,7 +768,7 @@ func (tc *transactionCoordinator) getAllFinalCrossMiniBlockInfos(
 	for _, crossMiniBlockInfo := range crossMiniBlockInfos {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
 		if miniBlockHeader != nil {
-			if shouldSkipAddingMiniBlockHeader(miniBlockHeader, header.GetShardID()) {
+			if process.ShouldSkipMiniBlock(miniBlockHeader, header.GetShardID()) {
 				log.Debug("transactionCoordinator.getAllFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
@@ -787,13 +787,6 @@ func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 		}
 	}
 	return nil
-}
-
-func shouldSkipAddingMiniBlockHeader(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
-	//TODO: This check should be done using isFinal method later
-	reserved := miniBlockHeader.GetReserved()
-	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
-	return isScheduledFromShardID
 }
 
 func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {
@@ -1416,7 +1409,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHand
 
 	mapMiniBlockTypeAllTxs := tc.getAllTransactions(body)
 
-	err := tc.verifyGasLimit(body, mapMiniBlockTypeAllTxs)
+	err := tc.verifyGasLimit(header, body, mapMiniBlockTypeAllTxs)
 	if err != nil {
 		return err
 	}
@@ -1442,18 +1435,24 @@ func (tc *transactionCoordinator) getAllTransactions(body *block.Body) map[block
 }
 
 func (tc *transactionCoordinator) verifyGasLimit(
+	header data.HeaderHandler,
 	body *block.Body,
 	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
 ) error {
-	for _, miniBlock := range body.MiniBlocks {
+	for index, miniBlock := range body.MiniBlocks {
 		isCrossShardMiniBlockFromMe := miniBlock.SenderShardID == tc.shardCoordinator.SelfId() &&
 			miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId()
 		if !isCrossShardMiniBlockFromMe {
 			continue
 		}
-
 		if miniBlock.Type == block.SmartContractResultBlock {
 			continue
+		}
+		if tc.flagScheduledMiniBlocks.IsSet() {
+			if process.ShouldSkipMiniBlock(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
+				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
+				continue
+			}
 		}
 
 		err := tc.checkGasProvidedByMiniBlockInReceiverShard(miniBlock, mapMiniBlockTypeAllTxs[miniBlock.Type])
@@ -1521,9 +1520,15 @@ func (tc *transactionCoordinator) verifyFees(
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
 	}
 
-	for _, miniBlock := range body.MiniBlocks {
+	for index, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type == block.PeerBlock {
 			continue
+		}
+		if tc.flagScheduledMiniBlocks.IsSet() {
+			if process.ShouldSkipMiniBlock(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
+				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
+				continue
+			}
 		}
 
 		maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, err := tc.getMaxAccumulatedAndDeveloperFees(

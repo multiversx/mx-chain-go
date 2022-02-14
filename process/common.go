@@ -786,3 +786,11 @@ type ScheduledInfo struct {
 	GasAndFees      scheduled.GasAndFees
 	MiniBlocks      block.MiniBlockSlice
 }
+
+// ShouldSkipMiniBlock checks if the given mini block is not final and should be skipped
+func ShouldSkipMiniBlock(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
+	//TODO: This check should be done using isFinal method later
+	reserved := miniBlockHeader.GetReserved()
+	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
+	return isScheduledFromShardID
+}

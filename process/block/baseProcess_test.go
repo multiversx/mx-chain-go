@@ -1843,4 +1843,4 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 
 }
 
-//TODO: Add unit tests for methods: shouldSkipAddingMiniBlockHeader, getIndexOfFirstMiniBlockToBeExecuted amd getAllFinalMiniBlocks
+//TODO: Add unit tests for methods: getIndexOfFirstMiniBlockToBeExecuted amd getAllFinalMiniBlocks
