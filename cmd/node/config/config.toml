@@ -904,7 +904,11 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    HeartbeatExpiryTimespanInSec = 3600 # 1h
+    PeerAuthenticationTimeBetweenSendsInSec          = 3600 # 1h
+	PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 1800 # 1.5h
+	HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+	HeartbeatTimeBetweenSendsWhenErrorInSec          = 30   # 30sec
+    HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h

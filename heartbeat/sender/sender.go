@@ -121,8 +121,10 @@ func checkSenderArgs(args ArgSender) error {
 }
 
 // Close closes the internal components
-func (sender *Sender) Close() {
+func (sender *Sender) Close() error {
 	sender.routineHandler.closeProcessLoop()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

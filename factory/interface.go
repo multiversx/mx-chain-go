@@ -341,6 +341,18 @@ type HeartbeatComponentsHandler interface {
 	HeartbeatComponentsHolder
 }
 
+// HeartbeatV2Sender sends heartbeatV2 messages
+type HeartbeatV2Sender interface {
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// HeartbeatV2ComponentsHandler defines the heartbeatV2 components handler actions
+type HeartbeatV2ComponentsHandler interface {
+	ComponentHandler
+	IsInterfaceNil() bool
+}
+
 // ConsensusWorker is the consensus worker handle for the exported functionality
 type ConsensusWorker interface {
 	Close() error

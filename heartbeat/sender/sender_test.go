@@ -216,5 +216,6 @@ func TestSender_Close(t *testing.T) {
 
 	args := createMockSenderArgs()
 	sender, _ := NewSender(args)
-	sender.Close()
+	err := sender.Close()
+	assert.Nil(t, err)
 }
