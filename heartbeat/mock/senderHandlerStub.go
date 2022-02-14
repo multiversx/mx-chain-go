@@ -31,3 +31,8 @@ func (stub *SenderHandlerStub) Close() {
 		stub.CloseCalled()
 	}
 }
+
+// IsInterfaceNil -
+func (stub *SenderHandlerStub) IsInterfaceNil() bool {
+	return stub == nil
+}

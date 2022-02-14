@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
@@ -21,14 +22,16 @@ import (
 
 func createMockPeerAuthenticationSenderArgs() ArgPeerAuthenticationSender {
 	return ArgPeerAuthenticationSender{
-		Messenger:                 &mock.MessengerStub{},
-		PeerSignatureHandler:      &mock.PeerSignatureHandlerStub{},
-		PrivKey:                   &mock.PrivateKeyStub{},
-		Marshaller:                &mock.MarshallerMock{},
-		Topic:                     "topic",
-		RedundancyHandler:         &mock.RedundancyHandlerStub{},
-		TimeBetweenSends:          time.Second,
-		TimeBetweenSendsWhenError: time.Second,
+		ArgBaseSender: ArgBaseSender{
+			Messenger:                 &mock.MessengerStub{},
+			Marshaller:                &mock.MarshallerMock{},
+			Topic:                     "topic",
+			TimeBetweenSends:          time.Second,
+			TimeBetweenSendsWhenError: time.Second,
+		},
+		PeerSignatureHandler: &mock.PeerSignatureHandlerStub{},
+		PrivKey:              &mock.PrivateKeyStub{},
+		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 }
 
@@ -38,7 +41,13 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests() ArgPeerAuthent
 	singleSigner := singlesig.NewBlsSigner()
 
 	return ArgPeerAuthenticationSender{
-		Messenger: &mock.MessengerStub{},
+		ArgBaseSender: ArgBaseSender{
+			Messenger:                 &mock.MessengerStub{},
+			Marshaller:                &marshal.GogoProtoMarshalizer{},
+			Topic:                     "topic",
+			TimeBetweenSends:          time.Second,
+			TimeBetweenSendsWhenError: time.Second,
+		},
 		PeerSignatureHandler: &mock.PeerSignatureHandlerStub{
 			VerifyPeerSignatureCalled: func(pk []byte, pid core.PeerID, signature []byte) error {
 				senderPubKey, err := keyGen.PublicKeyFromByteArray(pk)
@@ -51,12 +60,8 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests() ArgPeerAuthent
 				return singleSigner.Sign(privateKey, pid)
 			},
 		},
-		PrivKey:                   sk,
-		Marshaller:                &marshal.GogoProtoMarshalizer{},
-		Topic:                     "topic",
-		RedundancyHandler:         &mock.RedundancyHandlerStub{},
-		TimeBetweenSends:          time.Second,
-		TimeBetweenSendsWhenError: time.Second,
+		PrivKey:           sk,
+		RedundancyHandler: &mock.RedundancyHandlerStub{},
 	}
 }
 
@@ -152,7 +157,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs()
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.NotNil(t, sender)
+		assert.False(t, check.IfNil(sender))
 		assert.Nil(t, err)
 	})
 }
@@ -160,7 +165,6 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 func TestPeerAuthenticationSender_execute(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	t.Run("messenger Sign method fails, should return error", func(t *testing.T) {
 		t.Parallel()
 

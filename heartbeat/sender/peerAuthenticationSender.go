@@ -1,41 +1,28 @@
 package sender
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
-const minTimeBetweenSends = time.Second
-
 // ArgPeerAuthenticationSender represents the arguments for the peer authentication sender
 type ArgPeerAuthenticationSender struct {
-	Messenger                 heartbeat.P2PMessenger
-	PeerSignatureHandler      crypto.PeerSignatureHandler
-	PrivKey                   crypto.PrivateKey
-	Marshaller                marshal.Marshalizer
-	Topic                     string
-	RedundancyHandler         heartbeat.NodeRedundancyHandler
-	TimeBetweenSends          time.Duration
-	TimeBetweenSendsWhenError time.Duration
+	ArgBaseSender
+	PeerSignatureHandler crypto.PeerSignatureHandler
+	PrivKey              crypto.PrivateKey
+	RedundancyHandler    heartbeat.NodeRedundancyHandler
 }
 
 type peerAuthenticationSender struct {
-	timerHandler
-	messenger                 heartbeat.P2PMessenger
-	peerSignatureHandler      crypto.PeerSignatureHandler
-	redundancy                heartbeat.NodeRedundancyHandler
-	privKey                   crypto.PrivateKey
-	publicKey                 crypto.PublicKey
-	observerPublicKey         crypto.PublicKey
-	marshaller                marshal.Marshalizer
-	topic                     string
-	timeBetweenSends          time.Duration
-	timeBetweenSendsWhenError time.Duration
+	baseSender
+	peerSignatureHandler crypto.PeerSignatureHandler
+	redundancy           heartbeat.NodeRedundancyHandler
+	privKey              crypto.PrivateKey
+	publicKey            crypto.PublicKey
+	observerPublicKey    crypto.PublicKey
 }
 
 // NewPeerAuthenticationSender will create a new instance of type peerAuthenticationSender
@@ -47,27 +34,21 @@ func NewPeerAuthenticationSender(args ArgPeerAuthenticationSender) (*peerAuthent
 
 	redundancyHandler := args.RedundancyHandler
 	sender := &peerAuthenticationSender{
-		timerHandler: &timerWrapper{
-			timer: time.NewTimer(args.TimeBetweenSends),
-		},
-		messenger:                 args.Messenger,
-		peerSignatureHandler:      args.PeerSignatureHandler,
-		redundancy:                redundancyHandler,
-		privKey:                   args.PrivKey,
-		publicKey:                 args.PrivKey.GeneratePublic(),
-		observerPublicKey:         redundancyHandler.ObserverPrivateKey().GeneratePublic(),
-		marshaller:                args.Marshaller,
-		topic:                     args.Topic,
-		timeBetweenSends:          args.TimeBetweenSends,
-		timeBetweenSendsWhenError: args.TimeBetweenSendsWhenError,
+		baseSender:           createBaseSender(args.ArgBaseSender),
+		peerSignatureHandler: args.PeerSignatureHandler,
+		redundancy:           redundancyHandler,
+		privKey:              args.PrivKey,
+		publicKey:            args.PrivKey.GeneratePublic(),
+		observerPublicKey:    redundancyHandler.ObserverPrivateKey().GeneratePublic(),
 	}
 
 	return sender, nil
 }
 
 func checkPeerAuthenticationSenderArgs(args ArgPeerAuthenticationSender) error {
-	if check.IfNil(args.Messenger) {
-		return heartbeat.ErrNilMessenger
+	err := checkBaseSenderArgs(args.ArgBaseSender)
+	if err != nil {
+		return err
 	}
 	if check.IfNil(args.PeerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
@@ -75,20 +56,8 @@ func checkPeerAuthenticationSenderArgs(args ArgPeerAuthenticationSender) error {
 	if check.IfNil(args.PrivKey) {
 		return heartbeat.ErrNilPrivateKey
 	}
-	if check.IfNil(args.Marshaller) {
-		return heartbeat.ErrNilMarshaller
-	}
-	if len(args.Topic) == 0 {
-		return heartbeat.ErrEmptySendTopic
-	}
 	if check.IfNil(args.RedundancyHandler) {
 		return heartbeat.ErrNilRedundancyHandler
-	}
-	if args.TimeBetweenSends < minTimeBetweenSends {
-		return fmt.Errorf("%w for TimeBetweenSends", heartbeat.ErrInvalidTimeDuration)
-	}
-	if args.TimeBetweenSendsWhenError < minTimeBetweenSends {
-		return fmt.Errorf("%w for TimeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
 	}
 
 	return nil
@@ -155,4 +124,9 @@ func (sender *peerAuthenticationSender) getCurrentPrivateAndPublicKeys() (crypto
 	}
 
 	return sender.redundancy.ObserverPrivateKey(), sender.observerPublicKey
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sender *peerAuthenticationSender) IsInterfaceNil() bool {
+	return sender == nil
 }
