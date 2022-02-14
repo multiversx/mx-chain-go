@@ -57,6 +57,7 @@ const (
 	ttlConnectionsWatcher           = time.Hour * 2
 	pubsubTimeCacheDuration         = 10 * time.Minute
 	acceptMessagesInAdvanceDuration = 20 * time.Second // we are accepting the messages with timestamp in the future only for this delta
+	pollWaitForConnectionsInterval  = time.Second
 	broadcastGoRoutines             = 1000
 	timeBetweenPeerPrints           = time.Second * 20
 	timeBetweenExternalLoggersCheck = time.Second * 20
@@ -714,6 +715,47 @@ func (netMes *networkMessenger) Bootstrap() error {
 		log.Info("started the network discovery process...")
 	}
 	return err
+}
+
+// WaitForConnections will wait the maxWaitingTime duration or until the target connected peers was achieved
+func (netMes *networkMessenger) WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
+	startTime := time.Now()
+	defer func() {
+		log.Debug("networkMessenger.WaitForConnections",
+			"waited", time.Since(startTime), "num connected peers", len(netMes.ConnectedPeers()))
+	}()
+
+	if minNumOfPeers == 0 {
+		log.Debug("networkMessenger.WaitForConnections", "waiting", maxWaitingTime)
+		time.Sleep(maxWaitingTime)
+		return
+	}
+
+	netMes.waitForConnections(maxWaitingTime, minNumOfPeers)
+}
+
+func (netMes *networkMessenger) waitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32) {
+	log.Debug("networkMessenger.WaitForConnections", "waiting", maxWaitingTime, "min num of peers", minNumOfPeers)
+	ctxMaxWaitingTime, cancel := context.WithTimeout(context.Background(), maxWaitingTime)
+	defer cancel()
+
+	for {
+		if netMes.shouldStopWaiting(ctxMaxWaitingTime, minNumOfPeers) {
+			return
+		}
+	}
+}
+
+func (netMes *networkMessenger) shouldStopWaiting(ctxMaxWaitingTime context.Context, minNumOfPeers uint32) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), pollWaitForConnectionsInterval)
+	defer cancel()
+
+	select {
+	case <-ctxMaxWaitingTime.Done():
+		return true
+	case <-ctx.Done():
+		return int(minNumOfPeers) <= len(netMes.ConnectedPeers())
+	}
 }
 
 // IsConnected returns true if current node is connected to provided peer

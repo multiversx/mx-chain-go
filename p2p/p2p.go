@@ -153,6 +153,7 @@ type Messenger interface {
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
+	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	Sign(payload []byte) ([]byte, error)
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 

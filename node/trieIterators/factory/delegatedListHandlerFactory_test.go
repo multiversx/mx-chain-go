@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +35,6 @@ func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) 
 			AccountsAdapter: &stateMock.AccountsStub{},
 		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
-		BlockChain:         &testscommon.ChainHandlerStub{},
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 

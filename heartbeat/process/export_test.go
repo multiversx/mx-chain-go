@@ -29,9 +29,6 @@ func (m *Monitor) AddHeartbeatMessage(pk string, hbmi *heartbeatMessageInfo) {
 func (m *Monitor) GetHeartbeatMessageInfo(_ time.Time) *heartbeatMessageInfo {
 	return &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: 0,
-		maxInactiveTime:             time.Duration(0),
-		totalUpTime:                 time.Duration(0),
-		totalDownTime:               time.Duration(0),
 		getTimeHandler:              nil,
 		timeStamp:                   time.Time{},
 		isActive:                    false,
@@ -79,11 +76,6 @@ func (hbmi *heartbeatMessageInfo) GetReceiverShardId() uint32 {
 	return hbmi.receivedShardID
 }
 
-// GetTotalUpTime -
-func (hbmi *heartbeatMessageInfo) GetTotalUpTime() time.Duration {
-	return hbmi.totalUpTime
-}
-
 // GetComputedShardId -
 func (hbmi *heartbeatMessageInfo) GetComputedShardId() uint32 {
 	return hbmi.computedShardID
@@ -97,11 +89,6 @@ func (hbmi *heartbeatMessageInfo) GetPeerType() string {
 // GetPeerSubType -
 func (hbmi *heartbeatMessageInfo) GetPeerSubType() uint32 {
 	return hbmi.peerSubType
-}
-
-// GetTotalDownTime -
-func (hbmi *heartbeatMessageInfo) GetTotalDownTime() time.Duration {
-	return hbmi.totalDownTime
 }
 
 // VerifyLengths -
