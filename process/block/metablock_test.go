@@ -3062,48 +3062,97 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
 }
 
-// ------ processEpochStartMetaBlock
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	hash := []byte("hash1")
-	hasher := &mock.HasherStub{}
-	hasher.ComputeCalled = func(s string) []byte {
-		return hash
-	}
-	coreComponents.TxSignHasherField = hasher
-
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
-
-	arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{}
-
-	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	header := &block.MetaBlock{
 		Nonce:           1,
 		Round:           1,
-		PrevHash:        hash,
+		PrevHash:        []byte("hash1"),
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
 	}
 
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
-				ReceiverShardID: 0,
-				SenderShardID:   0,
-			},
-			&block.MiniBlock{
-				ReceiverShardID: 1,
-				SenderShardID:   1,
-			},
-		},
-	}
+	t.Run("rewards V2 enabled", func(t *testing.T) {
+		t.Parallel()
 
-	err := mp.ProcessEpochStartMetaBlock(header, body)
-	assert.Nil(t, err)
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+
+		wasCalled := false
+		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+			VerifyRewardsMiniBlocksCalled: func(
+				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			) error {
+				assert.True(t, wasCalled)
+				return nil
+			},
+		}
+
+		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					ReceiverShardID: 1,
+					SenderShardID:   1,
+				},
+			},
+		}
+
+		err := mp.ProcessEpochStartMetaBlock(header, body)
+		assert.Nil(t, err)
+	})
+
+	t.Run("rewards V2 Not enabled", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.RewardsV2EnableEpoch = 10
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+
+		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{}
+
+		wasCalled := false
+		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+			VerifyRewardsMiniBlocksCalled: func(
+				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+				assert.True(t, wasCalled)
+				return nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					ReceiverShardID: 1,
+					SenderShardID:   1,
+				},
+			},
+		}
+
+		err := mp.ProcessEpochStartMetaBlock(header, body)
+		assert.Nil(t, err)
+	})
 }
 
 func TestMetaProcessor_UpdateEpochStartHeaderShouldFail(t *testing.T) {
@@ -3186,7 +3235,104 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	assert.Equal(t, devFeesInEpoch, header.GetDevFeesInEpoch())
 }
 
-func TestMetaProcessor_CreateEpochStartBody(t *testing.T) {
+func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
+	t.Run("fail to get root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+				Economics: block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+				},
+			},
+		}
+
+		expectedErr := errors.New("expected error")
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		body, err := mp.CreateEpochStartBody(header)
+		assert.Equal(t, expectedErr, err)
+		assert.Nil(t, body)
+	})
+	t.Run("fail to get validators info root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+				Economics: block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+				},
+			},
+		}
+
+		expectedErr := errors.New("expected error")
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return nil, expectedErr
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		body, err := mp.CreateEpochStartBody(header)
+		assert.Equal(t, expectedErr, err)
+		assert.Nil(t, body)
+	})
+	t.Run("fail to process ratings end of epoch", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+				Economics: block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+				},
+			},
+		}
+
+		expectedErr := errors.New("expected error")
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			ProcessRatingsEndOfEpochCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+				return expectedErr
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		body, err := mp.CreateEpochStartBody(header)
+		assert.Equal(t, expectedErr, err)
+		assert.Nil(t, body)
+	})
+}
+
+func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -3220,6 +3366,8 @@ func TestMetaProcessor_CreateEpochStartBody(t *testing.T) {
 	}
 
 	t.Run("rewards V2 enabled", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		header := &block.MetaBlock{
@@ -3289,6 +3437,8 @@ func TestMetaProcessor_CreateEpochStartBody(t *testing.T) {
 		assert.Equal(t, expectedRewardsForProtocolSustain, header.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	})
 	t.Run("rewards V2 Not enabled", func(t *testing.T) {
+		t.Parallel()
+
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.RewardsV2EnableEpoch = 10
 
