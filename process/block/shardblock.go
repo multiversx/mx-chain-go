@@ -488,14 +488,14 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 		return err
 	}
 
-	log.Debug("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
+	log.Trace("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
 	if len(usedMetaHdrs[core.MetachainShardId]) == 0 {
 		return nil
 	}
 
 	for _, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
-		log.Debug("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
+		log.Trace("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)

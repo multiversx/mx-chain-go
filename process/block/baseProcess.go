@@ -1692,8 +1692,8 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	}
 }
 
-// For the expected results, this method should not be called anymore after the call of method txCoordinator.ProcessBlockTransaction
-// from ProcessBlock (shardblock.go and metablock.go), as the executed scheduled mini blocks will be overwritten with those for the new block
+// For the expected results, this method should not be called anymore after the call of method ProcessScheduledBlock,
+// as the executed scheduled mini blocks will be overwritten with those for the new block
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler, body *block.Body) int {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return 0

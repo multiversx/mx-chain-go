@@ -403,6 +403,11 @@ func (ste *scheduledTxsExecution) SetScheduledInfo(scheduledInfo *process.Schedu
 		ste.scheduledMbs[index] = miniBlock
 	}
 
+	err := ste.setScheduledMiniBlockHashes()
+	if err != nil {
+		log.Error("scheduledTxsExecution.SetScheduledInfo: setScheduledMiniBlockHashes", "error", err.Error())
+	}
+
 	log.Debug("scheduledTxsExecution.SetScheduledInfo",
 		"scheduled root hash", ste.scheduledRootHash,
 		"num of scheduled mbs", len(ste.scheduledMbs),

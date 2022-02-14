@@ -1449,8 +1449,8 @@ func (tc *transactionCoordinator) verifyGasLimit(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
-			if process.ShouldSkipMiniBlock(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
-				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
+			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(header.GetMiniBlockHeadersHashes()[index]) {
+				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
 				continue
 			}
 		}
@@ -1525,8 +1525,8 @@ func (tc *transactionCoordinator) verifyFees(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
-			if process.ShouldSkipMiniBlock(header.GetMiniBlockHeaderHandlers()[index], header.GetShardID()) {
-				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block which is not final", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
+			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(header.GetMiniBlockHeadersHashes()[index]) {
+				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
 				continue
 			}
 		}
