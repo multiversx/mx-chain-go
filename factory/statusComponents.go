@@ -258,7 +258,6 @@ func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.A
 		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
 		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
 		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
-		Accounts:             scf.stateComponents.AccountsAdapter(),
 		Hasher:               scf.coreComponents.Hasher(),
 		Marshaller:           scf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:     scf.shardCoordinator,
