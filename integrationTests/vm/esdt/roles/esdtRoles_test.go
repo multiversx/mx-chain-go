@@ -47,7 +47,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -153,7 +153,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -285,7 +285,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

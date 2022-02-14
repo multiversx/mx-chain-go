@@ -31,6 +31,7 @@ type optimizedKadDhtDiscoverer struct {
 	errChanInit                 chan error
 	chanConnectToSeeders        chan struct{}
 	createKadDhtHandler         func(ctx context.Context) (KadDhtHandler, error)
+	connectionWatcher           p2p.ConnectionsWatcher
 }
 
 // NewOptimizedKadDhtDiscoverer creates an optimized kad-dht discovery type implementation
@@ -60,10 +61,16 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		chanInit:                    make(chan struct{}),
 		errChanInit:                 make(chan error),
 		chanConnectToSeeders:        make(chan struct{}),
+		connectionWatcher:           arg.ConnectionWatcher,
 	}
 
 	okdd.createKadDhtHandler = okdd.createKadDht
-	okdd.hostConnManagement, err = NewHostWithConnectionManagement(arg.Host, okdd.sharder)
+	args := ArgsHostWithConnectionManagement{
+		ConnectableHost:    arg.Host,
+		Sharder:            okdd.sharder,
+		ConnectionsWatcher: okdd.connectionWatcher,
+	}
+	okdd.hostConnManagement, err = NewHostWithConnectionManagement(args)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +141,7 @@ func (okdd *optimizedKadDhtDiscoverer) finishMainLoopProcessing(ctx context.Cont
 
 func (okdd *optimizedKadDhtDiscoverer) createChTimeSeedersReconnect(isConnectedToSeeders bool) <-chan time.Time {
 	if isConnectedToSeeders {
-		//the reconnection will be done less often
+		// the reconnection will be done less often
 		return time.After(okdd.seedersReconnectionInterval)
 	}
 

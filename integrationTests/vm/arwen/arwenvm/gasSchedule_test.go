@@ -20,6 +20,18 @@ func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 32, "_main", nil, b.N, nil)
 }
 
+func Benchmark_searchingForPanic(b *testing.B) {
+	for i := 0; i < 10; i++ {
+		runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, b.N, nil)
+	}
+}
+
+func Test_searchingForPanic(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", 100, "_main", nil, 1, nil)
+	}
+}
+
 func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
 

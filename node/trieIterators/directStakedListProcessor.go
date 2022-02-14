@@ -26,7 +26,6 @@ func NewDirectStakedListProcessor(arg ArgTrieIteratorProcessor) (*directStakedLi
 	return &directStakedListProcessor{
 		commonStakingProcessor: &commonStakingProcessor{
 			queryService: arg.QueryService,
-			blockChain:   arg.BlockChain,
 			accounts:     arg.Accounts,
 		},
 		publicKeyConverter: arg.PublicKeyConverter,

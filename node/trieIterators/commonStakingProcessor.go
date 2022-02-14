@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -19,7 +18,6 @@ type stakingValidatorInfo struct {
 
 type commonStakingProcessor struct {
 	queryService process.SCQueryService
-	blockChain   data.ChainHandler
 	accounts     *AccountsWrapper
 }
 
@@ -53,16 +51,6 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 }
 
 func (csp *commonStakingProcessor) getAccount(scAddress []byte) (state.UserAccountHandler, error) {
-	rootHash := csp.blockChain.GetCurrentBlockRootHash()
-	if len(rootHash) == 0 {
-		return nil, ErrNodeNotInitialized
-	}
-
-	err := csp.accounts.RecreateTrie(rootHash)
-	if err != nil {
-		return nil, err
-	}
-
 	accountHandler, err := csp.accounts.GetExistingAccount(scAddress)
 	if err != nil {
 		return nil, err
