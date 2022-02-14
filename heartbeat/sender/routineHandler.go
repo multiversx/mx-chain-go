@@ -14,7 +14,7 @@ type routineHandler struct {
 	cancel                   func()
 }
 
-func newRoutingHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler) *routineHandler {
+func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler) *routineHandler {
 	handler := &routineHandler{
 		peerAuthenticationSender: peerAuthenticationSender,
 		heartbeatSender:          heartbeatSender,

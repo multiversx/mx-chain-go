@@ -38,7 +38,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 
-		_ = newRoutingHandler(handler1, handler2)
+		_ = newRoutineHandler(handler1, handler2)
 		time.Sleep(time.Second) // wait for the go routine start
 
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numExecuteCalled1)) // initial call
@@ -93,7 +93,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 
-		rh := newRoutingHandler(handler1, handler2)
+		rh := newRoutineHandler(handler1, handler2)
 		time.Sleep(time.Second) // wait for the go routine start
 
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numExecuteCalled1)) // initial call
