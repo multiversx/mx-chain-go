@@ -171,7 +171,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateHearbeatInterceptor()
+	err = sicf.generateHeartbeatInterceptor()
 	if err != nil {
 		return nil, err
 	}

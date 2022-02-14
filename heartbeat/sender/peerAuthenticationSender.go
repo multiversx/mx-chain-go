@@ -8,12 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
-// ArgPeerAuthenticationSender represents the arguments for the peer authentication sender
-type ArgPeerAuthenticationSender struct {
-	ArgBaseSender
-	PeerSignatureHandler crypto.PeerSignatureHandler
-	PrivKey              crypto.PrivateKey
-	RedundancyHandler    heartbeat.NodeRedundancyHandler
+// argPeerAuthenticationSender represents the arguments for the peer authentication sender
+type argPeerAuthenticationSender struct {
+	argBaseSender
+	peerSignatureHandler crypto.PeerSignatureHandler
+	privKey              crypto.PrivateKey
+	redundancyHandler    heartbeat.NodeRedundancyHandler
 }
 
 type peerAuthenticationSender struct {
@@ -25,38 +25,38 @@ type peerAuthenticationSender struct {
 	observerPublicKey    crypto.PublicKey
 }
 
-// NewPeerAuthenticationSender will create a new instance of type peerAuthenticationSender
-func NewPeerAuthenticationSender(args ArgPeerAuthenticationSender) (*peerAuthenticationSender, error) {
+// newPeerAuthenticationSender will create a new instance of type peerAuthenticationSender
+func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthenticationSender, error) {
 	err := checkPeerAuthenticationSenderArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	redundancyHandler := args.RedundancyHandler
+	redundancyHandler := args.redundancyHandler
 	sender := &peerAuthenticationSender{
-		baseSender:           createBaseSender(args.ArgBaseSender),
-		peerSignatureHandler: args.PeerSignatureHandler,
+		baseSender:           createBaseSender(args.argBaseSender),
+		peerSignatureHandler: args.peerSignatureHandler,
 		redundancy:           redundancyHandler,
-		privKey:              args.PrivKey,
-		publicKey:            args.PrivKey.GeneratePublic(),
+		privKey:              args.privKey,
+		publicKey:            args.privKey.GeneratePublic(),
 		observerPublicKey:    redundancyHandler.ObserverPrivateKey().GeneratePublic(),
 	}
 
 	return sender, nil
 }
 
-func checkPeerAuthenticationSenderArgs(args ArgPeerAuthenticationSender) error {
-	err := checkBaseSenderArgs(args.ArgBaseSender)
+func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
+	err := checkBaseSenderArgs(args.argBaseSender)
 	if err != nil {
 		return err
 	}
-	if check.IfNil(args.PeerSignatureHandler) {
+	if check.IfNil(args.peerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
 	}
-	if check.IfNil(args.PrivKey) {
+	if check.IfNil(args.privKey) {
 		return heartbeat.ErrNilPrivateKey
 	}
-	if check.IfNil(args.RedundancyHandler) {
+	if check.IfNil(args.redundancyHandler) {
 		return heartbeat.ErrNilRedundancyHandler
 	}
 

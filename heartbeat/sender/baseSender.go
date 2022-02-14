@@ -11,13 +11,13 @@ import (
 
 const minTimeBetweenSends = time.Second
 
-// ArgBaseSender represents the arguments for base sender
-type ArgBaseSender struct {
-	Messenger                 heartbeat.P2PMessenger
-	Marshaller                marshal.Marshalizer
-	Topic                     string
-	TimeBetweenSends          time.Duration
-	TimeBetweenSendsWhenError time.Duration
+// argBaseSender represents the arguments for base sender
+type argBaseSender struct {
+	messenger                 heartbeat.P2PMessenger
+	marshaller                marshal.Marshalizer
+	topic                     string
+	timeBetweenSends          time.Duration
+	timeBetweenSendsWhenError time.Duration
 }
 
 type baseSender struct {
@@ -29,34 +29,34 @@ type baseSender struct {
 	timeBetweenSendsWhenError time.Duration
 }
 
-func createBaseSender(args ArgBaseSender) baseSender {
+func createBaseSender(args argBaseSender) baseSender {
 	return baseSender{
 		timerHandler: &timerWrapper{
-			timer: time.NewTimer(args.TimeBetweenSends),
+			timer: time.NewTimer(args.timeBetweenSends),
 		},
-		messenger:                 args.Messenger,
-		marshaller:                args.Marshaller,
-		topic:                     args.Topic,
-		timeBetweenSends:          args.TimeBetweenSends,
-		timeBetweenSendsWhenError: args.TimeBetweenSendsWhenError,
+		messenger:                 args.messenger,
+		marshaller:                args.marshaller,
+		topic:                     args.topic,
+		timeBetweenSends:          args.timeBetweenSends,
+		timeBetweenSendsWhenError: args.timeBetweenSendsWhenError,
 	}
 }
 
-func checkBaseSenderArgs(args ArgBaseSender) error {
-	if check.IfNil(args.Messenger) {
+func checkBaseSenderArgs(args argBaseSender) error {
+	if check.IfNil(args.messenger) {
 		return heartbeat.ErrNilMessenger
 	}
-	if check.IfNil(args.Marshaller) {
+	if check.IfNil(args.marshaller) {
 		return heartbeat.ErrNilMarshaller
 	}
-	if len(args.Topic) == 0 {
+	if len(args.topic) == 0 {
 		return heartbeat.ErrEmptySendTopic
 	}
-	if args.TimeBetweenSends < minTimeBetweenSends {
-		return fmt.Errorf("%w for TimeBetweenSends", heartbeat.ErrInvalidTimeDuration)
+	if args.timeBetweenSends < minTimeBetweenSends {
+		return fmt.Errorf("%w for timeBetweenSends", heartbeat.ErrInvalidTimeDuration)
 	}
-	if args.TimeBetweenSendsWhenError < minTimeBetweenSends {
-		return fmt.Errorf("%w for TimeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
+	if args.timeBetweenSendsWhenError < minTimeBetweenSends {
+		return fmt.Errorf("%w for timeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
 	}
 
 	return nil
