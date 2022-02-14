@@ -53,9 +53,9 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 
 // IsEpochInConfig checks whether the specified epoch is already in map
 func (ihnc *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
-	ihnc.mutNodesConfig.Lock()
+	ihnc.mutNodesConfig.RLock()
 	_, exists := ihnc.nodesConfig[epoch]
-	defer ihnc.mutNodesConfig.Unlock()
+	ihnc.mutNodesConfig.RUnlock()
 
 	return exists
 }
