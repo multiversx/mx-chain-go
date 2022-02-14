@@ -3106,7 +3106,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_UpdateEpochStartMetaHeaderShouldFail(t *testing.T) {
+func TestMetaProcessor_UpdateEpochStartHeaderShouldFail(t *testing.T) {
 	t.Parallel()
 
 	accFeesInEpoch := big.NewInt(1000)
@@ -3149,7 +3149,7 @@ func TestMetaProcessor_UpdateEpochStartMetaHeaderShouldFail(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestMetaProcessor_UpdateEpochStartMetaHeader(t *testing.T) {
+func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	t.Parallel()
 
 	accFeesInEpoch := big.NewInt(1000)
@@ -3189,37 +3189,164 @@ func TestMetaProcessor_UpdateEpochStartMetaHeader(t *testing.T) {
 func TestMetaProcessor_CreateEpochStartBody(t *testing.T) {
 	t.Parallel()
 
-	accFeesInEpoch := big.NewInt(1000)
-	devFeesInEpoch := big.NewInt(100)
-	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(
-		&block.MetaBlock{
-			Round:                  1,
-			Nonce:                  1,
-			AccumulatedFeesInEpoch: accFeesInEpoch,
-			DevFeesInEpoch:         devFeesInEpoch,
-		}, []byte("root hash"),
-	)
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.BlockChain = blkc
 
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	header := &block.MetaBlock{
-		Nonce: 1,
-		Round: 1,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{},
-			Economics: block.Economics{
-				RewardsForProtocolSustainability: big.NewInt(0),
+	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
+		0: {
+			&state.ValidatorInfo{
+				ShardId:         1,
+				RewardAddress:   []byte("rewardAddr1"),
+				AccumulatedFees: big.NewInt(10),
 			},
 		},
 	}
 
-	body, err := mp.CreateEpochStartBody(header)
-	assert.Nil(t, err)
-	assert.Nil(t, body)
+	rewardMiniBlocks := block.MiniBlockSlice{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: 1,
+			SenderShardID:   core.MetachainShardId,
+			Type:            block.RewardsBlock,
+		},
+	}
+
+	validatorInfoMiniBlocks := block.MiniBlockSlice{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: core.AllShardId,
+			SenderShardID:   1,
+			Type:            block.PeerBlock,
+		},
+	}
+
+	t.Run("rewards V2 enabled", func(t *testing.T) {
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+				Economics: block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+				},
+			},
+		}
+
+		expectedRootHash := []byte("root hash")
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return expectedRootHash, nil
+			},
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				assert.Equal(t, expectedRootHash, rootHash)
+
+				return expectedValidatorsInfo, nil
+			},
+		}
+
+		wasCalled := false
+		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		expectedRewardsForProtocolSustain := big.NewInt(11)
+		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+			CreateRewardsMiniBlocksCalled: func(
+				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			) (block.MiniBlockSlice, error) {
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, header, metaBlock)
+				assert.True(t, wasCalled)
+				return rewardMiniBlocks, nil
+			},
+			GetProtocolSustainCalled: func() *big.Int {
+				return expectedRewardsForProtocolSustain
+			},
+		}
+
+		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				return validatorInfoMiniBlocks, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		miniBlocks := make([]*block.MiniBlock, 0)
+		miniBlocks = append(miniBlocks, rewardMiniBlocks...)
+		miniBlocks = append(miniBlocks, validatorInfoMiniBlocks...)
+		expectedBody := &block.Body{MiniBlocks: miniBlocks}
+
+		body, err := mp.CreateEpochStartBody(header)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBody, body)
+		assert.Equal(t, expectedRewardsForProtocolSustain, header.EpochStart.Economics.GetRewardsForProtocolSustainability())
+	})
+	t.Run("rewards V2 Not enabled", func(t *testing.T) {
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.RewardsV2EnableEpoch = 10
+
+		header := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+				Economics: block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+				},
+			},
+		}
+
+		expectedRootHash := []byte("root hash")
+		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return expectedRootHash, nil
+			},
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				assert.Equal(t, expectedRootHash, rootHash)
+
+				return expectedValidatorsInfo, nil
+			},
+		}
+
+		expectedRewardsForProtocolSustain := big.NewInt(11)
+		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+			CreateRewardsMiniBlocksCalled: func(
+				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			) (block.MiniBlockSlice, error) {
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, header, metaBlock)
+				return rewardMiniBlocks, nil
+			},
+			GetProtocolSustainCalled: func() *big.Int {
+				return expectedRewardsForProtocolSustain
+			},
+		}
+
+		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				return validatorInfoMiniBlocks, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		miniBlocks := make([]*block.MiniBlock, 0)
+		miniBlocks = append(miniBlocks, rewardMiniBlocks...)
+		miniBlocks = append(miniBlocks, validatorInfoMiniBlocks...)
+		expectedBody := &block.Body{MiniBlocks: miniBlocks}
+
+		body, err := mp.CreateEpochStartBody(header)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBody, body)
+		assert.Equal(t, expectedRewardsForProtocolSustain, header.EpochStart.Economics.GetRewardsForProtocolSustainability())
+	})
 }
