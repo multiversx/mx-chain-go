@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 	"path"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,13 +39,24 @@ var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
+type yyy struct {
+	Output *vmcommon.VMOutput
+	Error  error
+}
+
+type xxx struct {
+	Input  *vmcommon.ContractCallInput
+	Stack  string
+	Output chan *yyy
+}
+
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
 	Accounts           state.AccountsAdapter
 	PubkeyConv         core.PubkeyConverter
 	StorageService     dataRetriever.StorageService
 	DataPool           dataRetriever.PoolsHolder
-	BlockChain         data.ChainHandler
+	BlockChain         data.ChainHandler // ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
 	ShardCoordinator   sharding.Coordinator
 	Marshalizer        marshal.Marshalizer
 	Uint64Converter    typeConverters.Uint64ByteSliceConverter
@@ -84,6 +97,9 @@ type BlockChainHookImpl struct {
 	flagOptimizeNFTStore           atomic.Flag
 	doNotReturnOldBlockEnableEpoch uint32
 	flagDoNotReturnOldBlock        atomic.Flag
+
+	chProcess chan *xxx
+	cancel    func()
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -112,6 +128,7 @@ func NewBlockChainHookImpl(
 		isPayableBySCEnableEpoch:       args.EnableEpochs.IsPayableBySCEnableEpoch,
 		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
+		chProcess:                      make(chan *xxx, 1),
 	}
 
 	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
@@ -390,6 +407,12 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, process.ErrNilVmInput
 	}
 
+	stack := string(debug.Stack())
+	if strings.Contains(stack, "callWasmFunction") {
+		var accnt state.UserAccountHandler
+		_ = accnt.GetRootHash()
+	}
+
 	function, err := bh.builtInFunctions.Get(input.Function)
 	if err != nil {
 		return nil, err
@@ -651,6 +674,7 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 
 // Close closes/cleans up the blockchain hook
 func (bh *BlockChainHookImpl) Close() error {
+	bh.cancel()
 	bh.compiledScPool.Clear()
 	return bh.compiledScStorage.DestroyUnit()
 }
