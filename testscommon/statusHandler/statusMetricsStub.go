@@ -1,4 +1,4 @@
-package mock
+package statusHandler
 
 // StatusMetricsStub -
 type StatusMetricsStub struct {
@@ -8,6 +8,7 @@ type StatusMetricsStub struct {
 	EnableEpochMetricsCalled                      func() map[string]interface{}
 	NetworkMetricsCalled                          func() map[string]interface{}
 	EconomicsMetricsCalled                        func() map[string]interface{}
+	RatingsMetricsCalled                          func() map[string]interface{}
 	StatusMetricsWithoutP2PPrometheusStringCalled func() string
 }
 
@@ -38,6 +39,11 @@ func (sms *StatusMetricsStub) NetworkMetrics() map[string]interface{} {
 // EconomicsMetrics -
 func (sms *StatusMetricsStub) EconomicsMetrics() map[string]interface{} {
 	return sms.EconomicsMetricsCalled()
+}
+
+// RatingsMetrics -
+func (sms *StatusMetricsStub) RatingsMetrics() map[string]interface{} {
+	return sms.RatingsMetricsCalled()
 }
 
 // StatusMetricsMapWithoutP2P -
