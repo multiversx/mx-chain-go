@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -656,10 +656,10 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHa
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
-	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)
+	ed.flagPenalizedTooMuchGas.SetValue(epoch >= ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economics: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
 
-	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
+	ed.flagGasPriceModifier.SetValue(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
 	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
 	ed.setRewardsEpochConfig(epoch)

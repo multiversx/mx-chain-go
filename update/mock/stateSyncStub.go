@@ -7,15 +7,15 @@ import (
 
 // StateSyncStub -
 type StateSyncStub struct {
-	GetEpochStartMetaBlockCalled  func() (*block.MetaBlock, error)
-	GetUnFinishedMetaBlocksCalled func() (map[string]*block.MetaBlock, error)
+	GetEpochStartMetaBlockCalled  func() (data.MetaHeaderHandler, error)
+	GetUnFinishedMetaBlocksCalled func() (map[string]data.MetaHeaderHandler, error)
 	SyncAllStateCalled            func(epoch uint32, ownShardId uint32) error
 	GetAllTransactionsCalled      func() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocksCalled        func() (map[string]*block.MiniBlock, error)
 }
 
 // GetEpochStartMetaBlock -
-func (sss *StateSyncStub) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
+func (sss *StateSyncStub) GetEpochStartMetaBlock() (data.MetaHeaderHandler, error) {
 	if sss.GetEpochStartMetaBlockCalled != nil {
 		return sss.GetEpochStartMetaBlockCalled()
 	}
@@ -23,7 +23,7 @@ func (sss *StateSyncStub) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 }
 
 // GetUnFinishedMetaBlocks -
-func (sss *StateSyncStub) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+func (sss *StateSyncStub) GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error) {
 	if sss.GetUnFinishedMetaBlocksCalled != nil {
 		return sss.GetUnFinishedMetaBlocksCalled()
 	}

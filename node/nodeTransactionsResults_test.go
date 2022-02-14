@@ -17,8 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +37,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	marshalizerdMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					recBytes, _ := json.Marshal(rec)
 					return recBytes, nil
@@ -115,7 +115,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.UnsignedTransactionUnit:
-				return &testscommon.StorerStub{
+				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						switch {
 						case bytes.Equal(key, scrHash1):
@@ -223,7 +223,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					switch {
 					case bytes.Equal(key, txHash):

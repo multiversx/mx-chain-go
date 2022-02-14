@@ -167,11 +167,11 @@ func TestDelayedBlockBroadcaster_HeaderReceivedNoDelayedDataRegistered(t *testin
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
-		mbBroadcastCalled.Set()
+		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte) error {
-		txBroadcastCalled.Set()
+		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler) error {
@@ -200,11 +200,11 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
-		mbBroadcastCalled.Set()
+		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte) error {
-		txBroadcastCalled.Set()
+		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler) error {
@@ -246,11 +246,11 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	txBroadcastCalled := atomic.Flag{}
 
 	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
-		mbBroadcastCalled.Set()
+		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastTransactions := func(txData map[string][][]byte) error {
-		txBroadcastCalled.Set()
+		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
 	broadcastHeader := func(header data.HeaderHandler) error {
@@ -433,7 +433,9 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	vArgs.header.SetSignature([]byte("agg sig"))
+	err = vArgs.header.SetSignature([]byte("agg sig"))
+	require.Nil(t, err)
+
 	valHeaderData := broadcast.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
@@ -494,8 +496,12 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	vArgs.header.SetSignature([]byte("agg sig"))
-	vArgs.header.SetShardID(core.MetachainShardId)
+	err = vArgs.header.SetSignature([]byte("agg sig"))
+	require.Nil(t, err)
+
+	err = vArgs.header.SetShardID(core.MetachainShardId)
+	require.Nil(t, err)
+
 	valData := broadcast.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
@@ -558,8 +564,12 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	vArgs.header.SetSignature([]byte("agg sig"))
-	vArgs.header.SetShardID(core.MetachainShardId)
+	err = vArgs.header.SetSignature([]byte("agg sig"))
+	require.Nil(t, err)
+
+	err = vArgs.header.SetShardID(core.MetachainShardId)
+	require.Nil(t, err)
+
 	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
@@ -623,8 +633,12 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	vArgs.header.SetSignature([]byte("agg sig"))
-	vArgs.header.SetShardID(core.MetachainShardId)
+	err = vArgs.header.SetSignature([]byte("agg sig"))
+	require.Nil(t, err)
+
+	err = vArgs.header.SetShardID(core.MetachainShardId)
+	require.Nil(t, err)
+
 	validatorHeaderBroadcastData := broadcast.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,
@@ -687,8 +701,12 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
-	vArgs.header.SetSignature([]byte("agg sig"))
-	vArgs.header.SetShardID(core.MetachainShardId)
+	err = vArgs.header.SetSignature([]byte("agg sig"))
+	require.Nil(t, err)
+
+	err = vArgs.header.SetShardID(core.MetachainShardId)
+	require.Nil(t, err)
+
 	valHeaderData := broadcast.CreateValidatorHeaderBroadcastData(
 		vArgs.headerHash,
 		vArgs.header,

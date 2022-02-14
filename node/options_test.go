@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -181,17 +183,6 @@ func TestWithPeerDenialEvaluator_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithTxAccumulator(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilTxAccumulator, err)
-}
-
 func TestWithHardforkTrigger_NilHardforkTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -290,4 +281,35 @@ func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.
 
 	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
 	assert.Nil(t, err)
+}
+
+func TestWithESDTNFTStorageHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil esdt nft storage, should error", func(t *testing.T) {
+		t.Parallel()
+
+		node, _ := NewNode()
+		opt := WithESDTNFTStorageHandler(nil)
+		err := opt(node)
+
+		assert.Equal(t, ErrNilESDTNFTStorageHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		esdtStorer := &mock.EsdtStorageHandlerStub{
+			GetESDTNFTTokenOnDestinationCalled: func(_ vmcommon.UserAccountHandler, _ []byte, _ uint64) (*esdt.ESDigitalToken, bool, error) {
+				return nil, true, nil
+			},
+		}
+
+		node, _ := NewNode()
+		opt := WithESDTNFTStorageHandler(esdtStorer)
+		err := opt(node)
+
+		assert.NoError(t, err)
+		assert.Equal(t, esdtStorer, node.esdtStorageHandler)
+	})
 }

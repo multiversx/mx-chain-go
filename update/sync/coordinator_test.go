@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -16,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
@@ -39,7 +42,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 	}
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &testscommon.StorerStub{
+		return &storageStubs.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				if retErr {
 					return nil, errors.New("err")
@@ -68,7 +71,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	txHash := []byte("txHash")
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &testscommon.StorerStub{},
+		Storage: &storageStubs.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -83,11 +86,11 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	return pendingMiniBlocksSyncer
 }
 
-func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
+func createPendingTxSyncHandler() update.TransactionsSyncHandler {
 	args := createMockArgs()
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
 						Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),
@@ -98,7 +101,7 @@ func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
 		},
 	}
 
-	pendingTxsSyncer, _ := NewPendingTransactionsSyncer(args)
+	pendingTxsSyncer, _ := NewTransactionsSyncer(args)
 	return pendingTxsSyncer
 }
 
@@ -218,17 +221,17 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
-			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+			GetEpochStartMetaBlockCalled: func() (metaBlock data.MetaHeaderHandler, err error) {
 				return &block.MetaBlock{}, nil
 			},
 		},
 		Tries: &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{
-			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
+			SyncPendingMiniBlocksFromMetaCalled: func(meta data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error {
 				return localErr
 			},
 		},
-		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
+		Transactions: &syncer.TransactionsSyncHandlerMock{},
 	}
 
 	ss, err := NewSyncState(args)
@@ -247,7 +250,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
-			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+			GetEpochStartMetaBlockCalled: func() (metaBlock data.MetaHeaderHandler, err error) {
 				return &block.MetaBlock{}, nil
 			},
 		},
@@ -257,7 +260,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
+		Transactions: &syncer.TransactionsSyncHandlerMock{},
 	}
 
 	ss, err := NewSyncState(args)
@@ -276,14 +279,14 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
-			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+			GetEpochStartMetaBlockCalled: func() (metaBlock data.MetaHeaderHandler, err error) {
 				return &block.MetaBlock{}, nil
 			},
 		},
 		Tries:      &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{},
-		Transactions: &mock.PendingTransactionsSyncHandlerMock{
-			SyncPendingTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
+		Transactions: &syncer.TransactionsSyncHandlerMock{
+			SyncTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 				return localErr
 			},
 		},

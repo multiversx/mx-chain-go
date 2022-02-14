@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -82,7 +82,7 @@ func computeRandomnessAsUint64(randomness []byte, index int) uint64 {
 	buffCurrentIndex := make([]byte, 8)
 	binary.BigEndian.PutUint64(buffCurrentIndex, uint64(index))
 
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	indexHash := hasher.Compute(string(buffCurrentIndex) + string(randomness))
 
 	randomnessAsUint64 := binary.BigEndian.Uint64(indexHash)
@@ -115,7 +115,7 @@ func testWithReslicing(rand []byte, numVals int, expElList []uint32) []uint32 {
 }
 
 func testWithSelection(rand []byte, numVals int, expElList []uint32) []uint32 {
-	sbp := NewSelectionBasedProvider(&mock.HasherMock{}, uint32(numVals))
+	sbp := NewSelectionBasedProvider(&hashingMocks.HasherMock{}, uint32(numVals))
 	res1, _ := sbp.Get(rand, int64(numVals), expElList)
 	return res1
 }

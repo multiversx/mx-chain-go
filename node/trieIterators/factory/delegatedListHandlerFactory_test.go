@@ -35,7 +35,6 @@ func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) 
 			AccountsAdapter: &stateMock.AccountsStub{},
 		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
-		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 

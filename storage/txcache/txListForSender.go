@@ -204,9 +204,9 @@ func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTxWithLock() == 0
 }
 
-// selectBatchTo copies a batch (usually small) of transactions to a destination slice
+// selectBatchTo copies a batch (usually small) of transactions of a limited gas bandwidth and limited number of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int) batchSelectionJournal {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int, bandwidth uint64) batchSelectionJournal {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
@@ -243,14 +243,17 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		}
 	}
 
+	copiedBandwidth := uint64(0)
+	lastTxGasLimit := uint64(0)
 	copied := 0
-	for ; ; copied++ {
-		if element == nil || copied == batchSize || copied == availableSpace {
+	for ; ; copied, copiedBandwidth = copied+1, copiedBandwidth+lastTxGasLimit {
+		if element == nil || copied == batchSize || copied == availableSpace || copiedBandwidth >= bandwidth {
 			break
 		}
 
 		value := element.Value.(*WrappedTransaction)
 		txNonce := value.Tx.GetNonce()
+		lastTxGasLimit = value.Tx.GetGasLimit()
 
 		if previousNonce > 0 && txNonce > previousNonce+1 {
 			listForSender.copyDetectedGap = true
@@ -309,7 +312,7 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 // since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	listForSender.accountNonce.Set(nonce)
-	listForSender.accountNonceKnown.Set()
+	_ = listForSender.accountNonceKnown.SetReturningPrevious()
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -320,7 +323,7 @@ func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 		listForSender.numFailedSelections.Increment()
 
 		if listForSender.isGracePeriodExceeded() {
-			listForSender.sweepable.Set()
+			_ = listForSender.sweepable.SetReturningPrevious()
 		}
 	} else {
 		listForSender.numFailedSelections.Reset()

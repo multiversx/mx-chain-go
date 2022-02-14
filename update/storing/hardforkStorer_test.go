@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -131,7 +131,7 @@ func TestHardforkStorer_Get(t *testing.T) {
 	arg := createDefaultArg()
 	providedKey := []byte("key")
 	identifier := "identifier"
-	arg.KeyValue = &testscommon.StorerStub{
+	arg.KeyValue = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if bytes.Equal(key, append([]byte(identifier), providedKey...)) {
 				getCalled++
@@ -156,13 +156,13 @@ func TestHardforkStorer_CloseKeysCloseErrors(t *testing.T) {
 	errExpected := errors.New("error keys store")
 	numCloseCalled := 0
 	arg := createDefaultArg()
-	arg.KeyValue = &testscommon.StorerStub{
+	arg.KeyValue = &storageStubs.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return errExpected
 		},
 	}
-	arg.KeysStore = &testscommon.StorerStub{
+	arg.KeysStore = &storageStubs.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return nil
@@ -181,13 +181,13 @@ func TestHardforkStorer_CloseKeyValueCloseErrors(t *testing.T) {
 	errExpected := errors.New("error keys store")
 	numCloseCalled := 0
 	arg := createDefaultArg()
-	arg.KeyValue = &testscommon.StorerStub{
+	arg.KeyValue = &storageStubs.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return nil
 		},
 	}
-	arg.KeysStore = &testscommon.StorerStub{
+	arg.KeysStore = &storageStubs.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return errExpected
@@ -205,7 +205,7 @@ func TestHardforkStorer_RangeKeysNilHandlerShouldWork(t *testing.T) {
 
 	arg := createDefaultArg()
 	rangeKeysCalled := false
-	arg.KeysStore = &testscommon.StorerStub{
+	arg.KeysStore = &storageStubs.StorerStub{
 		RangeKeysCalled: func(_ func(key []byte, val []byte) bool) {
 			rangeKeysCalled = true
 		},

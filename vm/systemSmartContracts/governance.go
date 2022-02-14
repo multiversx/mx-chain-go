@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. governance.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. governance.proto
 package systemSmartContracts
 
 import (
@@ -1439,7 +1439,7 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
-	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
+	g.flagEnabled.SetValue(epoch >= g.enabledEpoch)
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 

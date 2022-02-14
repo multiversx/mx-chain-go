@@ -11,8 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
@@ -24,9 +26,11 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -549,13 +553,13 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		Alarm:                 &testscommon.AlarmSchedulerStub{},
 		NtpTimer:              &testscommon.SyncTimerStub{},
 		RoundHandlerField:     &testscommon.RoundHandlerMock{},
-		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerStub{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerStub{},
 		RatingsConfig:         &testscommon.RatingsInfoMock{},
 		RatingHandler:         &testscommon.RaterMock{},
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
-		EpochChangeNotifier:   &mock.EpochNotifierStub{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
 	}
 }
@@ -588,12 +592,17 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
 	}
 }
 
 func getDefaultDataComponents() *factory.DataComponentsMock {
 	return &factory.DataComponentsMock{
-		BlockChain: &mock.ChainHandlerStub{},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
@@ -601,6 +610,15 @@ func getDefaultDataComponents() *factory.DataComponentsMock {
 }
 
 func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
+	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
+
+	shardCoordinator := &mock.ShardCoordinatorMock{}
+	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{}
+	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		versionedHeaderFactory, _ = hdrFactory.NewMetaHeaderFactory(headerVersionHandler)
+	}
+
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
@@ -609,7 +627,9 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
 		NodeRole:             "",
-		ShCoordinator:        &mock.ShardCoordinatorMock{},
+		ShCoordinator:        shardCoordinator,
+		HdrVersionHandler:    &testscommon.HeaderVersionHandlerStub{},
+		VersionedHdrFactory:  versionedHeaderFactory,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }

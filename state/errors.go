@@ -10,7 +10,7 @@ type ErrMissingTrie struct {
 	rootHash []byte
 }
 
-//------- ErrMissingTrie
+// ------- ErrMissingTrie
 
 // NewErrMissingTrie  returns a new instantiated struct
 func NewErrMissingTrie(rootHash []byte) *ErrMissingTrie {
@@ -112,6 +112,12 @@ var ErrNilStoragePruningManager = errors.New("nil storagePruningManager")
 
 // ErrInvalidKey is raised when the given key is invalid
 var ErrInvalidKey = errors.New("invalid key")
+
+// ErrNilRootHash signals that a nil root hash was provided
+var ErrNilRootHash = errors.New("nil root hash")
+
+// ErrNilChainHandler signals that a nil chain handler was provided
+var ErrNilChainHandler = errors.New("nil chain handler")
 
 // ErrNilTrieExporter signals that nil trie exporter has been provided
 var ErrNilTrieExporter = errors.New("nil trie exporter")

@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"reflect"
 	goSync "sync"
@@ -21,20 +22,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMetaBlockProcessor(blk data.ChainHandler) *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeader(hdr.(*block.MetaBlock))
+			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
 			return nil
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			return nil
+		},
+		ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			return nil
 		},
 	}
@@ -51,30 +57,31 @@ func createMetaStore() dataRetriever.StorageService {
 
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:          createMockPools(),
-		Store:                createStore(),
-		ChainHandler:         initBlockchain(),
-		RoundHandler:         &mock.RoundHandlerMock{},
-		BlockProcessor:       &mock.BlockProcessorMock{},
-		WaitTime:             waitTime,
-		Hasher:               &mock.HasherMock{},
-		Marshalizer:          &mock.MarshalizerMock{},
-		ForkDetector:         &mock.ForkDetectorMock{},
-		RequestHandler:       &testscommon.RequestHandlerStub{},
-		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		Accounts:             &stateMock.AccountsStub{},
-		BlackListHandler:     &mock.BlackListHandlerStub{},
-		NetworkWatcher:       initNetworkWatcher(),
-		BootStorer:           &mock.BoostrapStorerMock{},
-		StorageBootstrapper:  &mock.StorageBootstrapperMock{},
-		EpochHandler:         &mock.EpochStartTriggerStub{},
-		MiniblocksProvider:   &mock.MiniBlocksProviderStub{},
-		Uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-		OutportHandler:       &testscommon.OutportStub{},
-		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
-		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
-		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
+		PoolsHolder:                  createMockPools(),
+		Store:                        createStore(),
+		ChainHandler:                 initBlockchain(),
+		RoundHandler:                 &mock.RoundHandlerMock{},
+		BlockProcessor:               &mock.BlockProcessorMock{},
+		WaitTime:                     waitTime,
+		Hasher:                       &hashingMocks.HasherMock{},
+		Marshalizer:                  &mock.MarshalizerMock{},
+		ForkDetector:                 &mock.ForkDetectorMock{},
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
+		Accounts:                     &stateMock.AccountsStub{},
+		BlackListHandler:             &mock.BlackListHandlerStub{},
+		NetworkWatcher:               initNetworkWatcher(),
+		BootStorer:                   &mock.BoostrapStorerMock{},
+		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
+		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
+		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
+		OutportHandler:               &testscommon.OutportStub{},
+		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -406,7 +413,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 
 	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
-	_ = blkc.SetCurrentBlockHeader(&hdr)
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(&hdr, hdr.RootHash)
 	args.ChainHandler = blkc
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -431,7 +438,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, r)
 }
@@ -442,9 +449,13 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	args := CreateMetaBootstrapMockArguments()
 
 	hdr := block.MetaBlock{Nonce: 1}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -468,7 +479,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrTimeIsOut, r)
 }
@@ -478,9 +489,13 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
@@ -510,9 +525,13 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, Round: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
@@ -593,9 +612,13 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	hdr := block.MetaBlock{Nonce: 1}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -654,7 +677,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	r := bs.SyncBlock()
+	r := bs.SyncBlock(context.Background())
 
 	assert.Nil(t, r)
 }
@@ -664,9 +687,13 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -722,7 +749,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	err := bs.SyncBlock()
+	err := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
@@ -775,9 +802,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *t
 	args := CreateMetaBootstrapMockArguments()
 
 	hdr := block.MetaBlock{Nonce: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -803,9 +834,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 	args := CreateMetaBootstrapMockArguments()
 
 	hdr := block.MetaBlock{Nonce: 0}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -836,9 +871,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 	hdr2 := block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
 	hash2 := []byte("hash2")
 
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr1
+	blkc := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr1
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -897,9 +936,13 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 	hdr2 := block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("B")}
 	hash2 := []byte("hash2")
 
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr2
+	blkc := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr2
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -1106,7 +1149,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	}
 	args.ForkDetector = forkDetector
 
-	headerStorage := &testscommon.StorerStub{}
+	headerStorage := &storageStubs.StorerStub{}
 	headerStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, addedHash) {
 			buff, _ := args.Marshalizer.Marshal(addedHdr)
@@ -1234,17 +1277,19 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	args.PoolsHolder = pools
 
 	// a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainStub{}
+	blkc := &testscommon.ChainHandlerStub{}
 	hdr := &block.MetaBlock{
 		Nonce: currentHdrNonce,
 		// empty bitmap
 		PrevHash: prevHdrHash,
 	}
+	var setRootHash []byte
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
 	}
-	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+	blkc.SetCurrentBlockHeaderAndRootHashCalled = func(handler data.HeaderHandler, rootHash []byte) error {
 		hdr = prevHdr
+		setRootHash = rootHash
 		return nil
 	}
 
@@ -1258,7 +1303,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	args.ChainHandler = blkc
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
@@ -1329,6 +1374,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
+	assert.Equal(t, prevHdr.RootHash, setRootHash)
 }
 
 func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *testing.T) {
@@ -1369,7 +1415,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 	args.PoolsHolder = pools
 
-	blkc := &mock.BlockChainStub{
+	blkc := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return prevHdr
 		},
@@ -1382,8 +1428,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
 	}
-	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+	var setRootHash []byte
+	blkc.SetCurrentBlockHeaderAndRootHashCalled = func(handler data.HeaderHandler, rootHash []byte) error {
 		hdr = nil
+		setRootHash = rootHash
 		return nil
 	}
 
@@ -1397,7 +1445,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	args.ChainHandler = blkc
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
@@ -1466,6 +1514,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
 	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())
+	assert.Nil(t, setRootHash)
 }
 
 func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T) {
@@ -1546,9 +1595,13 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 
 	args := CreateMetaBootstrapMockArguments()
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
-	blkc := &mock.BlockChainStub{}
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &hdr
+	blkc := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &hdr
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
 	}
 	args.ChainHandler = blkc
 
@@ -1623,7 +1676,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}}
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	err := bs.SyncBlock()
+	err := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, accountsSyncCalled)

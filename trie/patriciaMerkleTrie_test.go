@@ -14,9 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -61,7 +61,7 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -437,7 +437,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager := tr.GetStorageManager()
 	dirtyHashes := trie.GetDirtyHashes(tr)
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	storageManager.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
+	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
 	err := storageManager.Remove(rootHash)

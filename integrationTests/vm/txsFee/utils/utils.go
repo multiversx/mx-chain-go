@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
@@ -146,7 +147,15 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	testContext.TxFeeHandler.CreateBlockStarted()
+	gasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
+
+	testContext.TxFeeHandler.CreateBlockStarted(gasAndFees)
 
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddr))

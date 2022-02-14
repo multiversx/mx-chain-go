@@ -49,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -152,6 +153,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
 	return store
 }
 
@@ -186,7 +188,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
-		EpochNotifier:          &mock.EpochNotifierStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -281,10 +283,10 @@ func createConsensusOnlyNode(
 	blockChain := createTestBlockChain()
 	blockProcessor := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blockChain.SetCurrentBlockHeader(header)
+			_ = blockChain.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 			return nil
 		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 			return header, &dataBlock.Body{}, nil
@@ -294,18 +296,18 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
-		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
+		CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 			return &dataBlock.Header{
 				Round:           round,
 				Nonce:           nonce,
 				SoftwareVersion: []byte("version"),
-			}
+			}, nil
 		},
 	}
 
 	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
-		_ = blockChain.SetCurrentBlockHeader(header)
+		_ = blockChain.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
@@ -441,6 +443,7 @@ func createConsensusOnlyNode(
 	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
+	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
@@ -449,6 +452,7 @@ func createConsensusOnlyNode(
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
 	stateComponents.Accounts = accntAdapter
+	stateComponents.AccountsAPI = accntAdapter
 
 	networkComponents := integrationTests.GetDefaultNetworkComponents()
 	networkComponents.Messenger = messenger

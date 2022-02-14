@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -49,8 +49,8 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 }
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, ownShardId uint32) error {
-	if !meta.IsStartOfEpochBlock() && meta.Nonce > 0 {
+func (st *syncAccountsDBs) SyncTriesFrom(meta data.MetaHeaderHandler, ownShardId uint32) error {
+	if !meta.IsStartOfEpochBlock() && meta.GetNonce() > 0 {
 		return update.ErrNotEpochStartBlock
 	}
 
@@ -58,10 +58,10 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, ownShardId uint3
 	st.synced = false
 	st.mutSynced.Unlock()
 
-	numHeadersToSync := len(meta.EpochStart.LastFinalizedHeaders) + 1
+	numHeadersToSync := len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()) + 1
 	tempMetaShardId := numHeadersToSync - 1
 
-	invalidShardId := int(ownShardId) > len(meta.EpochStart.LastFinalizedHeaders)-1 && ownShardId != core.MetachainShardId
+	invalidShardId := int(ownShardId) > len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())-1 && ownShardId != core.MetachainShardId
 	if invalidShardId {
 		return update.ErrInvalidOwnShardId
 	}
@@ -82,7 +82,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, ownShardId uint3
 			continue
 		}
 
-		err := st.syncShard(meta.EpochStart.LastFinalizedHeaders[headerToSync])
+		err := st.syncShard(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())
 		if err != nil {
 			return err
 		}
@@ -95,12 +95,12 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, ownShardId uint3
 	return nil
 }
 
-func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
+func (st *syncAccountsDBs) syncMeta(meta data.MetaHeaderHandler) error {
 	err := st.syncAccountsOfType(
 		genesis.UserAccount,
 		state.UserAccountsState,
 		core.MetachainShardId,
-		meta.RootHash,
+		meta.GetRootHash(),
 	)
 	if err != nil {
 		return fmt.Errorf("%w UserAccount, shard: meta", err)
@@ -110,7 +110,7 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 		genesis.ValidatorAccount,
 		state.PeerAccountsState,
 		core.MetachainShardId,
-		meta.ValidatorStatsRootHash,
+		meta.GetValidatorStatsRootHash(),
 	)
 	if err != nil {
 		return fmt.Errorf("%w ValidatorAccount, shard: meta", err)
@@ -119,15 +119,15 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 	return nil
 }
 
-func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
+func (st *syncAccountsDBs) syncShard(shardData data.EpochStartShardDataHandler) error {
 	err := st.syncAccountsOfType(
 		genesis.UserAccount,
 		state.UserAccountsState,
-		shardData.ShardID,
-		shardData.RootHash,
+		shardData.GetShardID(),
+		shardData.GetRootHash(),
 	)
 	if err != nil {
-		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.ShardID)
+		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.GetShardID())
 	}
 	return nil
 }

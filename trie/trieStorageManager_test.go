@@ -3,12 +3,16 @@ package trie_test
 import (
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -27,7 +31,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
+		Hasher:                 &hashingMocks.HasherMock{},
 		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
@@ -186,7 +190,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	dirtyHashes := trie.GetDirtyHashes(tr)
 
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	trieStorage.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
@@ -204,7 +208,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
-	trieStorage.SetCheckpoint(rootHash, nil, &trieMock.MockStatistics{})
+	trieStorage.SetCheckpoint(rootHash, []byte{}, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
 
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
@@ -280,6 +284,125 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	key := []byte("key")
+	value := []byte("value")
+	err := ts.PutInEpoch(key, value, 0)
+	assert.Equal(t, trie.ErrContextClosing, err)
+}
+
+func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	key := []byte("key")
+	value := []byte("value")
+	err := ts.PutInEpoch(key, value, 0)
+	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
+}
+
+func TestTrieStorageManager_PutInEpoch(t *testing.T) {
+	t.Parallel()
+
+	putInEpochCalled := false
+	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: memorydb.New(),
+		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+			putInEpochCalled = true
+			return nil
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	key := []byte("key")
+	value := []byte("value")
+	err := ts.PutInEpoch(key, value, 0)
+	assert.Nil(t, err)
+	assert.True(t, putInEpochCalled)
+}
+
+func TestTrieStorageManager_GetLatestStorageEpochInvalidStorer(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	val, err := ts.GetLatestStorageEpoch()
+	assert.Equal(t, uint32(0), val)
+	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
+}
+
+func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
+	t.Parallel()
+
+	getLatestSorageCalled := false
+	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: memorydb.New(),
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			getLatestSorageCalled = true
+			return 4, nil
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	val, err := ts.GetLatestStorageEpoch()
+	assert.Equal(t, uint32(4), val)
+	assert.Nil(t, err)
+	assert.True(t, getLatestSorageCalled)
+}
+
+func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
+func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	rootHash := make([]byte, 32)
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
+func TestTrieStorageManager_TakeSnapshot(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	rootHash := []byte("rootHash")
+	leavesChan := make(chan core.KeyValueHolder)
+	ts.TakeSnapshot(rootHash, rootHash, leavesChan, &trieMock.MockStatistics{}, 0)
+	_, ok := <-leavesChan
+	assert.False(t, ok)
+}
+
 func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
 	t.Parallel()
 
@@ -289,13 +412,21 @@ func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
 	assert.False(t, ts.ShouldTakeSnapshot())
 }
 
-func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
+func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
-	mainStorer := testscommon.NewSnapshotPruningStorerMock()
+	getFromCurrentEpochCalled := false
 	args := getNewTrieStorageManagerArgs()
-	args.MainStorer = mainStorer
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: memorydb.New(),
+		GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
+			getFromCurrentEpochCalled = true
+			return nil, nil
+		},
+	}
 	ts, _ := trie.NewTrieStorageManager(args)
 
-	assert.True(t, ts.ShouldTakeSnapshot())
+	_, err := ts.GetFromCurrentEpoch([]byte("key"))
+	assert.Nil(t, err)
+	assert.True(t, getFromCurrentEpochCalled)
 }

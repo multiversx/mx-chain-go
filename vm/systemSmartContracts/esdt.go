@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
 package systemSmartContracts
 
 import (
@@ -2032,22 +2032,22 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
-	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
+	e.flagEnabled.SetValue(epoch >= e.enabledEpoch)
 	log.Debug("ESDT contract", "enabled", e.flagEnabled.IsSet())
 
-	e.flagGlobalMintBurn.Toggle(epoch < e.globalMintBurnDisableEpoch)
+	e.flagGlobalMintBurn.SetValue(epoch < e.globalMintBurnDisableEpoch)
 	log.Debug("ESDT contract global mint and burn", "enabled", e.flagGlobalMintBurn.IsSet())
 
-	e.flagTransferRole.Toggle(epoch >= e.transferRoleEnableEpoch)
+	e.flagTransferRole.SetValue(epoch >= e.transferRoleEnableEpoch)
 	log.Debug("ESDT contract transfer role", "enabled", e.flagTransferRole.IsSet())
 
-	e.flagNFTCreateONMultiShard.Toggle(epoch >= e.nftCreateONMultiShardEnableEpoch)
+	e.flagNFTCreateONMultiShard.SetValue(epoch >= e.nftCreateONMultiShardEnableEpoch)
 	log.Debug("ESDT contract NFT create on multiple shards", "enabled", e.flagNFTCreateONMultiShard.IsSet())
 
-	e.flagMetaESDT.Toggle(epoch >= e.metaESDTEnableEpoch)
+	e.flagMetaESDT.SetValue(epoch >= e.metaESDTEnableEpoch)
 	log.Debug("ESDT contract financial SFTs", "enabled", e.flagMetaESDT.IsSet())
 
-	e.flagRegisterAndSetAllRoles.Toggle(epoch >= e.registerAndSetAllRolesEnableEpoch)
+	e.flagRegisterAndSetAllRoles.SetValue(epoch >= e.registerAndSetAllRolesEnableEpoch)
 	log.Debug("ESDT register and set all roles", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
 }
 

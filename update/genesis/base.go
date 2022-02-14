@@ -206,8 +206,8 @@ func getMbTypeAndHash(splitString []string) (Type, []byte, error) {
 }
 
 // CreateVersionKey creates a version key from the given metaBlock
-func CreateVersionKey(meta *block.MetaBlock, hash []byte) string {
-	return "meta" + atSep + string(meta.ChainID) + atSep + hex.EncodeToString(hash)
+func CreateVersionKey(meta data.HeaderHandler, hash []byte) string {
+	return "meta" + atSep + string(meta.GetChainID()) + atSep + hex.EncodeToString(hash)
 }
 
 // CreateTrieIdentifier creates a trie identifier according to trie type and shard id
