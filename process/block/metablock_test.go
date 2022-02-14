@@ -3219,6 +3219,22 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
+	expectedEconomics := &block.Economics{
+		TotalSupply:                      big.NewInt(100),
+		TotalToDistribute:                big.NewInt(101),
+		TotalNewlyMinted:                 big.NewInt(102),
+		RewardsPerBlock:                  big.NewInt(103),
+		RewardsForProtocolSustainability: big.NewInt(104),
+		NodePrice:                        big.NewInt(105),
+		PrevEpochStartRound:              10,
+		PrevEpochStartHash:               []byte("prevEpochStartHash"),
+	}
+	arguments.EpochEconomics = &mock.EpochEconomicsStub{
+		ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
+			return expectedEconomics, nil
+		},
+	}
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	header := &block.MetaBlock{
@@ -3233,6 +3249,7 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, accFeesInEpoch, header.GetAccumulatedFeesInEpoch())
 	assert.Equal(t, devFeesInEpoch, header.GetDevFeesInEpoch())
+	assert.Equal(t, expectedEconomics, header.GetEpochStartHandler().GetEconomicsHandler())
 }
 
 func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
