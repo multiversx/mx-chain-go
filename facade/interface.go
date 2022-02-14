@@ -94,6 +94,15 @@ type NodeHandler interface {
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 
+	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+
+	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string) (interface{}, error)
+
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
