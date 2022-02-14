@@ -1058,6 +1058,9 @@ var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not 
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
 
+// ErrNoTxToProcess signals that no transaction were sent for processing
+var ErrNoTxToProcess = errors.New("no transaction to process")
+
 // ErrPropertyTooLong signals that a heartbeat property was too long
 var ErrPropertyTooLong = errors.New("property too long")
 

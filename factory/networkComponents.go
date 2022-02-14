@@ -24,28 +24,28 @@ import (
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
-	P2pConfig            config.P2PConfig
-	MainConfig           config.Config
-	RatingsConfig        config.RatingsConfig
-	StatusHandler        core.AppStatusHandler
-	Marshalizer          marshal.Marshalizer
-	Syncer               p2p.SyncTimer
-	PreferredPublicKeys  [][]byte
-	BootstrapWaitSeconds uint32
-	NodeOperationMode    p2p.NodeOperation
+	P2pConfig           config.P2PConfig
+	MainConfig          config.Config
+	RatingsConfig       config.RatingsConfig
+	StatusHandler       core.AppStatusHandler
+	Marshalizer         marshal.Marshalizer
+	Syncer              p2p.SyncTimer
+	PreferredPublicKeys [][]byte
+	BootstrapWaitTime   time.Duration
+	NodeOperationMode   p2p.NodeOperation
 }
 
 type networkComponentsFactory struct {
-	p2pConfig            config.P2PConfig
-	mainConfig           config.Config
-	ratingsConfig        config.RatingsConfig
-	statusHandler        core.AppStatusHandler
-	listenAddress        string
-	marshalizer          marshal.Marshalizer
-	syncer               p2p.SyncTimer
-	preferredPublicKeys  [][]byte
-	bootstrapWaitSeconds uint32
-	nodeOperationMode    p2p.NodeOperation
+	p2pConfig           config.P2PConfig
+	mainConfig          config.Config
+	ratingsConfig       config.RatingsConfig
+	statusHandler       core.AppStatusHandler
+	listenAddress       string
+	marshalizer         marshal.Marshalizer
+	syncer              p2p.SyncTimer
+	preferredPublicKeys [][]byte
+	bootstrapWaitTime   time.Duration
+	nodeOperationMode   p2p.NodeOperation
 }
 
 // networkComponents struct holds the network components
@@ -78,16 +78,16 @@ func NewNetworkComponentsFactory(
 	}
 
 	return &networkComponentsFactory{
-		p2pConfig:            args.P2pConfig,
-		ratingsConfig:        args.RatingsConfig,
-		marshalizer:          args.Marshalizer,
-		mainConfig:           args.MainConfig,
-		statusHandler:        args.StatusHandler,
-		listenAddress:        libp2p.ListenAddrWithIp4AndTcp,
-		syncer:               args.Syncer,
-		bootstrapWaitSeconds: args.BootstrapWaitSeconds,
-		preferredPublicKeys:  args.PreferredPublicKeys,
-		nodeOperationMode:    args.NodeOperationMode,
+		p2pConfig:           args.P2pConfig,
+		ratingsConfig:       args.RatingsConfig,
+		marshalizer:         args.Marshalizer,
+		mainConfig:          args.MainConfig,
+		statusHandler:       args.StatusHandler,
+		listenAddress:       libp2p.ListenAddrWithIp4AndTcp,
+		syncer:              args.Syncer,
+		bootstrapWaitTime:   args.BootstrapWaitTime,
+		preferredPublicKeys: args.PreferredPublicKeys,
+		nodeOperationMode:   args.NodeOperationMode,
 	}, nil
 }
 
@@ -121,7 +121,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	//TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
+	// TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
 	if ncf.mainConfig.Debug.Antiflood.Enabled {
 		var debugger process.AntifloodDebugger
 		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
@@ -168,7 +168,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	ncf.waitForBootstrap(ncf.bootstrapWaitSeconds)
+	netMessenger.WaitForConnections(ncf.bootstrapWaitTime, ncf.p2pConfig.Node.MinNumPeersToWaitForOnBootstrap)
 
 	return &networkComponents{
 		netMessenger:           netMessenger,
@@ -183,11 +183,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peersHolder:            peersHolder,
 		closeFunc:              cancelFunc,
 	}, nil
-}
-
-func (ncf *networkComponentsFactory) waitForBootstrap(numSecondsToWait uint32) {
-	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
-	time.Sleep(time.Duration(ncf.bootstrapWaitSeconds) * time.Second)
 }
 
 func (ncf *networkComponentsFactory) createPeerHonestyHandler(

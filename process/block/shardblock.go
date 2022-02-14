@@ -65,8 +65,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
-
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
+	if check.IfNil(genesisHdr) {
+		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
 		blockSizeThrottler:             arguments.BlockSizeThrottler,
@@ -349,6 +352,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 
 		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
 		if err != nil {
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 			continue
 		}
 
