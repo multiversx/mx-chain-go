@@ -101,6 +101,7 @@ func createArgBaseProcessor(
 		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		RoundNotifier:                  &mock.RoundNotifierStub{},
 		GasHandler:                     &mock.GasHandlerMock{},
+		AlteredAccountsProvider:        &testscommon.AlteredAccountsProviderStub{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
 	}
