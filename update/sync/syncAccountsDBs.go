@@ -82,7 +82,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta data.MetaHeaderHandler, ownShardId
 			continue
 		}
 
-		err := st.syncShard(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())
+		err := st.syncShard(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()[headerToSync])
 		if err != nil {
 			return err
 		}

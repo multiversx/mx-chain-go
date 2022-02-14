@@ -22,6 +22,9 @@ func (e *ErrMissingTrie) Error() string {
 	return "trie was not found for hash " + hex.EncodeToString(e.rootHash)
 }
 
+// ErrNilAccountsAdapter defines the error when trying to revert on nil accounts
+var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
+
 // ErrNilAddress defines the error when trying to work with a nil address
 var ErrNilAddress = errors.New("nil address")
 
