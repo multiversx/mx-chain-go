@@ -23,12 +23,16 @@ var DetectorForGetSortedTransactions = NewDoubleTransactionsDetector("DetectorFo
 // DetectorForSortTransactionsBySenderAndNonce -
 var DetectorForSortTransactionsBySenderAndNonce = NewDoubleTransactionsDetector("DetectorForSortTransactionsBySenderAndNonce")
 
+// DetectorForProcessBadTransaction -
+var DetectorForProcessBadTransaction = NewDoubleTransactionsDetector("DetectorForProcessBadTransaction")
+
 // ClearAll -
 func ClearAll() {
 	DetectorForIncoming.Clear()
 	DetectorForProcessing.Clear()
 	DetectorForGetSortedTransactions.Clear()
 	DetectorForSortTransactionsBySenderAndNonce.Clear()
+	DetectorForProcessBadTransaction.Clear()
 }
 
 // PrintAll -
@@ -37,6 +41,7 @@ func PrintAll() {
 	DetectorForProcessing.PrintReport()
 	DetectorForGetSortedTransactions.PrintReport()
 	DetectorForSortTransactionsBySenderAndNonce.PrintReport()
+	DetectorForProcessBadTransaction.PrintReport()
 }
 
 type miniblockInfo struct {

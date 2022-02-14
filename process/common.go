@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -527,7 +527,7 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
@@ -636,7 +636,7 @@ func DisplayProcessTxDetails(
 		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 	}
 
-	log.Trace("executing transaction",
+	log.Debug("executing transaction",
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
 		"gas limit", txHandler.GetGasLimit(),

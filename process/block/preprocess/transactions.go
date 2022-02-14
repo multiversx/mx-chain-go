@@ -777,6 +777,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
+	log.Debug("executing transaction", "hash", txHash)
+	debug.DetectorForProcessBadTransaction.AddTxHash(txHash, []byte(fmt.Sprintf("%d -> %d", sndShardId, dstShardId)))
 
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee)
