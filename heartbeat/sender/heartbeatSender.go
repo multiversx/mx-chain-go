@@ -29,7 +29,7 @@ type heartbeatSender struct {
 
 // NewHeartbeatSender creates a new instance of type heartbeatSender
 func NewHeartbeatSender(args ArgHeartbeatSender) (*heartbeatSender, error) {
-	err := checkHeartbeatSenderArg(args)
+	err := checkHeartbeatSenderArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func NewHeartbeatSender(args ArgHeartbeatSender) (*heartbeatSender, error) {
 	}, nil
 }
 
-func checkHeartbeatSenderArg(args ArgHeartbeatSender) error {
+func checkHeartbeatSenderArgs(args ArgHeartbeatSender) error {
 	err := checkBaseSenderArgs(args.ArgBaseSender)
 	if err != nil {
 		return err

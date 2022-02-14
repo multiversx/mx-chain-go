@@ -11,6 +11,7 @@ import (
 
 const minTimeBetweenSends = time.Second
 
+// ArgBaseSender represents the arguments for base sender
 type ArgBaseSender struct {
 	Messenger                 heartbeat.P2PMessenger
 	Marshaller                marshal.Marshalizer
