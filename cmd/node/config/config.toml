@@ -905,9 +905,9 @@
 
 [HeartbeatV2]
     PeerAuthenticationTimeBetweenSendsInSec          = 3600 # 1h
-	PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 1800 # 1.5h
-	HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
-	HeartbeatTimeBetweenSendsWhenErrorInSec          = 30   # 30sec
+    PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 1800 # 1.5h
+    HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsWhenErrorInSec          = 30   # 30sec
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
