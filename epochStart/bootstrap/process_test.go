@@ -69,11 +69,12 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 		}, &mock.CryptoComponentsMock{
-			PubKey:   &cryptoMocks.PublicKeyStub{},
-			BlockSig: &cryptoMocks.SignerStub{},
-			TxSig:    &cryptoMocks.SignerStub{},
-			BlKeyGen: &cryptoMocks.KeyGenStub{},
-			TxKeyGen: &cryptoMocks.KeyGenStub{},
+			PubKey:          &cryptoMocks.PublicKeyStub{},
+			BlockSig:        &cryptoMocks.SignerStub{},
+			TxSig:           &cryptoMocks.SignerStub{},
+			BlKeyGen:        &cryptoMocks.KeyGenStub{},
+			TxKeyGen:        &cryptoMocks.KeyGenStub{},
+			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
 		}
 }
 
@@ -110,6 +111,7 @@ func createMockEpochStartBootstrapArgs(
 			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
 			Heartbeat:                          generalCfg.Heartbeat,
+			HeartbeatV2:                        generalCfg.HeartbeatV2,
 			TrieSnapshotDB: config.DBConfig{
 				FilePath:          "TrieSnapshot",
 				Type:              "MemoryDB",
@@ -444,6 +446,12 @@ func TestCreateSyncers(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 		TrieNodesCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		PeerAuthenticationsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		HeartbeatsCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},
 	}

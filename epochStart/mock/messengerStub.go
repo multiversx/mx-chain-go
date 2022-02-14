@@ -11,6 +11,7 @@ type MessengerStub struct {
 	RegisterMessageProcessorCalled func(topic string, identifier string, handler p2p.MessageProcessor) error
 	UnjoinAllTopicsCalled          func() error
 	IDCalled                       func() core.PeerID
+	VerifyCalled                   func(payload []byte, pid core.PeerID, signature []byte) error
 }
 
 // ConnectedPeersOnTopic -
@@ -87,4 +88,13 @@ func (m *MessengerStub) ID() core.PeerID {
 	}
 
 	return "peer ID"
+}
+
+// Verify -
+func (m *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byte) error {
+	if m.VerifyCalled != nil {
+		return m.VerifyCalled(payload, pid, signature)
+	}
+
+	return nil
 }

@@ -68,20 +68,33 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, process.ErrNilPreferredPeersHolder
 	}
+	if check.IfNil(args.SignaturesHandler) {
+		return nil, process.ErrNilSignaturesHandler
+	}
+	if check.IfNil(args.PeerSignatureHandler) {
+		return nil, process.ErrNilPeerSignatureHandler
+	}
+	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
+		return nil, process.ErrInvalidExpiryTimespan
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:            args.CoreComponents,
-		CryptoComponents:          args.CryptoComponents,
-		ShardCoordinator:          args.ShardCoordinator,
-		NodesCoordinator:          args.NodesCoordinator,
-		FeeHandler:                args.TxFeeHandler,
-		HeaderSigVerifier:         args.HeaderSigVerifier,
-		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		ValidityAttester:          args.ValidityAttester,
-		EpochStartTrigger:         args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
-		ArgsParser:                args.ArgumentsParser,
-		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		CoreComponents:               args.CoreComponents,
+		CryptoComponents:             args.CryptoComponents,
+		ShardCoordinator:             args.ShardCoordinator,
+		NodesCoordinator:             args.NodesCoordinator,
+		FeeHandler:                   args.TxFeeHandler,
+		HeaderSigVerifier:            args.HeaderSigVerifier,
+		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
+		ValidityAttester:             args.ValidityAttester,
+		EpochStartTrigger:            args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
+		ArgsParser:                   args.ArgumentsParser,
+		EnableSignTxWithHashEpoch:    args.EnableSignTxWithHashEpoch,
+		PeerSignatureHandler:         args.PeerSignatureHandler,
+		SignaturesHandler:            args.SignaturesHandler,
+		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
+		PeerID:                       args.Messenger.ID(),
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -149,6 +162,16 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 	}
 
 	err = sicf.generateTrieNodesInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = sicf.generatePeerAuthenticationInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = sicf.generateHearbeatInterceptor()
 	if err != nil {
 		return nil, err
 	}

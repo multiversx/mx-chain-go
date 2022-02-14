@@ -486,6 +486,12 @@ type TopicHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SignaturesHandler defines the behavior of a struct able to handle signatures
+type SignaturesHandler interface {
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	IsInterfaceNil() bool
+}
+
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
@@ -1090,6 +1096,7 @@ type CryptoComponentsHolder interface {
 	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
 	SetMultiSigner(ms crypto.MultiSigner) error
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
 	IsInterfaceNil() bool
