@@ -1,5 +1,3 @@
-// +build !race
-
 package localFuncs
 
 import (
