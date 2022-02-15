@@ -1,3 +1,5 @@
+// +build !race
+
 package erc20
 
 import (
