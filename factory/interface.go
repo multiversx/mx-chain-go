@@ -347,6 +347,11 @@ type HeartbeatV2Sender interface {
 	IsInterfaceNil() bool
 }
 
+// HeartbeatV2ComponentsHolder holds the heartbeatV2 components
+type HeartbeatV2ComponentsHolder interface {
+	IsInterfaceNil() bool
+}
+
 // HeartbeatV2ComponentsHandler defines the heartbeatV2 components handler actions
 type HeartbeatV2ComponentsHandler interface {
 	ComponentHandler
