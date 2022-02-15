@@ -40,9 +40,9 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 
 	for {
 		select {
-		case <-handler.peerAuthenticationSender.ShouldExecute():
+		case <-handler.peerAuthenticationSender.ExecutionReadyChannel():
 			handler.peerAuthenticationSender.Execute()
-		case <-handler.heartbeatSender.ShouldExecute():
+		case <-handler.heartbeatSender.ExecutionReadyChannel():
 			handler.heartbeatSender.Execute()
 		case <-ctx.Done():
 			return

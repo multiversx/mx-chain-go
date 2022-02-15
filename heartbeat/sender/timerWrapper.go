@@ -18,9 +18,9 @@ func (wrapper *timerWrapper) CreateNewTimer(duration time.Duration) {
 	wrapper.mutTimer.Unlock()
 }
 
-// ShouldExecute returns the chan on which the ticker will emit periodic values as to signal that
+// ExecutionReadyChannel returns the chan on which the ticker will emit periodic values as to signal that
 // the execution is ready to take place
-func (wrapper *timerWrapper) ShouldExecute() <-chan time.Time {
+func (wrapper *timerWrapper) ExecutionReadyChannel() <-chan time.Time {
 	wrapper.mutTimer.Lock()
 	defer wrapper.mutTimer.Unlock()
 
