@@ -1,4 +1,3 @@
-//go:build !race
 // +build !race
 
 package delegation
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -248,7 +248,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,

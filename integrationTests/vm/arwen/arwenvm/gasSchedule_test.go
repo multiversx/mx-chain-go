@@ -1,4 +1,3 @@
-//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -13,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/require"
 )
 
@@ -192,22 +191,22 @@ func Benchmark_TestEllipticCurve(b *testing.B) {
 }
 
 func Benchmark_TestEllipticCurveScalarMultP224(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p224ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
 func Benchmark_TestEllipticCurveScalarMultP256(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p256ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
 func Benchmark_TestEllipticCurveScalarMultP384(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p384ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
 func Benchmark_TestEllipticCurveScalarMultP521(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "p521ScalarMultEcTest", getNumberOfRepsAndScalarLengthArgs(10), b.N, gasSchedule)
 }
 
@@ -221,7 +220,7 @@ func Benchmark_TestCryptoDoNothing(b *testing.B) {
 }
 
 func Benchmark_TestStorageRust(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	buff := make([]byte, 100)
 	_, _ = rand.Read(buff)
 	arguments := [][]byte{buff, big.NewInt(100).Bytes()}
@@ -229,7 +228,7 @@ func Benchmark_TestStorageRust(b *testing.B) {
 }
 
 func TestGasModel(t *testing.T) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 
 	totalOp := uint64(0)
 	for _, opCodeClass := range gasSchedule {
