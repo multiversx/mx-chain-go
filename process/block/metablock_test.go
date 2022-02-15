@@ -3079,7 +3079,6 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
 
 		wasCalled := false
 		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
@@ -3093,6 +3092,8 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
 			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+				assert.Equal(t, header.GetEpoch(), epoch)
+				assert.Equal(t, header.GetNonce(), nonce)
 				wasCalled = true
 				return nil
 			},
@@ -3100,16 +3101,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					ReceiverShardID: 1,
-					SenderShardID:   1,
-				},
-			},
-		}
-
-		err := mp.ProcessEpochStartMetaBlock(header, body)
+		err := mp.ProcessEpochStartMetaBlock(header, &block.Body{})
 		assert.Nil(t, err)
 	})
 
@@ -3120,8 +3112,6 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		arguments.RewardsV2EnableEpoch = 10
 		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
 
-		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{}
-
 		wasCalled := false
 		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
 			VerifyRewardsMiniBlocksCalled: func(
@@ -3134,6 +3124,8 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
 			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+				assert.Equal(t, header.GetEpoch(), epoch)
+				assert.Equal(t, header.GetNonce(), nonce)
 				assert.True(t, wasCalled)
 				return nil
 			},
@@ -3141,16 +3133,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					ReceiverShardID: 1,
-					SenderShardID:   1,
-				},
-			},
-		}
-
-		err := mp.ProcessEpochStartMetaBlock(header, body)
+		err := mp.ProcessEpochStartMetaBlock(header, &block.Body{})
 		assert.Nil(t, err)
 	})
 }
@@ -3158,44 +3141,6 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 func TestMetaProcessor_UpdateEpochStartHeaderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	accFeesInEpoch := big.NewInt(1000)
-	devFeesInEpoch := big.NewInt(100)
-	blkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-	_ = blkc.SetCurrentBlockHeaderAndRootHash(
-		&block.MetaBlock{
-			Round:                  1,
-			Nonce:                  1,
-			AccumulatedFeesInEpoch: accFeesInEpoch,
-			DevFeesInEpoch:         devFeesInEpoch,
-		}, []byte("root hash"),
-	)
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.BlockChain = blkc
-	hash := []byte("hash1")
-
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	expectedErr := errors.New("expected error")
-	arguments.EpochEconomics = &mock.EpochEconomicsStub{
-		ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
-			return nil, expectedErr
-		},
-	}
-
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	header := &block.MetaBlock{
-		Nonce:                  1,
-		Round:                  1,
-		PrevHash:               hash,
-		AccumulatedFeesInEpoch: big.NewInt(0),
-		DevFeesInEpoch:         big.NewInt(0),
-	}
-
-	err := mp.UpdateEpochStartHeader(header)
-	assert.Equal(t, expectedErr, err)
 }
 
 func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
@@ -3215,41 +3160,60 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.BlockChain = blkc
-	hash := []byte("hash1")
 
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	t.Run("fail to compute end of epoch economics", func(t *testing.T) {
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	expectedEconomics := &block.Economics{
-		TotalSupply:                      big.NewInt(100),
-		TotalToDistribute:                big.NewInt(101),
-		TotalNewlyMinted:                 big.NewInt(102),
-		RewardsPerBlock:                  big.NewInt(103),
-		RewardsForProtocolSustainability: big.NewInt(104),
-		NodePrice:                        big.NewInt(105),
-		PrevEpochStartRound:              10,
-		PrevEpochStartHash:               []byte("prevEpochStartHash"),
-	}
-	arguments.EpochEconomics = &mock.EpochEconomicsStub{
-		ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
-			return expectedEconomics, nil
-		},
-	}
+		expectedErr := errors.New("expected error")
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
+				return nil, expectedErr
+			},
+		}
 
-	mp, _ := blproc.NewMetaProcessor(arguments)
+		mp, _ := blproc.NewMetaProcessor(arguments)
 
-	header := &block.MetaBlock{
-		Nonce:                  1,
-		Round:                  1,
-		PrevHash:               hash,
-		AccumulatedFeesInEpoch: big.NewInt(0),
-		DevFeesInEpoch:         big.NewInt(0),
-	}
+		header := &block.MetaBlock{
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+		}
 
-	err := mp.UpdateEpochStartHeader(header)
-	assert.Nil(t, err)
-	assert.Equal(t, accFeesInEpoch, header.GetAccumulatedFeesInEpoch())
-	assert.Equal(t, devFeesInEpoch, header.GetDevFeesInEpoch())
-	assert.Equal(t, expectedEconomics, header.GetEpochStartHandler().GetEconomicsHandler())
+		err := mp.UpdateEpochStartHeader(header)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		expectedEconomics := &block.Economics{
+			TotalSupply:                      big.NewInt(100),
+			TotalToDistribute:                big.NewInt(101),
+			TotalNewlyMinted:                 big.NewInt(102),
+			RewardsPerBlock:                  big.NewInt(103),
+			RewardsForProtocolSustainability: big.NewInt(104),
+			NodePrice:                        big.NewInt(105),
+			PrevEpochStartRound:              10,
+			PrevEpochStartHash:               []byte("prevEpochStartHash"),
+		}
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
+				return expectedEconomics, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		header := &block.MetaBlock{
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+		}
+
+		err := mp.UpdateEpochStartHeader(header)
+		assert.Nil(t, err)
+		assert.Equal(t, accFeesInEpoch, header.GetAccumulatedFeesInEpoch())
+		assert.Equal(t, devFeesInEpoch, header.GetDevFeesInEpoch())
+		assert.Equal(t, expectedEconomics, header.GetEpochStartHandler().GetEconomicsHandler())
+	})
 }
 
 func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
@@ -3262,18 +3226,6 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		header := &block.MetaBlock{
-			Nonce: 1,
-			Round: 1,
-			Epoch: 1,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{},
-				Economics: block.Economics{
-					RewardsForProtocolSustainability: big.NewInt(0),
-				},
-			},
-		}
-
 		expectedErr := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
@@ -3283,7 +3235,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		body, err := mp.CreateEpochStartBody(header)
+		body, err := mp.CreateEpochStartBody(&block.MetaBlock{})
 		assert.Equal(t, expectedErr, err)
 		assert.Nil(t, body)
 	})
@@ -3291,18 +3243,6 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-		header := &block.MetaBlock{
-			Nonce: 1,
-			Round: 1,
-			Epoch: 1,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{},
-				Economics: block.Economics{
-					RewardsForProtocolSustainability: big.NewInt(0),
-				},
-			},
-		}
 
 		expectedErr := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
@@ -3313,7 +3253,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		body, err := mp.CreateEpochStartBody(header)
+		body, err := mp.CreateEpochStartBody(&block.MetaBlock{})
 		assert.Equal(t, expectedErr, err)
 		assert.Nil(t, body)
 	})
@@ -3321,18 +3261,6 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-		header := &block.MetaBlock{
-			Nonce: 1,
-			Round: 1,
-			Epoch: 1,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{},
-				Economics: block.Economics{
-					RewardsForProtocolSustainability: big.NewInt(0),
-				},
-			},
-		}
 
 		expectedErr := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
@@ -3343,7 +3271,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		body, err := mp.CreateEpochStartBody(header)
+		body, err := mp.CreateEpochStartBody(&block.MetaBlock{})
 		assert.Equal(t, expectedErr, err)
 		assert.Nil(t, body)
 	})
@@ -3387,12 +3315,10 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		header := &block.MetaBlock{
+		mb := &block.MetaBlock{
 			Nonce: 1,
-			Round: 1,
 			Epoch: 1,
 			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{},
 				Economics: block.Economics{
 					RewardsForProtocolSustainability: big.NewInt(0),
 				},
@@ -3415,6 +3341,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
 			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
 				wasCalled = true
+				assert.Equal(t, mb.GetNonce(), nonce)
+				assert.Equal(t, mb.GetEpoch(), epoch)
 				return nil
 			},
 		}
@@ -3425,7 +3353,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
 				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
-				assert.Equal(t, header, metaBlock)
+				assert.Equal(t, mb, metaBlock)
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
 			},
@@ -3448,10 +3376,10 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		miniBlocks = append(miniBlocks, validatorInfoMiniBlocks...)
 		expectedBody := &block.Body{MiniBlocks: miniBlocks}
 
-		body, err := mp.CreateEpochStartBody(header)
+		body, err := mp.CreateEpochStartBody(mb)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedBody, body)
-		assert.Equal(t, expectedRewardsForProtocolSustain, header.EpochStart.Economics.GetRewardsForProtocolSustainability())
+		assert.Equal(t, expectedRewardsForProtocolSustain, mb.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	})
 	t.Run("rewards V2 Not enabled", func(t *testing.T) {
 		t.Parallel()
@@ -3459,12 +3387,10 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.RewardsV2EnableEpoch = 10
 
-		header := &block.MetaBlock{
+		mb := &block.MetaBlock{
 			Nonce: 1,
-			Round: 1,
 			Epoch: 1,
 			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{},
 				Economics: block.Economics{
 					RewardsForProtocolSustainability: big.NewInt(0),
 				},
@@ -3478,18 +3404,19 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			},
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
-
 				return expectedValidatorsInfo, nil
 			},
 		}
 
+		wasCalled := false
 		expectedRewardsForProtocolSustain := big.NewInt(11)
 		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
 			CreateRewardsMiniBlocksCalled: func(
 				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
+				wasCalled = true
 				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
-				assert.Equal(t, header, metaBlock)
+				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},
 			GetProtocolSustainCalled: func() *big.Int {
@@ -3504,6 +3431,15 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			},
 		}
 
+		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+				assert.True(t, wasCalled)
+				assert.Equal(t, mb.GetNonce(), nonce)
+				assert.Equal(t, mb.GetEpoch(), epoch)
+				return nil
+			},
+		}
+
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
 		miniBlocks := make([]*block.MiniBlock, 0)
@@ -3511,9 +3447,9 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		miniBlocks = append(miniBlocks, validatorInfoMiniBlocks...)
 		expectedBody := &block.Body{MiniBlocks: miniBlocks}
 
-		body, err := mp.CreateEpochStartBody(header)
+		body, err := mp.CreateEpochStartBody(mb)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedBody, body)
-		assert.Equal(t, expectedRewardsForProtocolSustain, header.EpochStart.Economics.GetRewardsForProtocolSustainability())
+		assert.Equal(t, expectedRewardsForProtocolSustain, mb.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	})
 }
