@@ -199,7 +199,8 @@ func startNode(ctx *cli.Context) error {
 	}
 
 	// TODO - remove this
-	if len(messenger.ConnectedAddresses()) < 2 {
+	log.Debug("net messenger", "num peers", len(messenger.Peers()))
+	if len(messenger.Peers()) < 2 {
 		newLogLevel := "*:DEBUG,p2p:TRACE,external:TRACE,debug:DEBUG"
 		log.Warn("not enough connections found, automatically switching log level", "new log level", newLogLevel)
 		_ = logger.SetLogLevel(newLogLevel)
