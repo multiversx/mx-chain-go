@@ -123,6 +123,11 @@ func (participant *testParticipant) AddressHex() string {
 
 // SetupTestContext -
 func SetupTestContext(t *testing.T) *TestContext {
+	return SetupTestContextWithGasSchedulePath(t, integrationTests.GasSchedulePath)
+}
+
+// SetupTestContextWithGasSchedulePath -
+func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath string) *TestContext {
 	var err error
 
 	context := &TestContext{}
@@ -133,7 +138,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 	context.initAccounts()
 
-	context.GasSchedule, err = common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
+	context.GasSchedule, err = common.LoadGasScheduleConfig(gasScheduleConfigPath)
 	require.Nil(t, err)
 
 	context.initFeeHandlers()

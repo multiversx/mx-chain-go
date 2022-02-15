@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -21,9 +22,9 @@ func TestDNS_Register(t *testing.T) {
 
 	var empty struct{}
 	arwen.DNSAddresses[string(expectedDNSAddress)] = empty
-	integrationTests.GasSchedulePath = "../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
+	gasScheduleConfigPath := strings.ReplaceAll(integrationTests.GasSchedulePath, "../../../..", "../../..")
 
-	context := arwen.SetupTestContext(t)
+	context := arwen.SetupTestContextWithGasSchedulePath(t, gasScheduleConfigPath)
 	defer context.Close()
 
 	context.GasLimit = 40000000
