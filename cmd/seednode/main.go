@@ -78,7 +78,7 @@ VERSION:
 			" log level.",
 		Value: "*:" + logger.LogInfo.String(),
 	}
-	//logFile is used when the log output needs to be logged in a file
+	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
@@ -196,6 +196,13 @@ func startNode(ctx *cli.Context) error {
 	err = messenger.Bootstrap()
 	if err != nil {
 		return err
+	}
+
+	// TODO - remove this
+	if len(messenger.ConnectedAddresses()) < 2 {
+		newLogLevel := "*:DEBUG,p2p:TRACE,external:TRACE,debug:DEBUG"
+		log.Warn("not enough connections found, automatically switching log level", "new log level", newLogLevel)
+		_ = logger.SetLogLevel(newLogLevel)
 	}
 
 	log.Info("application is now running...")
