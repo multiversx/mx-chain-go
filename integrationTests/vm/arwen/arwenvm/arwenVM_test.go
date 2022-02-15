@@ -1,8 +1,3 @@
-//go:build !race
-// +build !race
-
-// TODO remove build condition above to allow -race -short, after Arwen fix
-
 package arwenvm
 
 import (
@@ -21,6 +16,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -309,7 +305,7 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
@@ -323,7 +319,7 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
@@ -361,7 +357,7 @@ func displayBenchmarksResults(durations []time.Duration) {
 }
 
 func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
-	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(1000000000000000)

@@ -1,6 +1,3 @@
-//go:build !race
-// +build !race
-
 package delegation
 
 import (
@@ -8,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +26,7 @@ func TestSimulateExecutionOfStakeTransactionAndQueries(t *testing.T) {
 }
 
 func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uint32, numTxPerBatch uint32, numQueriesPerBatch uint32) {
-	gasMapFilename := arwen.GasSchedulePath
+	gasMapFilename := integrationTests.GasSchedulePath
 	gasSchedule, err := common.LoadGasScheduleConfig(gasMapFilename)
 	require.Nil(t, err)
 

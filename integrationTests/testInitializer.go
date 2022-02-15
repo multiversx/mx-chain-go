@@ -88,6 +88,9 @@ var InitialRating = uint32(50)
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
+// GasSchedulePath --
+var GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
+
 var log = logger.GetOrCreate("integrationtests")
 
 // shuffler constants
