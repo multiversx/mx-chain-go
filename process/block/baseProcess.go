@@ -1699,7 +1699,6 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 		return 0
 	}
 
-	var mbIndex int
 	for index := range body.MiniBlocks {
 		mbHash := header.GetMiniBlockHeadersHashes()[index]
 		if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
@@ -1709,11 +1708,10 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 			continue
 		}
 
-		mbIndex = index
-		break
+		return index
 	}
 
-	return mbIndex
+	return len(body.MiniBlocks)
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
