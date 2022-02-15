@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package delegation
@@ -247,7 +248,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(arwen.GasSchedulePath)
 	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
