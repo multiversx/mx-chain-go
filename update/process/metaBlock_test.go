@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ import (
 
 func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardFork {
 	return ArgsNewMetaBlockCreatorAfterHardFork{
-		Hasher:             &mock.HasherMock{},
+		Hasher:             &hashingMocks.HasherMock{},
 		ImportHandler:      &mock.ImportHandlerStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
 		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},
@@ -131,8 +132,8 @@ func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 		Round:      2,
 		EpochStart: epochStart,
 	}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
@@ -142,10 +143,10 @@ func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 				},
 			}
 		},
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {

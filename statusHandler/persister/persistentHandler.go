@@ -2,7 +2,6 @@ package persister
 
 import (
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
@@ -19,12 +18,11 @@ var log = logger.GetOrCreate("statusHandler/persister")
 
 // PersistentStatusHandler is a status handler that will save metrics in storage
 type PersistentStatusHandler struct {
+	mutStore                 sync.RWMutex
 	store                    storage.Storer
 	persistentMetrics        *sync.Map
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	startSaveInStorage       bool
-	mutex                    sync.RWMutex
 }
 
 // NewPersistentStatusHandler will return an instance of the persistent status handler
@@ -44,16 +42,7 @@ func NewPersistentStatusHandler(
 	psh.uint64ByteSliceConverter = uint64ByteSliceConverter
 	psh.marshalizer = marshalizer
 	psh.persistentMetrics = &sync.Map{}
-	psh.mutex = sync.RWMutex{}
 	psh.initMap()
-
-	go func() {
-		time.Sleep(time.Second)
-
-		psh.mutex.Lock()
-		psh.startSaveInStorage = true
-		psh.mutex.Unlock()
-	}()
 
 	return psh, nil
 }
@@ -85,7 +74,9 @@ func (psh *PersistentStatusHandler) SetStorage(store storage.Storer) error {
 		return statusHandler.ErrNilStorage
 	}
 
+	psh.mutStore.Lock()
 	psh.store = store
+	psh.mutStore.Unlock()
 
 	return nil
 }
@@ -109,22 +100,15 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 	}
 
 	nonceBytes := psh.uint64ByteSliceConverter.ToByteSlice(nonce)
+
+	psh.mutStore.RLock()
 	err = psh.store.Put(nonceBytes, statusMetricsBytes)
+	psh.mutStore.RUnlock()
 	if err != nil {
 		log.Debug("cannot save metrics map in storage",
 			"error", err)
 		return
 	}
-
-	err = psh.store.Put([]byte(common.LastNonceKeyMetricsStorage), nonceBytes)
-	if err != nil {
-		log.Debug("cannot save last nonce for metrics storage",
-			"error", err)
-		return
-	}
-	log.Trace("saved last nonce metrics",
-		"key", []byte("lastNonce"),
-		"value", nonceBytes)
 }
 
 // SetInt64Value method - will update the value for a key
@@ -152,12 +136,6 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 
 	valueFromMap := GetUint64(valueFromMapI)
 	if value < valueFromMap {
-		return
-	}
-
-	psh.mutex.RLock()
-	defer psh.mutex.RUnlock()
-	if !psh.startSaveInStorage {
 		return
 	}
 

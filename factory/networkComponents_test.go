@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,8 +78,9 @@ func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
 func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "seed",
+			Port:                  "0",
+			Seed:                  "seed",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -118,7 +120,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 		},
 	}
 
-	appStatusHandler := &mock.AppStatusHandlerMock{}
+	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 
 	return factory.NetworkComponentsFactoryArgs{
 		P2pConfig:     p2pConfig,

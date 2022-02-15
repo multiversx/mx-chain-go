@@ -6,11 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -136,6 +138,20 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
 			},
+			AccountsTrieStorageOld: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "AccountsTrie",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
 			AccountsTrieStorage: config.StorageConfig{
 				Cache: config.CacheConfig{
 					Capacity: 10000,
@@ -144,6 +160,34 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 				},
 				DB: config.DBConfig{
 					FilePath:          "AccountsTrie/MainDB",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			AccountsTrieCheckpointsStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "AccountsTrieCheckpoints",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			PeerAccountsTrieStorageOld: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "PeerAccountsTrie",
 					Type:              "MemoryDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
@@ -164,16 +208,32 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 					MaxOpenFiles:      10,
 				},
 			},
+			PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "PeerAccountsTrieCheckpoints",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   1000,
-				SnapshotsBufferLen: 10,
-				MaxSnapshots:       2,
+				PruningBufferLen:      1000,
+				SnapshotsBufferLen:    10,
+				MaxSnapshots:          2,
+				SnapshotsGoroutineNum: 1,
 			},
 		},
-		ShardCoordinator:    shardCoordinator,
-		Core:                coreComponents,
-		TriesContainer:      triesHolder,
-		TrieStorageManagers: trieStorageManagers,
+		ShardCoordinator: shardCoordinator,
+		Core:             coreComponents,
+		StorageService:   disabled.NewChainStorer(),
+		ProcessingMode:   common.Normal,
+		ChainHandler:     &testscommon.ChainHandlerStub{},
 	}
 
 	return stateComponentsFactoryArgs

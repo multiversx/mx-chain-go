@@ -8,16 +8,21 @@ import (
 // GasHandlerMock -
 type GasHandlerMock struct {
 	InitCalled                          func()
-	SetGasConsumedCalled                func(gasConsumed uint64, hash []byte)
+	SetGasProvidedCalled                func(gasProvided uint64, hash []byte)
 	SetGasRefundedCalled                func(gasRefunded uint64, hash []byte)
-	GasConsumedCalled                   func(hash []byte) uint64
+	SetGasPenalizedCalled               func(gasPenalized uint64, hash []byte)
+	GasProvidedCalled                   func(hash []byte) uint64
 	GasRefundedCalled                   func(hash []byte) uint64
-	TotalGasConsumedCalled              func() uint64
+	GasPenalizedCalled                  func(hash []byte) uint64
+	TotalGasProvidedCalled              func() uint64
+	TotalGasProvidedWithScheduledCalled func() uint64
 	TotalGasRefundedCalled              func() uint64
-	RemoveGasConsumedCalled             func(hashes [][]byte)
+	TotalGasPenalizedCalled             func() uint64
+	RemoveGasProvidedCalled             func(hashes [][]byte)
 	RemoveGasRefundedCalled             func(hashes [][]byte)
-	ComputeGasConsumedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
-	ComputeGasConsumedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
+	RemoveGasPenalizedCalled            func(hashes [][]byte)
+	ComputeGasProvidedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
+	ComputeGasProvidedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 }
 
 // Init -
@@ -25,9 +30,9 @@ func (ghm *GasHandlerMock) Init() {
 	ghm.InitCalled()
 }
 
-// SetGasConsumed -
-func (ghm *GasHandlerMock) SetGasConsumed(gasConsumed uint64, hash []byte) {
-	ghm.SetGasConsumedCalled(gasConsumed, hash)
+// SetGasProvided -
+func (ghm *GasHandlerMock) SetGasProvided(gasProvided uint64, hash []byte) {
+	ghm.SetGasProvidedCalled(gasProvided, hash)
 }
 
 // SetGasRefunded -
@@ -35,9 +40,16 @@ func (ghm *GasHandlerMock) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	ghm.SetGasRefundedCalled(gasRefunded, hash)
 }
 
-// GasConsumed -
-func (ghm *GasHandlerMock) GasConsumed(hash []byte) uint64 {
-	return ghm.GasConsumedCalled(hash)
+// SetGasPenalized -
+func (ghm *GasHandlerMock) SetGasPenalized(gasPenalized uint64, hash []byte) {
+	if ghm.SetGasPenalizedCalled != nil {
+		ghm.SetGasPenalizedCalled(gasPenalized, hash)
+	}
+}
+
+// GasProvided -
+func (ghm *GasHandlerMock) GasProvided(hash []byte) uint64 {
+	return ghm.GasProvidedCalled(hash)
 }
 
 // GasRefunded -
@@ -45,9 +57,22 @@ func (ghm *GasHandlerMock) GasRefunded(hash []byte) uint64 {
 	return ghm.GasRefundedCalled(hash)
 }
 
-// TotalGasConsumed -
-func (ghm *GasHandlerMock) TotalGasConsumed() uint64 {
-	return ghm.TotalGasConsumedCalled()
+// GasPenalized -
+func (ghm *GasHandlerMock) GasPenalized(hash []byte) uint64 {
+	if ghm.GasPenalizedCalled != nil {
+		return ghm.GasPenalizedCalled(hash)
+	}
+	return 0
+}
+
+// TotalGasProvided -
+func (ghm *GasHandlerMock) TotalGasProvided() uint64 {
+	return ghm.TotalGasProvidedCalled()
+}
+
+// TotalGasProvidedWithScheduled -
+func (ghm *GasHandlerMock) TotalGasProvidedWithScheduled() uint64 {
+	return ghm.TotalGasProvidedWithScheduledCalled()
 }
 
 // TotalGasRefunded -
@@ -55,9 +80,17 @@ func (ghm *GasHandlerMock) TotalGasRefunded() uint64 {
 	return ghm.TotalGasRefundedCalled()
 }
 
-// RemoveGasConsumed -
-func (ghm *GasHandlerMock) RemoveGasConsumed(hashes [][]byte) {
-	ghm.RemoveGasConsumedCalled(hashes)
+// TotalGasPenalized -
+func (ghm *GasHandlerMock) TotalGasPenalized() uint64 {
+	if ghm.TotalGasPenalizedCalled != nil {
+		return ghm.TotalGasPenalizedCalled()
+	}
+	return 0
+}
+
+// RemoveGasProvided -
+func (ghm *GasHandlerMock) RemoveGasProvided(hashes [][]byte) {
+	ghm.RemoveGasProvidedCalled(hashes)
 }
 
 // RemoveGasRefunded -
@@ -65,14 +98,21 @@ func (ghm *GasHandlerMock) RemoveGasRefunded(hashes [][]byte) {
 	ghm.RemoveGasRefundedCalled(hashes)
 }
 
-// ComputeGasConsumedByMiniBlock -
-func (ghm *GasHandlerMock) ComputeGasConsumedByMiniBlock(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
-	return ghm.ComputeGasConsumedByMiniBlockCalled(miniBlock, mapHashTx)
+// RemoveGasPenalized -
+func (ghm *GasHandlerMock) RemoveGasPenalized(hashes [][]byte) {
+	if ghm.RemoveGasPenalizedCalled != nil {
+		ghm.RemoveGasPenalizedCalled(hashes)
+	}
 }
 
-// ComputeGasConsumedByTx -
-func (ghm *GasHandlerMock) ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-	return ghm.ComputeGasConsumedByTxCalled(txSenderShardId, txReceiverShardId, txHandler)
+// ComputeGasProvidedByMiniBlock -
+func (ghm *GasHandlerMock) ComputeGasProvidedByMiniBlock(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+	return ghm.ComputeGasProvidedByMiniBlockCalled(miniBlock, mapHashTx)
+}
+
+// ComputeGasProvidedByTx -
+func (ghm *GasHandlerMock) ComputeGasProvidedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+	return ghm.ComputeGasProvidedByTxCalled(txSenderShardId, txReceiverShardId, txHandler)
 }
 
 // IsInterfaceNil -

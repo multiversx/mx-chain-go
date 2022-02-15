@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -31,9 +32,9 @@ type Subround struct {
 	executeStoredMessages        func()
 	appStatusHandler             core.AppStatusHandler
 
-	Job    func() bool          // method does the Subround Job and send the result to the peers
-	Check  func() bool          // method checks if the consensus of the Subround is done
-	Extend func(subroundId int) // method is called when round time is out
+	Job    func(ctx context.Context) bool // method does the Subround Job and send the result to the peers
+	Check  func() bool                    // method checks if the consensus of the Subround is done
+	Extend func(subroundId int)           // method is called when round time is out
 }
 
 // NewSubround creates a new SubroundId object
@@ -120,7 +121,7 @@ func checkNewSubroundParams(
 // DoWork method actually does the work of this Subround. First it tries to do the Job of the Subround then it will
 // Check the consensus. If the upper time limit of this Subround is reached, the Extend method will be called before
 // returning. If this method returns true the chronology will advance to the next Subround.
-func (sr *Subround) DoWork(roundHandler consensus.RoundHandler) bool {
+func (sr *Subround) DoWork(ctx context.Context, roundHandler consensus.RoundHandler) bool {
 	if sr.Job == nil || sr.Check == nil {
 		return false
 	}
@@ -131,7 +132,7 @@ func (sr *Subround) DoWork(roundHandler consensus.RoundHandler) bool {
 	startTime := roundHandler.TimeStamp()
 	maxTime := roundHandler.TimeDuration() * MaxThresholdPercent / 100
 
-	sr.Job()
+	sr.Job(ctx)
 	if sr.Check() {
 		return true
 	}

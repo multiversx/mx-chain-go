@@ -31,6 +31,7 @@ func RunTest(
 	arguments [][]byte,
 	numRun int,
 	gasSchedule map[string]map[string]uint64,
+	txGasLimit uint64,
 ) (ResultInfo, error) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
@@ -38,7 +39,9 @@ func RunTest(
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xfffffffffffffff)
-
+	if txGasLimit == 0 {
+		txGasLimit = uint64(0xfffffffffffffff)
+	}
 	scCode := arwen.GetSCCode(fileSC)
 
 	tx := &transaction.Transaction{
@@ -100,7 +103,7 @@ func RunTest(
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  1,
-		GasLimit:  gasLimit,
+		GasLimit:  txGasLimit,
 		Data:      []byte(txData),
 		Signature: nil,
 	}
@@ -114,7 +117,7 @@ func RunTest(
 
 	return ResultInfo{
 		FunctionName:      function,
-		GasUsed:           gasLimit - testContext.GetGasRemaining(),
+		GasUsed:           uint64(numRun) * (tx.GasLimit - testContext.GetGasRemaining()),
 		ExecutionTimeSpan: time.Since(startTime),
 	}, nil
 }
@@ -159,12 +162,12 @@ func DeployAndExecuteERC20WithBigInt(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
-	if testContext.GetLatestError() != nil {
-		return nil, testContext.GetLatestError()
+	if returnCode != vmcommon.Ok {
+		return nil, fmt.Errorf(returnCode.String())
 	}
 	ownerNonce++
 
@@ -178,7 +181,7 @@ func DeployAndExecuteERC20WithBigInt(
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -251,12 +254,12 @@ func SetupERC20Test(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
-	if testContext.GetLatestError() != nil {
-		return testContext.GetLatestError()
+	if returnCode != vmcommon.Ok {
+		return fmt.Errorf(returnCode.String())
 	}
 
 	testContext.ContractOwner.Nonce++
@@ -282,7 +285,7 @@ func SetupERC20Test(
 		"transferToken",
 	)
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}

@@ -41,6 +41,7 @@ type ApiResolverArgs struct {
 	CryptoComponents    CryptoComponentsHolder
 	ProcessComponents   ProcessComponentsHolder
 	GasScheduleNotifier core.GasScheduleNotifier
+	Bootstrapper        process.Bootstrapper
 }
 
 type scQueryServiceArgs struct {
@@ -53,6 +54,7 @@ type scQueryServiceArgs struct {
 	gasScheduleNotifier core.GasScheduleNotifier
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
+	bootstrapper        process.Bootstrapper
 	workingDir          string
 }
 
@@ -66,6 +68,7 @@ type scQueryElementArgs struct {
 	gasScheduleNotifier core.GasScheduleNotifier
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
+	bootstrapper        process.Bootstrapper
 	workingDir          string
 	index               int
 }
@@ -84,6 +87,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		gasScheduleNotifier: args.GasScheduleNotifier,
 		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
 		systemSCConfig:      args.Configs.SystemSCConfig,
+		bootstrapper:        args.Bootstrapper,
 		workingDir:          apiWorkingDir,
 	}
 
@@ -92,7 +96,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInFuncs, err := createBuiltinFuncs(
+	builtInFuncs, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapter(),
@@ -102,6 +106,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		args.Configs.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -146,7 +151,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ShardID:            args.BootstrapComponents.ShardCoordinator().SelfId(),
 		Accounts:           accountsWrapper,
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-		BlockChain:         args.DataComponents.Blockchain(),
 		QueryService:       scQueryService,
 	}
 	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
@@ -195,6 +199,7 @@ func createScQueryService(
 		messageSigVerifier:  args.messageSigVerifier,
 		systemSCConfig:      args.systemSCConfig,
 		workingDir:          args.workingDir,
+		bootstrapper:        args.bootstrapper,
 		index:               0,
 	}
 
@@ -226,7 +231,7 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
-	builtInFuncs, err := createBuiltinFuncs(
+	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapter(),
@@ -236,6 +241,7 @@ func createScQueryElement(
 		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
 		args.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		args.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -258,10 +264,13 @@ func createScQueryElement(
 		Marshalizer:        args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           args.dataComponents.Datapool(),
 		ConfigSCStorage:    scStorage,
 		CompiledSCPool:     smartContractsCache,
 		WorkingDir:         args.workingDir,
+		EpochNotifier:      args.coreComponents.EpochNotifier(),
+		EnableEpochs:       args.epochConfig.EnableEpochs,
 		NilCompiledSCStore: true,
 	}
 
@@ -293,16 +302,14 @@ func createScQueryElement(
 			return nil, err
 		}
 		argsNewVMFactory := shard.ArgVMContainerFactory{
-			Config:                         queryVirtualMachineConfig,
-			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			GasSchedule:                    args.gasScheduleNotifier,
-			ArgBlockChainHook:              argsHook,
-			EpochNotifier:                  args.coreComponents.EpochNotifier(),
-			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
-			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
-			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
-			ESDTTransferParser:             esdtTransferParser,
+			Config:             queryVirtualMachineConfig,
+			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:        args.gasScheduleNotifier,
+			ArgBlockChainHook:  argsHook,
+			EpochNotifier:      args.coreComponents.EpochNotifier(),
+			EpochConfig:        args.epochConfig.EnableEpochs,
+			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),
+			ESDTTransferParser: esdtTransferParser,
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
@@ -330,7 +337,8 @@ func createScQueryElement(
 		EconomicsFee:      args.coreComponents.EconomicsData(),
 		BlockChainHook:    vmFactory.BlockChainHookImpl(),
 		BlockChain:        args.dataComponents.Blockchain(),
-		ArwenChangeLocker: args.processComponents.ArwenChangeLocker(),
+		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
+		Bootstrapper:      args.bootstrapper,
 	}
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -347,7 +355,8 @@ func createBuiltinFuncs(
 	esdtGlobalMintBurnDisableEpoch uint32,
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
-) (vmcommon.BuiltInFunctionContainer, error) {
+	optimizeNFTStoreEnableEpoch uint32,
+) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                  gasScheduleNotifier,
 		MapDNSAddresses:              make(map[string]struct{}),
@@ -359,11 +368,7 @@ func createBuiltinFuncs(
 		ESDTTransferRoleEnableEpoch:  esdtTransferRoleEnableEpoch,
 		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
+		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-
-	return builtInFuncs, nil
+	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

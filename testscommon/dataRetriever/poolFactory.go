@@ -112,9 +112,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	currentTx, err := dataPool.NewCurrentBlockPool()
-	panicIfError("CreatePoolsHolder", err)
-
+	currentTx := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
 		UnsignedTransactions:     unsignedTxPool,
@@ -176,9 +174,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	currentTx, err := dataPool.NewCurrentBlockPool()
-	panicIfError("CreatePoolsHolderWithTxPool", err)
-
+	currentTx := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
 		UnsignedTransactions:     unsignedTxPool,

@@ -31,6 +31,7 @@ type optimizedKadDhtDiscoverer struct {
 	errChanInit                 chan error
 	chanConnectToSeeders        chan struct{}
 	createKadDhtHandler         func(ctx context.Context) (KadDhtHandler, error)
+	connectionWatcher           p2p.ConnectionsWatcher
 }
 
 // NewOptimizedKadDhtDiscoverer creates an optimized kad-dht discovery type implementation
@@ -60,10 +61,16 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		chanInit:                    make(chan struct{}),
 		errChanInit:                 make(chan error),
 		chanConnectToSeeders:        make(chan struct{}),
+		connectionWatcher:           arg.ConnectionWatcher,
 	}
 
 	okdd.createKadDhtHandler = okdd.createKadDht
-	okdd.hostConnManagement, err = NewHostWithConnectionManagement(arg.Host, okdd.sharder)
+	args := ArgsHostWithConnectionManagement{
+		ConnectableHost:    arg.Host,
+		Sharder:            okdd.sharder,
+		ConnectionsWatcher: okdd.connectionWatcher,
+	}
+	okdd.hostConnManagement, err = NewHostWithConnectionManagement(args)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +93,7 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 	for {
 		select {
 		case <-okdd.chanInit:
-			okdd.processInit(ctx)
+			chTimeSeedersReconnect = okdd.processInit(ctx)
 
 		case <-chTimeSeedersReconnect:
 			chTimeSeedersReconnect = okdd.processSeedersReconnect(ctx)
@@ -107,15 +114,17 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 	}
 }
 
-func (okdd *optimizedKadDhtDiscoverer) processInit(ctx context.Context) {
+func (okdd *optimizedKadDhtDiscoverer) processInit(ctx context.Context) <-chan time.Time {
 	err := okdd.init(ctx)
 	okdd.errChanInit <- err
 	if err != nil {
-		return
+		return okdd.createChTimeSeedersReconnect(false)
 	}
 
-	okdd.tryToReconnectAtLeastToASeeder(ctx)
+	ch := okdd.processSeedersReconnect(ctx)
 	okdd.findPeers(ctx)
+
+	return ch
 }
 
 func (okdd *optimizedKadDhtDiscoverer) processSeedersReconnect(ctx context.Context) <-chan time.Time {
@@ -132,7 +141,7 @@ func (okdd *optimizedKadDhtDiscoverer) finishMainLoopProcessing(ctx context.Cont
 
 func (okdd *optimizedKadDhtDiscoverer) createChTimeSeedersReconnect(isConnectedToSeeders bool) <-chan time.Time {
 	if isConnectedToSeeders {
-		//the reconnection will be done less often
+		// the reconnection will be done less often
 		return time.After(okdd.seedersReconnectionInterval)
 	}
 
@@ -180,7 +189,7 @@ func (okdd *optimizedKadDhtDiscoverer) tryToReconnectAtLeastToASeeder(ctx contex
 	for _, seederAddress := range okdd.initialPeersList {
 		err := okdd.connectToSeeder(ctx, seederAddress)
 		if err != nil {
-			log.Debug("error connecting to seeder", "seeder", seederAddress, "error", err.Error())
+			printConnectionErrorToSeeder(seederAddress, err)
 		} else {
 			connectedToOneSeeder = true
 		}

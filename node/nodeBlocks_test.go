@@ -11,8 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
@@ -24,8 +26,11 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -264,7 +269,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
+func TestGetBlockByNonce_GetBlockByRound_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	historyProc := &dblookupext.HistoryRepositoryStub{
@@ -276,6 +281,7 @@ func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 		},
 	}
 	nonce := uint64(1)
+	round := uint64(2)
 	uint64Converter := mock.NewNonceHashConverterMock()
 	coreComponentsMock := getDefaultCoreComponents()
 	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
@@ -291,6 +297,10 @@ func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 	)
 
 	blk, err := n.GetBlockByNonce(nonce, false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+
+	blk, err = n.GetBlockByRound(round, false)
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -369,7 +379,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestGetBlockByNonceFromNormalNode(t *testing.T) {
+func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
@@ -383,7 +393,8 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
+				unitType == dataRetriever.RoundHdrHashDataUnit {
 				return hex.DecodeString(headerHash)
 			}
 			blk := &block.Header{
@@ -431,7 +442,11 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		Status:          blockAPI.BlockStatusOnChain,
 	}
 
-	blk, err := n.GetBlockByNonce(1, false)
+	blk, err := n.GetBlockByNonce(nonce, false)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedBlock, blk)
+
+	blk, err = n.GetBlockByRound(round, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -533,17 +548,18 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &testscommon.AppStatusHandlerStub{},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
 		WDTimer:               &testscommon.WatchdogMock{},
 		Alarm:                 &testscommon.AlarmSchedulerStub{},
 		NtpTimer:              &testscommon.SyncTimerStub{},
 		RoundHandlerField:     &testscommon.RoundHandlerMock{},
-		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerStub{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerStub{},
 		RatingsConfig:         &testscommon.RatingsInfoMock{},
 		RatingHandler:         &testscommon.RaterMock{},
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
-		EpochChangeNotifier:   &mock.EpochNotifierStub{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
 	}
 }
@@ -576,12 +592,17 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
 	}
 }
 
 func getDefaultDataComponents() *factory.DataComponentsMock {
 	return &factory.DataComponentsMock{
-		BlockChain: &mock.ChainHandlerStub{},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
@@ -589,6 +610,15 @@ func getDefaultDataComponents() *factory.DataComponentsMock {
 }
 
 func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
+	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
+
+	shardCoordinator := &mock.ShardCoordinatorMock{}
+	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{}
+	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		versionedHeaderFactory, _ = hdrFactory.NewMetaHeaderFactory(headerVersionHandler)
+	}
+
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
@@ -597,7 +627,9 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
 		NodeRole:             "",
-		ShCoordinator:        &mock.ShardCoordinatorMock{},
+		ShCoordinator:        shardCoordinator,
+		HdrVersionHandler:    &testscommon.HeaderVersionHandlerStub{},
+		VersionedHdrFactory:  versionedHeaderFactory,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }

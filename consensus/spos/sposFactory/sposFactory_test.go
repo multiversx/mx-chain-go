@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +40,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 
 	worker := &mock.SposWorkerMock{}
 	consensusType := consensus.BlsConsensusType
-	statusHandler := &mock.AppStatusHandlerMock{}
+	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 	chainID := []byte("chain-id")
 	indexer := &testscommon.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
@@ -85,7 +87,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 	consensusCore := mock.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
 	consensusType := consensus.BlsConsensusType
-	statusHandler := &mock.AppStatusHandlerMock{}
+	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 	chainID := []byte("chain-id")
 	indexer := &testscommon.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
@@ -125,7 +127,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	messenger := &mock.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
@@ -157,7 +159,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := &mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	messenger := &mock.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {

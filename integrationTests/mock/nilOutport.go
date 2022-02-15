@@ -37,6 +37,10 @@ func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRating
 func (n *nilOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
 }
 
+// FinalizedBlock -
+func (n *nilOutport) FinalizedBlock(_ []byte) {
+}
+
 // Close -
 func (n *nilOutport) Close() error {
 	return nil

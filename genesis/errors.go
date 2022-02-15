@@ -68,6 +68,12 @@ var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 // ErrNilAccountsParser signals that the provided accounts parser is nil
 var ErrNilAccountsParser = errors.New("nil accounts parser")
 
+// ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
+var ErrNilHasher = errors.New("nil Hasher")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
+
 // ErrStakingValueIsNotEnough signals that the staking value provided is not enough for provided node(s)
 var ErrStakingValueIsNotEnough = errors.New("staking value is not enough")
 

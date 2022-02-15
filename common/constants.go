@@ -45,8 +45,8 @@ const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 const MaxTxNonceDeltaAllowed = 30000
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
-//TODO convert this const into a var and read it from config when this code moves to another binary
-const MaxBulkTransactionSize = 1 << 18 //256KB bulks
+// TODO convert this const into a var and read it from config when this code moves to another binary
+const MaxBulkTransactionSize = 1 << 18 // 256KB bulks
 
 // MaxTxsToRequest specifies the maximum number of txs to request
 const MaxTxsToRequest = 1000
@@ -56,6 +56,9 @@ const NodesSetupJsonFileName = "nodesSetup.json"
 
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
+
+// GenesisTxSignatureString is the string used to generate genesis transaction signature as 128 hex characters
+const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISGENESISG"
 
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
@@ -243,7 +246,7 @@ const MetricNumNodesPerShard = "erd_num_nodes_in_shard"
 // MetricNumMetachainNodes is the metric which holds the number of nodes in metachain
 const MetricNumMetachainNodes = "erd_num_metachain_nodes"
 
-//MetricNumValidators is the metric for the number of validators
+// MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_num_validators"
 
 // MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
@@ -252,10 +255,10 @@ const MetricPeerType = "erd_peer_type"
 // MetricPeerSubType is the metric which tells the peer's subtype (regular observer or full history observer)
 const MetricPeerSubType = "erd_peer_subtype"
 
-//MetricLeaderPercentage is the metric for leader rewards percentage
+// MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 
-//MetricDenomination is the metric for exposing the denomination
+// MetricDenomination is the metric for exposing the denomination
 const MetricDenomination = "erd_denomination"
 
 // MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
@@ -273,19 +276,19 @@ const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
 // MetricNoncesPassedInCurrentEpoch is the metric that tells the number of nonces passed in current epoch
 const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 
-//MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
-//current node. The value is provided in percent (0 meaning it has been received just after the round started and
-//100 meaning that the block has been received in the last moment of the round)
+// MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
+// current node. The value is provided in percent (0 meaning it has been received just after the round started and
+// 100 meaning that the block has been received in the last moment of the round)
 const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
 
-//MetricCreatedProposedBlock is the metric that specify the percent of the block subround used for header and body
-//creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
-//subround spare duration)
+// MetricCreatedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
+// subround spare duration)
 const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 
-//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
-//processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
-//subround spare duration)
+// MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
+// subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 
 // MetricMinGasPrice is the metric that specifies min gas price
@@ -308,6 +311,9 @@ const MetricMinTransactionVersion = "erd_min_transaction_version"
 
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
+
+// MetricMaxGasPerTransaction is the metric that specifies the maximum gas limit for a transaction
+const MetricMaxGasPerTransaction = "erd_max_gas_per_transaction"
 
 // MetricChainId is the metric that specifies current chain id
 const MetricChainId = "erd_chain_id"
@@ -339,9 +345,6 @@ const MetricTotalFees = "erd_total_fees"
 // MetricEpochForEconomicsData holds the epoch for which economics data are computed
 const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
 
-// LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
-const LastNonceKeyMetricsStorage = "lastNonce"
-
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 
@@ -365,70 +368,110 @@ const AsyncCallStepField = "AsyncCallStep"
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
-	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts is enabled
 	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+	// MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions is enabled
 	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
-	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+	// MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions is enabled
 	MetricRelayedTransactionsEnableEpoch = "erd_relayed_transactions_enable_epoch"
 
-	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+	// MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas is enabled
 	MetricPenalizedTooMuchGasEnableEpoch = "erd_penalized_too_much_gas_enable_epoch"
 
-	//MetricSwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+	// MetricSwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
 	MetricSwitchJailWaitingEnableEpoch = "erd_switch_jail_waiting_enable_epoch"
 
-	//MetricSwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
-	//also (minimum) hysteresis nodes for the minimum number of nodes
+	// MetricSwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
+	// also (minimum) hysteresis nodes for the minimum number of nodes
 	MetricSwitchHysteresisForMinNodesEnableEpoch = "erd_switch_hysteresis_for_min_nodes_enable_epoch"
 
-	//MetricBelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+	// MetricBelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
 	MetricBelowSignedThresholdEnableEpoch = "erd_below_signed_threshold_enable_epoch"
 
-	//MetricTransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
-	//signed with the hash of transaction
+	// MetricTransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+	// signed with the hash of transaction
 	MetricTransactionSignedWithTxHashEnableEpoch = "erd_transaction_signed_with_txhash_enable_epoch"
 
-	//MetricMetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+	// MetricMetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
 	MetricMetaProtectionEnableEpoch = "erd_meta_protection_enable_epoch"
 
-	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+	// MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler
+	// per byte to ahead of time prepare per byte
 	MetricAheadOfTimeGasUsageEnableEpoch = "erd_ahead_of_time_gas_usage_enable_epoch"
 
-	//MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+	// MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
 	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
 
-	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+	// MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for smart contract results
 	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
 
-	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+	// MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
 	MetricBlockGasAndFreeRecheckEnableEpoch = "erd_block_gas_and_fee_recheck_enable_epoch"
 
-	//MetricStakingV2EnableEpoch represents the epoch when staking v2 is enabled
+	// MetricStakingV2EnableEpoch represents the epoch when staking v2 is enabled
 	MetricStakingV2EnableEpoch = "erd_staking_v2_enable_epoch"
 
-	//MetricStakeEnableEpoch represents the epoch when staking is enabled
+	// MetricStakeEnableEpoch represents the epoch when staking is enabled
 	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when double key protection is enabled
+	// MetricDoubleKeyProtectionEnableEpoch represents the epoch when double key protection is enabled
 	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
-	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
+	// MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
 	MetricEsdtEnableEpoch = "erd_esdt_enable_epoch"
 
-	//MetricGovernanceEnableEpoch  represents the epoch when governance is enabled
+	// MetricGovernanceEnableEpoch  represents the epoch when governance is enabled
 	MetricGovernanceEnableEpoch = "erd_governance_enable_epoch"
 
-	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
+	// MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
 	MetricDelegationManagerEnableEpoch = "erd_delegation_manager_enable_epoch"
 
-	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
+	// MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
 	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
+
+	// MetricCorrectLastUnjailedEnableEpoch represents the epoch when the correction on the last unjailed node is applied
+	MetricCorrectLastUnjailedEnableEpoch = "erd_correct_last_unjailed_enable_epoch"
+
+	// MetricBalanceWaitingListsEnableEpoch represents the epoch when the balance waiting lists on shards fix is applied
+	MetricBalanceWaitingListsEnableEpoch = "erd_balance_waiting_lists_enable_epoch"
+
+	// MetricReturnDataToLastTransferEnableEpoch represents the epoch when the return data to last transfer is applied
+	MetricReturnDataToLastTransferEnableEpoch = "erd_return_data_to_last_transfer_enable_epoch"
+
+	// MetricSenderInOutTransferEnableEpoch represents the epoch when the sender in out transfer is applied
+	MetricSenderInOutTransferEnableEpoch = "erd_sender_in_out_transfer_enable_epoch"
+
+	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 is enabled
+	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
+
+	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 is applied
+	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
+
+	// MetricSaveJailedAlwaysEnableEpoch represents the epoch the save jailed fix is applied
+	MetricSaveJailedAlwaysEnableEpoch = "erd_save_jailed_always_enable_epoch"
+
+	// MetricValidatorToDelegationEnableEpoch represents the epoch when the validator to delegation feature (staking v3.5) is enabled
+	MetricValidatorToDelegationEnableEpoch = "erd_validator_to_delegation_enable_epoch"
+
+	// MetricReDelegateBelowMinCheckEnableEpoch represents the epoch when the re-delegation below minimum value fix is applied
+	MetricReDelegateBelowMinCheckEnableEpoch = "erd_redelegate_below_min_check_enable_epoch"
 
 	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
 	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
+
+	// MetricESDTMultiTransferEnableEpoch represents the epoch when the ESDT multi transfer feature is enabled
+	MetricESDTMultiTransferEnableEpoch = "erd_esdt_multi_transfer_enable_epoch"
+
+	// MetricGlobalMintBurnDisableEpoch represents the epoch when the global mint and burn feature is disabled
+	MetricGlobalMintBurnDisableEpoch = "erd_global_mint_burn_disable_epoch"
+
+	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature is enabled
+	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
+
+	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
+	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
 )
 
 const (
@@ -532,8 +575,8 @@ const MetachainShardName = "metachain"
 // TemporaryPath is the default temporary path directory
 const TemporaryPath = "temp"
 
-// SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
-const SecondsToWaitForP2PBootstrap = 20
+// TimeToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
+const TimeToWaitForP2PBootstrap = 20 * time.Second
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
@@ -592,11 +635,11 @@ const AdditionalScrForEachScCallOrSpecialTx = 3
 const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
-//(that makes the node run properly)
+// (that makes the node run properly)
 const DefaultResolversIdentifier = "default resolver"
 
 // DefaultInterceptorsIdentifier represents the identifier that is used in conjunction with regular interceptors
-//(that makes the node run properly)
+// (that makes the node run properly)
 const DefaultInterceptorsIdentifier = "default interceptor"
 
 // HardforkInterceptorsIdentifier represents the identifier that is used in the hardfork process
@@ -612,8 +655,39 @@ const EpochStartInterceptorsIdentifier = "epoch start interceptor"
 const GetNodeFromDBErrorString = "getNodeFromDB error"
 
 // TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
-const TimeoutGettingTrieNodes = 2 * time.Minute //to consider syncing a very large trie node of 64MB at ~1MB/s
+const TimeoutGettingTrieNodes = 2 * time.Minute // to consider syncing a very large trie node of 64MB at ~1MB/s
 
 // TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
 // during the hardfork process
 const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
+
+// RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
+const RetrialIntervalForOutportDriver = time.Second * 10
+
+// NodeProcessingMode represents the processing mode in which the node was started
+type NodeProcessingMode int
+
+const (
+	// Normal means that the node has started in the normal processing mode
+	Normal NodeProcessingMode = iota
+
+	// ImportDb means that the node has started in the import-db mode
+	ImportDb
+)
+
+// ScheduledMode represents the name used to differentiate normal vs. scheduled mini blocks / transactions execution mode
+const ScheduledMode = "Scheduled"
+
+const (
+	// ActiveDBKey is the key at which ActiveDBVal will be saved
+	ActiveDBKey = "activeDB"
+
+	// ActiveDBVal is the value that will be saved at ActiveDBKey
+	ActiveDBVal = "yes"
+
+	// TrieSyncedKey is the key at which TrieSyncedVal will be saved
+	TrieSyncedKey = "synced"
+
+	// TrieSyncedVal is the value that will be saved at TrieSyncedKey
+	TrieSyncedVal = "yes"
+)

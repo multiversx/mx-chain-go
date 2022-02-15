@@ -51,7 +51,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 type trigger struct {
 	isEpochStart                bool
 	epoch                       uint32
-	epochStartMeta              *block.MetaBlock
+	epochStartMeta              data.HeaderHandler
 	currentRound                uint64
 	epochFinalityAttestingRound uint64
 	currEpochStartRound         uint64
@@ -66,7 +66,7 @@ type trigger struct {
 	epochStartNotifier          epochStart.Notifier
 	metaHeaderStorage           storage.Storer
 	triggerStorage              storage.Storer
-	marshalizer                 marshal.Marshalizer
+	marshaller                  marshal.Marshalizer
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
 }
@@ -128,7 +128,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epochStartNotifier:          args.EpochStartNotifier,
 		metaHeaderStorage:           metaBlockStorage,
 		triggerStorage:              triggerStorage,
-		marshalizer:                 args.Marshalizer,
+		marshaller:                  args.Marshalizer,
 		hasher:                      args.Hasher,
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            args.AppStatusHandler,
@@ -230,7 +230,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 		return
 	}
 
-	metaBuff, errNotCritical := t.marshalizer.Marshal(metaBlock)
+	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
 	if errNotCritical != nil {
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
@@ -294,7 +294,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	prevMeta := t.epochStartMeta
 	t.mutTrigger.RUnlock()
 
-	currentHeaderHash, err := core.CalculateHash(t.marshalizer, t.hasher, header)
+	currentHeaderHash, err := core.CalculateHash(t.marshaller, t.hasher, header)
 	if err != nil {
 		log.Warn("RevertStateToBlock error on hashing", "error", err)
 		return err
@@ -339,7 +339,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	}
 
 	epochStartMeta := &block.MetaBlock{}
-	err = t.marshalizer.Unmarshal(epochStartMeta, epochStartMetaBuff)
+	err = t.marshaller.Unmarshal(epochStartMeta, epochStartMetaBuff)
 	if err != nil {
 		log.Warn("Revert unmarshal previous meta", "error", err)
 		return err

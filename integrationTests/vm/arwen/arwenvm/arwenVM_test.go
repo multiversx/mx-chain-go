@@ -7,6 +7,7 @@ package arwenvm
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 	"time"
@@ -67,9 +68,9 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -197,9 +198,9 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		arwen.CreateDeployTxData(scCode),
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -254,9 +255,9 @@ func TestWASMMetering(t *testing.T) {
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -281,9 +282,9 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	expectedBalance := big.NewInt(2998080)
 	expectedNonce := uint64(1)
@@ -387,9 +388,9 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Equal(t, "out of gas", testContext.GetLatestError().Error())
+	require.Equal(t, returnCode, vmcommon.UserError)
 }
 
 func TestJournalizingAndTimeToProcessChange(t *testing.T) {
@@ -427,9 +428,9 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@00"+hex.EncodeToString(ownerBalance.Bytes()),
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 	ownerNonce++
 
 	alice := []byte("12345678901234567890123456789111")
@@ -445,9 +446,9 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, "transferToken", initAlice, scAddress, ownerAddressBytes, alice)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	for j := 0; j < 2000; j++ {
 		start := time.Now()
@@ -455,9 +456,9 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		for i := 0; i < 1000; i++ {
 			tx = vm.CreateTransferTokenTx(aliceNonce, "transferToken", transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
 
-			_, err = testContext.TxProcessor.ProcessTransaction(tx)
+			returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, err)
-			require.Nil(t, testContext.GetLatestError())
+			require.Equal(t, returnCode, vmcommon.Ok)
 			aliceNonce++
 		}
 
@@ -475,9 +476,9 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	for i := 0; i < numRun; i++ {
 		tx = vm.CreateTransferTokenTx(aliceNonce, "transferToken", transferOnCalls, scAddress, alice, testAddresses[i])
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, returnCode, vmcommon.Ok)
 
 		aliceNonce++
 	}
@@ -637,16 +638,16 @@ func TestAndCatchTrieError(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 	ownerNonce++
 
 	numAccounts := 100
 	testAddresses := createTestAddresses(uint64(numAccounts))
 	// ERD Minting
 	for _, testAddress := range testAddresses {
-		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(1000000))
+		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(0).Mul(big.NewInt(math.MaxUint64/2), big.NewInt(math.MaxUint64/2)))
 	}
 
 	accumulateAddress := createTestAddresses(1)[0]
@@ -657,9 +658,9 @@ func TestAndCatchTrieError(t *testing.T) {
 		tx = vm.CreateTransferTokenTx(ownerNonce, "transferToken", erc20value, scAddress, ownerAddressBytes, testAddress)
 		ownerNonce++
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+		returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
+		require.Equal(t, returnCode, vmcommon.Ok)
 	}
 
 	_, err = testContext.Accounts.Commit()
@@ -677,7 +678,6 @@ func TestAndCatchTrieError(t *testing.T) {
 
 			snapShot := testContext.Accounts.JournalLen()
 			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
-			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
 				errRevert := testContext.Accounts.RevertToSnapshot(snapShot)
@@ -702,7 +702,6 @@ func TestAndCatchTrieError(t *testing.T) {
 
 			snapShot := testContext.Accounts.JournalLen()
 			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
-			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
 				errRevert := testContext.Accounts.RevertToSnapshot(snapShot)

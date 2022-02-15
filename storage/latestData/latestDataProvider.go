@@ -1,7 +1,6 @@
 package latestData
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -10,6 +9,9 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -61,29 +63,46 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 	}, nil
 }
 
-// Get will return a struct containing the latest data in storage
+// Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	parentDir, lastEpoch, err := ldp.GetParentDirAndLastEpoch()
-	if err != nil {
-		return storage.LatestDataFromStorage{}, err
-	}
-
-	return ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+	lastData, _, _, err := ldp.getLastData()
+	return lastData, err
 }
 
-// GetParentDirAndLastEpoch returns the parent directory and last epoch
+// GetParentDirectory returns the parent directory
+func (ldp *latestDataProvider) GetParentDirectory() string {
+	return ldp.parentDir
+}
+
+// GetParentDirAndLastEpoch returns the parent directory and last usable epoch for the node
 func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error) {
+	_, parentDir, lastEpoch, err := ldp.getLastData()
+	return parentDir, lastEpoch, err
+}
+
+func (ldp *latestDataProvider) getLastData() (storage.LatestDataFromStorage, string, uint32, error) {
 	epochDirs, err := ldp.getEpochDirs()
 	if err != nil {
-		return "", 0, err
+		return storage.LatestDataFromStorage{}, "", 0, err
 	}
 
-	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs, 0)
-	if err != nil {
-		return "", 0, err
+	for index := range epochDirs {
+		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
+		if errGetDir != nil {
+			err = errGetDir
+			continue
+		}
+
+		dataFromStorage, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
+		if errGetEpoch != nil {
+			err = errGetEpoch
+			continue
+		}
+
+		return dataFromStorage, parentDir, lastEpoch, nil
 	}
 
-	return ldp.parentDir, lastEpoch, nil
+	return storage.LatestDataFromStorage{}, "", 0, err
 }
 
 func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
@@ -198,14 +217,15 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	storer storage.Storer,
 ) (uint64, error) {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
-	data, err := storer.Get(trigInternalKey)
+	trigData, err := storer.Get(trigInternalKey)
 	if err != nil {
 		return 0, err
 	}
 
+	var state *block.MetaTriggerRegistry
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
-		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(data, state)
+		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
 		if err != nil {
 			return 0, err
 		}
@@ -213,13 +233,13 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return state.CurrEpochStartRound, nil
 	}
 
-	state := &shardchain.TriggerRegistry{}
-	err = json.Unmarshal(data, state)
+	var trigHandler data.TriggerRegistryHandler
+	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
 	if err != nil {
 		return 0, err
 	}
 
-	return state.EpochStartRound, nil
+	return trigHandler.GetEpochStartRound(), nil
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory
@@ -282,4 +302,18 @@ func (ldp *latestDataProvider) GetShardsFromDirectory(path string) ([]string, er
 // IsInterfaceNil returns true if there is no value under the interface
 func (ldp *latestDataProvider) IsInterfaceNil() bool {
 	return ldp == nil
+}
+
+func (ldp *latestDataProvider) getParentDirAndLastEpochWithIndex(index int) (string, uint32, error) {
+	epochDirs, err := ldp.getEpochDirs()
+	if err != nil {
+		return "", 0, err
+	}
+
+	lastEpoch, err := ldp.GetLastEpochFromDirNames(epochDirs, index)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return ldp.parentDir, lastEpoch, nil
 }

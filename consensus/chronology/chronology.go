@@ -126,12 +126,12 @@ func (chr *chronology) startRounds(ctx context.Context) {
 		case <-time.After(time.Millisecond):
 		}
 
-		chr.startRound()
+		chr.startRound(ctx)
 	}
 }
 
 // startRound calls the current subround, given by the finished tasks in this round
-func (chr *chronology) startRound() {
+func (chr *chronology) startRound(ctx context.Context) {
 	if chr.subroundId == srBeforeStartRound {
 		chr.updateRound()
 	}
@@ -149,7 +149,7 @@ func (chr *chronology) startRound() {
 	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 	logger.SetCorrelationSubround(sr.Name())
 
-	if !sr.DoWork(chr.roundHandler) {
+	if !sr.DoWork(ctx, chr.roundHandler) {
 		chr.subroundId = srBeforeStartRound
 		return
 	}

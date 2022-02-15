@@ -49,13 +49,13 @@ func NewOneMiniBlockPostProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: coordinator,
-		store:            store,
-		storageType:      storageType,
-		mapTxToResult:    make(map[string][]string),
-		economicsFee:     economicsFee,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		shardCoordinator:   coordinator,
+		store:              store,
+		storageType:        storageType,
+		mapProcessedResult: make(map[string]struct{}),
+		economicsFee:       economicsFee,
 	}
 
 	opp := &oneMBPostProcessor{
@@ -100,7 +100,7 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 		return bytes.Compare(miniBlock.TxHashes[a], miniBlock.TxHashes[b]) < 0
 	})
 
-	log.Trace("oneMBPostProcessor.CreateAllInterMiniBlocks",
+	log.Debug("oneMBPostProcessor.CreateAllInterMiniBlocks",
 		"type", miniBlock.Type,
 		"senderShardID", miniBlock.SenderShardID,
 		"receiverShardID", miniBlock.ReceiverShardID,
@@ -158,7 +158,7 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
 		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
 		opp.interResultsForBlock[string(txHash)] = scrInfo
-		opp.mapTxToResult[string(txHash)] = append(opp.mapTxToResult[string(txHash)], string(txHash))
+		opp.mapProcessedResult[string(txHash)] = struct{}{}
 	}
 
 	return nil

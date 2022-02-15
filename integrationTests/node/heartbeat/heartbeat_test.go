@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -216,11 +218,11 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		Topic:                topic,
 		ShardCoordinator:     &sharding.OneShardCoordinator{},
 		PeerTypeProvider:     &mock.PeerTypeProviderStub{},
-		StatusHandler:        &mock.AppStatusHandlerStub{},
+		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:        version,
 		NodeDisplayName:      nodeName,
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
-		CurrentBlockProvider: &mock.BlockChainMock{},
+		CurrentBlockProvider: &testscommon.ChainHandlerStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 
@@ -274,7 +276,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
-		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
+		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

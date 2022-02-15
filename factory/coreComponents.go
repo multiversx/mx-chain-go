@@ -3,6 +3,7 @@ package factory
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -26,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -82,6 +85,7 @@ type coreComponents struct {
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
 	economicsData                 process.EconomicsDataHandler
+	apiEconomicsData              process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
 	nodesShuffler                 sharding.NodesShuffler
@@ -90,10 +94,12 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
+	roundNotifier                 process.RoundNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
+	arwenChangeLocker             common.Locker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -217,12 +223,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
+	roundNotifier := forking.NewRoundNotifier()
 
+	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 		GasScheduleConfig: ccf.epochConfig.GasSchedule,
 		ConfigDir:         gasScheduleConfigurationFolderName,
 		EpochNotifier:     epochNotifier,
+		ArwenChangeLocker: arwenChangeLocker,
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -250,6 +259,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	apiEconomicsData, err := economics.NewAPIEconomicsData(economicsData)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                   ccf.ratingsConfig,
@@ -270,6 +284,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitBaseMetrics(statusHandlersInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metrics.InitConfigMetrics(statusHandlersInfo, ccf.epochConfig, ccf.economicsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +341,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		watchdog:                      watchdogTimer,
 		nodesSetupHandler:             genesisNodesConfig,
 		economicsData:                 economicsData,
+		apiEconomicsData:              apiEconomicsData,
 		ratingsData:                   ratingsData,
 		rater:                         rater,
 		nodesShuffler:                 nodesShuffler,
@@ -325,10 +350,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
+		roundNotifier:                 roundNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
+		arwenChangeLocker:             arwenChangeLocker,
 	}, nil
 }
 

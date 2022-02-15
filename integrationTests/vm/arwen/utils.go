@@ -37,11 +37,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -87,7 +90,7 @@ type TestContext struct {
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
-	ArwenChangeLocker process.Locker
+	ArwenChangeLocker common.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -127,7 +130,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
-	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -143,8 +146,9 @@ func SetupTestContext(t *testing.T) *TestContext {
 		VmContainer:       context.VMContainer,
 		EconomicsFee:      context.EconomicsFee,
 		BlockChainHook:    context.BlockchainHook,
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
+		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -195,12 +199,19 @@ func (context *TestContext) initFeeHandlers() {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         maxGasLimitPerBlock,
+						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
+						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
+						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
+						MinGasLimit:                 minGasLimit,
+					},
+				},
+				MinGasPrice:      minGasPrice,
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
@@ -221,10 +232,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator: oneShardCoordinator,
 		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
-	blockchainMock := &mock.BlockChainMock{}
+	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -236,8 +247,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
+		EpochNotifier:      context.EpochNotifier,
 		NilCompiledSCStore: true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
@@ -262,16 +275,14 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:                         vmFactoryConfig,
-		BlockGasLimit:                  maxGasLimit,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		ArgBlockChainHook:              args,
-		EpochNotifier:                  context.EpochNotifier,
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              context.ArwenChangeLocker,
-		ESDTTransferParser:             esdtTransferParser,
+		Config:             vmFactoryConfig,
+		BlockGasLimit:      maxGasLimit,
+		GasSchedule:        mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		ArgBlockChainHook:  args,
+		EpochNotifier:      context.EpochNotifier,
+		EpochConfig:        config.EnableEpochs{},
+		ArwenChangeLocker:  context.ArwenChangeLocker,
+		ESDTTransferParser: esdtTransferParser,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -300,6 +311,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
@@ -308,6 +321,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		Marshalizer:      marshalizer,
 		AccountsDB:       context.Accounts,
 		BlockChainHook:   context.BlockchainHook,
+		BuiltInFunctions: context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		PubkeyConv:       pkConverter,
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     context.SCRForwarder,
@@ -315,11 +329,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxFeeHandler:     context.UnsignexTxHandler,
 		EconomicsFee:     context.EconomicsFee,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		TxLogsProcessor:   logsProcessor,
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: context.ArwenChangeLocker,
 		VMOutputCacher:    txcache.NewDisabledCache(),

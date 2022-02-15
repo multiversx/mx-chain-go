@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type shardAPIBlockProcessor struct {
@@ -67,33 +68,42 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*a
 	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
 }
 
-func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
-	blockHeader := &block.Header{}
-	err := sbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+// GetBlockByRound will return a shard APIBlock by round
+func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
+	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	headerEpoch := blockHeader.Epoch
+	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, withTxs)
+}
+
+func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
+	blockHeader, err := process.CreateShardHeader(sbp.marshalizer, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	headerEpoch := blockHeader.GetEpoch()
 
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
-	for _, mb := range blockHeader.MiniBlockHeaders {
-		if mb.Type == block.PeerBlock {
+	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
+		if block.Type(mb.GetTypeInt32()) == block.PeerBlock {
 			continue
 		}
 
-		numOfTxs += mb.TxCount
+		numOfTxs += mb.GetTxCount()
 
 		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mb.Hash),
-			Type:             mb.Type.String(),
-			SourceShard:      mb.SenderShardID,
-			DestinationShard: mb.ReceiverShardID,
+			Hash:             hex.EncodeToString(mb.GetHash()),
+			Type:             block.Type(mb.GetTypeInt32()).String(),
+			SourceShard:      mb.GetSenderShardID(),
+			DestinationShard: mb.GetReceiverShardID(),
 		}
 		if withTxs {
 			miniBlockCopy := mb
-			miniblockAPI.Transactions = sbp.getTxsByMb(&miniBlockCopy, headerEpoch)
+			miniblockAPI.Transactions = sbp.getTxsByMb(miniBlockCopy, headerEpoch)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
@@ -103,16 +113,16 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters.ApplyStatusFilters(miniblocks)
 
 	return &api.Block{
-		Nonce:           blockHeader.Nonce,
-		Round:           blockHeader.Round,
-		Epoch:           blockHeader.Epoch,
-		Shard:           blockHeader.ShardID,
+		Nonce:           blockHeader.GetNonce(),
+		Round:           blockHeader.GetRound(),
+		Epoch:           blockHeader.GetEpoch(),
+		Shard:           blockHeader.GetShardID(),
 		Hash:            hex.EncodeToString(hash),
-		PrevBlockHash:   hex.EncodeToString(blockHeader.PrevHash),
+		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
 		NumTxs:          numOfTxs,
 		MiniBlocks:      miniblocks,
-		AccumulatedFees: blockHeader.AccumulatedFees.String(),
-		DeveloperFees:   blockHeader.DeveloperFees.String(),
+		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
+		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
 		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
 		Status:          BlockStatusOnChain,
 	}, nil

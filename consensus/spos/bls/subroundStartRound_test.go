@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,7 +57,7 @@ func defaultSubround(
 		container,
 		chainID,
 		currentPid,
-		&mock.AppStatusHandlerStub{},
+		&statusHandler.AppStatusHandlerStub{},
 	)
 }
 
@@ -264,7 +265,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCurrentRoundReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() common.NodeState {
+	bootstrapperMock := &mock.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
 		return common.NsSynchronized
 	}}
 
@@ -280,7 +281,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitCurrentRoundReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() common.NodeState {
+	bootstrapperMock := &mock.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
 		return common.NsNotSynchronized
 	}}
 
@@ -297,7 +298,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{}
+	bootstrapperMock := &mock.BootstrapperStub{}
 
 	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
 		return common.NsNotSynchronized
@@ -422,7 +423,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{}
+	bootstrapperMock := &mock.BootstrapperStub{}
 
 	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
 		return common.NsSynchronized

@@ -46,6 +46,7 @@ type baseBlockTrack struct {
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
+	feeHandler                            process.FeeHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -112,6 +113,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		blockBalancer:                         blockBalancerInstance,
 		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
 		whitelistHandler:                      arguments.WhitelistHandler,
+		feeHandler:                            arguments.FeeHandler,
 	}
 
 	return bbt, nil
@@ -127,9 +129,9 @@ func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, head
 }
 
 func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
-	shardHeader, ok := headerHandler.(*block.Header)
+	shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
-		log.Warn("cannot convert data.HeaderHandler in *block.Header")
+		log.Warn("cannot convert data.HeaderHandler in data.ShardHeaderHandler")
 		return
 	}
 
@@ -615,7 +617,7 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		return bbt.isMetaStuck()
 	}
 
-	numPendingMiniBlocks := bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+	numPendingMiniBlocks := uint64(bbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
 	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 
 	isMetaDifferenceTooLarge := false
@@ -630,7 +632,8 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		}
 	}
 
-	maxNumPendingMiniBlocks := process.MaxNumPendingMiniBlocksPerShard * bbt.shardCoordinator.NumberOfShards()
+	maxNumMiniBlocksForSameReceiverInOneBlock := bbt.feeHandler.MaxGasLimitPerBlockForSafeCrossShard() / bbt.feeHandler.MaxGasLimitPerMiniBlockForSafeCrossShard()
+	maxNumPendingMiniBlocks := maxNumMiniBlocksForSameReceiverInOneBlock * process.MaxMetaNoncesBehind * uint64(bbt.shardCoordinator.NumberOfShards())
 	isShardStuck := numPendingMiniBlocks >= maxNumPendingMiniBlocks || isMetaDifferenceTooLarge
 	return isShardStuck
 }
@@ -737,6 +740,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return process.ErrNilHeadersDataPool
 	}
+	if check.IfNil(arguments.FeeHandler) {
+		return process.ErrNilEconomicsData
+	}
 
 	return nil
 }
@@ -761,19 +767,19 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 	return nil
 }
 
-func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.MetaBlock) {
+func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaHeaderHandler) {
 	selfShardID := bbt.shardCoordinator.SelfId()
 	if selfShardID == core.MetachainShardId {
 		return
 	}
-	if metablock == nil {
+	if check.IfNil(metablock) {
 		return
 	}
 	if bbt.isHeaderOutOfRange(metablock) {
 		return
 	}
 
-	miniBlockHdrs := metablock.GetMiniBlockHeaders()
+	miniBlockHdrs := metablock.GetMiniBlockHeaderHandlers()
 	keys := make([][]byte, 0)
 
 	crossMbKeysMeta := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, core.MetachainShardId)
@@ -781,12 +787,12 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.Met
 		keys = append(keys, crossMbKeysMeta...)
 	}
 
-	for _, shardData := range metablock.ShardInfo {
-		if shardData.ShardID == selfShardID {
+	for _, shardData := range metablock.GetShardInfoHandlers() {
+		if shardData.GetShardID() == selfShardID {
 			continue
 		}
 
-		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.ShardMiniBlockHeaders, selfShardID, shardData.ShardID)
+		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.GetShardMiniBlockHeaderHandlers(), selfShardID, shardData.GetShardID())
 		if len(crossMbKeysShard) > 0 {
 			keys = append(keys, crossMbKeysShard...)
 		}
@@ -795,22 +801,22 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.Met
 	bbt.whitelistHandler.Add(keys)
 }
 
-func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.HeaderHandler) {
 	selfShardID := bbt.shardCoordinator.SelfId()
 	if selfShardID != core.MetachainShardId {
 		return
 	}
-	if shardHeader == nil {
+	if check.IfNil(shardHeader) {
 		return
 	}
 	if bbt.isHeaderOutOfRange(shardHeader) {
 		return
 	}
 
-	miniBlockHdrs := shardHeader.GetMiniBlockHeaders()
+	miniBlockHdrs := shardHeader.GetMiniBlockHeaderHandlers()
 	keys := make([][]byte, 0)
 
-	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.ShardID)
+	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.GetShardID())
 	if len(crossMbKeysShard) > 0 {
 		keys = append(keys, crossMbKeysShard...)
 	}
@@ -818,17 +824,17 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader *block
 	bbt.whitelistHandler.Add(keys)
 }
 
-func getCrossShardMiniblockKeys(miniBlockHdrs []block.MiniBlockHeader, selfShardID uint32, processingShard uint32) [][]byte {
+func getCrossShardMiniblockKeys(miniBlockHdrs []data.MiniBlockHeaderHandler, selfShardID uint32, processingShard uint32) [][]byte {
 	keys := make([][]byte, 0)
 	for _, miniBlockHdr := range miniBlockHdrs {
 		receiverShard := miniBlockHdr.GetReceiverShardID()
-		receiverIsSelfShard := receiverShard == selfShardID || receiverShard == core.AllShardId && processingShard == core.MetachainShardId
+		receiverIsSelfShard := receiverShard == selfShardID || (receiverShard == core.AllShardId && processingShard == core.MetachainShardId)
 		senderIsCrossShard := miniBlockHdr.GetSenderShardID() != selfShardID
 		if receiverIsSelfShard && senderIsCrossShard {
-			keys = append(keys, miniBlockHdr.Hash)
+			keys = append(keys, miniBlockHdr.GetHash())
 			log.Debug(
 				"getCrossShardMiniblockKeys",
-				"type", miniBlockHdr.GetType(),
+				"type", miniBlockHdr.GetTypeInt32(),
 				"sender", miniBlockHdr.GetSenderShardID(),
 				"receiver", miniBlockHdr.GetReceiverShardID(),
 				"hash", miniBlockHdr.GetHash(),

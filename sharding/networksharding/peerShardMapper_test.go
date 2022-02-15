@@ -21,7 +21,7 @@ import (
 
 const epochZero = uint32(0)
 
-//------- NewPeerShardMapper
+// ------- NewPeerShardMapper
 
 func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
 	return networksharding.ArgPeerShardMapper{
@@ -107,7 +107,7 @@ func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 	assert.Equal(t, epoch, psm.Epoch())
 }
 
-//------- UpdatePeerIdPublicKey
+// ------- UpdatePeerIdPublicKey
 
 func TestPeerShardMapper_UpdatePeerIDInfoShouldWork(t *testing.T) {
 	t.Parallel()
@@ -172,7 +172,7 @@ func TestPeerShardMapper_UpdatePeerIDInfoMorePidsThanAllowedShouldTrim(t *testin
 	}
 
 	for i := 0; i < networksharding.MaxNumPidsPerPk+1; i++ {
-		shouldExists := i > 0 //the pid is evicted based on the first-in-first-out rule
+		shouldExists := i > 0 // the pid is evicted based on the first-in-first-out rule
 		pkRecovered := psm.GetPkFromPidPk(pids[i])
 
 		if shouldExists {
@@ -249,7 +249,7 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWorkConcurrently(t *testing.T) {
 	assert.Equal(t, shardId, shardidRecovered)
 }
 
-//------- GetPeerInfo
+// ------- GetPeerInfo
 
 func TestPeerShardMapper_GetPeerInfoPkNotFoundShouldReturnUnknown(t *testing.T) {
 	t.Parallel()
@@ -532,4 +532,52 @@ func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
 	)
 
 	assert.Equal(t, epoch, psm.Epoch())
+}
+
+func TestPeerShardMapper_UpdatePeerIDPublicKey(t *testing.T) {
+	t.Parallel()
+
+	pid1 := core.PeerID("pid1")
+	pid2 := core.PeerID("pid2")
+	pk1 := []byte("pk1")
+	pk2 := []byte("pk2")
+
+	t.Run("peer shard mapper is new, adding a pair should return true", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+
+		assert.True(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
+	})
+	t.Run("pair exists, adding the pairs multiple times should return false", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+
+		_ = psm.UpdatePeerIDPublicKey(pid1, pk1)
+		numTries := 1000
+		for i := 0; i < numTries; i++ {
+			assert.False(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
+		}
+	})
+	t.Run("pair exists but on a different public key returns true", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+
+		_ = psm.UpdatePeerIDPublicKey(pid1, pk1)
+		assert.True(t, psm.UpdatePeerIDPublicKey(pid1, pk2))
+		assert.True(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
+		assert.True(t, psm.UpdatePeerIDPublicKey(pid1, pk2))
+	})
+	t.Run("pair exists but on a different pid returns true", func(t *testing.T) {
+		t.Parallel()
+
+		psm := createPeerShardMapper()
+
+		_ = psm.UpdatePeerIDPublicKey(pid1, pk1)
+		assert.True(t, psm.UpdatePeerIDPublicKey(pid2, pk1))
+		assert.False(t, psm.UpdatePeerIDPublicKey(pid1, pk1))
+		assert.False(t, psm.UpdatePeerIDPublicKey(pid2, pk1))
+	})
 }

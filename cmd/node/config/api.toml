@@ -22,9 +22,6 @@
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
     
-        # /node/statistics will return statistics about the chain, such as the peak TPS
-        { Name = "/statistics", Open = true },
-    
         # /node/p2pstatus will return the metrics related to p2p
         { Name = "/p2pstatus", Open = true },
     
@@ -171,6 +168,9 @@
 
         # /block/by-hash/:hash will return the block in JSON format based on its hash
         { Name = "/by-hash/:hash", Open = true },
+
+        # /block/by-round/:round will return the block in JSON format based on round
+        { Name = "/by-round/:round", Open = true },
     ]
 
 
@@ -178,6 +178,9 @@
     Routes = [
         # /proof/root-hash/:roothash/address/:address will compute and return the proof in JSON format
         { Name = "/root-hash/:roothash/address/:address", Open = true },
+
+        # /proof/root-hash/:roothash/address/:address/key/:key will compute and return the proof in JSON format
+        { Name = "/root-hash/:roothash/address/:address/key/:key", Open = true },
 
         # /proof/address/:address will compute and return the proof and root hash in JSON format
         { Name = "/address/:address", Open = true },

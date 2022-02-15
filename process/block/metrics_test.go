@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +36,7 @@ func TestMetrics_IncrementCountAcceptedBlocks_KeyNotFoundShouldNotIncrement(t *t
 			}, nil
 		},
 	}
-	statusHandler := &mock.AppStatusHandlerStub{
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
 		IncrementHandler: func(_ string) {
 			incrementWasCalled = true
 		},
@@ -58,7 +59,7 @@ func TestMetrics_IncrementCountAcceptedBlocks_IndexOutOfBoundsShouldNotIncrement
 			}, nil
 		},
 	}
-	statusHandler := &mock.AppStatusHandlerStub{
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
 		IncrementHandler: func(_ string) {
 			incrementWasCalled = true
 		},
@@ -81,7 +82,7 @@ func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
 			}, nil
 		},
 	}
-	statusHandler := &mock.AppStatusHandlerStub{
+	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
 		IncrementHandler: func(_ string) {
 			incrementWasCalled = true
 		},

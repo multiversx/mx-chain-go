@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
@@ -45,17 +47,21 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		MaxOpenFiles:      10,
 	}
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     db,
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -421,7 +427,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
-func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
+func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -429,10 +435,12 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	storageManager := tr.GetStorageManager()
-	storageManager.TakeSnapshot(rootHash, true, nil)
+	dirtyHashes := trie.GetDirtyHashes(tr)
+	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
+	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
-	err := storageManager.Database().Remove(rootHash)
+	err := storageManager.Remove(rootHash)
 	assert.Nil(t, err)
 
 	maxBuffToSend := uint64(500)
@@ -474,62 +482,6 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	newHashes, _ := tr.GetDirtyHashes()
 
 	assert.Equal(t, len(oldHashes), len(newHashes))
-}
-
-func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainDB(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	storageManager := tr.GetStorageManager()
-
-	rootHash, _ := tr.RootHash()
-	storageManager.TakeSnapshot(rootHash, true, nil)
-	trie.WaitForOperationToComplete(storageManager)
-
-	err := storageManager.Database().Remove(rootHash)
-	assert.Nil(t, err)
-
-	val, err := storageManager.Database().Get(rootHash)
-	assert.NotNil(t, err)
-	assert.Nil(t, val)
-
-	nodes, _, _ := tr.GetSerializedNodes(rootHash, 2000)
-	assert.NotEqual(t, 0, len(nodes))
-
-	val, err = storageManager.Database().Get(rootHash)
-	assert.NotNil(t, err)
-	assert.Nil(t, val)
-}
-
-func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &testscommon.ProtobufMarshalizerMock{}
-	hasher := &testscommon.KeccakMock{}
-
-	getDbCalled := false
-	getSnapshotCalled := false
-
-	trieStorageManager := &testscommon.StorageManagerStub{
-		GetDbThatContainsHashCalled: func(bytes []byte) common.DBWriteCacher {
-			getDbCalled = true
-			return nil
-		},
-		DatabaseCalled: func() common.DBWriteCacher {
-			getSnapshotCalled = true
-			return testscommon.NewMemDbMock()
-		},
-	}
-	maxTrieLevelInMemory := uint(5)
-
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory)
-
-	rootHash := []byte("rootHash")
-	_, _, _ = tr.GetSerializedNodes(rootHash, 2000)
-
-	assert.False(t, getDbCalled)
-	assert.True(t, getSnapshotCalled)
 }
 
 func TestPatriciaMerkleTrie_GetAllHashesSetsHashes(t *testing.T) {
@@ -592,10 +544,12 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	rootHash, _ := tr.RootHash()
 
-	proof, err := tr.GetProof([]byte("dog"))
+	proof, value, err := tr.GetProof([]byte("dog"))
 	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof([]byte("dog"), proof)
+	assert.Equal(t, []byte("puppy"), value)
+	ok, _ := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 }
 
@@ -604,10 +558,11 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
+	rootHash, _ := tr.RootHash()
 
-	proof, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"))
 	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof([]byte("dog"), proof)
+	ok, _ := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 }
 
@@ -616,7 +571,7 @@ func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	proof, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"))
 	assert.Nil(t, proof)
 	assert.Equal(t, trie.ErrNilNode, err)
 }
@@ -625,15 +580,16 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	t.Parallel()
 
 	tr, val := initTrieMultipleValues(50)
+	rootHash, _ := tr.RootHash()
 
 	for i := range val {
-		proof, _ := tr.GetProof(val[i])
+		proof, _, _ := tr.GetProof(val[i])
 
-		ok, err := tr.VerifyProof(val[i], proof)
+		ok, err := tr.VerifyProof(rootHash, val[i], proof)
 		assert.Nil(t, err)
 		assert.True(t, ok)
 
-		ok, err = tr.VerifyProof([]byte("dog"+strconv.Itoa(i)), proof)
+		ok, err = tr.VerifyProof(rootHash, []byte("dog"+strconv.Itoa(i)), proof)
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	}
@@ -646,9 +602,10 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("zebra"), []byte("horse"))
+	rootHash, _ := tr.RootHash()
 
-	proof, _ := tr.GetProof([]byte("dog"))
-	ok, err := tr.VerifyProof([]byte("dog"), proof)
+	proof, _, _ := tr.GetProof([]byte("dog"))
+	ok, err := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
 }
@@ -660,9 +617,10 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	rootHash, _ := tr.RootHash()
 
-	proof, _ := tr.GetProof([]byte("dog"))
-	ok, err := tr.VerifyProof([]byte("dog"), proof)
+	proof, _, _ := tr.GetProof([]byte("dog"))
+	ok, err := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
 }
@@ -671,8 +629,9 @@ func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	rootHash, _ := tr.RootHash()
 
-	ok, err := tr.VerifyProof([]byte("dog"), nil)
+	ok, err := tr.VerifyProof(rootHash, []byte("dog"), nil)
 	assert.False(t, ok)
 	assert.Nil(t, err)
 }
@@ -681,8 +640,9 @@ func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	rootHash, _ := tr.RootHash()
 
-	ok, err := tr.VerifyProof([]byte("dog"), [][]byte{})
+	ok, err := tr.VerifyProof(rootHash, []byte("dog"), [][]byte{})
 	assert.False(t, ok)
 	assert.Nil(t, err)
 }
@@ -700,9 +660,10 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr2.Update([]byte("dog"), []byte("puppy"))
 	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
+	rootHash, _ := tr1.RootHash()
 
-	proof, _ := tr2.GetProof([]byte("dogglesworth"))
-	ok, _ := tr1.VerifyProof([]byte("dogglesworth"), proof)
+	proof, _, _ := tr2.GetProof([]byte("dogglesworth"))
+	ok, _ := tr1.VerifyProof(rootHash, []byte("dogglesworth"), proof)
 	assert.False(t, ok)
 }
 
@@ -723,9 +684,10 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		_ = tr.Update(values[i], values[i])
 	}
 
+	rootHash, _ := tr.RootHash()
 	for i := 0; i < numRuns; i++ {
 		randNum := rand.Intn(nrLeaves)
-		proof, err := tr.GetProof(values[randNum])
+		proof, _, err := tr.GetProof(values[randNum])
 		if err != nil {
 			dumpTrieContents(tr, values)
 			fmt.Printf("error getting proof for %v, err = %s\n", values[randNum], err.Error())
@@ -733,7 +695,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		require.Nil(t, err)
 		require.NotEqual(t, 0, len(proof))
 
-		ok, err := tr.VerifyProof(values[randNum], proof)
+		ok, err := tr.VerifyProof(rootHash, values[randNum], proof)
 		if err != nil {
 			dumpTrieContents(tr, values)
 			fmt.Printf("error verifying proof for %v, proof = %v, err = %s\n", values[randNum], proof, err.Error())

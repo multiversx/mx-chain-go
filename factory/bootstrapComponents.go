@@ -11,7 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/factory/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -25,6 +28,7 @@ import (
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	EpochConfig       config.EpochConfig
+	RoundConfig       config.RoundConfig
 	PrefConfig        config.Preferences
 	ImportDbConfig    config.ImportDbConfig
 	WorkingDir        string
@@ -36,6 +40,7 @@ type BootstrapComponentsFactoryArgs struct {
 type bootstrapComponentsFactory struct {
 	config            config.Config
 	epochConfig       config.EpochConfig
+	roundConfig       config.RoundConfig
 	prefConfig        config.Preferences
 	importDbConfig    config.ImportDbConfig
 	workingDir        string
@@ -49,7 +54,10 @@ type bootstrapComponents struct {
 	bootstrapParamsHolder   BootstrapParamsHolder
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
+	headerVersionHandler    factory.HeaderVersionHandler
+	versionedHeaderFactory  factory.VersionedHeaderFactory
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
+	roundActivationHandler  process.RoundActivationHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -70,6 +78,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
 		epochConfig:       args.EpochConfig,
+		roundConfig:       args.RoundConfig,
 		prefConfig:        args.PrefConfig,
 		importDbConfig:    args.ImportDbConfig,
 		workingDir:        args.WorkingDir,
@@ -91,8 +100,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-		[]byte(bcf.coreComponents.ChainID()),
+	headerVersionHandler, err := block.NewHeaderVersionHandler(
 		bcf.config.Versions.VersionsByEpochs,
 		bcf.config.Versions.DefaultVersion,
 		versionsCache,
@@ -100,6 +108,15 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
+		[]byte(bcf.coreComponents.ChainID()),
+		headerVersionHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	genesisShardCoordinator, nodeType, err := CreateShardCoordinator(
 		bcf.coreComponents.GenesisNodesSetup(),
 		bcf.cryptoComponents.PublicKey(),
@@ -120,28 +137,28 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		common.DefaultDBPath,
 		bcf.coreComponents.ChainID())
 
-	latestStorageDataProvider, err := CreateLatestStorageDataProvider(
+	latestStorageDataProvider, err := createLatestStorageDataProvider(
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
 		common.DefaultEpochString,
 		common.DefaultShardString,
-		bcf.prefConfig.Preferences.FullArchive,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	unitOpener, err := CreateUnitOpener(
+	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		bcf.config,
 		common.DefaultEpochString,
 		common.DefaultShardString,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
@@ -149,7 +166,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
 		PrefsConfig:                bcf.prefConfig.Preferences,
-		EpochConfig:                bcf.epochConfig,
+		EnableEpochs:               bcf.epochConfig.EnableEpochs,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
 		GenesisShardCoordinator:    genesisShardCoordinator,
@@ -162,6 +179,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		DataSyncerCreator:          dataSyncerFactory,
+		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper
@@ -202,6 +221,19 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	roundActivationHandler, err := roundActivation.NewRoundActivation(bcf.roundConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	roundNotifier := bcf.coreComponents.RoundNotifier()
+	roundNotifier.RegisterNotifyHandler(roundActivationHandler)
+
+	versionedHeaderFactory, err := bcf.createHeaderFactory(headerVersionHandler, bootstrapParameters.SelfShardId)
+	if err != nil {
+		return nil, err
+	}
+
 	return &bootstrapComponents{
 		epochStartBootstrapper: epochStartBootstrapper,
 		bootstrapParamsHolder: &bootstrapParams{
@@ -209,8 +241,18 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		},
 		nodeType:                nodeType,
 		shardCoordinator:        shardCoordinator,
+		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
+		versionedHeaderFactory:  versionedHeaderFactory,
+		roundActivationHandler:  roundActivationHandler,
 	}, nil
+}
+
+func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler factory.HeaderVersionHandler, shardID uint32) (factory.VersionedHeaderFactory, error) {
+	if shardID == core.MetachainShardId {
+		return block.NewMetaHeaderFactory(handler)
+	}
+	return block.NewShardHeaderFactory(handler)
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
@@ -233,19 +275,28 @@ func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
 	return bc.shardCoordinator
 }
 
+// HeaderVersionHandler returns the header version handler
+func (bc *bootstrapComponents) HeaderVersionHandler() factory.HeaderVersionHandler {
+	return bc.headerVersionHandler
+}
+
+// VersionedHeaderFactory returns the versioned header factory
+func (bc *bootstrapComponents) VersionedHeaderFactory() factory.VersionedHeaderFactory {
+	return bc.versionedHeaderFactory
+}
+
 // HeaderIntegrityVerifier returns the header integrity verifier
 func (bc *bootstrapComponents) HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
 }
 
-// CreateLatestStorageDataProvider will create a latest storage data provider handler
-func CreateLatestStorageDataProvider(
+// createLatestStorageDataProvider will create a latest storage data provider handler
+func createLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	generalConfig config.Config,
 	parentDir string,
 	defaultEpochString string,
 	defaultShardString string,
-	fullHistoryObserver bool,
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := directoryhandler.NewDirectoryReader()
 
@@ -258,22 +309,17 @@ func CreateLatestStorageDataProvider(
 		DefaultShardString:    defaultShardString,
 	}
 
-	if fullHistoryObserver {
-		return latestData.NewFullHistoryLatestDataProvider(latestStorageDataArgs)
-	}
 	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 
-// CreateUnitOpener will create a new unit opener handler
-func CreateUnitOpener(
+// createUnitOpener will create a new unit opener handler
+func createUnitOpener(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
-	generalConfig config.Config,
 	defaultEpochString string,
 	defaultShardString string,
 ) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
-		GeneralConfig:             generalConfig,
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
 		DefaultEpochString:        defaultEpochString,

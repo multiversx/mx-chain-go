@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type node interface {
@@ -42,10 +43,11 @@ type node interface {
 	getAllHashes(db common.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() common.NumNodesDTO
+	getValue() []byte
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
-	commitSnapshot(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -57,8 +59,8 @@ type node interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context) error
-	commitSnapshot(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context) error
+	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
+	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -81,5 +83,25 @@ type CheckpointHashesHolder interface {
 type TimeoutHandler interface {
 	ResetWatchdog()
 	IsTimeout() bool
+	IsInterfaceNil() bool
+}
+
+// epochStorer is used for storers that have information stored by epochs
+type epochStorer interface {
+	SetEpochForPutOperation(epoch uint32)
+}
+
+type snapshotPruningStorer interface {
+	common.DBWriteCacher
+	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error)
+	GetFromLastEpoch(key []byte) ([]byte, error)
+	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
+	GetLatestStorageEpoch() (uint32, error)
+	GetFromCurrentEpoch(key []byte) ([]byte, error)
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	IsInterfaceNil() bool
 }
