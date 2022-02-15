@@ -201,6 +201,28 @@ func TestNewMetaResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.
 	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
+func TestNewMetaResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.NodesCoordinator = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
+}
+
+func TestNewMetaResolversContainerFactory_InvalidMaxNumOfPeerAuthenticationInResponseShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.MaxNumOfPeerAuthenticationInResponse = 0
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrInvalidValue.Error()))
+}
+
 func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -261,8 +283,9 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
 	numResolversTrieNodes := 2
+	numResolversPeerAuth := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth
 
 	assert.Equal(t, totalResolvers, container.Len())
 
@@ -292,5 +315,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
+		NodesCoordinator:                     &mock.NodesCoordinatorStub{},
+		MaxNumOfPeerAuthenticationInResponse: 5,
 	}
 }

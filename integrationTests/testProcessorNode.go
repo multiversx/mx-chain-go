@@ -1324,6 +1324,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
+		NodesCoordinator:                     tpn.NodesCoordinator,
+		MaxNumOfPeerAuthenticationInResponse: 5,
 	}
 
 	var err error

@@ -904,6 +904,7 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
+    MaxNumOfPeerAuthenticationInResponse = 10
     HeartbeatExpiryTimespanInSec = 3600 # 1h
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h

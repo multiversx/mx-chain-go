@@ -285,7 +285,8 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
-			HeartbeatExpiryTimespanInSec: 30,
+			MaxNumOfPeerAuthenticationInResponse: 5,
+			HeartbeatExpiryTimespanInSec:         30,
 			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 				DefaultSpanInSec: 30,
 				CacheExpiryInSec: 30,

@@ -104,9 +104,10 @@ type SoftwareVersionConfig struct {
 
 // HeartbeatV2Config will hold the configuration for hearbeat v2
 type HeartbeatV2Config struct {
-	HeartbeatExpiryTimespanInSec int64
-	PeerAuthenticationPool       PeerAuthenticationPoolConfig
-	HeartbeatPool                CacheConfig
+	MaxNumOfPeerAuthenticationInResponse int
+	HeartbeatExpiryTimespanInSec         int64
+	PeerAuthenticationPool               PeerAuthenticationPoolConfig
+	HeartbeatPool                        CacheConfig
 }
 
 // PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
