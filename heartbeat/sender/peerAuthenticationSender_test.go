@@ -64,7 +64,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilMessenger, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.peerSignatureHandler = nil
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 	})
 	t.Run("nil private key should error", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.privKey = nil
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty topic should error", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("nil redundancy handler should error", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.redundancyHandler = nil
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
@@ -130,7 +130,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
@@ -144,7 +144,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, err := newPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
