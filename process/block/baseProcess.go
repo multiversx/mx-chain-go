@@ -1584,13 +1584,20 @@ func (bp *baseProcessor) Close() error {
 }
 
 // ProcessScheduledBlock processes a scheduled block
-func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
 		}
 	}()
+
+	scheduledMiniBlocksFromMe, err := getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
+	if err != nil {
+		return err
+	}
+
+	bp.scheduledTxsExecutionHandler.AddScheduledMiniBlocks(scheduledMiniBlocksFromMe)
 
 	normalProcessingGasAndFees := bp.getGasAndFees()
 
@@ -1616,6 +1623,26 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
 
 	return nil
+}
+
+func getScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	for index, miniBlock := range body.MiniBlocks {
+		miniBlockHeader := headerHandler.GetMiniBlockHeaderHandlers()[index]
+		reserved := miniBlockHeader.GetReserved()
+		isScheduledMiniBlockFromMe := miniBlockHeader.GetSenderShardID() == headerHandler.GetShardID() && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
+		if isScheduledMiniBlockFromMe {
+			miniBlocks = append(miniBlocks, miniBlock)
+		}
+
+	}
+
+	return miniBlocks, nil
 }
 
 func (bp *baseProcessor) getGasAndFees() scheduled.GasAndFees {
@@ -1701,6 +1728,7 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 
 	for index := range body.MiniBlocks {
 		mbHash := header.GetMiniBlockHeadersHashes()[index]
+		//TODO: This check should be done using isFinal method later
 		if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
 			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
 				"mb hash", mbHash,

@@ -1449,6 +1449,7 @@ func (tc *transactionCoordinator) verifyGasLimit(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
+			//TODO: This check should be done using isFinal method later
 			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(header.GetMiniBlockHeadersHashes()[index]) {
 				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
 				continue
@@ -1525,6 +1526,7 @@ func (tc *transactionCoordinator) verifyFees(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
+			//TODO: This check should be done using isFinal method later
 			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(header.GetMiniBlockHeadersHashes()[index]) {
 				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
 				continue

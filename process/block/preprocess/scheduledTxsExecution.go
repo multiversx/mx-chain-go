@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -630,6 +630,7 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 
 // IsMiniBlockExecuted returns true if the given mini block is already executed
 func (ste *scheduledTxsExecution) IsMiniBlockExecuted(mbHash []byte) bool {
+	//TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later
 	ste.mutScheduledTxs.RLock()
 	_, ok := ste.mapScheduledMbHashes[string(mbHash)]
 	ste.mutScheduledTxs.RUnlock()
