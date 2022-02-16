@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "storage";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// ESDTInfo stores the ESDT information
+message ESDTInfo {
+  repeated ESDTEntry Entry = 1;
+}
+
+message ESDTEntry {
+  bytes Name   = 1;
+  bytes Data   = 2;
+  bytes Balance = 3 [(gogoproto.jsontag) = "Balance", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+}
