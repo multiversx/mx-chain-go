@@ -22,7 +22,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 		numExecuteCalled2 := uint32(0)
 
 		handler1 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch1
 			},
 			ExecuteCalled: func() {
@@ -30,7 +30,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 		handler2 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch2
 			},
 			ExecuteCalled: func() {
@@ -71,7 +71,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 		numCloseCalled2 := uint32(0)
 
 		handler1 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch1
 			},
 			ExecuteCalled: func() {
@@ -82,7 +82,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 		handler2 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch2
 			},
 			ExecuteCalled: func() {

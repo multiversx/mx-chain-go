@@ -4,9 +4,9 @@ import "time"
 
 // TimerHandlerStub -
 type TimerHandlerStub struct {
-	CreateNewTimerCalled func(duration time.Duration)
-	ShouldExecuteCalled  func() <-chan time.Time
-	CloseCalled          func()
+	CreateNewTimerCalled        func(duration time.Duration)
+	ExecutionReadyChannelCalled func() <-chan time.Time
+	CloseCalled                 func()
 }
 
 // CreateNewTimer -
@@ -16,10 +16,10 @@ func (stub *TimerHandlerStub) CreateNewTimer(duration time.Duration) {
 	}
 }
 
-// ShouldExecute -
-func (stub *TimerHandlerStub) ShouldExecute() <-chan time.Time {
-	if stub.ShouldExecuteCalled != nil {
-		return stub.ShouldExecuteCalled()
+// ExecutionReadyChannel -
+func (stub *TimerHandlerStub) ExecutionReadyChannel() <-chan time.Time {
+	if stub.ExecutionReadyChannelCalled != nil {
+		return stub.ExecutionReadyChannelCalled()
 	}
 
 	return nil
