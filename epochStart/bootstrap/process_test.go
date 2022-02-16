@@ -228,7 +228,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.GenesisShardCoordinator = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilShardCoordinator))
 	})
 	t.Run("nil messenger", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.Messenger = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilMessenger))
 	})
 	t.Run("nil economicsData", func(t *testing.T) {
@@ -248,7 +248,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.EconomicsData = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilEconomicsData))
 	})
 	t.Run("nil coreComponentsHolder", func(t *testing.T) {
@@ -258,7 +258,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.CoreComponentsHolder = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilCoreComponentsHolder))
 	})
 	t.Run("nil cryptoComponentsHolder", func(t *testing.T) {
@@ -268,7 +268,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.CryptoComponentsHolder = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilCryptoComponentsHolder))
 	})
 	t.Run("nil pubKey", func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilPubKey))
 	})
 	t.Run("nil hasher", func(t *testing.T) {
@@ -290,7 +290,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilHasher))
 	})
 	t.Run("nil marshalizer", func(t *testing.T) {
@@ -301,7 +301,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilMarshalizer))
 	})
 	t.Run("nil blockKeyGen", func(t *testing.T) {
@@ -312,7 +312,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilBlockKeyGen))
 	})
 	t.Run("nil keyGen", func(t *testing.T) {
@@ -323,7 +323,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilKeyGen))
 	})
 	t.Run("nil singleSigner", func(t *testing.T) {
@@ -334,7 +334,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilSingleSigner))
 	})
 	t.Run("nil blockSingleSigner", func(t *testing.T) {
@@ -345,7 +345,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilBlockSingleSigner))
 	})
 	t.Run("nil txSignMarshalizer", func(t *testing.T) {
@@ -356,7 +356,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilTxSignMarshalizer))
 	})
 	t.Run("nil pathManager", func(t *testing.T) {
@@ -367,7 +367,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilPathManager))
 	})
 	t.Run("nil genesisNodesConfig", func(t *testing.T) {
@@ -377,7 +377,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.GenesisNodesConfig = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilGenesisNodesConfig))
 	})
 	t.Run("nil rater", func(t *testing.T) {
@@ -387,7 +387,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.Rater = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilRater))
 	})
 	t.Run("nil pubkeyConverter", func(t *testing.T) {
@@ -398,7 +398,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilPubkeyConverter))
 	})
 	t.Run("nil roundHandler", func(t *testing.T) {
@@ -408,7 +408,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.RoundHandler = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilRoundHandler))
 	})
 	t.Run("nil storageUnitOpener", func(t *testing.T) {
@@ -418,7 +418,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.StorageUnitOpener = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilStorageUnitOpener))
 	})
 	t.Run("nil latestStorageDataProvider", func(t *testing.T) {
@@ -428,7 +428,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.LatestStorageDataProvider = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilLatestStorageDataProvider))
 	})
 	t.Run("nil uint64Converter", func(t *testing.T) {
@@ -439,7 +439,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilUint64Converter))
 	})
 	t.Run("nil shuffler", func(t *testing.T) {
@@ -449,7 +449,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.NodeShuffler = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilShuffler))
 	})
 	t.Run("not enough num of peers to consider block valid from config", func(t *testing.T) {
@@ -459,7 +459,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.GeneralConfig.EpochStartConfig.MinNumOfPeersToConsiderBlockValid = minNumPeersToConsiderMetaBlockValid - 1
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid))
 	})
 	t.Run("not enough num connected peers", func(t *testing.T) {
@@ -469,7 +469,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart = minNumConnectedPeers - 1
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNotEnoughNumConnectedPeers))
 	})
 	t.Run("nil argumentsParser", func(t *testing.T) {
@@ -479,7 +479,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.ArgumentsParser = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilArgumentsParser))
 	})
 	t.Run("nil statusHandler", func(t *testing.T) {
@@ -489,7 +489,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.StatusHandler = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilStatusHandler))
 	})
 	t.Run("nil headerIntegrityVerifier", func(t *testing.T) {
@@ -499,7 +499,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.HeaderIntegrityVerifier = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilHeaderIntegrityVerifier))
 	})
 	t.Run("nil scheduledDataSyncerFactory", func(t *testing.T) {
@@ -509,7 +509,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.DataSyncerCreator = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilScheduledDataSyncerFactory))
 	})
 	t.Run("nil hasher", func(t *testing.T) {
@@ -520,7 +520,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilHasher))
 	})
 	t.Run("nil epochNotifier", func(t *testing.T) {
@@ -531,7 +531,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilEpochNotifier))
 	})
 	t.Run("invalid max hardcap for missing nodes", func(t *testing.T) {
@@ -541,7 +541,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes = 0
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrInvalidMaxHardCapForMissingNodes))
 	})
 	t.Run("invalid num concurrent trie syncers", func(t *testing.T) {
@@ -552,7 +552,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.True(t, errors.Is(err, epochStart.ErrInvalidNumConcurrentTrieSyncers))
-		require.True(t, epochStartProvider.IsInterfaceNil())
+		require.Nil(t, epochStartProvider)
 	})
 }
 
@@ -635,13 +635,14 @@ func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+
+	epoch := uint32(1)
+	shardId := uint32(0)
 	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
 		GetCalled: func() (storage.LatestDataFromStorage, error) {
 			return storage.LatestDataFromStorage{
-				Epoch:           0,
-				ShardID:         0,
-				LastRound:       10,
-				EpochStartRound: 0,
+				Epoch:   epoch,
+				ShardID: shardId,
 			}, nil
 		},
 	}
@@ -652,7 +653,7 @@ func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
 
 	nodesCoord := &sharding.NodesCoordinatorRegistry{
 		EpochsConfig: map[string]*sharding.EpochValidators{
-			"0": {
+			"1": {
 				EligibleValidators: map[string][]*sharding.SerializableValidator{
 					"0": {
 						&sharding.SerializableValidator{
@@ -673,7 +674,7 @@ func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
 				LeavingValidators: map[string][]*sharding.SerializableValidator{},
 			},
 		},
-		CurrentEpoch: 0,
+		CurrentEpoch: 1,
 	}
 	nodesCoordBytes, _ := json.Marshal(nodesCoord)
 
@@ -691,9 +692,9 @@ func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
 	}
 
 	expectedParams := Parameters{
-		Epoch:       0,
-		SelfShardId: 0,
-		NumOfShards: 2,
+		Epoch:       epoch,
+		SelfShardId: shardId,
+		NumOfShards: uint32(len(nodesCoord.EpochsConfig["1"].EligibleValidators)),
 		NodesConfig: nodesCoord,
 	}
 
@@ -784,7 +785,7 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(epochStartProvider))
+	assert.NotNil(t, epochStartProvider)
 }
 
 func TestNewEpochStartBootstrap_HardForkShouldWork(t *testing.T) {
@@ -796,7 +797,7 @@ func TestNewEpochStartBootstrap_HardForkShouldWork(t *testing.T) {
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(epochStartProvider))
+	assert.NotNil(t, epochStartProvider)
 }
 
 func TestIsStartInEpochZero(t *testing.T) {
@@ -1476,6 +1477,13 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 	t.Run("fail to sync user accounts state", func(t *testing.T) {
 		t.Parallel()
 
+		expectedErr := errors.New("expected error")
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		prevShardHeader := &block.Header{}
@@ -1516,7 +1524,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 
 		err := epochStartProvider.requestAndProcessForMeta()
-		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
 	})
 }
 

@@ -136,9 +136,23 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 func TestStorageEpochStartBootstrap_requestAndProcessFromStorage(t *testing.T) {
 	t.Parallel()
 
+	t.Run("request and process for shard", func(t *testing.T) {
+		t.Parallel()
+
+		testRequestAndProcessFromStorageByShardId(t, uint32(0))
+	})
+	t.Run("request and process for meta", func(t *testing.T) {
+		t.Parallel()
+
+		testRequestAndProcessFromStorageByShardId(t, core.MetachainShardId)
+	})
+}
+
+func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GenesisNodesConfig = getNodesConfigMock(1)
+	args.DestinationShardAsObserver = shardId
 
 	prevPrevEpochStartMetaHeaderHash := []byte("prevPrevEpochStartMetaHeaderHash")
 	prevEpochStartMetaHeaderHash := []byte("prevEpochStartMetaHeaderHash")
@@ -155,191 +169,91 @@ func TestStorageEpochStartBootstrap_requestAndProcessFromStorage(t *testing.T) {
 		PrevHash: prevMetaHeaderHash,
 	}
 
-	t.Run("request and process for shard", func(t *testing.T) {
-		t.Parallel()
-
-		shardId := uint32(0)
-		args.DestinationShardAsObserver = shardId
-
-		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{
-						HeaderHash:            notarizedShardHeaderHash,
-						ShardID:               shardId,
-						FirstPendingMetaBlock: notarizedMetaHeaderHash,
-					},
-				},
-				Economics: block.Economics{
-					PrevEpochStartHash: prevEpochStartMetaHeaderHash,
+	epochStartMetaBlock := &block.MetaBlock{
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					HeaderHash:            notarizedShardHeaderHash,
+					ShardID:               shardId,
+					FirstPendingMetaBlock: notarizedMetaHeaderHash,
 				},
 			},
-		}
-		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{
-						HeaderHash: notarizedShardHeaderHash,
-						ShardID:    shardId,
-					},
-				},
-				Economics: block.Economics{
-					PrevEpochStartHash: prevPrevEpochStartMetaHeaderHash,
+			Economics: block.Economics{
+				PrevEpochStartHash: prevEpochStartMetaHeaderHash,
+			},
+		},
+	}
+	prevEpochStartMetaBlock := &block.MetaBlock{
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					HeaderHash: notarizedShardHeaderHash,
+					ShardID:    shardId,
 				},
 			},
-		}
-
-		sesb, _ := NewStorageEpochStartBootstrap(args)
-		sesb.epochStartMeta = epochStartMetaBlock
-		sesb.requestHandler = &testscommon.RequestHandlerStub{}
-		sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-
-		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
-			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-				return map[string]data.HeaderHandler{
-					string(notarizedShardHeaderHash):     notarizedShardHeader,
-					string(prevEpochStartMetaHeaderHash): prevEpochStartMetaBlock,
-					string(epochStartMetaBlockHash):      epochStartMetaBlock,
-					string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
-					string(notarizedMetaHeaderHash):      notarizedMetaHeader,
-				}, nil
+			Economics: block.Economics{
+				PrevEpochStartHash: prevPrevEpochStartMetaHeaderHash,
 			},
-		}
-		sesb.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+		},
+	}
 
-		params, err := sesb.requestAndProcessFromStorage()
+	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb.epochStartMeta = epochStartMetaBlock
+	sesb.requestHandler = &testscommon.RequestHandlerStub{}
+	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
 
-		pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
+	sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
+			return map[string]data.HeaderHandler{
+				string(notarizedShardHeaderHash):     notarizedShardHeader,
+				string(prevEpochStartMetaHeaderHash): prevEpochStartMetaBlock,
+				string(epochStartMetaBlockHash):      epochStartMetaBlock,
+				string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
+				string(notarizedMetaHeaderHash):      notarizedMetaHeader,
+			}, nil
+		},
+	}
+	sesb.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		requiredParameters := Parameters{
-			Epoch:       0,
-			SelfShardId: shardId,
-			NumOfShards: 1,
-			NodesConfig: &sharding.NodesCoordinatorRegistry{
-				EpochsConfig: map[string]*sharding.EpochValidators{
-					"0": {
-						EligibleValidators: map[string][]*sharding.SerializableValidator{
-							"0": {
-								&sharding.SerializableValidator{
-									PubKey:  pksBytes[0],
-									Chances: 1,
-									Index:   0,
-								},
-							},
-							"4294967295": {
-								&sharding.SerializableValidator{
-									PubKey:  pksBytes[4294967295],
-									Chances: 1,
-									Index:   0,
-								},
+	params, err := sesb.requestAndProcessFromStorage()
+
+	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
+
+	requiredParameters := Parameters{
+		Epoch:       0,
+		SelfShardId: shardId,
+		NumOfShards: 1,
+		NodesConfig: &sharding.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*sharding.EpochValidators{
+				"0": {
+					EligibleValidators: map[string][]*sharding.SerializableValidator{
+						"0": {
+							&sharding.SerializableValidator{
+								PubKey:  pksBytes[0],
+								Chances: 1,
+								Index:   0,
 							},
 						},
-						WaitingValidators: map[string][]*sharding.SerializableValidator{},
-						LeavingValidators: map[string][]*sharding.SerializableValidator{},
-					},
-				},
-				CurrentEpoch: 0,
-			},
-		}
-
-		assert.Nil(t, err)
-		assert.Equal(t, requiredParameters, params)
-	})
-	t.Run("request and process for meta", func(t *testing.T) {
-		t.Parallel()
-
-		shardId := core.MetachainShardId
-
-		args.DestinationShardAsObserver = shardId
-
-		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{
-						HeaderHash:            notarizedShardHeaderHash,
-						ShardID:               shardId,
-						FirstPendingMetaBlock: notarizedMetaHeaderHash,
-					},
-				},
-				Economics: block.Economics{
-					PrevEpochStartHash: prevEpochStartMetaHeaderHash,
-				},
-			},
-		}
-		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{
-						HeaderHash: notarizedShardHeaderHash,
-						ShardID:    shardId,
-					},
-				},
-				Economics: block.Economics{
-					PrevEpochStartHash: prevPrevEpochStartMetaHeaderHash,
-				},
-			},
-		}
-
-		sesb, _ := NewStorageEpochStartBootstrap(args)
-		sesb.epochStartMeta = epochStartMetaBlock
-		sesb.requestHandler = &testscommon.RequestHandlerStub{}
-		sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-
-		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
-			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-				return map[string]data.HeaderHandler{
-					string(notarizedShardHeaderHash):     notarizedShardHeader,
-					string(prevEpochStartMetaHeaderHash): prevEpochStartMetaBlock,
-					string(epochStartMetaBlockHash):      epochStartMetaBlock,
-					string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
-					string(notarizedMetaHeaderHash):      notarizedMetaHeader,
-				}, nil
-			},
-		}
-		sesb.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
-
-		params, err := sesb.requestAndProcessFromStorage()
-
-		pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
-
-		requiredParameters := Parameters{
-			Epoch:       0,
-			SelfShardId: shardId,
-			NumOfShards: 1,
-			NodesConfig: &sharding.NodesCoordinatorRegistry{
-				EpochsConfig: map[string]*sharding.EpochValidators{
-					"0": {
-						EligibleValidators: map[string][]*sharding.SerializableValidator{
-							"0": {
-								&sharding.SerializableValidator{
-									PubKey:  pksBytes[0],
-									Chances: 1,
-									Index:   0,
-								},
-							},
-							"4294967295": {
-								&sharding.SerializableValidator{
-									PubKey:  pksBytes[4294967295],
-									Chances: 1,
-									Index:   0,
-								},
+						"4294967295": {
+							&sharding.SerializableValidator{
+								PubKey:  pksBytes[core.MetachainShardId],
+								Chances: 1,
+								Index:   0,
 							},
 						},
-						WaitingValidators: map[string][]*sharding.SerializableValidator{},
-						LeavingValidators: map[string][]*sharding.SerializableValidator{},
 					},
+					WaitingValidators: map[string][]*sharding.SerializableValidator{},
+					LeavingValidators: map[string][]*sharding.SerializableValidator{},
 				},
-				CurrentEpoch: 0,
 			},
-		}
+			CurrentEpoch: 0,
+		},
+	}
 
-		assert.Nil(t, err)
-		assert.Equal(t, requiredParameters, params)
-	})
+	assert.Nil(t, err)
+	assert.Equal(t, requiredParameters, params)
 }
 
 func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldFail(t *testing.T) {
@@ -348,11 +262,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldFail(t *testing.
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 
+	hdrHash1 := []byte("hdrHash1")
+	hdrHash2 := []byte("hdrHash2")
+
 	t.Run("fail to sync missing headers", func(t *testing.T) {
 		t.Parallel()
 
-		hdrHash1 := []byte("hdrHash1")
-		hdrHash2 := []byte("hdrHash2")
 		metaBlock := &block.MetaBlock{
 			Epoch: 2,
 			EpochStart: block.EpochStart{
@@ -374,15 +289,13 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldFail(t *testing.
 		}
 
 		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
-
 		assert.Nil(t, syncedHeaders)
 		assert.Equal(t, expectedErr, err)
 	})
+
 	t.Run("fail to get synced headers", func(t *testing.T) {
 		t.Parallel()
 
-		hdrHash1 := []byte("hdrHash1")
-		hdrHash2 := []byte("hdrHash2")
 		metaBlock := &block.MetaBlock{
 			Epoch: 2,
 			EpochStart: block.EpochStart{
@@ -404,20 +317,9 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldFail(t *testing.
 		}
 
 		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
-
 		assert.Nil(t, syncedHeaders)
 		assert.Equal(t, expectedErr, err)
 	})
-}
-
-func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	hdrHash1 := []byte("hdrHash1")
-	hdrHash2 := []byte("hdrHash2")
 
 	t.Run("empty prev meta block when first epoch", func(t *testing.T) {
 		t.Parallel()
@@ -454,12 +356,16 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldWork(t *testing.
 			},
 		}
 
-		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+		expectedSyncedHeader := map[string]data.HeaderHandler{
+			string(hdrHash1): metaBlock,
+			string(hdrHash2): &block.MetaBlock{},
+		}
 
+		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
 		assert.Nil(t, err)
-		assert.Equal(t, metaBlock, syncedHeaders[string(hdrHash1)])
-		assert.Equal(t, &block.MetaBlock{}, syncedHeaders[string(hdrHash2)])
+		assert.Equal(t, expectedSyncedHeader, syncedHeaders)
 	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -486,7 +392,6 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldWork(t *testing.
 		}
 
 		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
-
 		assert.Nil(t, err)
 		assert.Equal(t, expectedHeaders, syncedHeaders)
 	})
@@ -526,7 +431,7 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 					},
 					"4294967295": {
 						&sharding.SerializableValidator{
-							PubKey:  pksBytes[4294967295],
+							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
 							Index:   0,
 						},
@@ -549,8 +454,7 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	sesb.epochStartMeta = metaBlock
 	sesb.prevEpochStartMeta = metaBlock
 
-	pubkey := []byte("pubkey")
-	err := sesb.processNodesConfig(pubkey)
+	err := sesb.processNodesConfig([]byte("pubkey"))
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
@@ -570,17 +474,15 @@ func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testi
 	}
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
-	hdrHash1 := []byte("hdrHash1")
-	hdrHash2 := []byte("hdrHash2")
 	metaBlock := &block.MetaBlock{
 		Epoch: 2,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
-				Hash:          hdrHash1,
+				Hash:          []byte("hdrHash1"),
 				SenderShardID: 1,
 			},
 			{
-				Hash:          hdrHash2,
+				Hash:          []byte("hdrHash2"),
 				SenderShardID: 2,
 			},
 		},
