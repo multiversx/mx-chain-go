@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -554,22 +555,42 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.True(t, errors.Is(err, epochStart.ErrInvalidNumConcurrentTrieSyncers))
 		require.Nil(t, epochStartProvider)
 	})
-}
-
-func TestNewEpochStartBootstrap_ShouldFail(t *testing.T) {
-	t.Parallel()
-
 	t.Run("fail to create whiteList cache", func(t *testing.T) {
 		t.Parallel()
 
-		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		args.GeneralConfig.WhiteListPool = config.CacheConfig{}
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
-		assert.Error(t, err)
 		assert.Equal(t, storage.ErrNotSupportedCacheType, err)
 		assert.Nil(t, epochStartProvider)
+	})
+}
+
+func TestNewEpochStartBootstrap(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	t.Run("hardfork disabled", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		assert.Nil(t, err)
+		assert.NotNil(t, epochStartProvider)
+	})
+
+	t.Run("hardfork enabled", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.GeneralConfig.Hardfork.AfterHardFork = true
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		assert.Nil(t, err)
+		assert.NotNil(t, epochStartProvider)
 	})
 }
 
@@ -625,16 +646,26 @@ func TestEpochStartBootstrap_BoostrapShouldFail(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 		assert.Equal(t, Parameters{}, params)
 	})
+
+	t.Run("bootstrap from local storage with StartInEpoch not enabled, should work", func(t *testing.T) {
+		t.Parallel()
+
+		testBoostrapByStartInEpochFlag(t, false)
+	})
+
+	t.Run("bootstrap from saved epoch, shoud work", func(t *testing.T) {
+		t.Parallel()
+
+		testBoostrapByStartInEpochFlag(t, true)
+	})
 }
 
-func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
-	t.Parallel()
-
+func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = startInEpochEnabled
 
 	epoch := uint32(1)
 	shardId := uint32(0)
@@ -653,7 +684,7 @@ func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
 
 	nodesCoord := &sharding.NodesCoordinatorRegistry{
 		EpochsConfig: map[string]*sharding.EpochValidators{
-			"1": {
+			strconv.Itoa(int(epoch)): {
 				EligibleValidators: map[string][]*sharding.SerializableValidator{
 					"0": {
 						&sharding.SerializableValidator{
@@ -664,81 +695,7 @@ func TestEpochStartBootstrap_BoostrapFromLocalStorageShouldWork(t *testing.T) {
 					},
 					"4294967295": {
 						&sharding.SerializableValidator{
-							PubKey:  pksBytes[4294967295],
-							Chances: 1,
-							Index:   0,
-						},
-					},
-				},
-				WaitingValidators: map[string][]*sharding.SerializableValidator{},
-				LeavingValidators: map[string][]*sharding.SerializableValidator{},
-			},
-		},
-		CurrentEpoch: 1,
-	}
-	nodesCoordBytes, _ := json.Marshal(nodesCoord)
-
-	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
-		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
-			return &storageMocks.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
-					return nodesCoordBytes, nil
-				},
-				SearchFirstCalled: func(key []byte) ([]byte, error) {
-					return nodesCoordBytes, nil
-				},
-			}, nil
-		},
-	}
-
-	expectedParams := Parameters{
-		Epoch:       epoch,
-		SelfShardId: shardId,
-		NumOfShards: uint32(len(nodesCoord.EpochsConfig["1"].EligibleValidators)),
-		NodesConfig: nodesCoord,
-	}
-
-	params, err := epochStartProvider.Bootstrap()
-	assert.Nil(t, err)
-	assert.Equal(t, expectedParams, params)
-}
-
-func TestEpochStartBootstrap_BoostrapFromNetworkNoShuffledOutShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
-		GetCalled: func() (storage.LatestDataFromStorage, error) {
-			return storage.LatestDataFromStorage{
-				Epoch:           2,
-				ShardID:         0,
-				LastRound:       10,
-				EpochStartRound: 0,
-			}, nil
-		},
-	}
-
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
-
-	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
-
-	nodesCoord := &sharding.NodesCoordinatorRegistry{
-		EpochsConfig: map[string]*sharding.EpochValidators{
-			"2": {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{
-					"0": {
-						&sharding.SerializableValidator{
-							PubKey:  pksBytes[0],
-							Chances: 1,
-							Index:   0,
-						},
-					},
-					"4294967295": {
-						&sharding.SerializableValidator{
-							PubKey:  pksBytes[4294967295],
+							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
 							Index:   0,
 						},
@@ -766,38 +723,15 @@ func TestEpochStartBootstrap_BoostrapFromNetworkNoShuffledOutShouldWork(t *testi
 	}
 
 	expectedParams := Parameters{
-		Epoch:       2,
-		SelfShardId: 0,
-		NumOfShards: 2,
+		Epoch:       epoch,
+		SelfShardId: shardId,
+		NumOfShards: uint32(len(nodesCoord.EpochsConfig[strconv.Itoa(int(epoch))].EligibleValidators)),
 		NodesConfig: nodesCoord,
 	}
 
 	params, err := epochStartProvider.Bootstrap()
 	assert.Nil(t, err)
 	assert.Equal(t, expectedParams, params)
-}
-
-func TestNewEpochStartBootstrap(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	epochStartProvider, err := NewEpochStartBootstrap(args)
-	assert.Nil(t, err)
-	assert.NotNil(t, epochStartProvider)
-}
-
-func TestNewEpochStartBootstrap_HardForkShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig.Hardfork.AfterHardFork = true
-
-	epochStartProvider, err := NewEpochStartBootstrap(args)
-	assert.Nil(t, err)
-	assert.NotNil(t, epochStartProvider)
 }
 
 func TestIsStartInEpochZero(t *testing.T) {
@@ -1111,20 +1045,21 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 	notarizedMetaHeaderHash := []byte("notarizedMetaHeaderHash")
 	prevMetaHeaderHash := []byte("prevMetaHeaderHash")
 
+	metaBlock := &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
+			},
+		},
+	}
+
 	t.Run("find self shard epoch start data not found", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{},
-			},
-		}
-
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
-		epochStartProvider.epochStartMeta = metaBlock
+		epochStartProvider.epochStartMeta = &block.MetaBlock{}
 
 		err := epochStartProvider.requestAndProcessForShard()
 		assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
@@ -1133,15 +1068,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
-				},
-			},
-		}
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
@@ -1161,15 +1087,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
-				},
-			},
-		}
-
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
 
@@ -1187,15 +1104,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
-				},
-			},
-		}
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
@@ -1216,15 +1124,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
-				},
-			},
-		}
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
@@ -1250,14 +1149,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		notarizedShardHeader := &block.Header{
 			PrevHash: prevShardHeaderHash,
 		}
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
-				},
-			},
-		}
 
 		expectedErr := fmt.Errorf("expected error")
 		args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
@@ -1265,9 +1156,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
 					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
 						return nil, nil, expectedErr
-					},
-					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
-						return notarizedShardHeader.GetRootHash()
 					},
 				}, nil
 			},
@@ -1298,14 +1186,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		prevShardHeader := &block.Header{}
 		notarizedShardHeader := &block.Header{
 			PrevHash: prevShardHeaderHash,
-		}
-		metaBlock := &block.MetaBlock{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
-				},
-			},
 		}
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
@@ -1355,7 +1235,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			PrevHash: prevMetaHeaderHash,
 		}
 		metaBlock := &block.MetaBlock{
-			Epoch: 2,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{
@@ -1367,7 +1246,6 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			},
 		}
 		prevMetaBlock := &block.MetaBlock{
-			Epoch: 1,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{
@@ -1422,7 +1300,6 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 		metaBlock := &block.MetaBlock{
-			Epoch: 2,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1431,7 +1308,6 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 		}
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
-		epochStartProvider.syncedHeaders = make(map[string]data.HeaderHandler)
 		epochStartProvider.epochStartMeta = metaBlock
 
 		epochStartProvider.shardCoordinator = nil
@@ -1449,7 +1325,6 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 			PrevHash: prevShardHeaderHash,
 		}
 		metaBlock := &block.MetaBlock{
-			Epoch: 2,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1491,7 +1366,6 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 			PrevHash: prevShardHeaderHash,
 		}
 		metaBlock := &block.MetaBlock{
-			Epoch: 2,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1606,11 +1480,11 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
+		shardId := uint32(0)
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
+					{HeaderHash: notarizedShardHeaderHash, ShardID: shardId},
 				},
 				Economics: block.Economics{
 					PrevEpochStartHash: prevEpochStartMetaHeaderHash,
@@ -1623,6 +1497,8 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		expectedErr := errors.New("sync miniBlocksSyncer headers by hash error")
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
+				assert.Equal(t, [][]byte{notarizedShardHeaderHash}, headersHashes)
+				assert.Equal(t, []uint32{shardId}, shardIDs)
 				return expectedErr
 			},
 		}
@@ -1642,7 +1518,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		prevNotarizedShardHeader := &block.Header{}
 
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1652,9 +1527,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 				},
 			},
 		}
-		prevEpochStartMetaBlock := &block.Header{
-			Epoch: 0,
-		}
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = epochStartMetaBlock
@@ -1662,7 +1534,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 				return map[string]data.HeaderHandler{
 					string(notarizedShardHeaderHash):     notarizedShardHeader,
-					string(prevEpochStartMetaHeaderHash): prevEpochStartMetaBlock,
 					string(epochStartMetaBlockHash):      epochStartMetaBlock,
 					string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
 				}, nil
@@ -1693,7 +1564,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		prevNotarizedShardHeader := &block.Header{}
 
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1704,7 +1574,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 			},
 		}
 		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: prevEpochNotarizedShardHeaderHash, ShardID: 0},
@@ -1744,7 +1613,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		prevNotarizedShardHeader := &block.Header{}
 
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{},
 				Economics: block.Economics{
@@ -1753,7 +1621,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 			},
 		}
 		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: prevEpochNotarizedShardHeaderHash, ShardID: 0},
@@ -1802,7 +1669,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		prevNotarizedShardHeader := &block.Header{}
 
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1813,7 +1679,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 			},
 		}
 		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: prevEpochNotarizedShardHeaderHash, ShardID: 0},
@@ -1854,7 +1719,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		prevNotarizedShardHeader := &block.Header{}
 
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
@@ -1865,7 +1729,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 			},
 		}
 		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: prevEpochNotarizedShardHeaderHash, ShardID: 0},
@@ -1923,7 +1786,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		prevNotarizedShardHeader := &block.Header{}
 
 		epochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: notarizedShardHeaderHash, ShardID: core.MetachainShardId},
@@ -1934,7 +1796,6 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 			},
 		}
 		prevEpochStartMetaBlock := &block.MetaBlock{
-			Epoch: 0,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{HeaderHash: prevEpochNotarizedShardHeaderHash, ShardID: core.MetachainShardId},
@@ -2006,7 +1867,6 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 	}
 
 	epochStartMetaBlock := &block.MetaBlock{
-		Epoch: 0,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
@@ -2021,7 +1881,6 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 		},
 	}
 	prevEpochStartMetaBlock := &block.MetaBlock{
-		Epoch: 0,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
@@ -2055,8 +1914,6 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
 	requiredParameters := Parameters{
-		Epoch:       0,
-		SelfShardId: 0,
 		NumOfShards: 1,
 		NodesConfig: &sharding.NodesCoordinatorRegistry{
 			EpochsConfig: map[string]*sharding.EpochValidators{
@@ -2066,14 +1923,12 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 							&sharding.SerializableValidator{
 								PubKey:  pksBytes[0],
 								Chances: 1,
-								Index:   0,
 							},
 						},
 						"4294967295": {
 							&sharding.SerializableValidator{
-								PubKey:  pksBytes[4294967295],
+								PubKey:  pksBytes[core.MetachainShardId],
 								Chances: 1,
-								Index:   0,
 							},
 						},
 					},
@@ -2081,7 +1936,6 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 					LeavingValidators: map[string][]*sharding.SerializableValidator{},
 				},
 			},
-			CurrentEpoch: 0,
 		},
 	}
 
@@ -2115,7 +1969,6 @@ func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
 	}
 
 	epochStartMetaBlock := &block.MetaBlock{
-		Epoch: 0,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
@@ -2130,7 +1983,6 @@ func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
 		},
 	}
 	prevEpochStartMetaBlock := &block.MetaBlock{
-		Epoch: 0,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
@@ -2164,7 +2016,6 @@ func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
 	requiredParameters := Parameters{
-		Epoch:       0,
 		SelfShardId: core.MetachainShardId,
 		NumOfShards: 1,
 		NodesConfig: &sharding.NodesCoordinatorRegistry{
@@ -2180,7 +2031,7 @@ func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
 						},
 						"4294967295": {
 							&sharding.SerializableValidator{
-								PubKey:  pksBytes[4294967295],
+								PubKey:  pksBytes[core.MetachainShardId],
 								Chances: 1,
 								Index:   0,
 							},
@@ -2190,7 +2041,6 @@ func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
 					LeavingValidators: map[string][]*sharding.SerializableValidator{},
 				},
 			},
-			CurrentEpoch: 0,
 		},
 	}
 
