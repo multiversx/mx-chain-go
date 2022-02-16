@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
 var _ process.TxValidator = (*txValidator)(nil)
@@ -109,7 +108,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandl
 	if err != nil {
 		return err
 	}
-	if isAccountFrozen(account) && !isBuiltinFuncCallWithParam(txData, builtInFunctions.BuiltInFunctionSetGuardian) {
+	if isAccountFrozen(account) && !isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
 		return state.ErrOperationNotPermitted
 	}
 
