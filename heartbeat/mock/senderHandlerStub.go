@@ -4,15 +4,15 @@ import "time"
 
 // SenderHandlerStub -
 type SenderHandlerStub struct {
-	ShouldExecuteCalled func() <-chan time.Time
-	ExecuteCalled       func()
-	CloseCalled         func()
+	ExecutionReadyChannelCalled func() <-chan time.Time
+	ExecuteCalled               func()
+	CloseCalled                 func()
 }
 
-// ShouldExecute -
-func (stub *SenderHandlerStub) ShouldExecute() <-chan time.Time {
-	if stub.ShouldExecuteCalled != nil {
-		return stub.ShouldExecuteCalled()
+// ExecutionReadyChannel -
+func (stub *SenderHandlerStub) ExecutionReadyChannel() <-chan time.Time {
+	if stub.ExecutionReadyChannelCalled != nil {
+		return stub.ExecutionReadyChannelCalled()
 	}
 
 	return nil
@@ -30,4 +30,9 @@ func (stub *SenderHandlerStub) Close() {
 	if stub.CloseCalled != nil {
 		stub.CloseCalled()
 	}
+}
+
+// IsInterfaceNil -
+func (stub *SenderHandlerStub) IsInterfaceNil() bool {
+	return stub == nil
 }

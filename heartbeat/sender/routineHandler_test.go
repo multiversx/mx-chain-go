@@ -22,7 +22,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 		numExecuteCalled2 := uint32(0)
 
 		handler1 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch1
 			},
 			ExecuteCalled: func() {
@@ -30,7 +30,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 		handler2 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch2
 			},
 			ExecuteCalled: func() {
@@ -38,7 +38,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 
-		_ = newRoutingHandler(handler1, handler2)
+		_ = newRoutineHandler(handler1, handler2)
 		time.Sleep(time.Second) // wait for the go routine start
 
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numExecuteCalled1)) // initial call
@@ -71,7 +71,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 		numCloseCalled2 := uint32(0)
 
 		handler1 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch1
 			},
 			ExecuteCalled: func() {
@@ -82,7 +82,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 		handler2 := &mock.SenderHandlerStub{
-			ShouldExecuteCalled: func() <-chan time.Time {
+			ExecutionReadyChannelCalled: func() <-chan time.Time {
 				return ch2
 			},
 			ExecuteCalled: func() {
@@ -93,7 +93,7 @@ func TestRoutineHandler_ShouldWork(t *testing.T) {
 			},
 		}
 
-		rh := newRoutingHandler(handler1, handler2)
+		rh := newRoutineHandler(handler1, handler2)
 		time.Sleep(time.Second) // wait for the go routine start
 
 		assert.Equal(t, uint32(1), atomic.LoadUint32(&numExecuteCalled1)) // initial call

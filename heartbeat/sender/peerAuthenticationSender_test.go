@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
@@ -21,14 +22,16 @@ import (
 
 func createMockPeerAuthenticationSenderArgs() ArgPeerAuthenticationSender {
 	return ArgPeerAuthenticationSender{
-		Messenger:                 &mock.MessengerStub{},
-		PeerSignatureHandler:      &mock.PeerSignatureHandlerStub{},
-		PrivKey:                   &mock.PrivateKeyStub{},
-		Marshaller:                &mock.MarshallerMock{},
-		Topic:                     "topic",
-		RedundancyHandler:         &mock.RedundancyHandlerStub{},
-		TimeBetweenSends:          time.Second,
-		TimeBetweenSendsWhenError: time.Second,
+		ArgBaseSender: ArgBaseSender{
+			Messenger:                 &mock.MessengerStub{},
+			Marshaller:                &mock.MarshallerMock{},
+			Topic:                     "topic",
+			TimeBetweenSends:          time.Second,
+			TimeBetweenSendsWhenError: time.Second,
+		},
+		PeerSignatureHandler: &mock.PeerSignatureHandlerStub{},
+		PrivKey:              &mock.PrivateKeyStub{},
+		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 }
 
@@ -38,7 +41,13 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests() ArgPeerAuthent
 	singleSigner := singlesig.NewBlsSigner()
 
 	return ArgPeerAuthenticationSender{
-		Messenger: &mock.MessengerStub{},
+		ArgBaseSender: ArgBaseSender{
+			Messenger:                 &mock.MessengerStub{},
+			Marshaller:                &marshal.GogoProtoMarshalizer{},
+			Topic:                     "topic",
+			TimeBetweenSends:          time.Second,
+			TimeBetweenSendsWhenError: time.Second,
+		},
 		PeerSignatureHandler: &mock.PeerSignatureHandlerStub{
 			VerifyPeerSignatureCalled: func(pk []byte, pid core.PeerID, signature []byte) error {
 				senderPubKey, err := keyGen.PublicKeyFromByteArray(pk)
@@ -51,12 +60,8 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests() ArgPeerAuthent
 				return singleSigner.Sign(privateKey, pid)
 			},
 		},
-		PrivKey:                   sk,
-		Marshaller:                &marshal.GogoProtoMarshalizer{},
-		Topic:                     "topic",
-		RedundancyHandler:         &mock.RedundancyHandlerStub{},
-		TimeBetweenSends:          time.Second,
-		TimeBetweenSendsWhenError: time.Second,
+		PrivKey:           sk,
+		RedundancyHandler: &mock.RedundancyHandlerStub{},
 	}
 }
 
@@ -70,7 +75,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.Messenger = nil
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilMessenger, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
@@ -80,7 +85,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.PeerSignatureHandler = nil
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 	})
 	t.Run("nil private key should error", func(t *testing.T) {
@@ -90,7 +95,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.PrivKey = nil
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
@@ -100,7 +105,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.Marshaller = nil
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty topic should error", func(t *testing.T) {
@@ -110,7 +115,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.Topic = ""
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("nil redundancy handler should error", func(t *testing.T) {
@@ -120,7 +125,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.RedundancyHandler = nil
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
@@ -130,7 +135,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.TimeBetweenSends = time.Second - time.Nanosecond
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "TimeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "TimeBetweenSendsWhenError"))
@@ -142,7 +147,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args.TimeBetweenSendsWhenError = time.Second - time.Nanosecond
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.Nil(t, sender)
+		assert.True(t, check.IfNil(sender))
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "TimeBetweenSendsWhenError"))
 	})
@@ -152,7 +157,7 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs()
 		sender, err := NewPeerAuthenticationSender(args)
 
-		assert.NotNil(t, sender)
+		assert.False(t, check.IfNil(sender))
 		assert.Nil(t, err)
 	})
 }
@@ -160,7 +165,6 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 func TestPeerAuthenticationSender_execute(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	t.Run("messenger Sign method fails, should return error", func(t *testing.T) {
 		t.Parallel()
 
