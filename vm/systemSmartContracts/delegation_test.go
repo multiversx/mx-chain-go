@@ -120,33 +120,6 @@ func createDelegationManagerConfig(eei *vmContext, marshalizer marshal.Marshaliz
 	eei.SetStorageForAddress(vm.DelegationManagerSCAddress, []byte(delegationManagementKey), marshaledData)
 }
 
-func createDelegationContractAndEEI() (*delegation, *vmContext) {
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
-		},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
-		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-			return vmcommon.Ok
-		}}, nil
-	}}
-	_ = eei.SetSystemSCContainer(systemSCContainerStub)
-
-	args.Eei = eei
-	args.DelegationSCConfig.MaxServiceFee = 10000
-	args.DelegationSCConfig.MinServiceFee = 0
-	d, _ := NewDelegationSystemSC(args)
-	return d, eei
-}
-
 func TestNewDelegationSystemSC_NilSystemEnvironmentShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -5382,13 +5355,13 @@ func TestDelegation_BasicCheckForLiquidStaking(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
 
-	d.flagLiquidStaking.Unset()
+	d.flagLiquidStaking.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
 
 	eei.returnMessage = ""
-	d.flagLiquidStaking.Set()
+	d.flagLiquidStaking.SetValue(true)
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")

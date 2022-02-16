@@ -16,8 +16,8 @@ import (
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -4083,11 +4083,6 @@ func TestEsdt_TransferNFTCreateCallMultiShardShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@3263616c6c6572"), input)
-			require.Equal(t, destination, []byte("3caller"))
-			return nil
-		},
 	}
 	args.Eei = eei
 
@@ -4622,13 +4617,13 @@ func TestEsdt_ExecuteInitDelegationESDT(t *testing.T) {
 	}
 
 	eei.returnMessage = ""
-	e.flagESDTOnMeta.Unset()
+	e.flagESDTOnMeta.Reset()
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid method to call")
 
 	eei.returnMessage = ""
-	e.flagESDTOnMeta.Set()
+	e.flagESDTOnMeta.SetValue(true)
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "only system address can call this")
