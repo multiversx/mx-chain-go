@@ -673,6 +673,26 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 	return nil
 }
 
+func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	scheduledMiniBlocks := bp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+	for index, scheduledMiniBlock := range scheduledMiniBlocks {
+		scheduledMiniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, scheduledMiniBlock)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(scheduledMiniBlockHash, headerHandler.GetMiniBlockHeadersHashes()[index]) {
+			return process.ErrScheduledMiniBlocksMismatch
+		}
+	}
+
+	return nil
+}
+
 // requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for
 // processing the current block. It requests the finality headers greater than the highest header, for given shard,
 // related to the block which should be processed
@@ -1727,8 +1747,6 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	}
 }
 
-// For the expected results, this method should not be called anymore after the call of method ProcessScheduledBlock,
-// as the executed scheduled mini blocks will be overwritten with those for the new block
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler, body *block.Body) int {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return 0

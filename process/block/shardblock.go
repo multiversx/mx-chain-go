@@ -192,6 +192,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	err = sp.checkScheduledMiniBlocksValidity(headerHandler)
+	if err != nil {
+		return err
+	}
+
 	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
 	log.Debug("total txs in pool", "counts", txCounts.String())
 	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())

@@ -329,6 +329,10 @@ var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblo
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
 
+// ErrScheduledMiniBlocksMismatch signals that NOT final scheduled mini blocks created/executed in the last block,
+// do not match with the ones received in the next proposed body
+var ErrScheduledMiniBlocksMismatch = errors.New("scheduled miniblocks does not match")
+
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
 
