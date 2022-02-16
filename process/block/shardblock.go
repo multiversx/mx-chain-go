@@ -308,7 +308,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, &block.Body{MiniBlocks: miniBlocks})
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
 	if err != nil {
 		return err
 	}
@@ -2101,7 +2101,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	// Remove mini blocks which are not final from "body" to avoid sending them cross shard
-	newBodyToBroadcast := sp.getAllFinalMiniBlocks(header, body)
+	newBodyToBroadcast := sp.getFinalMiniBlocks(header, body)
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 

@@ -1414,4 +1414,4 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	require.Equal(t, 1, len(vbd))
 }
 
-//TODO: Add unit tests for methods: getAllFinalCrossMiniBlockHashes and getMiniBlockHeaderWithHash
+//TODO: Add unit tests for methods: getFinalCrossMiniBlockHashes and getMiniBlockHeaderWithHash

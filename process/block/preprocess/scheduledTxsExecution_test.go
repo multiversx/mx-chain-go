@@ -1555,4 +1555,4 @@ func TestScheduledTxsExecution_getIndexOfTxHashInMiniBlock(t *testing.T) {
 	assert.Equal(t, -1, getIndexOfTxHashInMiniBlock(txHash6, mb0))
 }
 
-//TODO: Add unit tests for methods setScheduledMiniBlockHashes and IsMiniBlockExecuted
+//TODO: Add unit tests for methods: setScheduledMiniBlockHashes and IsMiniBlockExecuted

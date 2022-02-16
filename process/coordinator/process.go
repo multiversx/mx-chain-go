@@ -595,13 +595,13 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		tc.gasHandler.Reset()
 	}
 
-	crossMiniBlockInfos := tc.getAllFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
+	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
 
 	defer func() {
 		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
-			"num mini blocks to be processed", len(crossMiniBlockInfos),
+			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
 			"num already mini blocks processed", numAlreadyMiniBlocksProcessed,
 			"num new mini blocks processed", numNewMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
@@ -610,7 +610,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
 
-	for _, miniBlockInfo := range crossMiniBlockInfos {
+	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"scheduled mode", scheduledMode,
@@ -747,7 +747,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	numTotalMiniBlocksProcessed := numAlreadyMiniBlocksProcessed + numNewMiniBlocksProcessed
-	allMBsProcessed := numTotalMiniBlocksProcessed == len(crossMiniBlockInfos)
+	allMBsProcessed := numTotalMiniBlocksProcessed == len(finalCrossMiniBlockInfos)
 	if !allMBsProcessed {
 		tc.revertIfNeeded(processedTxHashes)
 	}
@@ -755,7 +755,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	return miniBlocks, numTxAdded, allMBsProcessed, nil
 }
 
-func (tc *transactionCoordinator) getAllFinalCrossMiniBlockInfos(
+func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	crossMiniBlockInfos []*data.MiniBlockInfo,
 	header data.HeaderHandler,
 ) []*data.MiniBlockInfo {
@@ -768,8 +768,8 @@ func (tc *transactionCoordinator) getAllFinalCrossMiniBlockInfos(
 	for _, crossMiniBlockInfo := range crossMiniBlockInfos {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
 		if miniBlockHeader != nil {
-			if process.ShouldSkipMiniBlock(miniBlockHeader, header.GetShardID()) {
-				log.Debug("transactionCoordinator.getAllFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			if !miniBlockHeader.IsFinal() {
+				log.Debug("transactionCoordinator.getFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}
@@ -1449,9 +1449,11 @@ func (tc *transactionCoordinator) verifyGasLimit(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
-			//TODO: This check should be done using isFinal method later
-			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(header.GetMiniBlockHeadersHashes()[index]) {
-				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
+			mbHash := header.GetMiniBlockHeadersHashes()[index]
+			//TODO: This check should be done using isFinal method later, but only when we could differentiate between the final mini blocks
+			//executed as scheduled in the last block and the normal mini blocks from the current block which are also final, but not yet executed
+			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
+				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", mbHash)
 				continue
 			}
 		}
@@ -1526,9 +1528,11 @@ func (tc *transactionCoordinator) verifyFees(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
-			//TODO: This check should be done using isFinal method later
-			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(header.GetMiniBlockHeadersHashes()[index]) {
-				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", header.GetMiniBlockHeaderHandlers()[index].GetHash())
+			mbHash := header.GetMiniBlockHeadersHashes()[index]
+			//TODO: This check should be done using isFinal method later, but only when we could differentiate between the final mini blocks
+			//executed as scheduled in the last block and the normal mini blocks from the current block which are also final, but not yet executed
+			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
+				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", mbHash)
 				continue
 			}
 		}

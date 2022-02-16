@@ -526,13 +526,13 @@ func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocks(t *
 func TestStartInEpochWithScheduledDataSyncer_getScheduledMiniBlockHeaders(t *testing.T) {
 	sds := &startInEpochWithScheduledDataSyncer{}
 	mbHeaderScheduled1 := block.MiniBlockHeader{
-		Hash:     []byte("hash1"),
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: []byte("hash1"),
 	}
+	_ = mbHeaderScheduled1.SetProcessingType(int32(block.Scheduled))
 	mbHeaderScheduled2 := block.MiniBlockHeader{
-		Hash:     []byte("hash2"),
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: []byte("hash2"),
 	}
+	_ = mbHeaderScheduled2.SetProcessingType(int32(block.Scheduled))
 	mbHeader := block.MiniBlockHeader{
 		Hash: []byte("hash3"),
 	}
@@ -556,17 +556,17 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 	mb1 := block.MiniBlock{TxHashes: txHashes[:2]}
 	mb2 := block.MiniBlock{TxHashes: txHashes[2:]}
 	mbHeaderScheduled1 := block.MiniBlockHeader{
-		Hash:     hashMb1,
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: hashMb1,
 	}
+	_ = mbHeaderScheduled1.SetProcessingType(int32(block.Scheduled))
 	mbHeaderScheduled2 := block.MiniBlockHeader{
-		Hash:     hashMb2,
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: hashMb2,
 	}
+	_ = mbHeaderScheduled2.SetProcessingType(int32(block.Scheduled))
 	mbHeaderScheduled3 := block.MiniBlockHeader{
-		Hash:     hashMb3,
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: hashMb3,
 	}
+	_ = mbHeaderScheduled3.SetProcessingType(int32(block.Scheduled))
 	mbHeader := block.MiniBlockHeader{
 		Hash: hashMb4,
 	}
@@ -584,7 +584,7 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		scheduledMiniBlocksSyncer: &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 				for i := range miniBlockHeaders {
-					require.Len(t, miniBlockHeaders[i].GetReserved(), 1)
+					require.Len(t, miniBlockHeaders[i].GetReserved(), 2)
 				}
 				return nil
 			},
@@ -675,4 +675,4 @@ func createTestHeader() *block.Header {
 	}
 }
 
-//TODO: Add unit tests for methods: getScheduledMiniBlocks
+//TODO: Add unit tests for methods: getBlockTypeOfTx, getScheduledMiniBlocks and getNumScheduledIntermediateTxs

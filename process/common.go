@@ -750,8 +750,7 @@ func IsScheduledMode(
 
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
-			reserved := miniBlockHeader.GetReserved()
-			return len(reserved) > 0 && reserved[0] == byte(block.Scheduled), nil
+			return miniBlockHeader.GetProcessingType() == int32(block.Scheduled), nil
 		}
 	}
 
@@ -785,12 +784,4 @@ type ScheduledInfo struct {
 	IntermediateTxs map[block.Type][]data.TransactionHandler
 	GasAndFees      scheduled.GasAndFees
 	MiniBlocks      block.MiniBlockSlice
-}
-
-// ShouldSkipMiniBlock checks if the given mini block is not final and should be skipped
-func ShouldSkipMiniBlock(miniBlockHeader data.MiniBlockHeaderHandler, shardID uint32) bool {
-	//TODO: This check should be done using isFinal method later
-	reserved := miniBlockHeader.GetReserved()
-	isScheduledFromShardID := miniBlockHeader.GetSenderShardID() == shardID && len(reserved) > 0 && reserved[0] == byte(block.Scheduled)
-	return isScheduledFromShardID
 }

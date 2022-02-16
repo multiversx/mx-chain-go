@@ -284,23 +284,7 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 	var scheduledTxHash []byte
 	scheduledIntermediateTxs := make(map[string]data.TransactionHandler)
 	for txHash, txHandler := range allTxs {
-		blockType := getBlockTypeOfTx([]byte(txHash), miniBlocks)
-		if blockType != block.SmartContractResultBlock && blockType != block.InvalidBlock {
-			continue
-		}
-
-		if blockType == block.SmartContractResultBlock {
-			scr, ok := txHandler.(*smartContractResult.SmartContractResult)
-			if !ok {
-				return nil, epochStart.ErrWrongTypeAssertion
-			}
-			scheduledTxHash = scr.PrevTxHash
-		} else {
-			scheduledTxHash = []byte(txHash)
-		}
-
-		receiverShardID, isScheduledIntermediateTx := scheduledTxHashes[string(scheduledTxHash)]
-		if isScheduledIntermediateTx && receiverShardID == selfShardID {
+		if isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(txHash), txHandler, selfShardID) {
 			scheduledIntermediateTxs[txHash] = txHandler
 			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
 				"scheduled tx hash", scheduledTxHash,
@@ -314,6 +298,35 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 	}
 
 	return scheduledIntermediateTxs, nil
+}
+
+func isScheduledIntermediateTx(
+	miniBlocks map[string]*block.MiniBlock,
+	scheduledTxHashes map[string]uint32,
+	txHash []byte,
+	txHandler data.TransactionHandler,
+	selfShardID uint32,
+) bool {
+	blockType := getBlockTypeOfTx(txHash, miniBlocks)
+	if blockType != block.SmartContractResultBlock && blockType != block.InvalidBlock {
+		return false
+	}
+
+	var scheduledTxHash []byte
+
+	if blockType == block.SmartContractResultBlock {
+		scr, ok := txHandler.(*smartContractResult.SmartContractResult)
+		if !ok {
+			log.Error("isScheduledIntermediateTx", "error", epochStart.ErrWrongTypeAssertion)
+			return false
+		}
+		scheduledTxHash = scr.PrevTxHash
+	} else {
+		scheduledTxHash = txHash
+	}
+
+	receiverShardID, isScheduledIntermediateTx := scheduledTxHashes[string(scheduledTxHash)]
+	return isScheduledIntermediateTx && receiverShardID == selfShardID
 }
 
 func getScheduledIntermediateTxsMap(
@@ -404,8 +417,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(hea
 	schMiniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 
 	for i, mbh := range miniBlockHeaders {
-		reserved := mbh.GetReserved()
-		if len(reserved) > 0 && reserved[0] == byte(block.Scheduled) {
+		if mbh.GetProcessingType() == int32(block.Scheduled) {
 			schMiniBlockHeaders = append(schMiniBlockHeaders, miniBlockHeaders[i])
 		}
 	}

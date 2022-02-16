@@ -630,7 +630,9 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 
 // IsMiniBlockExecuted returns true if the given mini block is already executed
 func (ste *scheduledTxsExecution) IsMiniBlockExecuted(mbHash []byte) bool {
-	//TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later
+	//TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later,
+	//but only when we could differentiate between the final mini blocks executed as scheduled in the last block and the normal mini blocks
+	//from the current block which are also final, but not yet executed
 	ste.mutScheduledTxs.RLock()
 	_, ok := ste.mapScheduledMbHashes[string(mbHash)]
 	ste.mutScheduledTxs.RUnlock()

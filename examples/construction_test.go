@@ -2,11 +2,14 @@ package examples
 
 import (
 	"encoding/hex"
+	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -192,4 +195,15 @@ func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *transac
 	require.Len(t, signature, 64)
 
 	return signature
+}
+
+func TestConstructMiniBlockHeaderReserved_WithMaxValue(t *testing.T) {
+	mbhr := &block.MiniBlockHeaderReserved{
+		ExecutionType: block.ProcessingType(math.MaxInt32),
+		State:         block.MiniBlockState(math.MaxInt32),
+	}
+
+	data, _ := contentMarshalizer.Marshal(mbhr)
+	fmt.Printf("size: %d\n", len(data))
+	require.True(t, len(data) < 16)
 }

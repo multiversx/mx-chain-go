@@ -3628,11 +3628,13 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 	mapAllTxs[txHash1] = tx1
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
-	reserved := []byte{byte(block.Normal)}
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{Reserved: reserved}, {Reserved: reserved}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+	}
+	for index := range header.MiniBlockHeaders {
+		_ = header.MiniBlockHeaders[index].SetProcessingType(int32(block.Normal))
 	}
 
 	body := &block.Body{
@@ -3708,11 +3710,13 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 	mapAllTxs[txHash1] = tx1
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
-	reserved := []byte{byte(block.Normal)}
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(11),
-		MiniBlockHeaders: []block.MiniBlockHeader{{Reserved: reserved}, {Reserved: reserved}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+	}
+	for index := range header.MiniBlockHeaders {
+		_ = header.MiniBlockHeaders[index].SetProcessingType(int32(block.Normal))
 	}
 
 	body := &block.Body{
@@ -3811,11 +3815,13 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 
 	tc.EpochConfirmed(2, 0)
 
-	reserved := []byte{byte(block.Normal)}
 	header = &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(11),
-		MiniBlockHeaders: []block.MiniBlockHeader{{Reserved: reserved}, {Reserved: reserved}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+	}
+	for index := range header.MiniBlockHeaders {
+		_ = header.MiniBlockHeaders[index].SetProcessingType(int32(block.Normal))
 	}
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
@@ -3998,4 +4004,4 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	assert.Equal(t, len(txHashes), numTxsFeesReverted)
 }
 
-//TODO: Add unit tests for methods: AddIntermediateTransactions, GetAllIntermediateTxs, getAllFinalCrossMiniBlockInfos and getMiniBlockHeaderWithHash
+//TODO: Add unit tests for methods: AddIntermediateTransactions, GetAllIntermediateTxs, getFinalCrossMiniBlockInfos and getMiniBlockHeaderWithHash

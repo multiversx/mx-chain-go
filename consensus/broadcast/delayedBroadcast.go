@@ -734,7 +734,7 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler, toShardID uint32) map[string]struct{} {
 	mbHashesForShard := make(map[string]struct{})
 	// Remove mini blocks which are not final to avoid sending them
-	mbHashes := dbb.getAllFinalCrossMiniBlockHashes(header.GetMiniBlockHeadersWithDst(toShardID), header)
+	mbHashes := dbb.getFinalCrossMiniBlockHashes(header.GetMiniBlockHeadersWithDst(toShardID), header)
 	for mbHash := range mbHashes {
 		mbHashesForShard[mbHash] = struct{}{}
 	}
@@ -742,7 +742,7 @@ func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler
 	return mbHashesForShard
 }
 
-func (dbb *delayedBlockBroadcaster) getAllFinalCrossMiniBlockHashes(
+func (dbb *delayedBlockBroadcaster) getFinalCrossMiniBlockHashes(
 	crossMiniBlockHashes map[string]uint32,
 	header data.HeaderHandler,
 ) map[string]uint32 {
@@ -750,11 +750,9 @@ func (dbb *delayedBlockBroadcaster) getAllFinalCrossMiniBlockHashes(
 	miniBlockHashes := make(map[string]uint32)
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
-		if miniBlockHeader != nil {
-			if process.ShouldSkipMiniBlock(miniBlockHeader, header.GetShardID()) {
-				log.Debug("delayedBlockBroadcaster.getAllFinalCrossMiniBlockHashes: do not broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
-				continue
-			}
+		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
+			log.Debug("delayedBlockBroadcaster.getFinalCrossMiniBlockHashes: do not broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			continue
 		}
 
 		miniBlockHashes[crossMiniBlockHash] = senderShardID
