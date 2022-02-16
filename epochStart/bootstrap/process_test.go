@@ -690,14 +690,12 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 						&sharding.SerializableValidator{
 							PubKey:  pksBytes[0],
 							Chances: 1,
-							Index:   0,
 						},
 					},
 					"4294967295": {
 						&sharding.SerializableValidator{
 							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
-							Index:   0,
 						},
 					},
 				},
@@ -705,7 +703,6 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 				LeavingValidators: map[string][]*sharding.SerializableValidator{},
 			},
 		},
-		CurrentEpoch: 0,
 	}
 	nodesCoordBytes, _ := json.Marshal(nodesCoord)
 
@@ -2026,14 +2023,12 @@ func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
 							&sharding.SerializableValidator{
 								PubKey:  pksBytes[0],
 								Chances: 1,
-								Index:   0,
 							},
 						},
 						"4294967295": {
 							&sharding.SerializableValidator{
 								PubKey:  pksBytes[core.MetachainShardId],
 								Chances: 1,
-								Index:   0,
 							},
 						},
 					},
