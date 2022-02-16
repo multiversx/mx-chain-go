@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // WithBootstrapComponents sets up the Node bootstrap components
@@ -252,26 +252,6 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 	}
 }
 
-// WithTxAccumulator sets up a transaction accumulator handler for the Node
-func WithTxAccumulator(accumulator core.Accumulator) Option {
-	return func(n *Node) error {
-		if check.IfNil(accumulator) {
-			return ErrNilTxAccumulator
-		}
-		if !check.IfNil(n.txAcumulator) {
-			log.LogIfError(n.txAcumulator.Close())
-		}
-		n.txAcumulator = accumulator
-
-		n.closableComponents = append(n.closableComponents, accumulator)
-
-		go n.sendFromTxAccumulator(n.ctx)
-		go n.printTxSentCounter(n.ctx)
-
-		return nil
-	}
-}
-
 // WithHardforkTrigger sets up a hardfork trigger
 func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
 	return func(n *Node) error {
@@ -337,6 +317,18 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
+		return nil
+	}
+}
+
+// WithESDTNFTStorageHandler sets the esdt nft storage handler
+func WithESDTNFTStorageHandler(storageHandler vmcommon.ESDTNFTStorageHandler) Option {
+	return func(node *Node) error {
+		if check.IfNil(storageHandler) {
+			return ErrNilESDTNFTStorageHandler
+		}
+
+		node.esdtStorageHandler = storageHandler
 		return nil
 	}
 }

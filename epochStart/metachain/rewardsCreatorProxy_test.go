@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +55,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithError(t *testing.T) {
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return nil, expectedErr
 		},
@@ -73,7 +74,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksOK(t *testing.T) {
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -92,7 +93,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -118,7 +119,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 
 	rewardCreatorV2 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -145,7 +146,7 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksWithError(t *testing.T) {
 	expectedErr := fmt.Errorf("expectedError")
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
+			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
 			return expectedErr
 		},
 	}
@@ -162,7 +163,7 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksOK(t *testing.T) {
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
+			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
 			return nil
 		},
 	}
@@ -258,7 +259,7 @@ func TestRewardsCreatorProxy_SaveTxBlockToStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		SaveTxBlockToStorageCalled: func(metaBlock *block.MetaBlock, body *block.Body) {
+		SaveTxBlockToStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
@@ -276,7 +277,7 @@ func TestRewardsCreatorProxy_DeleteTxsFromStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		DeleteTxsFromStorageCalled: func(metaBlock *block.MetaBlock, body *block.Body) {
+		DeleteTxsFromStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
@@ -294,7 +295,7 @@ func TestRewardsCreatorProxy_RemoveBlockDataFromPools(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		RemoveBlockDataFromPoolsCalled: func(metaBlock *block.MetaBlock, body *block.Body) {
+		RemoveBlockDataFromPoolsCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
@@ -338,7 +339,7 @@ func createDefaultBlockBody() *block.Body {
 		RcvAddr: []byte{},
 		Epoch:   0,
 	}
-	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, rwdTx)
 
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{

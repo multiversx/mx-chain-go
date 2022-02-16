@@ -53,6 +53,11 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	return vm.RunSmartContractCallCalled(input)
 }
 
+// Close -
+func (vm *VMExecutionHandlerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (vm *VMExecutionHandlerStub) IsInterfaceNil() bool {
 	return vm == nil

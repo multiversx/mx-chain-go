@@ -259,6 +259,8 @@ type ProcessComponentsHolder interface {
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
+	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	TxsSenderHandler() process.TxsSenderHandler
 	IsInterfaceNil() bool
 }
 
@@ -419,6 +421,8 @@ type BootstrapComponentsHolder interface {
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
 	ShardCoordinator() sharding.Coordinator
+	VersionedHeaderFactory() factory.VersionedHeaderFactory
+	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }

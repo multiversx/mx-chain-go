@@ -52,7 +52,7 @@ func (b *baseProcessor) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, e
 	mbsInfo := make([]*update.MbInfo, len(pendingMiniBlocks))
 
 	for mbIndex, pendingMiniBlock := range pendingMiniBlocks {
-		miniBlock, miniBlockFound := importedMiniBlocksMap[string(pendingMiniBlock.Hash)]
+		miniBlock, miniBlockFound := importedMiniBlocksMap[string(pendingMiniBlock.GetHash())]
 		if !miniBlockFound {
 			return nil, update.ErrMiniBlockNotFoundInImportedMap
 		}
@@ -64,10 +64,10 @@ func (b *baseProcessor) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, e
 
 		numPendingTransactions += len(miniBlock.TxHashes)
 		mbsInfo[mbIndex] = &update.MbInfo{
-			MbHash:          pendingMiniBlock.Hash,
-			SenderShardID:   pendingMiniBlock.SenderShardID,
-			ReceiverShardID: pendingMiniBlock.ReceiverShardID,
-			Type:            pendingMiniBlock.Type,
+			MbHash:          pendingMiniBlock.GetHash(),
+			SenderShardID:   pendingMiniBlock.GetSenderShardID(),
+			ReceiverShardID: pendingMiniBlock.GetReceiverShardID(),
+			Type:            block.Type(pendingMiniBlock.GetTypeInt32()),
 			TxsInfo:         txsInfo,
 		}
 	}

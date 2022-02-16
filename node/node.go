@@ -2,7 +2,6 @@ package node
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,12 +9,10 @@ import (
 	"sort"
 	"strings"
 	syncGo "sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
@@ -32,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -43,16 +39,11 @@ import (
 )
 
 const (
-	// SendTransactionsPipe is the pipe used for sending new transactions
-	SendTransactionsPipe = "send transactions pipe"
-
 	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
 	esdtTickerNumChars = 6
 )
 
 var log = logger.GetOrCreate("node")
-var numSecondsBetweenPrints = 20
-
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
@@ -65,24 +56,18 @@ type filter interface {
 
 // Node is a structure that holds all managed components
 type Node struct {
-	ctx                 context.Context
-	cancelFunc          context.CancelFunc
 	initialNodesPubkeys map[uint32][]string
 	roundDuration       uint64
 	consensusGroupSize  int
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	hardforkTrigger     HardforkTrigger
+	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
 
-	consensusType string
-
-	currentSendingGoRoutines int32
-	bootstrapRoundIndex      uint64
+	consensusType       string
+	bootstrapRoundIndex uint64
 
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
-
-	txSentCounter uint32
-	txAcumulator  core.Accumulator
 
 	addressSignatureSize    int
 	addressSignatureHexSize int
@@ -122,12 +107,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	node := &Node{
-		ctx:                      ctx,
-		cancelFunc:               cancelFunc,
-		currentSendingGoRoutines: 0,
-		queryHandlers:            make(map[string]debug.QueryHandler),
+		queryHandlers: make(map[string]debug.QueryHandler),
 	}
 
 	node.closableComponents = make([]mainFactory.Closer, 0)
@@ -175,14 +156,12 @@ func (n *Node) GetConsensusGroupSize() int {
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
+		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
+			return big.NewInt(0), nil
+		}
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return big.NewInt(0), nil
 	}
 
 	return userAccount.GetBalance(), nil
@@ -190,14 +169,9 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 
 // GetUsername gets the username for a specific address
 func (n *Node) GetUsername(address string) (string, error) {
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return "", err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return "", ErrAccountNotFound
 	}
 
 	username := userAccount.GetUserName()
@@ -210,14 +184,9 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	tokens := make([]string, 0)
@@ -279,14 +248,9 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
-	account, err := n.getAccountHandlerAPIAccounts(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
@@ -325,14 +289,9 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 		return "", fmt.Errorf("invalid key: %w", err)
 	}
 
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return "", err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return "", ErrAccountNotFound
 	}
 
 	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
@@ -345,28 +304,18 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 
 // GetESDTData returns the esdt balance and properties from a given account
 func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
-	account, err := n.getAccountHandler(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
 
-	userAccount, ok := n.castAccountToUserAccount(account)
+	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 	if !ok {
-		return nil, ErrAccountNotFound
+		return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
-	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID
-	if nonce > 0 {
-		tokenKey += string(big.NewInt(0).SetUint64(nonce).Bytes())
-	}
-
-	dataBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
-	if err != nil || len(dataBytes) == 0 {
-		return esdtToken, nil
-	}
-
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, dataBytes)
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
+	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
 	if err != nil {
 		return nil, err
 	}
@@ -385,14 +334,9 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
-	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	userAccount, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	tokens := make([]string, 0)
@@ -504,14 +448,9 @@ func bigToString(bigValue *big.Int) string {
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
-	account, err := n.getAccountHandlerAPIAccounts(address)
+	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return nil, ErrAccountNotFound
 	}
 
 	allESDTs := make(map[string]*esdt.ESDigitalToken)
@@ -531,24 +470,27 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 	if err != nil {
 		return nil, err
 	}
+
 	for leaf := range chLeaves {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
 		}
 
-		tokenName := string(leaf.Key()[lenESDTPrefix:])
+		tokenKey := leaf.Key()
+		tokenName := string(tokenKey[lenESDTPrefix:])
 		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
+		userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+		if !ok {
+			return nil, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
-		err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
+
+		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
 		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
 			continue
 		}
 
@@ -582,24 +524,11 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 	return formattedTokenIdentifier
 }
 
-func (n *Node) getAccountHandler(address string) (vmcommon.AccountHandler, error) {
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
-		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
-	}
-
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from: " + err.Error())
-	}
-	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
-}
-
-func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHandler, error) {
+func (n *Node) getAccountHandlerAPIAccounts(address string) (state.UserAccountHandler, error) {
 	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
-		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
-		check.IfNil(n.dataComponents.Blockchain())
+		check.IfNil(n.stateComponents.AccountsAdapterAPI())
 	if componentsNotInitialized {
-		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first")
+		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter first")
 	}
 
 	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
@@ -610,18 +539,18 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHan
 	return n.getAccountHandlerForPubKey(addr)
 }
 
-func (n *Node) getAccountHandlerForPubKey(address []byte) (vmcommon.AccountHandler, error) {
-	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
-	if check.IfNil(blockHeader) {
-		return nil, ErrNilBlockHeader
-	}
-
-	err := n.stateComponents.AccountsAdapterAPI().RecreateTrie(blockHeader.GetRootHash())
+func (n *Node) getAccountHandlerForPubKey(address []byte) (state.UserAccountHandler, error) {
+	account, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
+	}
+
+	return userAccount, nil
 }
 
 func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, bool) {
@@ -635,123 +564,7 @@ func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserA
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	if len(txs) == 0 {
-		return 0, ErrNoTxToProcess
-	}
-
-	n.addTransactionsToSendPipe(txs)
-
-	return uint64(len(txs)), nil
-}
-
-func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
-	if check.IfNil(n.txAcumulator) {
-		log.Error("node has a nil tx accumulator instance")
-		return
-	}
-
-	for _, tx := range txs {
-		n.txAcumulator.AddData(tx)
-	}
-}
-
-func (n *Node) sendFromTxAccumulator(ctx context.Context) {
-	outputChannel := n.txAcumulator.OutputChannel()
-
-	for {
-		select {
-		case objs := <-outputChannel:
-			{
-				if len(objs) == 0 {
-					break
-				}
-
-				txs := make([]*transaction.Transaction, 0, len(objs))
-				for _, obj := range objs {
-					tx, ok := obj.(*transaction.Transaction)
-					if !ok {
-						continue
-					}
-
-					txs = append(txs, tx)
-				}
-
-				atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
-
-				n.sendBulkTransactions(txs)
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// printTxSentCounter prints the peak transaction counter from a time frame of about 'numSecondsBetweenPrints' seconds
-// if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
-// the peak counter resets after each print. There is also a total number of transactions sent to p2p
-// TODO make this function testable. Refactor if necessary.
-func (n *Node) printTxSentCounter(ctx context.Context) {
-	maxTxCounter := uint32(0)
-	totalTxCounter := uint64(0)
-	counterSeconds := 0
-
-	for {
-		select {
-		case <-time.After(time.Second):
-			txSent := atomic.SwapUint32(&n.txSentCounter, 0)
-			if txSent > maxTxCounter {
-				maxTxCounter = txSent
-			}
-			totalTxCounter += uint64(txSent)
-
-			counterSeconds++
-			if counterSeconds > numSecondsBetweenPrints {
-				counterSeconds = 0
-
-				if maxTxCounter > 0 {
-					log.Info("sent transactions on network",
-						"max/sec", maxTxCounter,
-						"total", totalTxCounter,
-					)
-				}
-				maxTxCounter = 0
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// sendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
-func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
-	transactionsByShards := make(map[uint32][][]byte)
-	log.Trace("node.sendBulkTransactions sending txs",
-		"num", len(txs),
-	)
-
-	for _, tx := range txs {
-		senderShardId := n.processComponents.ShardCoordinator().ComputeId(tx.SndAddr)
-
-		marshalizedTx, err := n.coreComponents.InternalMarshalizer().Marshal(tx)
-		if err != nil {
-			log.Warn("node.sendBulkTransactions",
-				"marshalizer error", err,
-			)
-			continue
-		}
-
-		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
-	}
-
-	numOfSentTxs := uint64(0)
-	for shardId, txsForShard := range transactionsByShards {
-		err := n.sendBulkTransactionsFromShard(txsForShard, shardId)
-		if err != nil {
-			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
-		} else {
-			numOfSentTxs += uint64(len(txsForShard))
-		}
-	}
+	return n.processComponents.TxsSenderHandler().SendBulkTransactions(txs)
 }
 
 // ValidateTransaction will validate a transaction
@@ -793,7 +606,7 @@ func (n *Node) commonTransactionValidation(
 	checkSignature bool,
 ) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
-		n.stateComponents.AccountsAdapter(),
+		n.stateComponents.AccountsAdapterAPI(),
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
@@ -859,43 +672,6 @@ func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
 	return nil
 }
 
-func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.coreComponents.InternalMarshalizer())
-	if err != nil {
-		return err
-	}
-
-	// the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
-
-	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
-	if err != nil {
-		return err
-	}
-
-	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
-	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			log.Trace("node.sendBulkTransactionsFromShard",
-				"topic", identifier,
-				"size", len(bufferToSend),
-			)
-			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
-				SendTransactionsPipe,
-				identifier,
-				bufferToSend,
-			)
-			if err != nil {
-				log.Debug("node.BroadcastOnChannelBlocking", "error", err.Error())
-			}
-
-			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
-		}(buff)
-	}
-
-	return nil
-}
-
 // CreateTransaction will return a transaction from all the required fields
 func (n *Node) CreateTransaction(
 	nonce uint64,
@@ -922,7 +698,7 @@ func (n *Node) CreateTransaction(
 	if check.IfNil(addrPubKeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.stateComponents.AccountsAdapter()) {
+	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return nil, nil, ErrNilAccountsAdapter
 	}
 	if len(signatureHex) > n.addressSignatureHexSize {
@@ -998,7 +774,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return api.AccountResponse{}, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.stateComponents.AccountsAdapter()) {
+	if check.IfNil(n.stateComponents.AccountsAdapterAPI()) {
 		return api.AccountResponse{}, ErrNilAccountsAdapter
 	}
 
@@ -1007,7 +783,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 		return api.AccountResponse{}, err
 	}
 
-	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
+	accWrp, err := n.stateComponents.AccountsAdapterAPI().GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			return api.AccountResponse{
@@ -1045,7 +821,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 
 // GetCode returns the code for the given code hash
 func (n *Node) GetCode(codeHash []byte) []byte {
-	return n.stateComponents.AccountsAdapter().GetCode(codeHash)
+	return n.stateComponents.AccountsAdapterAPI().GetCode(codeHash)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
@@ -1232,8 +1008,6 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 
 // Close closes all underlying components
 func (n *Node) Close() error {
-	n.cancelFunc()
-
 	for _, qh := range n.queryHandlers {
 		log.LogIfError(qh.Close())
 	}
@@ -1350,7 +1124,7 @@ func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]
 }
 
 func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []byte) ([]byte, []byte, error) {
-	account, err := n.stateComponents.AccountsAdapter().GetAccountFromBytes(address, accBytes)
+	account, err := n.stateComponents.AccountsAdapterAPI().GetAccountFromBytes(address, accBytes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1374,7 +1148,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 }
 
 func (n *Node) getProof(rootHash []byte, key []byte) (*common.GetProofResponse, error) {
-	tr, err := n.stateComponents.AccountsAdapter().GetTrie(rootHash)
+	tr, err := n.stateComponents.AccountsAdapterAPI().GetTrie(rootHash)
 	if err != nil {
 		return nil, err
 	}

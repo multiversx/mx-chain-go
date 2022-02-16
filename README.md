@@ -22,7 +22,7 @@ In order to join the network as an observer or as a validator, the required step
 Alternatively, in order to use the Docker Image, jump to [Using the Docker Image](#using-the-docker-image).
 
 ### Step 1: install & configure go:
-The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.12.4.
+The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.17.6.
 
 ### Step 2: clone the repository and build the binaries:
 The main branch that will be used is the master branch. Alternatively, an older release tag can be used.
@@ -194,7 +194,7 @@ docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:l
 ## Contribution
 Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes to Elrond!
 
-If you'd like to contribute to Elrond, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. If you wish to submit more complex changes though, please check up with the core developers first on our [riot channel](https://riot.im/app/#/room/#elrond:matrix.org) to ensure those changes are in line with the general philosophy of the project and/or get some early feedback which can make both your efforts much lighter as well as our review and merge procedures quick and simple.
+If you'd like to contribute to Elrond, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. If you wish to submit more complex changes though, please check up with the core developers first here on github, to ensure those changes are in line with the general philosophy of the project and/or get some early feedback which can make both your efforts much lighter as well as our review and merge procedures quick and simple.
 
 Please make sure your contributions adhere to our coding guidelines:
 

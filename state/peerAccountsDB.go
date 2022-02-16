@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -55,6 +56,7 @@ func NewPeerAccountsDB(
 				identifier: "load code",
 			},
 			storagePruningManager: storagePruningManager,
+			lastSnapshot:          &snapshotInfo{},
 		},
 	}
 
@@ -66,11 +68,34 @@ func NewPeerAccountsDB(
 	return adb, nil
 }
 
+// MarkSnapshotDone will mark that the snapshot process has been completed
+func (adb *PeerAccountsDB) MarkSnapshotDone() {
+	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
+	if err != nil {
+		log.Error("MarkSnapshotDone error", "err", err.Error())
+		return
+	}
+
+	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	if err != nil {
+		log.Warn("error while putting active DB value into main storer", "error", err)
+	}
+}
+
+func (adb *PeerAccountsDB) getTrieStorageManagerAndLatestEpoch() (common.StorageManager, uint32, error) {
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		return nil, 0, fmt.Errorf("%w while getting the latest storage epoch", err)
+	}
+
+	return trieStorageManager, epoch, nil
+}
+
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	trieStorageManager, epoch, err := adb.getTrieStorageManagerAndLatestEpoch()
 	if err != nil {
 		log.Error("SnapshotState error", "err", err.Error())
 		return
@@ -79,6 +104,15 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot for rootHash", "hash", rootHash)
 		return
+	}
+
+	log.Debug("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+
+	adb.lastSnapshot.rootHash = rootHash
+	adb.lastSnapshot.epoch = epoch
+	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
+	if err != nil {
+		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
 	}
 
 	stats := newSnapshotStatistics(0)
@@ -91,7 +125,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		printStats(stats, "snapshotState peer trie", rootHash)
 
-		err := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 		if err != nil {
 			log.Warn("error while putting active DB value into main storer", "error", err)
 		}

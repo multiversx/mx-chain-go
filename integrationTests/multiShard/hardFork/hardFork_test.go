@@ -72,7 +72,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 
 		_ = hardforkTriggerNode.Messenger.Close()
@@ -147,7 +147,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 
 		_ = hardforkTriggerNode.Messenger.Close()
@@ -269,7 +269,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 
 	defer func() {
 		for _, n := range allNodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

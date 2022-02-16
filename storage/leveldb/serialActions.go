@@ -30,16 +30,24 @@ type hasAct struct {
 }
 
 func (p *putBatchAct) request(s *SerialDB) {
+	p.resChan <- p.doPutRequest(s)
+}
+
+func (p *putBatchAct) doPutRequest(s *SerialDB) error {
+	db := s.getDbPointer()
+	if db == nil {
+		return storage.ErrDBIsClosed
+	}
+
 	wopt := &opt.WriteOptions{
 		Sync: true,
 	}
 
-	err := s.db.Write(p.batch.batch, wopt)
-	p.resChan <- err
+	return db.Write(p.batch.batch, wopt)
 }
 
 func (g *getAct) request(s *SerialDB) {
-	data, err := s.db.Get(g.key, nil)
+	data, err := g.doGetRequest(s)
 
 	res := &pairResult{
 		value: data,
@@ -48,8 +56,17 @@ func (g *getAct) request(s *SerialDB) {
 	g.resChan <- res
 }
 
+func (g *getAct) doGetRequest(s *SerialDB) ([]byte, error) {
+	db := s.getDbPointer()
+	if db == nil {
+		return nil, storage.ErrDBIsClosed
+	}
+
+	return db.Get(g.key, nil)
+}
+
 func (h *hasAct) request(s *SerialDB) {
-	has, err := s.db.Has(h.key, nil)
+	has, err := h.doHasRequest(s)
 
 	if err != nil {
 		h.resChan <- err
@@ -62,4 +79,13 @@ func (h *hasAct) request(s *SerialDB) {
 	}
 
 	h.resChan <- storage.ErrKeyNotFound
+}
+
+func (h *hasAct) doHasRequest(s *SerialDB) (bool, error) {
+	db := s.getDbPointer()
+	if db == nil {
+		return false, storage.ErrDBIsClosed
+	}
+
+	return db.Has(h.key, nil)
 }

@@ -28,92 +28,100 @@ func createTestArgument() discovery.ArgKadDht {
 		BucketSize:                  100,
 		RoutingTableRefresh:         5 * time.Second,
 		SeedersReconnectionInterval: time.Second * 5,
+		ConnectionWatcher:           &mock.ConnectionsWatcherStub{},
 	}
 }
 
-//------- NewContinuousKadDhtDiscoverer
-
-func TestNewContinuousKadDhtDiscoverer_NilContextShouldErr(t *testing.T) {
+func TestNewContinuousKadDhtDiscoverer(t *testing.T) {
 	t.Parallel()
 
-	arg := createTestArgument()
-	arg.Context = nil
+	t.Run("nil context should error", func(t *testing.T) {
+		t.Parallel()
 
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+		arg := createTestArgument()
+		arg.Context = nil
 
-	assert.True(t, check.IfNil(kdd))
-	assert.True(t, errors.Is(err, p2p.ErrNilContext))
-}
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-func TestNewContinuousKadDhtDiscoverer_NilHostShouldErr(t *testing.T) {
-	t.Parallel()
+		assert.True(t, check.IfNil(kdd))
+		assert.True(t, errors.Is(err, p2p.ErrNilContext))
+	})
+	t.Run("nil host should error", func(t *testing.T) {
+		t.Parallel()
 
-	arg := createTestArgument()
-	arg.Host = nil
+		arg := createTestArgument()
+		arg.Host = nil
 
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	assert.True(t, check.IfNil(kdd))
-	assert.True(t, errors.Is(err, p2p.ErrNilHost))
-}
+		assert.True(t, check.IfNil(kdd))
+		assert.True(t, errors.Is(err, p2p.ErrNilHost))
+	})
+	t.Run("nil sharder should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewContinuousKadDhtDiscoverer_NilSharderShouldErr(t *testing.T) {
-	t.Parallel()
+		arg := createTestArgument()
+		arg.KddSharder = nil
 
-	arg := createTestArgument()
-	arg.KddSharder = nil
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+		assert.True(t, check.IfNil(kdd))
+		assert.True(t, errors.Is(err, p2p.ErrNilSharder))
+	})
+	t.Run("wrong sharder should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.True(t, check.IfNil(kdd))
-	assert.True(t, errors.Is(err, p2p.ErrNilSharder))
-}
+		arg := createTestArgument()
+		arg.KddSharder = &mock.SharderStub{}
 
-func TestNewContinuousKadDhtDiscoverer_WrongSharderShouldErr(t *testing.T) {
-	t.Parallel()
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	arg := createTestArgument()
-	arg.KddSharder = &mock.SharderStub{}
+		assert.True(t, check.IfNil(kdd))
+		assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
+	})
+	t.Run("invalid peers refresh interval should error", func(t *testing.T) {
+		t.Parallel()
 
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+		arg := createTestArgument()
+		arg.PeersRefreshInterval = time.Second - time.Microsecond
 
-	assert.True(t, check.IfNil(kdd))
-	assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
-}
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-func TestNewContinuousKadDhtDiscoverer_InvalidPeersRefreshIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+		assert.Nil(t, kdd)
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+	})
+	t.Run("invalid routing table refresh interval should error", func(t *testing.T) {
+		t.Parallel()
 
-	arg := createTestArgument()
-	arg.PeersRefreshInterval = time.Second - time.Microsecond
+		arg := createTestArgument()
+		arg.RoutingTableRefresh = time.Second - time.Microsecond
 
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	assert.Nil(t, kdd)
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
+		assert.Nil(t, kdd)
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+	})
+	t.Run("nil connections watcher should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewContinuousKadDhtDiscoverer_InvalidRoutingTableRefreshIntervalShouldErr(t *testing.T) {
-	t.Parallel()
+		arg := createTestArgument()
+		arg.ConnectionWatcher = nil
 
-	arg := createTestArgument()
-	arg.RoutingTableRefresh = time.Second - time.Microsecond
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
+		assert.Nil(t, kdd)
+		assert.True(t, errors.Is(err, p2p.ErrNilConnectionsWatcher))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, kdd)
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
+		arg := createTestArgument()
 
-func TestNewContinuousKadDhtDiscoverer_ShouldWork(t *testing.T) {
-	t.Parallel()
+		kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
 
-	arg := createTestArgument()
-
-	kdd, err := discovery.NewContinuousKadDhtDiscoverer(arg)
-
-	assert.False(t, check.IfNil(kdd))
-	assert.Nil(t, err)
+		assert.False(t, check.IfNil(kdd))
+		assert.Nil(t, err)
+	})
 }
 
 func TestNewContinuousKadDhtDiscoverer_EmptyInitialPeersShouldWork(t *testing.T) {
@@ -128,7 +136,7 @@ func TestNewContinuousKadDhtDiscoverer_EmptyInitialPeersShouldWork(t *testing.T)
 	assert.Nil(t, err)
 }
 
-//------- Bootstrap
+// ------- Bootstrap
 
 func TestContinuousKadDhtDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 	t.Parallel()
@@ -154,7 +162,7 @@ func TestContinuousKadDhtDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) 
 	assert.Equal(t, p2p.ErrPeerDiscoveryProcessAlreadyStarted, err)
 }
 
-//------- connectToOnePeerFromInitialPeersList
+// ------- connectToOnePeerFromInitialPeersList
 
 func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldRetWithChanFull(t *testing.T) {
 	t.Parallel()

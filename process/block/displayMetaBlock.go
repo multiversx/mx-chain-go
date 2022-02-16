@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -68,7 +69,7 @@ func (hc *headersCounter) displayLogInfo(
 	hc.calculateNumOfShardMBHeaders(header)
 
 	dispHeader, dispLines := hc.createDisplayableMetaHeader(header)
-	dispLines = hc.displayTxBlockBody(dispLines, body)
+	dispLines = hc.displayTxBlockBody(dispLines, header, body)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -171,20 +172,36 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 	return lines
 }
 
-func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
+func (hc *headersCounter) displayTxBlockBody(
+	lines []*display.LineData,
+	header data.HeaderHandler,
+	body *block.Body,
+) []*display.LineData {
 	currentBlockTxs := 0
 
+	miniBlockHeaders := header.GetMiniBlockHeadersHashes()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
-		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
+		scheduledModeInMiniBlock := miniBlock.IsScheduledMiniBlock()
+		executionTypeInMiniBlockStr := ""
+		if scheduledModeInMiniBlock {
+			executionTypeInMiniBlockStr = "S_"
+		}
+
+		part := fmt.Sprintf("%s_MiniBlock_%s%d->%d",
 			miniBlock.Type.String(),
+			executionTypeInMiniBlockStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part, "", "<EMPTY>"}))
+		}
+
+		if len(miniBlockHeaders) > i {
+			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i])}))
 		}
 
 		currentBlockTxs += len(miniBlock.TxHashes)

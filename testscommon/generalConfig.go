@@ -357,6 +357,16 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		ScheduledSCRsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("ScheduledSCRs"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
 		Versions: config.VersionsConfig{
 			Cache: config.CacheConfig{
 				Type:     "LRU",
@@ -381,6 +391,10 @@ func GetGeneralConfig() config.Config {
 		},
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
+			TxAccumulator: config.TxAccumulatorConfig{
+				MaxAllowedTimeInMilliseconds:   10,
+				MaxDeviationTimeInMilliseconds: 1,
+			},
 		},
 		Resolvers: config.ResolverConfig{
 			NumCrossShardPeers:  2,

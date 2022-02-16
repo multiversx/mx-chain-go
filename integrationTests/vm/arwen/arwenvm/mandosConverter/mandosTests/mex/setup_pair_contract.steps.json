@@ -1,0 +1,71 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:pair_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "1000000000000000000000000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:MEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "1000000000000000000000000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:WEGLD-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "1000000000000000000000000"
+                                }
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:first_token_id": "str:WEGLD-abcdef",
+                        "str:second_token_id": "str:MEX-abcdef",
+                        "str:state": "1",
+                        "str:lpTokenIdentifier": "str:LPTOK-abcdef",
+                        "str:router_address": "address:owner",
+                        "str:router_owner_address": "address:owner",
+                        "str:total_fee_percent": "300",
+                        "str:special_fee_percent": "100",
+                        "str:transfer_exec_gas_limit": "50000000",
+                        "str:burn_tokens_gas_limit": "500000",
+                        "str:mint_tokens_gas_limit": "500000",
+                        "str:send_fee_gas_limit": "25,000,000",
+                        "str:extern_swap_gas_limit": "50,000,000",
+                        "str:reserve|nested:str:MEX-abcdef": "1000000000000000000000000",
+                        "str:reserve|nested:str:WEGLD-abcdef": "1000000000000000000000000",
+                        "str:generated_tokens.info": "0x00000001000000010000000100000001",
+                        "str:generated_tokens.mapped|nested:str:LPTOK-abcdef": "1000000000000000000000000",
+                        "str:generated_tokens.node_id|nested:str:LPTOK-abcdef": "1",
+                        "str:generated_tokens.node_links|u32:1": "0",
+                        "str:generated_tokens.value|u32:1": "str:LPTOK-abcdef"
+                    },
+                    "code": "file:./output/pair.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        }
+    ]
+}

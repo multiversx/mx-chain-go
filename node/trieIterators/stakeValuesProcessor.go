@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -29,7 +28,6 @@ type stakedValuesProcessor struct {
 type ArgTrieIteratorProcessor struct {
 	ShardID            uint32
 	Accounts           *AccountsWrapper
-	BlockChain         data.ChainHandler
 	QueryService       process.SCQueryService
 	PublicKeyConverter core.PubkeyConverter
 }
@@ -44,7 +42,6 @@ func NewTotalStakedValueProcessor(arg ArgTrieIteratorProcessor) (*stakedValuesPr
 	return &stakedValuesProcessor{
 		commonStakingProcessor: &commonStakingProcessor{
 			queryService: arg.QueryService,
-			blockChain:   arg.BlockChain,
 			accounts:     arg.Accounts,
 		},
 		publicKeyConverter: arg.PublicKeyConverter,
@@ -54,9 +51,6 @@ func NewTotalStakedValueProcessor(arg ArgTrieIteratorProcessor) (*stakedValuesPr
 func checkArguments(arg ArgTrieIteratorProcessor) error {
 	if arg.Accounts == nil || check.IfNil(arg.Accounts) {
 		return ErrNilAccountsAdapter
-	}
-	if check.IfNil(arg.BlockChain) {
-		return ErrNilBlockChain
 	}
 	if check.IfNil(arg.QueryService) {
 		return ErrNilQueryService
@@ -98,7 +92,7 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.In
 		return nil, nil, err
 	}
 
-	//TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
+	// TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
 	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, nil, err

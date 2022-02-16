@@ -2,10 +2,12 @@ package leveldb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -24,13 +26,12 @@ var log = logger.GetOrCreate("storage/leveldb")
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
 	*baseLevelDb
-	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
 	sizeBatch         int
 	batch             storage.Batcher
 	mutBatch          sync.RWMutex
-	dbClosed          chan struct{}
+	cancel            context.CancelFunc
 }
 
 // NewDB is a constructor for the leveldb persister
@@ -57,35 +58,43 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	}
 
 	bldb := &baseLevelDb{
-		db: db,
+		db:   db,
+		path: path,
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &DB{
 		baseLevelDb:       bldb,
-		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
 		sizeBatch:         0,
-		dbClosed:          make(chan struct{}),
+		cancel:            cancel,
 	}
 
 	dbStore.batch = dbStore.createBatch()
 
-	go dbStore.batchTimeoutHandle()
+	go dbStore.batchTimeoutHandle(ctx)
 
 	runtime.SetFinalizer(dbStore, func(db *DB) {
 		_ = db.Close()
 	})
 
-	log.Debug("opened level db persister", "path", path)
+	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
+	log.Debug("opened level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
 
 	return dbStore, nil
 }
 
-func (s *DB) batchTimeoutHandle() {
+func (s *DB) batchTimeoutHandle(ctx context.Context) {
+	interval := time.Duration(s.batchDelaySeconds) * time.Second
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(interval)
+
 		select {
-		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
+		case <-timer.C:
 			s.mutBatch.Lock()
 			err := s.putBatch(s.batch)
 			if err != nil {
@@ -97,7 +106,7 @@ func (s *DB) batchTimeoutHandle() {
 			s.batch.Reset()
 			s.sizeBatch = 0
 			s.mutBatch.Unlock()
-		case <-s.dbClosed:
+		case <-ctx.Done():
 			log.Debug("closing the timed batch handler", "path", s.path)
 			return
 		}
@@ -137,6 +146,11 @@ func (s *DB) Put(key, val []byte) error {
 
 // Get returns the value associated to the key
 func (s *DB) Get(key []byte) ([]byte, error) {
+	db := s.getDbPointer()
+	if db == nil {
+		return nil, storage.ErrDBIsClosed
+	}
+
 	data := s.batch.Get(key)
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
@@ -145,7 +159,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		return data, nil
 	}
 
-	data, err := s.db.Get(key, nil)
+	data, err := db.Get(key, nil)
 	if err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
@@ -158,6 +172,11 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 
 // Has returns nil if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
+	db := s.getDbPointer()
+	if db == nil {
+		return storage.ErrDBIsClosed
+	}
+
 	data := s.batch.Get(key)
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
@@ -166,7 +185,7 @@ func (s *DB) Has(key []byte) error {
 		return nil
 	}
 
-	has, err := s.db.Has(key, nil)
+	has, err := db.Has(key, nil)
 	if err != nil {
 		return err
 	}
@@ -194,7 +213,12 @@ func (s *DB) putBatch(b storage.Batcher) error {
 		Sync: true,
 	}
 
-	return s.db.Write(dbBatch.batch, wopt)
+	db := s.getDbPointer()
+	if db == nil {
+		return storage.ErrDBIsClosed
+	}
+
+	return db.Write(dbBatch.batch, wopt)
 }
 
 // Close closes the files/resources associated to the storage medium
@@ -204,12 +228,13 @@ func (s *DB) Close() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	select {
-	case s.dbClosed <- struct{}{}:
-	default:
+	s.cancel()
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		return db.Close()
 	}
 
-	return s.db.Close()
+	return nil
 }
 
 // Remove removes the data associated to the given key
@@ -228,15 +253,16 @@ func (s *DB) Destroy() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	s.dbClosed <- struct{}{}
-	err := s.db.Close()
-	if err != nil {
-		return err
+	s.cancel()
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		err := db.Close()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = os.RemoveAll(s.path)
-
-	return err
+	return os.RemoveAll(s.path)
 }
 
 // DestroyClosed removes the already closed storage medium stored data

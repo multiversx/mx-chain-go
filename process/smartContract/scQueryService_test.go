@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		VmContainer:       &mock.VMContainerMock{},
 		EconomicsFee:      &mock.FeeHandlerStub{},
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainStub{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      &mock.BootstrapperStub{},
 	}
@@ -462,19 +463,14 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	args := createMockArgumentsForSCQuery()
 
 	rootHashCalled := false
-	args.BlockChain = &mock.BlockChainStub{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockRootHashCalled: func() []byte {
 			if !rootHashCalled {
 				rootHashCalled = true
-				return &block.Header{
-					RootHash: []byte("first root hash"),
-				}
+				return []byte("first root hash")
 			}
 
-			return &block.Header{
-				RootHash: []byte("second root hash"),
-			}
-
+			return []byte("second root hash")
 		},
 	}
 
@@ -494,7 +490,7 @@ func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
 
 	args := createMockArgumentsForSCQuery()
 
-	args.BlockChain = &mock.BlockChainStub{
+	args.BlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				RootHash: []byte("same root hash"),
@@ -598,7 +594,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		},
 		EconomicsFee:      &mock.FeeHandlerStub{},
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainStub{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      &mock.BootstrapperStub{},
 	}

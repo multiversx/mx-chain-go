@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -21,7 +22,6 @@ var _ storage.Persister = (*SerialDB)(nil)
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
 	*baseLevelDb
-	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
 	sizeBatch         int
@@ -29,8 +29,6 @@ type SerialDB struct {
 	mutBatch          sync.RWMutex
 	dbAccess          chan serialQueryer
 	cancel            context.CancelFunc
-	mutClosed         sync.Mutex
-	closed            bool
 	closer            core.SafeCloser
 }
 
@@ -58,19 +56,18 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	}
 
 	bldb := &baseLevelDb{
-		db: db,
+		db:   db,
+		path: path,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &SerialDB{
 		baseLevelDb:       bldb,
-		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
 		sizeBatch:         0,
 		dbAccess:          make(chan serialQueryer),
 		cancel:            cancel,
-		closed:            false,
 		closer:            closing.NewSafeChanCloser(),
 	}
 
@@ -83,15 +80,22 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		_ = db.Close()
 	})
 
-	log.Debug("opened serial level db persister", "path", path)
+	crtCounter := atomic.AddUint32(&loggingDBCounter, 1)
+	log.Debug("opened serial level db persister", "path", path, "created pointer", fmt.Sprintf("%p", bldb.db), "global db counter", crtCounter)
 
 	return dbStore, nil
 }
 
 func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
+	interval := time.Duration(s.batchDelaySeconds) * time.Second
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(interval)
+
 		select {
-		case <-time.After(time.Duration(s.batchDelaySeconds) * time.Second):
+		case <-timer.C:
 			err := s.putBatch()
 			if err != nil {
 				log.Warn("leveldb serial putBatch", "error", err.Error())
@@ -121,7 +125,7 @@ func (s *SerialDB) updateBatchWithIncrement() error {
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
 	if s.isClosed() {
-		return storage.ErrSerialDBIsClosed
+		return storage.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -137,7 +141,7 @@ func (s *SerialDB) Put(key, val []byte) error {
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if s.isClosed() {
-		return nil, storage.ErrSerialDBIsClosed
+		return nil, storage.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -177,7 +181,7 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 // Has returns nil if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
 	if s.isClosed() {
-		return storage.ErrSerialDBIsClosed
+		return storage.ErrDBIsClosed
 	}
 
 	s.mutBatch.RLock()
@@ -212,7 +216,7 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
 	case s.dbAccess <- req:
 		return nil
 	case <-s.closer.ChanClose():
-		return storage.ErrSerialDBIsClosed
+		return storage.ErrDBIsClosed
 	}
 }
 
@@ -245,38 +249,32 @@ func (s *SerialDB) putBatch() error {
 }
 
 func (s *SerialDB) isClosed() bool {
-	s.mutClosed.Lock()
-	isClosed := s.closed
-	s.mutClosed.Unlock()
+	db := s.getDbPointer()
 
-	return isClosed
+	return db == nil
 }
 
 // Close closes the files/resources associated to the storage medium
 func (s *SerialDB) Close() error {
-	s.mutClosed.Lock()
-	defer s.mutClosed.Unlock()
-
-	if s.closed {
-		return nil
-	}
-
-	//calling close on the SafeCloser instance should be the last instruction called
-	//(just to close some go routines started as edge cases that would otherwise hang)
+	// calling close on the SafeCloser instance should be the last instruction called
+	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer s.closer.Close()
 
-	s.closed = true
 	_ = s.putBatch()
-
 	s.cancel()
 
-	return s.db.Close()
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		return db.Close()
+	}
+
+	return nil
 }
 
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
 	if s.isClosed() {
-		return storage.ErrSerialDBIsClosed
+		return storage.ErrDBIsClosed
 	}
 
 	s.mutBatch.Lock()
@@ -290,8 +288,8 @@ func (s *SerialDB) Remove(key []byte) error {
 func (s *SerialDB) Destroy() error {
 	log.Debug("serialDB.Destroy", "path", s.path)
 
-	//calling close on the SafeCloser instance should be the last instruction called
-	//(just to close some go routines started as edge cases that would otherwise hang)
+	// calling close on the SafeCloser instance should be the last instruction called
+	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer s.closer.Close()
 
 	s.mutBatch.Lock()
@@ -299,21 +297,17 @@ func (s *SerialDB) Destroy() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	s.mutClosed.Lock()
-	s.closed = true
-
 	s.cancel()
 
-	err := s.db.Close()
-	s.mutClosed.Unlock()
-
-	if err != nil {
-		return err
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		err := db.Close()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = os.RemoveAll(s.path)
-
-	return err
+	return os.RemoveAll(s.path)
 }
 
 // DestroyClosed removes the already closed storage medium stored data

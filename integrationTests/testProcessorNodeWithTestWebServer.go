@@ -173,7 +173,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardID:            tpn.ShardCoordinator.SelfId(),
 		Accounts:           accountsWrapper,
 		QueryService:       tpn.SCQueryService,
-		BlockChain:         tpn.BlockChain,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)

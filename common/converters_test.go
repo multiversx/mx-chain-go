@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestCalculateHash_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	obj := []byte("object")
-	hash, err := core.CalculateHash(nil, &mock.HasherMock{}, obj)
+	hash, err := core.CalculateHash(nil, &hashingMocks.HasherMock{}, obj)
 	assert.Nil(t, hash)
 	assert.Equal(t, core.ErrNilMarshalizer, err)
 }
@@ -44,7 +45,7 @@ func TestCalculateHash_ErrMarshalizer(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{
 		Fail: true,
 	}
-	hash, err := core.CalculateHash(marshalizer, &mock.HasherMock{}, obj)
+	hash, err := core.CalculateHash(marshalizer, &hashingMocks.HasherMock{}, obj)
 	assert.Nil(t, hash)
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
@@ -53,7 +54,7 @@ func TestCalculateHash_NilObject(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hash, err := core.CalculateHash(marshalizer, &mock.HasherMock{}, nil)
+	hash, err := core.CalculateHash(marshalizer, &hashingMocks.HasherMock{}, nil)
 	assert.Nil(t, hash)
 	assert.Equal(t, mock.ErrNilObjectToMarshal, err)
 }
