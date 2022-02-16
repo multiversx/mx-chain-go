@@ -178,7 +178,7 @@ func TestP2pPeerHonesty_Close(t *testing.T) {
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second*2 + time.Millisecond*100)
-	assert.Equal(t, int32(2), numCalls)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&numCalls))
 }
 
 func TestP2pPeerHonesty_ChangeScoreShouldWork(t *testing.T) {
