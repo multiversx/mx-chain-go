@@ -1,6 +1,7 @@
 package debug
 
 import (
+	"runtime/debug"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -75,6 +76,11 @@ func (detector *doubleTransactionsDetector) AddTxHash(txHash []byte, miniblockHa
 		detector.db[string(miniblockHash)] = mb
 	}
 
+	if mb.txs[string(txHash)] > 0 {
+		log.Warn("doubleTransactionsDetector - "+detector.name,
+			"tx hash", txHash, "current count", mb.txs[string(txHash)], "mb hash", miniblockHash,
+			"stack", string(debug.Stack()))
+	}
 	mb.txs[string(txHash)]++
 }
 
