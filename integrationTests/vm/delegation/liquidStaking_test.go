@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package delegation
@@ -176,8 +177,7 @@ func checkLPPosition(
 	nonce uint64,
 	value *big.Int,
 ) {
-	tokenIdentifierPlusNonce := append(tokenID, big.NewInt(0).SetUint64(nonce).Bytes()...)
-	esdtData := esdt.GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+	esdtData := esdt.GetESDTTokenData(t, address, nodes, tokenID, nonce)
 
 	if value.Cmp(big.NewInt(0)) == 0 {
 		require.Nil(t, esdtData.TokenMetaData)
