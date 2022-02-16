@@ -575,11 +575,9 @@ func (mp *metaProcessor) getFinalCrossMiniBlockHashes(
 	miniBlockHashes := make(map[string]uint32)
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
-		if miniBlockHeader != nil {
-			if !miniBlockHeader.IsFinal() {
-				log.Debug("metaProcessor.getFinalCrossMiniBlockHashes: do not check validity for mini block which is not final", "mb hash", miniBlockHeader.GetHash())
-				continue
-			}
+		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
+			log.Debug("metaProcessor.getFinalCrossMiniBlockHashes: do not check validity for mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			continue
 		}
 
 		miniBlockHashes[crossMiniBlockHash] = senderShardID

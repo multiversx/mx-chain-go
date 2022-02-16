@@ -197,7 +197,7 @@ func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *transac
 	return signature
 }
 
-func TestConstructMiniBlockHeaderReserved_WithMaxValue(t *testing.T) {
+func TestConstructMiniBlockHeaderReserved_WithMaxValues(t *testing.T) {
 	mbhr := &block.MiniBlockHeaderReserved{
 		ExecutionType: block.ProcessingType(math.MaxInt32),
 		State:         block.MiniBlockState(math.MaxInt32),

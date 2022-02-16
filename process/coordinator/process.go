@@ -767,11 +767,9 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	miniBlockInfos := make([]*data.MiniBlockInfo, 0)
 	for _, crossMiniBlockInfo := range crossMiniBlockInfos {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
-		if miniBlockHeader != nil {
-			if !miniBlockHeader.IsFinal() {
-				log.Debug("transactionCoordinator.getFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
-				continue
-			}
+		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
+			log.Debug("transactionCoordinator.getFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			continue
 		}
 
 		miniBlockInfos = append(miniBlockInfos, crossMiniBlockInfo)
