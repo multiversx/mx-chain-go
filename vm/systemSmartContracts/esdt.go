@@ -268,7 +268,7 @@ func (e *esdt) initDelegationESDTOnMeta(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	tokenIdentifier, err := e.createNewToken(
+	tokenIdentifier, _, err := e.createNewToken(
 		vm.LiquidStakingSCAddress,
 		[]byte(e.delegationTicker),
 		[]byte(e.delegationTicker),
@@ -1536,11 +1536,7 @@ func (e *esdt) changeToMultiShardCreate(args *vmcommon.ContractCallInput) vmcomm
 	isAddressLastByteZero := addressWithCreateRole[len(addressWithCreateRole)-1] == 0
 	if !isAddressLastByteZero {
 		multiCreateRoleOnly := [][]byte{[]byte(core.ESDTRoleNFTCreateMultiShard)}
-		err = e.sendRoleChangeData(args.Arguments[0], addressWithCreateRole, multiCreateRoleOnly, core.BuiltInFunctionSetESDTRole)
-		if err != nil {
-			e.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
+		e.sendRoleChangeData(args.Arguments[0], addressWithCreateRole, multiCreateRoleOnly, core.BuiltInFunctionSetESDTRole)
 	}
 
 	err = e.saveToken(args.Arguments[0], token)
@@ -1618,15 +1614,12 @@ func (e *esdt) prepareAndSendRoleChangeData(
 	if properties.isMultiShardNFTCreateSet {
 		allRoles = append(allRoles, []byte(core.ESDTRoleNFTCreateMultiShard))
 	}
-	err := e.sendRoleChangeData(tokenID, address, allRoles, core.BuiltInFunctionSetESDTRole)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	e.sendRoleChangeData(tokenID, address, allRoles, core.BuiltInFunctionSetESDTRole)
+
 	firstTransferRoleSet := !properties.transferRoleExists && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleTransfer))
 	if firstTransferRoleSet {
 		esdtTransferData := core.BuiltInFunctionESDTSetLimitedTransfer + "@" + hex.EncodeToString(tokenID)
-		e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+		e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 	}
 
 	return vmcommon.Ok
@@ -2078,7 +2071,7 @@ func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagRegisterAndSetAllRoles.SetValue(epoch >= e.registerAndSetAllRolesEnableEpoch)
 	log.Debug("ESDT register and set all roles", "enabled", e.flagRegisterAndSetAllRoles.IsSet())
 
-	e.flagESDTOnMeta.Toggle(epoch >= e.esdtOnMetachainEnableEpoch)
+	e.flagESDTOnMeta.SetValue(epoch >= e.esdtOnMetachainEnableEpoch)
 	log.Debug("ESDT on metachain", "enabled", e.flagESDTOnMeta.IsSet())
 }
 

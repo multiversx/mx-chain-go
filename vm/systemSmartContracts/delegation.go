@@ -2935,7 +2935,7 @@ func (d *delegation) claimDelegatedPosition(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	err = d.deleteDelegatorIfNeeded(address, delegator)
+	_, err = d.deleteDelegatorIfNeeded(address, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -3393,7 +3393,7 @@ func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 	d.flagDeleteDelegatorDataAfterClaimRewards.SetValue(epoch >= d.deleteDelegatorDataAfterClaimRewardsEnableEpoch)
 	log.Debug("delegationSC: delete delegator data after claim rewards", "enabled", d.flagDeleteDelegatorDataAfterClaimRewards.IsSet())
 
-	d.flagLiquidStaking.Toggle(epoch >= d.liquidStakingEnableEpoch)
+	d.flagLiquidStaking.SetValue(epoch >= d.liquidStakingEnableEpoch)
 	log.Debug("delegationSC: liquid staking", "enabled", d.flagLiquidStaking.IsSet())
 }
 

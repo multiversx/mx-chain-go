@@ -905,7 +905,6 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
-	blockChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:     gasScheduleNotifier,
 		MapDNSAddresses: make(map[string]struct{}),
@@ -914,9 +913,9 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ShardCoordinator: &mock.ShardCoordinatorStub{SelfIdCalled: func() uint32 {
 			return core.MetachainShardId
 		}},
-		EpochNotifier: epochNotifier,
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	testDataPool := dataRetrieverMock.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{

@@ -2205,7 +2205,7 @@ func (v *validatorSC) EpochConfirmed(epoch uint32, _ uint64) {
 	v.flagUnbondTokensV2.SetValue(epoch >= v.enableUnbondTokensV2Epoch)
 	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
 
-	v.flagStakeLimits.Toggle(epoch >= v.stakeLimitsEnableEpoch)
+	v.flagStakeLimits.SetValue(epoch >= v.stakeLimitsEnableEpoch)
 	log.Debug("validatorSC: stake limits", "enabled", v.flagStakeLimits.IsSet())
 }
 

@@ -1579,6 +1579,6 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagGovernanceEnabled.SetValue(epoch == s.governanceEnableEpoch)
 	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
 
-	s.flagBuiltInOnMetaEnabled.Toggle(epoch == s.builtInOnMetaEnableEpoch)
+	s.flagBuiltInOnMetaEnabled.SetValue(epoch == s.builtInOnMetaEnableEpoch)
 	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
 }
