@@ -716,3 +716,75 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 	intra, cross := resolver.NumPeersToQuery()
 	return intra, cross, nil
 }
+
+// RequestPeerAuthenticationsChunk asks for a chunk of peer authentication messages from connected peers
+func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32) {
+	log.Debug("requesting peer authentication messages from network",
+		"topic", factory.PeerAuthenticationTopic,
+		"shard", destShardID,
+		"chunk", chunkIndex,
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.CrossShardResolver(factory.PeerAuthenticationTopic, destShardID)
+	if err != nil {
+		log.Error("RequestPeerAuthenticationsChunk.CrossShardResolver",
+			"error", err.Error(),
+			"topic", factory.PeerAuthenticationTopic,
+			"shard", destShardID,
+			"chunk", chunkIndex,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	peerAuthResolver, ok := resolver.(dataRetriever.PeerAuthenticationResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating peer authentication resolver")
+		return
+	}
+
+	err = peerAuthResolver.RequestDataFromChunk(chunkIndex, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestPeerAuthenticationsChunk.RequestDataFromChunk",
+			"error", err.Error(),
+			"topic", factory.PeerAuthenticationTopic,
+			"shard", destShardID,
+			"chunk", chunkIndex,
+			"epoch", rrh.epoch,
+		)
+	}
+}
+
+// RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
+func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
+	log.Debug("requesting peer authentication messages from network",
+		"topic", factory.PeerAuthenticationTopic,
+		"shard", destShardID,
+	)
+
+	resolver, err := rrh.resolversFinder.CrossShardResolver(factory.PeerAuthenticationTopic, destShardID)
+	if err != nil {
+		log.Error("RequestPeerAuthenticationsChunk.CrossShardResolver",
+			"error", err.Error(),
+			"topic", factory.PeerAuthenticationTopic,
+			"shard", destShardID,
+		)
+		return
+	}
+
+	peerAuthResolver, ok := resolver.(dataRetriever.PeerAuthenticationResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating peer authentication resolver")
+		return
+	}
+
+	err = peerAuthResolver.RequestDataFromHashArray(hashes, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestPeerAuthenticationsChunk.RequestDataFromChunk",
+			"error", err.Error(),
+			"topic", factory.PeerAuthenticationTopic,
+			"shard", destShardID,
+		)
+	}
+}
