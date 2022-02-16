@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
@@ -166,6 +167,14 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	err = netMessenger.Bootstrap()
 	if err != nil {
 		return nil, err
+	}
+
+	// TODO - remove this
+	log.Debug("net messenger", "num peers", len(netMessenger.Peers()))
+	if len(netMessenger.Peers()) < 2 {
+		newLogLevel := "*:DEBUG,p2p:TRACE,external:TRACE,debug:DEBUG"
+		log.Warn("not enough connections found, automatically switching log level", "new log level", newLogLevel)
+		_ = logger.SetLogLevel(newLogLevel)
 	}
 
 	netMessenger.WaitForConnections(ncf.bootstrapWaitTime, ncf.p2pConfig.Node.MinNumPeersToWaitForOnBootstrap)
