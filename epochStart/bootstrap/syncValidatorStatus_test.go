@@ -102,8 +102,6 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 	t.Parallel()
 
-	args := getSyncValidatorStatusArgs()
-
 	mbHeaderHash1 := []byte("mb-hash1")
 	mbHeaderHash2 := []byte("mb-hash2")
 
@@ -122,15 +120,17 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 		},
 	}
 
+	mb := &block.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
 	expectedBody := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			{
-				ReceiverShardID: 1,
-				SenderShardID:   0,
-			},
+			mb,
 		},
 	}
 
+	args := getSyncValidatorStatusArgs()
 	svs, _ := NewSyncValidatorStatus(args)
 
 	wasCalled := false
@@ -147,10 +147,7 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 		},
 		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
 			return map[string]*block.MiniBlock{
-				string(mbHeaderHash2): {
-					ReceiverShardID: 1,
-					SenderShardID:   0,
-				},
+				string(mbHeaderHash2): mb,
 			}, nil
 		},
 	}
@@ -163,26 +160,26 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 func TestSyncValidatorStatus_findPeerMiniBlockHeaders(t *testing.T) {
 	t.Parallel()
 
+	mbHeader1 := block.MiniBlockHeader{
+		Hash: []byte("mb-hash1"),
+		Type: block.TxBlock,
+	}
+	mbHeader2 := block.MiniBlockHeader{
+		Hash: []byte("mb-hash2"),
+		Type: block.PeerBlock,
+	}
+
 	metaBlock := &block.MetaBlock{
 		Nonce: 37,
 		Epoch: 0,
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			{
-				Hash: []byte("mb-hash1"),
-				Type: block.TxBlock,
-			},
-			{
-				Hash: []byte("mb-hash2"),
-				Type: block.PeerBlock,
-			},
+			mbHeader1,
+			mbHeader2,
 		},
 	}
 
 	expectedMbHeaders := []data.MiniBlockHeaderHandler{
-		&block.MiniBlockHeader{
-			Hash: []byte("mb-hash2"),
-			Type: block.PeerBlock,
-		},
+		&mbHeader2,
 	}
 
 	mbHeaderHandlers := findPeerMiniBlockHeaders(metaBlock)
