@@ -17,16 +17,6 @@ import (
 
 var expectedErr = errors.New("expected error")
 
-func createMockBaseArgs() argBaseSender {
-	return argBaseSender{
-		messenger:                 &mock.MessengerStub{},
-		marshaller:                &mock.MarshallerMock{},
-		topic:                     "topic",
-		timeBetweenSends:          time.Second,
-		timeBetweenSendsWhenError: time.Second,
-	}
-}
-
 func createMockHeartbeatSenderArgs(argBase argBaseSender) argHeartbeatSender {
 	return argHeartbeatSender{
 		argBaseSender:        argBase,
@@ -139,6 +129,17 @@ func TestNewHeartbeatSender(t *testing.T) {
 		assert.Nil(t, sender)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
 	})
+	t.Run("invalid threshold should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.thresholdBetweenSends = 0
+		sender, err := newHeartbeatSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
+		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -190,7 +191,10 @@ func TestHeartbeatSender_Execute(t *testing.T) {
 		sender, _ := newHeartbeatSender(args)
 		sender.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
-				assert.Equal(t, argsBase.timeBetweenSends, duration)
+				floatTBS := float64(argsBase.timeBetweenSends.Nanoseconds())
+				maxDuration := floatTBS + floatTBS*argsBase.thresholdBetweenSends
+				assert.True(t, time.Duration(maxDuration) > duration)
+				assert.True(t, argsBase.timeBetweenSends <= duration)
 				wasCalled = true
 			},
 		}

@@ -17,8 +17,10 @@ type ArgSender struct {
 	HeartbeatTopic                              string
 	PeerAuthenticationTimeBetweenSends          time.Duration
 	PeerAuthenticationTimeBetweenSendsWhenError time.Duration
+	PeerAuthenticationThresholdBetweenSends     float64
 	HeartbeatTimeBetweenSends                   time.Duration
 	HeartbeatTimeBetweenSendsWhenError          time.Duration
+	HeartbeatThresholdBetweenSends              float64
 	VersionNumber                               string
 	NodeDisplayName                             string
 	Identity                                    string
@@ -48,6 +50,7 @@ func NewSender(args ArgSender) (*Sender, error) {
 			topic:                     args.PeerAuthenticationTopic,
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
+			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
 		peerSignatureHandler: args.PeerSignatureHandler,
 		privKey:              args.PrivateKey,
@@ -64,6 +67,7 @@ func NewSender(args ArgSender) (*Sender, error) {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
+			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
 		},
 		versionNumber:        args.VersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,
@@ -88,6 +92,7 @@ func checkSenderArgs(args ArgSender) error {
 			topic:                     args.PeerAuthenticationTopic,
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
+			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
 		peerSignatureHandler: args.PeerSignatureHandler,
 		privKey:              args.PrivateKey,
@@ -105,6 +110,7 @@ func checkSenderArgs(args ArgSender) error {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
+			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
 		},
 		versionNumber:        args.VersionNumber,
 		nodeDisplayName:      args.NodeDisplayName,

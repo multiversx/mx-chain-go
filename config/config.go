@@ -106,8 +106,10 @@ type SoftwareVersionConfig struct {
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
 	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
+	PeerAuthenticationThresholdBetweenSends          float64
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
+	HeartbeatThresholdBetweenSends                   float64
 	HeartbeatExpiryTimespanInSec                     int64
 	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig

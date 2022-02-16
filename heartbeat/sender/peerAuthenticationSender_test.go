@@ -148,6 +148,17 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
+	t.Run("invalid threshold should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.thresholdBetweenSends = 0
+		sender, err := newPeerAuthenticationSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
+		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -377,7 +388,10 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		sender, _ := newPeerAuthenticationSender(args)
 		sender.timerHandler = &mock.TimerHandlerStub{
 			CreateNewTimerCalled: func(duration time.Duration) {
-				assert.Equal(t, argsBase.timeBetweenSends, duration)
+				floatTBS := float64(argsBase.timeBetweenSends.Nanoseconds())
+				maxDuration := floatTBS + floatTBS*argsBase.thresholdBetweenSends
+				assert.True(t, time.Duration(maxDuration) > duration)
+				assert.True(t, argsBase.timeBetweenSends <= duration)
 				wasCalled = true
 			},
 		}

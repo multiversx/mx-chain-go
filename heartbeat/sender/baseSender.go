@@ -5,11 +5,15 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
+var randomizer = &random.ConcurrentSafeIntRandomizer{}
+
 const minTimeBetweenSends = time.Second
+const minThresholdBetweenSends = 0.05 // 5%
 
 // argBaseSender represents the arguments for base sender
 type argBaseSender struct {
@@ -18,6 +22,7 @@ type argBaseSender struct {
 	topic                     string
 	timeBetweenSends          time.Duration
 	timeBetweenSendsWhenError time.Duration
+	thresholdBetweenSends     float64
 }
 
 type baseSender struct {
@@ -27,19 +32,23 @@ type baseSender struct {
 	topic                     string
 	timeBetweenSends          time.Duration
 	timeBetweenSendsWhenError time.Duration
+	thresholdBetweenSends     float64
 }
 
 func createBaseSender(args argBaseSender) baseSender {
-	return baseSender{
-		timerHandler: &timerWrapper{
-			timer: time.NewTimer(args.timeBetweenSends),
-		},
+	bs := baseSender{
 		messenger:                 args.messenger,
 		marshaller:                args.marshaller,
 		topic:                     args.topic,
 		timeBetweenSends:          args.timeBetweenSends,
 		timeBetweenSendsWhenError: args.timeBetweenSendsWhenError,
+		thresholdBetweenSends:     args.thresholdBetweenSends,
 	}
+	bs.timerHandler = &timerWrapper{
+		timer: time.NewTimer(bs.computeRandomDuration()),
+	}
+
+	return bs
 }
 
 func checkBaseSenderArgs(args argBaseSender) error {
@@ -58,6 +67,18 @@ func checkBaseSenderArgs(args argBaseSender) error {
 	if args.timeBetweenSendsWhenError < minTimeBetweenSends {
 		return fmt.Errorf("%w for timeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
 	}
+	if args.thresholdBetweenSends < minThresholdBetweenSends {
+		return fmt.Errorf("%w for thresholdBetweenSends", heartbeat.ErrInvalidThreshold)
+	}
 
 	return nil
+}
+
+func (bs *baseSender) computeRandomDuration() time.Duration {
+	timeBetweenSendsInNano := bs.timeBetweenSends.Nanoseconds()
+	maxThreshold := float64(timeBetweenSendsInNano) * bs.thresholdBetweenSends
+	randThreshold := randomizer.Intn(int(maxThreshold))
+
+	ret := time.Duration(timeBetweenSendsInNano + int64(randThreshold))
+	return ret
 }

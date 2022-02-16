@@ -65,7 +65,7 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 
 // Execute will handle the execution of a cycle in which the peer authentication message will be sent
 func (sender *peerAuthenticationSender) Execute() {
-	duration := sender.timeBetweenSends
+	duration := sender.computeRandomDuration()
 	err := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
