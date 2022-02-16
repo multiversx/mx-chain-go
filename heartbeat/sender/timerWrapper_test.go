@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTimerWrapper_createTimerAndShouldExecute(t *testing.T) {
+func TestTimerWrapper_createTimerAndExecutionReadyChannel(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
@@ -21,7 +21,7 @@ func TestTimerWrapper_createTimerAndShouldExecute(t *testing.T) {
 		wrapper := &timerWrapper{}
 		wrapper.CreateNewTimer(time.Second)
 		select {
-		case <-wrapper.ShouldExecute():
+		case <-wrapper.ExecutionReadyChannel():
 			return
 		case <-ctx.Done():
 			assert.Fail(t, "timeout reached")
@@ -37,7 +37,7 @@ func TestTimerWrapper_createTimerAndShouldExecute(t *testing.T) {
 		wrapper.CreateNewTimer(time.Second)
 		wrapper.CreateNewTimer(time.Second)
 		select {
-		case <-wrapper.ShouldExecute():
+		case <-wrapper.ExecutionReadyChannel():
 			return
 		case <-ctx.Done():
 			assert.Fail(t, "timeout reached")
@@ -79,7 +79,7 @@ func TestTimerWrapper_Close(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		select {
-		case <-wrapper.ShouldExecute():
+		case <-wrapper.ExecutionReadyChannel():
 			assert.Fail(t, "should have not called execute again")
 		case <-ctx.Done():
 			return
@@ -87,7 +87,7 @@ func TestTimerWrapper_Close(t *testing.T) {
 	})
 }
 
-func TestTimerWrapper_ShouldExecuteMultipleTriggers(t *testing.T) {
+func TestTimerWrapper_ExecutionReadyChannelMultipleTriggers(t *testing.T) {
 	t.Parallel()
 
 	wrapper := &timerWrapper{}
@@ -101,7 +101,7 @@ func TestTimerWrapper_ShouldExecuteMultipleTriggers(t *testing.T) {
 			assert.Fail(t, "timeout reached in iteration")
 			cancel()
 			return
-		case <-wrapper.ShouldExecute():
+		case <-wrapper.ExecutionReadyChannel():
 			fmt.Printf("iteration %d\n", i)
 			numExecuted++
 			wrapper.CreateNewTimer(time.Second)
