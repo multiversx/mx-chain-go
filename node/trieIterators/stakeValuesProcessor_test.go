@@ -8,9 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -32,7 +30,6 @@ func createAccountsWrapper() *AccountsWrapper {
 func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
 		Accounts:           createAccountsWrapper(),
-		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 	}
@@ -62,16 +59,6 @@ func TestNewTotalStakedValueProcessor(t *testing.T) {
 				return createMockArgs()
 			},
 			exError: nil,
-		},
-		{
-			name: "NilBlockChain",
-			argsFunc: func() ArgTrieIteratorProcessor {
-				arg := createMockArgs()
-				arg.BlockChain = nil
-
-				return arg
-			},
-			exError: ErrNilBlockChain,
 		},
 		{
 			name: "NilQueryService",
@@ -126,11 +113,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 			return nil, expectedErr
 		},
 	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
-		},
-	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
@@ -138,35 +120,14 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTotalStakedValueProcessor_GetTotalStakedValueNilHeaderShouldError(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgs()
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return nil
-		},
-	}
-	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
-
-	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
-	require.Nil(t, resTotalStaked)
-	require.Equal(t, ErrNodeNotInitialized, err)
-}
-
-func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *testing.T) {
+func TestTotalStakedValueProcessor_GetTotalStakedValueAccountsAdapterErrors(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			return expectedErr
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			return nil, expectedErr
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -188,11 +149,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -220,11 +176,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -255,11 +206,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -330,11 +276,6 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
-		},
-	}
-	arg.BlockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{}
 		},
 	}
 	arg.QueryService = &mock.SCQueryServiceStub{

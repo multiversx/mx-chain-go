@@ -12,7 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,7 +63,7 @@ func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing
 	args.Config.Enabled = true
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{}
+			return &storageStubs.StorerStub{}
 		},
 	}
 
@@ -80,7 +81,7 @@ func getArgs() *factory.ArgsHistoryRepositoryFactory {
 		Config:                   config.DbLookupExtensionsConfig{},
 		Store:                    &mock.ChainStorerMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 		Uint64ByteSliceConverter: &processMock.Uint64ByteSliceConverterMock{},
 	}
 }

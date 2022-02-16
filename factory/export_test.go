@@ -66,8 +66,9 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	arwenChangeLocker common.Locker,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
-	return pcf.newBlockProcessor(
+	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
 		epochStartTrigger,
@@ -78,7 +79,13 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
 		arwenChangeLocker,
+		scheduledTxsExecutionHandler,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return blockProcessorComponents.blockProcessor, blockProcessorComponents.vmFactoryForTxSimulate, nil
 }
 
 // SetShardCoordinator -

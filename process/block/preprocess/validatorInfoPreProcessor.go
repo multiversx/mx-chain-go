@@ -116,9 +116,9 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions does nothing
 func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
+	_ data.HeaderHandler,
 	_ *block.Body,
 	_ func() bool,
-	_ []byte,
 ) error {
 	return nil
 }
@@ -149,7 +149,7 @@ func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool, 
 }
 
 // ProcessMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() bool, _ func() (int, int), _ bool) ([][]byte, int, error) {
 	if miniBlock.Type != block.PeerBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}

@@ -151,7 +151,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ShardID:            args.BootstrapComponents.ShardCoordinator().SelfId(),
 		Accounts:           accountsWrapper,
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-		BlockChain:         args.DataComponents.Blockchain(),
 		QueryService:       scQueryService,
 	}
 	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
@@ -271,6 +270,7 @@ func createScQueryElement(
 		CompiledSCPool:     smartContractsCache,
 		WorkingDir:         args.workingDir,
 		EpochNotifier:      args.coreComponents.EpochNotifier(),
+		EnableEpochs:       args.epochConfig.EnableEpochs,
 		NilCompiledSCStore: true,
 	}
 

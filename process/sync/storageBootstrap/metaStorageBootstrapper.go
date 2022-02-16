@@ -3,7 +3,6 @@ package storageBootstrap
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -24,20 +23,20 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 	}
 
 	base := &storageBootstrapper{
-		bootStorer:        arguments.BootStorer,
-		forkDetector:      arguments.ForkDetector,
-		blkExecutor:       arguments.BlockProcessor,
-		blkc:              arguments.ChainHandler,
-		marshalizer:       arguments.Marshalizer,
-		store:             arguments.Store,
-		shardCoordinator:  arguments.ShardCoordinator,
-		nodesCoordinator:  arguments.NodesCoordinator,
-		epochStartTrigger: arguments.EpochStartTrigger,
-		blockTracker:      arguments.BlockTracker,
-
-		uint64Converter:     arguments.Uint64Converter,
-		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
-		chainID:             arguments.ChainID,
+		bootStorer:                   arguments.BootStorer,
+		forkDetector:                 arguments.ForkDetector,
+		blkExecutor:                  arguments.BlockProcessor,
+		blkc:                         arguments.ChainHandler,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		blockTracker:                 arguments.BlockTracker,
+		uint64Converter:              arguments.Uint64Converter,
+		bootstrapRoundIndex:          arguments.BootstrapRoundIndex,
+		chainID:                      arguments.ChainID,
+		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 	}
 
 	boot := metaStorageBootstrapper{
@@ -105,7 +104,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 
 	for _, shardHeaderHash := range shardHeaderHashes {
-		var shardHeader *block.Header
+		var shardHeader data.HeaderHandler
 		shardHeader, err = process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
 		if err != nil {
 			log.Debug("shard header is not found in BlockHeaderUnit storage",
@@ -166,6 +165,17 @@ func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksI
 			log.Trace("miniblock", "hash", hash)
 		}
 	}
+}
+
+func (msb *metaStorageBootstrapper) getRootHash(metaBlockHash []byte) []byte {
+	metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, msb.marshalizer, msb.store)
+	if err != nil {
+		log.Debug("meta block is not found in MetaBlockUnit storage",
+			"hash", metaBlockHash)
+		return nil
+	}
+
+	return metaBlock.GetRootHash()
 }
 
 func checkMetaStorageBootstrapperArgs(args ArgsMetaStorageBootstrapper) error {

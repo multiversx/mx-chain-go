@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -129,7 +130,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
-	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -145,7 +146,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 		VmContainer:       context.VMContainer,
 		EconomicsFee:      context.EconomicsFee,
 		BlockChainHook:    context.BlockchainHook,
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
@@ -234,7 +235,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
-	blockchainMock := &mock.BlockChainMock{}
+	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -328,7 +329,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxFeeHandler:     context.UnsignexTxHandler,
 		EconomicsFee:     context.EconomicsFee,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),

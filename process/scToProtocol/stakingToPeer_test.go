@@ -19,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -28,14 +30,14 @@ import (
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
 		PubkeyConv:    mock.NewPubkeyConverterMock(32),
-		Hasher:        &mock.HasherMock{},
+		Hasher:        &hashingMocks.HasherMock{},
 		Marshalizer:   &mock.MarshalizerStub{},
 		PeerState:     &stateMock.AccountsStub{},
 		BaseState:     &stateMock.AccountsStub{},
 		ArgParser:     &mock.ArgumentParserMock{},
 		CurrTxs:       &mock.TxForCurrentBlockStub{},
 		RatingsData:   &mock.RatingsInfoMock{},
-		EpochNotifier: &mock.EpochNotifierStub{},
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 	}
 }
 
