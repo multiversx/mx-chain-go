@@ -5,17 +5,17 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
-
-var expectedErr = errors.New("expected err")
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
 	return ArgPeerAuthenticationRequestsProcessor{
@@ -154,15 +154,15 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 
 		args.MessagesInChunk = 5 // all provided keys in one chunk
 
-		wasRequestPeerAuthenticationsChunkCalled := false
-		wasRequestPeerAuthenticationsByHashesCalled := false
+		wasRequestPeerAuthenticationsChunkCalled := coreAtomic.Flag{}
+		wasRequestPeerAuthenticationsByHashesCalled := coreAtomic.Flag{}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestPeerAuthenticationsChunkCalled: func(destShardID uint32, chunkIndex uint32) {
-				wasRequestPeerAuthenticationsChunkCalled = true
+				wasRequestPeerAuthenticationsChunkCalled.SetValue(true)
 				assert.Equal(t, uint32(0), chunkIndex)
 			},
 			RequestPeerAuthenticationsByHashesCalled: func(destShardID uint32, hashes [][]byte) {
-				wasRequestPeerAuthenticationsByHashesCalled = true
+				wasRequestPeerAuthenticationsByHashesCalled.SetValue(true)
 			},
 		}
 
@@ -179,8 +179,8 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 		time.Sleep(3 * time.Second)
 		_ = processor.Close()
 
-		assert.False(t, wasRequestPeerAuthenticationsByHashesCalled)
-		assert.True(t, wasRequestPeerAuthenticationsChunkCalled)
+		assert.False(t, wasRequestPeerAuthenticationsByHashesCalled.IsSet())
+		assert.True(t, wasRequestPeerAuthenticationsChunkCalled.IsSet())
 	})
 	t.Run("should work: <-requestsTimer.C", func(t *testing.T) {
 		t.Parallel()
@@ -199,15 +199,15 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 		args.MessagesInChunk = 5   // all provided keys in one chunk
 		args.MinPeersThreshold = 1 // need messages from all peers
 
-		wasRequestPeerAuthenticationsChunkCalled := false
-		wasRequestPeerAuthenticationsByHashesCalled := false
+		wasRequestPeerAuthenticationsChunkCalled := coreAtomic.Flag{}
+		wasRequestPeerAuthenticationsByHashesCalled := coreAtomic.Flag{}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestPeerAuthenticationsChunkCalled: func(destShardID uint32, chunkIndex uint32) {
-				wasRequestPeerAuthenticationsChunkCalled = true
+				wasRequestPeerAuthenticationsChunkCalled.SetValue(true)
 				assert.Equal(t, uint32(0), chunkIndex)
 			},
 			RequestPeerAuthenticationsByHashesCalled: func(destShardID uint32, hashes [][]byte) {
-				wasRequestPeerAuthenticationsByHashesCalled = true
+				wasRequestPeerAuthenticationsByHashesCalled.SetValue(true)
 				assert.Equal(t, getSortedSlice(providedKeys[len(providedKeys)/2:]), getSortedSlice(hashes))
 			},
 		}
@@ -225,8 +225,8 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 		time.Sleep(3 * time.Second)
 		_ = processor.Close()
 
-		assert.True(t, wasRequestPeerAuthenticationsByHashesCalled)
-		assert.True(t, wasRequestPeerAuthenticationsChunkCalled)
+		assert.True(t, wasRequestPeerAuthenticationsByHashesCalled.IsSet())
+		assert.True(t, wasRequestPeerAuthenticationsChunkCalled.IsSet())
 	})
 }
 
@@ -240,7 +240,7 @@ func TestPeerAuthenticationRequestsProcessor_requestKeysChunks(t *testing.T) {
 	args.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestPeerAuthenticationsChunkCalled: func(destShardID uint32, chunkIndex uint32) {
 			assert.Equal(t, counter, chunkIndex)
-			counter++
+			atomic.AddUint32(&counter, 1)
 		},
 	}
 
@@ -249,51 +249,6 @@ func TestPeerAuthenticationRequestsProcessor_requestKeysChunks(t *testing.T) {
 	assert.False(t, check.IfNil(processor))
 
 	processor.requestKeysChunks(providedKeys)
-}
-
-func TestPeerAuthenticationRequestsProcessor_getSortedValidatorsKeys(t *testing.T) {
-	t.Parallel()
-
-	t.Run("GetAllEligibleValidatorsPublicKeys returns error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.NodesCoordinator = &mock.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		processor, err := NewPeerAuthenticationRequestsProcessor(args)
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(processor))
-
-		sortedKeys, err := processor.getSortedValidatorsKeys()
-		assert.Equal(t, expectedErr, err)
-		assert.Nil(t, sortedKeys)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedKeys := [][]byte{[]byte("pk3"), []byte("pk2"), []byte("pk0"), []byte("pk1")}
-		providedKeysMap := make(map[uint32][][]byte, 2)
-		providedKeysMap[0] = providedKeys[:len(providedKeys)/2]
-		providedKeysMap[1] = providedKeys[len(providedKeys)/2:]
-		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.NodesCoordinator = &mock.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return providedKeysMap, nil
-			},
-		}
-
-		processor, err := NewPeerAuthenticationRequestsProcessor(args)
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(processor))
-
-		sortedKeys, err := processor.getSortedValidatorsKeys()
-		assert.Nil(t, err)
-		assert.Equal(t, getSortedSlice(providedKeys), sortedKeys)
-	})
 }
 
 func TestPeerAuthenticationRequestsProcessor_getMaxChunks(t *testing.T) {
@@ -328,11 +283,11 @@ func TestPeerAuthenticationRequestsProcessor_isThresholdReached(t *testing.T) {
 	providedPks := [][]byte{[]byte("pk0"), []byte("pk1"), []byte("pk2"), []byte("pk3")}
 	args := createMockArgPeerAuthenticationRequestsProcessor()
 	args.MinPeersThreshold = 0.6
-	counter := 0
+	counter := uint32(0)
 	args.PeerAuthenticationPool = &testscommon.CacherStub{
 		KeysCalled: func() [][]byte {
 			var keys = make([][]byte, 0)
-			switch counter {
+			switch atomic.LoadUint32(&counter) {
 			case 0:
 				keys = [][]byte{[]byte("pk0")}
 			case 1:
@@ -343,7 +298,7 @@ func TestPeerAuthenticationRequestsProcessor_isThresholdReached(t *testing.T) {
 				keys = [][]byte{[]byte("pk0"), []byte("pk1"), []byte("pk2"), []byte("pk3")}
 			}
 
-			counter++
+			atomic.AddUint32(&counter, 1)
 			return keys
 		},
 	}
@@ -386,11 +341,11 @@ func TestPeerAuthenticationRequestsProcessor_requestMissingKeys(t *testing.T) {
 		expectedMissingKeys := make([][]byte, 0)
 		args := createMockArgPeerAuthenticationRequestsProcessor()
 		args.MinPeersThreshold = 0.6
-		counter := 0
+		counter := uint32(0)
 		args.PeerAuthenticationPool = &testscommon.CacherStub{
 			KeysCalled: func() [][]byte {
 				var keys = make([][]byte, 0)
-				switch counter {
+				switch atomic.LoadUint32(&counter) {
 				case 0:
 					keys = [][]byte{[]byte("pk0")}
 					expectedMissingKeys = [][]byte{[]byte("pk1"), []byte("pk2"), []byte("pk3")}
@@ -405,7 +360,7 @@ func TestPeerAuthenticationRequestsProcessor_requestMissingKeys(t *testing.T) {
 					expectedMissingKeys = make([][]byte, 0)
 				}
 
-				counter++
+				atomic.AddUint32(&counter, 1)
 				return keys
 			},
 		}

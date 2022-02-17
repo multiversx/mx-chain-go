@@ -206,7 +206,7 @@ func (processor *PeerAuthenticationRequestsProcessor) getMissingKeys(sortedValid
 
 	missingKeys := make([][]byte, 0)
 	for mKey, mVal := range validatorsMap {
-		if mVal {
+		if !mVal {
 			missingKeys = append(missingKeys, []byte(mKey))
 		}
 	}
