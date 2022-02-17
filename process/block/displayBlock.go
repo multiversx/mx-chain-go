@@ -189,27 +189,30 @@ func (txc *transactionCounter) displayTxBlockBody(
 ) []*display.LineData {
 	currentBlockTxs := 0
 
-	miniBlockHeaders := header.GetMiniBlockHeadersHashes()
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
-		scheduledModeInMiniBlockHeader, _ := process.IsScheduledMode(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, txc.hasher, txc.marshalizer)
-		scheduledModeInMiniBlock := miniBlock.IsScheduledMiniBlock()
-
-		executionTypeInMiniBlockHeaderStr := ""
-		if scheduledModeInMiniBlockHeader {
-			executionTypeInMiniBlockHeaderStr = common.ScheduledMode + "_"
+		processingTypeInMiniBlockHeaderStr := ""
+		if len(miniBlockHeaders) > i {
+			processingType := block.ProcessingType(miniBlockHeaders[i].GetProcessingType())
+			switch processingType {
+			case block.Scheduled:
+				processingTypeInMiniBlockHeaderStr = "Scheduled_"
+			case block.Processed:
+				processingTypeInMiniBlockHeaderStr = "Processed_"
+			}
 		}
 
-		executionTypeInMiniBlockStr := ""
-		if scheduledModeInMiniBlock {
-			executionTypeInMiniBlockStr = "S_"
+		processingTypeInMiniBlockStr := ""
+		if miniBlock.IsScheduledMiniBlock() {
+			processingTypeInMiniBlockStr = "S_"
 		}
 
 		part := fmt.Sprintf("%s%s_MiniBlock_%s%d->%d",
-			executionTypeInMiniBlockHeaderStr,
+			processingTypeInMiniBlockHeaderStr,
 			miniBlock.Type.String(),
-			executionTypeInMiniBlockStr,
+			processingTypeInMiniBlockStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
@@ -219,7 +222,7 @@ func (txc *transactionCounter) displayTxBlockBody(
 		}
 
 		if len(miniBlockHeaders) > i {
-			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i])}))
+			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i].GetHash())}))
 		}
 
 		currentBlockTxs += len(miniBlock.TxHashes)

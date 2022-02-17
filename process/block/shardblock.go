@@ -295,7 +295,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
+	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()

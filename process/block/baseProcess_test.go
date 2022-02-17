@@ -1843,4 +1843,4 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 
 }
 
-//TODO: Add unit tests for methods: getIndexOfFirstMiniBlockToBeExecuted, getFinalMiniBlocks, getScheduledMiniBlocksFromMe and checkScheduledMiniBlocksValidity
+//TODO: Add unit tests for methods: getIndexOfFirstMiniBlockToBeExecuted, getFinalMiniBlocks, getScheduledMiniBlocksFromMe, checkScheduledMiniBlocksValidity and setMiniBlockHeaderReservedField

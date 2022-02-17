@@ -345,7 +345,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header, body)
+	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header)
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()

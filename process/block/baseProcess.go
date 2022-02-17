@@ -611,23 +611,63 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			Type:            body.MiniBlocks[i].Type,
 		}
 
-		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
-		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
-			err = miniBlockHeaderHandlers[i].SetProcessingType(int32(block.Scheduled))
-			if err != nil {
-				return 0, nil, err
-			}
-
-			if miniBlockHeaderHandlers[i].GetSenderShardID() == bp.shardCoordinator.SelfId() {
-				err = miniBlockHeaderHandlers[i].SetConstructionState(int32(block.Proposed))
-				if err != nil {
-					return 0, nil, err
-				}
-			}
+		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHash, miniBlockHeaderHandlers[i])
+		if err != nil {
+			return 0, nil, err
 		}
 	}
 
 	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
+func (bp *baseProcessor) setMiniBlockHeaderReservedField(
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	notEmpty := len(miniBlock.TxHashes) > 0
+	isScheduledMiniBlock := notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
+	if isScheduledMiniBlock {
+		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
+		if err != nil {
+			return err
+		}
+
+		if miniBlockHeaderHandler.GetSenderShardID() == bp.shardCoordinator.SelfId() {
+			err = miniBlockHeaderHandler.SetConstructionState(int32(block.Proposed))
+			if err != nil {
+				return err
+			}
+		} else {
+			err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
+			err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
+			if err != nil {
+				return err
+			}
+		} else {
+			err := miniBlockHeaderHandler.SetProcessingType(int32(block.Normal))
+			if err != nil {
+				return err
+			}
+		}
+
+		err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // check if header has the same miniblocks as presented in body
@@ -1747,18 +1787,15 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	}
 }
 
-func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler, body *block.Body) int {
+func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return 0
 	}
 
-	for index := range body.MiniBlocks {
-		mbHash := header.GetMiniBlockHeadersHashes()[index]
-		//TODO: This check should be done using isFinal method later, but only when we could differentiate between the final mini blocks
-		//executed as scheduled in the last block and the normal mini blocks from the current block which are also final, but not yet executed
-		if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
+	for index, miniBlockHeaderHandler := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed) {
 			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
-				"mb hash", mbHash,
+				"mb hash", miniBlockHeaderHandler.GetHash(),
 				"mb index", index)
 			continue
 		}
@@ -1766,7 +1803,7 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 		return index
 	}
 
-	return len(body.MiniBlocks)
+	return len(header.GetMiniBlockHeaderHandlers())
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

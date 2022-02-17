@@ -281,13 +281,11 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 	allTxs map[string]data.TransactionHandler,
 	selfShardID uint32,
 ) (map[string]data.TransactionHandler, error) {
-	var scheduledTxHash []byte
 	scheduledIntermediateTxs := make(map[string]data.TransactionHandler)
 	for txHash, txHandler := range allTxs {
 		if isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(txHash), txHandler, selfShardID) {
 			scheduledIntermediateTxs[txHash] = txHandler
 			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
-				"scheduled tx hash", scheduledTxHash,
 				"intermediate tx hash", txHash,
 				"intermediate tx nonce", txHandler.GetNonce(),
 				"intermediate tx sender address", string(txHandler.GetSndAddr()),

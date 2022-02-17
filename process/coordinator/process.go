@@ -1447,11 +1447,9 @@ func (tc *transactionCoordinator) verifyGasLimit(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
-			mbHash := header.GetMiniBlockHeadersHashes()[index]
-			//TODO: This check should be done using isFinal method later, but only when we could differentiate between the final mini blocks
-			//executed as scheduled in the last block and the normal mini blocks from the current block which are also final, but not yet executed
-			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
-				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", mbHash)
+			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
+			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
+				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}
@@ -1526,11 +1524,9 @@ func (tc *transactionCoordinator) verifyFees(
 			continue
 		}
 		if tc.flagScheduledMiniBlocks.IsSet() {
-			mbHash := header.GetMiniBlockHeadersHashes()[index]
-			//TODO: This check should be done using isFinal method later, but only when we could differentiate between the final mini blocks
-			//executed as scheduled in the last block and the normal mini blocks from the current block which are also final, but not yet executed
-			if tc.scheduledTxsExecutionHandler.IsMiniBlockExecuted(mbHash) {
-				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", mbHash)
+			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
+			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
+				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}
