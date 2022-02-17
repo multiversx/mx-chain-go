@@ -116,3 +116,15 @@ var ErrEmptyNodeDisplayName = errors.New("empty node display name")
 
 // ErrEmptyIdentity signals that an empty identity was provided
 var ErrEmptyIdentity = errors.New("empty identity")
+
+// ErrNilRequestHandler signals that a nil request handler interface was provided
+var ErrNilRequestHandler = errors.New("nil request handler")
+
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNilPeerAuthenticationPool signals that a nil peer authentication pool has been provided
+var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
+
+// ErrInvalidValue signals that an invalid value has been provided
+var ErrInvalidValue = errors.New("invalid value")
