@@ -59,11 +59,3 @@ type APITransactionHandler interface {
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool
 }
-
-// APIBlockHandler defines the behavior of a component able to return api blocks
-type APIBlockHandler interface {
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
-	IsInterfaceNil() bool
-}

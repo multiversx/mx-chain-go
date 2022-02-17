@@ -594,7 +594,6 @@ func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig
 
 // CreateManagedConsensusComponents is the managed consensus components factory
 func (nr *nodeRunner) CreateManagedConsensusComponents(
-<<<<<<< HEAD
 	coreComponents mainFactory.CoreComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
@@ -603,18 +602,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
-=======
-	managedCoreComponents mainFactory.CoreComponentsHandler,
-	managedNetworkComponents mainFactory.NetworkComponentsHandler,
-	managedCryptoComponents mainFactory.CryptoComponentsHandler,
-	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
-	managedDataComponents mainFactory.DataComponentsHandler,
-	managedStateComponents mainFactory.StateComponentsHandler,
-	managedStatusComponents mainFactory.StatusComponentsHandler,
-	managedProcessComponents mainFactory.ProcessComponentsHandler,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
->>>>>>> origin/feat/header-verification
 	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
@@ -830,21 +818,12 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 
 // CreateManagedStatusComponents is the managed status components factory
 func (nr *nodeRunner) CreateManagedStatusComponents(
-<<<<<<< HEAD
 	managedCoreComponents mainFactory.CoreComponentsHolder,
 	managedNetworkComponents mainFactory.NetworkComponentsHolder,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
 	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
-=======
-	managedCoreComponents mainFactory.CoreComponentsHandler,
-	managedNetworkComponents mainFactory.NetworkComponentsHandler,
-	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
-	managedDataComponents mainFactory.DataComponentsHandler,
-	managedStateComponents mainFactory.StateComponentsHandler,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
->>>>>>> origin/feat/header-verification
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{

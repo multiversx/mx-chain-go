@@ -3,6 +3,9 @@ package factory
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -30,8 +33,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	"path/filepath"
-	"sync"
 )
 
 // ApiResolverArgs holds the argument needed to create an API resolver
@@ -192,6 +193,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          scQueryService,
 		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
@@ -201,6 +207,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		DelegatedListHandler:    delegatedListHandler,
 		APITransactionHandler:   apiTransactionProcessor,
 		APIBlockHandler:         apiBlockProcessor,
+		APIInternalBlockHandler: apiInternalBlockProcessor,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -398,7 +405,25 @@ func createBuiltinFuncs(
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
 
-func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (external.APIBlockHandler, error) {
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+}
+
+func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIInternalBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIInternalBlockProcessor(blockApiArgs)
+}
+
+func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
 	statusComputer, err := txstatus.NewStatusComputer(
 		args.ProcessComponents.ShardCoordinator().SelfId(),
 		args.CoreComponents.Uint64ByteSliceConverter(),
@@ -420,5 +445,5 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 		Hasher:                   args.CoreComponents.Hasher(),
 	}
 
-	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+	return blockApiArgs, nil
 }

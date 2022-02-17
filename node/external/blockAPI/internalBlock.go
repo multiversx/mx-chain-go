@@ -1,6 +1,7 @@
 package blockAPI
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -10,8 +11,8 @@ type internalBlockProcessor struct {
 	*baseAPIBlockProcessor
 }
 
-// NewInternalBlockProcessor will create a new instance of internal block processor
-func NewInternalBlockProcessor(arg *APIBlockProcessorArg) *internalBlockProcessor {
+// newInternalBlockProcessor will create a new instance of internal block processor
+func newInternalBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byte) *internalBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 
 	return &internalBlockProcessor{
@@ -22,14 +23,21 @@ func NewInternalBlockProcessor(arg *APIBlockProcessorArg) *internalBlockProcesso
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			unmarshalTx:              arg.UnmarshalTx,
+			txUnmarshaller:           arg.TxUnmarshaller,
 			txStatusComputer:         arg.StatusComputer,
+			hasher:                   arg.Hasher,
+			addressPubKeyConverter:   arg.AddressPubkeyConverter,
+			emptyReceiptsHash:        emptyReceiptsHash,
 		},
 	}
 }
 
 // GetInternalShardBlockByNonce wil return a shard block by nonce
 func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	if ibp.selfShardID == core.MetachainShardId {
+		return nil, ErrShardOnlyEndpoint
+	}
+
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(ibp.selfShardID)
 
 	nonceToByteSlice := ibp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -48,6 +56,10 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.Ap
 
 // GetInternalShardBlockByHash wil return a shard block by hash
 func (ibp *internalBlockProcessor) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash []byte) (interface{}, error) {
+	if ibp.selfShardID == core.MetachainShardId {
+		return nil, ErrShardOnlyEndpoint
+	}
+
 	blockBytes, err := ibp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
@@ -58,6 +70,10 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByHash(format common.Api
 
 // GetInternalShardBlockByRound wil return a shard block by round
 func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	if ibp.selfShardID == core.MetachainShardId {
+		return nil, ErrShardOnlyEndpoint
+	}
+
 	_, blockBytes, err := ibp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
@@ -89,6 +105,10 @@ func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format c
 
 // GetInternalMetaBlockByNonce wil return a meta block by nonce
 func (ibp *internalBlockProcessor) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	if ibp.selfShardID != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := ibp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -107,6 +127,10 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByNonce(format common.Api
 
 // GetInternalMetaBlockByHash wil return a meta block by hash
 func (ibp *internalBlockProcessor) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash []byte) (interface{}, error) {
+	if ibp.selfShardID != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	blockBytes, err := ibp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
@@ -117,6 +141,10 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByHash(format common.ApiO
 
 // GetInternalMetaBlockByRound wil return a meta block by round
 func (ibp *internalBlockProcessor) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	if ibp.selfShardID != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	_, blockBytes, err := ibp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
@@ -144,4 +172,35 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format co
 	default:
 		return nil, ErrInvalidOutputFormat
 	}
+}
+
+// GetInternalMiniBlock will return the miniblock based on the hash
+func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte) (interface{}, error) {
+	blockBytes, err := ibp.getFromStorer(dataRetriever.MiniBlockUnit, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return ibp.convertMiniBlockBytesByOutportFormat(format, blockBytes)
+}
+
+func (ibp *internalBlockProcessor) convertMiniBlockBytesByOutportFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
+	switch format {
+	case common.ApiOutputFormatInternal:
+		miniBlock := &block.MiniBlock{}
+		err := ibp.marshalizer.Unmarshal(miniBlock, blockBytes)
+		if err != nil {
+			return nil, err
+		}
+		return miniBlock, nil
+	case common.ApiOutputFormatProto:
+		return blockBytes, nil
+	default:
+		return nil, ErrInvalidOutputFormat
+	}
+}
+
+// IsInterfaceNil returns true if underlying object is nil
+func (ibp *internalBlockProcessor) IsInterfaceNil() bool {
+	return ibp == nil
 }

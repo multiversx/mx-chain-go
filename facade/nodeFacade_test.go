@@ -1050,7 +1050,7 @@ func TestNodeFacade_GetInternalMetaBlockByNonceShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1072,7 +1072,7 @@ func TestNodeFacade_GetInternalMetaBlockByRoundShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1094,7 +1094,7 @@ func TestNodeFacade_GetInternalMetaBlockByHashShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
@@ -1118,7 +1118,7 @@ func TestNodeFacade_GetInternalShardBlockByNonceShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1140,7 +1140,7 @@ func TestNodeFacade_GetInternalShardBlockByRoundShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1162,7 +1162,7 @@ func TestNodeFacade_GetInternalShardBlockByHashShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
@@ -1184,7 +1184,7 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 		SenderShardID:   0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMiniBlockCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},

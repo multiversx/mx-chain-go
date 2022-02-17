@@ -2,9 +2,12 @@ package external
 
 import (
 	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -18,7 +21,8 @@ type ArgNodeApiResolver struct {
 	DirectStakedListHandler DirectStakedListHandler
 	DelegatedListHandler    DelegatedListHandler
 	APITransactionHandler   APITransactionHandler
-	APIBlockHandler         APIBlockHandler
+	APIBlockHandler         blockAPI.APIBlockHandler
+	APIInternalBlockHandler blockAPI.APIInternalBlockHandler
 }
 
 // nodeApiResolver can resolve API requests
@@ -30,7 +34,8 @@ type nodeApiResolver struct {
 	directStakedListHandler DirectStakedListHandler
 	delegatedListHandler    DelegatedListHandler
 	apiTransactionHandler   APITransactionHandler
-	apiBlockHandler         APIBlockHandler
+	apiBlockHandler         blockAPI.APIBlockHandler
+	apiInternalBlockHandler blockAPI.APIInternalBlockHandler
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -59,6 +64,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.APIBlockHandler) {
 		return nil, ErrNilAPIBlockHandler
 	}
+	if check.IfNil(arg.APIInternalBlockHandler) {
+		return nil, ErrNilAPIInternalBlockHandler
+	}
 
 	return &nodeApiResolver{
 		scQueryService:          arg.SCQueryService,
@@ -69,6 +77,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		delegatedListHandler:    arg.DelegatedListHandler,
 		apiBlockHandler:         arg.APIBlockHandler,
 		apiTransactionHandler:   arg.APITransactionHandler,
+		apiInternalBlockHandler: arg.APIInternalBlockHandler,
 	}, nil
 }
 
@@ -130,6 +139,56 @@ func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Bl
 // GetBlockByRound will return the block with the given round and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
+}
+
+// GetInternalMetaBlockByHash wil return a meta block by hash
+func (nar *nodeApiResolver) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiInternalBlockHandler.GetInternalMetaBlockByHash(format, decodedHash)
+}
+
+// GetInternalMetaBlockByNonce wil return a meta block by nonce
+func (nar *nodeApiResolver) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalMetaBlockByNonce(format, nonce)
+}
+
+// GetInternalMetaBlockByRound wil return a meta block by round
+func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalMetaBlockByRound(format, round)
+}
+
+// GetInternalShardBlockByHash wil return a shard block by hash
+func (nar *nodeApiResolver) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiInternalBlockHandler.GetInternalShardBlockByHash(format, decodedHash)
+}
+
+// GetInternalShardBlockByNonce wil return a shard block by nonce
+func (nar *nodeApiResolver) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalShardBlockByNonce(format, nonce)
+}
+
+// GetInternalShardBlockByRound wil return a shard block by round
+func (nar *nodeApiResolver) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalShardBlockByRound(format, round)
+}
+
+// GetInternalMiniBlock wil return a shard block by round
+func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiInternalBlockHandler.GetInternalMiniBlock(format, decodedHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

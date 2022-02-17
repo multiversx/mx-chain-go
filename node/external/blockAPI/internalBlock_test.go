@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,8 +24,8 @@ func createMockInternalBlockProcessor(
 	storerMock storage.Storer,
 	withKey bool,
 ) *internalBlockProcessor {
-	return NewInternalBlockProcessor(
-		&APIBlockProcessorArg{
+	return newInternalBlockProcessor(
+		&ArgAPIBlockProcessor{
 			SelfShardID: shardID,
 			Marshalizer: &mock.MarshalizerFake{},
 			Store: &mock.ChainStorerMock{
@@ -47,8 +48,7 @@ func createMockInternalBlockProcessor(
 					return false
 				},
 			},
-		},
-	)
+		}, nil)
 }
 
 // -------- ShardBlock --------
@@ -58,16 +58,15 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldFail(
 
 	expectedErr := errors.New("failed to unmarshal err")
 
-	ibp := NewInternalBlockProcessor(
-		&APIBlockProcessorArg{
+	ibp := newInternalBlockProcessor(
+		&ArgAPIBlockProcessor{
 			Marshalizer: &testscommon.MarshalizerStub{
 				UnmarshalCalled: func(_ interface{}, buff []byte) error {
 					return expectedErr
 				},
 			},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
-		},
-	)
+		}, nil)
 
 	wrongBytes := []byte{0, 1, 2}
 
@@ -79,12 +78,11 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldFail(
 func TestInternalBlockProcessor_ConvertShardBlockBytesToInternalBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ibp := NewInternalBlockProcessor(
-		&APIBlockProcessorArg{
+	ibp := newInternalBlockProcessor(
+		&ArgAPIBlockProcessor{
 			Marshalizer: &testscommon.MarshalizerMock{},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
-		},
-	)
+		}, nil)
 
 	header := &block.Header{
 		Nonce: uint64(15),
@@ -144,7 +142,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	expectedErr := errors.New("key not found err")
-	storerMock := &testscommon.StorerStub{
+	storerMock := &storageMocks.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -306,16 +304,15 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlock_ShouldFail(
 
 	expectedErr := errors.New("failed to unmarshal err")
 
-	ibp := NewInternalBlockProcessor(
-		&APIBlockProcessorArg{
+	ibp := newInternalBlockProcessor(
+		&ArgAPIBlockProcessor{
 			Marshalizer: &testscommon.MarshalizerStub{
 				UnmarshalCalled: func(_ interface{}, buff []byte) error {
 					return expectedErr
 				},
 			},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
-		},
-	)
+		}, nil)
 
 	wrongBytes := []byte{0, 1, 2}
 
@@ -327,12 +324,11 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlock_ShouldFail(
 func TestInternalBlockProcessor_ConvertMetaBlockBytesToInternalBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ibp := NewInternalBlockProcessor(
-		&APIBlockProcessorArg{
+	ibp := newInternalBlockProcessor(
+		&ArgAPIBlockProcessor{
 			Marshalizer: &testscommon.MarshalizerMock{},
 			HistoryRepo: &dblookupext.HistoryRepositoryStub{},
-		},
-	)
+		}, nil)
 
 	header := &block.MetaBlock{
 		Nonce: uint64(15),
@@ -392,14 +388,14 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	expectedErr := errors.New("key not found err")
-	storerMock := &testscommon.StorerStub{
+	storerMock := &storageMocks.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
 
 	ibp := createMockInternalBlockProcessor(
-		0,
+		core.MetachainShardId,
 		headerHash,
 		storerMock,
 		true,

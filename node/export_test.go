@@ -15,13 +15,7 @@ func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofRespon
 	return n.getProof(rootHash, key)
 }
 
-<<<<<<< HEAD
 // AddClosableComponents -
 func (n *Node) AddClosableComponents(components ...factory.Closer) {
 	n.closableComponents = append(n.closableComponents, components...)
-=======
-// CreateInternalBlockProcessor -
-func (n *Node) CreateInternalBlockProcessor() error {
-	return n.createInternalBlockProcessor()
->>>>>>> origin/feat/header-verification
 }

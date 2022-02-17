@@ -96,7 +96,7 @@ func CreateNodesCoordinator(
 	pubKey crypto.PublicKey,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	ratingAndListIndexHandler sharding.ChanceComputer,
+	ratingAndListIndexHandler nodesCoordinator.ChanceComputer,
 	bootStorer storage.Storer,
 	nodeShuffler nodesCoordinator.NodesShuffler,
 	currentShardID uint32,
