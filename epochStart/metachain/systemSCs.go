@@ -72,6 +72,7 @@ type systemSCProcessor struct {
 	saveJailedAlwaysEnableEpoch    uint32
 	governanceEnableEpoch          uint32
 	builtInOnMetaEnableEpoch       uint32
+	stakingV4EnableEpoch           uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -86,6 +87,7 @@ type systemSCProcessor struct {
 	flagSaveJailedAlwaysEnabled    atomic.Flag
 	flagGovernanceEnabled          atomic.Flag
 	flagBuiltInOnMetaEnabled       atomic.Flag
+	flagStakingV4Enabled           atomic.Flag
 	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
@@ -182,6 +184,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
 		governanceEnableEpoch:       args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch:    args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		stakingV4EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
@@ -193,6 +196,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
 	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
+	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4EnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -308,6 +312,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 
 		err = s.initLiquidStakingSC(tokenID)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagStakingV4Enabled.IsSet() {
+		err := s.stakeNodesFromQueue(validatorInfos, math.MaxUint32, nonce)
 		if err != nil {
 			return err
 		}
@@ -1581,4 +1592,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagBuiltInOnMetaEnabled.SetValue(epoch == s.builtInOnMetaEnableEpoch)
 	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
+
+	s.flagStakingV4Enabled.SetValue(epoch == s.stakingV4EnableEpoch)
+	log.Debug("systemProcessor: staking v4 on meta", "enabled", s.flagStakingV4Enabled.IsSet())
 }

@@ -74,7 +74,8 @@ type EnableEpochs struct {
 	TransformToMultiShardCreateEnableEpoch            uint32
 	ESDTRegisterAndSetAllRolesEnableEpoch             uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
-	StakeLimitsEnableEpoch                      uint32
+	StakeLimitsEnableEpoch                            uint32
+	StakingV4EnableEpoch                              uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
