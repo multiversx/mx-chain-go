@@ -1242,7 +1242,7 @@ func (mp *metaProcessor) CommitBlock(
 	lastHeader := mp.blockChain.GetCurrentBlockHeader()
 	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
 	if !ok {
-		log.Warn("metaBlock.CommitBlock - nil current block header")
+		log.Debug("metaBlock.CommitBlock - nil current block header")
 	}
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
