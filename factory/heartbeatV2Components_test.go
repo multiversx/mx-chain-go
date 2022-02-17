@@ -164,4 +164,7 @@ func Test_heartbeatV2Components_Close(t *testing.T) {
 	hc, err := hcf.Create()
 	assert.NotNil(t, hc)
 	assert.Nil(t, err)
+
+	err = hc.Close()
+	assert.Nil(t, err)
 }
