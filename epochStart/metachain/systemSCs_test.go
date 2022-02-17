@@ -373,7 +373,7 @@ func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	defer func() {
 		sw.Stop("complete test")
 		log.Info("TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork time measurements", sw.GetMeasurements()...)
-		_ = db.DestroyUnit()
+		_ = db.Close()
 		_ = os.RemoveAll(dir)
 	}()
 
