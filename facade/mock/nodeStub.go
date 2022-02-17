@@ -37,7 +37,6 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-<<<<<<< HEAD
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -49,7 +48,6 @@ type NodeStub struct {
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
-=======
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                          func(round uint64, withTxs bool) (*api.Block, error)
@@ -59,20 +57,7 @@ type NodeStub struct {
 	GetInternalMetaBlockByNonceCalled              func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHashCalled               func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled              func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-
-	GetInternalMiniBlockCalled              func(format common.ApiOutputFormat, txHash string) (interface{}, error)
-	GetUsernameCalled                       func(address string) (string, error)
-	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
-	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
-	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
-	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
-	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
-	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
-	GetProofCalled                          func(rootHash string, key string) (*common.GetProofResponse, error)
-	GetProofDataTrieCalled                  func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
-	VerifyProofCalled                       func(rootHash string, address string, proof [][]byte) (bool, error)
->>>>>>> origin/feat/header-verification
+	GetInternalMiniBlockCalled                     func(format common.ApiOutputFormat, txHash string) (interface{}, error)
 }
 
 // GetProof -
@@ -134,8 +119,6 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 	return hex.EncodeToString(pk), nil
 }
 
-<<<<<<< HEAD
-=======
 // GetBlockByHash -
 func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByHashCalled(hash, withTxs)
@@ -210,7 +193,6 @@ func (ns *NodeStub) GetInternalMiniBlock(format common.ApiOutputFormat, txHash s
 	return nil, nil
 }
 
->>>>>>> origin/feat/header-verification
 // DecodeAddressPubkey -
 func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return hex.DecodeString(pk)

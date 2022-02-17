@@ -68,8 +68,7 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
-<<<<<<< HEAD
-	nodesCoordinator             sharding.NodesCoordinator
+	nodesCoordinator             nodesCoordinator.NodesCoordinator
 	shardCoordinator             sharding.Coordinator
 	interceptorsContainer        process.InterceptorsContainer
 	resolversFinder              dataRetriever.ResolversFinder
@@ -106,42 +105,6 @@ type processComponents struct {
 	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
-=======
-	nodesCoordinator            nodesCoordinator.NodesCoordinator
-	shardCoordinator            sharding.Coordinator
-	interceptorsContainer       process.InterceptorsContainer
-	resolversFinder             dataRetriever.ResolversFinder
-	roundHandler                consensus.RoundHandler
-	epochStartTrigger           epochStart.TriggerHandler
-	epochStartNotifier          EpochStartNotifier
-	forkDetector                process.ForkDetector
-	blockProcessor              process.BlockProcessor
-	blackListHandler            process.TimeCacher
-	bootStorer                  process.BootStorer
-	headerSigVerifier           process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier     factory.HeaderIntegrityVerifierHandler
-	validatorsStatistics        process.ValidatorStatisticsProcessor
-	validatorsProvider          process.ValidatorsProvider
-	blockTracker                process.BlockTracker
-	pendingMiniBlocksHandler    process.PendingMiniBlocksHandler
-	requestHandler              process.RequestHandler
-	txLogsProcessor             process.TransactionLogProcessorDatabase
-	headerConstructionValidator process.HeaderConstructionValidator
-	peerShardMapper             process.NetworkShardingCollector
-	txSimulatorProcessor        TransactionSimulatorProcessor
-	miniBlocksPoolCleaner       process.PoolsCleaner
-	txsPoolCleaner              process.PoolsCleaner
-	fallbackHeaderValidator     process.FallbackHeaderValidator
-	whiteListHandler            process.WhiteListHandler
-	whiteListerVerifiedTxs      process.WhiteListHandler
-	historyRepository           dblookupext.HistoryRepository
-	importStartHandler          update.ImportStartHandler
-	requestedItemsHandler       dataRetriever.RequestedItemsHandler
-	importHandler               update.ImportHandler
-	nodeRedundancyHandler       consensus.NodeRedundancyHandler
-	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
-	vmFactoryForTxSimulator     process.VirtualMachinesContainerFactory
->>>>>>> origin/feat/header-verification
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory

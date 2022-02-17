@@ -13,11 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-=======
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
->>>>>>> origin/feat/header-verification
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,13 +23,8 @@ const defaultChancesSelection = 1
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	return &ArgsHeaderSigVerifier{
 		Marshalizer:             &mock.MarshalizerMock{},
-<<<<<<< HEAD
 		Hasher:                  &hashingMocks.HasherMock{},
-		NodesCoordinator:        &mock.NodesCoordinatorMock{},
-=======
-		Hasher:                  &mock.HasherMock{},
 		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
->>>>>>> origin/feat/header-verification
 		MultiSigVerifier:        cryptoMocks.NewMultiSigner(21),
 		SingleSigVerifier:       &mock.SignerMock{},
 		KeyGen:                  &mock.SingleSignKeyGenMock{},

@@ -67,17 +67,10 @@ type Parameters struct {
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
-<<<<<<< HEAD
 	EpochStartMetaBlock data.MetaHeaderHandler
 	PreviousEpochStart  data.MetaHeaderHandler
 	ShardHeader         data.HeaderHandler
-	NodesConfig         *sharding.NodesCoordinatorRegistry
-=======
-	EpochStartMetaBlock *block.MetaBlock
-	PreviousEpochStart  *block.MetaBlock
-	ShardHeader         *block.Header
 	NodesConfig         *nodesCoordinator.NodesCoordinatorRegistry
->>>>>>> origin/feat/header-verification
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
 	PendingMiniBlocks   map[string]*block.MiniBlock
@@ -96,12 +89,8 @@ type epochStartBootstrap struct {
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
-<<<<<<< HEAD
-	rater                      sharding.ChanceComputer
-	storerScheduledSCRs        storage.Storer
-=======
 	rater                      nodesCoordinator.ChanceComputer
->>>>>>> origin/feat/header-verification
+	storerScheduledSCRs        storage.Storer
 	trieContainer              common.TriesHolder
 	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
@@ -179,10 +168,10 @@ type ArgsEpochStartBootstrap struct {
 }
 
 type dataToSync struct {
-	ownShardHdr        data.ShardHeaderHandler
-	rootHashToSync     []byte
-	withScheduled      bool
-	additionalHeaders  map[string]data.HeaderHandler
+	ownShardHdr       data.ShardHeaderHandler
+	rootHashToSync    []byte
+	withScheduled     bool
+	additionalHeaders map[string]data.HeaderHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap

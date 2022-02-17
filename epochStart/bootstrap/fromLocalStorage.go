@@ -264,13 +264,8 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-<<<<<<< HEAD
-	config := &sharding.NodesCoordinatorRegistry{}
-	err = json.Unmarshal(d, config)
-=======
 	config := &nodesCoordinator.NodesCoordinatorRegistry{}
-	err = json.Unmarshal(data, config)
->>>>>>> origin/feat/header-verification
+	err = json.Unmarshal(d, config)
 	if err != nil {
 		return nil, nil, err
 	}

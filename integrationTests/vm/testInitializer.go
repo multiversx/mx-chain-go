@@ -55,11 +55,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-=======
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
->>>>>>> origin/feat/header-verification
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -692,13 +689,8 @@ func CreateVMAndBlockchainHookMeta(
 		Marshalizer:         testMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
-<<<<<<< HEAD
-		ChanceComputer:      &mock.NodesCoordinatorMock{},
-		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-=======
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
->>>>>>> origin/feat/header-verification
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}

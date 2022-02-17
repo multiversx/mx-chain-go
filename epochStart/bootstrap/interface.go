@@ -12,11 +12,7 @@ import (
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
 type StartOfEpochNodesConfigHandler interface {
-<<<<<<< HEAD
-	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (*sharding.NodesCoordinatorRegistry, uint32, error)
-=======
-	NodesConfigFromMetaBlock(currMetaBlock *block.MetaBlock, prevMetaBlock *block.MetaBlock) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, error)
->>>>>>> origin/feat/header-verification
+	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, error)
 	IsInterfaceNil() bool
 }
 

@@ -14,8 +14,7 @@ import (
 
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
-<<<<<<< HEAD
-	NodesCoord                           sharding.NodesCoordinator
+	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	ResFinder                            dataRetriever.ResolversFinder
@@ -47,38 +46,6 @@ type ProcessComponentsStub struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
-=======
-	NodesCoord                     nodesCoordinator.NodesCoordinator
-	ShardCoord                     sharding.Coordinator
-	IntContainer                   process.InterceptorsContainer
-	ResFinder                      dataRetriever.ResolversFinder
-	RoundHandlerField              consensus.RoundHandler
-	EpochTrigger                   epochStart.TriggerHandler
-	EpochNotifier                  factory.EpochStartNotifier
-	ForkDetect                     process.ForkDetector
-	BlockProcess                   process.BlockProcessor
-	BlackListHdl                   process.TimeCacher
-	BootSore                       process.BootStorer
-	HeaderSigVerif                 process.InterceptedHeaderSigVerifier
-	HeaderIntegrVerif              process.HeaderIntegrityVerifier
-	ValidatorStatistics            process.ValidatorStatisticsProcessor
-	ValidatorProvider              process.ValidatorsProvider
-	BlockTrack                     process.BlockTracker
-	PendingMiniBlocksHdl           process.PendingMiniBlocksHandler
-	ReqHandler                     process.RequestHandler
-	TxLogsProcess                  process.TransactionLogProcessorDatabase
-	HeaderConstructValidator       process.HeaderConstructionValidator
-	PeerMapper                     process.NetworkShardingCollector
-	TxSimulatorProcessor           factory.TransactionSimulatorProcessor
-	FallbackHdrValidator           process.FallbackHeaderValidator
-	WhiteListHandlerInternal       process.WhiteListHandler
-	WhiteListerVerifiedTxsInternal process.WhiteListHandler
-	HistoryRepositoryInternal      dblookupext.HistoryRepository
-	ImportStartHandlerInternal     update.ImportStartHandler
-	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
-	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
-	CurrentEpochProviderInternal   process.CurrentNetworkEpochProviderHandler
->>>>>>> origin/feat/header-verification
 }
 
 // Create -

@@ -11,11 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-=======
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
->>>>>>> origin/feat/header-verification
 )
 
 // InitChronologyHandlerMock -
