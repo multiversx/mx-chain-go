@@ -129,11 +129,22 @@ func TestNewHeartbeatSender(t *testing.T) {
 		assert.Nil(t, sender)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
 	})
-	t.Run("invalid threshold should error", func(t *testing.T) {
+	t.Run("threshold too small should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
-		args.thresholdBetweenSends = 0
+		args.thresholdBetweenSends = 0.001
+		sender, err := newHeartbeatSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
+		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
+	})
+	t.Run("threshold too big should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+		args.thresholdBetweenSends = 1.001
 		sender, err := newHeartbeatSender(args)
 
 		assert.Nil(t, sender)

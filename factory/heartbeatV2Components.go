@@ -116,7 +116,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 // Close closes the heartbeat components
 func (hc *heartbeatV2Components) Close() error {
-	log.Debug("calling close on heartbeatV2 system")
+	log.Debug("calling close on heartbeatV2 components")
 
 	if !check.IfNil(hc.sender) {
 		log.LogIfError(hc.sender.Close())

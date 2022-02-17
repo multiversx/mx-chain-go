@@ -970,7 +970,7 @@ func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
 
 // GetHeartbeatV2Components returns the heartbeatV2 components
 func (n *Node) GetHeartbeatV2Components() mainFactory.HeartbeatV2ComponentsHolder {
-	return n.heartbeatComponents
+	return n.heartbeatV2Components
 }
 
 // GetNetworkComponents returns the network components

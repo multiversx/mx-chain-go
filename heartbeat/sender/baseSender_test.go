@@ -25,9 +25,16 @@ func TestBaseSender_computeRandomDuration(t *testing.T) {
 	bs := createBaseSender(createMockBaseArgs())
 	assert.NotNil(t, bs)
 
-	d1 := bs.computeRandomDuration()
-	d2 := bs.computeRandomDuration()
-	d3 := bs.computeRandomDuration()
+	var d1, d2, d3 time.Duration
+	for i := 0; i < 100; i++ {
+		d1 = bs.computeRandomDuration()
+		d2 = bs.computeRandomDuration()
+		d3 = bs.computeRandomDuration()
+		if d1 != d2 && d2 != d3 && d1 != d3 {
+			break
+		}
+	}
+
 	assert.False(t, d1 == d2)
 	assert.False(t, d2 == d3)
 }

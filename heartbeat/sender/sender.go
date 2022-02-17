@@ -118,12 +118,7 @@ func checkSenderArgs(args ArgSender) error {
 		peerSubType:          args.PeerSubType,
 		currentBlockProvider: args.CurrentBlockProvider,
 	}
-	err = checkHeartbeatSenderArgs(hbsArgs)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return checkHeartbeatSenderArgs(hbsArgs)
 }
 
 // Close closes the internal components

@@ -14,6 +14,7 @@ var randomizer = &random.ConcurrentSafeIntRandomizer{}
 
 const minTimeBetweenSends = time.Second
 const minThresholdBetweenSends = 0.05 // 5%
+const maxThresholdBetweenSends = 1.00 // 100%
 
 // argBaseSender represents the arguments for base sender
 type argBaseSender struct {
@@ -67,8 +68,9 @@ func checkBaseSenderArgs(args argBaseSender) error {
 	if args.timeBetweenSendsWhenError < minTimeBetweenSends {
 		return fmt.Errorf("%w for timeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
 	}
-	if args.thresholdBetweenSends < minThresholdBetweenSends {
-		return fmt.Errorf("%w for thresholdBetweenSends", heartbeat.ErrInvalidThreshold)
+	if args.thresholdBetweenSends < minThresholdBetweenSends || args.thresholdBetweenSends > maxThresholdBetweenSends {
+		return fmt.Errorf("%w for thresholdBetweenSends, receieved %f, min allowed %f, max allowed %f",
+			heartbeat.ErrInvalidThreshold, args.thresholdBetweenSends, minThresholdBetweenSends, maxThresholdBetweenSends)
 	}
 
 	return nil

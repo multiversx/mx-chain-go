@@ -41,8 +41,8 @@ func (mhc *managedHeartbeatV2Components) Create() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mhc *managedHeartbeatV2Components) CheckSubcomponents() error {
-	mhc.mutHeartbeatV2Components.Lock()
-	defer mhc.mutHeartbeatV2Components.Unlock()
+	mhc.mutHeartbeatV2Components.RLock()
+	defer mhc.mutHeartbeatV2Components.RUnlock()
 
 	if mhc.heartbeatV2Components == nil {
 		return errors.ErrNilHeartbeatV2Components
