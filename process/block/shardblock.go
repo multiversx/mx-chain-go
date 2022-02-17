@@ -329,10 +329,6 @@ func (sp *shardProcessor) ProcessBlock(
 	for _, mb := range body.MiniBlocks {
 		mbHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, mb)
 		log.Debug("executed miniblock", "hash", mbHash, "type", mb.Type.String())
-
-		for _, txHash := range mb.TxHashes {
-			debug.DetectorForIncoming.AddTxHash(txHash, mbHash)
-		}
 	}
 
 	return nil
@@ -806,10 +802,6 @@ func (sp *shardProcessor) CreateBlock(
 	for _, mb := range finalBody.MiniBlocks {
 		mbHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, mb)
 		log.Debug("created miniblock", "hash", mbHash, "type", mb.Type.String())
-
-		for _, txHash := range mb.TxHashes {
-			debug.DetectorForProcessing.AddTxHash(txHash, mbHash)
-		}
 	}
 
 	return shardHdr, finalBody, nil

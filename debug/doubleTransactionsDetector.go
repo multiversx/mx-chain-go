@@ -9,40 +9,37 @@ import (
 
 var log = logger.GetOrCreate("debug")
 
-// GenericMiniBlockHash -
-var GenericMiniBlockHash = make([]byte, 0)
-
-// DetectorForIncoming -
-var DetectorForIncoming = NewDoubleTransactionsDetector("DetectorForIncoming")
-
-// DetectorForProcessing -
-var DetectorForProcessing = NewDoubleTransactionsDetector("DetectorForProcessing")
-
-// DetectorForGetSortedTransactions -
-var DetectorForGetSortedTransactions = NewDoubleTransactionsDetector("DetectorForGetSortedTransactions")
-
-// DetectorForSortTransactionsBySenderAndNonce -
-var DetectorForSortTransactionsBySenderAndNonce = NewDoubleTransactionsDetector("DetectorForSortTransactionsBySenderAndNonce")
-
 // DetectorForProcessBadTransaction -
 var DetectorForProcessBadTransaction = NewDoubleTransactionsDetector("DetectorForProcessBadTransaction")
 
+// DetectorProcessBlockTransaction -
+var DetectorProcessBlockTransaction = NewDoubleTransactionsDetector("DetectorProcessBlockTransaction")
+
+// DetectorComputeSortedTxs -
+var DetectorComputeSortedTxs = NewDoubleTransactionsDetector("DetectorComputeSortedTxs")
+
+// DetectorComputeSortedPlusRemainingTxs -
+var DetectorComputeSortedPlusRemainingTxs = NewDoubleTransactionsDetector("DetectorComputeSortedPlusRemainingTxs")
+
+// DetectorComputeTxsFromMe -
+var DetectorComputeTxsFromMe = NewDoubleTransactionsDetector("DetectorComputeTxsFromMe")
+
 // ClearAll -
 func ClearAll() {
-	DetectorForIncoming.Clear()
-	DetectorForProcessing.Clear()
-	DetectorForGetSortedTransactions.Clear()
-	DetectorForSortTransactionsBySenderAndNonce.Clear()
 	DetectorForProcessBadTransaction.Clear()
+	DetectorProcessBlockTransaction.Clear()
+	DetectorComputeSortedTxs.Clear()
+	DetectorComputeSortedPlusRemainingTxs.Clear()
+	DetectorComputeTxsFromMe.Clear()
 }
 
 // PrintAll -
 func PrintAll() {
-	DetectorForIncoming.PrintReport()
-	DetectorForProcessing.PrintReport()
-	DetectorForGetSortedTransactions.PrintReport()
-	DetectorForSortTransactionsBySenderAndNonce.PrintReport()
 	DetectorForProcessBadTransaction.PrintReport()
+	DetectorProcessBlockTransaction.PrintReport()
+	DetectorComputeSortedTxs.PrintReport()
+	DetectorComputeSortedPlusRemainingTxs.PrintReport()
+	DetectorComputeTxsFromMe.PrintReport()
 }
 
 type miniblockInfo struct {
@@ -64,7 +61,7 @@ func NewDoubleTransactionsDetector(name string) *doubleTransactionsDetector {
 }
 
 // AddTxHash -
-func (detector *doubleTransactionsDetector) AddTxHash(txHash []byte, miniblockHash []byte) {
+func (detector *doubleTransactionsDetector) AddTxHash(txHash []byte, miniblockHash []byte) bool {
 	detector.mut.Lock()
 	defer detector.mut.Unlock()
 
@@ -82,6 +79,8 @@ func (detector *doubleTransactionsDetector) AddTxHash(txHash []byte, miniblockHa
 			"stack", string(debug.Stack()))
 	}
 	mb.txs[string(txHash)]++
+
+	return mb.txs[string(txHash)] > 1
 }
 
 // Clear -

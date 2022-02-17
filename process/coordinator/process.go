@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/debug"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -451,6 +452,11 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 			"receiver shard", miniBlock.ReceiverShardID,
 			"type", miniBlock.Type,
 			"num txs", len(miniBlock.TxHashes))
+
+		mbHash, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+		for _, txHash := range miniBlock.TxHashes {
+			debug.DetectorForProcessBadTransaction.AddTxHash(txHash, mbHash)
+		}
 	}
 
 	startTime := time.Now()

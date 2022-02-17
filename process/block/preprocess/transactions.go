@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -573,6 +574,26 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
+	triggerPrint := false
+	for _, tx := range txsFromMe {
+		triggerPrint = triggerPrint || debug.DetectorComputeTxsFromMe.AddTxHash(tx.TxHash, []byte(fmt.Sprintf("%d -> %d", tx.SenderShardID, tx.ReceiverShardID)))
+	}
+
+	if triggerPrint {
+		printReport := ""
+		for i := 0; i < len(body.MiniBlocks); i++ {
+			mb := body.MiniBlocks[i]
+			mbHash, _ := core.CalculateHash(txs.marshalizer, txs.hasher, mb)
+			printReport += fmt.Sprintf(" miniblock hash %s, type %s, %d -> %d\n",
+				hex.EncodeToString(mbHash), mb.Type.String(), mb.SenderShardID, mb.ReceiverShardID)
+			for _, txHash := range mb.TxHashes {
+				printReport += fmt.Sprintf("   tx hash %s\n", hex.EncodeToString(txHash))
+			}
+		}
+
+		log.Warn("printing block with 2 transactions...\n" + printReport)
+	}
+
 	txs.sortTransactionsBySenderAndNonce(txsFromMe, randomness)
 
 	isShardStuckFalse := func(uint32) bool {
@@ -944,6 +965,14 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	}
 
 	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
+	for _, tx := range sortedTxs {
+		debug.DetectorComputeSortedTxs.AddTxHash(tx.TxHash, []byte(fmt.Sprintf("%d -> %d", tx.SenderShardID, tx.ReceiverShardID)))
+	}
+	sum := append(sortedTxs, remainingTxsForScheduled...)
+	for _, tx := range sum {
+		debug.DetectorComputeSortedPlusRemainingTxs.AddTxHash(tx.TxHash, []byte(fmt.Sprintf("%d -> %d", tx.SenderShardID, tx.ReceiverShardID)))
+	}
+
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -1332,17 +1361,10 @@ func (txs *transactions) computeSortedTxs(
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
-	for _, stx := range sortedTxs {
-		debug.DetectorForGetSortedTransactions.AddTxHash(stx.TxHash, debug.GenericMiniBlockHash)
-	}
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
-
-	for _, stx := range sortedTxs {
-		debug.DetectorForSortTransactionsBySenderAndNonce.AddTxHash(stx.TxHash, debug.GenericMiniBlockHash)
-	}
 
 	return selectedTxs, remainingTxs, nil
 }
