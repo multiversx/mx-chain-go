@@ -108,7 +108,11 @@ func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
 }
 
 func (processor *PeerAuthenticationRequestsProcessor) startRequestingMessages(ctx context.Context) {
-	defer processor.cancel()
+	defer func() {
+		if processor.cancel != nil {
+			processor.cancel()
+		}
+	}()
 
 	sortedValidatorsKeys, err := processor.getSortedValidatorsKeys()
 	if err != nil {
