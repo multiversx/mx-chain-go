@@ -22,32 +22,31 @@ func createMockShardAPIProcessor(
 	withHistory bool,
 	withKey bool,
 ) *shardAPIBlockProcessor {
-	return NewShardApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: shardID,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					if withKey {
-						return storerMock.Get(key)
-					}
-					return blockHeaderHash, nil
-				},
+	return newShardApiBlockProcessor(&ArgAPIBlockProcessor{
+		TxUnmarshaller: &mock.TransactionAPIHandlerStub{},
+		SelfShardID:    shardID,
+		Marshalizer:    &mock.MarshalizerFake{},
+		Store: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+				return storerMock
 			},
-			Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
-			HistoryRepo: &dblookupext.HistoryRepositoryStub{
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-				IsEnabledCalled: func() bool {
-					return withHistory
-				},
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				if withKey {
+					return storerMock.Get(key)
+				}
+				return blockHeaderHash, nil
 			},
 		},
-	)
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{
+			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+				return 1, nil
+			},
+			IsEnabledCalled: func() bool {
+				return withHistory
+			},
+		},
+	}, nil)
 }
 
 func TestShardAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) {

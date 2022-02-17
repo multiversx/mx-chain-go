@@ -8,6 +8,7 @@ import (
 
 // StatusHandlersUtilsMock -
 type StatusHandlersUtilsMock struct {
+	StatusMetrics    external.StatusMetricsHandler
 	AppStatusHandler core.AppStatusHandler
 }
 
@@ -23,7 +24,7 @@ func (shum *StatusHandlersUtilsMock) StatusHandler() core.AppStatusHandler {
 
 // Metrics -
 func (shum *StatusHandlersUtilsMock) Metrics() external.StatusMetricsHandler {
-	return nil
+	return shum.StatusMetrics
 }
 
 // IsInterfaceNil -
