@@ -171,7 +171,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	// TODO - remove this
 	log.Debug("net messenger", "num peers", len(netMessenger.Peers()))
-	if len(netMessenger.Peers()) < 2 {
+	if len(netMessenger.Peers()) < 3 {
 		newLogLevel := "*:DEBUG,p2p:TRACE,external:TRACE,debug:DEBUG"
 		log.Warn("not enough connections found, automatically switching log level", "new log level", newLogLevel)
 		_ = logger.SetLogLevel(newLogLevel)
