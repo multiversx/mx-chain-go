@@ -22,7 +22,7 @@ In order to join the network as an observer or as a validator, the required step
 Alternatively, in order to use the Docker Image, jump to [Using the Docker Image](#using-the-docker-image).
 
 ### Step 1: install & configure go:
-The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.12.4.
+The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.17.6.
 
 ### Step 2: clone the repository and build the binaries:
 The main branch that will be used is the master branch. Alternatively, an older release tag can be used.
