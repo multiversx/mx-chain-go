@@ -24,6 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
+const firstHeaderNonce = uint64(1)
+
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
@@ -1242,7 +1244,11 @@ func (mp *metaProcessor) CommitBlock(
 	lastHeader := mp.blockChain.GetCurrentBlockHeader()
 	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
 	if !ok {
-		log.Debug("metaBlock.CommitBlock - nil current block header")
+		if headerHandler.GetNonce() == firstHeaderNonce {
+			log.Debug("metaBlock.CommitBlock - nil current block header, this is expected at genesis time")
+		} else {
+			log.Error("metaBlock.CommitBlock - nil current block header, last current header should have not been nil")
+		}
 	}
 	lastMetaBlockHash := mp.blockChain.GetCurrentBlockHeaderHash()
 	mp.updateState(lastMetaBlock, lastMetaBlockHash)
