@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -58,7 +59,7 @@ func createArgBaseProcessor(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgBaseProcessor {
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},

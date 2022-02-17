@@ -13,13 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-=======
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
->>>>>>> origin/feat/header-verification
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

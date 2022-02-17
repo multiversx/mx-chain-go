@@ -45,11 +45,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-=======
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
->>>>>>> origin/feat/header-verification
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
