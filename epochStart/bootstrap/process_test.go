@@ -621,10 +621,9 @@ func TestEpochStartBootstrap_BoostrapShouldFail(t *testing.T) {
 		args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
 			GetCalled: func() (storage.LatestDataFromStorage, error) {
 				return storage.LatestDataFromStorage{
-					Epoch:           2,
-					ShardID:         0,
-					LastRound:       10,
-					EpochStartRound: 0,
+					Epoch:     2,
+					ShardID:   0,
+					LastRound: 10,
 				}, nil
 			},
 		}
@@ -1462,7 +1461,7 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 	return nodesConfig
 }
 
-func TestRequestAndProcessing_ShouldFail(t *testing.T) {
+func TestRequestAndProcessing(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 
 	prevPrevEpochStartMetaHeaderHash := []byte("prevPrevEpochStartMetaHeaderHash")
@@ -1838,15 +1837,26 @@ func TestRequestAndProcessing_ShouldFail(t *testing.T) {
 		assert.Equal(t, Parameters{}, params)
 		assert.Equal(t, storage.ErrInvalidNumberOfActivePersisters, err)
 	})
+
+	t.Run("should work for shard", func(t *testing.T) {
+		t.Parallel()
+
+		testRequestAndProcessingByShardId(t, uint32(0))
+	})
+
+	t.Run("should work for meta", func(t *testing.T) {
+		t.Parallel()
+
+		testRequestAndProcessingByShardId(t, core.MetachainShardId)
+	})
 }
 
-func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
-	t.Parallel()
-
+func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GenesisNodesConfig = getNodesConfigMock(1)
+	args.DestinationShardAsObserver = shardId
 
 	prevPrevEpochStartMetaHeaderHash := []byte("prevPrevEpochStartMetaHeaderHash")
 	prevEpochStartMetaHeaderHash := []byte("prevEpochStartMetaHeaderHash")
@@ -1868,7 +1878,7 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
 					HeaderHash:            notarizedShardHeaderHash,
-					ShardID:               0,
+					ShardID:               shardId,
 					FirstPendingMetaBlock: notarizedMetaHeaderHash,
 				},
 			},
@@ -1882,7 +1892,7 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
 					HeaderHash: notarizedShardHeaderHash,
-					ShardID:    0,
+					ShardID:    shardId,
 				},
 			},
 			Economics: block.Economics{
@@ -1911,110 +1921,8 @@ func TestRequestAndProcessing_ShouldWorkForShard(t *testing.T) {
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
 	requiredParameters := Parameters{
-		NumOfShards: 1,
-		NodesConfig: &sharding.NodesCoordinatorRegistry{
-			EpochsConfig: map[string]*sharding.EpochValidators{
-				"0": {
-					EligibleValidators: map[string][]*sharding.SerializableValidator{
-						"0": {
-							&sharding.SerializableValidator{
-								PubKey:  pksBytes[0],
-								Chances: 1,
-							},
-						},
-						"4294967295": {
-							&sharding.SerializableValidator{
-								PubKey:  pksBytes[core.MetachainShardId],
-								Chances: 1,
-							},
-						},
-					},
-					WaitingValidators: map[string][]*sharding.SerializableValidator{},
-					LeavingValidators: map[string][]*sharding.SerializableValidator{},
-				},
-			},
-		},
-	}
-
-	params, err := epochStartProvider.requestAndProcessing()
-	assert.Equal(t, requiredParameters, params)
-	assert.Nil(t, err)
-}
-
-func TestRequestAndProcessing_ShouldWorkForMeta(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = getNodesConfigMock(1)
-	args.DestinationShardAsObserver = core.MetachainShardId
-
-	prevPrevEpochStartMetaHeaderHash := []byte("prevPrevEpochStartMetaHeaderHash")
-	prevEpochStartMetaHeaderHash := []byte("prevEpochStartMetaHeaderHash")
-	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
-	epochStartMetaBlockHash := []byte("epochStartMetaBlockHash")
-	prevNotarizedShardHeaderHash := []byte("prevNotarizedShardHeaderHash")
-	notarizedShardHeader := &block.Header{
-		PrevHash: prevNotarizedShardHeaderHash,
-	}
-	prevNotarizedShardHeader := &block.Header{}
-	notarizedMetaHeaderHash := []byte("notarizedMetaHeaderHash")
-	prevMetaHeaderHash := []byte("prevMetaHeaderHash")
-	notarizedMetaHeader := &block.MetaBlock{
-		PrevHash: prevMetaHeaderHash,
-	}
-
-	epochStartMetaBlock := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{
-					HeaderHash:            notarizedShardHeaderHash,
-					ShardID:               core.MetachainShardId,
-					FirstPendingMetaBlock: notarizedMetaHeaderHash,
-				},
-			},
-			Economics: block.Economics{
-				PrevEpochStartHash: prevEpochStartMetaHeaderHash,
-			},
-		},
-	}
-	prevEpochStartMetaBlock := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{
-					HeaderHash: notarizedShardHeaderHash,
-					ShardID:    core.MetachainShardId,
-				},
-			},
-			Economics: block.Economics{
-				PrevEpochStartHash: prevPrevEpochStartMetaHeaderHash,
-			},
-		},
-	}
-
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.epochStartMeta = epochStartMetaBlock
-	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
-		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-			return map[string]data.HeaderHandler{
-				string(notarizedShardHeaderHash):     notarizedShardHeader,
-				string(prevEpochStartMetaHeaderHash): prevEpochStartMetaBlock,
-				string(epochStartMetaBlockHash):      epochStartMetaBlock,
-				string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
-				string(notarizedMetaHeaderHash):      notarizedMetaHeader,
-			}, nil
-		},
-	}
-	epochStartProvider.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
-	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
-
-	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
-
-	requiredParameters := Parameters{
-		SelfShardId: core.MetachainShardId,
-		NumOfShards: 1,
+		SelfShardId: shardId,
+		NumOfShards: args.GenesisNodesConfig.NumberOfShards(),
 		NodesConfig: &sharding.NodesCoordinatorRegistry{
 			EpochsConfig: map[string]*sharding.EpochValidators{
 				"0": {
