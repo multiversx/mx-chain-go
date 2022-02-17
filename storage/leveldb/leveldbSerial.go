@@ -260,7 +260,7 @@ func (s *SerialDB) Close() error {
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer s.closer.Close()
 
-	return s.prepareClosingUnprotected()
+	return s.doClose()
 }
 
 // Remove removes the data associated to the given key
@@ -284,7 +284,7 @@ func (s *SerialDB) Destroy() error {
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer s.closer.Close()
 
-	err := s.prepareClosingUnprotected()
+	err := s.doClose()
 	if err == nil {
 		return os.RemoveAll(s.path)
 	}
@@ -301,9 +301,10 @@ func (s *SerialDB) DestroyClosed() error {
 	return err
 }
 
-// prepareClosingUnprotected will prepare the internal component for closing the database
+// doClose will handle the closing of the internal components
 // must be called under mutex protection
-func (s *SerialDB) prepareClosingUnprotected() error {
+// TODO: re-use this function in leveldb.go as well
+func (s *SerialDB) doClose() error {
 	_ = s.putBatch()
 	s.cancel()
 
