@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/syncer"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -61,15 +62,22 @@ type Parameters struct {
 	Epoch       uint32
 	SelfShardId uint32
 	NumOfShards uint32
-	NodesConfig *sharding.NodesCoordinatorRegistry
+	NodesConfig *nodesCoordinator.NodesCoordinatorRegistry
 }
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
+<<<<<<< HEAD
 	EpochStartMetaBlock data.MetaHeaderHandler
 	PreviousEpochStart  data.MetaHeaderHandler
 	ShardHeader         data.HeaderHandler
 	NodesConfig         *sharding.NodesCoordinatorRegistry
+=======
+	EpochStartMetaBlock *block.MetaBlock
+	PreviousEpochStart  *block.MetaBlock
+	ShardHeader         *block.Header
+	NodesConfig         *nodesCoordinator.NodesCoordinatorRegistry
+>>>>>>> origin/feat/header-verification
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
 	PendingMiniBlocks   map[string]*block.MiniBlock
@@ -88,12 +96,16 @@ type epochStartBootstrap struct {
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
+<<<<<<< HEAD
 	rater                      sharding.ChanceComputer
 	storerScheduledSCRs        storage.Storer
+=======
+	rater                      nodesCoordinator.ChanceComputer
+>>>>>>> origin/feat/header-verification
 	trieContainer              common.TriesHolder
 	trieStorageManagers        map[string]common.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
-	nodeShuffler               sharding.NodesShuffler
+	nodeShuffler               nodesCoordinator.NodesShuffler
 	roundHandler               epochStart.RoundHandler
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
@@ -125,7 +137,7 @@ type epochStartBootstrap struct {
 	epochStartMeta     data.MetaHeaderHandler
 	prevEpochStartMeta data.MetaHeaderHandler
 	syncedHeaders      map[string]data.HeaderHandler
-	nodesConfig        *sharding.NodesCoordinatorRegistry
+	nodesConfig        *nodesCoordinator.NodesCoordinatorRegistry
 	baseData           baseDataInStorage
 	startRound         int64
 	nodeType           core.NodeType
@@ -156,8 +168,8 @@ type ArgsEpochStartBootstrap struct {
 	GenesisShardCoordinator    sharding.Coordinator
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
-	Rater                      sharding.ChanceComputer
-	NodeShuffler               sharding.NodesShuffler
+	Rater                      nodesCoordinator.ChanceComputer
+	NodeShuffler               nodesCoordinator.NodesShuffler
 	RoundHandler               epochStart.RoundHandler
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler

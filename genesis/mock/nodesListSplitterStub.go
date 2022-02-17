@@ -1,29 +1,29 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 
 // NodesListSplitterStub -
 type NodesListSplitterStub struct {
-	GetAllNodesCalled       func() []sharding.GenesisNodeInfoHandler
-	GetDelegatedNodesCalled func(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler
+	GetAllNodesCalled       func() []nodesCoordinator.GenesisNodeInfoHandler
+	GetDelegatedNodesCalled func(delegationScAddress []byte) []nodesCoordinator.GenesisNodeInfoHandler
 }
 
 // GetAllNodes -
-func (nlss *NodesListSplitterStub) GetAllNodes() []sharding.GenesisNodeInfoHandler {
+func (nlss *NodesListSplitterStub) GetAllNodes() []nodesCoordinator.GenesisNodeInfoHandler {
 	if nlss.GetAllNodesCalled != nil {
 		return nlss.GetAllNodesCalled()
 	}
 
-	return make([]sharding.GenesisNodeInfoHandler, 0)
+	return make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 }
 
 // GetDelegatedNodes -
-func (nlss *NodesListSplitterStub) GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
+func (nlss *NodesListSplitterStub) GetDelegatedNodes(delegationScAddress []byte) []nodesCoordinator.GenesisNodeInfoHandler {
 	if nlss.GetDelegatedNodesCalled != nil {
 		return nlss.GetDelegatedNodesCalled(delegationScAddress)
 	}
 
-	return make([]sharding.GenesisNodeInfoHandler, 0)
+	return make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 }
 
 // IsInterfaceNil -

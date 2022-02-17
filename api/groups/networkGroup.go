@@ -27,6 +27,7 @@ const (
 	getESDTSupplyPath    = "/esdt/supply/:token"
 	directStakedInfoPath = "/direct-staked-info"
 	delegatedInfoPath    = "/delegated-info"
+	ratingsPath          = "/ratings"
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
@@ -112,6 +113,11 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Path:    getESDTSupplyPath,
 			Method:  http.MethodGet,
 			Handler: ng.getESDTTokenSupply,
+		},
+		{
+			Path:    ratingsPath,
+			Method:  http.MethodGet,
+			Handler: ng.getRatingsConfig,
 		},
 	}
 	ng.endpoints = endpoints
@@ -289,6 +295,19 @@ func (ng *networkGroup) getESDTTokenSupply(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  supply,
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getRatingsConfig returns metrics related to ratings configuration
+func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
+	ratingsConfig := ng.getFacade().StatusMetrics().RatingsMetrics()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"config": ratingsConfig},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

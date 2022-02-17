@@ -9,14 +9,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+=======
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+>>>>>>> origin/feat/header-verification
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +92,7 @@ func createMockArgument(
 		CoreComponents:          coreComponents,
 		CryptoComponents:        cryptoComponents,
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		NodesCoordinator:        shardingMocks.NewNodesCoordinatorMock(),
 		FeeHandler:              createMockFeeHandler(),
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},

@@ -6,7 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+<<<<<<< HEAD
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+=======
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+>>>>>>> origin/feat/header-verification
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +28,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	roundHandlerMock := &mock.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}

@@ -39,7 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -594,6 +594,7 @@ func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig
 
 // CreateManagedConsensusComponents is the managed consensus components factory
 func (nr *nodeRunner) CreateManagedConsensusComponents(
+<<<<<<< HEAD
 	coreComponents mainFactory.CoreComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
@@ -603,6 +604,17 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	nodesCoordinator sharding.NodesCoordinator,
+=======
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedNetworkComponents mainFactory.NetworkComponentsHandler,
+	managedCryptoComponents mainFactory.CryptoComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
+	managedStateComponents mainFactory.StateComponentsHandler,
+	managedStatusComponents mainFactory.StatusComponentsHandler,
+	managedProcessComponents mainFactory.ProcessComponentsHandler,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+>>>>>>> origin/feat/header-verification
 	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
@@ -818,12 +830,21 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 
 // CreateManagedStatusComponents is the managed status components factory
 func (nr *nodeRunner) CreateManagedStatusComponents(
+<<<<<<< HEAD
 	managedCoreComponents mainFactory.CoreComponentsHolder,
 	managedNetworkComponents mainFactory.NetworkComponentsHolder,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
 	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator sharding.NodesCoordinator,
+=======
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedNetworkComponents mainFactory.NetworkComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
+	managedStateComponents mainFactory.StateComponentsHandler,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+>>>>>>> origin/feat/header-verification
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
@@ -899,7 +920,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1397,7 +1418,7 @@ func copySingleFile(folder string, configFile string) {
 
 func indexValidatorsListIfNeeded(
 	outportHandler outport.OutportHandler,
-	coordinator sharding.NodesCoordinator,
+	coordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
 ) {
 	if !outportHandler.HasDrivers() {

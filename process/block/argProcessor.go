@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -54,6 +55,7 @@ type ArgBaseProcessor struct {
 	BootstrapComponents bootstrapComponentsHolder
 	StatusComponents    statusComponentsHolder
 
+<<<<<<< HEAD
 	Config                         config.Config
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
@@ -76,6 +78,28 @@ type ArgBaseProcessor struct {
 	GasHandler                     gasConsumedProvider
 	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 	ScheduledMiniBlocksEnableEpoch uint32
+=======
+	Config              config.Config
+	AccountsDB          map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector        process.ForkDetector
+	NodesCoordinator    nodesCoordinator.NodesCoordinator
+	FeeHandler          process.TransactionFeeHandler
+	RequestHandler      process.RequestHandler
+	BlockChainHook      process.BlockChainHookHandler
+	TxCoordinator       process.TransactionCoordinator
+	EpochStartTrigger   process.EpochStartTriggerHandler
+	HeaderValidator     process.HeaderConstructionValidator
+	BootStorer          process.BootStorer
+	BlockTracker        process.BlockTracker
+	BlockSizeThrottler  process.BlockSizeThrottler
+	Version             string
+	HistoryRepository   dblookupext.HistoryRepository
+	EpochNotifier       process.EpochNotifier
+	RoundNotifier       process.RoundNotifier
+	VMContainersFactory process.VirtualMachinesContainerFactory
+	VmContainer         process.VirtualMachinesContainer
+	GasHandler          gasConsumedProvider
+>>>>>>> origin/feat/header-verification
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

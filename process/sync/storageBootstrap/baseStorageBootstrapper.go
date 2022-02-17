@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -23,6 +24,7 @@ var log = logger.GetOrCreate("process/sync")
 
 // ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
 type ArgsBaseStorageBootstrapper struct {
+<<<<<<< HEAD
 	BootStorer                   process.BootStorer
 	ForkDetector                 process.ForkDetector
 	BlockProcessor               process.BlockProcessor
@@ -37,6 +39,21 @@ type ArgsBaseStorageBootstrapper struct {
 	BlockTracker                 process.BlockTracker
 	ChainID                      string
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+=======
+	BootStorer          process.BootStorer
+	ForkDetector        process.ForkDetector
+	BlockProcessor      process.BlockProcessor
+	ChainHandler        data.ChainHandler
+	Marshalizer         marshal.Marshalizer
+	Store               dataRetriever.StorageService
+	Uint64Converter     typeConverters.Uint64ByteSliceConverter
+	BootstrapRoundIndex uint64
+	ShardCoordinator    sharding.Coordinator
+	NodesCoordinator    nodesCoordinator.NodesCoordinator
+	EpochStartTrigger   process.EpochStartTriggerHandler
+	BlockTracker        process.BlockTracker
+	ChainID             string
+>>>>>>> origin/feat/header-verification
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -51,6 +68,7 @@ type ArgsMetaStorageBootstrapper struct {
 }
 
 type storageBootstrapper struct {
+<<<<<<< HEAD
 	bootStorer                   process.BootStorer
 	forkDetector                 process.ForkDetector
 	blkExecutor                  process.BlockProcessor
@@ -68,6 +86,25 @@ type storageBootstrapper struct {
 	highestNonce                 uint64
 	chainID                      string
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+=======
+	bootStorer        process.BootStorer
+	forkDetector      process.ForkDetector
+	blkExecutor       process.BlockProcessor
+	blkc              data.ChainHandler
+	marshalizer       marshal.Marshalizer
+	store             dataRetriever.StorageService
+	uint64Converter   typeConverters.Uint64ByteSliceConverter
+	shardCoordinator  sharding.Coordinator
+	nodesCoordinator  nodesCoordinator.NodesCoordinator
+	epochStartTrigger process.EpochStartTriggerHandler
+	blockTracker      process.BlockTracker
+
+	bootstrapRoundIndex  uint64
+	bootstrapper         storageBootstrapperHandler
+	headerNonceHashStore storage.Storer
+	highestNonce         uint64
+	chainID              string
+>>>>>>> origin/feat/header-verification
 }
 
 func (st *storageBootstrapper) loadBlocks() error {

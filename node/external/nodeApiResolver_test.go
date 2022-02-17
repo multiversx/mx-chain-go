@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,7 @@ import (
 func createMockAgrs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
 		SCQueryService:          &mock.SCQueryServiceStub{},
-		StatusMetricsHandler:    &mock.StatusMetricsStub{},
+		StatusMetricsHandler:    &statusHandler.StatusMetricsStub{},
 		TxCostHandler:           &mock.TransactionCostEstimatorMock{},
 		TotalStakedValueHandler: &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler: &mock.DirectStakedListProcessorStub{},
@@ -148,7 +149,7 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 
 	arg := createMockAgrs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &mock.StatusMetricsStub{
+	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
 		StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
 			wasCalled = true
 			return nil
@@ -165,7 +166,7 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 
 	arg := createMockAgrs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &mock.StatusMetricsStub{
+	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
 		StatusP2pMetricsMapCalled: func() map[string]interface{} {
 			wasCalled = true
 			return nil
@@ -182,7 +183,7 @@ func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 
 	arg := createMockAgrs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &mock.StatusMetricsStub{
+	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
 		NetworkMetricsCalled: func() map[string]interface{} {
 			wasCalled = true
 			return nil

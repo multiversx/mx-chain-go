@@ -24,6 +24,7 @@ type StatusMetricsHandler interface {
 	ConfigMetrics() map[string]interface{}
 	EnableEpochsMetrics() map[string]interface{}
 	NetworkMetrics() map[string]interface{}
+	RatingsMetrics() map[string]interface{}
 	IsInterfaceNil() bool
 }
 
