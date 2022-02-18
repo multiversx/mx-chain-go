@@ -4004,4 +4004,193 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	assert.Equal(t, len(txHashes), numTxsFeesReverted)
 }
 
-//TODO: Add unit tests for methods: AddIntermediateTransactions, GetAllIntermediateTxs, getFinalCrossMiniBlockInfos and getMiniBlockHeaderWithHash
+func TestTransactionCoordinator_getFinalCrossMiniBlockInfos(t *testing.T) {
+	t.Parallel()
+
+	hash1, hash2 := "hash1", "hash2"
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.ScheduledMiniBlocksEnableEpoch = 3
+		tc, _ := NewTransactionCoordinator(args)
+		tc.EpochConfirmed(2, 0)
+
+		crossMiniBlockInfos := []*data.MiniBlockInfo{}
+
+		mbInfos := tc.getFinalCrossMiniBlockInfos(crossMiniBlockInfos, &block.Header{})
+		assert.Equal(t, crossMiniBlockInfos, mbInfos)
+	})
+
+	t.Run("should work, miniblocks info found for final miniBlock header", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.ScheduledMiniBlocksEnableEpoch = 3
+		tc, _ := NewTransactionCoordinator(args)
+		tc.EpochConfirmed(4, 0)
+
+		mbInfo1 := &data.MiniBlockInfo{Hash: []byte(hash1)}
+		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}
+		crossMiniBlockInfos := []*data.MiniBlockInfo{mbInfo1, mbInfo2}
+
+		header := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: []byte(hash2)},
+			},
+		}
+
+		expectedMbInfos := []*data.MiniBlockInfo{mbInfo2}
+
+		mbInfos := tc.getFinalCrossMiniBlockInfos(crossMiniBlockInfos, header)
+		assert.Equal(t, expectedMbInfos, mbInfos)
+	})
+
+	t.Run("should work, miniblocks info found for final miniBlock header", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.ScheduledMiniBlocksEnableEpoch = 3
+		tc, _ := NewTransactionCoordinator(args)
+		tc.EpochConfirmed(4, 0)
+
+		mbInfo1 := &data.MiniBlockInfo{Hash: []byte(hash1)}
+		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}
+		crossMiniBlockInfos := []*data.MiniBlockInfo{mbInfo1, mbInfo2}
+
+		mbh1 := block.MiniBlockHeader{Hash: []byte(hash1)}
+		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{Hash: []byte(hash2)}
+		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		header := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		expectedMbInfos := []*data.MiniBlockInfo{mbInfo2}
+
+		mbInfos := tc.getFinalCrossMiniBlockInfos(crossMiniBlockInfos, header)
+		assert.Equal(t, expectedMbInfos, mbInfos)
+	})
+}
+
+func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTransactionCoordinatorArguments()
+
+	t.Run("nil interim processor", func(t *testing.T) {
+		t.Parallel()
+
+		tc, _ := NewTransactionCoordinator(args)
+
+		tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+		tc.interimProcessors[block.SmartContractResultBlock] = nil
+
+		mapSCRs := map[block.Type][]data.TransactionHandler{
+			block.SmartContractResultBlock: {
+				&smartContractResult.SmartContractResult{
+					Nonce: 1,
+				},
+			},
+		}
+
+		err := tc.AddIntermediateTransactions(mapSCRs)
+		assert.Equal(t, process.ErrNilIntermediateProcessor, err)
+	})
+
+	t.Run("failed to add intermediate transactions", func(t *testing.T) {
+		t.Parallel()
+
+		tc, _ := NewTransactionCoordinator(args)
+
+		expectedErr := errors.New("expected err")
+		tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+		tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+				return expectedErr
+			},
+		}
+
+		mapSCRs := map[block.Type][]data.TransactionHandler{
+			block.SmartContractResultBlock: {
+				&smartContractResult.SmartContractResult{
+					Nonce: 1,
+				},
+			},
+		}
+
+		err := tc.AddIntermediateTransactions(mapSCRs)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tc, _ := NewTransactionCoordinator(args)
+
+		expectedTxs := []data.TransactionHandler{
+			&smartContractResult.SmartContractResult{
+				Nonce: 1,
+			},
+		}
+
+		tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+		tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+				assert.Equal(t, expectedTxs, txs)
+				return nil
+			},
+		}
+
+		mapSCRs := map[block.Type][]data.TransactionHandler{
+			block.SmartContractResultBlock: {
+				&smartContractResult.SmartContractResult{
+					Nonce: 1,
+				},
+			},
+		}
+
+		err := tc.AddIntermediateTransactions(mapSCRs)
+		assert.Nil(t, err)
+	})
+}
+
+func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTransactionCoordinatorArguments()
+	tc, _ := NewTransactionCoordinator(args)
+
+	expectedTxs := map[string]data.TransactionHandler{
+		"txHash1": &smartContractResult.SmartContractResult{
+			Nonce: 1,
+		},
+		"txHash2": &smartContractResult.SmartContractResult{
+			Nonce: 2,
+		},
+	}
+
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.PeerBlock)
+	tc.interimProcessors[block.ReceiptBlock] = nil
+	tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetAllCurrentFinishedTxsCalled: func() map[string]data.TransactionHandler {
+			return expectedTxs
+		},
+	}
+
+	expectedAllIntermediateTxs := map[block.Type]map[string]data.TransactionHandler{
+		block.SmartContractResultBlock: expectedTxs,
+	}
+
+	txs := tc.GetAllIntermediateTxs()
+	assert.Equal(t, expectedAllIntermediateTxs, txs)
+}
