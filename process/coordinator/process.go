@@ -766,13 +766,8 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 
 	miniBlockInfos := make([]*data.MiniBlockInfo, 0)
 	for _, crossMiniBlockInfo := range crossMiniBlockInfos {
-		miniBlockHeader, err := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
-		if err != nil {
-			log.Error("transactionCoordinator.getFinalCrossMiniBlockInfos: getMiniBlockHeaderWithHash", "error", err.Error())
-			continue
-		}
-
-		if !miniBlockHeader.IsFinal() {
+		miniBlockHeader := getMiniBlockHeaderWithHash(header, crossMiniBlockInfo.Hash)
+		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
 			log.Debug("transactionCoordinator.getFinalCrossMiniBlockInfos: do not execute mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 			continue
 		}
@@ -783,13 +778,13 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	return miniBlockInfos
 }
 
-func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
+func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
-			return miniBlockHeader, nil
+			return miniBlockHeader
 		}
 	}
-	return nil, process.ErrMissingMiniBlockHash
+	return nil
 }
 
 func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte) {
