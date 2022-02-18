@@ -1932,11 +1932,9 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 		mb1 := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("txHash1")},
 		}
-
 		mb2 := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("txHash2")},
 		}
-
 		body := &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				mb1,
@@ -1966,7 +1964,7 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 	})
 }
 
-func TestBaseProcessor_getSchedulesMiniBlocksFromMe(t *testing.T) {
+func TestBaseProcessor_getScheduledMiniBlocksFromMe(t *testing.T) {
 	t.Parallel()
 
 	t.Run("wrong body type", func(t *testing.T) {
@@ -1983,11 +1981,9 @@ func TestBaseProcessor_getSchedulesMiniBlocksFromMe(t *testing.T) {
 		mb1 := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("txHash1")},
 		}
-
 		mb2 := &block.MiniBlock{
 			TxHashes: [][]byte{[]byte("txHash2")},
 		}
-
 		body := &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				mb1,
@@ -2060,13 +2056,7 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		header := &block.Header{
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{Hash: []byte("differentHash")},
-			},
-		}
-
-		err := bp.CheckScheduledMiniBlocksValidity(header)
+		err := bp.CheckScheduledMiniBlocksValidity(&block.Header{})
 		assert.Equal(t, expectedErr, err)
 	})
 
@@ -2074,7 +2064,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-
 		coreComponents.Hash = &mock.HasherStub{
 			ComputeCalled: func(s string) []byte {
 				return hash1
@@ -2107,7 +2096,6 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-
 		coreComponents.Hash = &mock.HasherStub{
 			ComputeCalled: func(s string) []byte {
 				return hash1

@@ -3085,7 +3085,7 @@ func TestMetaProcessor_getFinalCrossMiniBlockHashes(t *testing.T) {
 		assert.Equal(t, expectedHashes, hashes)
 	})
 
-	t.Run("should work, return only final mini block hashes", func(t *testing.T) {
+	t.Run("should work, return only final state mini block hashes", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
