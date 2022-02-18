@@ -84,7 +84,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 	t.Run("empty block body", func(t *testing.T) {
 		t.Parallel()
 
-		errorCalled := false
+		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
@@ -92,17 +92,17 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 				assert.Fail(t, "should have not called error")
 			},
 			DebugCalled: func(message string, args ...interface{}) {
-				errorCalled = message == noDoubledTransactionsFoundMessage
+				debugCalled = message == noDoubledTransactionsFoundMessage
 			},
 		}
 
 		detector.ProcessBlockBody(&block.Body{})
-		assert.True(t, errorCalled)
+		assert.True(t, debugCalled)
 	})
 	t.Run("no doubled transactions", func(t *testing.T) {
 		t.Parallel()
 
-		errorCalled := false
+		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
@@ -110,7 +110,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 				assert.Fail(t, "should have not called error")
 			},
 			DebugCalled: func(message string, args ...interface{}) {
-				errorCalled = message == noDoubledTransactionsFoundMessage
+				debugCalled = message == noDoubledTransactionsFoundMessage
 			},
 		}
 
@@ -125,12 +125,12 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 			},
 		}
 		detector.ProcessBlockBody(body)
-		assert.True(t, errorCalled)
+		assert.True(t, debugCalled)
 	})
 	t.Run("doubled transactions in different miniblocks but feature not active", func(t *testing.T) {
 		t.Parallel()
 
-		errorCalled := false
+		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		args.AddFailedRelayedTxToInvalidMBsDisableEpoch = 100000
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
@@ -139,7 +139,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 				assert.Fail(t, "should have not called error")
 			},
 			DebugCalled: func(message string, args ...interface{}) {
-				errorCalled = message == doubledTransactionsFoundButFlagActive
+				debugCalled = message == doubledTransactionsFoundButFlagActive
 			},
 		}
 
@@ -154,7 +154,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 			},
 		}
 		detector.ProcessBlockBody(body)
-		assert.True(t, errorCalled)
+		assert.True(t, debugCalled)
 	})
 	t.Run("doubled transactions in different miniblocks", func(t *testing.T) {
 		t.Parallel()

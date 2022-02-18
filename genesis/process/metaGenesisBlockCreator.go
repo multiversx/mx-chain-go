@@ -471,6 +471,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		AddFailedRelayedTxToInvalidMBsDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, err
+	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            arg.Core.Hasher(),

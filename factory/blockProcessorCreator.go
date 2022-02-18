@@ -332,6 +332,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            pcf.coreData.Hasher(),
@@ -613,6 +616,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            pcf.coreData.Hasher(),
