@@ -63,6 +63,12 @@ const GenesisTxSignatureString = "GENESISGENESISGENESISGENESISGENESISGENESISGENE
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
+// HeartbeatV2Topic is the topic used for heartbeatV2 signaling
+const HeartbeatV2Topic = "heartbeatV2"
+
+// PeerAuthenticationTopic is the topic used for peer authentication signaling
+const PeerAuthenticationTopic = "peerAuthentication"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 

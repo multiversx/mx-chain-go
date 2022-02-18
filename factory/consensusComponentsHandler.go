@@ -164,5 +164,5 @@ func (mcc *managedConsensusComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mcc *managedConsensusComponents) String() string {
-	return "managedConsensusComponents"
+	return consensusComponentsName
 }

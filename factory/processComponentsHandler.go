@@ -548,5 +548,5 @@ func (m *managedProcessComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (m *managedProcessComponents) String() string {
-	return "managedProcessComponents"
+	return processComponentsName
 }

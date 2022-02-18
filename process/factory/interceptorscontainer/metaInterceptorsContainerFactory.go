@@ -172,7 +172,7 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
-	err = micf.generateHearbeatInterceptor()
+	err = micf.generateHeartbeatInterceptor()
 	if err != nil {
 		return nil, err
 	}
