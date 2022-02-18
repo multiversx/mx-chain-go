@@ -1935,25 +1935,31 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4(t *testing.T) {
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(common.EligibleList),
+		List:            string(common.WaitingList),
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
 
-	s.flagInitStakingV4Enabled.SetValue(true)
+	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	require.Equal(t, len(validatorInfos[0]), len(listAllPubKeys))
 
+	require.Equal(t, []byte("stakedPubKey0"), validatorInfos[0][0].PublicKey)
+	require.Equal(t, string(common.EligibleList), validatorInfos[0][0].List)
+
+	require.Equal(t, []byte("stakedPubKey1"), validatorInfos[0][1].PublicKey)
+	require.Equal(t, string(common.WaitingList), validatorInfos[0][1].List)
+
 	peerAcc, _ := s.getPeerAccount([]byte("waitingPubKe0"))
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKe0")))
-	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
+	require.Equal(t, []byte("waitingPubKe0"), peerAcc.GetBLSPublicKey())
+	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
 
 	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe1"))
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKe1")))
-	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
+	require.Equal(t, []byte("waitingPubKe1"), peerAcc.GetBLSPublicKey())
+	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
 
 	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe2"))
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKe2")))
-	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
+	require.Equal(t, []byte("waitingPubKe2"), peerAcc.GetBLSPublicKey())
+	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
 }

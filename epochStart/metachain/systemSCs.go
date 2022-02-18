@@ -286,7 +286,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 
 		if s.flagStakingQueueEnabled.IsSet() {
-			err = s.stakeNodesFromQueue(validatorInfos, numUnStaked, nonce)
+			err = s.stakeNodesFromQueue(validatorInfos, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
 			}
@@ -321,7 +321,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagInitStakingV4Enabled.IsSet() {
-		err := s.stakeNodesFromQueue(validatorInfos, math.MaxUint32, nonce)
+		err := s.stakeNodesFromQueue(validatorInfos, math.MaxUint32, nonce, common.AuctionList)
 		if err != nil {
 			return err
 		}
@@ -714,11 +714,13 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
 
-	sw.Start("stakeNodesFromQueue")
-	err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce)
-	sw.Stop("stakeNodesFromQueue")
-	if err != nil {
-		return err
+	if s.flagStakingQueueEnabled.IsSet() {
+		sw.Start("stakeNodesFromQueue")
+		err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
+		sw.Stop("stakeNodesFromQueue")
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -1393,6 +1395,7 @@ func (s *systemSCProcessor) stakeNodesFromQueue(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	nodesToStake uint32,
 	nonce uint64,
+	list common.PeerType,
 ) error {
 	if nodesToStake == 0 {
 		return nil
@@ -1424,7 +1427,7 @@ func (s *systemSCProcessor) stakeNodesFromQueue(
 		return err
 	}
 
-	err = s.addNewlyStakedNodesToValidatorTrie(validatorInfos, vmOutput.ReturnData, nonce)
+	err = s.addNewlyStakedNodesToValidatorTrie(validatorInfos, vmOutput.ReturnData, nonce, list)
 	if err != nil {
 		return err
 	}
@@ -1436,6 +1439,7 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	returnData [][]byte,
 	nonce uint64,
+	list common.PeerType,
 ) error {
 	for i := 0; i < len(returnData); i += 2 {
 		blsKey := returnData[i]
@@ -1456,7 +1460,7 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(common.NewList), uint32(nonce))
+		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce))
 		peerAcc.SetTempRating(s.startRating)
 		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 
@@ -1468,7 +1472,7 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 		validatorInfo := &state.ValidatorInfo{
 			PublicKey:       blsKey,
 			ShardId:         peerAcc.GetShardId(),
-			List:            string(common.NewList),
+			List:            string(list),
 			Index:           uint32(nonce),
 			TempRating:      s.startRating,
 			Rating:          s.startRating,

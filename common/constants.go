@@ -29,6 +29,9 @@ const ObserverList PeerType = "observer"
 // NewList -
 const NewList PeerType = "new"
 
+// AuctionList -
+const AuctionList PeerType = "auction"
+
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
 
