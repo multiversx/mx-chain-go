@@ -31,6 +31,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				HeartbeatTimeBetweenSendsInSec:                   1,
 				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 				HeartbeatThresholdBetweenSends:                   0.1,
+				MaxNumOfPeerAuthenticationInResponse:             5,
 				HeartbeatExpiryTimespanInSec:                     30,
 				PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 					DefaultSpanInSec: 30,
