@@ -31,13 +31,13 @@ type ArgSender struct {
 	RedundancyHandler                           heartbeat.NodeRedundancyHandler
 }
 
-// Sender defines the component which sends authentication and heartbeat messages
-type Sender struct {
+// sender defines the component which sends authentication and heartbeat messages
+type sender struct {
 	routineHandler *routineHandler
 }
 
-// NewSender creates a new instance of Sender
-func NewSender(args ArgSender) (*Sender, error) {
+// NewSender creates a new instance of sender
+func NewSender(args ArgSender) (*sender, error) {
 	err := checkSenderArgs(args)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func NewSender(args ArgSender) (*Sender, error) {
 		return nil, err
 	}
 
-	return &Sender{
+	return &sender{
 		routineHandler: newRoutineHandler(pas, hbs),
 	}, nil
 }
@@ -122,13 +122,13 @@ func checkSenderArgs(args ArgSender) error {
 }
 
 // Close closes the internal components
-func (sender *Sender) Close() error {
+func (sender *sender) Close() error {
 	sender.routineHandler.closeProcessLoop()
 
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sender *Sender) IsInterfaceNil() bool {
+func (sender *sender) IsInterfaceNil() bool {
 	return sender == nil
 }
