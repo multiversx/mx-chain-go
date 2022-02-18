@@ -407,11 +407,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	managedHeartbeatV2Components, err := nr.CreateManagedHeartbeatV2Components(
+		managedBootstrapComponents,
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,
 		managedDataComponents,
-		managedProcessComponents.NodeRedundancyHandler(),
+		managedProcessComponents,
 	)
 
 	if err != nil {
@@ -726,21 +727,23 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 
 // CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory
 func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
+	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
-	redundancyHandler consensus.NodeRedundancyHandler,
+	processComponents mainFactory.ProcessComponentsHolder,
 ) (mainFactory.HeartbeatV2ComponentsHandler, error) {
 	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
-		Config:            *nr.configs.GeneralConfig,
-		Prefs:             *nr.configs.PreferencesConfig,
-		AppVersion:        nr.configs.FlagsConfig.Version,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
+		Config:             *nr.configs.GeneralConfig,
+		Prefs:              *nr.configs.PreferencesConfig,
+		AppVersion:         nr.configs.FlagsConfig.Version,
+		BoostrapComponents: bootstrapComponents,
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		CryptoComponents:   cryptoComponents,
+		ProcessComponents:  processComponents,
 	}
 
 	heartbeatV2ComponentsFactory, err := mainFactory.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)

@@ -8,35 +8,38 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 )
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
 type ArgHeartbeatV2ComponentsFactory struct {
-	Config            config.Config
-	Prefs             config.Preferences
-	AppVersion        string
-	RedundancyHandler heartbeat.NodeRedundancyHandler
-	CoreComponents    CoreComponentsHolder
-	DataComponents    DataComponentsHolder
-	NetworkComponents NetworkComponentsHolder
-	CryptoComponents  CryptoComponentsHolder
+	Config             config.Config
+	Prefs              config.Preferences
+	AppVersion         string
+	BoostrapComponents BootstrapComponentsHolder
+	CoreComponents     CoreComponentsHolder
+	DataComponents     DataComponentsHolder
+	NetworkComponents  NetworkComponentsHolder
+	CryptoComponents   CryptoComponentsHolder
+	ProcessComponents  ProcessComponentsHolder
 }
 
 type heartbeatV2ComponentsFactory struct {
-	config            config.Config
-	prefs             config.Preferences
-	version           string
-	redundancyHandler heartbeat.NodeRedundancyHandler
-	coreComponents    CoreComponentsHolder
-	dataComponents    DataComponentsHolder
-	networkComponents NetworkComponentsHolder
-	cryptoComponents  CryptoComponentsHolder
+	config             config.Config
+	prefs              config.Preferences
+	version            string
+	boostrapComponents BootstrapComponentsHolder
+	coreComponents     CoreComponentsHolder
+	dataComponents     DataComponentsHolder
+	networkComponents  NetworkComponentsHolder
+	cryptoComponents   CryptoComponentsHolder
+	processComponents  ProcessComponentsHolder
 }
 
 type heartbeatV2Components struct {
-	sender HeartbeatV2Sender
+	sender    HeartbeatV2Sender
+	processor PeerAuthenticationRequestsProcessor
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -47,18 +50,22 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	}
 
 	return &heartbeatV2ComponentsFactory{
-		config:            args.Config,
-		prefs:             args.Prefs,
-		version:           args.AppVersion,
-		redundancyHandler: args.RedundancyHandler,
-		coreComponents:    args.CoreComponents,
-		dataComponents:    args.DataComponents,
-		networkComponents: args.NetworkComponents,
-		cryptoComponents:  args.CryptoComponents,
+		config:             args.Config,
+		prefs:              args.Prefs,
+		version:            args.AppVersion,
+		boostrapComponents: args.BoostrapComponents,
+		coreComponents:     args.CoreComponents,
+		dataComponents:     args.DataComponents,
+		networkComponents:  args.NetworkComponents,
+		cryptoComponents:   args.CryptoComponents,
+		processComponents:  args.ProcessComponents,
 	}, nil
 }
 
 func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
+	if check.IfNil(args.BoostrapComponents) {
+		return errors.ErrNilBootstrapComponentsHolder
+	}
 	if check.IfNil(args.CoreComponents) {
 		return errors.ErrNilCoreComponentsHolder
 	}
@@ -70,6 +77,9 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return errors.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(args.ProcessComponents) {
+		return errors.ErrNilProcessComponentsHolder
 	}
 
 	return nil
@@ -102,15 +112,34 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		CurrentBlockProvider:                        hcf.dataComponents.Blockchain(),
 		PeerSignatureHandler:                        hcf.cryptoComponents.PeerSignatureHandler(),
 		PrivateKey:                                  hcf.cryptoComponents.PrivateKey(),
-		RedundancyHandler:                           hcf.redundancyHandler,
+		RedundancyHandler:                           hcf.processComponents.NodeRedundancyHandler(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {
 		return nil, err
 	}
 
+	epochBootstrapParams := hcf.boostrapComponents.EpochBootstrapParams()
+	argsProcessor := processor.ArgPeerAuthenticationRequestsProcessor{
+		RequestHandler:           hcf.processComponents.RequestHandler(),
+		NodesCoordinator:         hcf.processComponents.NodesCoordinator(),
+		PeerAuthenticationPool:   hcf.dataComponents.Datapool().PeerAuthentications(),
+		ShardId:                  epochBootstrapParams.SelfShardID(),
+		Epoch:                    epochBootstrapParams.Epoch(),
+		MessagesInChunk:          uint32(cfg.MaxNumOfPeerAuthenticationInResponse),
+		MinPeersThreshold:        cfg.MinPeersThreshold,
+		DelayBetweenRequests:     time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
+		MaxTimeout:               time.Second * time.Duration(cfg.MaxTimeoutInSec),
+		MaxMissingKeysInResponse: cfg.MaxMissingKeysInResponse,
+	}
+	paRequestsProcessor, err := processor.NewPeerAuthenticationRequestsProcessor(argsProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	return &heartbeatV2Components{
-		sender: heartbeatV2Sender,
+		sender:    heartbeatV2Sender,
+		processor: paRequestsProcessor,
 	}, nil
 }
 
@@ -120,6 +149,10 @@ func (hc *heartbeatV2Components) Close() error {
 
 	if !check.IfNil(hc.sender) {
 		log.LogIfError(hc.sender.Close())
+	}
+
+	if !check.IfNil(hc.processor) {
+		log.LogIfError(hc.processor.Close())
 	}
 
 	return nil
