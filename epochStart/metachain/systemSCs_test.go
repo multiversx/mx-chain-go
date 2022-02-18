@@ -996,7 +996,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
 				StakeLimitsEnableEpoch:             10,
-				StakingV4EnableEpoch:               444,
+				StakingV4InitEnableEpoch:           444,
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
@@ -1035,9 +1035,9 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ESDTOwnerAddressBytes: bytes.Repeat([]byte{1}, 32),
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch: 1000000,
-				ESDTEnableEpoch:      1000000,
-				StakingV4EnableEpoch: 444,
+				StakingV2EnableEpoch:     1000000,
+				ESDTEnableEpoch:          1000000,
+				StakingV4InitEnableEpoch: 444,
 			},
 		},
 	}
@@ -1940,7 +1940,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 	})
 
-	s.flagStakingV4Enabled.SetValue(true)
+	s.flagInitStakingV4Enabled.SetValue(true)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 	require.Equal(t, len(validatorInfos[0]), len(listAllPubKeys))
