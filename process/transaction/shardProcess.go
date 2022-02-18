@@ -51,29 +51,33 @@ type txProcessor struct {
 	relayedTxV2EnableEpoch         uint32
 	penalizedTooMuchGasEnableEpoch uint32
 	metaProtectionEnableEpoch      uint32
+
+	flagAddFailedRelayedToInvalid         atomic.Flag
+	addFailedRelayedToInvalidDisableEpoch uint32
 }
 
 // ArgsNewTxProcessor defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
-	Accounts                       state.AccountsAdapter
-	Hasher                         hashing.Hasher
-	PubkeyConv                     core.PubkeyConverter
-	Marshalizer                    marshal.Marshalizer
-	SignMarshalizer                marshal.Marshalizer
-	ShardCoordinator               sharding.Coordinator
-	ScProcessor                    process.SmartContractProcessor
-	TxFeeHandler                   process.TransactionFeeHandler
-	TxTypeHandler                  process.TxTypeHandler
-	EconomicsFee                   process.FeeHandler
-	ReceiptForwarder               process.IntermediateTransactionHandler
-	BadTxForwarder                 process.IntermediateTransactionHandler
-	ArgsParser                     process.ArgumentsParser
-	ScrForwarder                   process.IntermediateTransactionHandler
-	RelayedTxEnableEpoch           uint32
-	RelayedTxV2EnableEpoch         uint32
-	PenalizedTooMuchGasEnableEpoch uint32
-	MetaProtectionEnableEpoch      uint32
-	EpochNotifier                  process.EpochNotifier
+	Accounts                              state.AccountsAdapter
+	Hasher                                hashing.Hasher
+	PubkeyConv                            core.PubkeyConverter
+	Marshalizer                           marshal.Marshalizer
+	SignMarshalizer                       marshal.Marshalizer
+	ShardCoordinator                      sharding.Coordinator
+	ScProcessor                           process.SmartContractProcessor
+	TxFeeHandler                          process.TransactionFeeHandler
+	TxTypeHandler                         process.TxTypeHandler
+	EconomicsFee                          process.FeeHandler
+	ReceiptForwarder                      process.IntermediateTransactionHandler
+	BadTxForwarder                        process.IntermediateTransactionHandler
+	ArgsParser                            process.ArgumentsParser
+	ScrForwarder                          process.IntermediateTransactionHandler
+	RelayedTxEnableEpoch                  uint32
+	RelayedTxV2EnableEpoch                uint32
+	PenalizedTooMuchGasEnableEpoch        uint32
+	MetaProtectionEnableEpoch             uint32
+	AddFailedRelayedToInvalidDisableEpoch uint32
+	EpochNotifier                         process.EpochNotifier
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -135,24 +139,26 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	txProc := &txProcessor{
-		baseTxProcessor:                baseTxProcess,
-		txFeeHandler:                   args.TxFeeHandler,
-		txTypeHandler:                  args.TxTypeHandler,
-		receiptForwarder:               args.ReceiptForwarder,
-		badTxForwarder:                 args.BadTxForwarder,
-		argsParser:                     args.ArgsParser,
-		scrForwarder:                   args.ScrForwarder,
-		signMarshalizer:                args.SignMarshalizer,
-		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
-		relayedTxV2EnableEpoch:         args.RelayedTxV2EnableEpoch,
-		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
-		metaProtectionEnableEpoch:      args.MetaProtectionEnableEpoch,
+		baseTxProcessor:                       baseTxProcess,
+		txFeeHandler:                          args.TxFeeHandler,
+		txTypeHandler:                         args.TxTypeHandler,
+		receiptForwarder:                      args.ReceiptForwarder,
+		badTxForwarder:                        args.BadTxForwarder,
+		argsParser:                            args.ArgsParser,
+		scrForwarder:                          args.ScrForwarder,
+		signMarshalizer:                       args.SignMarshalizer,
+		relayedTxEnableEpoch:                  args.RelayedTxEnableEpoch,
+		relayedTxV2EnableEpoch:                args.RelayedTxV2EnableEpoch,
+		penalizedTooMuchGasEnableEpoch:        args.PenalizedTooMuchGasEnableEpoch,
+		metaProtectionEnableEpoch:             args.MetaProtectionEnableEpoch,
+		addFailedRelayedToInvalidDisableEpoch: args.AddFailedRelayedToInvalidDisableEpoch,
 	}
 
 	log.Debug("shardProcess: enable epoch for relayed transactions", "epoch", txProc.relayedTxEnableEpoch)
 	log.Debug("shardProcess: enable epoch for penalized too much gas", "epoch", txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("shardProcess: enable epoch for meta protection", "epoch", txProc.metaProtectionEnableEpoch)
 	log.Debug("shardTxProcessor: enable epoch for relayed transactions v2", "epoch", txProc.relayedTxV2EnableEpoch)
+	log.Debug("shardTxProcessor: disable epoch for to add failed relayed tx into invalid miniblocks", "epoch", txProc.addFailedRelayedToInvalidDisableEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
 	return txProc, nil
@@ -924,9 +930,11 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 			return err
 		}
 
-		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
-		if err != nil {
-			return err
+		if txProc.flagAddFailedRelayedToInvalid.IsSet() {
+			err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
+			if err != nil {
+				return err
+			}
 		}
 
 		err = txProc.accounts.SaveAccount(relayerAcnt)
@@ -951,6 +959,9 @@ func (txProc *txProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	txProc.flagMetaProtection.SetValue(epoch >= txProc.metaProtectionEnableEpoch)
 	log.Debug("txProcessor: meta protection", "enabled", txProc.flagMetaProtection.IsSet())
+
+	txProc.flagAddFailedRelayedToInvalid.SetValue(epoch >= txProc.addFailedRelayedToInvalidDisableEpoch)
+	log.Debug("txProcessor: add failed relayed tx to invalid miniblocks", "enabled", txProc.flagAddFailedRelayedToInvalid.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

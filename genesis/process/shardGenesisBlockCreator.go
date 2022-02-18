@@ -112,6 +112,7 @@ func createGenesisConfig() config.EnableEpochs {
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 	}
 }
 
@@ -508,25 +509,26 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                       arg.Accounts,
-		Hasher:                         arg.Core.Hasher(),
-		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
-		Marshalizer:                    arg.Core.InternalMarshalizer(),
-		SignMarshalizer:                arg.Core.TxMarshalizer(),
-		ShardCoordinator:               arg.ShardCoordinator,
-		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   genesisFeeHandler,
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   genesisFeeHandler,
-		ReceiptForwarder:               receiptTxInterim,
-		BadTxForwarder:                 badTxInterim,
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		ScrForwarder:                   scForwarder,
-		EpochNotifier:                  epochNotifier,
-		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
-		RelayedTxV2EnableEpoch:         enableEpochs.RelayedTransactionsV2EnableEpoch,
+		Accounts:                              arg.Accounts,
+		Hasher:                                arg.Core.Hasher(),
+		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
+		Marshalizer:                           arg.Core.InternalMarshalizer(),
+		SignMarshalizer:                       arg.Core.TxMarshalizer(),
+		ShardCoordinator:                      arg.ShardCoordinator,
+		ScProcessor:                           scProcessor,
+		TxFeeHandler:                          genesisFeeHandler,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          genesisFeeHandler,
+		ReceiptForwarder:                      receiptTxInterim,
+		BadTxForwarder:                        badTxInterim,
+		ArgsParser:                            smartContract.NewArgumentParser(),
+		ScrForwarder:                          scForwarder,
+		EpochNotifier:                         epochNotifier,
+		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
+		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
+		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
