@@ -763,6 +763,10 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
+	// placeholder for shardProcessor.CreateBlock script 1
+
+	// placeholder for shardProcessor.CreateBlock script 2
+
 	if sp.epochStartTrigger.IsEpochStart() {
 		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
 			"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
@@ -1906,6 +1910,8 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	var miniBlocks block.MiniBlockSlice
 
 	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+
+	// placeholder for shardProcessor.createMiniBlocks script
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.createMiniBlocks",
