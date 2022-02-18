@@ -3,10 +3,11 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -676,3 +677,109 @@ func createTestHeader() *block.Header {
 }
 
 //TODO: Add unit tests for methods: getBlockTypeOfTx, getScheduledMiniBlocks and getNumScheduledIntermediateTxs
+func TestGetBlockTypeOfTx(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+
+	t.Run("tx not found in miniBlocks, get default block type", func(t *testing.T) {
+		t.Parallel()
+
+		miniBlocks := map[string]*block.MiniBlock{
+			"dummyhash1": {
+				TxHashes: [][]byte{[]byte("hash1")},
+				Type:     block.TxBlock,
+			},
+		}
+
+		blockType := getBlockTypeOfTx(hash, miniBlocks)
+		assert.Equal(t, block.SmartContractResultBlock, blockType)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedBlockType := block.PeerBlock
+		miniBlocks := map[string]*block.MiniBlock{
+			"dummyhash1": {
+				TxHashes: [][]byte{[]byte("hash1")},
+				Type:     block.TxBlock,
+			},
+			"dummyhash2": {
+				TxHashes: [][]byte{hash},
+				Type:     expectedBlockType,
+			},
+		}
+
+		blockType := getBlockTypeOfTx(hash, miniBlocks)
+		assert.Equal(t, expectedBlockType, blockType)
+	})
+}
+
+func TestGetScheduledMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	hash1, hash2, hash3 := "hash1", "hash2", "hash3"
+	txHash1, txHash2, txHash3 := "txHash1", "txHash2", "txHash3"
+	mb1 := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte(txHash1)},
+		Type:     block.TxBlock,
+	}
+	mb2 := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte(txHash2)},
+		Type:     block.TxBlock,
+	}
+	mb3 := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte(txHash3)},
+		Type:     block.InvalidBlock,
+	}
+	miniBlocks := map[string]*block.MiniBlock{
+		hash1: mb1,
+		hash2: mb2,
+		hash3: mb3,
+	}
+
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte(hash1)},
+			{Hash: []byte(hash2)},
+			{Hash: []byte(hash3)},
+		},
+	}
+
+	schedulesTxHashes := map[string]uint32{
+		txHash1: 1,
+		txHash2: 2,
+	}
+
+	expectedMiniBlocks := block.MiniBlockSlice{
+		mb1,
+		mb2,
+	}
+
+	mbs := getScheduledMiniBlocks(header, miniBlocks, schedulesTxHashes)
+	assert.Equal(t, expectedMiniBlocks, mbs)
+}
+
+func TestNumScheduledIntermediateTxs(t *testing.T) {
+	t.Parallel()
+
+	mapTxs := map[block.Type][]data.TransactionHandler{
+		block.TxBlock: {
+			&transaction.Transaction{
+				Nonce: 1,
+			},
+			&transaction.Transaction{
+				Nonce: 2,
+			},
+		},
+		block.PeerBlock: {
+			&transaction.Transaction{
+				Nonce: 3,
+			},
+		},
+	}
+
+	num := getNumScheduledIntermediateTxs(mapTxs)
+	assert.Equal(t, 3, num)
+}
