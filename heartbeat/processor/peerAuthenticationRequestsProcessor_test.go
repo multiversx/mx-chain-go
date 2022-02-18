@@ -19,15 +19,16 @@ import (
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
 	return ArgPeerAuthenticationRequestsProcessor{
-		RequestHandler:         &testscommon.RequestHandlerStub{},
-		NodesCoordinator:       &mock.NodesCoordinatorStub{},
-		PeerAuthenticationPool: &testscommon.CacherMock{},
-		ShardId:                0,
-		Epoch:                  0,
-		MessagesInChunk:        5,
-		MinPeersThreshold:      0.8,
-		DelayBetweenRequests:   time.Second,
-		MaxTimeout:             5 * time.Second,
+		RequestHandler:           &testscommon.RequestHandlerStub{},
+		NodesCoordinator:         &mock.NodesCoordinatorStub{},
+		PeerAuthenticationPool:   &testscommon.CacherMock{},
+		ShardId:                  0,
+		Epoch:                    0,
+		MessagesInChunk:          5,
+		MinPeersThreshold:        0.8,
+		DelayBetweenRequests:     time.Second,
+		MaxTimeout:               5 * time.Second,
+		MaxMissingKeysInResponse: 10,
 	}
 }
 
@@ -106,6 +107,17 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("invalid max timeout should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerAuthenticationRequestsProcessor()
+		args.MaxMissingKeysInResponse = 0
+
+		processor, err := NewPeerAuthenticationRequestsProcessor(args)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "MaxMissingKeysAllowed"))
+		assert.True(t, check.IfNil(processor))
+	})
+	t.Run("invalid max missing keys should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerAuthenticationRequestsProcessor()
@@ -380,4 +392,27 @@ func TestPeerAuthenticationRequestsProcessor_requestMissingKeys(t *testing.T) {
 		processor.requestMissingKeys(providedPks) // counter 2
 		processor.requestMissingKeys(providedPks) // counter 3
 	})
+}
+
+func TestPeerAuthenticationRequestsProcessor_getRandMaxMissingKeys(t *testing.T) {
+	t.Parallel()
+
+	providedPks := [][]byte{[]byte("pk0"), []byte("pk1"), []byte("pk2"), []byte("pk3"), []byte("pk5"),
+		[]byte("pk8"), []byte("pk4"), []byte("pk7"), []byte("pk6")}
+
+	args := createMockArgPeerAuthenticationRequestsProcessor()
+	args.MaxMissingKeysInResponse = 3
+	processor, err := NewPeerAuthenticationRequestsProcessor(args)
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(processor))
+
+	for i := 0; i < 100; i++ {
+		randMissingKeys := processor.getRandMaxMissingKeys(providedPks)
+		assert.Equal(t, int(args.MaxMissingKeysInResponse), len(randMissingKeys))
+
+		randMissingKeys = getSortedSlice(randMissingKeys)
+		for j := 0; j < len(randMissingKeys)-1; j++ {
+			assert.NotEqual(t, randMissingKeys[j], randMissingKeys[j+1])
+		}
+	}
 }
