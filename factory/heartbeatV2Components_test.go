@@ -41,7 +41,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				MinPeersThreshold:                                0.8,
 				DelayBetweenRequestsInSec:                        10,
 				MaxTimeoutInSec:                                  60,
-				MaxMissingKeysInResponse:                         100,
+				MaxMissingKeysInRequest:                          100,
 				PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 					DefaultSpanInSec: 30,
 					CacheExpiryInSec: 30,

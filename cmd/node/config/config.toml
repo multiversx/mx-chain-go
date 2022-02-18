@@ -915,7 +915,7 @@
     MinPeersThreshold                                = 0.8  # 80%
     DelayBetweenRequestsInSec                        = 10   # 10sec
     MaxTimeoutInSec                                  = 7200 # 2h
-    MaxMissingKeysInResponse                         = 1000
+    MaxMissingKeysInRequest                          = 1000
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h

@@ -121,16 +121,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	epochBootstrapParams := hcf.boostrapComponents.EpochBootstrapParams()
 	argsProcessor := processor.ArgPeerAuthenticationRequestsProcessor{
-		RequestHandler:           hcf.processComponents.RequestHandler(),
-		NodesCoordinator:         hcf.processComponents.NodesCoordinator(),
-		PeerAuthenticationPool:   hcf.dataComponents.Datapool().PeerAuthentications(),
-		ShardId:                  epochBootstrapParams.SelfShardID(),
-		Epoch:                    epochBootstrapParams.Epoch(),
-		MessagesInChunk:          uint32(cfg.MaxNumOfPeerAuthenticationInResponse),
-		MinPeersThreshold:        cfg.MinPeersThreshold,
-		DelayBetweenRequests:     time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
-		MaxTimeout:               time.Second * time.Duration(cfg.MaxTimeoutInSec),
-		MaxMissingKeysInResponse: cfg.MaxMissingKeysInResponse,
+		RequestHandler:          hcf.processComponents.RequestHandler(),
+		NodesCoordinator:        hcf.processComponents.NodesCoordinator(),
+		PeerAuthenticationPool:  hcf.dataComponents.Datapool().PeerAuthentications(),
+		ShardId:                 epochBootstrapParams.SelfShardID(),
+		Epoch:                   epochBootstrapParams.Epoch(),
+		MessagesInChunk:         uint32(cfg.MaxNumOfPeerAuthenticationInResponse),
+		MinPeersThreshold:       cfg.MinPeersThreshold,
+		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
+		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),
+		MaxMissingKeysInRequest: cfg.MaxMissingKeysInRequest,
 	}
 	paRequestsProcessor, err := processor.NewPeerAuthenticationRequestsProcessor(argsProcessor)
 	if err != nil {
