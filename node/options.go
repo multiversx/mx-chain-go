@@ -159,6 +159,22 @@ func WithHeartbeatComponents(heartbeatComponents factory.HeartbeatComponentsHand
 	}
 }
 
+// WithHeartbeatV2Components sets up the Node heartbeatV2 components
+func WithHeartbeatV2Components(heartbeatV2Components factory.HeartbeatV2ComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(heartbeatV2Components) {
+			return ErrNilStatusComponents
+		}
+		err := heartbeatV2Components.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.heartbeatV2Components = heartbeatV2Components
+		n.closableComponents = append(n.closableComponents, heartbeatV2Components)
+		return nil
+	}
+}
+
 // WithConsensusComponents sets up the Node consensus components
 func WithConsensusComponents(consensusComponents factory.ConsensusComponentsHandler) Option {
 	return func(n *Node) error {

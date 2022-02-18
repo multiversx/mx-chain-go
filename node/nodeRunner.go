@@ -406,6 +406,18 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	managedHeartbeatV2Components, err := nr.CreateManagedHeartbeatV2Components(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedProcessComponents.NodeRedundancyHandler(),
+	)
+
+	if err != nil {
+		return true, err
+	}
+
 	log.Trace("creating node structure")
 	currentNode, err := CreateNode(
 		configs.GeneralConfig,
@@ -418,6 +430,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedStatusComponents,
 		managedHeartbeatComponents,
+		managedHeartbeatV2Components,
 		managedConsensusComponents,
 		*configs.EpochConfig,
 		flagsConfig.BootstrapRoundIndex,
@@ -709,6 +722,42 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 		return nil, err
 	}
 	return managedHeartbeatComponents, nil
+}
+
+// CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory
+func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
+	coreComponents mainFactory.CoreComponentsHolder,
+	networkComponents mainFactory.NetworkComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	redundancyHandler consensus.NodeRedundancyHandler,
+) (mainFactory.HeartbeatV2ComponentsHandler, error) {
+	heartbeatV2Args := mainFactory.ArgHeartbeatV2ComponentsFactory{
+		Config:            *nr.configs.GeneralConfig,
+		Prefs:             *nr.configs.PreferencesConfig,
+		AppVersion:        nr.configs.FlagsConfig.Version,
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+	}
+
+	heartbeatV2ComponentsFactory, err := mainFactory.NewHeartbeatV2ComponentsFactory(heartbeatV2Args)
+	if err != nil {
+		return nil, fmt.Errorf("NewHeartbeatV2ComponentsFactory failed: %w", err)
+	}
+
+	managedHeartbeatV2Components, err := mainFactory.NewManagedHeartbeatV2Components(heartbeatV2ComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedHeartbeatV2Components.Create()
+	if err != nil {
+		return nil, err
+	}
+	return managedHeartbeatV2Components, nil
 }
 
 func waitForSignal(

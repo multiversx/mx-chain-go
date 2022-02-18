@@ -164,7 +164,7 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() PeerHonestyHandler {
 	return mnc.networkComponents.peerHonestyHandler
 }
 
-// PreferredPeersHolder returns the preferred peers holder
+// PreferredPeersHolderHandler returns the preferred peers holder
 func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() PreferredPeersHolderHandler {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
@@ -183,5 +183,5 @@ func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mnc *managedNetworkComponents) String() string {
-	return "managedNetworkComponents"
+	return networkComponentsName
 }

@@ -76,18 +76,19 @@ type Node struct {
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
-	mutQueryHandlers    syncGo.RWMutex
-	queryHandlers       map[string]debug.QueryHandler
-	bootstrapComponents mainFactory.BootstrapComponentsHolder
-	consensusComponents mainFactory.ConsensusComponentsHolder
-	coreComponents      mainFactory.CoreComponentsHolder
-	cryptoComponents    mainFactory.CryptoComponentsHolder
-	dataComponents      mainFactory.DataComponentsHolder
-	heartbeatComponents mainFactory.HeartbeatComponentsHolder
-	networkComponents   mainFactory.NetworkComponentsHolder
-	processComponents   mainFactory.ProcessComponentsHolder
-	stateComponents     mainFactory.StateComponentsHolder
-	statusComponents    mainFactory.StatusComponentsHolder
+	mutQueryHandlers      syncGo.RWMutex
+	queryHandlers         map[string]debug.QueryHandler
+	bootstrapComponents   mainFactory.BootstrapComponentsHolder
+	consensusComponents   mainFactory.ConsensusComponentsHolder
+	coreComponents        mainFactory.CoreComponentsHolder
+	cryptoComponents      mainFactory.CryptoComponentsHolder
+	dataComponents        mainFactory.DataComponentsHolder
+	heartbeatComponents   mainFactory.HeartbeatComponentsHolder
+	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHandler
+	networkComponents     mainFactory.NetworkComponentsHolder
+	processComponents     mainFactory.ProcessComponentsHolder
+	stateComponents       mainFactory.StateComponentsHolder
+	statusComponents      mainFactory.StatusComponentsHolder
 
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
@@ -965,6 +966,11 @@ func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
 // GetHeartbeatComponents returns the heartbeat components
 func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
 	return n.heartbeatComponents
+}
+
+// GetHeartbeatV2Components returns the heartbeatV2 components
+func (n *Node) GetHeartbeatV2Components() mainFactory.HeartbeatV2ComponentsHolder {
+	return n.heartbeatV2Components
 }
 
 // GetNetworkComponents returns the network components
