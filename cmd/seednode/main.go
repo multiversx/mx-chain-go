@@ -193,6 +193,11 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
+	err = messenger.Bootstrap()
+	if err != nil {
+		return err
+	}
+
 	// TODO - remove this
 	log.Debug("net messenger", "num peers", len(messenger.Peers()))
 	if len(messenger.Peers()) < 2 {
