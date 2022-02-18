@@ -627,7 +627,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 
 //------- Heartbeat interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateHearbeatInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() error {
 	shardC := bicf.shardCoordinator
 	identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 

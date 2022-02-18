@@ -116,3 +116,6 @@ var ErrEmptyNodeDisplayName = errors.New("empty node display name")
 
 // ErrEmptyIdentity signals that an empty identity was provided
 var ErrEmptyIdentity = errors.New("empty identity")
+
+// ErrInvalidThreshold signals that an invalid threshold was provided
+var ErrInvalidThreshold = errors.New("invalid threshold")

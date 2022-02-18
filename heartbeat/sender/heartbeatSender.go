@@ -8,14 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
-// ArgHeartbeatSender represents the arguments for the heartbeat sender
-type ArgHeartbeatSender struct {
-	ArgBaseSender
-	VersionNumber        string
-	NodeDisplayName      string
-	Identity             string
-	PeerSubType          core.P2PPeerSubType
-	CurrentBlockProvider heartbeat.CurrentBlockProvider
+// argHeartbeatSender represents the arguments for the heartbeat sender
+type argHeartbeatSender struct {
+	argBaseSender
+	versionNumber        string
+	nodeDisplayName      string
+	identity             string
+	peerSubType          core.P2PPeerSubType
+	currentBlockProvider heartbeat.CurrentBlockProvider
 }
 
 type heartbeatSender struct {
@@ -27,38 +27,38 @@ type heartbeatSender struct {
 	currentBlockProvider heartbeat.CurrentBlockProvider
 }
 
-// NewHeartbeatSender creates a new instance of type heartbeatSender
-func NewHeartbeatSender(args ArgHeartbeatSender) (*heartbeatSender, error) {
+// newHeartbeatSender creates a new instance of type heartbeatSender
+func newHeartbeatSender(args argHeartbeatSender) (*heartbeatSender, error) {
 	err := checkHeartbeatSenderArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
 	return &heartbeatSender{
-		baseSender:           createBaseSender(args.ArgBaseSender),
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerSubType:          args.PeerSubType,
+		baseSender:           createBaseSender(args.argBaseSender),
+		versionNumber:        args.versionNumber,
+		nodeDisplayName:      args.nodeDisplayName,
+		identity:             args.identity,
+		currentBlockProvider: args.currentBlockProvider,
+		peerSubType:          args.peerSubType,
 	}, nil
 }
 
-func checkHeartbeatSenderArgs(args ArgHeartbeatSender) error {
-	err := checkBaseSenderArgs(args.ArgBaseSender)
+func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
+	err := checkBaseSenderArgs(args.argBaseSender)
 	if err != nil {
 		return err
 	}
-	if len(args.VersionNumber) == 0 {
+	if len(args.versionNumber) == 0 {
 		return heartbeat.ErrEmptyVersionNumber
 	}
-	if len(args.NodeDisplayName) == 0 {
+	if len(args.nodeDisplayName) == 0 {
 		return heartbeat.ErrEmptyNodeDisplayName
 	}
-	if len(args.Identity) == 0 {
+	if len(args.identity) == 0 {
 		return heartbeat.ErrEmptyIdentity
 	}
-	if check.IfNil(args.CurrentBlockProvider) {
+	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider
 	}
 
@@ -67,7 +67,7 @@ func checkHeartbeatSenderArgs(args ArgHeartbeatSender) error {
 
 // Execute will handle the execution of a cycle in which the heartbeat message will be sent
 func (sender *heartbeatSender) Execute() {
-	duration := sender.timeBetweenSends
+	duration := sender.computeRandomDuration()
 	err := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
