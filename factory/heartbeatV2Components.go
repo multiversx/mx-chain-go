@@ -88,6 +88,19 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 
 // Create creates the heartbeatV2 components
 func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error) {
+	if !hcf.networkComponents.NetworkMessenger().HasTopic(common.PeerAuthenticationTopic) {
+		err := hcf.networkComponents.NetworkMessenger().CreateTopic(common.PeerAuthenticationTopic, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !hcf.networkComponents.NetworkMessenger().HasTopic(common.HeartbeatV2Topic) {
+		err := hcf.networkComponents.NetworkMessenger().CreateTopic(common.HeartbeatV2Topic, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	peerSubType := core.RegularPeer
 	if hcf.prefs.Preferences.FullArchive {
 		peerSubType = core.FullHistoryObserver
