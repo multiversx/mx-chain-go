@@ -73,6 +73,7 @@ type systemSCProcessor struct {
 	governanceEnableEpoch          uint32
 	builtInOnMetaEnableEpoch       uint32
 	stakingV4InitEnableEpoch       uint32
+	stakingV4EnableEpoch           uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -89,6 +90,7 @@ type systemSCProcessor struct {
 	flagBuiltInOnMetaEnabled       atomic.Flag
 	flagInitStakingV4Enabled       atomic.Flag
 	flagStakingQueueEnabled        atomic.Flag
+	flagStakingV4Enabled           atomic.Flag
 	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
@@ -186,6 +188,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		governanceEnableEpoch:       args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch:    args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		stakingV4InitEnableEpoch:    args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+		stakingV4EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
@@ -197,7 +200,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
 	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
-	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4InitEnableEpoch)
+	log.Debug("systemSC: enable epoch for initializing staking v4", "epoch", s.stakingV4InitEnableEpoch)
+	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4EnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -325,6 +329,49 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		if err != nil {
 			return err
 		}
+	}
+
+	if s.flagStakingV4Enabled.IsSet() {
+		err := s.selectNodesFromAuctionList(validatorInfos)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	auctionList := make([]*state.ValidatorInfo, 0)
+	noOfValidators := uint32(0)
+	for _, validatorsInShard := range validatorInfos {
+		for _, validator := range validatorsInShard {
+			if validator.List == string(common.AuctionList) {
+				auctionList = append(auctionList, validator)
+			} else if isValidator(validator) {
+				noOfValidators++
+			}
+		}
+	}
+
+	sort.Slice(auctionList, func(i, j int) bool {
+		pubKey1 := auctionList[i].PublicKey
+		pubKey2 := auctionList[j].PublicKey
+
+		nodeTopUpPubKey1, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey1)
+		nodeTopUpPubKey2, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
+
+		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
+	})
+
+	noOfSelectedNodes := s.maxNodes - noOfValidators
+	totalNodesInAuctionList := uint32(len(auctionList))
+	if totalNodesInAuctionList < noOfSelectedNodes {
+		noOfSelectedNodes = totalNodesInAuctionList
+	}
+	for i := uint32(0); i < noOfSelectedNodes; i++ {
+		shardID := auctionList[i].ShardId
+		validatorInfos[shardID] = append(validatorInfos[shardID], auctionList[i])
 	}
 
 	return nil
@@ -1605,4 +1652,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagStakingQueueEnabled.SetValue(epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("systemProcessor: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
+
+	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
+	log.Debug("systemProcessor: staking queue on meta", "enabled", s.flagStakingV4Enabled.IsSet())
 }

@@ -76,6 +76,7 @@ type EnableEpochs struct {
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
 	StakeLimitsEnableEpoch                            uint32
 	StakingV4InitEnableEpoch                          uint32
+	StakingV4EnableEpoch                              uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
