@@ -1,16 +1,12 @@
 package factory_test
 
 import (
-	"errors"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/config"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,6 +16,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 	bootstrapComponentsFactory, _ := factory.NewBootstrapComponentsFactory(bootStrapArgs)
 	bootstrapC, _ := factory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapC.Create()
+	factory.SetShardCoordinator(shardCoordinator, bootstrapC)
 
 	coreC := getCoreComponents()
 	networkC := getNetworkComponents()
@@ -69,119 +66,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 	}
 }
 
-func TestNewHeartbeatV2ComponentsFactory(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil bootstrap components should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.BoostrapComponents = nil
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.True(t, check.IfNil(hcf))
-		assert.Equal(t, elrondErrors.ErrNilBootstrapComponentsHolder, err)
-	})
-	t.Run("nil core components should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.CoreComponents = nil
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.True(t, check.IfNil(hcf))
-		assert.Equal(t, elrondErrors.ErrNilCoreComponentsHolder, err)
-	})
-	t.Run("nil data components should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.DataComponents = nil
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.True(t, check.IfNil(hcf))
-		assert.Equal(t, elrondErrors.ErrNilDataComponentsHolder, err)
-	})
-	t.Run("nil network components should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.NetworkComponents = nil
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.True(t, check.IfNil(hcf))
-		assert.Equal(t, elrondErrors.ErrNilNetworkComponentsHolder, err)
-	})
-	t.Run("nil crypto components should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.CryptoComponents = nil
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.True(t, check.IfNil(hcf))
-		assert.Equal(t, elrondErrors.ErrNilCryptoComponentsHolder, err)
-	})
-	t.Run("nil process components should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.ProcessComponents = nil
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.True(t, check.IfNil(hcf))
-		assert.Equal(t, elrondErrors.ErrNilProcessComponentsHolder, err)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.False(t, check.IfNil(hcf))
-		assert.Nil(t, err)
-	})
-}
-
-func Test_heartbeatV2ComponentsFactory_Create(t *testing.T) {
-	t.Parallel()
-
-	t.Run("new sender returns error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.Config.HeartbeatV2.HeartbeatTimeBetweenSendsInSec = 0
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.False(t, check.IfNil(hcf))
-		assert.Nil(t, err)
-
-		hc, err := hcf.Create()
-		assert.Nil(t, hc)
-		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
-		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
-	})
-	t.Run("new processor returns error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.Config.HeartbeatV2.MinPeersThreshold = 0.01
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.False(t, check.IfNil(hcf))
-		assert.Nil(t, err)
-
-		hc, err := hcf.Create()
-		assert.Nil(t, hc)
-		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "MinPeersThreshold"))
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		hcf, err := factory.NewHeartbeatV2ComponentsFactory(args)
-		assert.False(t, check.IfNil(hcf))
-		assert.Nil(t, err)
-
-		hc, err := hcf.Create()
-		assert.NotNil(t, hc)
-		assert.Nil(t, err)
-	})
-}
-
-func Test_heartbeatV2Components_Close(t *testing.T) {
+func Test_heartbeatV2Components_Create_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	defer func() {

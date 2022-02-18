@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -131,6 +132,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
 		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),
 		MaxMissingKeysInRequest: cfg.MaxMissingKeysInRequest,
+		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
 	paRequestsProcessor, err := processor.NewPeerAuthenticationRequestsProcessor(argsProcessor)
 	if err != nil {
