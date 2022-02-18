@@ -575,6 +575,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    arg.Core.InternalMarshalizer(),
+		Hasher:        arg.Core.Hasher(),
+		EpochNotifier: epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            arg.Core.Hasher(),
 		Marshalizer:                       arg.Core.InternalMarshalizer(),
@@ -595,6 +604,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:                     epochNotifier,
 		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -643,10 +653,10 @@ func deployInitialSmartContracts(
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
 		var scResulted [][]byte
-		scResulted, scTxs, err := deployInitialSmartContract(processors, sc, arg, deployMetrics)
-		if err != nil {
+		scResulted, scTxs, errDeploy := deployInitialSmartContract(processors, sc, arg, deployMetrics)
+		if errDeploy != nil {
 			return nil, nil, fmt.Errorf("%w for owner %s and filename %s",
-				err, sc.GetOwner(), sc.GetFilename())
+				errDeploy, sc.GetOwner(), sc.GetFilename())
 		}
 
 		scAddresses = append(scAddresses, scResulted...)
