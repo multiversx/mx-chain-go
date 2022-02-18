@@ -960,7 +960,7 @@ func (txProc *txProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	txProc.flagMetaProtection.SetValue(epoch >= txProc.metaProtectionEnableEpoch)
 	log.Debug("txProcessor: meta protection", "enabled", txProc.flagMetaProtection.IsSet())
 
-	txProc.flagAddFailedRelayedToInvalid.SetValue(epoch >= txProc.addFailedRelayedToInvalidDisableEpoch)
+	txProc.flagAddFailedRelayedToInvalid.SetValue(epoch < txProc.addFailedRelayedToInvalidDisableEpoch)
 	log.Debug("txProcessor: add failed relayed tx to invalid miniblocks", "enabled", txProc.flagAddFailedRelayedToInvalid.IsSet())
 }
 
