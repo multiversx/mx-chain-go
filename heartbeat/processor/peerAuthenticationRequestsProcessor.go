@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -27,31 +27,33 @@ const (
 
 // ArgPeerAuthenticationRequestsProcessor represents the arguments for the peer authentication request processor
 type ArgPeerAuthenticationRequestsProcessor struct {
-	RequestHandler           process.RequestHandler
-	NodesCoordinator         heartbeat.NodesCoordinator
-	PeerAuthenticationPool   storage.Cacher
-	ShardId                  uint32
-	Epoch                    uint32
-	MessagesInChunk          uint32
-	MinPeersThreshold        float32
-	DelayBetweenRequests     time.Duration
-	MaxTimeout               time.Duration
-	MaxMissingKeysInResponse uint32
+	RequestHandler          process.RequestHandler
+	NodesCoordinator        heartbeat.NodesCoordinator
+	PeerAuthenticationPool  storage.Cacher
+	ShardId                 uint32
+	Epoch                   uint32
+	MessagesInChunk         uint32
+	MinPeersThreshold       float32
+	DelayBetweenRequests    time.Duration
+	MaxTimeout              time.Duration
+	MaxMissingKeysInRequest uint32
+	Randomizer              dataRetriever.IntRandomizer
 }
 
 // peerAuthenticationRequestsProcessor defines the component that sends the requests for peer authentication messages
 type peerAuthenticationRequestsProcessor struct {
-	requestHandler           process.RequestHandler
-	nodesCoordinator         heartbeat.NodesCoordinator
-	peerAuthenticationPool   storage.Cacher
-	shardId                  uint32
-	epoch                    uint32
-	messagesInChunk          uint32
-	minPeersThreshold        float32
-	delayBetweenRequests     time.Duration
-	maxTimeout               time.Duration
-	maxMissingKeysInResponse uint32
-	cancel                   func()
+	requestHandler          process.RequestHandler
+	nodesCoordinator        heartbeat.NodesCoordinator
+	peerAuthenticationPool  storage.Cacher
+	shardId                 uint32
+	epoch                   uint32
+	messagesInChunk         uint32
+	minPeersThreshold       float32
+	delayBetweenRequests    time.Duration
+	maxTimeout              time.Duration
+	maxMissingKeysInRequest uint32
+	randomizer              dataRetriever.IntRandomizer
+	cancel                  func()
 }
 
 // NewPeerAuthenticationRequestsProcessor creates a new instance of peerAuthenticationRequestsProcessor
@@ -62,16 +64,17 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 	}
 
 	processor := &peerAuthenticationRequestsProcessor{
-		requestHandler:           args.RequestHandler,
-		nodesCoordinator:         args.NodesCoordinator,
-		peerAuthenticationPool:   args.PeerAuthenticationPool,
-		shardId:                  args.ShardId,
-		epoch:                    args.Epoch,
-		messagesInChunk:          args.MessagesInChunk,
-		minPeersThreshold:        args.MinPeersThreshold,
-		delayBetweenRequests:     args.DelayBetweenRequests,
-		maxTimeout:               args.MaxTimeout,
-		maxMissingKeysInResponse: args.MaxMissingKeysInResponse,
+		requestHandler:          args.RequestHandler,
+		nodesCoordinator:        args.NodesCoordinator,
+		peerAuthenticationPool:  args.PeerAuthenticationPool,
+		shardId:                 args.ShardId,
+		epoch:                   args.Epoch,
+		messagesInChunk:         args.MessagesInChunk,
+		minPeersThreshold:       args.MinPeersThreshold,
+		delayBetweenRequests:    args.DelayBetweenRequests,
+		maxTimeout:              args.MaxTimeout,
+		maxMissingKeysInRequest: args.MaxMissingKeysInRequest,
+		randomizer:              args.Randomizer,
 	}
 
 	var ctx context.Context
@@ -108,9 +111,12 @@ func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
 		return fmt.Errorf("%w for MaxTimeout, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.MaxTimeout, minTimeout)
 	}
-	if args.MaxMissingKeysInResponse < minMissingKeysAllowed {
-		return fmt.Errorf("%w for MaxMissingKeysAllowed, provided %d, min expected %d",
-			heartbeat.ErrInvalidValue, args.MaxMissingKeysInResponse, minMissingKeysAllowed)
+	if args.MaxMissingKeysInRequest < minMissingKeysAllowed {
+		return fmt.Errorf("%w for MaxMissingKeysInRequest, provided %d, min expected %d",
+			heartbeat.ErrInvalidValue, args.MaxMissingKeysInRequest, minMissingKeysAllowed)
+	}
+	if check.IfNil(args.Randomizer) {
+		return heartbeat.ErrNilRandomizer
 	}
 
 	return nil
@@ -220,7 +226,7 @@ func (processor *peerAuthenticationRequestsProcessor) getMissingKeys(sortedValid
 }
 
 func (processor *peerAuthenticationRequestsProcessor) getRandMaxMissingKeys(missingKeys [][]byte) [][]byte {
-	if len(missingKeys) <= int(processor.maxMissingKeysInResponse) {
+	if len(missingKeys) <= int(processor.maxMissingKeysInRequest) {
 		return missingKeys
 	}
 
@@ -228,10 +234,9 @@ func (processor *peerAuthenticationRequestsProcessor) getRandMaxMissingKeys(miss
 	tmpKeys := make([][]byte, lenMissingKeys)
 	copy(tmpKeys, missingKeys)
 
-	randomizer := &random.ConcurrentSafeIntRandomizer{}
 	randMissingKeys := make([][]byte, 0)
-	for len(randMissingKeys) != int(processor.maxMissingKeysInResponse) {
-		randomIndex := randomizer.Intn(lenMissingKeys)
+	for len(randMissingKeys) != int(processor.maxMissingKeysInRequest) {
+		randomIndex := processor.randomizer.Intn(lenMissingKeys)
 		randMissingKeys = append(randMissingKeys, tmpKeys[randomIndex])
 
 		tmpKeys[randomIndex] = tmpKeys[lenMissingKeys-1]

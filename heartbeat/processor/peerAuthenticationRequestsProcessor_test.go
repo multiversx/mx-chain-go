@@ -11,6 +11,7 @@ import (
 
 	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -19,16 +20,17 @@ import (
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
 	return ArgPeerAuthenticationRequestsProcessor{
-		RequestHandler:           &testscommon.RequestHandlerStub{},
-		NodesCoordinator:         &mock.NodesCoordinatorStub{},
-		PeerAuthenticationPool:   &testscommon.CacherMock{},
-		ShardId:                  0,
-		Epoch:                    0,
-		MessagesInChunk:          5,
-		MinPeersThreshold:        0.8,
-		DelayBetweenRequests:     time.Second,
-		MaxTimeout:               5 * time.Second,
-		MaxMissingKeysInResponse: 10,
+		RequestHandler:          &testscommon.RequestHandlerStub{},
+		NodesCoordinator:        &mock.NodesCoordinatorStub{},
+		PeerAuthenticationPool:  &testscommon.CacherMock{},
+		ShardId:                 0,
+		Epoch:                   0,
+		MessagesInChunk:         5,
+		MinPeersThreshold:       0.8,
+		DelayBetweenRequests:    time.Second,
+		MaxTimeout:              5 * time.Second,
+		MaxMissingKeysInRequest: 10,
+		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
 }
 
@@ -110,11 +112,11 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.MaxMissingKeysInResponse = 0
+		args.MaxMissingKeysInRequest = 0
 
 		processor, err := NewPeerAuthenticationRequestsProcessor(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "MaxMissingKeysAllowed"))
+		assert.True(t, strings.Contains(err.Error(), "MaxMissingKeysInRequest"))
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("invalid max missing keys should error", func(t *testing.T) {
@@ -126,6 +128,16 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		processor, err := NewPeerAuthenticationRequestsProcessor(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "MaxTimeout"))
+		assert.True(t, check.IfNil(processor))
+	})
+	t.Run("nil randomizer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerAuthenticationRequestsProcessor()
+		args.Randomizer = nil
+
+		processor, err := NewPeerAuthenticationRequestsProcessor(args)
+		assert.Equal(t, heartbeat.ErrNilRandomizer, err)
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -401,14 +413,14 @@ func TestPeerAuthenticationRequestsProcessor_getRandMaxMissingKeys(t *testing.T)
 		[]byte("pk8"), []byte("pk4"), []byte("pk7"), []byte("pk6")}
 
 	args := createMockArgPeerAuthenticationRequestsProcessor()
-	args.MaxMissingKeysInResponse = 3
+	args.MaxMissingKeysInRequest = 3
 	processor, err := NewPeerAuthenticationRequestsProcessor(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
 
 	for i := 0; i < 100; i++ {
 		randMissingKeys := processor.getRandMaxMissingKeys(providedPks)
-		assert.Equal(t, int(args.MaxMissingKeysInResponse), len(randMissingKeys))
+		assert.Equal(t, int(args.MaxMissingKeysInRequest), len(randMissingKeys))
 
 		randMissingKeys = getSortedSlice(randMissingKeys)
 		for j := 0; j < len(randMissingKeys)-1; j++ {

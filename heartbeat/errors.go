@@ -131,3 +131,6 @@ var ErrNilPeerAuthenticationPool = errors.New("nil peer authentication pool")
 
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilRandomizer signals that a nil randomizer has been provided
+var ErrNilRandomizer = errors.New("nil randomizer")
