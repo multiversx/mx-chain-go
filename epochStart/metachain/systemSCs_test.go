@@ -1952,14 +1952,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4(t *testing.T) {
 	require.Equal(t, string(common.WaitingList), validatorInfos[0][1].List)
 
 	peerAcc, _ := s.getPeerAccount([]byte("waitingPubKe0"))
-	require.Equal(t, []byte("waitingPubKe0"), peerAcc.GetBLSPublicKey())
 	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
 
 	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe1"))
-	require.Equal(t, []byte("waitingPubKe1"), peerAcc.GetBLSPublicKey())
 	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
 
 	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe2"))
-	require.Equal(t, []byte("waitingPubKe2"), peerAcc.GetBLSPublicKey())
 	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
 }
