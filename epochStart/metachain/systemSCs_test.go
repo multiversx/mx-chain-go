@@ -996,6 +996,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
 				StakeLimitsEnableEpoch:             10,
+				StakingV4EnableEpoch:               444,
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
@@ -1036,6 +1037,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch: 1000000,
 				ESDTEnableEpoch:      1000000,
+				StakingV4EnableEpoch: 444,
 			},
 		},
 	}
@@ -1900,4 +1902,58 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 		peerAcc, _ := s.getPeerAccount(vInfo.PublicKey)
 		assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	}
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKe0"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
+
+	listPubKeysWaiting := [][]byte{[]byte("waitingPubKe1"), []byte("waitingPubKe2")}
+	addKeysToWaitingList(args.UserAccountsDB, listPubKeysWaiting, args.Marshalizer, []byte("rewardAddress"), []byte("rewardAddress"))
+
+	listAllPubKeys := append(listPubKeysWaiting, []byte("waitingPubKe0"), []byte("stakedPubKey0"), []byte("stakedPubKey1"))
+	addValidatorData(args.UserAccountsDB, []byte("rewardAddress"), listAllPubKeys, big.NewInt(5000), args.Marshalizer)
+	_, _ = args.UserAccountsDB.Commit()
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey0"),
+		List:            string(common.EligibleList),
+		RewardAddress:   []byte("rewardAddress"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey1"),
+		List:            string(common.EligibleList),
+		RewardAddress:   []byte("rewardAddress"),
+		AccumulatedFees: big.NewInt(0),
+	})
+
+	s.flagStakingV4Enabled.SetValue(true)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+	require.Equal(t, len(validatorInfos[0]), len(listAllPubKeys))
+
+	peerAcc, _ := s.getPeerAccount([]byte("waitingPubKe0"))
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKe0")))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
+
+	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe1"))
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKe1")))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
+
+	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe2"))
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKe2")))
+	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 }
