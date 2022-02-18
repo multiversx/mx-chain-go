@@ -157,7 +157,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 	)
 }
 
-//------- NewInterceptedTransaction
+// ------- NewInterceptedTransaction
 
 func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 	t.Parallel()
@@ -565,7 +565,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 }
 
-//------- CheckValidity
+// ------- CheckValidity
 
 func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
@@ -1297,7 +1297,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 	require.Nil(t, err)
 	require.True(t, sigVerified)
 
-	//second check should find txi in whitelist and should not verify sig
+	// second check should find txi in whitelist and should not verify sig
 	sigVerified = false
 	err = txi.CheckValidity()
 	require.Nil(t, err)
@@ -1450,7 +1450,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
@@ -1591,12 +1591,14 @@ func TestInterceptedTransaction_String(t *testing.T) {
 	value := big.NewInt(150)
 	sndAddr := []byte("snd")
 	rcvAdrr := []byte("rcv")
+	dataField := []byte("data")
 
 	tx := &dataTransaction.Transaction{
 		Nonce:   nonce,
 		RcvAddr: rcvAdrr,
 		SndAddr: sndAddr,
 		Value:   value,
+		Data:    dataField,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -1623,8 +1625,8 @@ func TestInterceptedTransaction_String(t *testing.T) {
 	)
 
 	expectedFormat := fmt.Sprintf(
-		"sender=%s, nonce=%d, value=%s, recv=%s",
-		logger.DisplayByteSlice(sndAddr), nonce, value.String(), logger.DisplayByteSlice(rcvAdrr),
+		"sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
+		logger.DisplayByteSlice(sndAddr), nonce, value.String(), logger.DisplayByteSlice(rcvAdrr), hex.EncodeToString(dataField),
 	)
 
 	assert.Equal(t, expectedFormat, txin.String())

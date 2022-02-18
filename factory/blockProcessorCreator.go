@@ -324,6 +324,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    pcf.coreData.InternalMarshalizer(),
+		Hasher:        pcf.coreData.Hasher(),
+		EpochNotifier: pcf.epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            pcf.coreData.Hasher(),
 		Marshalizer:                       pcf.coreData.InternalMarshalizer(),
@@ -344,6 +353,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                     pcf.epochNotifier,
 		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -595,6 +605,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    pcf.coreData.InternalMarshalizer(),
+		Hasher:        pcf.coreData.Hasher(),
+		EpochNotifier: pcf.epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            pcf.coreData.Hasher(),
 		Marshalizer:                       pcf.coreData.InternalMarshalizer(),
@@ -615,6 +634,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:                     pcf.epochNotifier,
 		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
