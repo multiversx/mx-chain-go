@@ -1061,3 +1061,6 @@ var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not 
 
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
+
+// ErrMissingMiniBlockHash signals that hash of the mini block is missing
+var ErrMissingMiniBlockHash = errors.New("missing mini block hash")

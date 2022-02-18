@@ -579,8 +579,13 @@ func (mp *metaProcessor) getFinalCrossMiniBlockHashes(
 
 	miniBlockHashes := make(map[string]uint32)
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
-		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
-		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
+		miniBlockHeader, err := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
+		if err != nil {
+			log.Error("metaProcessor.getFinalCrossMiniBlockHashes: getMiniBlockHeaderWithHash", "error", err.Error())
+			continue
+		}
+
+		if !miniBlockHeader.IsFinal() {
 			log.Debug("metaProcessor.getFinalCrossMiniBlockHashes: do not check validity for mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 			continue
 		}
@@ -591,13 +596,13 @@ func (mp *metaProcessor) getFinalCrossMiniBlockHashes(
 	return miniBlockHashes
 }
 
-func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
+func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
-			return miniBlockHeader
+			return miniBlockHeader, nil
 		}
 	}
-	return nil
+	return nil, process.ErrMissingMiniBlockHash
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {

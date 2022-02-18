@@ -219,3 +219,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrMissingMiniBlockHash signals that hash of the mini block is missing
+var ErrMissingMiniBlockHash = errors.New("missing mini block hash")
