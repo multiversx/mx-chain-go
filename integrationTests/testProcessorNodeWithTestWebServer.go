@@ -217,6 +217,9 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
 
+	apiInternalBlockProcessor, err := blockAPI.CreateAPIInternalBlockProcessor(argsBlockAPI)
+	log.LogIfError(err)
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          tpn.SCQueryService,
 		StatusMetricsHandler:    &statusHandler.StatusMetricsStub{},
@@ -226,6 +229,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		DelegatedListHandler:    delegatedListHandler,
 		APITransactionHandler:   apiTransactionHandler,
 		APIBlockHandler:         blockAPIHandler,
+		APIInternalBlockHandler: apiInternalBlockProcessor,
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
