@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -11,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -151,7 +155,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ShardID:            args.BootstrapComponents.ShardCoordinator().SelfId(),
 		Accounts:           accountsWrapper,
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-		BlockChain:         args.DataComponents.Blockchain(),
 		QueryService:       scQueryService,
 	}
 	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
@@ -169,6 +172,32 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
+		GenesisTime:              args.CoreComponents.GenesisTime(),
+		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
+		AddressPubKeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:         args.ProcessComponents.ShardCoordinator(),
+		HistoryRepository:        args.ProcessComponents.HistoryRepository(),
+		StorageService:           args.DataComponents.StorageService(),
+		DataPool:                 args.DataComponents.Datapool(),
+		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+	}
+	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          scQueryService,
 		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
@@ -176,6 +205,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		APITransactionHandler:   apiTransactionProcessor,
+		APIBlockHandler:         apiBlockProcessor,
+		APIInternalBlockHandler: apiInternalBlockProcessor,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -271,6 +303,7 @@ func createScQueryElement(
 		CompiledSCPool:     smartContractsCache,
 		WorkingDir:         args.workingDir,
 		EpochNotifier:      args.coreComponents.EpochNotifier(),
+		EnableEpochs:       args.epochConfig.EnableEpochs,
 		NilCompiledSCStore: true,
 	}
 
@@ -370,4 +403,47 @@ func createBuiltinFuncs(
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+}
+
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+}
+
+func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIInternalBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIInternalBlockProcessor(blockApiArgs)
+}
+
+func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
+	statusComputer, err := txstatus.NewStatusComputer(
+		args.ProcessComponents.ShardCoordinator().SelfId(),
+		args.CoreComponents.Uint64ByteSliceConverter(),
+		args.DataComponents.StorageService(),
+	)
+	if err != nil {
+		return nil, errors.New("error creating transaction status computer " + err.Error())
+	}
+
+	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
+		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
+		Store:                    args.DataComponents.StorageService(),
+		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:              args.ProcessComponents.HistoryRepository(),
+		TxUnmarshaller:           apiTransactionHandler,
+		StatusComputer:           statusComputer,
+		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
+		Hasher:                   args.CoreComponents.Hasher(),
+	}
+
+	return blockApiArgs, nil
 }

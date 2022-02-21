@@ -25,13 +25,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-//TODO increase code coverage
+// TODO increase code coverage
 
 func createMockArguments() ArgNodeFacade {
 	return ArgNodeFacade{
@@ -57,11 +58,18 @@ func createMockArguments() ArgNodeFacade {
 		}},
 		AccountsState: &stateMock.AccountsStub{},
 		PeerState:     &stateMock.AccountsStub{},
-		Blockchain:    &mock.ChainHandlerStub{},
+		Blockchain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
 	}
 }
 
-//------- NewNodeFacade
+// ------- NewNodeFacade
 
 func TestNewNodeFacade_WithNilNodeShouldErr(t *testing.T) {
 	t.Parallel()
@@ -139,7 +147,7 @@ func TestNewNodeFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Methods
+// ------- Methods
 
 func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) {
 	t.Parallel()
@@ -217,7 +225,10 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
-	node := &mock.NodeStub{
+	node := &mock.NodeStub{}
+
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
@@ -225,8 +236,6 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 			return nil, nil
 		},
 	}
-
-	arg := createMockArguments()
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
@@ -240,7 +249,8 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
-	node := &mock.NodeStub{
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
@@ -248,9 +258,6 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 			return nil, nil
 		},
 	}
-
-	arg := createMockArguments()
-	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
 	tx, err := nf.GetTransaction("unknownHash", false)
@@ -332,14 +339,12 @@ func TestNodeFacade_GetHeartbeats(t *testing.T) {
 				{
 					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
 					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
@@ -605,7 +610,7 @@ func TestNodeFacade_GetThrottlerForEndpointNoConfigShouldReturnNilAndFalse(t *te
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} //ensure it is empty
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} // ensure it is empty
 	nf, _ := NewNodeFacade(arg)
 
 	thr, ok := nf.GetThrottlerForEndpoint("any-endpoint")
@@ -872,12 +877,12 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 	assert.True(t, called)
 }
 
-func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
+func TestNodeFacade_GetProofCurrentRootHashIsEmptyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.Blockchain = &mock.ChainHandlerStub{
-		GetCurrentBlockHeaderCalled: func() nodeData.HeaderHandler {
+	arg.Blockchain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
 	}
@@ -885,7 +890,7 @@ func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
 
 	response, err := nf.GetProofCurrentRootHash("addr")
 	assert.Nil(t, response)
-	assert.Equal(t, ErrNilBlockHeader, err)
+	assert.Equal(t, ErrEmptyRootHash, err)
 }
 
 func TestNodeFacade_GetProof(t *testing.T) {
@@ -1021,7 +1026,7 @@ func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
 		Nonce: 2,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return blk, nil
 		},
@@ -1045,7 +1050,7 @@ func TestNodeFacade_GetInternalMetaBlockByNonceShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1067,7 +1072,7 @@ func TestNodeFacade_GetInternalMetaBlockByRoundShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1089,7 +1094,7 @@ func TestNodeFacade_GetInternalMetaBlockByHashShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
@@ -1113,7 +1118,7 @@ func TestNodeFacade_GetInternalShardBlockByNonceShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1135,7 +1140,7 @@ func TestNodeFacade_GetInternalShardBlockByRoundShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
 			return blk, nil
 		},
@@ -1157,7 +1162,7 @@ func TestNodeFacade_GetInternalShardBlockByHashShouldWork(t *testing.T) {
 		Nonce: 0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},
@@ -1179,7 +1184,7 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 		SenderShardID:   0,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetInternalMiniBlockCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 			return blk, nil
 		},

@@ -13,8 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -167,7 +168,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 		TxCount:         1,
 		Type:            block.RewardsBlock,
 	}
-	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
+	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
 	mb := &block.MetaBlock{
@@ -201,7 +202,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 		RcvAddr: []byte{},
 		Epoch:   0,
 	}
-	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, rwdTx)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -215,7 +216,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	}
 	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
 	mb.EpochStart.Economics.TotalToDistribute.Set(big.NewInt(0).Add(rwdTx.Value, protocolSustainabilityRewardTx.Value))
-	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, protocolSustainabilityRewardTx)
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
@@ -231,7 +232,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 		TxCount:         2,
 		Type:            block.RewardsBlock,
 	}
-	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
+	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
 	mb.MiniBlockHeaders = []block.MiniBlockHeader{mbh, mbh}
@@ -356,7 +357,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		RcvAddr: []byte{},
 		Epoch:   0,
 	}
-	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, rwdTx)
 
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
@@ -364,7 +365,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, protocolSustainabilityRewardTx)
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
@@ -379,7 +380,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		TxCount:         2,
 		Type:            block.RewardsBlock,
 	}
-	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
+	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
 	mb := &block.MetaBlock{
@@ -426,7 +427,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 		RcvAddr: []byte{},
 		Epoch:   0,
 	}
-	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, rwdTx)
 
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
@@ -434,7 +435,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, protocolSustainabilityRewardTx)
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
@@ -449,7 +450,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 		TxCount:         2,
 		Type:            block.RewardsBlock,
 	}
-	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
+	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
 	mb := &block.MetaBlock{
@@ -502,7 +503,7 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 		RcvAddr: []byte{},
 		Epoch:   0,
 	}
-	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, rwdTx)
 
 	bdy := block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -525,13 +526,13 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	putMbWasCalled := false
 
 	args := getRewardsArguments()
-	args.RewardsStorage = &testscommon.StorerStub{
+	args.RewardsStorage = &storageStubs.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putRwdTxWasCalled = true
 			return nil
 		},
 	}
-	args.MiniBlockStorage = &testscommon.StorerStub{
+	args.MiniBlockStorage = &storageStubs.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putMbWasCalled = true
 			return nil
@@ -567,7 +568,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 		RcvAddr: []byte{},
 		Epoch:   0,
 	}
-	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, rwdTx)
 	bdy := block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			{
@@ -609,7 +610,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		RcvAddr: []byte("pubkey"),
 		Epoch:   0,
 	}
-	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRwdTx)
+	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, expectedRwdTx)
 	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
 
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
@@ -724,7 +725,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRewardTx)
+	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, expectedRewardTx)
 	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
 	metaBlk.EpochStart.Economics.RewardsForProtocolSustainability.Set(expectedRewardTx.Value)
 	metaBlk.EpochStart.Economics.TotalToDistribute.Set(expectedRewardTx.Value)

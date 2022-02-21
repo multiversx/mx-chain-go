@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -16,18 +17,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,12 +62,12 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 	return &mock.CoreComponentsMock{
 			IntMarsh:              &mock.MarshalizerMock{},
 			Marsh:                 &mock.MarshalizerMock{},
-			Hash:                  &mock.HasherMock{},
-			TxSignHasherField:     &mock.HasherMock{},
+			Hash:                  &hashingMocks.HasherMock{},
+			TxSignHasherField:     &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv:   &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:        &mock.PubkeyConverterMock{},
 			PathHdl:               &testscommon.PathManagerStub{},
-			EpochNotifierField:    &mock.EpochNotifierStub{},
+			EpochNotifierField:    &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 		}, &mock.CryptoComponentsMock{
@@ -75,6 +85,7 @@ func createMockEpochStartBootstrapArgs(
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsEpochStartBootstrap{
+		ScheduledSCRsStorer:    genericMocks.NewStorerMock("path", 0),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
 		Messenger:              &mock.MessengerStub{},
@@ -153,6 +164,25 @@ func createMockEpochStartBootstrapArgs(
 				MaxHardCapForMissingNodes: 500,
 				TrieSyncerVersion:         2,
 			},
+			ScheduledSCRsStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   10,
+				},
+				DB: config.DBConfig{
+					FilePath:          "scheduledSCRs",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			TxDataPool: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   10,
+			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {
@@ -166,10 +196,22 @@ func createMockEpochStartBootstrapArgs(
 		NodeShuffler:               &shardingMocks.NodeShufflerMock{},
 		RoundHandler:               &mock.RoundHandlerStub{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
-		StorageUnitOpener:          &mock.UnitOpenerStub{},
+		StorageUnitOpener:          &storageMocks.UnitOpenerStub{},
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
+		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+				return &scheduledDataSyncer.ScheduledSyncerStub{
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+						return notarizedShardHeader, nil, nil
+					},
+					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
+						return notarizedShardHeader.GetRootHash()
+					},
+				}, nil
+			},
+		},
 	}
 }
 
@@ -424,7 +466,7 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.headersSyncer = &mock.HeadersByHashSyncerStub{
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
 			return nil
 		},
@@ -539,13 +581,17 @@ func TestRequestAndProcessForShard(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-	hdrHash1 := []byte("hdrHash1")
-	header1 := &block.Header{}
+	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+	prevShardHeaderHash := []byte("prevShardHeaderHash")
+	prevShardHeader := &block.Header{}
+	notarizedShardHeader := &block.Header{
+		PrevHash: prevShardHeaderHash,
+	}
 	metaBlock := &block.MetaBlock{
 		Epoch: 2,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{HeaderHash: hdrHash1, ShardID: 0},
+				{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
 			},
 		},
 	}
@@ -555,11 +601,12 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.syncedHeaders = make(map[string]data.HeaderHandler)
-	epochStartProvider.miniBlocksSyncer = &mock.PendingMiniBlockSyncHandlerStub{}
-	epochStartProvider.headersSyncer = &mock.HeadersByHashSyncerStub{
+	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 			return map[string]data.HeaderHandler{
-				string(hdrHash1): header1,
+				string(notarizedShardHeaderHash): notarizedShardHeader,
+				string(prevShardHeaderHash):      prevShardHeader,
 			}, nil
 		},
 	}
@@ -570,6 +617,15 @@ func TestRequestAndProcessForShard(t *testing.T) {
 					return nil, true
 				},
 			}
+		},
+	}
+
+	epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{
+		SyncTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
+			return nil
+		},
+		GetTransactionsCalled: func() (map[string]data.TransactionHandler, error) {
+			return nil, nil
 		},
 	}
 
@@ -635,39 +691,49 @@ func TestRequestAndProcessing(t *testing.T) {
 	args.GeneralConfig.StoragePruning.NumActivePersisters = 0
 	args.GenesisNodesConfig = getNodesConfigMock(1)
 
-	hdrHash1 := []byte("hdrHash1")
-	hdrHash2 := []byte("hdrHash2")
-	header1 := &block.Header{}
-	header2 := &block.MetaBlock{
-		Epoch: 1,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{HeaderHash: hdrHash1, ShardID: 0},
-			},
-			Economics: block.Economics{
-				PrevEpochStartHash: hdrHash1,
-			},
-		},
+	prevPrevEpochStartMetaHeaderHash := []byte("prevPrevEpochStartMetaHeaderHash")
+	prevEpochStartMetaHeaderHash := []byte("prevEpochStartMetaHeaderHash")
+	prevEpochNotarizedShardHeaderHash := []byte("prevEpochNotarizedShardHeaderHash")
+	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+	epochStartMetaBlockHash := []byte("epochStartMetaBlockHash")
+	prevNotarizedShardHeaderHash := []byte("prevNotarizedShardHeaderHash")
+	notarizedShardHeader := &block.Header{
+		PrevHash: prevNotarizedShardHeaderHash,
 	}
-	metaBlock := &block.MetaBlock{
+	prevNotarizedShardHeader := &block.Header{}
+
+	epochStartMetaBlock := &block.MetaBlock{
 		Epoch: 0,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
-				{HeaderHash: hdrHash1, ShardID: 0},
+				{HeaderHash: notarizedShardHeaderHash, ShardID: 0},
 			},
 			Economics: block.Economics{
-				PrevEpochStartHash: hdrHash2,
+				PrevEpochStartHash: prevEpochStartMetaHeaderHash,
+			},
+		},
+	}
+	prevEpochStartMetaBlock := &block.MetaBlock{
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{HeaderHash: prevEpochNotarizedShardHeaderHash, ShardID: 0},
+			},
+			Economics: block.Economics{
+				PrevEpochStartHash: prevPrevEpochStartMetaHeaderHash,
 			},
 		},
 	}
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.epochStartMeta = metaBlock
-	epochStartProvider.headersSyncer = &mock.HeadersByHashSyncerStub{
+	epochStartProvider.epochStartMeta = epochStartMetaBlock
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 			return map[string]data.HeaderHandler{
-				string(hdrHash1): header1,
-				string(hdrHash2): header2,
+				string(notarizedShardHeaderHash):     notarizedShardHeader,
+				string(prevEpochStartMetaHeaderHash): prevEpochStartMetaBlock,
+				string(epochStartMetaBlockHash):      epochStartMetaBlock,
+				string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
 			}, nil
 		},
 	}
@@ -682,16 +748,20 @@ func TestRequestAndProcessing(t *testing.T) {
 				},
 			}
 		},
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
+		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
-	epochStartProvider.miniBlocksSyncer = &mock.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{}
 
 	params, err := epochStartProvider.requestAndProcessing()
 	assert.Equal(t, Parameters{}, params)
 	assert.Equal(t, storage.ErrInvalidNumberOfActivePersisters, err)
 }
 
-func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
+func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
@@ -725,6 +795,238 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
+	epochStartProvider.prevEpochStartMeta = &block.MetaBlock{}
 	err = epochStartProvider.processNodesConfig([]byte("something"))
 	assert.Nil(t, err)
+}
+
+func TestEpochStartBootstrap_updateDataForScheduledNoScheduledRootHash_UpdateSyncDataIfNeededWithError(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+	expectedErr := fmt.Errorf("expected error")
+	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+			return &scheduledDataSyncer.ScheduledSyncerStub{
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+					return nil, nil, expectedErr
+				},
+				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
+					return notarizedShardHeader.GetRootHash()
+				},
+			}, nil
+		},
+	}
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+
+	notarizedShardHdr := &block.HeaderV2{
+		Header:            nil,
+		ScheduledRootHash: nil,
+	}
+
+	syncData, err := epochStartProvider.updateDataForScheduled(notarizedShardHdr)
+	require.Equal(t, expectedErr, err)
+	require.Nil(t, syncData)
+}
+
+func TestEpochStartBootstrap_updateDataForScheduled_ScheduledTxExecutionCreationWithErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	notarizedShardHdr := &block.HeaderV2{
+		Header:            nil,
+		ScheduledRootHash: nil,
+	}
+	epochStartProvider.storerScheduledSCRs = nil
+
+	syncData, err := epochStartProvider.updateDataForScheduled(notarizedShardHdr)
+	require.Nil(t, syncData)
+	require.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestEpochStartBootstrap_updateDataForScheduled_ScheduledSyncerCreateWithError(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+
+	expectedError := fmt.Errorf("expected error")
+	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+			return nil, expectedError
+		},
+	}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	notarizedShardHdr := &block.HeaderV2{
+		Header:            nil,
+		ScheduledRootHash: nil,
+	}
+
+	syncData, err := epochStartProvider.updateDataForScheduled(notarizedShardHdr)
+	require.Nil(t, syncData)
+	require.Equal(t, expectedError, err)
+}
+
+func TestEpochStartBootstrap_updateDataForScheduled(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+	expectedSyncData := &dataToSync{
+		ownShardHdr: &block.HeaderV2{
+			ScheduledRootHash: []byte("rootHash1"),
+		},
+		rootHashToSync:    []byte("rootHash2"),
+		withScheduled:     false,
+		additionalHeaders: map[string]data.HeaderHandler{"key1": &block.HeaderV2{}},
+	}
+
+	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+			return &scheduledDataSyncer.ScheduledSyncerStub{
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil
+				},
+				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
+					return expectedSyncData.rootHashToSync
+				},
+			}, nil
+		},
+	}
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+
+	notarizedShardHdr := &block.HeaderV2{
+		Header:            nil,
+		ScheduledRootHash: nil,
+	}
+
+	syncData, err := epochStartProvider.updateDataForScheduled(notarizedShardHdr)
+	require.Nil(t, err)
+	require.Equal(t, expectedSyncData, syncData)
+}
+
+func TestEpochStartBootstrap_getDataToSyncErrorOpeningDB(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+
+	expectedErr := fmt.Errorf("expected error")
+	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+		OpenDBCalled: func(dbConfig config.DBConfig, shardID uint32, epoch uint32) (storage.Storer, error) {
+			return nil, expectedErr
+		},
+	}
+
+	shardNotarizedHeader := &block.HeaderV2{
+		Header:            &block.Header{},
+		ScheduledRootHash: []byte("scheduled root hash"),
+	}
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{}
+
+	syncData, err := epochStartProvider.getDataToSync(epochStartData, shardNotarizedHeader)
+	require.Nil(t, syncData)
+	require.Equal(t, expectedErr, err)
+}
+
+func TestEpochStartBootstrap_getDataToSyncErrorUpdatingDataForScheduled(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+
+	expectedErr := fmt.Errorf("expected error")
+
+	// Simulate an error in getDataToSync through the factory
+	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+			return nil, expectedErr
+		},
+	}
+
+	shardNotarizedHeader := &block.HeaderV2{
+		Header:            &block.Header{},
+		ScheduledRootHash: []byte("scheduled root hash"),
+	}
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{}
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+
+	syncData, err := epochStartProvider.getDataToSync(epochStartData, shardNotarizedHeader)
+	require.Nil(t, syncData)
+	require.Equal(t, expectedErr, err)
+}
+
+func TestEpochStartBootstrap_getDataToSyncWithSCRStorageCloseErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+
+	shardNotarizedHeader := &block.HeaderV2{
+		Header:            &block.Header{},
+		ScheduledRootHash: []byte("scheduled root hash"),
+	}
+
+	expectedSyncData := &dataToSync{
+		ownShardHdr:       shardNotarizedHeader,
+		rootHashToSync:    []byte("rootHash2"),
+		withScheduled:     false,
+		additionalHeaders: map[string]data.HeaderHandler{"key1": &block.HeaderV2{}},
+	}
+
+	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+			return &scheduledDataSyncer.ScheduledSyncerStub{
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil
+				},
+				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
+					return expectedSyncData.rootHashToSync
+				},
+			}, nil
+		},
+	}
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{}
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+
+	expectedErr := fmt.Errorf("expected error")
+	epochStartProvider.storerScheduledSCRs = &storageMocks.StorerStub{
+		CloseCalled: func() error {
+			return expectedErr
+		},
+	}
+
+	syncData, err := epochStartProvider.getDataToSync(epochStartData, shardNotarizedHeader)
+	require.Nil(t, err)
+	require.Equal(t, expectedSyncData, syncData)
 }

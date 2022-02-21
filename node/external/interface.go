@@ -51,3 +51,11 @@ type DelegatedListHandler interface {
 	GetDelegatorsList() ([]*api.Delegator, error)
 	IsInterfaceNil() bool
 }
+
+// APITransactionHandler defines what an API transaction handler should be able to do
+type APITransactionHandler interface {
+	GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
+	IsInterfaceNil() bool
+}

@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -44,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -63,9 +65,6 @@ var marshalizer = &marshal.GogoProtoMarshalizer{}
 var hasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
-
-// GasSchedulePath --
-var GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
 
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})
@@ -124,17 +123,22 @@ func (participant *testParticipant) AddressHex() string {
 
 // SetupTestContext -
 func SetupTestContext(t *testing.T) *TestContext {
+	return SetupTestContextWithGasSchedulePath(t, integrationTests.GasSchedulePath)
+}
+
+// SetupTestContextWithGasSchedulePath -
+func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath string) *TestContext {
 	var err error
 
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
-	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
 	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
 
-	context.GasSchedule, err = common.LoadGasScheduleConfig(GasSchedulePath)
+	context.GasSchedule, err = common.LoadGasScheduleConfig(gasScheduleConfigPath)
 	require.Nil(t, err)
 
 	context.initFeeHandlers()
@@ -145,7 +149,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 		VmContainer:       context.VMContainer,
 		EconomicsFee:      context.EconomicsFee,
 		BlockChainHook:    context.BlockchainHook,
-		BlockChain:        &mock.BlockChainMock{},
+		BlockChain:        &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker: &sync.RWMutex{},
 		Bootstrapper:      disabled.NewDisabledBootstrapper(),
 	}
@@ -234,7 +238,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
-	blockchainMock := &mock.BlockChainMock{}
+	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -328,7 +332,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxFeeHandler:     context.UnsignexTxHandler,
 		EconomicsFee:     context.EconomicsFee,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),

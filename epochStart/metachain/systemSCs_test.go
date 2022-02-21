@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -882,7 +883,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(trieStorer)
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
-	epochNotifier := forking.NewGenericEpochNotifier()
+	en := forking.NewGenericEpochNotifier()
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:                          marshalizer,
@@ -897,7 +898,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		NodesSetup:                           &mock.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EpochNotifier:                        epochNotifier,
+		EpochNotifier:                        en,
 		StakingV2EnableEpoch:                 stakingV2EnableEpoch,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
@@ -916,7 +917,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           testDataPool,
 		CompiledSCPool:     testDataPool.SmartContracts(),
-		EpochNotifier:      &mock.EpochNotifierStub{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
 	}
 
@@ -972,7 +973,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		},
 		ValidatorAccountsDB: peerAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
-		EpochNotifier:       epochNotifier,
+		EpochNotifier:       en,
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               stakingV2EnableEpoch,
@@ -1001,7 +1002,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
 		ChanceComputer:          &mock.ChanceComputerStub{},
-		EpochNotifier:           epochNotifier,
+		EpochNotifier:           en,
 		GenesisNodesConfig:      nodesSetup,
 		StakingDataProvider:     stakingSCprovider,
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
@@ -1070,7 +1071,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)

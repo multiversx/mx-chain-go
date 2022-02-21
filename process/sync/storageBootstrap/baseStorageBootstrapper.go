@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -23,19 +24,20 @@ var log = logger.GetOrCreate("process/sync")
 
 // ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
 type ArgsBaseStorageBootstrapper struct {
-	BootStorer          process.BootStorer
-	ForkDetector        process.ForkDetector
-	BlockProcessor      process.BlockProcessor
-	ChainHandler        data.ChainHandler
-	Marshalizer         marshal.Marshalizer
-	Store               dataRetriever.StorageService
-	Uint64Converter     typeConverters.Uint64ByteSliceConverter
-	BootstrapRoundIndex uint64
-	ShardCoordinator    sharding.Coordinator
-	NodesCoordinator    nodesCoordinator.NodesCoordinator
-	EpochStartTrigger   process.EpochStartTriggerHandler
-	BlockTracker        process.BlockTracker
-	ChainID             string
+	BootStorer                   process.BootStorer
+	ForkDetector                 process.ForkDetector
+	BlockProcessor               process.BlockProcessor
+	ChainHandler                 data.ChainHandler
+	Marshalizer                  marshal.Marshalizer
+	Store                        dataRetriever.StorageService
+	Uint64Converter              typeConverters.Uint64ByteSliceConverter
+	BootstrapRoundIndex          uint64
+	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
+	EpochStartTrigger            process.EpochStartTriggerHandler
+	BlockTracker                 process.BlockTracker
+	ChainID                      string
+	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -50,23 +52,23 @@ type ArgsMetaStorageBootstrapper struct {
 }
 
 type storageBootstrapper struct {
-	bootStorer        process.BootStorer
-	forkDetector      process.ForkDetector
-	blkExecutor       process.BlockProcessor
-	blkc              data.ChainHandler
-	marshalizer       marshal.Marshalizer
-	store             dataRetriever.StorageService
-	uint64Converter   typeConverters.Uint64ByteSliceConverter
-	shardCoordinator  sharding.Coordinator
-	nodesCoordinator  nodesCoordinator.NodesCoordinator
-	epochStartTrigger process.EpochStartTriggerHandler
-	blockTracker      process.BlockTracker
-
-	bootstrapRoundIndex  uint64
-	bootstrapper         storageBootstrapperHandler
-	headerNonceHashStore storage.Storer
-	highestNonce         uint64
-	chainID              string
+	bootStorer                   process.BootStorer
+	forkDetector                 process.ForkDetector
+	blkExecutor                  process.BlockProcessor
+	blkc                         data.ChainHandler
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             nodesCoordinator.NodesCoordinator
+	epochStartTrigger            process.EpochStartTriggerHandler
+	blockTracker                 process.BlockTracker
+	bootstrapRoundIndex          uint64
+	bootstrapper                 storageBootstrapperHandler
+	headerNonceHashStore         storage.Storer
+	highestNonce                 uint64
+	chainID                      string
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -176,6 +178,15 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
+	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
+	if err != nil {
+		gasAndFees := process.GetZeroGasAndFees()
+		st.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(
+			st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
+			make(map[block.Type][]data.TransactionHandler),
+			gasAndFees)
+	}
+
 	st.highestNonce = headerInfo.LastHeader.Nonce
 
 	return nil
@@ -234,6 +245,7 @@ func (st *storageBootstrapper) GetHighestBlockNonce() uint64 {
 
 func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.BootstrapData) error {
 	headerHash := hdrInfo.LastHeader.Hash
+	log.Debug("storageBootstrapper.applyHeaderInfo", "headerHash", headerHash)
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
 		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce, "error", err.Error())
@@ -247,13 +259,20 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return process.ErrInvalidChainID
 	}
 
-	err = st.blkExecutor.RevertStateToBlock(headerFromStorage)
+	rootHash := headerFromStorage.GetRootHash()
+	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+	if err == nil {
+		rootHash = scheduledRootHash
+	}
+	log.Debug("storageBootstrapper.applyHeaderInfo", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
+
+	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
 		return err
 	}
 
-	err = st.applyBlock(headerFromStorage, headerHash)
+	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
@@ -397,8 +416,8 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 		"hash", headerInfo.Hash)
 }
 
-func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
-	err := st.blkc.SetCurrentBlockHeader(header)
+func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte) error {
+	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 	if err != nil {
 		return err
 	}
@@ -410,12 +429,12 @@ func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash 
 
 func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	genesisHeader := st.blkc.GetGenesisHeader()
-	err := st.blkExecutor.RevertStateToBlock(genesisHeader)
+	err := st.blkExecutor.RevertStateToBlock(genesisHeader, genesisHeader.GetRootHash())
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
 	}
 
-	err = st.blkc.SetCurrentBlockHeader(nil)
+	err = st.blkc.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	if err != nil {
 		log.Debug("cannot set current block header", "error", err.Error())
 	}
@@ -456,6 +475,9 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	}
 	if check.IfNil(args.BlockTracker) {
 		return process.ErrNilBlockTracker
+	}
+	if check.IfNil(args.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
 	}
 
 	return nil

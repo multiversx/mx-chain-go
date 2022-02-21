@@ -263,7 +263,7 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash, withResults)
+	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -369,52 +369,52 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 
 // GetBlockByHash return the block for a given hash
 func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByHash(hash, withTxs)
+	return nf.apiResolver.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
 func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByNonce(nonce, withTxs)
+	return nf.apiResolver.GetBlockByNonce(nonce, withTxs)
 }
 
 // GetBlockByRound returns the block for a given round
 func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByRound(round, withTxs)
+	return nf.apiResolver.GetBlockByRound(round, withTxs)
 }
 
 // GetInternalMetaBlockByHash return the meta block for a given hash
 func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
-	return nf.node.GetInternalMetaBlockByHash(format, hash)
+	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)
 }
 
 // GetInternalMetaBlockByNonce returns the meta block for a given nonce
 func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
-	return nf.node.GetInternalMetaBlockByNonce(format, nonce)
+	return nf.apiResolver.GetInternalMetaBlockByNonce(format, nonce)
 }
 
 // GetInternalMetaBlockByRound returns the meta block for a given round
 func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
-	return nf.node.GetInternalMetaBlockByRound(format, round)
+	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
 }
 
 // GetInternalShardBlockByHash return the shard block for a given hash
 func (nf *nodeFacade) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
-	return nf.node.GetInternalShardBlockByHash(format, hash)
+	return nf.apiResolver.GetInternalShardBlockByHash(format, hash)
 }
 
 // GetInternalShardBlockByNonce returns the shard block for a given nonce
 func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
-	return nf.node.GetInternalShardBlockByNonce(format, nonce)
+	return nf.apiResolver.GetInternalShardBlockByNonce(format, nonce)
 }
 
 // GetInternalShardBlockByRound returns the shard block for a given round
 func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
-	return nf.node.GetInternalShardBlockByRound(format, round)
+	return nf.apiResolver.GetInternalShardBlockByRound(format, round)
 }
 
 // GetInternalMiniBlock return the miniblock for a given hash
 func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string) (interface{}, error) {
-	return nf.node.GetInternalMiniBlock(format, txHash)
+	return nf.apiResolver.GetInternalMiniBlock(format, txHash)
 }
 
 // Close will cleanup started go routines
@@ -444,12 +444,11 @@ func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key stri
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
 func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
-	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil, ErrNilBlockHeader
+	rootHash := nf.blockchain.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		return nil, ErrEmptyRootHash
 	}
 
-	rootHash := currentBlockHeader.GetRootHash()
 	hexRootHash := hex.EncodeToString(rootHash)
 
 	return nf.node.GetProof(hexRootHash, address)

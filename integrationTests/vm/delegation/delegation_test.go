@@ -60,7 +60,7 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

@@ -5,12 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockAgrs() external.ArgNodeApiResolver {
@@ -21,6 +23,9 @@ func createMockAgrs() external.ArgNodeApiResolver {
 		TotalStakedValueHandler: &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler: &mock.DirectStakedListProcessorStub{},
 		DelegatedListHandler:    &mock.DelegatedListProcessorStub{},
+		APIBlockHandler:         &mock.BlockAPIHandlerStub{},
+		APITransactionHandler:   &mock.TransactionAPIHandlerStub{},
+		APIInternalBlockHandler: &mock.InternalBlockApiHandlerStub{},
 	}
 }
 
@@ -249,4 +254,74 @@ func TestNodeApiResolver_GetDirectStakedList(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, recoveredDirectStakedValueList, directStakedValueList)
 	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetBlockByNonce", func(t *testing.T) {
+		wasCalled := false
+		arg := createMockAgrs()
+		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
+			GetBlockByNonceCalled: func(nonce uint64, withTxs bool) (*api.Block, error) {
+				wasCalled = true
+				return nil, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+
+		_, _ = nar.GetBlockByNonce(10, true)
+		require.True(t, wasCalled)
+	})
+
+	t.Run("GetBlockByHash", func(t *testing.T) {
+		wasCalled := false
+		arg := createMockAgrs()
+		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
+			GetBlockByHashCalled: func(hash []byte, withTxs bool) (*api.Block, error) {
+				wasCalled = true
+				return nil, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+
+		_, _ = nar.GetBlockByHash("0101", true)
+		require.True(t, wasCalled)
+	})
+
+	t.Run("GetBlockByRound", func(t *testing.T) {
+		wasCalled := false
+		arg := createMockAgrs()
+		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
+			GetBlockByRoundCalled: func(round uint64, withTxs bool) (*api.Block, error) {
+				wasCalled = true
+				return nil, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+
+		_, _ = nar.GetBlockByRound(10, true)
+		require.True(t, wasCalled)
+	})
+}
+
+func TestNodeApiResolver_APITransactionHandler(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	arg := createMockAgrs()
+	arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+		GetTransactionCalled: func(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+			wasCalled = true
+			return nil, nil
+		},
+	}
+
+	nar, _ := external.NewNodeApiResolver(arg)
+
+	_, _ = nar.GetTransaction("0101", true)
+	require.True(t, wasCalled)
 }

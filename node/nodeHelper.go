@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	nodeDisabled "github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
 // CreateHardForkTrigger is the hard fork trigger factory
@@ -147,22 +148,10 @@ func CreateNode(
 	statusComponents factory.StatusComponentsHandler,
 	heartbeatComponents factory.HeartbeatComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
+	epochConfig config.EpochConfig,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
 ) (*Node, error) {
-	var err error
-
-	var txAccumulator core.Accumulator
-	txAccumulatorConfig := config.Antiflood.TxAccumulator
-	txAccumulator, err = accumulator.NewTimeAccumulator(
-		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
-		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
-		log,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
@@ -182,6 +171,18 @@ func CreateNode(
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
 	consensusGroupSize, err := consensusComponents.ConsensusGroupSize()
+	if err != nil {
+		return nil, err
+	}
+
+	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
+		Accounts:                stateComponents.AccountsAdapterAPI(),
+		GlobalSettingsHandler:   nodeDisabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:             coreComponents.InternalMarshalizer(),
+		SaveToSystemEnableEpoch: epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		EpochNotifier:           coreComponents.EpochNotifier(),
+		ShardCoordinator:        processComponents.ShardCoordinator(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -206,13 +207,13 @@ func CreateNode(
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
 		WithPeerDenialEvaluator(peerDenialEvaluator),
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
-		WithTxAccumulator(txAccumulator),
 		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
 		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
+		WithESDTNFTStorageHandler(esdtNftStorage),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -231,11 +232,6 @@ func CreateNode(
 		processComponents.ResolversFinder(),
 		config.Debug.InterceptorResolver,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = nd.createInternalBlockProcessor()
 	if err != nil {
 		return nil, err
 	}

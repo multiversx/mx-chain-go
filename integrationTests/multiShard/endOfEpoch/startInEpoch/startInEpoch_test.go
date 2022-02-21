@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -28,7 +29,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -76,7 +79,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -92,7 +95,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	time.Sleep(time.Second)
 
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
@@ -225,7 +228,21 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
+		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{
+			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
+				return &scheduledDataSyncer.ScheduledSyncerStub{
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+						return notarizedShardHeader, nil, nil
+					},
+					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
+						return notarizedShardHeader.GetRootHash()
+					},
+				}, nil
+			},
+		},
+		ScheduledSCRsStorer: genericMocks.NewStorerMock("path", 0),
 	}
+
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
@@ -262,7 +279,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BootStorer:     bootstrapStorer,
 		ForkDetector:   &mock.ForkDetectorStub{},
 		BlockProcessor: &mock.BlockProcessorMock{},
-		ChainHandler: &mock.BlockChainMock{
+		ChainHandler: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				if shardID != core.MetachainShardId {
 					return &block.Header{}
@@ -281,7 +298,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
-		ChainID: string(integrationTests.ChainID),
+		ChainID:                      string(integrationTests.ChainID),
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
@@ -290,6 +308,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	err = bootstrapper.LoadFromStorage()
 	assert.NoError(t, err)
+
 	highestNonce := bootstrapper.GetHighestBlockNonce()
 	assert.True(t, highestNonce > expectedHighestRound)
 }
@@ -318,6 +337,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageUnit.LvlDBSerial)
 
 	return generalConfig
 }

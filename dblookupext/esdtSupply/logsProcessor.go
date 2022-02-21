@@ -134,7 +134,7 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 		return nil
 	}
 
-	supply, err := lp.getSupply(tokenIdentifier)
+	supply, err := lp.getESDTSupply(tokenIdentifier)
 	if err != nil {
 		return err
 	}
@@ -170,10 +170,14 @@ func (lp *logsProcessor) updateTokenSupply(tokenSupply *SupplyESDT, valueFromEve
 	tokenSupply.Supply.Add(tokenSupply.Supply, bigValue)
 }
 
-func (lp *logsProcessor) getSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
+func (lp *logsProcessor) getESDTSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
 	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier)
 	if err != nil {
-		return newSupplyESDTZero(), nil
+		if err == storage.ErrKeyNotFound {
+			return newSupplyESDTZero(), nil
+		}
+
+		return nil, err
 	}
 
 	supplyFromStorage := &SupplyESDT{}
@@ -182,6 +186,7 @@ func (lp *logsProcessor) getSupply(tokenIdentifier []byte) (*SupplyESDT, error) 
 		return nil, err
 	}
 
+	makePropertiesNotNil(supplyFromStorage)
 	return supplyFromStorage, nil
 }
 
@@ -191,28 +196,22 @@ func (lp *logsProcessor) shouldIgnoreEvent(event *transaction.Event) bool {
 	return !found
 }
 
-func (lp *logsProcessor) getESDTSupply(token string) (*SupplyESDT, error) {
-	supplyBytes, err := lp.suppliesStorer.Get([]byte(token))
-	if err != nil && err == storage.ErrKeyNotFound {
-		return newSupplyESDTZero(), nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	supply := &SupplyESDT{}
-	err = lp.marshalizer.Unmarshal(supply, supplyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return supply, nil
-}
-
 func newSupplyESDTZero() *SupplyESDT {
 	return &SupplyESDT{
 		Burned: big.NewInt(0),
 		Minted: big.NewInt(0),
 		Supply: big.NewInt(0),
+	}
+}
+
+func makePropertiesNotNil(supplyESDT *SupplyESDT) {
+	if supplyESDT.Supply == nil {
+		supplyESDT.Supply = big.NewInt(0)
+	}
+	if supplyESDT.Minted == nil {
+		supplyESDT.Minted = big.NewInt(0)
+	}
+	if supplyESDT.Burned == nil {
+		supplyESDT.Burned = big.NewInt(0)
 	}
 }

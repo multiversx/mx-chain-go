@@ -11,21 +11,22 @@ import (
 	dataMock "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
+	epochStartMocks "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
-	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &testscommon.StorerStub{
+	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
-	}, &testscommon.StorerStub{})
+	}, &storageStubs.StorerStub{})
 
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,
@@ -35,9 +36,9 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
 		BlockHashByRound:            genericMocks.NewStorerMock("BlockHashByRound", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
-		Hasher:                      &mock.HasherMock{},
+		Hasher:                      &hashingMocks.HasherMock{},
 		ESDTSuppliesHandler:         sp,
-		Uint64ByteSliceConverter:    &processMock.Uint64ByteSliceConverterMock{},
+		Uint64ByteSliceConverter:    &epochStartMocks.Uint64ByteSliceConverterMock{},
 	}
 
 	return args
@@ -645,14 +646,14 @@ func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrors
 	expectedErr := errors.New("expected error")
 	hr := &historyRepository{
 		epochByHashIndex: newHashToEpochIndex(
-			&testscommon.StorerStub{
+			&storageStubs.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return []byte("{}"), nil
 				},
 			},
 			&mock.MarshalizerMock{},
 		),
-		miniblocksMetadataStorer: &testscommon.StorerStub{
+		miniblocksMetadataStorer: &storageStubs.StorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
 			},

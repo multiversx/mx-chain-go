@@ -215,6 +215,11 @@ func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockHeader(context.Background(), cnsDta)
 }
 
+// ReceivedBlockBodyAndHeader is called when both a header and block body have been received
+func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockBodyAndHeader(context.Background(), cnsDta)
+}
+
 // subroundSignature
 
 // SubroundSignature defines a type for the subroundSignature structure

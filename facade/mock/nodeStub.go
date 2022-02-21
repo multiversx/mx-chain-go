@@ -24,7 +24,6 @@ type NodeStub struct {
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
-	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (api.AccountResponse, error)
 	GetCodeCalled                                  func(codeHash []byte) []byte
@@ -38,28 +37,17 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRoundCalled                          func(round uint64, withTxs bool) (*api.Block, error)
-	GetInternalShardBlockByNonceCalled             func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled              func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalShardBlockByRoundCalled             func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled              func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled               func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled              func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-
-	GetInternalMiniBlockCalled              func(format common.ApiOutputFormat, txHash string) (interface{}, error)
-	GetUsernameCalled                       func(address string) (string, error)
-	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
-	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
-	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
-	GetESDTsRolesCalled                     func(address string) (map[string][]string, error)
-	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
-	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
-	GetProofCalled                          func(rootHash string, key string) (*common.GetProofResponse, error)
-	GetProofDataTrieCalled                  func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
-	VerifyProofCalled                       func(rootHash string, address string, proof [][]byte) (bool, error)
+	GetUsernameCalled                              func(address string) (string, error)
+	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
+	GetNFTTokenIDsRegisteredByAddressCalled        func(address string) ([]string, error)
+	GetESDTsWithRoleCalled                         func(address string, role string) ([]string, error)
+	GetESDTsRolesCalled                            func(address string) (map[string][]string, error)
+	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
+	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
+	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
 // GetProof -
@@ -121,80 +109,6 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 	return hex.EncodeToString(pk), nil
 }
 
-// GetBlockByHash -
-func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByHashCalled(hash, withTxs)
-}
-
-// GetBlockByNonce -
-func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByNonceCalled(nonce, withTxs)
-}
-
-// GetBlockByRound -
-func (ns *NodeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	if ns.GetBlockByRoundCalled != nil {
-		return ns.GetBlockByRoundCalled(round, withTxs)
-	}
-	return nil, nil
-}
-
-// GetInternalMetaBlockByHash return the meta block for a given hash
-func (ns *NodeStub) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
-	if ns.GetInternalMetaBlockByHashCalled != nil {
-		return ns.GetInternalMetaBlockByHashCalled(format, hash)
-	}
-	return nil, nil
-}
-
-// GetInternalMetaBlockByNonce returns the meta block for a given nonce
-func (ns *NodeStub) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
-	if ns.GetInternalMetaBlockByNonceCalled != nil {
-		return ns.GetInternalMetaBlockByNonceCalled(format, nonce)
-	}
-	return nil, nil
-}
-
-// GetInternalMetaBlockByRound returns the meta block for a given round
-func (ns *NodeStub) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
-	if ns.GetInternalMetaBlockByRoundCalled != nil {
-		return ns.GetInternalMetaBlockByRoundCalled(format, round)
-	}
-	return nil, nil
-}
-
-// GetInternalShardBlockByHash return the shard block for a given hash
-func (ns *NodeStub) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
-	if ns.GetInternalShardBlockByHashCalled != nil {
-		return ns.GetInternalShardBlockByHashCalled(format, hash)
-	}
-	return nil, nil
-}
-
-// GetInternalShardBlockByNonce returns the shard block for a given nonce
-func (ns *NodeStub) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
-	if ns.GetInternalShardBlockByNonceCalled != nil {
-		return ns.GetInternalShardBlockByNonceCalled(format, nonce)
-	}
-	return nil, nil
-}
-
-// GetInternalShardBlockByRound returns the shard block for a given round
-func (ns *NodeStub) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
-	if ns.GetInternalShardBlockByRoundCalled != nil {
-		return ns.GetInternalShardBlockByRoundCalled(format, round)
-	}
-	return nil, nil
-}
-
-// GetInternalMiniBlock return the miniblock for a given hash
-func (ns *NodeStub) GetInternalMiniBlock(format common.ApiOutputFormat, txHash string) (interface{}, error) {
-	if ns.GetInternalMiniBlockCalled != nil {
-		return ns.GetInternalMiniBlockCalled(format, txHash)
-	}
-	return nil, nil
-}
-
 // DecodeAddressPubkey -
 func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return hex.DecodeString(pk)
@@ -220,11 +134,6 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 // ValidateTransactionForSimulation -
 func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
 	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
-}
-
-// GetTransaction -
-func (ns *NodeStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
-	return ns.GetTransactionHandler(hash, withEvents)
 }
 
 // SendBulkTransactions -

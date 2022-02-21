@@ -35,7 +35,6 @@ func TestCreateDirectStakedListHandlerHandler_DirectStakedListProcessor(t *testi
 			AccountsAdapter: &stateMock.AccountsStub{},
 		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
-		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
