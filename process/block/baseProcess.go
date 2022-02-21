@@ -719,6 +719,11 @@ func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.Hea
 	}
 
 	scheduledMiniBlocks := bp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+	if len(scheduledMiniBlocks) > len(headerHandler.GetMiniBlockHeadersHashes()) {
+		log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "num mbs scheduled", len(scheduledMiniBlocks), "num mbs received", len(headerHandler.GetMiniBlockHeadersHashes()))
+		return process.ErrScheduledMiniBlocksMismatch
+	}
+
 	for index, scheduledMiniBlock := range scheduledMiniBlocks {
 		scheduledMiniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, scheduledMiniBlock)
 		if err != nil {
@@ -726,6 +731,7 @@ func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.Hea
 		}
 
 		if !bytes.Equal(scheduledMiniBlockHash, headerHandler.GetMiniBlockHeadersHashes()[index]) {
+			log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "index", index, "scheduled mb hash", scheduledMiniBlockHash, "received mb hash", headerHandler.GetMiniBlockHeadersHashes()[index])
 			return process.ErrScheduledMiniBlocksMismatch
 		}
 	}
