@@ -241,6 +241,28 @@ func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
+func TestNewShardResolversContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.NodesCoordinator = nil
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
+}
+
+func TestNewShardResolversContainerFactory_InvalidMaxNumOfPeerAuthenticationInResponseShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.MaxNumOfPeerAuthenticationInResponse = 0
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrInvalidValue.Error()))
+}
+
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -309,6 +331,19 @@ func TestShardResolversContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t 
 	assert.Equal(t, errExpected, err)
 }
 
+func TestShardResolversContainerFactory_CreateRegisterPeerAuthenticationShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.Messenger = createStubTopicMessageHandlerForShard("", factory.PeerAuthenticationTopic)
+	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	container, err := rcf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
 func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -343,8 +378,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMiniBlocks := noOfShards + 2
 	numResolverMetaBlockHeaders := 1
 	numResolverTrieNodes := 1
-	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks +
-		numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes
+	numResolverPeerAuth := 1
+	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth
 
 	assert.Equal(t, totalResolvers, container.Len())
 }
@@ -370,5 +406,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
+		NodesCoordinator:                     &mock.NodesCoordinatorStub{},
+		MaxNumOfPeerAuthenticationInResponse: 5,
 	}
 }

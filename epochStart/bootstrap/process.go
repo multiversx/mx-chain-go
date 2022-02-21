@@ -1100,21 +1100,23 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
+		ShardCoordinator:                     e.shardCoordinator,
+		Messenger:                            e.messenger,
+		Store:                                storageService,
+		Marshalizer:                          e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                            e.dataPool,
+		Uint64ByteSliceConverter:             uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:           10,
+		DataPacker:                           dataPacker,
+		TriesContainer:                       e.trieContainer,
+		SizeCheckDelta:                       0,
+		InputAntifloodHandler:                disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:          disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:                 disabled.NewPreferredPeersHolder(),
+		ResolverConfig:                       e.generalConfig.Resolvers,
+		NodesCoordinator:                     disabled.NewNodesCoordinator(),
+		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

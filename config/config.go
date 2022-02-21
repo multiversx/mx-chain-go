@@ -110,6 +110,7 @@ type HeartbeatV2Config struct {
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
 	HeartbeatThresholdBetweenSends                   float64
+	MaxNumOfPeerAuthenticationInResponse             int
 	HeartbeatExpiryTimespanInSec                     int64
 	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig

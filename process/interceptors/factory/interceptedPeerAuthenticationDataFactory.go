@@ -15,7 +15,7 @@ type interceptedPeerAuthenticationDataFactory struct {
 	nodesCoordinator     heartbeat.NodesCoordinator
 	signaturesHandler    heartbeat.SignaturesHandler
 	peerSignatureHandler crypto.PeerSignatureHandler
-	ExpiryTimespanInSec  int64
+	expiryTimespanInSec  int64
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
@@ -44,7 +44,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		nodesCoordinator:     arg.NodesCoordinator,
 		signaturesHandler:    arg.SignaturesHandler,
 		peerSignatureHandler: arg.PeerSignatureHandler,
-		ExpiryTimespanInSec:  arg.HeartbeatExpiryTimespanInSec,
+		expiryTimespanInSec:  arg.HeartbeatExpiryTimespanInSec,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte) (proc
 		NodesCoordinator:     ipadf.nodesCoordinator,
 		SignaturesHandler:    ipadf.signaturesHandler,
 		PeerSignatureHandler: ipadf.peerSignatureHandler,
-		ExpiryTimespanInSec:  ipadf.ExpiryTimespanInSec,
+		ExpiryTimespanInSec:  ipadf.expiryTimespanInSec,
 	}
 
 	return heartbeat.NewInterceptedPeerAuthentication(arg)
