@@ -79,7 +79,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 				return nil
 			},
 		},
-		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:   &testscommon.BlockChainHookStub{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
@@ -609,9 +609,11 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		return nil, localError
-	}}
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, localError
+		},
+	}
 
 	scrAdded := false
 	badTxAdded := false
@@ -2908,8 +2910,8 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{
-		IsPayableCalled: func(_, _ []byte) (bool, error) {
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		IsPayableCalled: func(_ []byte) (bool, error) {
 			return false, nil
 		},
 	}

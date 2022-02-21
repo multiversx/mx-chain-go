@@ -85,7 +85,7 @@ func createArgBaseProcessor(
 		NodesCoordinator:    nodesCoordinator,
 		FeeHandler:          &mock.FeeAccumulatorStub{},
 		RequestHandler:      &testscommon.RequestHandlerStub{},
-		BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		TxCoordinator:       &mock.TransactionCoordinatorMock{},
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		HeaderValidator:     headerValidator,
@@ -2006,22 +2006,6 @@ func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAn
 func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	zeroGasAndFees := process.GetZeroGasAndFees()
 
-	initialGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(11),
-		DeveloperFees:   big.NewInt(12),
-		GasProvided:     13,
-		GasPenalized:    14,
-		GasRefunded:     15,
-	}
-
-	finalGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(103),
-		GasProvided:     105,
-		GasPenalized:    107,
-		GasRefunded:     109,
-	}
-
 	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
 		t.Parallel()
 
@@ -2114,6 +2098,22 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
+			GasPenalized:    14,
+			GasRefunded:     15,
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(103),
+			GasProvided:     105,
+			GasPenalized:    107,
+			GasRefunded:     109,
+		}
 
 		expectedGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees),
