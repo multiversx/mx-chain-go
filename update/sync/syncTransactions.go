@@ -284,6 +284,7 @@ func (ts *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.T
 
 	txFromPoolWithSearchFirst, ok := ts.getTransactionFromPoolWithSearchFirst(hash, ts.txPools[mbType])
 	if ok {
+		log.Debug("transactionsSync.getTransactionFromPoolWithSearchFirst: found transaction using search first", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash", hash)
 		return txFromPoolWithSearchFirst, true
 	}
 
