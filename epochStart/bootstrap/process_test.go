@@ -594,7 +594,7 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 	})
 }
 
-func TestEpochStartBootstrap_BoostrapShouldFail(t *testing.T) {
+func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
@@ -652,7 +652,7 @@ func TestEpochStartBootstrap_BoostrapShouldFail(t *testing.T) {
 		testBoostrapByStartInEpochFlag(t, false)
 	})
 
-	t.Run("bootstrap from saved epoch, shoud work", func(t *testing.T) {
+	t.Run("bootstrap from saved epoch, should work", func(t *testing.T) {
 		t.Parallel()
 
 		testBoostrapByStartInEpochFlag(t, true)
@@ -1195,20 +1195,17 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 				}, nil
 			},
 		}
+		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 			TrieNodesCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					GetCalled: func(key []byte) (value interface{}, ok bool) {
-						return nil, true
-					},
-				}
+				return nil
 			},
 		}
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
 		err := epochStartProvider.requestAndProcessForShard()
-		assert.Equal(t, state.ErrNilRequestHandler, err)
+		assert.Equal(t, state.ErrNilCacher, err)
 	})
 	t.Run("fail to save data to storage", func(t *testing.T) {
 		t.Parallel()
@@ -1644,6 +1641,7 @@ func TestRequestAndProcessing(t *testing.T) {
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
+		assert.Error(t, err)
 		assert.True(t, strings.Contains(err.Error(), sharding.ErrInvalidNumberOfShards.Error()))
 	})
 	t.Run("failed to create messenger topic", func(t *testing.T) {

@@ -256,7 +256,7 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 	assert.Equal(t, requiredParameters, params)
 }
 
-func TestStorageEpochStartBootstrap_syncHeadersFromStorageShouldFail(t *testing.T) {
+func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
