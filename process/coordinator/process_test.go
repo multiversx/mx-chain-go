@@ -4035,30 +4035,6 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockInfos(t *testing.T) {
 		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}
 		crossMiniBlockInfos := []*data.MiniBlockInfo{mbInfo1, mbInfo2}
 
-		header := &block.MetaBlock{
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{Hash: []byte(hash2)},
-			},
-		}
-
-		expectedMbInfos := []*data.MiniBlockInfo{mbInfo2}
-
-		mbInfos := tc.getFinalCrossMiniBlockInfos(crossMiniBlockInfos, header)
-		assert.Equal(t, expectedMbInfos, mbInfos)
-	})
-
-	t.Run("should work, miniblocks info found for final miniBlock header", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockTransactionCoordinatorArguments()
-		args.ScheduledMiniBlocksEnableEpoch = 3
-		tc, _ := NewTransactionCoordinator(args)
-		tc.EpochConfirmed(4, 0)
-
-		mbInfo1 := &data.MiniBlockInfo{Hash: []byte(hash1)}
-		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}
-		crossMiniBlockInfos := []*data.MiniBlockInfo{mbInfo1, mbInfo2}
-
 		mbh1 := block.MiniBlockHeader{Hash: []byte(hash1)}
 		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
 		mbh1.Reserved, _ = mbhReserved1.Marshal()

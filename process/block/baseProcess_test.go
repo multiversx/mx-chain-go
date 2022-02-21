@@ -2056,7 +2056,13 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		err := bp.CheckScheduledMiniBlocksValidity(&block.Header{})
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: []byte("differentHash")},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
 		assert.Equal(t, expectedErr, err)
 	})
 
