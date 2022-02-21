@@ -3138,11 +3138,6 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 	})
 }
 
-func TestMetaProcessor_UpdateEpochStartHeaderShouldFail(t *testing.T) {
-	t.Parallel()
-
-}
-
 func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	t.Parallel()
 
