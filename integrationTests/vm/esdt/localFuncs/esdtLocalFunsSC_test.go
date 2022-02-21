@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package localFuncs
@@ -5,12 +6,16 @@ package localFuncs
 import (
 	"encoding/hex"
 	"math/big"
+	"runtime/debug"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
@@ -18,6 +23,91 @@ func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(1)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	scAddress := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/local-esdt-and-nft.wasm")
+	tokenIdentifier := esdtCommon.PrepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddress, idxProposers, &nonce, &round)
+
+	txData := []byte("localMint" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(big.NewInt(100).Bytes()))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 2
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 200)
+
+	txData = []byte("localBurn" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(big.NewInt(50).Bytes()))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	esdtCommon.CheckAddressHasTokens(t, scAddress, nodes, []byte(tokenIdentifier), 0, 100)
+}
+
+func TestESDTLocalMintAndBurnFromSC_BlockchainHookPanicsShouldPanicTheNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(1)
+	nodes[0].BlockchainHook.ProcessBuiltInFunctionCalled = func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		stack := string(debug.Stack())
+		if strings.Contains(stack, "callWasmFunction") {
+			var accnt state.UserAccountHandler
+			// nil pointer dereference exception
+			_ = accnt.GetRootHash()
+		}
+
+		return nodes[0].BlockchainHook.BlockchainHook.ProcessBuiltInFunction(input)
+	}
 
 	defer func() {
 		for _, n := range nodes {

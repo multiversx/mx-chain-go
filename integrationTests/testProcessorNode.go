@@ -264,7 +264,7 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	BlockchainHook         *hooks.BlockChainHookImpl
+	BlockchainHook         *mock.BlockChainHookWrapper
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            *smartContract.TestScProcessor
@@ -1456,7 +1456,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		panic(err)
 	}
 
-	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	blockchainHook := vmFactory.BlockChainHookImpl().(vmcommon.BlockchainHook)
+	tpn.BlockchainHook = mock.NewBlockChainHookWrapper(blockchainHook)
 	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
@@ -1706,7 +1707,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
 	tpn.VMContainer, _ = vmFactory.Create()
-	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	blockchainHook := vmFactory.BlockChainHookImpl().(vmcommon.BlockchainHook)
+	tpn.BlockchainHook = mock.NewBlockChainHookWrapper(blockchainHook)
 	tpn.SystemSCFactory = vmFactory.SystemSmartContractContainerFactory()
 	tpn.addMockVm(tpn.BlockchainHook)
 
