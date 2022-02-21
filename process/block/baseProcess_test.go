@@ -2098,6 +2098,38 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
 	})
 
+	t.Run("num header miniblocks higher than scheduled miniblocks, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						TxHashes: [][]byte{hash1},
+					},
+					&block.MiniBlock{
+						TxHashes: [][]byte{[]byte("hash2")},
+					},
+				}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: hash1},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
+	})
+
 	t.Run("same hash, should work", func(t *testing.T) {
 		t.Parallel()
 

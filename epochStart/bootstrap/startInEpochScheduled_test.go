@@ -676,7 +676,6 @@ func createTestHeader() *block.Header {
 	}
 }
 
-//TODO: Add unit tests for methods: getBlockTypeOfTx, getScheduledMiniBlocks and getNumScheduledIntermediateTxs
 func TestGetBlockTypeOfTx(t *testing.T) {
 	t.Parallel()
 
