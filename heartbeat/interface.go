@@ -111,3 +111,9 @@ type NodeRedundancyHandler interface {
 	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }
+
+// NodesCoordinator defines the behavior of a struct able to do validator selection
+type NodesCoordinator interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	IsInterfaceNil() bool
+}
