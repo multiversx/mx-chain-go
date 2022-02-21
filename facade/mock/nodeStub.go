@@ -24,7 +24,6 @@ type NodeStub struct {
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
-	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (api.AccountResponse, error)
 	GetCodeCalled                                  func(codeHash []byte) []byte
@@ -38,9 +37,6 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRoundCalled                          func(round uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -113,24 +109,6 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 	return hex.EncodeToString(pk), nil
 }
 
-// GetBlockByHash -
-func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByHashCalled(hash, withTxs)
-}
-
-// GetBlockByNonce -
-func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByNonceCalled(nonce, withTxs)
-}
-
-// GetBlockByRound -
-func (ns *NodeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
-	if ns.GetBlockByRoundCalled != nil {
-		return ns.GetBlockByRoundCalled(round, withTxs)
-	}
-	return nil, nil
-}
-
 // DecodeAddressPubkey -
 func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return hex.DecodeString(pk)
@@ -156,11 +134,6 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 // ValidateTransactionForSimulation -
 func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
 	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
-}
-
-// GetTransaction -
-func (ns *NodeStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
-	return ns.GetTransactionHandler(hash, withEvents)
 }
 
 // SendBulkTransactions -

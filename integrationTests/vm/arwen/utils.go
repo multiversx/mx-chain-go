@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -64,9 +65,6 @@ var marshalizer = &marshal.GogoProtoMarshalizer{}
 var hasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
-
-// GasSchedulePath --
-var GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
 
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})
@@ -125,6 +123,11 @@ func (participant *testParticipant) AddressHex() string {
 
 // SetupTestContext -
 func SetupTestContext(t *testing.T) *TestContext {
+	return SetupTestContextWithGasSchedulePath(t, integrationTests.GasSchedulePath)
+}
+
+// SetupTestContextWithGasSchedulePath -
+func SetupTestContextWithGasSchedulePath(t *testing.T, gasScheduleConfigPath string) *TestContext {
 	var err error
 
 	context := &TestContext{}
@@ -135,7 +138,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 	context.initAccounts()
 
-	context.GasSchedule, err = common.LoadGasScheduleConfig(GasSchedulePath)
+	context.GasSchedule, err = common.LoadGasScheduleConfig(gasScheduleConfigPath)
 	require.Nil(t, err)
 
 	context.initFeeHandlers()
