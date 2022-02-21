@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package localFuncs
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 )
@@ -18,6 +20,8 @@ func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(1)
+
+	logger.SetLogLevel("*:DEBUG")
 
 	defer func() {
 		for _, n := range nodes {
