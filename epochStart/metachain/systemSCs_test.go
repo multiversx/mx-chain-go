@@ -824,6 +824,10 @@ func addKeysToWaitingList(
 	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = marshalizer.Unmarshal(waitingListHead, marshaledData)
+
+	waitingListAlreadyHasElements := waitingListHead.Length > 0
+	waitingListLastKeyBeforeAddingNewKeys := waitingListHead.LastKey
+
 	waitingListHead.Length += uint32(len(waitingKeys))
 	lastKeyInList := []byte("w_" + string(waitingKeys[len(waitingKeys)-1]))
 	waitingListHead.LastKey = lastKeyInList
@@ -832,7 +836,7 @@ func addKeysToWaitingList(
 	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
 
 	numWaitingKeys := len(waitingKeys)
-	previousKey := waitingListHead.FirstKey
+	previousKey := waitingListHead.LastKey
 	for i, waitingKey := range waitingKeys {
 
 		waitingKeyInList := []byte("w_" + string(waitingKey))
@@ -853,12 +857,22 @@ func addKeysToWaitingList(
 		previousKey = waitingKeyInList
 	}
 
-	marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListHead.FirstKey)
+	if waitingListAlreadyHasElements {
+		marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListLastKeyBeforeAddingNewKeys)
+	} else {
+		marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListHead.FirstKey)
+	}
+
 	waitingListElement := &systemSmartContracts.ElementInList{}
 	_ = marshalizer.Unmarshal(waitingListElement, marshaledData)
 	waitingListElement.NextKey = []byte("w_" + string(waitingKeys[0]))
 	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListHead.FirstKey, marshaledData)
+
+	if waitingListAlreadyHasElements {
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListLastKeyBeforeAddingNewKeys, marshaledData)
+	} else {
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListHead.FirstKey, marshaledData)
+	}
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
@@ -1912,53 +1926,86 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4(t *testing.T) {
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
+	owner1 := []byte("owner1")
+	owner2 := []byte("owner2")
+	owner3 := []byte("owner3")
+
+	owner1ListPubKeysWaiting := [][]byte{[]byte("waitingPubKe0"), []byte("waitingPubKe1"), []byte("waitingPubKe2")}
+	owner1ListPubKeysStaked := [][]byte{[]byte("stakedPubKey0"), []byte("stakedPubKey1")}
+	owner1AllPubKeys := append(owner1ListPubKeysWaiting, owner1ListPubKeysWaiting...)
+
+	owner2ListPubKeysWaiting := [][]byte{[]byte("waitingPubKe3"), []byte("waitingPubKe4")}
+	owner2ListPubKeysStaked := [][]byte{[]byte("stakedPubKey2")}
+	owner2AllPubKeys := append(owner2ListPubKeysWaiting, owner2ListPubKeysStaked...)
+
+	owner3ListPubKeysWaiting := [][]byte{[]byte("waitingPubKe5"), []byte("waitingPubKe6")}
+
 	prepareStakingContractWithData(
 		args.UserAccountsDB,
-		[]byte("stakedPubKey0"),
-		[]byte("waitingPubKe0"),
+		owner1ListPubKeysStaked[0],
+		owner1ListPubKeysWaiting[0],
 		args.Marshalizer,
-		[]byte("rewardAddress"),
-		[]byte("rewardAddress"),
+		owner1,
+		owner1,
 	)
 
-	listPubKeysWaiting := [][]byte{[]byte("waitingPubKe1"), []byte("waitingPubKe2")}
-	addKeysToWaitingList(args.UserAccountsDB, listPubKeysWaiting, args.Marshalizer, []byte("rewardAddress"), []byte("rewardAddress"))
+	// Owner1 has 2 staked nodes (one eligible, one waiting) in shard0 + 3 nodes in staking queue.
+	// It has enough stake so that all his staking queue nodes will be selected in the auction list
+	addKeysToWaitingList(args.UserAccountsDB, owner1ListPubKeysWaiting[1:], args.Marshalizer, owner1, owner1)
+	addValidatorData(args.UserAccountsDB, owner1, owner1AllPubKeys[1:], big.NewInt(5000), args.Marshalizer)
 
-	listAllPubKeys := append(listPubKeysWaiting, []byte("waitingPubKe0"), []byte("stakedPubKey0"), []byte("stakedPubKey1"))
-	addValidatorData(args.UserAccountsDB, []byte("rewardAddress"), listAllPubKeys, big.NewInt(5000), args.Marshalizer)
-	_, _ = args.UserAccountsDB.Commit()
+	// Owner2 has 1 staked node (eligible) in shard1 + 2 nodes in staking queue.
+	// It has enough stake for only ONE node from staking queue to be selected in the auction list
+	addKeysToWaitingList(args.UserAccountsDB, owner2ListPubKeysWaiting, args.Marshalizer, owner2, owner2)
+	addValidatorData(args.UserAccountsDB, owner2, owner2AllPubKeys, big.NewInt(1500), args.Marshalizer)
+
+	// Owner3 has 0 staked node + 2 nodes in staking queue.
+	// It has enough stake so that all his staking queue nodes will be selected in the auction list
+	addKeysToWaitingList(args.UserAccountsDB, owner3ListPubKeysWaiting, args.Marshalizer, owner3, owner3)
+	addValidatorData(args.UserAccountsDB, owner3, owner3ListPubKeysWaiting, big.NewInt(2000), args.Marshalizer)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
-		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(common.EligibleList),
-		RewardAddress:   []byte("rewardAddress"),
-		AccumulatedFees: big.NewInt(0),
-	})
-	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
-		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(common.WaitingList),
-		RewardAddress:   []byte("rewardAddress"),
-		AccumulatedFees: big.NewInt(0),
-	})
+	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1))
+	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1))
+	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2))
 
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	require.Nil(t, err)
-	require.Equal(t, len(validatorInfos[0]), len(listAllPubKeys))
 
-	require.Equal(t, []byte("stakedPubKey0"), validatorInfos[0][0].PublicKey)
-	require.Equal(t, string(common.EligibleList), validatorInfos[0][0].List)
+	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
+		0: {
+			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1),
+			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1),
+			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, owner1),
+			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, owner1),
+			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, owner1),
 
-	require.Equal(t, []byte("stakedPubKey1"), validatorInfos[0][1].PublicKey)
-	require.Equal(t, string(common.WaitingList), validatorInfos[0][1].List)
+			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, owner2),
 
-	peerAcc, _ := s.getPeerAccount([]byte("waitingPubKe0"))
-	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
+			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, owner3),
+			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, owner3),
+		},
+		1: {
+			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2),
+		},
+	}
+	require.Equal(t, expectedValidatorsInfo, validatorInfos)
+}
 
-	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe1"))
-	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
+// This func sets rating and temp rating with the start rating value used in createFullArgumentsForSystemSCProcessing
+func createValidatorInfo(pubKey []byte, list common.PeerType, owner []byte) *state.ValidatorInfo {
+	rating := uint32(0)
+	if list == common.NewList || list == common.AuctionList {
+		rating = uint32(5)
+	}
 
-	peerAcc, _ = s.getPeerAccount([]byte("waitingPubKe2"))
-	require.Equal(t, string(common.AuctionList), peerAcc.GetList())
+	return &state.ValidatorInfo{
+		PublicKey:       pubKey,
+		List:            string(list),
+		RewardAddress:   owner,
+		AccumulatedFees: zero,
+		Rating:          rating,
+		TempRating:      rating,
+	}
 }
