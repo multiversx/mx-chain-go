@@ -6,21 +6,17 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	dataRetrieverInterface "github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
-	heartbeatProcessor "github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testsMock "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -31,13 +27,10 @@ import (
 	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,16 +47,17 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	sigHandler := createMockPeerSignatureHandler(keyGen)
+
 	interactingNodes := 3
-	nodes, pks, senders, dataPools, processors := createAndStartNodes(interactingNodes)
+	nodes, senders, dataPools := createAndStartNodes(interactingNodes, keyGen, sigHandler)
 	assert.Equal(t, interactingNodes, len(nodes))
-	assert.Equal(t, interactingNodes, len(pks))
 	assert.Equal(t, interactingNodes, len(senders))
 	assert.Equal(t, interactingNodes, len(dataPools))
-	assert.Equal(t, interactingNodes, len(processors))
 
 	// Wait for messages to broadcast
-	time.Sleep(5 * time.Second)
+	time.Sleep(time.Second * 5)
 
 	for i := 0; i < interactingNodes; i++ {
 		paCache := dataPools[i].PeerAuthentications()
@@ -78,19 +72,82 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 			assert.True(t, hbCache.Has(node.ID().Bytes()))
 		}
 	}
+
+	closeComponents(t, interactingNodes, nodes, senders, dataPools, nil)
 }
 
-func createAndStartNodes(interactingNodes int) ([]p2p.Messenger,
-	[]crypto.PublicKey,
-	[]factory.HeartbeatV2Sender,
-	[]dataRetrieverInterface.PoolsHolder,
-	[]factory.PeerAuthenticationRequestsProcessor,
-) {
+func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sigHandler := createMockPeerSignatureHandler(keyGen)
+	shardCoordinator := &sharding.OneShardCoordinator{}
 
+	interactingNodes := 3
+	nodes, senders, dataPools := createAndStartNodes(interactingNodes, keyGen, sigHandler)
+	assert.Equal(t, interactingNodes, len(nodes))
+	assert.Equal(t, interactingNodes, len(senders))
+	assert.Equal(t, interactingNodes, len(dataPools))
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 5)
+
+	for i := 0; i < interactingNodes; i++ {
+		paCache := dataPools[i].PeerAuthentications()
+		hbCache := dataPools[i].Heartbeats()
+
+		assert.Equal(t, interactingNodes, len(paCache.Keys()))
+		assert.Equal(t, interactingNodes, len(hbCache.Keys()))
+
+		// Check this node received messages from all peers
+		for _, node := range nodes {
+			assert.True(t, paCache.Has(node.ID().Bytes()))
+			assert.True(t, hbCache.Has(node.ID().Bytes()))
+		}
+	}
+
+	// Add new delayed node which requests messages
+	newNodeIndex := len(nodes)
+	nodes = append(nodes, integrationTests.CreateMessengerWithNoDiscovery())
+	connectNodeToPeers(nodes[newNodeIndex], nodes[:newNodeIndex])
+
+	dataPools = append(dataPools, dataRetriever.NewPoolsHolderMock())
+
+	pksArray := make([][]byte, 0)
+	for _, node := range nodes {
+		pksArray = append(pksArray, node.ID().Bytes())
+	}
+
+	// Create multi data interceptor for the delayed node in order to process requested messages
+	createPeerAuthMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].PeerAuthentications(), sigHandler)
+
+	// Create resolver and request chunk
+	paResolvers := createPeerAuthResolvers(pksArray, nodes, dataPools, shardCoordinator)
+	_ = paResolvers[newNodeIndex].RequestDataFromChunk(0, 0)
+
+	time.Sleep(time.Second * 5)
+
+	delayedNodeCache := dataPools[newNodeIndex].PeerAuthentications()
+	keysInDelayedNodeCache := delayedNodeCache.Keys()
+	assert.Equal(t, len(nodes)-1, len(keysInDelayedNodeCache))
+
+	// Only search for messages from initially created nodes.
+	// Last one does not send peerAuthentication
+	for i := 0; i < len(nodes)-1; i++ {
+		assert.True(t, delayedNodeCache.Has(nodes[i].ID().Bytes()))
+	}
+
+	closeComponents(t, interactingNodes, nodes, senders, dataPools, paResolvers)
+}
+
+func createAndStartNodes(interactingNodes int, keyGen crypto.KeyGenerator, sigHandler crypto.PeerSignatureHandler) (
+	[]p2p.Messenger,
+	[]factory.HeartbeatV2Sender,
+	[]dataRetrieverInterface.PoolsHolder,
+) {
 	nodes := make([]p2p.Messenger, interactingNodes)
-	pks := make([]crypto.PublicKey, interactingNodes)
 	senders := make([]factory.HeartbeatV2Sender, interactingNodes)
 	dataPools := make([]dataRetrieverInterface.PoolsHolder, interactingNodes)
 
@@ -108,25 +165,13 @@ func createAndStartNodes(interactingNodes int) ([]p2p.Messenger,
 		createHeartbeatMultiDataInterceptor(nodes[i], dataPools[i].Heartbeats(), sigHandler)
 
 		nodeName := fmt.Sprintf("%s%d", defaultNodeName, i)
-		sk, pk := keyGen.GeneratePair()
-		pks[i] = pk
+		sk, _ := keyGen.GeneratePair()
 
 		s := createSender(nodeName, nodes[i], sigHandler, sk)
 		senders[i] = s
-
 	}
 
-	/*pksArray := make([][]byte, 0)
-	for i := 0; i < interactingNodes; i++ {
-		pk, _ := pks[i].ToByteArray()
-		pksArray = append(pksArray, pk)
-	}
-	for i := 0; i < interactingNodes; i++ {
-		// processors[i] = createRequestProcessor(pksArray, nodes[i], dataPools[i])
-	}*/
-	processors := make([]factory.PeerAuthenticationRequestsProcessor, interactingNodes)
-
-	return nodes, pks, senders, dataPools, processors
+	return nodes, senders, dataPools
 }
 
 func connectNodeToPeers(node p2p.Messenger, peers []p2p.Messenger) {
@@ -161,95 +206,55 @@ func createSender(nodeName string, messenger p2p.Messenger, peerSigHandler crypt
 	return msgsSender
 }
 
-func createRequestProcessor(pks [][]byte, messenger p2p.Messenger,
-	dataPools dataRetrieverInterface.PoolsHolder,
-) factory.PeerAuthenticationRequestsProcessor {
+func createPeerAuthResolvers(pks [][]byte, nodes []p2p.Messenger, dataPools []dataRetrieverInterface.PoolsHolder, shardCoordinator sharding.Coordinator) []dataRetrieverInterface.PeerAuthenticationResolver {
+	paResolvers := make([]dataRetrieverInterface.PeerAuthenticationResolver, len(nodes))
+	for idx, node := range nodes {
+		paResolvers[idx] = createPeerAuthResolver(pks, dataPools[idx].PeerAuthentications(), node, shardCoordinator)
+	}
 
-	dataPacker, _ := partitioning.NewSimpleDataPacker(&testscommon.MarshalizerMock{})
-	shardCoordinator := &sharding.OneShardCoordinator{}
-	trieStorageManager, _ := integrationTests.CreateTrieStorageManager(testscommon.CreateMemUnit())
-	trieContainer := state.NewDataTriesHolder()
+	return paResolvers
+}
 
-	_, stateTrie := integrationTests.CreateAccountsDB(integrationTests.UserAccount, trieStorageManager)
-	trieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
+func createPeerAuthResolver(pks [][]byte, peerAuthPool storage.Cacher, messenger p2p.Messenger, shardCoordinator sharding.Coordinator) dataRetrieverInterface.PeerAuthenticationResolver {
+	intraShardTopic := common.ConsensusTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
-	_, peerTrie := integrationTests.CreateAccountsDB(integrationTests.ValidatorAccount, trieStorageManager)
-	trieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+	peerListCreator, _ := topicResolverSender.NewDiffPeerListCreator(messenger, common.PeerAuthenticationTopic, intraShardTopic, "")
 
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
-	trieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
-
-	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            shardCoordinator,
+	argsTopicResolverSender := topicResolverSender.ArgTopicResolverSender{
 		Messenger:                   messenger,
-		Store:                       integrationTests.CreateStore(2),
+		TopicName:                   common.PeerAuthenticationTopic,
+		PeerListCreator:             peerListCreator,
 		Marshalizer:                 &testscommon.MarshalizerMock{},
-		DataPools:                   dataPools,
-		Uint64ByteSliceConverter:    integrationTests.TestUint64Converter,
-		DataPacker:                  dataPacker,
-		TriesContainer:              trieContainer,
-		SizeCheckDelta:              100,
-		InputAntifloodHandler:       &testsMock.NilAntifloodHandler{},
-		OutputAntifloodHandler:      &testsMock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:  10,
+		Randomizer:                  &random.ConcurrentSafeIntRandomizer{},
+		TargetShardId:               shardCoordinator.SelfId(),
+		OutputAntiflooder:           &testsMock.NilAntifloodHandler{},
+		NumCrossShardPeers:          len(pks),
+		NumIntraShardPeers:          1,
+		NumFullHistoryPeers:         3,
 		CurrentNetworkEpochProvider: &testsMock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumIntraShardPeers:  1,
-			NumFullHistoryPeers: 3,
+		SelfShardIdProvider:         shardCoordinator,
+	}
+	resolverSender, _ := topicResolverSender.NewTopicResolverSender(argsTopicResolverSender)
+
+	argsPAResolver := resolvers.ArgPeerAuthenticationResolver{
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshalizer:      &testscommon.MarshalizerMock{},
+			AntifloodHandler: &testsMock.NilAntifloodHandler{},
+			Throttler:        createMockThrottler(),
 		},
-		NodesCoordinator: &processMock.NodesCoordinatorMock{
-			GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-				pksMap := make(map[uint32][][]byte, 1)
-				pksMap[0] = pks
-				return pksMap, nil
-			},
-		},
+		PeerAuthenticationPool:               peerAuthPool,
+		NodesCoordinator:                     createMockNodesCoordinator(pks),
 		MaxNumOfPeerAuthenticationInResponse: 10,
 	}
-	resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
+	peerAuthResolver, _ := resolvers.NewPeerAuthenticationResolver(argsPAResolver)
 
-	resolversContainer, _ := resolversContainerFactory.Create()
-	resolverFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	whitelistHandler := &testscommon.WhiteListHandlerStub{
-		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
-			return true
-		},
-	}
-	requestedItemsHandler := timecache.NewTimeCache(5 * time.Second)
-	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
-		resolverFinder,
-		requestedItemsHandler,
-		whitelistHandler,
-		100,
-		shardCoordinator.SelfId(),
-		time.Second,
-	)
+	_ = messenger.CreateTopic(peerAuthResolver.RequestTopic(), true)
+	_ = messenger.RegisterMessageProcessor(peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
 
-	argsProcessor := heartbeatProcessor.ArgPeerAuthenticationRequestsProcessor{
-		RequestHandler: requestHandler,
-		NodesCoordinator: &processMock.NodesCoordinatorMock{
-			GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-				pksMap := make(map[uint32][][]byte, 1)
-				pksMap[0] = pks
-				return pksMap, nil
-			},
-		},
-		PeerAuthenticationPool:  dataPools.PeerAuthentications(),
-		ShardId:                 0,
-		Epoch:                   0,
-		MessagesInChunk:         10,
-		MinPeersThreshold:       1.0,
-		DelayBetweenRequests:    2 * time.Second,
-		MaxTimeout:              10 * time.Second,
-		MaxMissingKeysInRequest: 5,
-		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
-	}
-
-	requestProcessor, _ := heartbeatProcessor.NewPeerAuthenticationRequestsProcessor(argsProcessor)
-	return requestProcessor
+	return peerAuthResolver
 }
 
 func createPeerAuthMultiDataInterceptor(messenger p2p.Messenger, peerAuthCacher storage.Cacher, sigHandler crypto.PeerSignatureHandler) {
@@ -333,10 +338,50 @@ func createMockPeerSignatureHandler(keyGen crypto.KeyGenerator) crypto.PeerSigna
 	}
 }
 
+func createMockNodesCoordinator(pks [][]byte) dataRetrieverInterface.NodesCoordinator {
+	return &processMock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			pksMap := make(map[uint32][][]byte, 1)
+			pksMap[0] = pks
+			return pksMap, nil
+		},
+	}
+}
+
 func createMockThrottler() *processMock.InterceptorThrottlerStub {
 	return &processMock.InterceptorThrottlerStub{
 		CanProcessCalled: func() bool {
 			return true
 		},
+	}
+}
+
+func closeComponents(t *testing.T,
+	interactingNodes int,
+	nodes []p2p.Messenger,
+	senders []factory.HeartbeatV2Sender,
+	dataPools []dataRetrieverInterface.PoolsHolder,
+	resolvers []dataRetrieverInterface.PeerAuthenticationResolver) {
+	for i := 0; i < interactingNodes; i++ {
+		var err error
+		if senders != nil && len(senders) > i {
+			err = senders[i].Close()
+			assert.Nil(t, err)
+		}
+
+		if dataPools != nil && len(dataPools) > i {
+			err = dataPools[i].Close()
+			assert.Nil(t, err)
+		}
+
+		if resolvers != nil && len(resolvers) > i {
+			err = resolvers[i].Close()
+			assert.Nil(t, err)
+		}
+
+		if nodes != nil && len(nodes) > i {
+			err = nodes[i].Close()
+			assert.Nil(t, err)
+		}
 	}
 }

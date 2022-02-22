@@ -509,14 +509,8 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				b := &batch.Batch{}
 				err := arg.Marshalizer.Unmarshal(b, buff)
 				assert.Nil(t, err)
-				if messagesSent == 0 {
-					// first message is full
-					assert.Equal(t, arg.MaxNumOfPeerAuthenticationInResponse, len(b.Data))
-				}
-				if messagesSent == 1 {
-					// second message is len(providedKeys)%MaxNumOfPeerAuthenticationInResponse
-					assert.Equal(t, len(providedKeys)%arg.MaxNumOfPeerAuthenticationInResponse, len(b.Data))
-				}
+				assert.Equal(t, arg.MaxNumOfPeerAuthenticationInResponse, len(b.Data))
+
 				messagesSent++
 				return nil
 			},
@@ -531,7 +525,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.HashArrayType, providedHashes, epoch, chunkIndex), fromConnectedPeer)
 		assert.Nil(t, err)
-		assert.Equal(t, 2, messagesSent)
+		assert.Equal(t, 1, messagesSent) // only one message sent
 	})
 }
 

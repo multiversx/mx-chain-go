@@ -15,10 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type interceptedDataSizeHandler interface {
-	SizeInBytes() int
-}
-
 func createHeartbeatInterceptorProcessArg() processor.ArgHeartbeatInterceptorProcessor {
 	return processor.ArgHeartbeatInterceptorProcessor{
 		HeartbeatCacher: testscommon.NewCacherStub(),
@@ -98,11 +94,15 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		arg.HeartbeatCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-				ihb := value.(process.InterceptedData)
-				assert.True(t, bytes.Equal(providedHb.Identifiers()[0], ihb.Identifiers()[0]))
-				ihbSizeHandler := value.(interceptedDataSizeHandler)
-				providedHbSizeHandler := providedHb.(interceptedDataSizeHandler)
-				assert.Equal(t, providedHbSizeHandler.SizeInBytes(), ihbSizeHandler.SizeInBytes())
+				ihb := value.(heartbeatMessages.HeartbeatV2)
+				providedHbHandler := providedHb.(interceptedDataHandler)
+				providedHbMessage := providedHbHandler.Message().(heartbeatMessages.HeartbeatV2)
+				assert.Equal(t, providedHbMessage.Identity, ihb.Identity)
+				assert.Equal(t, providedHbMessage.Payload, ihb.Payload)
+				assert.Equal(t, providedHbMessage.NodeDisplayName, ihb.NodeDisplayName)
+				assert.Equal(t, providedHbMessage.PeerSubType, ihb.PeerSubType)
+				assert.Equal(t, providedHbMessage.VersionNumber, ihb.VersionNumber)
+				assert.Equal(t, providedHbMessage.Nonce, ihb.Nonce)
 				wasCalled = true
 				return false
 			},

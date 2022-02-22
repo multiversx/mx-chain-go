@@ -16,11 +16,8 @@ import (
 )
 
 type interceptedDataHandler interface {
-	PeerID() core.PeerID
-	Payload() []byte
-	Signature() []byte
-	PayloadSignature() []byte
 	SizeInBytes() int
+	Message() interface{}
 }
 
 func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthenticationInterceptorProcessor {
@@ -104,13 +101,14 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-				ipa := value.(interceptedDataHandler)
+				ipa := value.(heartbeatMessages.PeerAuthentication)
 				providedIPAHandler := providedIPA.(interceptedDataHandler)
-				assert.Equal(t, providedIPAHandler.PeerID(), ipa.PeerID())
-				assert.Equal(t, providedIPAHandler.Payload(), ipa.Payload())
-				assert.Equal(t, providedIPAHandler.Signature(), ipa.Signature())
-				assert.Equal(t, providedIPAHandler.PayloadSignature(), ipa.PayloadSignature())
-				assert.Equal(t, providedIPAHandler.SizeInBytes(), ipa.SizeInBytes())
+				providedIPAMessage := providedIPAHandler.Message().(heartbeatMessages.PeerAuthentication)
+				assert.Equal(t, providedIPAMessage.Pid, ipa.Pid)
+				assert.Equal(t, providedIPAMessage.Payload, ipa.Payload)
+				assert.Equal(t, providedIPAMessage.Signature, ipa.Signature)
+				assert.Equal(t, providedIPAMessage.PayloadSignature, ipa.PayloadSignature)
+				assert.Equal(t, providedIPAMessage.Pubkey, ipa.Pubkey)
 				wasCalled = true
 				return false
 			},

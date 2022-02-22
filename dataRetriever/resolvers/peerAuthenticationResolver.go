@@ -96,6 +96,7 @@ func (res *peerAuthenticationResolver) RequestDataFromChunk(chunkIndex uint32, e
 			Type:       dataRetriever.ChunkType,
 			ChunkIndex: chunkIndex,
 			Epoch:      epoch,
+			Value:      chunkBuffer,
 		},
 		[][]byte{chunkBuffer},
 	)
@@ -235,20 +236,15 @@ func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte,
 	return res.sendData(dataBuff, hashesBuff, 0, 0, pid)
 }
 
-// sendLargeDataBuff splits dataBuff into chunks and sends a message for each
+// sendLargeDataBuff splits dataBuff into chunks and sends a message for first chunk
 func (res *peerAuthenticationResolver) sendLargeDataBuff(dataBuff [][]byte, reference []byte, chunkSize int, pid core.PeerID) error {
 	maxChunks := res.getMaxChunks(dataBuff)
-	for chunkIndex := 0; chunkIndex < maxChunks; chunkIndex++ {
-		chunk, err := res.extractChunk(dataBuff, chunkIndex, chunkSize, maxChunks)
-		if err != nil {
-			return err
-		}
-		err = res.sendData(chunk, reference, 0, 0, pid)
-		if err != nil {
-			return err
-		}
+	chunk, err := res.extractChunk(dataBuff, 0, chunkSize, maxChunks)
+	if err != nil {
+		return err
 	}
-	return nil
+
+	return res.sendData(chunk, reference, 0, maxChunks, pid)
 }
 
 // getMaxChunks returns the max num of chunks from a buffer

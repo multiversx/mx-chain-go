@@ -36,12 +36,12 @@ func (paip *peerAuthenticationInterceptorProcessor) Validate(_ process.Intercept
 
 // Save will save the intercepted peer authentication inside the peer authentication cacher
 func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
-	interceptedPeerAuthenticationData, ok := data.(interceptedDataSizeHandler)
+	interceptedPeerAuthenticationData, ok := data.(interceptedDataMessageHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	paip.peerAuthenticationCacher.Put(fromConnectedPeer.Bytes(), interceptedPeerAuthenticationData, interceptedPeerAuthenticationData.SizeInBytes())
+	paip.peerAuthenticationCacher.Put(fromConnectedPeer.Bytes(), interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())
 	return nil
 }
 

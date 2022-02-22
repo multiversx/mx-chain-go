@@ -137,6 +137,11 @@ func (ihb *interceptedHeartbeat) String() string {
 		logger.DisplayByteSlice(ihb.heartbeat.Payload))
 }
 
+// Message returns the heartbeat message
+func (ihb *interceptedHeartbeat) Message() interface{} {
+	return ihb.heartbeat
+}
+
 // SizeInBytes returns the size in bytes held by this instance
 func (ihb *interceptedHeartbeat) SizeInBytes() int {
 	return len(ihb.heartbeat.Payload) +
