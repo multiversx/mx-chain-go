@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -59,19 +60,9 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	// Wait for messages to broadcast
 	time.Sleep(time.Second * 5)
 
-	for i := 0; i < interactingNodes; i++ {
-		paCache := dataPools[i].PeerAuthentications()
-		hbCache := dataPools[i].Heartbeats()
-
-		assert.Equal(t, interactingNodes, len(paCache.Keys()))
-		assert.Equal(t, interactingNodes, len(hbCache.Keys()))
-
-		// Check this node received messages from all peers
-		for _, node := range nodes {
-			assert.True(t, paCache.Has(node.ID().Bytes()))
-			assert.True(t, hbCache.Has(node.ID().Bytes()))
-		}
-	}
+	// Check sent messages
+	maxMessageAgeAllowed := time.Second * 7
+	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
 
 	closeComponents(t, interactingNodes, nodes, senders, dataPools, nil)
 }
@@ -92,54 +83,94 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	assert.Equal(t, interactingNodes, len(dataPools))
 
 	// Wait for messages to broadcast
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 3)
 
-	for i := 0; i < interactingNodes; i++ {
-		paCache := dataPools[i].PeerAuthentications()
-		hbCache := dataPools[i].Heartbeats()
-
-		assert.Equal(t, interactingNodes, len(paCache.Keys()))
-		assert.Equal(t, interactingNodes, len(hbCache.Keys()))
-
-		// Check this node received messages from all peers
-		for _, node := range nodes {
-			assert.True(t, paCache.Has(node.ID().Bytes()))
-			assert.True(t, hbCache.Has(node.ID().Bytes()))
-		}
-	}
+	// Check sent messages
+	maxMessageAgeAllowed := time.Second * 5
+	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
 
 	// Add new delayed node which requests messages
 	newNodeIndex := len(nodes)
 	nodes = append(nodes, integrationTests.CreateMessengerWithNoDiscovery())
 	connectNodeToPeers(nodes[newNodeIndex], nodes[:newNodeIndex])
 
+	// Wait for last peer to join
+	time.Sleep(time.Second * 2)
+
 	dataPools = append(dataPools, dataRetriever.NewPoolsHolderMock())
+
+	// Create multi data interceptor for the delayed node in order to process requested messages
+	createPeerAuthMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].PeerAuthentications(), sigHandler)
 
 	pksArray := make([][]byte, 0)
 	for _, node := range nodes {
 		pksArray = append(pksArray, node.ID().Bytes())
 	}
 
-	// Create multi data interceptor for the delayed node in order to process requested messages
-	createPeerAuthMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].PeerAuthentications(), sigHandler)
-
 	// Create resolver and request chunk
 	paResolvers := createPeerAuthResolvers(pksArray, nodes, dataPools, shardCoordinator)
 	_ = paResolvers[newNodeIndex].RequestDataFromChunk(0, 0)
 
-	time.Sleep(time.Second * 5)
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 3)
 
 	delayedNodeCache := dataPools[newNodeIndex].PeerAuthentications()
 	keysInDelayedNodeCache := delayedNodeCache.Keys()
 	assert.Equal(t, len(nodes)-1, len(keysInDelayedNodeCache))
 
 	// Only search for messages from initially created nodes.
-	// Last one does not send peerAuthentication
+	// Last one does not send peerAuthentication yet
 	for i := 0; i < len(nodes)-1; i++ {
 		assert.True(t, delayedNodeCache.Has(nodes[i].ID().Bytes()))
 	}
 
+	// Create multi data interceptor for the delayed node in order to receive heartbeat messages
+	createHeartbeatMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].Heartbeats(), sigHandler)
+
+	// Create sender for last node
+	nodeName := fmt.Sprintf("%s%d", defaultNodeName, newNodeIndex)
+	sk, _ := keyGen.GeneratePair()
+	s := createSender(nodeName, nodes[newNodeIndex], sigHandler, sk)
+	senders = append(senders, s)
+
+	// Wait to make sure all peers send messages again
+	time.Sleep(time.Second * 3)
+
+	// Check sent messages again - now should have from all peers
+	maxMessageAgeAllowed = time.Second * 5 // should not have messages from first Send
+	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
+
 	closeComponents(t, interactingNodes, nodes, senders, dataPools, paResolvers)
+}
+
+func checkMessages(t *testing.T, nodes []p2p.Messenger, dataPools []dataRetrieverInterface.PoolsHolder, maxMessageAgeAllowed time.Duration) {
+	numOfNodes := len(nodes)
+	for i := 0; i < numOfNodes; i++ {
+		paCache := dataPools[i].PeerAuthentications()
+		hbCache := dataPools[i].Heartbeats()
+
+		assert.Equal(t, numOfNodes, len(paCache.Keys()))
+		assert.Equal(t, numOfNodes, len(hbCache.Keys()))
+
+		// Check this node received messages from all peers
+		for _, node := range nodes {
+			assert.True(t, paCache.Has(node.ID().Bytes()))
+			assert.True(t, hbCache.Has(node.ID().Bytes()))
+
+			// Also check message age
+			value, _ := paCache.Get(node.ID().Bytes())
+			msg := value.(heartbeat.PeerAuthentication)
+
+			marshaller := testscommon.MarshalizerMock{}
+			payload := &heartbeat.Payload{}
+			err := marshaller.Unmarshal(payload, msg.Payload)
+			assert.Nil(t, err)
+
+			currentTimestamp := time.Now().Unix()
+			messageAge := time.Duration(currentTimestamp - payload.Timestamp)
+			assert.True(t, messageAge < maxMessageAgeAllowed)
+		}
+	}
 }
 
 func createAndStartNodes(interactingNodes int, keyGen crypto.KeyGenerator, sigHandler crypto.PeerSignatureHandler) (
