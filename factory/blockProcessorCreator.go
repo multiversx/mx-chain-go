@@ -235,25 +235,26 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                       pcf.state.AccountsAdapter(),
-		Hasher:                         pcf.coreData.Hasher(),
-		PubkeyConv:                     pcf.coreData.AddressPubKeyConverter(),
-		Marshalizer:                    pcf.coreData.InternalMarshalizer(),
-		SignMarshalizer:                pcf.coreData.TxMarshalizer(),
-		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   txFeeHandler,
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   pcf.coreData.EconomicsData(),
-		ReceiptForwarder:               receiptTxInterim,
-		BadTxForwarder:                 badTxInterim,
-		ArgsParser:                     argsParser,
-		ScrForwarder:                   scForwarder,
-		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
-		EpochNotifier:                  pcf.epochNotifier,
-		RelayedTxV2EnableEpoch:         enableEpochs.RelayedTransactionsV2EnableEpoch,
+		Accounts:                              pcf.state.AccountsAdapter(),
+		Hasher:                                pcf.coreData.Hasher(),
+		PubkeyConv:                            pcf.coreData.AddressPubKeyConverter(),
+		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
+		SignMarshalizer:                       pcf.coreData.TxMarshalizer(),
+		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:                           scProcessor,
+		TxFeeHandler:                          txFeeHandler,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          pcf.coreData.EconomicsData(),
+		ReceiptForwarder:                      receiptTxInterim,
+		BadTxForwarder:                        badTxInterim,
+		ArgsParser:                            argsParser,
+		ScrForwarder:                          scForwarder,
+		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
+		EpochNotifier:                         pcf.epochNotifier,
+		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
+		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -323,6 +324,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    pcf.coreData.InternalMarshalizer(),
+		Hasher:        pcf.coreData.Hasher(),
+		EpochNotifier: pcf.epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            pcf.coreData.Hasher(),
 		Marshalizer:                       pcf.coreData.InternalMarshalizer(),
@@ -343,6 +356,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                     pcf.epochNotifier,
 		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -594,6 +608,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    pcf.coreData.InternalMarshalizer(),
+		Hasher:        pcf.coreData.Hasher(),
+		EpochNotifier: pcf.epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: pcf.epochConfig.EnableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            pcf.coreData.Hasher(),
 		Marshalizer:                       pcf.coreData.InternalMarshalizer(),
@@ -614,6 +640,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:                     pcf.epochNotifier,
 		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

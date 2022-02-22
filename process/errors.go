@@ -1057,3 +1057,6 @@ var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not 
 
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
+
+// ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
+var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")

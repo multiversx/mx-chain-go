@@ -56,6 +56,7 @@ func NewPeerAccountsDB(
 				identifier: "load code",
 			},
 			storagePruningManager: storagePruningManager,
+			lastSnapshot:          &snapshotInfo{},
 		},
 	}
 
@@ -103,6 +104,15 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot for rootHash", "hash", rootHash)
 		return
+	}
+
+	log.Debug("starting snapshot", "rootHash", rootHash, "epoch", epoch)
+
+	adb.lastSnapshot.rootHash = rootHash
+	adb.lastSnapshot.epoch = epoch
+	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
+	if err != nil {
+		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
 	}
 
 	stats := newSnapshotStatistics(0)
