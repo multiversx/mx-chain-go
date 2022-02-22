@@ -1414,4 +1414,44 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	require.Equal(t, 1, len(vbd))
 }
 
-//TODO: Add unit tests for methods: getFinalCrossMiniBlockHashes and getMiniBlockHeaderWithHash
+func TestDelayedBlockBroadcaster_getFinalCrossMiniBlockHashes(t *testing.T) {
+	t.Parallel()
+
+	hash1 := "hash1"
+	hash2 := "hash2"
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	mbh1 := block.MiniBlockHeader{
+		Hash: []byte(hash1),
+	}
+	mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+	mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+	mbh2 := block.MiniBlockHeader{
+		Hash: []byte(hash2),
+	}
+	mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+	mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+	header := &block.MetaBlock{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			mbh1,
+			mbh2,
+		},
+	}
+
+	crossMiniBlockHashes := map[string]uint32{
+		hash1: 1,
+		hash2: 2,
+	}
+
+	expectedHashes := map[string]uint32{
+		hash2: 2,
+	}
+
+	hashes := dbb.GetFinalCrossMiniBlockHashes(crossMiniBlockHashes, header)
+	assert.Equal(t, expectedHashes, hashes)
+}

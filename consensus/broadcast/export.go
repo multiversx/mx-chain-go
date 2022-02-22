@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -169,6 +169,14 @@ func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(topic string, hash 
 // InterceptedHeaderData -
 func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []byte, header interface{}) {
 	dbb.interceptedHeader(topic, hash, header)
+}
+
+// GetFinalCrossMiniBlockHashes -
+func (dbb *delayedBlockBroadcaster) GetFinalCrossMiniBlockHashes(
+	crossMiniBlockHashes map[string]uint32,
+	header data.HeaderHandler,
+) map[string]uint32 {
+	return dbb.getFinalCrossMiniBlockHashes(crossMiniBlockHashes, header)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger

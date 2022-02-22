@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -1555,4 +1556,100 @@ func TestScheduledTxsExecution_getIndexOfTxHashInMiniBlock(t *testing.T) {
 	assert.Equal(t, -1, getIndexOfTxHashInMiniBlock(txHash6, mb0))
 }
 
-//TODO: Add unit tests for methods: setScheduledMiniBlockHashes and IsMiniBlockExecuted
+func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+
+	t.Run("fail to calculate hash", func(t *testing.T) {
+		expectedErr := errors.New("calculate hash err")
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&testscommon.MarshalizerStub{
+				MarshalCalled: func(obj interface{}) ([]byte, error) {
+					return nil, expectedErr
+				},
+			},
+			&mock.HasherStub{},
+			&mock.ShardCoordinatorStub{},
+		)
+
+		miniBlocks := block.MiniBlockSlice{&block.MiniBlock{
+			TxHashes: [][]byte{[]byte("dummyhash")},
+		}}
+		scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
+
+		err := scheduledTxsExec.setScheduledMiniBlockHashes()
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("dummyhash")},
+		}
+
+		scheduledTxsExec, _ := NewScheduledTxsExecution(
+			&testscommon.TxProcessorMock{},
+			&mock.TransactionCoordinatorMock{},
+			&genericMocks.StorerMock{},
+			&testscommon.MarshalizerStub{
+				MarshalCalled: func(obj interface{}) ([]byte, error) {
+					assert.Equal(t, mb, obj)
+					return nil, nil
+				},
+			},
+			&mock.HasherStub{
+				ComputeCalled: func(s string) []byte {
+					return hash
+				},
+			},
+			&mock.ShardCoordinatorStub{},
+		)
+
+		miniBlocks := block.MiniBlockSlice{mb}
+		scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
+
+		expectedMiniBlockHashes := make(map[string]struct{})
+		expectedMiniBlockHashes[string(hash)] = struct{}{}
+
+		err := scheduledTxsExec.setScheduledMiniBlockHashes()
+		assert.Nil(t, err)
+		assert.Equal(t, expectedMiniBlockHashes, scheduledTxsExec.mapScheduledMbHashes)
+	})
+}
+
+func TestScheduledTxsExecution_IsMiniBlockExecuted(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&testscommon.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
+		&genericMocks.StorerMock{},
+		&marshal.GogoProtoMarshalizer{},
+		&mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return hash1
+			},
+		},
+		&mock.ShardCoordinatorStub{},
+	)
+
+	miniBlocks := block.MiniBlockSlice{&block.MiniBlock{
+		TxHashes: [][]byte{[]byte("dummyhash")},
+	}}
+	scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
+
+	err := scheduledTxsExec.setScheduledMiniBlockHashes()
+	require.Nil(t, err)
+
+	ok := scheduledTxsExec.IsMiniBlockExecuted(hash1)
+	assert.True(t, ok)
+
+	ok = scheduledTxsExec.IsScheduledTx(hash2)
+	assert.False(t, ok)
+}
