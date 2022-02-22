@@ -2098,7 +2098,7 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
 	})
 
-	t.Run("num header miniblocks higher than scheduled miniblocks, should fail", func(t *testing.T) {
+	t.Run("num header miniblocks lower than scheduled miniblocks, should fail", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
