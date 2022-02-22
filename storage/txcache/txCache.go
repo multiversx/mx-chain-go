@@ -26,6 +26,7 @@ type TxCache struct {
 	numSendersInGracePeriod   atomic.Counter
 	sweepingMutex             sync.Mutex
 	sweepingListOfSenders     []*txListForSender
+	mutTxOperation            sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
@@ -70,15 +71,17 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
+	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
 		// - A adds to "txByHash"
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		log.Error("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
@@ -161,6 +164,9 @@ func (cache *TxCache) doAfterSelection() {
 
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
+	cache.mutTxOperation.Lock()
+	defer cache.mutTxOperation.Unlock()
+
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
 		return false
@@ -176,7 +182,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		// - B reaches "cache.txByHash.RemoveTxsBulk()"
 		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
 		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
+		log.Error("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
 	return true
@@ -214,8 +220,10 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 
 // Clear clears the cache
 func (cache *TxCache) Clear() {
+	cache.mutTxOperation.Lock()
 	cache.txListBySender.clear()
 	cache.txByHash.clear()
+	cache.mutTxOperation.Unlock()
 }
 
 // Put is not implemented
@@ -268,7 +276,7 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	//TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
+	// TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
 	return int(cache.config.CountThreshold)
 }
 
