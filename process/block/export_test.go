@@ -422,10 +422,6 @@ func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 }
 
-func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
-	return checkProcessorNilParameters(arguments)
-}
-
 func (sp *shardProcessor) RequestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	return sp.requestEpochStartInfo(header, haveTime)
 }
