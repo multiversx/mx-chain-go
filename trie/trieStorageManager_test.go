@@ -1,7 +1,6 @@
 package trie_test
 
 import (
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"testing"
@@ -91,9 +90,8 @@ func TestNewTrieStorageManagerOkVals(t *testing.T) {
 func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	t.Parallel()
 
-	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
-		FilePath:          tempDir,
+		FilePath:          t.TempDir(),
 		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
@@ -134,9 +132,8 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 	t.Parallel()
 
-	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
-		FilePath:          tempDir,
+		FilePath:          t.TempDir(),
 		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
