@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -237,6 +238,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	return argsTransactionCoordinator
@@ -440,6 +442,17 @@ func TestNewTransactionCoordinator_NilScheduledTxsExecutionHandler(t *testing.T)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
 }
 
+func TestNewTransactionCoordinator_NilDoubleTransactionsDetector(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.DoubleTransactionsDetector = nil
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+	assert.True(t, check.IfNil(tc))
+	assert.Equal(t, process.ErrNilDoubleTransactionsDetector, err)
+}
+
 func TestNewTransactionCoordinator_OK(t *testing.T) {
 	t.Parallel()
 
@@ -447,8 +460,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, tc)
-	assert.False(t, tc.IsInterfaceNil())
+	assert.False(t, check.IfNil(tc))
 }
 
 func TestTransactionCoordinator_GetAllCurrentLogs(t *testing.T) {
@@ -2554,6 +2566,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2601,6 +2614,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2672,6 +2686,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2748,6 +2763,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2824,6 +2840,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2883,6 +2900,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2965,6 +2983,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3057,6 +3076,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3135,6 +3155,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3184,6 +3205,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3240,6 +3262,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3303,6 +3326,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3369,6 +3393,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3422,6 +3447,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3480,6 +3506,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3548,6 +3575,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3622,6 +3650,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 			},
 		},
 		ScheduledMiniBlocksEnableEpoch: 2,
+		DoubleTransactionsDetector:     &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3704,6 +3733,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 			},
 		},
 		ScheduledMiniBlocksEnableEpoch: 2,
+		DoubleTransactionsDetector:     &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3786,6 +3816,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 			},
 		},
 		ScheduledMiniBlocksEnableEpoch: 2,
+		DoubleTransactionsDetector:     &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3861,6 +3892,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3912,6 +3944,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3977,6 +4010,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	txHashes := make([][]byte, 0)
