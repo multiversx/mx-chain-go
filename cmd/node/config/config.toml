@@ -825,7 +825,7 @@
         MaxOpenFiles = 10
 
 [DbLookupExtensions]
-    Enabled = false
+    Enabled = true
     DbLookupMaxActivePersisters = 10
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblocksMetadataStorage"
