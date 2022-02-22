@@ -1064,3 +1064,6 @@ var ErrNilAdditionalData = errors.New("nil additional data")
 
 // ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch signals that number of mini blocks and mini blocks headers does not match
 var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blocks and mini blocks headers does not match")
+
+// ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
+var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")
