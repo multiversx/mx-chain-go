@@ -417,6 +417,7 @@ func createMockTransactionCoordinatorArguments(
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	return argsTransactionCoordinator
