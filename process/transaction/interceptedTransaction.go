@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -396,11 +397,12 @@ func (inTx *InterceptedTransaction) Type() string {
 
 // String returns the transaction's most important fields as string
 func (inTx *InterceptedTransaction) String() string {
-	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s",
+	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
 		logger.DisplayByteSlice(inTx.tx.SndAddr),
 		inTx.tx.Nonce,
 		inTx.tx.Value.String(),
 		logger.DisplayByteSlice(inTx.tx.RcvAddr),
+		hex.EncodeToString(inTx.tx.Data),
 	)
 }
 
