@@ -1437,6 +1437,12 @@ func (tc *transactionCoordinator) verifyGasLimit(
 	body *block.Body,
 	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
 ) error {
+
+	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
+		log.Warn("transactionCoordinator.verifyGasLimit: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
+		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
 	for index, miniBlock := range body.MiniBlocks {
 		isCrossShardMiniBlockFromMe := miniBlock.SenderShardID == tc.shardCoordinator.SelfId() &&
 			miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId()
@@ -1517,6 +1523,11 @@ func (tc *transactionCoordinator) verifyFees(
 		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, scheduledGasAndFees.AccumulatedFees)
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
+	}
+
+	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
+		log.Warn("transactionCoordinator.verifyFees: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
+		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
 	}
 
 	for index, miniBlock := range body.MiniBlocks {

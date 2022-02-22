@@ -425,7 +425,7 @@ func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.Header
 	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
 }
 
-func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
+func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
 	return bp.getFinalMiniBlocks(header, body)
 }
 

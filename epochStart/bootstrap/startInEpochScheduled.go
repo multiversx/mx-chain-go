@@ -365,7 +365,7 @@ func getScheduledMiniBlocks(
 	mbHeaders := header.GetMiniBlockHeaderHandlers()
 	for _, mbHeader := range mbHeaders {
 		miniBlock := miniBlocks[string(mbHeader.GetHash())]
-		if miniBlock.Type == block.InvalidBlock {
+		if miniBlock == nil || miniBlock.Type == block.InvalidBlock {
 			continue
 		}
 

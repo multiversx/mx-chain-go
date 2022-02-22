@@ -632,39 +632,53 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	notEmpty := len(miniBlock.TxHashes) > 0
 	isScheduledMiniBlock := notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
 	if isScheduledMiniBlock {
-		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
+		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler)
+	}
+
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, miniBlockHash)
+}
+
+func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+	err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
+	if err != nil {
+		return err
+	}
+
+	if miniBlockHeaderHandler.GetSenderShardID() == bp.shardCoordinator.SelfId() {
+		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Proposed))
 		if err != nil {
 			return err
-		}
-
-		if miniBlockHeaderHandler.GetSenderShardID() == bp.shardCoordinator.SelfId() {
-			err = miniBlockHeaderHandler.SetConstructionState(int32(block.Proposed))
-			if err != nil {
-				return err
-			}
-		} else {
-			err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
-			if err != nil {
-				return err
-			}
 		}
 	} else {
-		if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
-			err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
-			if err != nil {
-				return err
-			}
-		} else {
-			err := miniBlockHeaderHandler.SetProcessingType(int32(block.Normal))
-			if err != nil {
-				return err
-			}
-		}
-
-		err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	miniBlockHash []byte,
+) error {
+	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
+		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
+		if err != nil {
+			return err
+		}
+	} else {
+		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Normal))
+		if err != nil {
+			return err
+		}
+	}
+
+	err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -898,16 +912,25 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *block.Body) error {
-	newBody := bp.getFinalMiniBlocks(header, body)
+	newBody, err := bp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return err
+	}
+
 	return bp.txCoordinator.RemoveTxsFromPool(newBody)
 }
 
-func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) *block.Body {
+func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
-		return body
+		return body, nil
 	}
 
 	var miniBlocks block.MiniBlockSlice
+
+	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
+		log.Warn("baseProcessor.getFinalMiniBlocks: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
+		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
 
 	for index, miniBlock := range body.MiniBlocks {
 		miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
@@ -919,7 +942,7 @@ func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *blo
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return &block.Body{MiniBlocks: miniBlocks}
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
@@ -1704,6 +1727,11 @@ func getScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
+	}
+
+	if len(body.MiniBlocks) != len(headerHandler.GetMiniBlockHeaderHandlers()) {
+		log.Warn("getScheduledMiniBlocksFromMe: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(headerHandler.GetMiniBlockHeaderHandlers()))
+		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
 	}
 
 	miniBlocks := make(block.MiniBlockSlice, 0)

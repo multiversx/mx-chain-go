@@ -1905,7 +1905,8 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		body := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		assert.Nil(t, err)
 		assert.Equal(t, &block.Body{}, body)
 	})
 
@@ -1917,7 +1918,8 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		body := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		assert.Nil(t, err)
 		assert.Equal(t, &block.Body{}, body)
 	})
 
@@ -1959,7 +1961,8 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 
 		expectedBody := &block.Body{MiniBlocks: block.MiniBlockSlice{mb2}}
 
-		retBody := bp.GetFinalMiniBlocks(metaBlock, body)
+		retBody, err := bp.GetFinalMiniBlocks(metaBlock, body)
+		assert.Nil(t, err)
 		assert.Equal(t, expectedBody, retBody)
 	})
 }

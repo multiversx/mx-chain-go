@@ -2112,7 +2112,10 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	// Remove mini blocks which are not final from "body" to avoid sending them cross shard
-	newBodyToBroadcast := sp.getFinalMiniBlocks(header, body)
+	newBodyToBroadcast, err := sp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
@@ -2128,9 +2131,9 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	mrsData := make(map[uint32][]byte, len(bodies))
 	for shardId, subsetBlockBody := range bodies {
 		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
-		buff, err := sp.marshalizer.Marshal(&bodyForShard)
-		if err != nil {
-			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
+		buff, errMarshal := sp.marshalizer.Marshal(&bodyForShard)
+		if errMarshal != nil {
+			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", errMarshal.Error())
 			continue
 		}
 		mrsData[shardId] = buff

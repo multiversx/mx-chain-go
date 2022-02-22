@@ -195,13 +195,7 @@ func (txc *transactionCounter) displayTxBlockBody(
 
 		processingTypeInMiniBlockHeaderStr := ""
 		if len(miniBlockHeaders) > i {
-			processingType := block.ProcessingType(miniBlockHeaders[i].GetProcessingType())
-			switch processingType {
-			case block.Scheduled:
-				processingTypeInMiniBlockHeaderStr = "Scheduled_"
-			case block.Processed:
-				processingTypeInMiniBlockHeaderStr = "Processed_"
-			}
+			processingTypeInMiniBlockHeaderStr = getProcessingTypeAsString(miniBlockHeaders[i])
 		}
 
 		processingTypeInMiniBlockStr := ""
@@ -255,6 +249,18 @@ func (txc *transactionCounter) displayTxBlockBody(
 	txc.mutex.Unlock()
 
 	return lines
+}
+
+func getProcessingTypeAsString(miniBlockHeader data.MiniBlockHeaderHandler) string {
+	processingType := block.ProcessingType(miniBlockHeader.GetProcessingType())
+	switch processingType {
+	case block.Scheduled:
+		return "Scheduled_"
+	case block.Processed:
+		return "Processed_"
+	}
+
+	return ""
 }
 
 // DisplayLastNotarized will display information about last notarized block

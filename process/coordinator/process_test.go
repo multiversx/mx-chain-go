@@ -2615,7 +2615,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		},
 	}
 
-	header := &block.Header{}
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{{}},
+	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			{
@@ -2688,8 +2690,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 	}
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(10),
+		AccumulatedFees:  big.NewInt(101),
+		DeveloperFees:    big.NewInt(10),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -2763,8 +2766,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 	}
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(11),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(11),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -2838,8 +2842,9 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 	}
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(10),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(10),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -3010,7 +3015,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
-	err = tc.verifyGasLimit(&block.Header{}, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyGasLimit(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{}, {}, {}}}, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached, err)
 }
 
@@ -3102,7 +3107,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
-	err = tc.verifyGasLimit(&block.Header{}, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyGasLimit(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{}, {}, {}}}, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
 }
 
@@ -3426,8 +3431,9 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 	txHash1 := "hash1"
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(10),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(10),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}},
 	}
 
 	body := &block.Body{
@@ -3490,8 +3496,9 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(10),
+		AccumulatedFees:  big.NewInt(101),
+		DeveloperFees:    big.NewInt(10),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
 	}
 
 	body := &block.Body{
@@ -3556,8 +3563,9 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(11),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(11),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
 	}
 
 	body := &block.Body{
@@ -3793,8 +3801,9 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	mapMiniBlockTypeAllTxs[block.TxBlock] = mapAllTxs
 
 	header := &block.Header{
-		AccumulatedFees: big.NewInt(100),
-		DeveloperFees:   big.NewInt(10),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(10),
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
 	}
 
 	body := &block.Body{
