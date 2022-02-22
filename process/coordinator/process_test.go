@@ -4179,3 +4179,64 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 	txs := tc.GetAllIntermediateTxs()
 	assert.Equal(t, expectedAllIntermediateTxs, txs)
 }
+
+func TestTransactionCoordinator_getFinalCrossMiniBlockHashes(t *testing.T) {
+	t.Parallel()
+
+	hash1 := "hash1"
+	hash2 := "hash2"
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		tc, _ := NewTransactionCoordinator(args)
+
+		tc.EpochConfirmed(2, 0)
+
+		expectedHashes := make(map[string]uint32)
+
+		hashes := tc.getFinalCrossMiniBlockHashes(expectedHashes, &block.Header{})
+		assert.Equal(t, expectedHashes, hashes)
+	})
+
+	t.Run("should work, return only final state mini block hashes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		tc, _ := NewTransactionCoordinator(args)
+
+		tc.EpochConfirmed(4, 0)
+
+		mbh1 := block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{
+			Hash: []byte(hash2),
+		}
+		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		header := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		crossMiniBlockHashes := map[string]uint32{
+			hash1: 1,
+			hash2: 2,
+		}
+
+		expectedHashes := map[string]uint32{
+			hash2: 2,
+		}
+
+		hashes := tc.getFinalCrossMiniBlockHashes(crossMiniBlockHashes, header)
+		assert.Equal(t, expectedHashes, hashes)
+	})
+}
