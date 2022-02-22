@@ -835,7 +835,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	arwenChangeLocker common.Locker,
 	mapDNSAddresses map[string]struct{},
 ) (process.VirtualMachinesContainerFactory, error) {
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapter())
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}
@@ -959,7 +959,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapter())
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}

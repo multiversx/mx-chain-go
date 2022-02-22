@@ -2911,7 +2911,7 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
-		IsPayableCalled: func(_ []byte) (bool, error) {
+		IsPayableCalled: func(_ []byte, _ []byte) (bool, error) {
 			return false, nil
 		},
 	}

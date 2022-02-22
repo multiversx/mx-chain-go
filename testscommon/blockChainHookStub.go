@@ -29,7 +29,7 @@ type BlockChainHookStub struct {
 	GetUserAccountCalled                 func(address []byte) (vmcommon.UserAccountHandler, error)
 	GetShardOfAddressCalled              func(address []byte) uint32
 	IsSmartContractCalled                func(address []byte) bool
-	IsPayableCalled                      func(address []byte) (bool, error)
+	IsPayableCalled                      func(sndAddress []byte, recvAddress []byte) (bool, error)
 	GetCompiledCodeCalled                func(codeHash []byte) (bool, []byte)
 	SaveCompiledCodeCalled               func(codeHash []byte, code []byte)
 	ClearCompiledCodesCalled             func()
@@ -293,9 +293,9 @@ func (stub *BlockChainHookStub) GetCompiledCode(codeHash []byte) (bool, []byte) 
 }
 
 // IsPayable -
-func (stub *BlockChainHookStub) IsPayable(_ []byte, recvAddress []byte) (bool, error) {
+func (stub *BlockChainHookStub) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	if stub.IsPayableCalled != nil {
-		return stub.IsPayableCalled(recvAddress)
+		return stub.IsPayableCalled(sndAddress, recvAddress)
 	}
 
 	return true, nil

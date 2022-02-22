@@ -103,7 +103,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	builtInFuncs, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
-		args.StateComponents.AccountsAdapter(),
+		args.StateComponents.AccountsAdapterAPI(),
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
 		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
@@ -139,7 +139,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
 		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.StateComponents.AccountsAdapter(),
+		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
 	)
 	if err != nil {
@@ -261,7 +261,7 @@ func createScQueryElement(
 	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
-		args.stateComponents.AccountsAdapter(),
+		args.stateComponents.AccountsAdapterAPI(),
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
@@ -283,7 +283,7 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapter(),
+		Accounts:           args.stateComponents.AccountsAdapterAPI(),
 		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
 		StorageService:     args.dataComponents.StorageService(),
 		BlockChain:         args.dataComponents.Blockchain(),
