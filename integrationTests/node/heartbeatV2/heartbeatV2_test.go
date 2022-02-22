@@ -64,7 +64,7 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	maxMessageAgeAllowed := time.Second * 7
 	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
 
-	closeComponents(t, interactingNodes, nodes, senders, dataPools, nil)
+	closeComponents(t, nodes, senders, dataPools, nil)
 }
 
 func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
@@ -99,15 +99,16 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 
 	dataPools = append(dataPools, dataRetriever.NewPoolsHolderMock())
 
-	// Create multi data interceptor for the delayed node in order to process requested messages
+	// Create multi data interceptors for the delayed node in order to receive messages
 	createPeerAuthMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].PeerAuthentications(), sigHandler)
+	createHeartbeatMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].Heartbeats(), sigHandler)
 
 	pksArray := make([][]byte, 0)
 	for _, node := range nodes {
 		pksArray = append(pksArray, node.ID().Bytes())
 	}
 
-	// Create resolver and request chunk
+	// Create resolvers and request chunk from delayed node
 	paResolvers := createPeerAuthResolvers(pksArray, nodes, dataPools, shardCoordinator)
 	_ = paResolvers[newNodeIndex].RequestDataFromChunk(0, 0)
 
@@ -124,9 +125,6 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 		assert.True(t, delayedNodeCache.Has(nodes[i].ID().Bytes()))
 	}
 
-	// Create multi data interceptor for the delayed node in order to receive heartbeat messages
-	createHeartbeatMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].Heartbeats(), sigHandler)
-
 	// Create sender for last node
 	nodeName := fmt.Sprintf("%s%d", defaultNodeName, newNodeIndex)
 	sk, _ := keyGen.GeneratePair()
@@ -140,7 +138,41 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	maxMessageAgeAllowed = time.Second * 5 // should not have messages from first Send
 	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
 
-	closeComponents(t, interactingNodes, nodes, senders, dataPools, paResolvers)
+	closeComponents(t, nodes, senders, dataPools, paResolvers)
+}
+
+func TestHeartbeatV2_NetworkShouldSendMessages(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	sigHandler := createMockPeerSignatureHandler(keyGen)
+
+	nodes, _ := integrationTests.CreateFixedNetworkOf8Peers()
+	interactingNodes := len(nodes)
+
+	// Create components
+	dataPools := make([]dataRetrieverInterface.PoolsHolder, interactingNodes)
+	senders := make([]factory.HeartbeatV2Sender, interactingNodes)
+	for i := 0; i < interactingNodes; i++ {
+		dataPools[i] = dataRetriever.NewPoolsHolderMock()
+		createPeerAuthMultiDataInterceptor(nodes[i], dataPools[i].PeerAuthentications(), sigHandler)
+		createHeartbeatMultiDataInterceptor(nodes[i], dataPools[i].Heartbeats(), sigHandler)
+
+		nodeName := fmt.Sprintf("%s%d", defaultNodeName, i)
+		sk, _ := keyGen.GeneratePair()
+
+		s := createSender(nodeName, nodes[i], sigHandler, sk)
+		senders[i] = s
+	}
+
+	// Wait for all peers to send peer auth messages twice
+	time.Sleep(time.Second * 15)
+
+	checkMessages(t, nodes, dataPools, time.Second*7)
+
+	closeComponents(t, nodes, senders, dataPools, nil)
 }
 
 func checkMessages(t *testing.T, nodes []p2p.Messenger, dataPools []dataRetrieverInterface.PoolsHolder, maxMessageAgeAllowed time.Duration) {
@@ -388,11 +420,11 @@ func createMockThrottler() *processMock.InterceptorThrottlerStub {
 }
 
 func closeComponents(t *testing.T,
-	interactingNodes int,
 	nodes []p2p.Messenger,
 	senders []factory.HeartbeatV2Sender,
 	dataPools []dataRetrieverInterface.PoolsHolder,
 	resolvers []dataRetrieverInterface.PeerAuthenticationResolver) {
+	interactingNodes := len(nodes)
 	for i := 0; i < interactingNodes; i++ {
 		var err error
 		if senders != nil && len(senders) > i {
