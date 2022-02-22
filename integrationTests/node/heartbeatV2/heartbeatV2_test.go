@@ -90,18 +90,9 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
 
 	// Add new delayed node which requests messages
-	newNodeIndex := len(nodes)
-	nodes = append(nodes, integrationTests.CreateMessengerWithNoDiscovery())
-	connectNodeToPeers(nodes[newNodeIndex], nodes[:newNodeIndex])
-
-	// Wait for last peer to join
-	time.Sleep(time.Second * 2)
-
-	dataPools = append(dataPools, dataRetriever.NewPoolsHolderMock())
-
-	// Create multi data interceptors for the delayed node in order to receive messages
-	createPeerAuthMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].PeerAuthentications(), sigHandler)
-	createHeartbeatMultiDataInterceptor(nodes[newNodeIndex], dataPools[newNodeIndex].Heartbeats(), sigHandler)
+	delayedNode, delayedNodeDataPool := createDelayedNode(nodes, sigHandler)
+	nodes = append(nodes, delayedNode)
+	dataPools = append(dataPools, delayedNodeDataPool)
 
 	pksArray := make([][]byte, 0)
 	for _, node := range nodes {
@@ -110,14 +101,14 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 
 	// Create resolvers and request chunk from delayed node
 	paResolvers := createPeerAuthResolvers(pksArray, nodes, dataPools, shardCoordinator)
+	newNodeIndex := len(nodes) - 1
 	_ = paResolvers[newNodeIndex].RequestDataFromChunk(0, 0)
 
 	// Wait for messages to broadcast
 	time.Sleep(time.Second * 3)
 
-	delayedNodeCache := dataPools[newNodeIndex].PeerAuthentications()
-	keysInDelayedNodeCache := delayedNodeCache.Keys()
-	assert.Equal(t, len(nodes)-1, len(keysInDelayedNodeCache))
+	delayedNodeCache := delayedNodeDataPool.PeerAuthentications()
+	assert.Equal(t, len(nodes)-1, delayedNodeCache.Len())
 
 	// Only search for messages from initially created nodes.
 	// Last one does not send peerAuthentication yet
@@ -128,7 +119,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	// Create sender for last node
 	nodeName := fmt.Sprintf("%s%d", defaultNodeName, newNodeIndex)
 	sk, _ := keyGen.GeneratePair()
-	s := createSender(nodeName, nodes[newNodeIndex], sigHandler, sk)
+	s := createSender(nodeName, delayedNode, sigHandler, sk)
 	senders = append(senders, s)
 
 	// Wait to make sure all peers send messages again
@@ -137,6 +128,22 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	// Check sent messages again - now should have from all peers
 	maxMessageAgeAllowed = time.Second * 5 // should not have messages from first Send
 	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
+
+	// Add new delayed node which requests messages by hash array
+	delayedNode, delayedNodeDataPool = createDelayedNode(nodes, sigHandler)
+	nodes = append(nodes, delayedNode)
+	dataPools = append(dataPools, delayedNodeDataPool)
+	delayedNodeResolver := createPeerAuthResolver(pksArray, delayedNodeDataPool.PeerAuthentications(), delayedNode, shardCoordinator)
+	_ = delayedNodeResolver.RequestDataFromHashArray(pksArray, 0)
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 3)
+
+	// Check that the node received peer auths from all of them
+	assert.Equal(t, len(nodes)-1, delayedNodeDataPool.PeerAuthentications().Len())
+	for _, node := range nodes {
+		assert.True(t, delayedNodeDataPool.PeerAuthentications().Has(node.ID().Bytes()))
+	}
 
 	closeComponents(t, nodes, senders, dataPools, paResolvers)
 }
@@ -175,14 +182,30 @@ func TestHeartbeatV2_NetworkShouldSendMessages(t *testing.T) {
 	closeComponents(t, nodes, senders, dataPools, nil)
 }
 
+func createDelayedNode(nodes []p2p.Messenger, sigHandler crypto.PeerSignatureHandler) (p2p.Messenger, dataRetrieverInterface.PoolsHolder) {
+	node := integrationTests.CreateMessengerWithNoDiscovery()
+	connectNodeToPeers(node, nodes)
+
+	// Wait for last peer to join
+	time.Sleep(time.Second * 2)
+
+	dataPool := dataRetriever.NewPoolsHolderMock()
+
+	// Create multi data interceptors for the delayed node in order to receive messages
+	createPeerAuthMultiDataInterceptor(node, dataPool.PeerAuthentications(), sigHandler)
+	createHeartbeatMultiDataInterceptor(node, dataPool.Heartbeats(), sigHandler)
+
+	return node, dataPool
+}
+
 func checkMessages(t *testing.T, nodes []p2p.Messenger, dataPools []dataRetrieverInterface.PoolsHolder, maxMessageAgeAllowed time.Duration) {
 	numOfNodes := len(nodes)
 	for i := 0; i < numOfNodes; i++ {
 		paCache := dataPools[i].PeerAuthentications()
 		hbCache := dataPools[i].Heartbeats()
 
-		assert.Equal(t, numOfNodes, len(paCache.Keys()))
-		assert.Equal(t, numOfNodes, len(hbCache.Keys()))
+		assert.Equal(t, numOfNodes, paCache.Len())
+		assert.Equal(t, numOfNodes, hbCache.Len())
 
 		// Check this node received messages from all peers
 		for _, node := range nodes {
