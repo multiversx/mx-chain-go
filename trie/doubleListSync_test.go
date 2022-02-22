@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -24,7 +25,7 @@ import (
 )
 
 var marshalizer = &testscommon.MarshalizerMock{}
-var hasher = &hashingMocks.HasherMock{}
+var hasherMock = &hashingMocks.HasherMock{}
 
 func createMemUnit() storage.Storer {
 	capacity := uint32(10)
@@ -58,10 +59,10 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		MainStorer:             store,
 		CheckpointsStorer:      store,
 		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
+		Hasher:                 hasherMock,
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasherMock.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	tsm, _ := NewTrieStorageManager(args)
@@ -72,7 +73,7 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 func createInMemoryTrie() (common.Trie, storage.Storer) {
 	memUnit := createMemUnit()
 	tsm, _ := createTrieStorageManager(memUnit)
-	tr, _ := NewTrie(tsm, marshalizer, hasher, 6)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
 
 	return tr, memUnit
 }
@@ -85,14 +86,14 @@ func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer
 	unit, _ := storageUnit.NewStorageUnit(cache, db)
 
 	tsm, _ := createTrieStorageManager(unit)
-	tr, _ := NewTrie(tsm, marshalizer, hasher, 6)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
 
 	return tr, unit
 }
 
 func addDataToTrie(numKeysValues int, tr common.Trie) {
 	for i := 0; i < numKeysValues; i++ {
-		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
+		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 
 		_ = tr.Update(keyVal, keyVal)
 	}
@@ -112,7 +113,7 @@ func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.
 				}
 
 				var n *InterceptedTrieNode
-				n, err = NewInterceptedTrieNode(buff, marshalizer, hasher)
+				n, err = NewInterceptedTrieNode(buff, marshalizer, hasherMock)
 				if err != nil {
 					continue
 				}
@@ -197,7 +198,7 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	defer cancelFunc()
 
 	err := d.StartSyncing(roothash, ctx)
-	require.Equal(t, ErrContextClosing, err)
+	require.Equal(t, errors.ErrContextClosing, err)
 }
 
 func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
@@ -240,7 +241,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
-		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
+		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 		val, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
@@ -268,7 +269,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	arg := createMockArgument(time.Minute)
 
 	exceptionHashes := make([][]byte, 0)
-	//copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
+	// copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
 	numKeysCopied := 0
 	memUnitSource.RangeKeys(func(key []byte, val []byte) bool {
 		if numKeysCopied >= numKeysValues/2 {
@@ -297,7 +298,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
-		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
+		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 		val, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
