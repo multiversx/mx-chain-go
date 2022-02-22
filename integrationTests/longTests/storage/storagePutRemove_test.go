@@ -2,7 +2,6 @@ package storage
 
 import (
 	"crypto/rand"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -19,7 +18,7 @@ func TestPutRemove(t *testing.T) {
 	t.Skip("this is a long test")
 
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 5000, Shards: 16, SizeInBytes: 0})
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	dir := t.TempDir()
 	log.Info("opened in", "directory", dir)
 	lvdb1, err := leveldb.NewDB(dir, 2, 1000, 10)
 	assert.NoError(t, err)
