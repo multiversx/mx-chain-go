@@ -1993,11 +1993,19 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	require.Equal(t, expectedValidatorsInfo, validatorInfos)
 }
 
+// Sorted auction list should be:
+// owner1 : pubKey2 : 1000
+// owner4 : pubKey9 : 500
+// owner2 : pubKey4 : 0
+// owner2 : pubKey5 : 0
+// owner3 : pubKey7 : 0
+// Comparing pubKey5 with pubKey4 . Xor1 = [0 0 0 0 0 0 2] ; Xor2 = [0 0 0 0 0 0 3]
+// Comparing pubKey7 with pubKey5 . Xor1 = [0 0 0 0 0 0 0] ; Xor2 = [0 0 0 0 0 0 2]
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, MaxNumNodes: 6}}
+	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 6}}
 	s, _ := NewSystemSCProcessor(args)
 
 	owner1 := []byte("owner1")
@@ -2010,31 +2018,19 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	owner3ListPubKeysStaked := [][]byte{[]byte("pubKey6"), []byte("pubKey7")}
 	owner4ListPubKeysStaked := [][]byte{[]byte("pubKey8"), []byte("pubKey9")}
 
-	prepareStakingContractWithDataWithoutWaitingList(
-		args.UserAccountsDB,
-		owner1ListPubKeysStaked[0],
-		args.Marshalizer,
-		owner1,
-		owner1,
-	)
+	addValidatorData(args.UserAccountsDB, owner1, owner1ListPubKeysStaked, big.NewInt(6000), args.Marshalizer)
+	addStakingData(args.UserAccountsDB, owner1ListPubKeysStaked, args.Marshalizer, owner1, owner1)
 
-	// Owner1 has 2 staked nodes (one eligible, one waiting) in shard0 + 3 nodes in staking queue.
-	// It has enough stake so that all his staking queue nodes will be selected in the auction list
-	addValidatorData(args.UserAccountsDB, owner1, owner1ListPubKeysStaked[1:], big.NewInt(5000), args.Marshalizer)
-	addStakingData(args.UserAccountsDB, owner1ListPubKeysStaked[1:], args.Marshalizer, owner1, owner1)
-
-	// Owner2 has 1 staked node (eligible) in shard1 + 2 nodes in staking queue.
-	// It has enough stake for only ONE node from staking queue to be selected in the auction list
 	addValidatorData(args.UserAccountsDB, owner2, owner2ListPubKeysStaked, big.NewInt(3000), args.Marshalizer)
 	addStakingData(args.UserAccountsDB, owner2ListPubKeysStaked, args.Marshalizer, owner2, owner2)
 
-	// Owner3 has 0 staked node + 2 nodes in staking queue.
-	// It has enough stake so that all his staking queue nodes will be selected in the auction list
 	addValidatorData(args.UserAccountsDB, owner3, owner3ListPubKeysStaked, big.NewInt(2000), args.Marshalizer)
 	addStakingData(args.UserAccountsDB, owner3ListPubKeysStaked, args.Marshalizer, owner3, owner3)
 
 	addValidatorData(args.UserAccountsDB, owner4, owner4ListPubKeysStaked, big.NewInt(3000), args.Marshalizer)
 	addStakingData(args.UserAccountsDB, owner4ListPubKeysStaked, args.Marshalizer, owner4, owner4)
+
+	_, err := args.UserAccountsDB.Commit()
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1)) // 1500 topup
@@ -2053,11 +2049,13 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, []byte("pubKey7"))
+	err = s.ProcessSystemSmartContract(validatorInfos, 0, args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, []byte("pubKey7"))
 	require.Nil(t, err)
 
-	owner1TopUpPerNode, _ := s.stakingDataProvider.GetNodeStakedTopUp(owner1ListPubKeysStaked[0])
-	require.Equal(t, big.NewInt(1500), owner1TopUpPerNode)
+	for _, owner1PubKey := range owner1ListPubKeysStaked {
+		owner1TopUpPerNode, _ := s.stakingDataProvider.GetNodeStakedTopUp(owner1PubKey)
+		require.Equal(t, big.NewInt(1000), owner1TopUpPerNode)
+	}
 
 	owner2TopUpPerNode, _ := s.stakingDataProvider.GetNodeStakedTopUp(owner2ListPubKeysStaked[0])
 	require.Equal(t, big.NewInt(0), owner2TopUpPerNode)

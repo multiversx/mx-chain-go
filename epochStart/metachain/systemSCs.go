@@ -366,9 +366,6 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 		nodeTopUpPubKey1, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey1)
 		nodeTopUpPubKey2, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
 
-		fmt.Println(string(auctionList[i].RewardAddress) + " : " + string(pubKey1) + " : " + nodeTopUpPubKey1.String())
-		fmt.Println(string(auctionList[j].RewardAddress) + " : " + string(pubKey2) + " : " + nodeTopUpPubKey2.String())
-
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
 
 			key1Xor := make([]byte, len(randomness))
