@@ -255,7 +255,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagCorrectNumNodesToStake.IsSet() {
-		err := s.cleanAdditionalQueue()
+		err := s.cleanAdditionalQueue() // TODO: Deactivate this?
 		if err != nil {
 			return err
 		}
@@ -332,6 +332,10 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagStakingV4Enabled.IsSet() {
+		allNodesKeys := s.getAllNodesKeyMapOfType(validatorInfos)
+
+		_ = s.stakingDataProvider.PrepareStakingDataForRewards(allNodesKeys)
+
 		err := s.selectNodesFromAuctionList(validatorInfos)
 		if err != nil {
 			return err
@@ -354,24 +358,36 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 		}
 	}
 
-	sort.Slice(auctionList, func(i, j int) bool {
+	sort.SliceStable(auctionList, func(i, j int) bool {
 		pubKey1 := auctionList[i].PublicKey
 		pubKey2 := auctionList[j].PublicKey
 
 		nodeTopUpPubKey1, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey1)
 		nodeTopUpPubKey2, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
 
+		fmt.Println(string(auctionList[i].RewardAddress) + " : " + string(pubKey1) + " : " + nodeTopUpPubKey1.String())
+		fmt.Println(string(auctionList[j].RewardAddress) + " : " + string(pubKey2) + " : " + nodeTopUpPubKey2.String())
+
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
 	})
 
-	noOfSelectedNodes := s.maxNodes - noOfValidators
-	totalNodesInAuctionList := uint32(len(auctionList))
-	if totalNodesInAuctionList < noOfSelectedNodes {
-		noOfSelectedNodes = totalNodesInAuctionList
+	fmt.Println("AUCTION LIST -------")
+	for _, v := range auctionList {
+		topup, _ := s.stakingDataProvider.GetNodeStakedTopUp(v.PublicKey)
+		fmt.Println(string(v.RewardAddress) + " : " + string(v.PublicKey) + " : " + topup.String())
 	}
-	for i := uint32(0); i < noOfSelectedNodes; i++ {
-		shardID := auctionList[i].ShardId
-		validatorInfos[shardID] = append(validatorInfos[shardID], auctionList[i])
+	fmt.Println("AUCTION LIST -------")
+
+	noOfAvailableNodeSlots := s.maxNodes - noOfValidators
+	totalNodesInAuctionList := uint32(len(auctionList))
+	if totalNodesInAuctionList < noOfAvailableNodeSlots {
+		noOfAvailableNodeSlots = totalNodesInAuctionList
+	}
+
+	for i := uint32(0); i < noOfAvailableNodeSlots; i++ {
+		auctionList[i].List = string(common.NewList)
+		//val := getValidatorInfoWithBLSKey(validatorInfos, auctionList[i].PublicKey)
+		//val.List = string(common.NewList)
 	}
 
 	return nil
@@ -634,6 +650,20 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	return eligibleNodesKeys
 }
 
+func (s *systemSCProcessor) getAllNodesKeyMapOfType(
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+) map[uint32][][]byte {
+	eligibleNodesKeys := make(map[uint32][][]byte)
+	for shardID, validatorsInfoSlice := range validatorsInfo {
+		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
+		for _, validatorInfo := range validatorsInfoSlice {
+			eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
+		}
+	}
+
+	return eligibleNodesKeys
+}
+
 func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
 	for _, miniBlock := range miniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
@@ -761,6 +791,7 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
 
+	// TODO: Check if flag is not enabled, should we move staked nodes to AuctionList?
 	if s.flagStakingQueueEnabled.IsSet() {
 		sw.Start("stakeNodesFromQueue")
 		err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
