@@ -218,6 +218,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	nonce uint64,
 	epoch uint32,
+	randomness []byte,
 ) error {
 	if s.flagHystNodesEnabled.IsSet() {
 		err := s.updateSystemSCConfigMinNodes()
@@ -367,6 +368,15 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 
 		fmt.Println(string(auctionList[i].RewardAddress) + " : " + string(pubKey1) + " : " + nodeTopUpPubKey1.String())
 		fmt.Println(string(auctionList[j].RewardAddress) + " : " + string(pubKey2) + " : " + nodeTopUpPubKey2.String())
+
+		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
+			// xor cu hash(key + key2)
+			// h = hash(keyLow, keyHigh)
+			// key1r := h xor key1
+			// key2r = h xor key2
+
+			// return key1r.cmp(key2r) ==1
+		}
 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
 	})

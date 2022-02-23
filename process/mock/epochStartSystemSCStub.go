@@ -8,7 +8,7 @@ import (
 
 // EpochStartSystemSCStub -
 type EpochStartSystemSCStub struct {
-	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error
+	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32, randomness []byte) error
 	ProcessDelegationRewardsCalled   func(miniBlocks block.MiniBlockSlice, txCache epochStart.TransactionCacher) error
 	ToggleUnStakeUnBondCalled        func(value bool) error
 }
@@ -22,9 +22,14 @@ func (e *EpochStartSystemSCStub) ToggleUnStakeUnBond(value bool) error {
 }
 
 // ProcessSystemSmartContract -
-func (e *EpochStartSystemSCStub) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+func (e *EpochStartSystemSCStub) ProcessSystemSmartContract(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	nonce uint64,
+	epoch uint32,
+	randomness []byte,
+) error {
 	if e.ProcessSystemSmartContractCalled != nil {
-		return e.ProcessSystemSmartContractCalled(validatorInfos, nonce, epoch)
+		return e.ProcessSystemSmartContractCalled(validatorInfos, nonce, epoch, randomness)
 	}
 	return nil
 }
