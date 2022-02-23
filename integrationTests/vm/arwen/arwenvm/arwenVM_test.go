@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -20,6 +21,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -63,7 +65,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -109,7 +111,7 @@ func TestVmSCDeployFactory(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -155,7 +157,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		vm.ArgEnableEpoch{
+		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
 	)
@@ -246,7 +248,7 @@ func TestWASMMetering(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		vm.ArgEnableEpoch{
+		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
 	)
@@ -373,7 +375,7 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -412,7 +414,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -621,7 +623,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 	defer testContext.Close()
