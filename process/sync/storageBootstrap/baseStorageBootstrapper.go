@@ -37,6 +37,7 @@ type ArgsBaseStorageBootstrapper struct {
 	BlockTracker                 process.BlockTracker
 	ChainID                      string
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	MiniblocksProvider           process.MiniBlockProvider
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -68,6 +69,7 @@ type storageBootstrapper struct {
 	highestNonce                 uint64
 	chainID                      string
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	miniBlocksProvider           process.MiniBlockProvider
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -127,6 +129,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		}
 
 		err = st.applyBootInfos(bootInfos)
+		if err != nil {
+			round = headerInfo.LastRound
+			continue
+		}
+
+		err = st.checkBlockBodyIntegrity(headerInfo.LastHeader.Hash)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
@@ -478,6 +486,49 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	if check.IfNil(args.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(args.MiniblocksProvider) {
+		return process.ErrNilMiniBlocksProvider
+	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) checkBlockBodyIntegrity(headerHash []byte) error {
+	log.Debug("storageBootstrapper.checkBlockBodyIntegrity", "headerHash", headerHash)
+
+	headerHandler, err := st.bootstrapper.getHeader(headerHash)
+	if err != nil {
+		return err
+	}
+
+	bodyHandler, err := st.getBlockBody(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	err = st.blkExecutor.RestoreBlockBodyIntoPools(bodyHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (st *storageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	hashes := make([][]byte, len(headerHandler.GetMiniBlockHeaderHandlers()))
+	for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
+		hashes[i] = headerHandler.GetMiniBlockHeaderHandlers()[i].GetHash()
+	}
+
+	miniBlocksAndHashes, missingMiniBlocksHashes := st.miniBlocksProvider.GetMiniBlocksFromStorer(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+	for index, miniBlockAndHash := range miniBlocksAndHashes {
+		miniBlocks[index] = miniBlockAndHash.Miniblock
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }

@@ -1392,6 +1392,25 @@ func (bp *baseProcessor) restoreBlockBody(bodyHandler data.BodyHandler) {
 	go bp.txCounter.subtractRestoredTxs(restoredTxNr)
 }
 
+// RestoreBlockBodyIntoPools restores the block body into associated pools
+func (bp *baseProcessor) RestoreBlockBodyIntoPools(bodyHandler data.BodyHandler) error {
+	if check.IfNil(bodyHandler) {
+		return process.ErrNilBlockBody
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	_, err := bp.txCoordinator.RestoreBlockDataFromStorage(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHandler) {
 	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
