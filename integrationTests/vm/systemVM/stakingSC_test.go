@@ -59,7 +59,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send stake tx and check sender's balance
+	// ------- send stake tx and check sender's balance
 	var txData string
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
@@ -81,7 +81,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 
 	checkAccountsAfterStaking(t, nodes)
 
-	/////////------ send unStake tx
+	// ------ send unStake tx
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
@@ -99,13 +99,13 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	/////////----- wait for unbond period
+	// ----- wait for unbond period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	manualSetToInactiveStateStakedPeers(t, nodes)
 
-	////////----- send unBond
+	// ----- send unBond
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
@@ -175,7 +175,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send stake tx and check sender's balance
+	// ------- send stake tx and check sender's balance
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
 	nodePrice := big.NewInt(0).Set(metaBlock.EpochStart.Economics.NodePrice)
@@ -202,7 +202,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 
 	manualSetToInactiveStateStakedPeers(t, nodes)
 
-	/////////------ send unStake tx
+	// ------ send unStake tx
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
@@ -223,11 +223,11 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 		node.WaitTime = 100 * time.Millisecond
 	}
 
-	/////////----- wait for unbound period
+	// ----- wait for unbound period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
-	////////----- send unBound
+	// ----- send unBound
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey

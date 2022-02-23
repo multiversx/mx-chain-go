@@ -90,6 +90,8 @@
     GetNumReturnData     = 100
     GetReturnDataSize    = 100
     GetOriginalTxHash    = 10000
+    CleanReturnData      = 100
+    DeleteFromReturnData = 100
 
 [EthAPICost]
     UseGas              = 100

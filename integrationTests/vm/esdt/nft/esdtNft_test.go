@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package nft
@@ -763,7 +764,7 @@ func prepareNFTWithRoles(
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("SFT")))
 
-	//// /////// ----- set special roles
+	// ----- set special roles
 	esdt.SetRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
 
 	time.Sleep(time.Second)

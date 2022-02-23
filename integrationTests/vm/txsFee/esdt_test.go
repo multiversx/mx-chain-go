@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestESDTTransferShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -63,7 +64,7 @@ func TestESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -108,7 +109,7 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 }
 
 func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -154,7 +155,7 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 
 func TestESDTTransferCallBackOnErrorShouldNotGenerateSCRsFurther(t *testing.T) {
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{}, shardC)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(config.EnableEpochs{}, shardC)
 	require.Nil(t, err)
 	defer testContext.Close()
 
