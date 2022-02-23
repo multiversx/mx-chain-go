@@ -81,11 +81,11 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 
 	scr1 := &smartContractResult.SmartContractResult{
 		OriginalTxHash: txHash,
-		RelayerAddr:    []byte("relayer"),
-		OriginalSender: []byte("originalSender"),
+		RelayerAddr:    []byte("rlr"),
+		OriginalSender: []byte("osn"),
 		PrevTxHash:     []byte("prevTxHash"),
-		SndAddr:        []byte("sender"),
-		RcvAddr:        []byte("receiver"),
+		SndAddr:        []byte("snd"),
+		RcvAddr:        []byte("rcv"),
 		Nonce:          1,
 		Value:          big.NewInt(1000),
 		GasLimit:       1,
@@ -156,7 +156,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 
-	pubKeyConverter := &mock.PubkeyConverterMock{}
+	pubKeyConverter := mock.NewPubkeyConverterMock(3)
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, 0)
 
