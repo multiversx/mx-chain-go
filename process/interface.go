@@ -1060,6 +1060,17 @@ type RoundActivationHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EpochActivationHandler is a component which can be queried to check for epoch activation features/fixes
+type EpochActivationHandler interface {
+	IsESDTEnabled() bool
+	IsGlobalMintBurnEnabled() bool
+	IsESDTTransferRoleEnabled() bool
+	IsESDTNFTCreateOnMultiShardEnabled() bool
+	IsMetaESDTSetEnabled() bool
+	IsESDTRegisterAndSetAllRolesEnabled() bool
+	IsInterfaceNil() bool
+}
+
 // CoreComponentsHolder holds the core components needed by the interceptors
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
