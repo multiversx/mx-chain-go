@@ -337,7 +337,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 		_ = s.stakingDataProvider.PrepareStakingDataForRewards(allNodesKeys)
 
-		err := s.selectNodesFromAuctionList(validatorInfos)
+		err := s.selectNodesFromAuctionList(validatorInfos, randomness)
 		if err != nil {
 			return err
 		}
@@ -346,7 +346,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	return nil
 }
 
-func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32][]*state.ValidatorInfo, randomness []byte) error {
 	auctionList := make([]*state.ValidatorInfo, 0)
 	noOfValidators := uint32(0)
 	for _, validatorsInShard := range validatorInfos {
@@ -370,12 +370,20 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 		fmt.Println(string(auctionList[j].RewardAddress) + " : " + string(pubKey2) + " : " + nodeTopUpPubKey2.String())
 
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
-			// xor cu hash(key + key2)
-			// h = hash(keyLow, keyHigh)
-			// key1r := h xor key1
-			// key2r = h xor key2
 
-			// return key1r.cmp(key2r) ==1
+			key1Xor := make([]byte, len(randomness))
+			key2Xor := make([]byte, len(randomness))
+
+			for idx := range randomness {
+				key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
+				key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
+			}
+
+			fmt.Println(fmt.Sprintf("Comparing %s with %s . Xor1 = %v ; Xor2 = %v ",
+				pubKey1, pubKey2, key1Xor, key2Xor,
+			))
+
+			return bytes.Compare(key1Xor, key2Xor) == 1
 		}
 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1

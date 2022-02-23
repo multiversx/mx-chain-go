@@ -2053,7 +2053,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, []byte("pubKey7"))
 	require.Nil(t, err)
 
 	owner1TopUpPerNode, _ := s.stakingDataProvider.GetNodeStakedTopUp(owner1ListPubKeysStaked[0])
@@ -2076,27 +2076,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		fmt.Println(string(v.RewardAddress) + ": " + string(v.PublicKey) + " - " + v.List)
 	}
 
-	/*
-		expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
-			0: {
-				createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1),
-				createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1),
-				createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, owner1),
-				createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, owner1),
-				createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, owner1),
+	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
+		0: {
+			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1),
+			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1),
+			createValidatorInfo(owner1ListPubKeysStaked[2], common.NewList, owner1),
+		},
+		1: {
+			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2),
+			createValidatorInfo(owner2ListPubKeysStaked[1], common.NewList, owner2),
+			createValidatorInfo(owner2ListPubKeysStaked[2], common.AuctionList, owner2),
 
-				createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, owner2),
+			createValidatorInfo(owner3ListPubKeysStaked[0], common.LeavingList, owner3),
+			createValidatorInfo(owner3ListPubKeysStaked[1], common.AuctionList, owner3),
 
-				createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, owner3),
-				createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, owner3),
-			},
-			1: {
-				createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2),
-			},
-		}
-		require.Equal(t, expectedValidatorsInfo, validatorInfos)
-
-	*/
+			createValidatorInfo(owner4ListPubKeysStaked[0], common.JailedList, owner4),
+			createValidatorInfo(owner4ListPubKeysStaked[1], common.NewList, owner4),
+		},
+	}
+	require.Equal(t, expectedValidatorsInfo, validatorInfos)
 }
 
 // This func sets rating and temp rating with the start rating value used in createFullArgumentsForSystemSCProcessing
