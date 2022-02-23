@@ -631,7 +631,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.roundHandler.TimeDuration()
+	waitTime := boot.roundHandler.TimeDuration() * process.TimeDurationMultiplierForProcessBlockWhenSync
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}

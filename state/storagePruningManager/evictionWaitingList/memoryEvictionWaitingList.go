@@ -62,7 +62,7 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes common.Modifi
 		return nil
 	}
 
-	log.Warn("trie nodes eviction waiting list full, emptying...")
+	log.Debug("trie nodes eviction waiting list full, emptying...")
 	mewl.cache = make(map[string]common.ModifiedHashes)
 	mewl.reversedCache = make(map[string]*hashInfo)
 
