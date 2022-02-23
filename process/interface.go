@@ -1060,6 +1060,13 @@ type RoundActivationHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EpochActivationHandler is a component which can be queried to check for epoch activation features/fixes
+type EpochActivationHandler interface {
+	IsEnabledInEpoch(name string, epoch uint64) bool
+	IsEnabled(name string) bool
+	IsInterfaceNil() bool
+}
+
 // CoreComponentsHolder holds the core components needed by the interceptors
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer

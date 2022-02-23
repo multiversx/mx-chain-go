@@ -1025,6 +1025,9 @@ var ErrNilActivationRoundName = errors.New("round activation name is empty in co
 // ErrInvalidRoundActivationConfig signals that RoundConfig struct is invalid
 var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; should be of type config.ActivationRoundByName")
 
+// ErrInvalidEpochActivationConfig signals that RoundConfig struct is invalid
+var ErrInvalidEpochActivationConfig = errors.New("invalid epoch config struct; should be of type config.ActivationRoundByName")
+
 // ErrNilRoundNotifier signals a nil round notifier has been provided
 var ErrNilRoundNotifier = errors.New("nil round notifier has been provided")
 
