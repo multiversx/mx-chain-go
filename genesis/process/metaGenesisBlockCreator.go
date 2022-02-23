@@ -463,6 +463,18 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    arg.Core.InternalMarshalizer(),
+		Hasher:        arg.Core.Hasher(),
+		EpochNotifier: epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            arg.Core.Hasher(),
 		Marshalizer:                       arg.Core.InternalMarshalizer(),
@@ -483,6 +495,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EpochNotifier:                     epochNotifier,
 		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

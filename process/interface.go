@@ -1148,3 +1148,9 @@ type ScheduledTxsExecutionHandler interface {
 	IsScheduledTx(txHash []byte) bool
 	IsInterfaceNil() bool
 }
+
+// DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
+type DoubleTransactionDetector interface {
+	ProcessBlockBody(body *block.Body)
+	IsInterfaceNil() bool
+}
