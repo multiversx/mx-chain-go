@@ -196,3 +196,5 @@ func TestMiniBlockProvider_GetMiniBlocksShouldWork(t *testing.T) {
 	require.Equal(t, 1, len(missingHashes))
 	assert.Equal(t, missingHash, missingHashes[0])
 }
+
+//TODO: Add unit tests for methods: GetMiniBlocksFromStorer
