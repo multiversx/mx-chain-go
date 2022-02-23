@@ -136,6 +136,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 		err = st.checkBlockBodyIntegrity(headerInfo.LastHeader.Hash)
 		if err != nil {
+			log.Warn("storageBootstrapper.loadBlocks: checkBlockBodyIntegrity", "error", err.Error())
 			round = headerInfo.LastRound
 			continue
 		}
