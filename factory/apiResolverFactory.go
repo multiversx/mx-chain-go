@@ -3,6 +3,9 @@ package factory
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -30,8 +33,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	"path/filepath"
-	"sync"
 )
 
 // ApiResolverArgs holds the argument needed to create an API resolver
@@ -102,7 +103,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	builtInFuncs, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
-		args.StateComponents.AccountsAdapter(),
+		args.StateComponents.AccountsAdapterAPI(),
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
 		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
@@ -138,7 +139,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
 		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.StateComponents.AccountsAdapter(),
+		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
 	)
 	if err != nil {
@@ -260,7 +261,7 @@ func createScQueryElement(
 	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
-		args.stateComponents.AccountsAdapter(),
+		args.stateComponents.AccountsAdapterAPI(),
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
@@ -282,7 +283,7 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapter(),
+		Accounts:           args.stateComponents.AccountsAdapterAPI(),
 		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
 		StorageService:     args.dataComponents.StorageService(),
 		BlockChain:         args.dataComponents.Blockchain(),
@@ -301,8 +302,14 @@ func createScQueryElement(
 	}
 
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+		if errBlockChainHook != nil {
+			return nil, errBlockChainHook
+		}
+
 		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
-			ArgBlockChainHook:   argsHook,
+			BlockChainHook:      blockChainHookImpl,
+			PubkeyConv:          argsHook.PubkeyConv,
 			Economics:           args.coreComponents.EconomicsData(),
 			MessageSignVerifier: args.messageSigVerifier,
 			GasSchedule:         args.gasScheduleNotifier,
@@ -326,11 +333,18 @@ func createScQueryElement(
 		if errParser != nil {
 			return nil, err
 		}
+
+		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+		if errBlockChainHook != nil {
+			return nil, errBlockChainHook
+		}
+
 		argsNewVMFactory := shard.ArgVMContainerFactory{
+			BlockChainHook:     blockChainHookImpl,
+			BuiltInFunctions:   argsHook.BuiltInFunctions,
 			Config:             queryVirtualMachineConfig,
 			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:        args.gasScheduleNotifier,
-			ArgBlockChainHook:  argsHook,
 			EpochNotifier:      args.coreComponents.EpochNotifier(),
 			EpochConfig:        args.epochConfig.EnableEpochs,
 			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),

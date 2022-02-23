@@ -115,7 +115,7 @@ func createMockMetaArguments(
 			NodesCoordinator:    mock.NewNodesCoordinatorMock(),
 			FeeHandler:          &mock.FeeAccumulatorStub{},
 			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+			BlockChainHook:      &testscommon.BlockChainHookStub{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			HeaderValidator:     headerValidator,

@@ -925,8 +925,11 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
 
 	nodesSetup := &mock.NodesSetupStub{}
+
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -1314,7 +1317,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, len(updatedContractConfig))
 	require.Equal(t, args.ESDTOwnerAddressBytes, updatedContractConfig[0])
-	//the other config values should be unchanged
+	// the other config values should be unchanged
 	for i := 1; i < len(initialContractConfig); i++ {
 		assert.Equal(t, initialContractConfig[i], updatedContractConfig[i])
 	}
