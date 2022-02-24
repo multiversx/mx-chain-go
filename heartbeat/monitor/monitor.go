@@ -23,7 +23,6 @@ type ArgHeartbeatV2Monitor struct {
 	PubKeyConverter             core.PubkeyConverter
 	Marshaller                  marshal.Marshalizer
 	PeerTypeProvider            heartbeat.PeerTypeProviderHandler
-	PeerShardMapper             process.PeerShardMapper
 	MaxDurationPeerUnresponsive time.Duration
 	ShardId                     uint32
 }
@@ -33,7 +32,6 @@ type heartbeatV2Monitor struct {
 	pubKeyConverter             core.PubkeyConverter
 	marshaller                  marshal.Marshalizer
 	peerTypeProvider            heartbeat.PeerTypeProviderHandler
-	peerShardMapper             process.PeerShardMapper
 	maxDurationPeerUnresponsive time.Duration
 	shardId                     uint32
 }
@@ -49,7 +47,6 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		pubKeyConverter:             args.PubKeyConverter,
 		marshaller:                  args.Marshaller,
 		peerTypeProvider:            args.PeerTypeProvider,
-		peerShardMapper:             args.PeerShardMapper,
 		maxDurationPeerUnresponsive: args.MaxDurationPeerUnresponsive,
 		shardId:                     args.ShardId,
 	}, nil
