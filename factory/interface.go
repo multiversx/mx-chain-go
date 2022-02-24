@@ -347,6 +347,12 @@ type PeerAuthenticationRequestsProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
+type HeartbeatV2Monitor interface {
+	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
+	IsInterfaceNil() bool
+}
+
 // HeartbeatV2Sender sends heartbeatV2 messages
 type HeartbeatV2Sender interface {
 	Close() error
