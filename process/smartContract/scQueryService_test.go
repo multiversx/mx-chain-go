@@ -25,8 +25,6 @@ import (
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
-	writtenInChannel := make(chan struct{}, 1)
-	writtenInChannel <- struct{}{}
 	return ArgsNewSCQueryService{
 		VmContainer:              &mock.VMContainerMock{},
 		EconomicsFee:             &mock.FeeHandlerStub{},
@@ -34,7 +32,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		BlockChain:               &testscommon.ChainHandlerStub{},
 		ArwenChangeLocker:        &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
-		AllowExternalQueriesChan: writtenInChannel,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 }
 
