@@ -542,3 +542,91 @@ func prepareMetaBlockProcessor(nonce uint64, round uint64, headerHash []byte) (*
 
 	return ibp, headerBytes
 }
+
+// ------- MiniBlock -------
+
+func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	miniBlockHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	txHash := []byte("dummyhash")
+
+	t.Run("provided hash not in storer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		storerMock := &mock.ChainStorerMock{
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    storerMock,
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, []byte("invalidHash"))
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("raw data mini block, should work", func(t *testing.T) {
+		t.Parallel()
+
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{txHash},
+		}
+		mbBytes, _ := json.Marshal(mb)
+		storerMock := &mock.ChainStorerMock{
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				assert.Equal(t, miniBlockHash, key)
+				return mbBytes, nil
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    storerMock,
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatProto, miniBlockHash)
+		assert.Nil(t, err)
+		assert.Equal(t, mbBytes, blk)
+	})
+
+	t.Run("internal data mini block, should work", func(t *testing.T) {
+		t.Parallel()
+
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{txHash},
+		}
+		mbBytes, _ := json.Marshal(mb)
+		storerMock := &mock.ChainStorerMock{
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				assert.Equal(t, miniBlockHash, key)
+				return mbBytes, nil
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    storerMock,
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, miniBlockHash)
+		assert.Nil(t, err)
+		assert.Equal(t, mb, blk)
+	})
+}
