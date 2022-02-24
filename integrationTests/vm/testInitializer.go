@@ -605,11 +605,13 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             *vmConfig,
 		BlockGasLimit:      maxGasLimitPerBlock,
 		GasSchedule:        gasSchedule,
-		ArgBlockChainHook:  args,
+		BlockChainHook:     blockChainHookImpl,
+		BuiltInFunctions:   args.BuiltInFunctions,
 		EpochNotifier:      globalEpochNotifier,
 		EpochConfig:        config.EnableEpochs{},
 		ArwenChangeLocker:  arwenChangeLocker,
@@ -678,8 +680,10 @@ func CreateVMAndBlockchainHookMeta(
 		log.LogIfError(err)
 	}
 
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argVMContainer := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   args,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          args.PubkeyConv,
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,

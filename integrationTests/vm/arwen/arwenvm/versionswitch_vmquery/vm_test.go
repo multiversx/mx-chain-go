@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,7 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevertAndVMQueries(t *testing.T) 
 		},
 	}
 
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
 		vm.ArgEnableEpoch{},
 		vmConfig,
