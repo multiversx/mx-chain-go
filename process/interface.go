@@ -464,6 +464,8 @@ type BlockChainHookHandler interface {
 	DeleteCompiledCode(codeHash []byte)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
+	FilterCodeMetadataForUpgrade(input []byte) ([]byte, int)
+	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
 }
 

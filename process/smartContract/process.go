@@ -35,7 +35,7 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-const maxTotalSCRsSize = 3 * (1 << 18) //768KB
+const maxTotalSCRsSize = 3 * (1 << 18) // 768KB
 
 const (
 	// TooMuchGasProvidedMessage is the message for the too much gas provided error
@@ -79,6 +79,8 @@ type scProcessor struct {
 	saveKeyValueUnderProtectedErrorEnableEpoch  uint32
 	optimizeNFTStoreEnableEpoch                 uint32
 	cleanUpInformativeSCRsEnableEpoch           uint32
+	isPayableBySCEnableEpoch                    uint32
+	fixCodeMetadataOnUpgradeContract            uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -96,6 +98,8 @@ type scProcessor struct {
 	flagSaveKeyValueUnderProtectedError         atomic.Flag
 	flagOptimizeNFTStore                        atomic.Flag
 	flagCleanUpInformativeSCRs                  atomic.Flag
+	flagIsPayableBySC                           atomic.Flag
+	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -243,6 +247,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		saveKeyValueUnderProtectedErrorEnableEpoch:  args.EnableEpochs.RemoveNonUpdatedStorageEnableEpoch,
 		optimizeNFTStoreEnableEpoch:                 args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		cleanUpInformativeSCRsEnableEpoch:           args.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
+		isPayableBySCEnableEpoch:                    args.EnableEpochs.IsPayableBySCEnableEpoch,
+		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
 	}
 
 	var err error
@@ -264,6 +270,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for optimize gas used in cross mini blocks", "epoch", sc.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for return as failure when saving under protected key", "epoch", sc.saveKeyValueUnderProtectedErrorEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for cleaning up created scrs that are informative only", "epoch", sc.cleanUpInformativeSCRsEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for payable by SC", "epoch", sc.isPayableBySCEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -2510,9 +2518,10 @@ func (sc *scProcessor) updateSmartContractCode(
 		return
 	}
 
+	outputAccountCodeMetadataBytes, _ := sc.blockChainHook.FilterCodeMetadataForUpgrade(outputAccount.CodeMetadata)
 	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
 	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
-	sameCodeMetadata := bytes.Equal(outputAccount.CodeMetadata, stateAccount.GetCodeMetadata())
+	sameCodeMetadata := bytes.Equal(outputAccountCodeMetadataBytes, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
 		return
 	}
@@ -2524,7 +2533,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	noExistingCode := len(sc.accounts.GetCode(stateAccount.GetCodeHash())) == 0
 	noExistingOwner := len(currentOwner) == 0
 	currentCodeMetadata := vmcommon.CodeMetadataFromBytes(stateAccount.GetCodeMetadata())
-	newCodeMetadata := vmcommon.CodeMetadataFromBytes(outputAccount.CodeMetadata)
+	newCodeMetadata := vmcommon.CodeMetadataFromBytes(outputAccountCodeMetadataBytes)
 	isUpgradeable := currentCodeMetadata.Upgradeable
 	isDeployment := noExistingCode && noExistingOwner
 	isUpgrade := !isDeployment && isCodeDeployerOwner && isUpgradeable
@@ -2539,7 +2548,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
-		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 
@@ -2549,7 +2558,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	if isUpgrade {
-		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 
@@ -2780,6 +2789,12 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagCleanUpInformativeSCRs.SetValue(epoch >= sc.cleanUpInformativeSCRsEnableEpoch)
 	log.Debug("scProcessor: cleanup scr data", "enabled", sc.flagCleanUpInformativeSCRs.IsSet())
+
+	sc.flagFixCodeMetadataOnUpgradeContract.SetValue(epoch >= sc.fixCodeMetadataOnUpgradeContract)
+	log.Debug("scProcessor: fix code metadata on upgrade contract", "enabled", sc.flagFixCodeMetadataOnUpgradeContract.IsSet())
+
+	sc.flagIsPayableBySC.SetValue(epoch >= sc.isPayableBySCEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

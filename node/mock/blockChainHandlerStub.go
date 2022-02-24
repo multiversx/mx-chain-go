@@ -7,11 +7,13 @@ import (
 
 // BlockChainHookHandlerStub -
 type BlockChainHookHandlerStub struct {
-	SetCurrentHeaderCalled       func(hdr data.HeaderHandler)
-	NewAddressCalled             func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	IsPayableCalled              func(sndAddress []byte, rcvAddress []byte) (bool, error)
-	DeleteCompiledCodeCalled     func(codeHash []byte)
-	ProcessBuiltInFunctionCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetCurrentHeaderCalled             func(hdr data.HeaderHandler)
+	NewAddressCalled                   func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsPayableCalled                    func(sndAddress []byte, rcvAddress []byte) (bool, error)
+	DeleteCompiledCodeCalled           func(codeHash []byte)
+	ProcessBuiltInFunctionCalled       func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	FilterCodeMetadataForUpgradeCalled func(input []byte) ([]byte, int)
+	ApplyFiltersOnCodeMetadataCalled   func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 }
 
 // ProcessBuiltInFunction -
@@ -56,6 +58,24 @@ func (e *BlockChainHookHandlerStub) DeleteCompiledCode(codeHash []byte) {
 	if e.DeleteCompiledCodeCalled != nil {
 		e.DeleteCompiledCodeCalled(codeHash)
 	}
+}
+
+// FilterCodeMetadataForUpgrade -
+func (e *BlockChainHookHandlerStub) FilterCodeMetadataForUpgrade(input []byte) ([]byte, int) {
+	if e.FilterCodeMetadataForUpgradeCalled != nil {
+		return e.FilterCodeMetadataForUpgradeCalled(input)
+	}
+
+	return input, 0
+}
+
+// ApplyFiltersOnCodeMetadata -
+func (e *BlockChainHookHandlerStub) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+	if e.ApplyFiltersOnCodeMetadataCalled != nil {
+		return e.ApplyFiltersOnCodeMetadataCalled(codeMetadata)
+	}
+
+	return codeMetadata
 }
 
 // IsInterfaceNil -

@@ -37,6 +37,11 @@ var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
+// TODO move these in vmcommon, make a new type for them and make them exported
+const codeMetadataBytesUnchanged = 0
+const codeMetadataValidBytes = 1
+const codeMetadataInvalidBytes = 2
+
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
 	Accounts           state.AccountsAdapter
@@ -78,12 +83,14 @@ type BlockChainHookImpl struct {
 	workingDir         string
 	nilCompiledSCStore bool
 
-	isPayableBySCEnableEpoch       uint32
-	flagIsPayableBySC              atomic.Flag
-	optimizeNFTStoreEnableEpoch    uint32
-	flagOptimizeNFTStore           atomic.Flag
-	doNotReturnOldBlockEnableEpoch uint32
-	flagDoNotReturnOldBlock        atomic.Flag
+	isPayableBySCEnableEpoch          uint32
+	flagIsPayableBySC                 atomic.Flag
+	optimizeNFTStoreEnableEpoch       uint32
+	flagOptimizeNFTStore              atomic.Flag
+	doNotReturnOldBlockEnableEpoch    uint32
+	flagDoNotReturnOldBlock           atomic.Flag
+	filterCodeMetadataEnableEpoch     uint32
+	flagFilterCodeMetadataEnableEpoch atomic.Flag
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -112,11 +119,13 @@ func NewBlockChainHookImpl(
 		isPayableBySCEnableEpoch:       args.EnableEpochs.IsPayableBySCEnableEpoch,
 		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
+		filterCodeMetadataEnableEpoch:  args.EnableEpochs.IsPayableBySCEnableEpoch,
 	}
 
 	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
 	log.Debug("blockchainHook: optimize nft metadata store", "epoch", blockChainHookImpl.optimizeNFTStoreEnableEpoch)
 	log.Debug("blockchainHook: do not return old block", "epoch", blockChainHookImpl.doNotReturnOldBlockEnableEpoch)
+	log.Debug("blockchainHook: filter code metadata", "epoch", blockChainHookImpl.filterCodeMetadataEnableEpoch)
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {
@@ -467,6 +476,29 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 	return metadata.Payable, nil
 }
 
+// FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
+// taking into account the activation flags for the future flags. This should be used in the upgrade SC process
+func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, int) {
+	if !bh.flagFilterCodeMetadataEnableEpoch.IsSet() {
+		return input, codeMetadataBytesUnchanged
+	}
+
+	raw := vmcommon.CodeMetadataFromBytes(input)
+	filtered := bh.ApplyFiltersOnCodeMetadata(raw)
+	if bytes.Equal(input, filtered.ToBytes()) {
+		return filtered.ToBytes(), codeMetadataValidBytes
+	}
+
+	return filtered.ToBytes(), codeMetadataInvalidBytes
+}
+
+// ApplyFiltersOnCodeMetadata will apply all known filters on the provided code metadata value
+func (bh *BlockChainHookImpl) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.flagIsPayableBySC.IsSet()
+
+	return codeMetadata
+}
+
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (vmcommon.UserAccountHandler, vmcommon.UserAccountHandler, error) {
@@ -709,6 +741,9 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 
 	bh.flagDoNotReturnOldBlock.SetValue(epoch >= bh.doNotReturnOldBlockEnableEpoch)
 	log.Debug("blockchainHookImpl: do not return old block", "enabled", bh.flagDoNotReturnOldBlock.IsSet())
+
+	bh.flagFilterCodeMetadataEnableEpoch.SetValue(epoch >= bh.filterCodeMetadataEnableEpoch)
+	log.Debug("blockchainHookImpl: filter code metadata", "enabled", bh.flagFilterCodeMetadataEnableEpoch.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

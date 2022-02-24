@@ -572,7 +572,12 @@ func GetSCCode(fileName string) string {
 
 // CreateDeployTxData -
 func CreateDeployTxData(scCode string) string {
-	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
+	return CreateDeployTxDataWithCodeMetadata(scCode, DummyCodeMetadataHex)
+}
+
+// CreateDeployTxDataWithCodeMetadata -
+func CreateDeployTxDataWithCodeMetadata(scCode string, codeMetadataHex string) string {
+	return strings.Join([]string{scCode, VMTypeHex, codeMetadataHex}, "@")
 }
 
 // CreateDeployTxDataNonPayable -

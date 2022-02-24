@@ -345,8 +345,8 @@ func runERC20TransactionsWithBenchmarks(
 func RunERC20TransactionSet(testContext *vm.VMTestContext) error {
 	_, err := RunERC20TransactionsWithBenchmarksInVMTestContext(
 		testContext,
-		1,
-		100,
+		2,
+		2,
 		"transferToken",
 		big.NewInt(5),
 	)

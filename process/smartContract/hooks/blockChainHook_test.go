@@ -1752,3 +1752,137 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
+	t.Parallel()
+
+	t.Run("PayableBySC is not set should reset the flag", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 1000000
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		provided := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+	})
+	t.Run("PayableBySC is set should not reset the flag", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		provided := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+
+		provided = vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		resulted = bh.ApplyFiltersOnCodeMetadata(provided)
+		expected = vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+	})
+}
+
+func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flag not set should not filter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 100000
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF, 0xFF}
+		resultBytes, resultValue := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, providedBytes, resultBytes)
+		assert.Equal(t, hooks.CodeMetadataBytesUnchanged, resultValue)
+	})
+	t.Run("correct bytes and flag set should filter correctly", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0x05, 0x06}
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		resultBytes, resultValue := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, expected.ToBytes(), resultBytes)
+		assert.Equal(t, hooks.CodeMetadataValidBytes, resultValue)
+	})
+	t.Run("incorrect number of bytes and flag set should return an empty code metadata bytes but signal a problem", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF, 0xFF}
+		expected := vmcommon.CodeMetadata{}
+		resultBytes, resultValue := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, expected.ToBytes(), resultBytes)
+		assert.Equal(t, hooks.CodeMetadataInvalidBytes, resultValue)
+	})
+	t.Run("incorrect bytes and flag set should filter but signal a problem", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		providedBytes := []byte{0xFF, 0xFF}
+		resultBytes, resultValue := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, expected.ToBytes(), resultBytes)
+		assert.Equal(t, hooks.CodeMetadataInvalidBytes, resultValue)
+	})
+}
