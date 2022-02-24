@@ -424,12 +424,19 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	// TODO: maybe move PeerShardMapper to network components
+	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
 		pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		blockTracker,
 		epochStartTrigger,
 		requestHandler,
+		peerShardMapper,
 	)
 	if err != nil {
 		return nil, err
@@ -517,12 +524,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	err = nodesSetupChecker.Check(pcf.coreData.GenesisNodesSetup().AllInitialNodes())
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
 	if err != nil {
 		return nil, err
 	}
@@ -1090,6 +1091,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper process.PeerShardMapper,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
@@ -1098,6 +1100,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			requestHandler,
+			peerShardMapper,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1107,6 +1110,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			requestHandler,
+			peerShardMapper,
 		)
 	}
 
@@ -1243,6 +1247,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper process.PeerShardMapper,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1272,6 +1277,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerShardMapper:              peerShardMapper,
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1289,6 +1295,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper process.PeerShardMapper,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1318,6 +1325,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerShardMapper:              peerShardMapper,
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 

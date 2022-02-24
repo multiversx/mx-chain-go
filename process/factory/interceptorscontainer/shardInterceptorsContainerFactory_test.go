@@ -374,6 +374,18 @@ func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t 
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.PeerShardMapper = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilPeerShardMapper, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -697,5 +709,6 @@ func getArgumentsShard(
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
 		SignaturesHandler:            &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
+		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 	}
 }

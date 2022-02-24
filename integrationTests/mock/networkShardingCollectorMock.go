@@ -30,7 +30,14 @@ func NewNetworkShardingCollectorMock() *networkShardingCollectorMock {
 	}
 }
 
-// UpdatePeerIdPublicKey -
+// UpdatePeerIDPublicKeyPair -
+func (nscm *networkShardingCollectorMock) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+	nscm.mutPeerIdPkMap.Lock()
+	nscm.peerIdPkMap[pid] = pk
+	nscm.mutPeerIdPkMap.Unlock()
+}
+
+// UpdatePeerIDInfo -
 func (nscm *networkShardingCollectorMock) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
 	nscm.mutPeerIdPkMap.Lock()
 	nscm.peerIdPkMap[pid] = pk
@@ -64,6 +71,7 @@ func (nscm *networkShardingCollectorMock) GetPeerInfo(pid core.PeerID) core.P2PP
 	return core.P2PPeerInfo{
 		PeerType:    core.ObserverPeer,
 		PeerSubType: core.P2PPeerSubType(nscm.peerIdSubType[pid]),
+		PkBytes:     nscm.peerIdPkMap[pid],
 	}
 }
 

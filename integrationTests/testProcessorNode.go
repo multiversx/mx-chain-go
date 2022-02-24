@@ -1230,6 +1230,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
+			PeerShardMapper:              mock.NewNetworkShardingCollectorMock(),
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1289,6 +1290,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
+			PeerShardMapper:              mock.NewNetworkShardingCollectorMock(),
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 

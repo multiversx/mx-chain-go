@@ -251,6 +251,16 @@ func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID
 	psm.preferredPeersHolder.Put(pk, pid, shardID)
 }
 
+// UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
+// It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
+// the same Elrond PK that will make the node prone to an eclipse attack
+func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+	isNew := psm.updatePeerIDPublicKey(pid, pk)
+	if isNew {
+		peerLog.Trace("new peer mapping", "pid", pid.Pretty(), "pk", pk)
+	}
+}
+
 func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
 }

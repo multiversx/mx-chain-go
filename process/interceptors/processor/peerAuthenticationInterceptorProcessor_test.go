@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,6 +24,7 @@ type interceptedDataHandler interface {
 func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthenticationInterceptorProcessor {
 	return processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: testscommon.NewCacherStub(),
+		PeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
 	}
 }
 
@@ -71,6 +73,15 @@ func TestNewPeerAuthenticationInterceptorProcessor(t *testing.T) {
 		assert.Equal(t, process.ErrNilPeerAuthenticationCacher, err)
 		assert.Nil(t, paip)
 	})
+	t.Run("nil peer shard mapper should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createPeerAuthenticationInterceptorProcessArg()
+		arg.PeerShardMapper = nil
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
+		assert.Equal(t, process.ErrNilPeerShardMapper, err)
+		assert.Nil(t, paip)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -91,35 +102,63 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		assert.False(t, paip.IsInterfaceNil())
 		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(nil, "", ""))
 	})
+	t.Run("invalid peer auth data should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedData := createMockInterceptedHeartbeat() // unable to cast to intercepted peer auth
+		wasCalled := false
+		args := createPeerAuthenticationInterceptorProcessArg()
+		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+				wasCalled = true
+			},
+		}
+
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(args)
+		assert.Nil(t, err)
+		assert.False(t, paip.IsInterfaceNil())
+		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(providedData, "", ""))
+		assert.False(t, wasCalled)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		providedIPA := createMockInterceptedPeerAuthentication()
-		wasCalled := false
+		providedIPAHandler := providedIPA.(interceptedDataHandler)
+		providedIPAMessage := providedIPAHandler.Message().(heartbeatMessages.PeerAuthentication)
+		wasPutCalled := false
 		providedPid := core.PeerID("pid")
 		arg := createPeerAuthenticationInterceptorProcessArg()
 		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
 				ipa := value.(heartbeatMessages.PeerAuthentication)
-				providedIPAHandler := providedIPA.(interceptedDataHandler)
-				providedIPAMessage := providedIPAHandler.Message().(heartbeatMessages.PeerAuthentication)
 				assert.Equal(t, providedIPAMessage.Pid, ipa.Pid)
 				assert.Equal(t, providedIPAMessage.Payload, ipa.Payload)
 				assert.Equal(t, providedIPAMessage.Signature, ipa.Signature)
 				assert.Equal(t, providedIPAMessage.PayloadSignature, ipa.PayloadSignature)
 				assert.Equal(t, providedIPAMessage.Pubkey, ipa.Pubkey)
-				wasCalled = true
+				wasPutCalled = true
 				return false
 			},
 		}
+		wasUpdatePeerIDPublicKeyPairCalled := false
+		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+				wasUpdatePeerIDPublicKeyPairCalled = true
+				assert.Equal(t, providedIPAMessage.Pid, pid.Bytes())
+				assert.Equal(t, providedIPAMessage.Pubkey, pk)
+			},
+		}
+
 		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 
 		err = paip.Save(providedIPA, providedPid, "")
 		assert.Nil(t, err)
-		assert.True(t, wasCalled)
+		assert.True(t, wasPutCalled)
+		assert.True(t, wasUpdatePeerIDPublicKeyPairCalled)
 	})
 }
 

@@ -1,6 +1,7 @@
 package heartbeatV2
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 	"time"
@@ -52,19 +53,34 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	sigHandler := createMockPeerSignatureHandler(keyGen)
 
 	interactingNodes := 3
-	nodes, senders, dataPools := createAndStartNodes(interactingNodes, keyGen, sigHandler)
+	nodes, senders, dataPools, peerShardMappers, pks := createAndStartNodes(interactingNodes, keyGen, sigHandler)
 	assert.Equal(t, interactingNodes, len(nodes))
 	assert.Equal(t, interactingNodes, len(senders))
 	assert.Equal(t, interactingNodes, len(dataPools))
+	assert.Equal(t, interactingNodes, len(peerShardMappers))
+	assert.Equal(t, interactingNodes, len(pks))
 
 	// Wait for messages to broadcast
 	time.Sleep(time.Second * 5)
+
+	closeComponents(t, nodes, senders, dataPools, nil)
 
 	// Check sent messages
 	maxMessageAgeAllowed := time.Second * 7
 	checkMessages(t, nodes, dataPools, maxMessageAgeAllowed)
 
-	closeComponents(t, nodes, senders, dataPools, nil)
+	// Check peer shard mappers - expect to have one pair for each pid
+	for i := 0; i < interactingNodes; i++ {
+		peerInfo := peerShardMappers[i].GetPeerInfo(nodes[i].ID())
+		counter := 0
+		for j := 0; j < interactingNodes; j++ {
+			pkBytes, _ := pks[j].ToByteArray()
+			if bytes.Equal(pkBytes, peerInfo.PkBytes) {
+				counter++
+			}
+		}
+		assert.Equal(t, 1, counter)
+	}
 }
 
 func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
@@ -77,7 +93,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	interactingNodes := 3
-	nodes, senders, dataPools := createAndStartNodes(interactingNodes, keyGen, sigHandler)
+	nodes, senders, dataPools, _, _ := createAndStartNodes(interactingNodes, keyGen, sigHandler)
 	assert.Equal(t, interactingNodes, len(nodes))
 	assert.Equal(t, interactingNodes, len(senders))
 	assert.Equal(t, interactingNodes, len(dataPools))
@@ -164,7 +180,8 @@ func TestHeartbeatV2_NetworkShouldSendMessages(t *testing.T) {
 	senders := make([]factory.HeartbeatV2Sender, interactingNodes)
 	for i := 0; i < interactingNodes; i++ {
 		dataPools[i] = dataRetriever.NewPoolsHolderMock()
-		createPeerAuthMultiDataInterceptor(nodes[i], dataPools[i].PeerAuthentications(), sigHandler)
+		peerShardMapper := testsMock.NewNetworkShardingCollectorMock()
+		createPeerAuthMultiDataInterceptor(nodes[i], dataPools[i].PeerAuthentications(), sigHandler, peerShardMapper)
 		createHeartbeatMultiDataInterceptor(nodes[i], dataPools[i].Heartbeats(), sigHandler)
 
 		nodeName := fmt.Sprintf("%s%d", defaultNodeName, i)
@@ -192,7 +209,8 @@ func createDelayedNode(nodes []p2p.Messenger, sigHandler crypto.PeerSignatureHan
 	dataPool := dataRetriever.NewPoolsHolderMock()
 
 	// Create multi data interceptors for the delayed node in order to receive messages
-	createPeerAuthMultiDataInterceptor(node, dataPool.PeerAuthentications(), sigHandler)
+	peerShardMapper := testsMock.NewNetworkShardingCollectorMock()
+	createPeerAuthMultiDataInterceptor(node, dataPool.PeerAuthentications(), sigHandler, peerShardMapper)
 	createHeartbeatMultiDataInterceptor(node, dataPool.Heartbeats(), sigHandler)
 
 	return node, dataPool
@@ -232,10 +250,14 @@ func createAndStartNodes(interactingNodes int, keyGen crypto.KeyGenerator, sigHa
 	[]p2p.Messenger,
 	[]factory.HeartbeatV2Sender,
 	[]dataRetrieverInterface.PoolsHolder,
+	[]process.PeerShardMapper,
+	[]crypto.PublicKey,
 ) {
 	nodes := make([]p2p.Messenger, interactingNodes)
 	senders := make([]factory.HeartbeatV2Sender, interactingNodes)
 	dataPools := make([]dataRetrieverInterface.PoolsHolder, interactingNodes)
+	peerShardMappers := make([]process.PeerShardMapper, interactingNodes)
+	pks := make([]crypto.PublicKey, interactingNodes)
 
 	// Create and connect messengers
 	for i := 0; i < interactingNodes; i++ {
@@ -247,17 +269,19 @@ func createAndStartNodes(interactingNodes int, keyGen crypto.KeyGenerator, sigHa
 	// new for loop is needed as peers must be connected before sender creation
 	for i := 0; i < interactingNodes; i++ {
 		dataPools[i] = dataRetriever.NewPoolsHolderMock()
-		createPeerAuthMultiDataInterceptor(nodes[i], dataPools[i].PeerAuthentications(), sigHandler)
+		peerShardMappers[i] = testsMock.NewNetworkShardingCollectorMock()
+		createPeerAuthMultiDataInterceptor(nodes[i], dataPools[i].PeerAuthentications(), sigHandler, peerShardMappers[i])
 		createHeartbeatMultiDataInterceptor(nodes[i], dataPools[i].Heartbeats(), sigHandler)
 
 		nodeName := fmt.Sprintf("%s%d", defaultNodeName, i)
-		sk, _ := keyGen.GeneratePair()
+		sk, pk := keyGen.GeneratePair()
 
 		s := createSender(nodeName, nodes[i], sigHandler, sk)
 		senders[i] = s
+		pks[i] = pk
 	}
 
-	return nodes, senders, dataPools
+	return nodes, senders, dataPools, peerShardMappers, pks
 }
 
 func connectNodeToPeers(node p2p.Messenger, peers []p2p.Messenger) {
@@ -343,9 +367,10 @@ func createPeerAuthResolver(pks [][]byte, peerAuthPool storage.Cacher, messenger
 	return peerAuthResolver
 }
 
-func createPeerAuthMultiDataInterceptor(messenger p2p.Messenger, peerAuthCacher storage.Cacher, sigHandler crypto.PeerSignatureHandler) {
+func createPeerAuthMultiDataInterceptor(messenger p2p.Messenger, peerAuthCacher storage.Cacher, sigHandler crypto.PeerSignatureHandler, peerShardMapper process.PeerShardMapper) {
 	argProcessor := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: peerAuthCacher,
+		PeerShardMapper:          peerShardMapper,
 	}
 	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
 

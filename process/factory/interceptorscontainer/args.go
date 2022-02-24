@@ -36,4 +36,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
+	PeerShardMapper              process.PeerShardMapper
 }

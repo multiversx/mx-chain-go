@@ -417,6 +417,18 @@ func TestNewMetaInterceptorsContainerFactory_NilRequestHandlerShouldErr(t *testi
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.PeerShardMapper = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilPeerShardMapper, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -617,5 +629,6 @@ func getArgumentsMeta(
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
 		SignaturesHandler:            &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
+		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 	}
 }

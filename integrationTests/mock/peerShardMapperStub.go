@@ -4,6 +4,14 @@ import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // PeerShardMapperStub -
 type PeerShardMapperStub struct {
+	UpdatePeerIDPublicKeyPairCalled func(pid core.PeerID, pk []byte)
+}
+
+// UpdatePeerIDPublicKeyPair -
+func (psms *PeerShardMapperStub) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+	if psms.UpdatePeerIDPublicKeyPairCalled != nil {
+		psms.UpdatePeerIDPublicKeyPairCalled(pid, pk)
+	}
 }
 
 // GetPeerInfo -
