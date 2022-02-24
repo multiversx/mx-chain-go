@@ -31,7 +31,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	t.Run("payable by SC is not active", func(t *testing.T) {
+	t.Run("payable by SC is not active, should set that flag to false: backwards compatibility reasons", func(t *testing.T) {
 		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0})
 
 		contractAddress := deployDummySCReturningContractAddress(t, testContext, senderAddressBytes, "FFFF")
@@ -45,7 +45,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 
 		assert.Equal(t, expectedCodeMetadata.ToBytes(), getCodeMetadata(t, testContext.Accounts, contractAddress))
 	})
-	t.Run("payable by SC is active", func(t *testing.T) {
+	t.Run("payable by SC is active, should return the correct code metadata containing the PayableBySC flag value", func(t *testing.T) {
 		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1})
 
 		contractAddress := deployDummySCReturningContractAddress(t, testContext, senderAddressBytes, "FFFF")
@@ -59,7 +59,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 
 		assert.Equal(t, expectedCodeMetadata.ToBytes(), getCodeMetadata(t, testContext.Accounts, contractAddress))
 	})
-	t.Run("payable by SC is active, wrong number of bytes in code metadata argument", func(t *testing.T) {
+	t.Run("payable by SC is active, wrong number of bytes in code metadata argument will return an empty code metadata value: backwards compatibility reasons", func(t *testing.T) {
 		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1})
 
 		contractAddress := deployDummySCReturningContractAddress(t, testContext, senderAddressBytes, "FFFFFF")
@@ -69,8 +69,6 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 }
 
 func deployDummySCReturningContractAddress(tb testing.TB, testContext *vm.VMTestContext, senderAddressBytes []byte, codeMetadataHex string) []byte {
-	gasPrice := uint64(1)
-	gasLimit := uint64(1000)
 	transferOnCalls := big.NewInt(50)
 
 	accnt, err := testContext.Accounts.LoadAccount(senderAddressBytes)
