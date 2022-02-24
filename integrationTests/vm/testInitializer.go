@@ -237,12 +237,13 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      feeHandler,
-		BlockChainHook:    blockChainHook,
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
+		VmContainer:              vmContainer,
+		EconomicsFee:             feeHandler,
+		BlockChainHook:           blockChainHook,
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1309,12 +1310,13 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      feeHandler,
-		BlockChainHook:    blockChainHook,
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
+		VmContainer:              vmContainer,
+		EconomicsFee:             feeHandler,
+		BlockChainHook:           blockChainHook,
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1352,8 +1354,9 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 				}
 			},
 		},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

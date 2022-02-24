@@ -21,25 +21,27 @@ var _ process.SCQueryService = (*SCQueryService)(nil)
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer       process.VirtualMachinesContainer
-	economicsFee      process.FeeHandler
-	mutRunSc          sync.Mutex
-	blockChainHook    process.BlockChainHookHandler
-	blockChain        data.ChainHandler
-	numQueries        int
-	gasForQuery       uint64
-	arwenChangeLocker common.Locker
-	bootstrapper      process.Bootstrapper
+	vmContainer              process.VirtualMachinesContainer
+	economicsFee             process.FeeHandler
+	mutRunSc                 sync.Mutex
+	blockChainHook           process.BlockChainHookHandler
+	blockChain               data.ChainHandler
+	numQueries               int
+	gasForQuery              uint64
+	arwenChangeLocker        common.Locker
+	bootstrapper             process.Bootstrapper
+	allowExternalQueriesChan chan struct{}
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
 type ArgsNewSCQueryService struct {
-	VmContainer       process.VirtualMachinesContainer
-	EconomicsFee      process.FeeHandler
-	BlockChainHook    process.BlockChainHookHandler
-	BlockChain        data.ChainHandler
-	ArwenChangeLocker common.Locker
-	Bootstrapper      process.Bootstrapper
+	VmContainer              process.VirtualMachinesContainer
+	EconomicsFee             process.FeeHandler
+	BlockChainHook           process.BlockChainHookHandler
+	BlockChain               data.ChainHandler
+	ArwenChangeLocker        common.Locker
+	Bootstrapper             process.Bootstrapper
+	AllowExternalQueriesChan chan struct{}
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -64,20 +66,28 @@ func NewSCQueryService(
 	if check.IfNil(args.Bootstrapper) {
 		return nil, process.ErrNilBootstrapper
 	}
+	if args.AllowExternalQueriesChan == nil {
+		return nil, process.ErrNilAllowExternalQueriesChan
+	}
 
 	return &SCQueryService{
-		vmContainer:       args.VmContainer,
-		economicsFee:      args.EconomicsFee,
-		blockChain:        args.BlockChain,
-		blockChainHook:    args.BlockChainHook,
-		arwenChangeLocker: args.ArwenChangeLocker,
-		bootstrapper:      args.Bootstrapper,
-		gasForQuery:       math.MaxUint64,
+		vmContainer:              args.VmContainer,
+		economicsFee:             args.EconomicsFee,
+		blockChain:               args.BlockChain,
+		blockChainHook:           args.BlockChainHook,
+		arwenChangeLocker:        args.ArwenChangeLocker,
+		bootstrapper:             args.Bootstrapper,
+		gasForQuery:              math.MaxUint64,
+		allowExternalQueriesChan: args.AllowExternalQueriesChan,
 	}, nil
 }
 
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
 func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+	if !service.shouldAllowQueriesExecution() {
+		return nil, process.ErrQueriesNotAllowedYet
+	}
+
 	if query.ScAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
@@ -89,6 +99,21 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 	defer service.mutRunSc.Unlock()
 
 	return service.executeScCall(query, 0)
+}
+
+func (service *SCQueryService) shouldAllowQueriesExecution() bool {
+	// TODO: analyze if we need this check. this was added because of the TestExecuteQuery_EmptyFunctionShouldErr test that
+	// has a nil instance, but the test still manages to work
+	if service == nil {
+		return true
+	}
+
+	select {
+	case <-service.allowExternalQueriesChan:
+		return true
+	default:
+		return false
+	}
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
