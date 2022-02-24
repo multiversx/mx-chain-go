@@ -117,7 +117,6 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
@@ -136,7 +135,6 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{

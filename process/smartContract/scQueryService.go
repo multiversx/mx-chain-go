@@ -102,12 +102,6 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) shouldAllowQueriesExecution() bool {
-	// TODO: analyze if we need this check. this was added because of the TestExecuteQuery_EmptyFunctionShouldErr test that
-	// has a nil instance, but the test still manages to work
-	if service == nil {
-		return true
-	}
-
 	select {
 	case <-service.allowExternalQueriesChan:
 		return true
