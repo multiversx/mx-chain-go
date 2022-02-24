@@ -63,6 +63,7 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	// Wait for messages to broadcast
 	time.Sleep(time.Second * 5)
 
+	// Close components to avoid new messages
 	closeComponents(t, nodes, senders, dataPools, nil)
 
 	// Check sent messages
