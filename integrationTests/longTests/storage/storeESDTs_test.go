@@ -3,11 +3,10 @@ package storage
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"math/big"
-	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/require"
@@ -15,31 +14,148 @@ import (
 
 var maxValues = big.NewInt(256 * 256 * 256)
 var randomizer = rand.Reader
+var numESDTs = 1000000
+var numAddresses = 1000000
 
-func TestESDTStorageAndBasicProcessing(t *testing.T) {
+func TestESDTStorageAndBasicProcessing_Setup(t *testing.T) {
 	// TODO skip this test
 
 	log.Info("application is now running")
 
-	numESDTs := 1000000
 	esdts := createESDTs(numESDTs)
-	log.Info("generated ESDTs", "num", numESDTs, "first 100 ESDTs", strings.Join(esdts[:100], " "))
 
-	numAddresses := 1000000
 	addresses := generateAddresses(numAddresses)
 
-	first100addresses := make([]string, 0, 100)
-	for i := 0; i < 100; i++ {
-		first100addresses = append(first100addresses, integrationTests.TestAddressPubkeyConverter.Encode(addresses[i]))
-	}
-
-	log.Info("generated addresses", "num", numAddresses, "first 100 addresses", strings.Join(first100addresses, " "))
+	log.Info("generated addresses", "num", numAddresses)
 
 	storer := createTestStorer(t)
 	defer func() {
-		_ = storer.DestroyUnit()
+		_ = storer.Close()
 	}()
 
+	numESDTsPerWallet := 1000
+	for i, address := range addresses {
+		if i%100 == 0 {
+			log.Info(fmt.Sprint(i))
+		}
+		startBigInt, _ := rand.Int(randomizer, big.NewInt(int64(numESDTs-numESDTsPerWallet)))
+		start := int(startBigInt.Int64())
+		entries := make([]*ESDTEntry, 0, numESDTsPerWallet)
+		data := make([]byte, numESDTsPerWallet)
+		_, _ = randomizer.Read(data)
+		balance, _ := rand.Int(randomizer, big.NewInt(1000000))
+		balance.Mul(balance, big.NewInt(1000000))
+		for i := start; i < start+numESDTsPerWallet; i++ {
+			entries = append(entries, &ESDTEntry{
+				Name:    []byte(esdts[i]),
+				Data:    data,
+				Balance: balance,
+			})
+		}
+
+		info := ESDTInfo{
+			Entry: entries,
+		}
+		infom, _ := info.Marshal()
+		_ = storer.Put(address, infom)
+
+	}
+}
+
+func TestESDTStorageAndBasicProcessing_Size(t *testing.T) {
+
+	storer := createTestStorer(t)
+	defer func() {
+		_ = storer.Close()
+	}()
+
+	i := 0
+	storer.RangeKeys(func(address []byte, infom []byte) bool {
+		i++
+		if i%1000 == 0 {
+			log.Info(fmt.Sprint(i))
+		}
+		return true
+	})
+	log.Info(fmt.Sprint(i))
+}
+
+func TestESDTStorageAndBasicProcessing_Processing(t *testing.T) {
+
+	storer := createTestStorer(t)
+	defer func() {
+		_ = storer.Close()
+	}()
+
+	log.Info("start updating...")
+	i := 0
+
+	storer.RangeKeys(func(address []byte, infom []byte) bool {
+		info := ESDTInfo{}
+		_ = info.Unmarshal(infom)
+		adressEsdts := info.GetEntry()
+
+		esdtIndexToModify := len(adressEsdts)
+		if len(adressEsdts) > 1 {
+			randomIndex, _ := rand.Int(randomizer, big.NewInt(int64(len(adressEsdts)-1)))
+			esdtIndexToModify = int(randomIndex.Int64())
+		}
+
+		switch true {
+		case esdtIndexToModify <= 1:
+			newEsdt := generateESDT(5)
+			data := make([]byte, 100)
+			_, _ = randomizer.Read(data)
+			balance, _ := rand.Int(randomizer, big.NewInt(1000000))
+			balance.Mul(balance, big.NewInt(1000000))
+			adressEsdts = append(adressEsdts, &ESDTEntry{
+				Name:    []byte(newEsdt),
+				Data:    data,
+				Balance: balance,
+			})
+			break
+		case i%5 == 0: //add a new esdt
+			newEsdt := generateESDT(5)
+			data := make([]byte, 100)
+			_, _ = randomizer.Read(data)
+			balance, _ := rand.Int(randomizer, big.NewInt(1000000))
+			balance.Mul(balance, big.NewInt(1000000))
+			adressEsdts = append(adressEsdts[:esdtIndexToModify+1], adressEsdts[esdtIndexToModify:]...)
+			adressEsdts[esdtIndexToModify] = &ESDTEntry{
+				Name:    []byte(newEsdt),
+				Data:    data,
+				Balance: balance,
+			}
+			break
+		case i%4 == 0: // delete an existing esdt
+			adressEsdts = append(adressEsdts[:esdtIndexToModify], adressEsdts[esdtIndexToModify+1:]...)
+			break
+		case i%3 == 0: // lower the esdt balance
+			esdt := adressEsdts[esdtIndexToModify]
+			newBalance, _ := rand.Int(randomizer, esdt.Balance)
+			esdt.Balance.Sub(esdt.Balance, newBalance)
+			break
+		case i%2 == 0: // increase the esdt balance
+			esdt := adressEsdts[esdtIndexToModify]
+			newBalance, _ := rand.Int(randomizer, esdt.Balance)
+			esdt.Balance.Add(esdt.Balance, newBalance)
+			break
+		default:
+			//do nothing but get
+		}
+		info.Entry = adressEsdts
+		infom, _ = info.Marshal()
+		_ = storer.Put(address, infom)
+		i++
+		if i%1000 == 0 {
+			log.Info(fmt.Sprint(i))
+		}
+		if i == 10000 {
+			return false
+		}
+		return true
+	})
+	log.Info("updating ended...")
 }
 
 func createESDTs(numESDTs int) []string {
@@ -85,8 +201,8 @@ func createTestStorer(t *testing.T) storage.Storer {
 	argDB := storageUnit.ArgDB{
 		DBType:            "LvlDBSerial",
 		Path:              "store",
-		BatchDelaySeconds: 2,
-		MaxBatchSize:      45000,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      100,
 		MaxOpenFiles:      10,
 	}
 
@@ -98,5 +214,3 @@ func createTestStorer(t *testing.T) storage.Storer {
 
 	return storer
 }
-
-func createMapOfESDTsOnAddresses(addresses [][]byte, esdts []string) map[string]*
