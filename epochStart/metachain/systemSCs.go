@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vInfo "github.com/ElrondNetwork/elrond-go/common/validatorInfo"
@@ -386,26 +387,47 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
 	})
 
-	fmt.Println("AUCTION LIST -------")
-	for _, v := range auctionList {
-		topup, _ := s.stakingDataProvider.GetNodeStakedTopUp(v.PublicKey)
-		fmt.Println(string(v.RewardAddress) + " : " + string(v.PublicKey) + " : " + topup.String())
-	}
-	fmt.Println("AUCTION LIST -------")
-
 	noOfAvailableNodeSlots := s.maxNodes - noOfValidators
 	totalNodesInAuctionList := uint32(len(auctionList))
 	if totalNodesInAuctionList < noOfAvailableNodeSlots {
 		noOfAvailableNodeSlots = totalNodesInAuctionList
 	}
 
+	s.displayAuctionList(auctionList, noOfAvailableNodeSlots)
+
 	for i := uint32(0); i < noOfAvailableNodeSlots; i++ {
 		auctionList[i].List = string(common.NewList)
-		//val := getValidatorInfoWithBLSKey(validatorInfos, auctionList[i].PublicKey)
-		//val.List = string(common.NewList)
 	}
 
 	return nil
+}
+
+func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInfo, noOfSelectedNodes uint32) {
+	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
+	lines := make([]*display.LineData, 0, len(auctionList))
+	horizontalLine := false
+	for idx, validator := range auctionList {
+
+		if uint32(idx) == noOfSelectedNodes-1 {
+			horizontalLine = true
+		} else {
+			horizontalLine = false
+		}
+		pubKey := validator.GetPublicKey()
+		owner, _ := s.stakingDataProvider.GetBlsKeyOwner(pubKey)
+		topUp, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
+		line := display.NewLineData(horizontalLine, []string{
+			owner,
+			string(pubKey),
+			topUp.String(),
+		})
+
+		lines = append(lines, line)
+	}
+
+	table, _ := display.CreateTableString(tableHeader, lines)
+	message := fmt.Sprintf("Auction list\n%s", table)
+	log.Warn(message)
 }
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc

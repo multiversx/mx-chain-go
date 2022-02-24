@@ -72,6 +72,11 @@ func (sdps *StakingDataProviderStub) Clean() {
 	}
 }
 
+// GetBlsKeyOwner -
+func (sdps *StakingDataProviderStub) GetBlsKeyOwner(blsKey []byte) (string, error) {
+	return "", nil
+}
+
 // IsInterfaceNil -
 func (sdps *StakingDataProviderStub) IsInterfaceNil() bool {
 	return sdps == nil
