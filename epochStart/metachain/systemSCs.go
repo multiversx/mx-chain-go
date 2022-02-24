@@ -360,39 +360,13 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 		}
 	}
 
-	sort.SliceStable(auctionList, func(i, j int) bool {
-		pubKey1 := auctionList[i].PublicKey
-		pubKey2 := auctionList[j].PublicKey
-
-		nodeTopUpPubKey1, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey1)
-		nodeTopUpPubKey2, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
-
-		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
-
-			key1Xor := make([]byte, len(randomness))
-			key2Xor := make([]byte, len(randomness))
-
-			for idx := range randomness {
-				key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
-				key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
-			}
-
-			fmt.Println(fmt.Sprintf("Comparing %s with %s . Xor1 = %v ; Xor2 = %v ",
-				pubKey1, pubKey2, key1Xor, key2Xor,
-			))
-
-			return bytes.Compare(key1Xor, key2Xor) == 1
-		}
-
-		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
-	})
-
-	noOfAvailableNodeSlots := s.maxNodes - noOfValidators
-	totalNodesInAuctionList := uint32(len(auctionList))
-	if totalNodesInAuctionList < noOfAvailableNodeSlots {
-		noOfAvailableNodeSlots = totalNodesInAuctionList
+	err := s.sortAuctionList(auctionList, randomness)
+	if err != nil {
+		return err
 	}
 
+	auctionListSize := uint32(len(auctionList))
+	noOfAvailableNodeSlots := core.MinUint32(auctionListSize, s.maxNodes-noOfValidators)
 	s.displayAuctionList(auctionList, noOfAvailableNodeSlots)
 
 	for i := uint32(0); i < noOfAvailableNodeSlots; i++ {
@@ -402,23 +376,67 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 	return nil
 }
 
+func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, randomness []byte) error {
+	errors := make([]error, 0)
+
+	sort.SliceStable(auctionList, func(i, j int) bool {
+		pubKey1 := auctionList[i].PublicKey
+		pubKey2 := auctionList[j].PublicKey
+
+		nodeTopUpPubKey1, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey1)
+		if err != nil {
+			errors = append(errors, err)
+			log.Debug(fmt.Sprintf("%v when trying to get top up per node for %s", err, hex.EncodeToString(pubKey1)))
+		}
+
+		nodeTopUpPubKey2, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
+		if err != nil {
+			errors = append(errors, err)
+			log.Debug(fmt.Sprintf("%v when trying to get top up per node for %s", err, hex.EncodeToString(pubKey1)))
+		}
+
+		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
+			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
+		}
+
+		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
+	})
+
+	if len(errors) > 0 {
+		return fmt.Errorf("error(s) while trying to sort auction list; last known error %w", errors[len(errors)-1])
+	}
+	return nil
+}
+
+func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
+	key1Xor := make([]byte, len(randomness))
+	key2Xor := make([]byte, len(randomness))
+
+	for idx := range randomness {
+		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
+		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
+	}
+
+	return bytes.Compare(key1Xor, key2Xor) == 1
+}
+
 func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInfo, noOfSelectedNodes uint32) {
 	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
 	horizontalLine := false
 	for idx, validator := range auctionList {
-
 		if uint32(idx) == noOfSelectedNodes-1 {
 			horizontalLine = true
 		} else {
 			horizontalLine = false
 		}
+
 		pubKey := validator.GetPublicKey()
 		owner, _ := s.stakingDataProvider.GetBlsKeyOwner(pubKey)
 		topUp, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
 		line := display.NewLineData(horizontalLine, []string{
-			owner,
-			string(pubKey),
+			hex.EncodeToString([]byte(owner)),
+			hex.EncodeToString(pubKey),
 			topUp.String(),
 		})
 
