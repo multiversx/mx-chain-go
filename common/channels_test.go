@@ -11,8 +11,8 @@ func TestGetClosedUnbufferedChannel(t *testing.T) {
 
 	ch := GetClosedUnbufferedChannel()
 
-	require.True(t, didTriggerHappened(ch))
-	require.True(t, didTriggerHappened(ch))
+	require.True(t, didTriggerHappen(ch))
+	require.True(t, didTriggerHappen(ch))
 }
 
 func TestUsingUnbufferedChannelForNotifyingEvents(t *testing.T) {
@@ -20,15 +20,15 @@ func TestUsingUnbufferedChannelForNotifyingEvents(t *testing.T) {
 	// unbuffered channels can be used for notifying events
 	channelForTriggeringAction := make(chan struct{})
 
-	require.False(t, didTriggerHappened(channelForTriggeringAction))
-	require.False(t, didTriggerHappened(channelForTriggeringAction))
+	require.False(t, didTriggerHappen(channelForTriggeringAction))
+	require.False(t, didTriggerHappen(channelForTriggeringAction))
 	close(channelForTriggeringAction)
-	require.True(t, didTriggerHappened(channelForTriggeringAction))
-	require.True(t, didTriggerHappened(channelForTriggeringAction))
+	require.True(t, didTriggerHappen(channelForTriggeringAction))
+	require.True(t, didTriggerHappen(channelForTriggeringAction))
 
 }
 
-func didTriggerHappened(ch chan struct{}) bool {
+func didTriggerHappen(ch chan struct{}) bool {
 	select {
 	case <-ch:
 		return true

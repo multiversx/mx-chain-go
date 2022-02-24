@@ -156,7 +156,7 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 func TestExecuteQuery_ShouldPerformActionsInRegardsToAllowanceChannel(t *testing.T) {
 	t.Parallel()
 
-	chanAllowedQueries := make(chan struct{}, 1)
+	chanAllowedQueries := make(chan struct{})
 	args := createMockArgumentsForSCQuery()
 	args.AllowExternalQueriesChan = chanAllowedQueries
 	target, _ := NewSCQueryService(args)
@@ -171,7 +171,7 @@ func TestExecuteQuery_ShouldPerformActionsInRegardsToAllowanceChannel(t *testing
 	assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
 	assert.Nil(t, output)
 
-	chanAllowedQueries <- struct{}{}
+	close(chanAllowedQueries)
 	_, err = target.ExecuteQuery(&query)
 	assert.NoError(t, err)
 }
