@@ -34,6 +34,7 @@ type ScheduledTxsExecutionStub struct {
 	SaveStateCalled                     func(headerHash []byte, scheduledInfo *process.ScheduledInfo)
 	LoadStateCalled                     func(headerHash []byte)
 	IsScheduledTxCalled                 func([]byte) bool
+	GetScheduledTxCalled                func(txHash []byte) (data.TransactionHandler, error)
 	IsMiniBlockExecutedCalled           func([]byte) bool
 }
 
@@ -196,6 +197,14 @@ func (stes *ScheduledTxsExecutionStub) IsMiniBlockExecuted(mbHash []byte) bool {
 		return stes.IsMiniBlockExecutedCalled(mbHash)
 	}
 	return false
+}
+
+// GetScheduledTx -
+func (stes *ScheduledTxsExecutionStub) GetScheduledTx(txHash []byte) (data.TransactionHandler, error) {
+	if stes.GetScheduledTxCalled != nil {
+		return stes.GetScheduledTxCalled(txHash)
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil -

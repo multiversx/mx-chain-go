@@ -640,6 +640,19 @@ func (ste *scheduledTxsExecution) IsMiniBlockExecuted(mbHash []byte) bool {
 	return ok
 }
 
+// GetScheduledTx returns scheduled tx with the given hash
+func (ste *scheduledTxsExecution) GetScheduledTx(txHash []byte) (data.TransactionHandler, error) {
+	ste.mutScheduledTxs.RLock()
+	tx, ok := ste.mapScheduledTxs[string(txHash)]
+	ste.mutScheduledTxs.RUnlock()
+
+	if !ok {
+		return nil, process.ErrMissingTransaction
+	}
+
+	return tx, nil
+}
+
 func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {
 	numScheduledIntermediateTxs := 0
 	for _, scheduledIntermediateTxs := range mapScheduledIntermediateTxs {

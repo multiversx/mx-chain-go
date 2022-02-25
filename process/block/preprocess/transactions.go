@@ -742,7 +742,41 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 	txs.accountTxsShards.Unlock()
 
+	txs.addTxsFromScheduledMiniBlocks()
+
 	txs.scheduledTxsExecutionHandler.Init()
+}
+
+func (txs *transactions) addTxsFromScheduledMiniBlocks() {
+	if !txs.flagScheduledMiniBlocks.IsSet() {
+		return
+	}
+
+	scheduledMiniBlocks := txs.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+	for _, mb := range scheduledMiniBlocks {
+		if !txs.isMiniBlockCorrect(mb.Type) {
+			log.Warn("transactions.addTxsFromScheduledMiniBlocks: mini block type is not correct",
+				"type", mb.Type,
+				"sender", mb.SenderShardID,
+				"receiver", mb.ReceiverShardID,
+				"num txs", len(mb.TxHashes))
+			continue
+		}
+
+		txShardInfoToSet := &txShardInfo{senderShardID: mb.SenderShardID, receiverShardID: mb.ReceiverShardID}
+
+		for _, txHash := range mb.TxHashes {
+			tx, err := txs.scheduledTxsExecutionHandler.GetScheduledTx(txHash)
+			if err != nil {
+				log.Warn("transactions.addTxsFromScheduledMiniBlocks: GetScheduledTx", "tx hash", txHash, "error", err.Error())
+				continue
+			}
+
+			txs.txsForCurrBlock.mutTxsForBlock.Lock()
+			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
+			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+		}
+	}
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body

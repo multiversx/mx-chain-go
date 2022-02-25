@@ -1713,3 +1713,5 @@ func createWrappedTxsWithData(nb int, srcShard uint32, rcvShard uint32, sender [
 
 	return txs
 }
+
+//TODO: Add unit tests for methods: addTxsFromScheduledMiniBlocks

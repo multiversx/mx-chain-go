@@ -1653,3 +1653,5 @@ func TestScheduledTxsExecution_IsMiniBlockExecuted(t *testing.T) {
 	ok = scheduledTxsExec.IsScheduledTx(hash2)
 	assert.False(t, ok)
 }
+
+//TODO: Add unit tests for methods: GetScheduledTx

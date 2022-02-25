@@ -114,6 +114,11 @@ func (steh *ScheduledTxsExecutionHandler) IsMiniBlockExecuted(_ []byte) bool {
 	return false
 }
 
+// GetScheduledTx does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledTx(_ []byte) (data.TransactionHandler, error) {
+	return nil, nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (steh *ScheduledTxsExecutionHandler) IsInterfaceNil() bool {
 	return steh == nil
