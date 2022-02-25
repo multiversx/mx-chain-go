@@ -984,6 +984,12 @@ var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers 
 // ErrNilLocker signals that a nil locker was provided
 var ErrNilLocker = errors.New("nil locker")
 
+// ErrNilAllowExternalQueriesChan signals that a nil channel for signaling the allowance of external queries provided is nil
+var ErrNilAllowExternalQueriesChan = errors.New("nil channel for signaling the allowance of external queries")
+
+// ErrQueriesNotAllowedYet signals that the node is not ready yet to process VM Queries
+var ErrQueriesNotAllowedYet = errors.New("node is not ready yet to process VM Queries")
+
 // ErrNilChunksProcessor signals that a nil chunks processor has been provided
 var ErrNilChunksProcessor = errors.New("nil chunks processor")
 
