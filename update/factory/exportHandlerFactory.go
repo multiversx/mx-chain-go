@@ -62,7 +62,7 @@ type ArgsExporter struct {
 	OutputAntifloodHandler    process.P2PAntifloodHandler
 	RoundHandler              process.RoundHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
-	EnableSignTxWithHashEpoch uint32
+	EnableEpochs              config.EnableEpochs
 	MaxHardCapForMissingNodes int
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
@@ -98,7 +98,7 @@ type exportHandlerFactory struct {
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
-	enableSignTxWithHashEpoch uint32
+	enableEpochs              config.EnableEpochs
 	maxHardCapForMissingNodes int
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
@@ -244,12 +244,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		roundHandler:              args.RoundHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
-		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		enableEpochs:              args.EnableEpochs,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
-	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
 	return e, nil
 }
@@ -509,27 +508,27 @@ func (e *exportHandlerFactory) prepareFolders(folder string) error {
 
 func (e *exportHandlerFactory) createInterceptors() error {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
-		CoreComponents:            e.CoreComponents,
-		CryptoComponents:          e.CryptoComponents,
-		Accounts:                  e.accounts,
-		ShardCoordinator:          e.shardCoordinator,
-		NodesCoordinator:          e.nodesCoordinator,
-		Messenger:                 e.messenger,
-		Store:                     e.storageService,
-		DataPool:                  e.dataPool,
-		MaxTxNonceDeltaAllowed:    math.MaxInt32,
-		TxFeeHandler:              &disabled.FeeHandler{},
-		BlockBlackList:            timecache.NewTimeCache(time.Second),
-		HeaderSigVerifier:         e.headerSigVerifier,
-		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
-		SizeCheckDelta:            math.MaxUint32,
-		ValidityAttester:          e.validityAttester,
-		EpochStartTrigger:         e.epochStartTrigger,
-		WhiteListHandler:          e.whiteListHandler,
-		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
-		InterceptorsContainer:     e.interceptorsContainer,
-		AntifloodHandler:          e.inputAntifloodHandler,
-		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
+		CoreComponents:          e.CoreComponents,
+		CryptoComponents:        e.CryptoComponents,
+		Accounts:                e.accounts,
+		ShardCoordinator:        e.shardCoordinator,
+		NodesCoordinator:        e.nodesCoordinator,
+		Messenger:               e.messenger,
+		Store:                   e.storageService,
+		DataPool:                e.dataPool,
+		MaxTxNonceDeltaAllowed:  math.MaxInt32,
+		TxFeeHandler:            &disabled.FeeHandler{},
+		BlockBlackList:          timecache.NewTimeCache(time.Second),
+		HeaderSigVerifier:       e.headerSigVerifier,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		SizeCheckDelta:          math.MaxUint32,
+		ValidityAttester:        e.validityAttester,
+		EpochStartTrigger:       e.epochStartTrigger,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		InterceptorsContainer:   e.interceptorsContainer,
+		AntifloodHandler:        e.inputAntifloodHandler,
+		EnableEpochs:            e.enableEpochs,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

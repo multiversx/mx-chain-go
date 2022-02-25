@@ -70,18 +70,18 @@ func NewShardInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:            args.CoreComponents,
-		CryptoComponents:          args.CryptoComponents,
-		ShardCoordinator:          args.ShardCoordinator,
-		NodesCoordinator:          args.NodesCoordinator,
-		FeeHandler:                args.TxFeeHandler,
-		HeaderSigVerifier:         args.HeaderSigVerifier,
-		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		ValidityAttester:          args.ValidityAttester,
-		EpochStartTrigger:         args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
-		ArgsParser:                args.ArgumentsParser,
-		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        args.CryptoComponents,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        args.NodesCoordinator,
+		FeeHandler:              args.TxFeeHandler,
+		HeaderSigVerifier:       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		ValidityAttester:        args.ValidityAttester,
+		EpochStartTrigger:       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              args.ArgumentsParser,
+		EnableEpochs:            args.EnableEpochs,
 	}
 
 	container := containers.NewInterceptorsContainer()

@@ -108,7 +108,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		chainID:                     []byte(argument.CoreComponents.ChainID()),
 		minTransactionVersion:       argument.CoreComponents.MinTransactionVersion(),
 		epochStartTrigger:           argument.EpochStartTrigger,
-		enableSignedTxWithHashEpoch: argument.EnableSignTxWithHashEpoch,
+		enableSignedTxWithHashEpoch: argument.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		txSignHasher:                argument.CoreComponents.TxSignHasher(),
 		txVersionChecker:            argument.CoreComponents.TxVersionChecker(),
 	}
