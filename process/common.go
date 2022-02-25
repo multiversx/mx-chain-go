@@ -787,12 +787,8 @@ type ScheduledInfo struct {
 }
 
 // GetFinalCrossMiniBlockHashes returns all the finalized miniblocks hashes, from the given header and with the given destination
-func GetFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32, isScheduledActivated bool) map[string]uint32 {
+func GetFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32) map[string]uint32 {
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(shardID)
-
-	if !isScheduledActivated {
-		return crossMiniBlockHashes
-	}
 
 	miniBlockHashes := make(map[string]uint32)
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {

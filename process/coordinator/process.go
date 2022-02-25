@@ -1021,7 +1021,13 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 
 	tc.requestedItemsHandler.Sweep()
 
-	finalCrossMiniBlockHashes := process.GetFinalCrossMiniBlockHashes(header, tc.shardCoordinator.SelfId(), tc.flagScheduledMiniBlocks.IsSet())
+	var finalCrossMiniBlockHashes map[string]uint32
+	if !tc.flagScheduledMiniBlocks.IsSet() {
+		finalCrossMiniBlockHashes = header.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
+	} else {
+		finalCrossMiniBlockHashes = process.GetFinalCrossMiniBlockHashes(header, tc.shardCoordinator.SelfId())
+	}
+
 	for key, senderShardId := range finalCrossMiniBlockHashes {
 		obj, _ := tc.miniBlockPool.Peek([]byte(key))
 		if obj == nil {

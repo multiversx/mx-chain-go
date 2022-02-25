@@ -171,11 +171,6 @@ func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []b
 	dbb.interceptedHeader(topic, hash, header)
 }
 
-// GetFinalCrossMiniBlockHashes -
-func (dbb *delayedBlockBroadcaster) GetFinalCrossMiniBlockHashes(header data.HeaderHandler, toShardID uint32) map[string]uint32 {
-	return dbb.getFinalCrossMiniBlockHashes(header, toShardID)
-}
-
 // NewCommonMessenger will return a new instance of a commonMessenger
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,

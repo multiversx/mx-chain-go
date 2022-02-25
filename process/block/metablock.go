@@ -559,7 +559,13 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 			continue
 		}
 
-		finalCrossMiniBlockHashes := process.GetFinalCrossMiniBlockHashes(shardHeader, mp.shardCoordinator.SelfId(), mp.flagScheduledMiniBlocks.IsSet())
+		var finalCrossMiniBlockHashes map[string]uint32
+		if !mp.flagScheduledMiniBlocks.IsSet() {
+			finalCrossMiniBlockHashes = shardHeader.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
+		} else {
+			finalCrossMiniBlockHashes = process.GetFinalCrossMiniBlockHashes(shardHeader, mp.shardCoordinator.SelfId())
+		}
+
 		for hash := range finalCrossMiniBlockHashes {
 			miniBlockShardsHashes[hash] = shardInfo.HeaderHash
 		}
