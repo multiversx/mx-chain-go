@@ -375,7 +375,6 @@ func (txs *transactions) createScheduledMiniBlocks(
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks, mapSCTxs)
-
 	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, len(sortedTxs), mbInfo)
 
 	log.Debug("createScheduledMiniBlocks has been finished")

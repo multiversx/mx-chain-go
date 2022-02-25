@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -73,7 +74,7 @@ func (ses *startInEpochWithScheduledDataSyncer) UpdateSyncDataIfNeeded(
 		return nil, nil, err
 	}
 
-	err = ses.prepareScheduledSCRs(headerToBeProcessed, notarizedShardHeader, allMiniBlocks)
+	err = ses.prepareScheduledIntermediateTxs(headerToBeProcessed, notarizedShardHeader, allMiniBlocks)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -231,12 +232,12 @@ func (ses *startInEpochWithScheduledDataSyncer) GetRootHashToSync(notarizedShard
 	return notarizedShardHeader.GetRootHash()
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
+func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledIntermediateTxs(
 	prevHeader data.HeaderHandler,
 	header data.HeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
 ) error {
-	scheduledTxHashes, err := ses.getScheduledTransactionHashesWithDestMe(prevHeader)
+	scheduledTxHashes, err := ses.getScheduledTransactionHashes(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -246,13 +247,14 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 		return err
 	}
 
-	scheduledSCRs, err := ses.filterScheduledSCRs(scheduledTxHashes, allTxs)
+	scheduledIntermediateTxs, err := ses.filterScheduledIntermediateTxs(miniBlocks, scheduledTxHashes, allTxs, prevHeader.GetShardID())
 	if err != nil {
 		return err
 	}
 
 	additionalData := header.GetAdditionalData()
 	if additionalData != nil {
+		scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(miniBlocks, scheduledIntermediateTxs)
 		gasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: additionalData.GetScheduledAccumulatedFees(),
 			DeveloperFees:   additionalData.GetScheduledDeveloperFees(),
@@ -260,82 +262,141 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledSCRs(
 			GasPenalized:    additionalData.GetScheduledGasPenalized(),
 			GasRefunded:     additionalData.GetScheduledGasRefunded(),
 		}
-		ses.saveScheduledSCRsGasAndFees(scheduledSCRs, additionalData.GetScheduledRootHash(), header.GetPrevHash(), gasAndFees)
+		scheduledMiniBlocks := getScheduledMiniBlocks(header, miniBlocks, scheduledTxHashes)
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        additionalData.GetScheduledRootHash(),
+			IntermediateTxs: scheduledIntermediateTxsMap,
+			GasAndFees:      gasAndFees,
+			MiniBlocks:      scheduledMiniBlocks,
+		}
+		ses.saveScheduledInfo(header.GetPrevHash(), scheduledInfo)
 	}
 
 	return nil
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) filterScheduledSCRs(
-	scheduledTxHashes map[string]struct{},
+func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
+	miniBlocks map[string]*block.MiniBlock,
+	scheduledTxHashes map[string]uint32,
 	allTxs map[string]data.TransactionHandler,
+	selfShardID uint32,
 ) (map[string]data.TransactionHandler, error) {
-	scheduledSCRs := make(map[string]data.TransactionHandler)
-	for txHash := range allTxs {
-		scr, ok := allTxs[txHash].(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-
-		_, isScheduledSCR := scheduledTxHashes[string(scr.PrevTxHash)]
-		if isScheduledSCR {
-			scheduledSCRs[txHash] = allTxs[txHash]
-			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledSCRs",
-				"scr hash", txHash,
-				"scr original sender", string(scr.OriginalSender),
-				"scr original tx hash", scr.OriginalTxHash,
-				"scr prev tx hash", scr.PrevTxHash,
-				"scr nonce", scr.Nonce,
-				"scr sender address", string(scr.SndAddr),
-				"scr receiver address", string(scr.RcvAddr),
+	scheduledIntermediateTxs := make(map[string]data.TransactionHandler)
+	for txHash, txHandler := range allTxs {
+		if isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(txHash), txHandler, selfShardID) {
+			scheduledIntermediateTxs[txHash] = txHandler
+			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
+				"intermediate tx hash", txHash,
+				"intermediate tx nonce", txHandler.GetNonce(),
+				"intermediate tx sender address", string(txHandler.GetSndAddr()),
+				"intermediate tx receiver address", string(txHandler.GetRcvAddr()),
+				"intermediate tx data", string(txHandler.GetData()),
 			)
 		}
 	}
 
-	return scheduledSCRs, nil
+	return scheduledIntermediateTxs, nil
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) saveScheduledSCRsGasAndFees(
-	scheduledSCRs map[string]data.TransactionHandler,
-	scheduledRootHash []byte,
-	headerHash []byte,
-	gasAndFees scheduled.GasAndFees,
-) {
-	if scheduledRootHash == nil {
+func isScheduledIntermediateTx(
+	miniBlocks map[string]*block.MiniBlock,
+	scheduledTxHashes map[string]uint32,
+	txHash []byte,
+	txHandler data.TransactionHandler,
+	selfShardID uint32,
+) bool {
+	blockType := getBlockTypeOfTx(txHash, miniBlocks)
+	if blockType != block.SmartContractResultBlock && blockType != block.InvalidBlock {
+		return false
+	}
+
+	var scheduledTxHash []byte
+
+	if blockType == block.SmartContractResultBlock {
+		scr, ok := txHandler.(*smartContractResult.SmartContractResult)
+		if !ok {
+			log.Error("isScheduledIntermediateTx", "error", epochStart.ErrWrongTypeAssertion)
+			return false
+		}
+		scheduledTxHash = scr.PrevTxHash
+	} else {
+		scheduledTxHash = txHash
+	}
+
+	receiverShardID, isScheduledIntermediateTx := scheduledTxHashes[string(scheduledTxHash)]
+	return isScheduledIntermediateTx && receiverShardID == selfShardID
+}
+
+func getScheduledIntermediateTxsMap(
+	miniBlocks map[string]*block.MiniBlock,
+	intermediateTxs map[string]data.TransactionHandler,
+) map[block.Type][]data.TransactionHandler {
+
+	intermediateTxsMap := make(map[block.Type][]data.TransactionHandler)
+
+	for txHash, tx := range intermediateTxs {
+		blockType := getBlockTypeOfTx([]byte(txHash), miniBlocks)
+		intermediateTxsMap[blockType] = append(intermediateTxsMap[blockType], tx)
+	}
+
+	return intermediateTxsMap
+}
+
+func getBlockTypeOfTx(txHash []byte, miniBlocks map[string]*block.MiniBlock) block.Type {
+	for _, miniBlock := range miniBlocks {
+		for _, hash := range miniBlock.TxHashes {
+			if bytes.Equal(hash, txHash) {
+				return miniBlock.Type
+			}
+		}
+	}
+
+	log.Warn("getBlockTypeOfTx: tx not found in mini blocks", "tx hash", txHash)
+	return block.SmartContractResultBlock
+}
+
+func getScheduledMiniBlocks(
+	header data.HeaderHandler,
+	miniBlocks map[string]*block.MiniBlock,
+	scheduledTxHashes map[string]uint32,
+) block.MiniBlockSlice {
+
+	scheduledMiniBlocks := make(block.MiniBlockSlice, 0)
+	mbHeaders := header.GetMiniBlockHeaderHandlers()
+	for _, mbHeader := range mbHeaders {
+		miniBlock := miniBlocks[string(mbHeader.GetHash())]
+		if miniBlock == nil || miniBlock.Type == block.InvalidBlock {
+			continue
+		}
+
+		if len(miniBlock.TxHashes) > 0 {
+			_, isScheduledTx := scheduledTxHashes[string(miniBlock.TxHashes[0])]
+			if isScheduledTx {
+				scheduledMiniBlocks = append(scheduledMiniBlocks, miniBlock)
+			}
+		}
+	}
+
+	return scheduledMiniBlocks
+}
+
+func (ses *startInEpochWithScheduledDataSyncer) saveScheduledInfo(headerHash []byte, scheduledInfo *process.ScheduledInfo) {
+	if scheduledInfo.RootHash == nil {
 		return
 	}
 
-	// prepare the scheduledIntermediateTxsMap in the form of map[block.Type][]data.TransactionHandler
-	// the order should not matter, as the processing is done after sorting by intermediate tx hash
-	scheduledIntermediateTxsMap := make(map[block.Type][]data.TransactionHandler)
-	if len(scheduledSCRs) > 0 {
-		scheduledIntermediateTxsList := make([]data.TransactionHandler, 0, len(scheduledSCRs))
-		for scrHash := range scheduledSCRs {
-			scheduledIntermediateTxsList = append(scheduledIntermediateTxsList, scheduledSCRs[scrHash])
-		}
-
-		//TODO: The block type should not be harded here, should be sent via parameter to this method
-		scheduledIntermediateTxsMap[block.SmartContractResultBlock] = scheduledIntermediateTxsList
-	}
-
-	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledSCRsGasAndFees",
+	log.Debug("startInEpochWithScheduledDataSyncer.saveScheduledInfo",
 		"headerHash", headerHash,
-		"scheduledRootHash", scheduledRootHash,
-		"num of scheduled scrs", len(scheduledSCRs),
-		"gasAndFees.AccumulatedFees", gasAndFees.AccumulatedFees.String(),
-		"gasAndFees.DeveloperFees", gasAndFees.DeveloperFees.String(),
-		"gasAndFees.GasProvided", gasAndFees.GasProvided,
-		"gasAndFees.GasPenalized", gasAndFees.GasPenalized,
-		"gasAndFees.GasRefunded", gasAndFees.GasRefunded,
+		"scheduledRootHash", scheduledInfo.RootHash,
+		"num of scheduled mbs", len(scheduledInfo.MiniBlocks),
+		"num of scheduled intermediate txs", getNumScheduledIntermediateTxs(scheduledInfo.IntermediateTxs),
+		"gasAndFees.AccumulatedFees", scheduledInfo.GasAndFees.AccumulatedFees.String(),
+		"gasAndFees.DeveloperFees", scheduledInfo.GasAndFees.DeveloperFees.String(),
+		"gasAndFees.GasProvided", scheduledInfo.GasAndFees.GasProvided,
+		"gasAndFees.GasPenalized", scheduledInfo.GasAndFees.GasPenalized,
+		"gasAndFees.GasRefunded", scheduledInfo.GasAndFees.GasRefunded,
 	)
 
-	scheduledInfo := &process.ScheduledInfo{
-		RootHash:        scheduledRootHash,
-		IntermediateTxs: scheduledIntermediateTxsMap,
-		GasAndFees:      gasAndFees,
-		//TODO: Replace the next line with the real scheduledMiniBlock taken from scheduledSCRs DTO
-		MiniBlocks: make(block.MiniBlockSlice, 0),
-	}
 	ses.scheduledTxsHandler.SaveState(headerHash, scheduledInfo)
 }
 
@@ -354,8 +415,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(hea
 	schMiniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 
 	for i, mbh := range miniBlockHeaders {
-		reserved := mbh.GetReserved()
-		if len(reserved) > 0 && reserved[0] == byte(block.Scheduled) {
+		if mbh.GetProcessingType() == int32(block.Scheduled) {
 			schMiniBlockHeaders = append(schMiniBlockHeaders, miniBlockHeaders[i])
 		}
 	}
@@ -363,23 +423,29 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(hea
 	return schMiniBlockHeaders
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashesWithDestMe(header data.HeaderHandler) (map[string]struct{}, error) {
+func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(header data.HeaderHandler) (map[string]uint32, error) {
 	miniBlockHeaders := ses.getScheduledMiniBlockHeaders(header)
 	miniBlocks, err := ses.getRequiredMiniBlocksByMbHeader(miniBlockHeaders)
 	if err != nil {
 		return nil, err
 	}
 
-	scheduledTxs := make(map[string]struct{})
+	scheduledTxs := make(map[string]uint32)
 	for _, mb := range miniBlocks {
-		if mb.GetReceiverShardID() != header.GetShardID() {
-			continue
-		}
 		for _, txHash := range mb.TxHashes {
-			scheduledTxs[string(txHash)] = struct{}{}
-			log.Debug("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashesWithDestMe", "hash", txHash)
+			scheduledTxs[string(txHash)] = mb.GetReceiverShardID()
+			log.Debug("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashes", "hash", txHash)
 		}
 	}
 
 	return scheduledTxs, nil
+}
+
+func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {
+	numScheduledIntermediateTxs := 0
+	for _, scheduledIntermediateTxs := range mapScheduledIntermediateTxs {
+		numScheduledIntermediateTxs += len(scheduledIntermediateTxs)
+	}
+
+	return numScheduledIntermediateTxs
 }

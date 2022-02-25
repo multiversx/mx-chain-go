@@ -8,11 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -30,11 +32,13 @@ type scheduledTxsExecution struct {
 	mapScheduledTxs             map[string]data.TransactionHandler
 	mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler
 	scheduledTxs                []data.TransactionHandler
-	scheduledMBs                block.MiniBlockSlice
+	scheduledMbs                block.MiniBlockSlice
+	mapScheduledMbHashes        map[string]struct{}
 	scheduledRootHash           []byte
 	gasAndFees                  scheduled.GasAndFees
 	storer                      storage.Storer
 	marshaller                  marshal.Marshalizer
+	hasher                      hashing.Hasher
 	mutScheduledTxs             sync.RWMutex
 	shardCoordinator            sharding.Coordinator
 }
@@ -45,6 +49,7 @@ func NewScheduledTxsExecution(
 	txCoordinator process.TransactionCoordinator,
 	storer storage.Storer,
 	marshaller marshal.Marshalizer,
+	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
 ) (*scheduledTxsExecution, error) {
 
@@ -60,6 +65,9 @@ func NewScheduledTxsExecution(
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -70,10 +78,12 @@ func NewScheduledTxsExecution(
 		mapScheduledTxs:             make(map[string]data.TransactionHandler),
 		mapScheduledIntermediateTxs: make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:                make([]data.TransactionHandler, 0),
-		scheduledMBs:                make(block.MiniBlockSlice, 0),
+		scheduledMbs:                make(block.MiniBlockSlice, 0),
+		mapScheduledMbHashes:        make(map[string]struct{}),
 		gasAndFees:                  process.GetZeroGasAndFees(),
 		storer:                      storer,
 		marshaller:                  marshaller,
+		hasher:                      hasher,
 		scheduledRootHash:           nil,
 		shardCoordinator:            shardCoordinator,
 	}
@@ -112,19 +122,12 @@ func (ste *scheduledTxsExecution) AddScheduledMiniBlocks(miniBlocks block.MiniBl
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
-	ste.scheduledMBs = make(block.MiniBlockSlice, len(miniBlocks))
+	ste.scheduledMbs = make(block.MiniBlockSlice, len(miniBlocks))
 	for index, miniBlock := range miniBlocks {
-		ste.scheduledMBs[index] = miniBlock.Clone()
-		//TODO: Remove both if when method clone will be fixed
-		if miniBlock.Reserved == nil {
-			ste.scheduledMBs[index].Reserved = nil
-		}
-		if miniBlock.TxHashes == nil {
-			ste.scheduledMBs[index].TxHashes = nil
-		}
+		ste.scheduledMbs[index] = miniBlock.Clone()
 	}
 
-	log.Debug("scheduledTxsExecution.AddMiniBlocks", "num of scheduled mbs", len(ste.scheduledMBs))
+	log.Debug("scheduledTxsExecution.AddMiniBlocks", "num of scheduled mbs", len(ste.scheduledMbs))
 }
 
 // Execute method executes the given scheduled transaction
@@ -182,6 +185,23 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 
 	mapAllIntermediateTxsAfterScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
 	ste.computeScheduledIntermediateTxs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
+	err := ste.setScheduledMiniBlockHashes()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ste *scheduledTxsExecution) setScheduledMiniBlockHashes() error {
+	ste.mapScheduledMbHashes = make(map[string]struct{})
+	for index := range ste.scheduledMbs {
+		mbHash, err := core.CalculateHash(ste.marshaller, ste.hasher, ste.scheduledMbs[index])
+		if err != nil {
+			return err
+		}
+		ste.mapScheduledMbHashes[string(mbHash)] = struct{}{}
+	}
 
 	return nil
 }
@@ -237,11 +257,11 @@ func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(interm
 
 	numInvalidTxsRemoved := 0
 	for _, interTxInfo := range intermediateTxsInfo {
-		for index, miniBlock := range ste.scheduledMBs {
+		for index, miniBlock := range ste.scheduledMbs {
 			indexOfTxHashInMiniBlock := getIndexOfTxHashInMiniBlock(interTxInfo.txHash, miniBlock)
 			if indexOfTxHashInMiniBlock >= 0 {
 				log.Trace("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "tx hash", interTxInfo.txHash)
-				ste.scheduledMBs[index].TxHashes = append(miniBlock.TxHashes[:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
+				ste.scheduledMbs[index].TxHashes = append(miniBlock.TxHashes[:indexOfTxHashInMiniBlock], miniBlock.TxHashes[indexOfTxHashInMiniBlock+1:]...)
 				numInvalidTxsRemoved++
 				break
 			}
@@ -332,29 +352,22 @@ func (ste *scheduledTxsExecution) GetScheduledIntermediateTxs() map[block.Type][
 	return mapScheduledIntermediateTxs
 }
 
-// GetScheduledMBs gets the resulted mini blocks after the execution of scheduled transactions
-func (ste *scheduledTxsExecution) GetScheduledMBs() block.MiniBlockSlice {
+// GetScheduledMiniBlocks gets the resulted mini blocks after the execution of scheduled transactions
+func (ste *scheduledTxsExecution) GetScheduledMiniBlocks() block.MiniBlockSlice {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
-	if len(ste.scheduledMBs) == 0 {
+	if len(ste.scheduledMbs) == 0 {
 		return nil
 	}
 
-	miniBlocks := make(block.MiniBlockSlice, len(ste.scheduledMBs))
-	for index, scheduledMb := range ste.scheduledMBs {
+	miniBlocks := make(block.MiniBlockSlice, len(ste.scheduledMbs))
+	for index, scheduledMb := range ste.scheduledMbs {
 		miniBlock := scheduledMb.Clone()
-		//TODO: Remove both if when method clone will be fixed
-		if scheduledMb.Reserved == nil {
-			miniBlock.Reserved = nil
-		}
-		if scheduledMb.TxHashes == nil {
-			miniBlock.TxHashes = nil
-		}
 		miniBlocks[index] = miniBlock
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledMBs", "num of scheduled mbs", len(miniBlocks))
+	log.Debug("scheduledTxsExecution.GetScheduledMiniBlocks", "num of scheduled mbs", len(miniBlocks))
 
 	return miniBlocks
 }
@@ -384,23 +397,20 @@ func (ste *scheduledTxsExecution) SetScheduledInfo(scheduledInfo *process.Schedu
 
 	ste.gasAndFees = scheduledInfo.GasAndFees
 
-	ste.scheduledMBs = make(block.MiniBlockSlice, len(scheduledInfo.MiniBlocks))
+	ste.scheduledMbs = make(block.MiniBlockSlice, len(scheduledInfo.MiniBlocks))
 	for index, scheduledMiniBlock := range scheduledInfo.MiniBlocks {
 		miniBlock := scheduledMiniBlock.Clone()
-		//TODO: Remove both if when method clone will be fixed
-		if scheduledMiniBlock.Reserved == nil {
-			miniBlock.Reserved = nil
-		}
-		if scheduledMiniBlock.TxHashes == nil {
-			miniBlock.TxHashes = nil
-		}
+		ste.scheduledMbs[index] = miniBlock
+	}
 
-		ste.scheduledMBs[index] = miniBlock
+	err := ste.setScheduledMiniBlockHashes()
+	if err != nil {
+		log.Error("scheduledTxsExecution.SetScheduledInfo: setScheduledMiniBlockHashes", "error", err.Error())
 	}
 
 	log.Debug("scheduledTxsExecution.SetScheduledInfo",
 		"scheduled root hash", ste.scheduledRootHash,
-		"num of scheduled mbs", len(ste.scheduledMBs),
+		"num of scheduled mbs", len(ste.scheduledMbs),
 		"num of scheduled intermediate txs", numScheduledIntermediateTxs,
 		"accumulatedFees", ste.gasAndFees.AccumulatedFees.String(),
 		"developerFees", ste.gasAndFees.DeveloperFees.String(),
@@ -513,7 +523,7 @@ func (ste *scheduledTxsExecution) SaveStateIfNeeded(headerHash []byte) {
 		RootHash:        ste.GetScheduledRootHash(),
 		IntermediateTxs: ste.GetScheduledIntermediateTxs(),
 		GasAndFees:      ste.GetScheduledGasAndFees(),
-		MiniBlocks:      ste.GetScheduledMBs(),
+		MiniBlocks:      ste.GetScheduledMiniBlocks(),
 	}
 
 	ste.mutScheduledTxs.RLock()
@@ -586,8 +596,7 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (
 		RootHash:        scheduledSCRs.RootHash,
 		IntermediateTxs: scheduledSCRs.GetTransactionHandlersMap(),
 		GasAndFees:      *scheduledSCRs.GasAndFees,
-		//TODO: Replace the next line with the real scheduledMiniBlock taken from scheduledSCRs DTO
-		MiniBlocks: make(block.MiniBlockSlice, 0),
+		MiniBlocks:      scheduledSCRs.GetScheduledMiniBlocks(),
 	}
 
 	return scheduledInfo, nil
@@ -597,11 +606,11 @@ func (ste *scheduledTxsExecution) getMarshalledScheduledInfo(
 	scheduledInfo *process.ScheduledInfo,
 ) ([]byte, error) {
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash:   scheduledInfo.RootHash,
-		GasAndFees: &scheduledInfo.GasAndFees,
+		RootHash:            scheduledInfo.RootHash,
+		ScheduledMiniBlocks: scheduledInfo.MiniBlocks,
+		GasAndFees:          &scheduledInfo.GasAndFees,
 	}
 
-	//TODO: Set separately SCRs and invalid txs depending of the block type
 	err := scheduledSCRs.SetTransactionHandlersMap(scheduledInfo.IntermediateTxs)
 	if err != nil {
 		return nil, err
@@ -619,15 +628,16 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 	return ok
 }
 
-// SetScheduledMiniBlocksAsExecuted sets all the scheduled mini blocks as executed
-func (ste *scheduledTxsExecution) SetScheduledMiniBlocksAsExecuted() {
-	ste.mutScheduledTxs.Lock()
-	defer ste.mutScheduledTxs.Unlock()
+// IsMiniBlockExecuted returns true if the given mini block is already executed
+func (ste *scheduledTxsExecution) IsMiniBlockExecuted(mbHash []byte) bool {
+	//TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later,
+	//but only when we could differentiate between the final mini blocks executed as scheduled in the last block and the normal mini blocks
+	//from the current block which are also final, but not yet executed
+	ste.mutScheduledTxs.RLock()
+	_, ok := ste.mapScheduledMbHashes[string(mbHash)]
+	ste.mutScheduledTxs.RUnlock()
 
-	for index := range ste.scheduledMBs {
-		//TODO: Here should be set each mini block as executed with the real value when elrond-go-core PR will be done
-		ste.scheduledMBs[index].Reserved = nil
-	}
+	return ok
 }
 
 func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {

@@ -42,8 +42,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledIntermediateTxs() map[bloc
 	return make(map[block.Type][]data.TransactionHandler)
 }
 
-// GetScheduledMBs does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) GetScheduledMBs() block.MiniBlockSlice {
+// GetScheduledMiniBlocks does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledMiniBlocks() block.MiniBlockSlice {
 	return make(block.MiniBlockSlice, 0)
 }
 
@@ -109,8 +109,9 @@ func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(_ []byte) bool {
 	return false
 }
 
-// SetScheduledMiniBlocksAsExecuted does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) SetScheduledMiniBlocksAsExecuted() {
+// IsMiniBlockExecuted always returns false as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) IsMiniBlockExecuted(_ []byte) bool {
+	return false
 }
 
 // IsInterfaceNil returns true if underlying object is nil

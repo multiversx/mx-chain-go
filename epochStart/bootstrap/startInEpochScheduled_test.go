@@ -3,9 +3,11 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -304,7 +306,7 @@ func TestStartInEpochWithScheduledDataSyncer_prepareScheduledSCRs(t *testing.T) 
 	// TODO: add test
 }
 
-func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_filterScheduledIntermediateTxs(t *testing.T) {
 	t.Parallel()
 
 	sds := &startInEpochWithScheduledDataSyncer{}
@@ -312,9 +314,9 @@ func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
 		"txHash1", "txHash2",
 	}
 
-	scheduledTxHashesMap := map[string]struct{}{
-		scheduledTxHashes[0]: {},
-		scheduledTxHashes[1]: {},
+	scheduledTxHashesMap := map[string]uint32{
+		scheduledTxHashes[0]: 0,
+		scheduledTxHashes[1]: 0,
 	}
 
 	scheduledSCR1Hash := "scheduled SCR 1"
@@ -330,15 +332,71 @@ func TestStartInEpochWithScheduledDataSyncer_filterScheduledSCRs(t *testing.T) {
 		scheduledSCR2Hash: allTxsMap[scheduledSCR2Hash],
 	}
 
-	scheduledTxs, err := sds.filterScheduledSCRs(scheduledTxHashesMap, allTxsMap)
+	miniBlocks := make(map[string]*block.MiniBlock)
+	miniBlocks["1"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("scheduledSCR1Hash")},
+	}
+	miniBlocks["2"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("scheduledSCR2Hash")},
+	}
+	miniBlocks["3"] = &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("regularTxHash1")},
+	}
+	miniBlocks["1"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("regularTxHash2")},
+	}
+
+	scheduledTxs, err := sds.filterScheduledIntermediateTxs(miniBlocks, scheduledTxHashesMap, allTxsMap, 0)
 	require.Nil(t, err)
 	require.Equal(t, expectedScheduledTxsMap, scheduledTxs)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoScheduledRootHash(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_getScheduledIntermediateTxsMap(t *testing.T) {
+	tx1 := &smartContractResult.SmartContractResult{Nonce: 0}
+	tx2 := &smartContractResult.SmartContractResult{Nonce: 1}
+	tx3 := &transaction.Transaction{Nonce: 2}
+	tx4 := &smartContractResult.SmartContractResult{Nonce: 3}
+
+	intermediateTxs := map[string]data.TransactionHandler{
+		"hash1": tx1,
+		"hash2": tx2,
+		"hash3": tx3,
+		"hash4": tx4,
+	}
+
+	miniBlocks := make(map[string]*block.MiniBlock)
+	miniBlocks["1"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("hash1")},
+	}
+	miniBlocks["2"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("hash2")},
+	}
+	miniBlocks["3"] = &block.MiniBlock{
+		Type:     block.InvalidBlock,
+		TxHashes: [][]byte{[]byte("hash3")},
+	}
+	miniBlocks["4"] = &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("hash4")},
+	}
+
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(miniBlocks, intermediateTxs)
+	require.Equal(t, 2, len(scheduledIntermediateTxsMap))
+	require.Equal(t, 3, len(scheduledIntermediateTxsMap[block.SmartContractResultBlock]))
+	require.Equal(t, 1, len(scheduledIntermediateTxsMap[block.InvalidBlock]))
+	assert.Equal(t, tx3, scheduledIntermediateTxsMap[block.InvalidBlock][0])
+}
+
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfoNoScheduledRootHash(t *testing.T) {
 	t.Parallel()
 
-	scheduledSCRs := map[string]data.TransactionHandler{}
+	scheduledIntermediateTxs := map[string]data.TransactionHandler{}
 	headerHash := []byte("header hash")
 	gasAndFees := scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
@@ -353,10 +411,17 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFeesNoSchedu
 		},
 	}
 
-	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, nil, headerHash, gasAndFees)
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        nil,
+		IntermediateTxs: scheduledIntermediateTxsMap,
+		GasAndFees:      gasAndFees,
+		MiniBlocks:      make(block.MiniBlockSlice, 0),
+	}
+	sds.saveScheduledInfo(headerHash, scheduledInfo)
 }
 
-func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *testing.T) {
+func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfo(t *testing.T) {
 	t.Parallel()
 
 	scr1 := &smartContractResult.SmartContractResult{
@@ -366,7 +431,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 		Nonce: 1,
 	}
 
-	scheduledSCRs := map[string]data.TransactionHandler{
+	scheduledIntermediateTxs := map[string]data.TransactionHandler{
 		"txHash1": scr1,
 		"txHash2": scr2,
 	}
@@ -404,7 +469,14 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledSCRsGasAndFees(t *test
 		},
 	}
 
-	sds.saveScheduledSCRsGasAndFees(scheduledSCRs, scheduledRootHash, headerHash, gasAndFees)
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
+	scheduledInfo := &process.ScheduledInfo{
+		RootHash:        scheduledRootHash,
+		IntermediateTxs: scheduledIntermediateTxsMap,
+		GasAndFees:      gasAndFees,
+		MiniBlocks:      make(block.MiniBlockSlice, 0),
+	}
+	sds.saveScheduledInfo(headerHash, scheduledInfo)
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocksWithSyncErrorShouldErr(t *testing.T) {
@@ -455,13 +527,13 @@ func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocks(t *
 func TestStartInEpochWithScheduledDataSyncer_getScheduledMiniBlockHeaders(t *testing.T) {
 	sds := &startInEpochWithScheduledDataSyncer{}
 	mbHeaderScheduled1 := block.MiniBlockHeader{
-		Hash:     []byte("hash1"),
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: []byte("hash1"),
 	}
+	_ = mbHeaderScheduled1.SetProcessingType(int32(block.Scheduled))
 	mbHeaderScheduled2 := block.MiniBlockHeader{
-		Hash:     []byte("hash2"),
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: []byte("hash2"),
 	}
+	_ = mbHeaderScheduled2.SetProcessingType(int32(block.Scheduled))
 	mbHeader := block.MiniBlockHeader{
 		Hash: []byte("hash3"),
 	}
@@ -480,24 +552,22 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 	hashMb2 := []byte("hashMb2")
 	hashMb3 := []byte("hashMb3")
 	hashMb4 := []byte("hashMb4")
-	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4"), []byte("txHash5"), []byte("txHash6")}
+	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")}
 
 	mb1 := block.MiniBlock{TxHashes: txHashes[:2]}
-	mb2 := block.MiniBlock{TxHashes: txHashes[2:4]}
-	mb3 := block.MiniBlock{ReceiverShardID: 1, TxHashes: txHashes[4:]}
+	mb2 := block.MiniBlock{TxHashes: txHashes[2:]}
 	mbHeaderScheduled1 := block.MiniBlockHeader{
-		Hash:     hashMb1,
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: hashMb1,
 	}
+	_ = mbHeaderScheduled1.SetProcessingType(int32(block.Scheduled))
 	mbHeaderScheduled2 := block.MiniBlockHeader{
-		Hash:     hashMb2,
-		Reserved: []byte{byte(block.Scheduled)},
+		Hash: hashMb2,
 	}
+	_ = mbHeaderScheduled2.SetProcessingType(int32(block.Scheduled))
 	mbHeaderScheduled3 := block.MiniBlockHeader{
-		ReceiverShardID: 1,
-		Hash:            hashMb3,
-		Reserved:        []byte{byte(block.Scheduled)},
+		Hash: hashMb3,
 	}
+	_ = mbHeaderScheduled3.SetProcessingType(int32(block.Scheduled))
 	mbHeader := block.MiniBlockHeader{
 		Hash: hashMb4,
 	}
@@ -505,27 +575,27 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		MiniBlockHeaders: []block.MiniBlockHeader{mbHeaderScheduled1, mbHeader, mbHeaderScheduled2, mbHeaderScheduled3},
 	}
 
-	expectedScheduledTxHashes := map[string]struct{}{
-		string(txHashes[0]): {},
-		string(txHashes[1]): {},
-		string(txHashes[2]): {},
-		string(txHashes[3]): {},
+	expectedScheduledTxHashes := map[string]uint32{
+		string(txHashes[0]): 0,
+		string(txHashes[1]): 0,
+		string(txHashes[2]): 0,
+		string(txHashes[3]): 0,
 	}
 	sds := &startInEpochWithScheduledDataSyncer{
 		scheduledMiniBlocksSyncer: &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 				for i := range miniBlockHeaders {
-					require.Len(t, miniBlockHeaders[i].GetReserved(), 1)
+					require.Len(t, miniBlockHeaders[i].GetReserved(), 2)
 				}
 				return nil
 			},
 			GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
-				return map[string]*block.MiniBlock{string(hashMb1): &mb1, string(hashMb2): &mb2, string(hashMb3): &mb3}, nil
+				return map[string]*block.MiniBlock{string(hashMb1): &mb1, string(hashMb2): &mb2}, nil
 			},
 		},
 	}
 
-	scheduledTxHashes, err := sds.getScheduledTransactionHashesWithDestMe(header)
+	scheduledTxHashes, err := sds.getScheduledTransactionHashes(header)
 	require.Nil(t, err)
 	require.Equal(t, expectedScheduledTxHashes, scheduledTxHashes)
 }
@@ -604,4 +674,111 @@ func createTestHeader() *block.Header {
 		MiniBlockHeaders: nil,
 		MetaBlockHashes:  [][]byte{[]byte("metaBlockHash")},
 	}
+}
+
+func TestGetBlockTypeOfTx(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+
+	t.Run("tx not found in miniBlocks, get default block type", func(t *testing.T) {
+		t.Parallel()
+
+		miniBlocks := map[string]*block.MiniBlock{
+			"dummyhash1": {
+				TxHashes: [][]byte{[]byte("hash1")},
+				Type:     block.TxBlock,
+			},
+		}
+
+		blockType := getBlockTypeOfTx(hash, miniBlocks)
+		assert.Equal(t, block.SmartContractResultBlock, blockType)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedBlockType := block.PeerBlock
+		miniBlocks := map[string]*block.MiniBlock{
+			"dummyhash1": {
+				TxHashes: [][]byte{[]byte("hash1")},
+				Type:     block.TxBlock,
+			},
+			"dummyhash2": {
+				TxHashes: [][]byte{hash},
+				Type:     expectedBlockType,
+			},
+		}
+
+		blockType := getBlockTypeOfTx(hash, miniBlocks)
+		assert.Equal(t, expectedBlockType, blockType)
+	})
+}
+
+func TestGetScheduledMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	hash1, hash2, hash3 := "hash1", "hash2", "hash3"
+	txHash1, txHash2, txHash3 := "txHash1", "txHash2", "txHash3"
+	mb1 := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte(txHash1)},
+		Type:     block.TxBlock,
+	}
+	mb2 := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte(txHash2)},
+		Type:     block.TxBlock,
+	}
+	mb3 := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte(txHash3)},
+		Type:     block.InvalidBlock,
+	}
+	miniBlocks := map[string]*block.MiniBlock{
+		hash1: mb1,
+		hash2: mb2,
+		hash3: mb3,
+	}
+
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte(hash1)},
+			{Hash: []byte(hash2)},
+			{Hash: []byte(hash3)},
+		},
+	}
+
+	schedulesTxHashes := map[string]uint32{
+		txHash1: 1,
+		txHash2: 2,
+	}
+
+	expectedMiniBlocks := block.MiniBlockSlice{
+		mb1,
+		mb2,
+	}
+
+	mbs := getScheduledMiniBlocks(header, miniBlocks, schedulesTxHashes)
+	assert.Equal(t, expectedMiniBlocks, mbs)
+}
+
+func TestNumScheduledIntermediateTxs(t *testing.T) {
+	t.Parallel()
+
+	mapTxs := map[block.Type][]data.TransactionHandler{
+		block.TxBlock: {
+			&transaction.Transaction{
+				Nonce: 1,
+			},
+			&transaction.Transaction{
+				Nonce: 2,
+			},
+		},
+		block.PeerBlock: {
+			&transaction.Transaction{
+				Nonce: 3,
+			},
+		},
+	}
+
+	num := getNumScheduledIntermediateTxs(mapTxs)
+	assert.Equal(t, 3, num)
 }

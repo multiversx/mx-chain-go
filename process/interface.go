@@ -1135,7 +1135,7 @@ type ScheduledTxsExecutionHandler interface {
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler
-	GetScheduledMBs() block.MiniBlockSlice
+	GetScheduledMiniBlocks() block.MiniBlockSlice
 	GetScheduledGasAndFees() scheduled.GasAndFees
 	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
@@ -1148,7 +1148,7 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
-	SetScheduledMiniBlocksAsExecuted()
+	IsMiniBlockExecuted(mbHash []byte) bool
 	IsInterfaceNil() bool
 }
 

@@ -329,6 +329,10 @@ var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblo
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
 
+// ErrScheduledMiniBlocksMismatch signals that scheduled mini blocks created and executed in the last block, which are not yet final,
+// do not match with the ones received in the next proposed body
+var ErrScheduledMiniBlocksMismatch = errors.New("scheduled miniblocks does not match")
+
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
 
@@ -1057,6 +1061,9 @@ var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not 
 
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
+
+// ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch signals that number of mini blocks and mini blocks headers does not match
+var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blocks and mini blocks headers does not match")
 
 // ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
 var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")

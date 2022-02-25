@@ -192,6 +192,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	err = sp.checkScheduledMiniBlocksValidity(headerHandler)
+	if err != nil {
+		return err
+	}
+
 	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
 	log.Debug("total txs in pool", "counts", txCounts.String())
 	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
@@ -290,8 +295,11 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
+	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	miniBlocks := body.MiniBlocks[mbIndex:]
+
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -300,7 +308,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
 		return err
 	}
@@ -485,14 +493,14 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 		return err
 	}
 
-	log.Debug("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
+	log.Trace("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
 	if len(usedMetaHdrs[core.MetachainShardId]) == 0 {
 		return nil
 	}
 
 	for _, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
-		log.Debug("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
+		log.Trace("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
@@ -755,6 +763,10 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
+	// placeholder for shardProcessor.CreateBlock script 1
+
+	// placeholder for shardProcessor.CreateBlock script 2
+
 	if sp.epochStartTrigger.IsEpochStart() {
 		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
 			"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
@@ -998,7 +1010,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeTxsFromPools(bodyHandler)
+	errNotCritical = sp.removeTxsFromPools(header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
@@ -1897,7 +1909,9 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMBs()
+	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+
+	// placeholder for shardProcessor.createMiniBlocks script
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.createMiniBlocks",
@@ -2084,7 +2098,7 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
-	_ data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
@@ -2097,10 +2111,16 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
+	// Remove mini blocks which are not final from "body" to avoid sending them cross shard
+	newBodyToBroadcast, err := sp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body.MiniBlocks {
+	for _, miniBlock := range newBodyToBroadcast.MiniBlocks {
 		if miniBlock.SenderShardID != sp.shardCoordinator.SelfId() ||
 			miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
 			continue
@@ -2111,9 +2131,9 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	mrsData := make(map[uint32][]byte, len(bodies))
 	for shardId, subsetBlockBody := range bodies {
 		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
-		buff, err := sp.marshalizer.Marshal(&bodyForShard)
-		if err != nil {
-			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
+		buff, errMarshal := sp.marshalizer.Marshal(&bodyForShard)
+		if errMarshal != nil {
+			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", errMarshal.Error())
 			continue
 		}
 		mrsData[shardId] = buff
