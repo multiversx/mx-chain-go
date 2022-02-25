@@ -1844,4 +1844,49 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 
 }
 
-//TODO: Add unit tests for methods: RestoreBlockBodyIntoPools
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrNilBlockBody(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(nil)
+	assert.Equal(t, err, process.ErrNilBlockBody)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFromStorageFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("error")
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 0, expectedError
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Equal(t, err, expectedError)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 1, nil
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Nil(t, err)
+}
