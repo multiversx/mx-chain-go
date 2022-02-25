@@ -336,9 +336,12 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	if s.flagStakingV4Enabled.IsSet() {
 		allNodesKeys := s.getAllNodesKeyMapOfType(validatorInfos)
 
-		_ = s.stakingDataProvider.PrepareStakingDataForRewards(allNodesKeys)
+		err := s.stakingDataProvider.PrepareStakingDataForRewards(allNodesKeys)
+		if err != nil {
+			return err
+		}
 
-		err := s.selectNodesFromAuctionList(validatorInfos, randomness)
+		err = s.selectNodesFromAuctionList(validatorInfos, randomness)
 		if err != nil {
 			return err
 		}
@@ -425,27 +428,31 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInf
 	lines := make([]*display.LineData, 0, len(auctionList))
 	horizontalLine := false
 	for idx, validator := range auctionList {
-		if uint32(idx) == noOfSelectedNodes-1 {
-			horizontalLine = true
-		} else {
-			horizontalLine = false
-		}
-
+		horizontalLine = uint32(idx) == noOfSelectedNodes-1
 		pubKey := validator.GetPublicKey()
-		owner, _ := s.stakingDataProvider.GetBlsKeyOwner(pubKey)
-		topUp, _ := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
+
+		owner, err := s.stakingDataProvider.GetBlsKeyOwner(pubKey)
+		log.LogIfError(err)
+
+		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
+		log.LogIfError(err)
+
 		line := display.NewLineData(horizontalLine, []string{
 			hex.EncodeToString([]byte(owner)),
 			hex.EncodeToString(pubKey),
 			topUp.String(),
 		})
-
 		lines = append(lines, line)
 	}
 
-	table, _ := display.CreateTableString(tableHeader, lines)
+	table, err := display.CreateTableString(tableHeader, lines)
+	if err != nil {
+		log.Error("could not create table", "error", err)
+		return
+	}
+
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Warn(message)
+	log.Debug(message)
 }
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
@@ -708,15 +715,15 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 func (s *systemSCProcessor) getAllNodesKeyMapOfType(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 ) map[uint32][][]byte {
-	eligibleNodesKeys := make(map[uint32][][]byte)
+	nodeKeys := make(map[uint32][][]byte)
 	for shardID, validatorsInfoSlice := range validatorsInfo {
-		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
+		nodeKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
-			eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
+			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.PublicKey)
 		}
 	}
 
-	return eligibleNodesKeys
+	return nodeKeys
 }
 
 func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
