@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -38,11 +36,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	exportBaseDirectory, err := ioutil.TempDir("", "export*")
-	require.Nil(t, err)
-	defer func() {
-		_ = os.RemoveAll(exportBaseDirectory)
-	}()
+	exportBaseDirectory := t.TempDir()
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -114,11 +108,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	exportBaseDirectory, err := ioutil.TempDir("", "export*")
-	require.Nil(t, err)
-	defer func() {
-		_ = os.RemoveAll(exportBaseDirectory)
-	}()
+	exportBaseDirectory := t.TempDir()
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -233,11 +223,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 		t.Skip("this is not a short test")
 	}
 
-	exportBaseDirectory, err := ioutil.TempDir("", "export*")
-	require.Nil(t, err)
-	defer func() {
-		_ = os.RemoveAll(exportBaseDirectory)
-	}()
+	exportBaseDirectory := t.TempDir()
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -312,7 +298,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	for i := uint64(0); i < numRoundsBeforeHardfork+roundsForEarlyStartOfEpoch; i++ {
 		if i == numRoundsBeforeHardfork {
 			log.Info("triggering hardfork (with early end of epoch)")
-			err = hardforkTriggerNode.Node.DirectTrigger(1, true)
+			err := hardforkTriggerNode.Node.DirectTrigger(1, true)
 			log.LogIfError(err)
 		}
 
