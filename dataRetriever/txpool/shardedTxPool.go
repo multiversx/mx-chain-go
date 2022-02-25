@@ -251,7 +251,7 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 		}
 	}
 
-	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Trace("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
@@ -329,7 +329,7 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 
 // Diagnose diagnoses the internal caches
 func (txPool *shardedTxPool) Diagnose(deep bool) {
-	log.Debug("shardedTxPool.Diagnose()", "counts", txPool.GetCounts().String())
+	log.Trace("shardedTxPool.Diagnose()", "counts", txPool.GetCounts().String())
 
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
