@@ -389,7 +389,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		ReceiverShardID: shardCoordinator.SelfId(),
 		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
-		Reserved:        []byte("rr"),
+		Reserved:        []byte("rrrrrrrrrrrrrrrrr"),
 	}
 
 	sd := block.ShardData{
@@ -516,7 +516,6 @@ func TestCheckMiniblocks_ReservedPopulatedCorrectly(t *testing.T) {
 
 	assert.Nil(t, err)
 }
-
 
 func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
 	t.Parallel()

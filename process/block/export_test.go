@@ -440,3 +440,31 @@ func (mp *metaProcessor) UpdateEpochStartHeader(metaHdr *block.MetaBlock) error 
 func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.BodyHandler, error) {
 	return mp.createEpochStartBody(metaBlock)
 }
+
+func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
+}
+
+func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	return bp.getFinalMiniBlocks(header, body)
+}
+
+func GetScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
+	return getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
+}
+
+func (bp *baseProcessor) CheckScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
+	return bp.checkScheduledMiniBlocksValidity(headerHandler)
+}
+
+func (bp *baseProcessor) SetMiniBlockHeaderReservedField(
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHash, miniBlockHeaderHandler)
+}
+
+func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
+	return mp.getFinalMiniBlockHeaders(miniBlockHeaderHandlers)
+}
