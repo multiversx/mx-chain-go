@@ -1528,6 +1528,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer,
+		TestHasher,
 		tpn.ShardCoordinator,
 	)
 
@@ -1767,6 +1768,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer,
+		TestHasher,
 		tpn.ShardCoordinator)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(

@@ -3448,3 +3448,58 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		assert.Equal(t, expectedRewardsForProtocolSustain, mb.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	})
 }
+
+func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		mp.EpochConfirmed(2, 0)
+
+		expectedMbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+
+		mbHeaders := mp.GetFinalMiniBlockHeaders(expectedMbHeaders)
+		assert.Equal(t, expectedMbHeaders, mbHeaders)
+	})
+
+	t.Run("should work, return only final mini block header", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		mp.EpochConfirmed(4, 0)
+
+		mbh1 := &block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := &block.MiniBlockHeader{
+			Hash: []byte("hash2"),
+		}
+		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		mbHeaders := []data.MiniBlockHeaderHandler{
+			mbh1,
+			mbh2,
+		}
+
+		expectedMbHeaders := []data.MiniBlockHeaderHandler{
+			mbh2,
+		}
+
+		retMbHeaders := mp.GetFinalMiniBlockHeaders(mbHeaders)
+		assert.Equal(t, expectedMbHeaders, retMbHeaders)
+	})
+}
