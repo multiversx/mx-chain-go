@@ -135,7 +135,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		}
 
 		if len(bootInfos) > 1 {
-			err = st.checkBlockBodyIntegrity(headerInfo.LastHeader.Hash)
+			err = st.restoreBlockBodyIntoPools(headerInfo.LastHeader.Hash)
 			if err != nil {
 				log.Warn("storageBootstrapper.loadBlocks: checkBlockBodyIntegrity", "error", err.Error())
 				round = headerInfo.LastRound
@@ -496,7 +496,7 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	return nil
 }
 
-func (st *storageBootstrapper) checkBlockBodyIntegrity(headerHash []byte) error {
+func (st *storageBootstrapper) restoreBlockBodyIntoPools(headerHash []byte) error {
 	log.Debug("storageBootstrapper.checkBlockBodyIntegrity", "headerHash", headerHash)
 
 	headerHandler, err := st.bootstrapper.getHeader(headerHash)

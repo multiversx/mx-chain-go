@@ -37,7 +37,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 	return argsBaseBootstrapper
 }
 
-func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingHeader(t *testing.T) {
+func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader(t *testing.T) {
 	t.Parallel()
 
 	baseArgs := createMockShardStorageBoostrapperArgs()
@@ -47,11 +47,11 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingHeader(t
 	ssb, _ := NewShardStorageBootstrapper(args)
 
 	hash := []byte("hash")
-	err := ssb.checkBlockBodyIntegrity(hash)
+	err := ssb.restoreBlockBodyIntoPools(hash)
 	assert.True(t, strings.Contains(err.Error(), process.ErrMissingHeader.Error()))
 }
 
-func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingBody(t *testing.T) {
+func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingBody(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("header_hash")
@@ -76,11 +76,11 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingBody(t *
 	}
 	ssb, _ := NewShardStorageBootstrapper(args)
 
-	err := ssb.checkBlockBodyIntegrity(headerHash)
+	err := ssb.restoreBlockBodyIntoPools(headerHash)
 	assert.Equal(t, process.ErrMissingBody, err)
 }
 
-func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrWhenRestoreBlockBodyIntoPoolsFails(t *testing.T) {
+func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockBodyIntoPoolsFails(t *testing.T) {
 	t.Parallel()
 
 	expectedError := errors.New("error")
@@ -111,11 +111,11 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrWhenRestoreBloc
 	}
 	ssb, _ := NewShardStorageBootstrapper(args)
 
-	err := ssb.checkBlockBodyIntegrity(headerHash)
+	err := ssb.restoreBlockBodyIntoPools(headerHash)
 	assert.Equal(t, expectedError, err)
 }
 
-func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldWork(t *testing.T) {
+func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("header_hash")
@@ -145,7 +145,7 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldWork(t *testing.T)
 	}
 	ssb, _ := NewShardStorageBootstrapper(args)
 
-	err := ssb.checkBlockBodyIntegrity(headerHash)
+	err := ssb.restoreBlockBodyIntoPools(headerHash)
 	assert.Nil(t, err)
 }
 
