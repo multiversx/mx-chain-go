@@ -285,6 +285,7 @@ func DisplayLastNotarized(
 
 	log.Debug("last notarized block from shard",
 		"shard", shardId,
+		"epoch", lastNotarizedHdrForShard.GetEpoch(),
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
 		"hash", lastNotarizedHdrHashForShard)

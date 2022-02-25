@@ -3468,7 +3468,7 @@ func TestMetaProcessor_getFinalCrossMiniBlockHashes(t *testing.T) {
 
 		expectedHashes := make(map[string]uint32)
 
-		hashes := mp.GetFinalCrossMiniBlockHashes(expectedHashes, &block.Header{})
+		hashes := mp.GetFinalCrossMiniBlockHashes(&block.Header{})
 		assert.Equal(t, expectedHashes, hashes)
 	})
 
@@ -3482,13 +3482,15 @@ func TestMetaProcessor_getFinalCrossMiniBlockHashes(t *testing.T) {
 		mp.EpochConfirmed(4, 0)
 
 		mbh1 := block.MiniBlockHeader{
-			Hash: []byte(hash1),
+			SenderShardID: 1,
+			Hash:          []byte(hash1),
 		}
 		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
 		mbh1.Reserved, _ = mbhReserved1.Marshal()
 
 		mbh2 := block.MiniBlockHeader{
-			Hash: []byte(hash2),
+			SenderShardID: 2,
+			Hash:          []byte(hash2),
 		}
 		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
 		mbh2.Reserved, _ = mbhReserved2.Marshal()
@@ -3500,16 +3502,11 @@ func TestMetaProcessor_getFinalCrossMiniBlockHashes(t *testing.T) {
 			},
 		}
 
-		crossMiniBlockHashes := map[string]uint32{
-			hash1: 1,
-			hash2: 2,
-		}
-
 		expectedHashes := map[string]uint32{
 			hash2: 2,
 		}
 
-		hashes := mp.GetFinalCrossMiniBlockHashes(crossMiniBlockHashes, header)
+		hashes := mp.GetFinalCrossMiniBlockHashes(header)
 		assert.Equal(t, expectedHashes, hashes)
 	})
 }

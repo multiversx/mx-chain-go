@@ -4230,7 +4230,7 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockHashes(t *testing.T) {
 
 		expectedHashes := make(map[string]uint32)
 
-		hashes := tc.getFinalCrossMiniBlockHashes(expectedHashes, &block.Header{})
+		hashes := tc.getFinalCrossMiniBlockHashes(&block.Header{})
 		assert.Equal(t, expectedHashes, hashes)
 	})
 
@@ -4243,13 +4243,15 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockHashes(t *testing.T) {
 		tc.EpochConfirmed(4, 0)
 
 		mbh1 := block.MiniBlockHeader{
-			Hash: []byte(hash1),
+			SenderShardID: 1,
+			Hash:          []byte(hash1),
 		}
 		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
 		mbh1.Reserved, _ = mbhReserved1.Marshal()
 
 		mbh2 := block.MiniBlockHeader{
-			Hash: []byte(hash2),
+			SenderShardID: 2,
+			Hash:          []byte(hash2),
 		}
 		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
 		mbh2.Reserved, _ = mbhReserved2.Marshal()
@@ -4261,16 +4263,11 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockHashes(t *testing.T) {
 			},
 		}
 
-		crossMiniBlockHashes := map[string]uint32{
-			hash1: 1,
-			hash2: 2,
-		}
-
 		expectedHashes := map[string]uint32{
 			hash2: 2,
 		}
 
-		hashes := tc.getFinalCrossMiniBlockHashes(crossMiniBlockHashes, header)
+		hashes := tc.getFinalCrossMiniBlockHashes(header)
 		assert.Equal(t, expectedHashes, hashes)
 	})
 }

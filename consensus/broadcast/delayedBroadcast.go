@@ -734,7 +734,7 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler, toShardID uint32) map[string]struct{} {
 	mbHashesForShard := make(map[string]struct{})
 	// Remove mini blocks which are not final to avoid sending them
-	mbHashes := dbb.getFinalCrossMiniBlockHashes(header.GetMiniBlockHeadersWithDst(toShardID), header)
+	mbHashes := dbb.getFinalCrossMiniBlockHashes(header, toShardID)
 	for mbHash := range mbHashes {
 		mbHashesForShard[mbHash] = struct{}{}
 	}
@@ -742,11 +742,8 @@ func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler
 	return mbHashesForShard
 }
 
-func (dbb *delayedBlockBroadcaster) getFinalCrossMiniBlockHashes(
-	crossMiniBlockHashes map[string]uint32,
-	header data.HeaderHandler,
-) map[string]uint32 {
-
+func (dbb *delayedBlockBroadcaster) getFinalCrossMiniBlockHashes(header data.HeaderHandler, toShardID uint32) map[string]uint32 {
+	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(toShardID)
 	miniBlockHashes := make(map[string]uint32)
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
 		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
