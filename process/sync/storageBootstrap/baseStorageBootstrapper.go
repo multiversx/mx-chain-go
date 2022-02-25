@@ -134,11 +134,13 @@ func (st *storageBootstrapper) loadBlocks() error {
 			continue
 		}
 
-		err = st.checkBlockBodyIntegrity(headerInfo.LastHeader.Hash)
-		if err != nil {
-			log.Warn("storageBootstrapper.loadBlocks: checkBlockBodyIntegrity", "error", err.Error())
-			round = headerInfo.LastRound
-			continue
+		if len(bootInfos) > 1 {
+			err = st.checkBlockBodyIntegrity(headerInfo.LastHeader.Hash)
+			if err != nil {
+				log.Warn("storageBootstrapper.loadBlocks: checkBlockBodyIntegrity", "error", err.Error())
+				round = headerInfo.LastRound
+				continue
+			}
 		}
 
 		break
