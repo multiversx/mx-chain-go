@@ -208,11 +208,11 @@ func TestMiniBlockProvider_GetMiniBlocksFromStorerShouldNotBeFoundInStorage(t *t
 		[]byte("hash3"),
 		[]byte("hash4"),
 	}
+
 	arg := createMockMiniblockProviderArgs(nil, existingHashes)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
 	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromStorer(requestedHashes)
-
 	assert.Equal(t, 0, len(miniBlocksAndHashes))
 	assert.Equal(t, 2, len(missingHashes))
 }
@@ -225,11 +225,11 @@ func TestMiniBlockProvider_GetMiniBlocksFromStorerShouldBePartiallyFoundInStorag
 		[]byte("hash2"),
 	}
 	requestedHashes := append(existingHashes, []byte("hash3"))
+
 	arg := createMockMiniblockProviderArgs(nil, existingHashes)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
 	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromStorer(requestedHashes)
-
 	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	assert.Equal(t, 1, len(missingHashes))
 }
@@ -242,11 +242,11 @@ func TestMiniBlockProvider_GetMiniBlocksFromStorerShouldBeFoundInStorage(t *test
 		[]byte("hash2"),
 	}
 	requestedHashes := existingHashes
+
 	arg := createMockMiniblockProviderArgs(nil, existingHashes)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
 	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromStorer(requestedHashes)
-
 	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	assert.Equal(t, 0, len(missingHashes))
 }

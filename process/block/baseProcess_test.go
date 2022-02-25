@@ -1860,6 +1860,7 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFro
 	t.Parallel()
 
 	expectedError := errors.New("error")
+
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)

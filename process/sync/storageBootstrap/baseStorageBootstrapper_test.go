@@ -41,7 +41,10 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingHeader(t
 	t.Parallel()
 
 	baseArgs := createMockShardStorageBoostrapperArgs()
-	ssb, _ := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs})
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
 
 	hash := []byte("hash")
 	err := ssb.checkBlockBodyIntegrity(hash)
@@ -53,6 +56,7 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingBody(t *
 
 	headerHash := []byte("header_hash")
 	header := &block.Header{}
+
 	baseArgs := createMockShardStorageBoostrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
@@ -67,7 +71,10 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrMissingBody(t *
 			return storerMock
 		},
 	}
-	ssb, _ := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs})
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
 
 	err := ssb.checkBlockBodyIntegrity(headerHash)
 	assert.Equal(t, process.ErrMissingBody, err)
@@ -79,6 +86,7 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrWhenRestoreBloc
 	expectedError := errors.New("error")
 	headerHash := []byte("header_hash")
 	header := &block.Header{}
+
 	baseArgs := createMockShardStorageBoostrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
@@ -98,7 +106,10 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldErrWhenRestoreBloc
 			return storerMock
 		},
 	}
-	ssb, _ := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs})
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
 
 	err := ssb.checkBlockBodyIntegrity(headerHash)
 	assert.Equal(t, expectedError, err)
@@ -109,6 +120,7 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldWork(t *testing.T)
 
 	headerHash := []byte("header_hash")
 	header := &block.Header{}
+
 	baseArgs := createMockShardStorageBoostrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
@@ -128,7 +140,10 @@ func TestBaseStorageBootstrapper_CheckBlockBodyIntegrityShouldWork(t *testing.T)
 			return storerMock
 		},
 	}
-	ssb, _ := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs})
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
 
 	err := ssb.checkBlockBodyIntegrity(headerHash)
 	assert.Nil(t, err)
@@ -138,13 +153,17 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldErrMissingBody(t *testing.T) 
 	t.Parallel()
 
 	header := &block.Header{}
+
 	baseArgs := createMockShardStorageBoostrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return nil, [][]byte{[]byte("missing_hash")}
 		},
 	}
-	ssb, _ := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs})
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
 
 	body, err := ssb.getBlockBody(header)
 	assert.Nil(t, body)
@@ -172,21 +191,20 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 			Miniblock: mb2,
 		},
 	}
-
-	header := &block.Header{}
-	baseArgs := createMockShardStorageBoostrapperArgs()
-	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
-			return mbAndHashes, nil
-		},
-	}
 	expectedBody := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			mb1,
 			mb2,
 		},
 	}
+	header := &block.Header{}
 
+	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
+		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+			return mbAndHashes, nil
+		},
+	}
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: baseArgs,
 	}
