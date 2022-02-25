@@ -184,6 +184,9 @@
     # disabled in the blockchain hook component
     DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
 
+    # FreezeAccountFeatureEnableEpoch represents the epoch when the freeze account feature is enabled in the protocol
+    FreezeAccountFeatureEnableEpoch = 10
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

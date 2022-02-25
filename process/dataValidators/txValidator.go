@@ -56,8 +56,6 @@ func NewTxValidator(
 
 // CheckTxValidity will filter transactions that needs to be added in pools
 func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandler) error {
-	// TODO: Refactor, extract methods.
-
 	interceptedData, ok := interceptedTx.(process.InterceptedData)
 	if ok {
 		if txv.whiteListHandler.IsWhiteListed(interceptedData) {
@@ -65,56 +63,60 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandl
 		}
 	}
 
-	shardID := txv.shardCoordinator.SelfId()
-	txShardID := interceptedTx.SenderShardId()
-	senderIsInAnotherShard := shardID != txShardID
-	if senderIsInAnotherShard {
+	if txv.isSenderInDifferentShard(interceptedTx) {
 		return nil
 	}
 
-	senderAddress := interceptedTx.SenderAddress()
-	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
+	accountHandler, err := txv.getSenderAccount(interceptedTx)
 	if err != nil {
-		return fmt.Errorf("%w for address %s and shard %d, err: %s",
-			process.ErrAccountNotFound,
-			txv.pubkeyConverter.Encode(senderAddress),
-			shardID,
-			err.Error(),
-		)
+		return err
 	}
 
-	accountNonce := accountHandler.GetNonce()
-	txNonce := interceptedTx.Nonce()
-	lowerNonceInTx := txNonce < accountNonce
-	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
-	isTxRejected := lowerNonceInTx || veryHighNonceInTx
-	if isTxRejected {
-		return fmt.Errorf("%w lowerNonceInTx: %v, veryHighNonceInTx: %v",
-			process.ErrWrongTransaction,
-			lowerNonceInTx,
-			veryHighNonceInTx,
-		)
+	return txv.checkAccount(interceptedTx, accountHandler)
+}
+
+func (txv *txValidator) checkAccount(
+	interceptedTx process.InterceptedTxHandler,
+	accountHandler vmcommon.AccountHandler,
+) error {
+	err := txv.checkNonce(interceptedTx, accountHandler)
+	if err != nil {
+		return err
 	}
 
+	account, err := txv.getSenderUserAccount(interceptedTx, accountHandler)
+	if err != nil {
+		return err
+	}
+
+	err = checkPermission(interceptedTx, account)
+	if err != nil {
+		return err
+	}
+
+	return txv.checkBalance(interceptedTx, account)
+}
+
+func (txv *txValidator) getSenderUserAccount(
+	interceptedTx process.InterceptedTxHandler,
+	accountHandler vmcommon.AccountHandler,
+) (state.UserAccountHandler, error) {
+	senderAddress := interceptedTx.SenderAddress()
 	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
-		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",
+		return nil, fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
 			txv.pubkeyConverter.Encode(senderAddress),
 		)
 	}
+	return account, nil
+}
 
-	txData, err := getTxData(interceptedTx)
-	if err != nil {
-		return err
-	}
-	if isAccountFrozen(account) && !isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
-		return state.ErrOperationNotPermitted
-	}
-
+func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTxHandler, account state.UserAccountHandler) error {
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
+		senderAddress := interceptedTx.SenderAddress()
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
 			txv.pubkeyConverter.Encode(senderAddress),
@@ -124,6 +126,59 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandl
 	}
 
 	return nil
+}
+
+func checkPermission(interceptedTx process.InterceptedTxHandler, account state.UserAccountHandler) error {
+	txData, err := getTxData(interceptedTx)
+	if err != nil {
+		return err
+	}
+	if isAccountFrozen(account) {
+		if isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
+			return state.ErrOperationNotPermitted
+		}
+
+		// TODO: verify guardian signature on Tx
+		interceptedTx.Transaction()
+	}
+
+	return nil
+}
+
+func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTxHandler, accountHandler vmcommon.AccountHandler) error {
+	accountNonce := accountHandler.GetNonce()
+	txNonce := interceptedTx.Nonce()
+	lowerNonceInTx := txNonce < accountNonce
+	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
+	if lowerNonceInTx || veryHighNonceInTx {
+		return fmt.Errorf("%w lowerNonceInTx: %v, veryHighNonceInTx: %v",
+			process.ErrWrongTransaction,
+			lowerNonceInTx,
+			veryHighNonceInTx,
+		)
+	}
+	return nil
+}
+
+func (txv *txValidator) isSenderInDifferentShard(interceptedTx process.InterceptedTxHandler) bool {
+	shardID := txv.shardCoordinator.SelfId()
+	txShardID := interceptedTx.SenderShardId()
+	return shardID != txShardID
+}
+
+func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTxHandler) (vmcommon.AccountHandler, error) {
+	senderAddress := interceptedTx.SenderAddress()
+	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
+			process.ErrAccountNotFound,
+			txv.pubkeyConverter.Encode(senderAddress),
+			txv.shardCoordinator.SelfId(),
+			err.Error(),
+		)
+	}
+
+	return accountHandler, nil
 }
 
 func getTxData(interceptedTx process.InterceptedTxHandler) ([]byte, error) {
