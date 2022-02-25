@@ -4230,7 +4230,7 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockHashes(t *testing.T) {
 
 		expectedHashes := make(map[string]uint32)
 
-		hashes := tc.getFinalCrossMiniBlockHashes(&block.Header{})
+		hashes := process.GetFinalCrossMiniBlockHashes(&block.Header{}, 0, false)
 		assert.Equal(t, expectedHashes, hashes)
 	})
 
@@ -4267,7 +4267,7 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockHashes(t *testing.T) {
 			hash2: 2,
 		}
 
-		hashes := tc.getFinalCrossMiniBlockHashes(header)
+		hashes := process.GetFinalCrossMiniBlockHashes(header, 0, true)
 		assert.Equal(t, expectedHashes, hashes)
 	})
 }

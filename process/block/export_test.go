@@ -465,14 +465,6 @@ func (bp *baseProcessor) SetMiniBlockHeaderReservedField(
 	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHash, miniBlockHeaderHandler)
 }
 
-func (mp *metaProcessor) GetFinalCrossMiniBlockHashes(header data.HeaderHandler) map[string]uint32 {
-	return mp.getFinalCrossMiniBlockHashes(header)
-}
-
-func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
-	return getMiniBlockHeaderWithHash(header, miniBlockHash)
-}
-
 func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
 	return mp.getFinalMiniBlockHeaders(miniBlockHeaderHandlers)
 }

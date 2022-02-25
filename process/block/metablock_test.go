@@ -3468,7 +3468,7 @@ func TestMetaProcessor_getFinalCrossMiniBlockHashes(t *testing.T) {
 
 		expectedHashes := make(map[string]uint32)
 
-		hashes := mp.GetFinalCrossMiniBlockHashes(&block.Header{})
+		hashes := process.GetFinalCrossMiniBlockHashes(&block.Header{}, 0, false)
 		assert.Equal(t, expectedHashes, hashes)
 	})
 
@@ -3506,7 +3506,7 @@ func TestMetaProcessor_getFinalCrossMiniBlockHashes(t *testing.T) {
 			hash2: 2,
 		}
 
-		hashes := mp.GetFinalCrossMiniBlockHashes(header)
+		hashes := process.GetFinalCrossMiniBlockHashes(header, 0, true)
 		assert.Equal(t, expectedHashes, hashes)
 	})
 }
@@ -3526,7 +3526,7 @@ func TestMetaProcessor_getMiniBlockHeaderWithHash(t *testing.T) {
 			MiniBlockHeaders: []block.MiniBlockHeader{*expectedMbh},
 		}
 
-		mbh := blproc.GetMiniBlockHeaderWithHash(header, []byte(hash2))
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash2))
 		assert.Nil(t, mbh)
 	})
 
@@ -3540,7 +3540,7 @@ func TestMetaProcessor_getMiniBlockHeaderWithHash(t *testing.T) {
 			MiniBlockHeaders: []block.MiniBlockHeader{*expectedMbh},
 		}
 
-		mbh := blproc.GetMiniBlockHeaderWithHash(header, []byte(hash1))
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
 		assert.Equal(t, expectedMbh, mbh)
 	})
 }

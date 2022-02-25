@@ -746,7 +746,7 @@ func (dbb *delayedBlockBroadcaster) getFinalCrossMiniBlockHashes(header data.Hea
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(toShardID)
 	miniBlockHashes := make(map[string]uint32)
 	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
-		miniBlockHeader := getMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
+		miniBlockHeader := process.GetMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
 		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
 			log.Debug("delayedBlockBroadcaster.getFinalCrossMiniBlockHashes: do not broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 			continue
@@ -756,13 +756,4 @@ func (dbb *delayedBlockBroadcaster) getFinalCrossMiniBlockHashes(header data.Hea
 	}
 
 	return miniBlockHashes
-}
-
-func getMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
-	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
-		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
-			return miniBlockHeader
-		}
-	}
-	return nil
 }
