@@ -2457,7 +2457,11 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		sc.updateSmartContractCode(vmOutput, acc, outAcc)
+		err = sc.updateSmartContractCode(vmOutput, acc, outAcc)
+		if err != nil {
+			return false, nil, err
+		}
+
 		// change nonce only if there is a change
 		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
@@ -2507,23 +2511,27 @@ func (sc *scProcessor) updateSmartContractCode(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
-) {
+) error {
 	if len(outputAccount.Code) == 0 {
-		return
+		return nil
 	}
 	if len(outputAccount.CodeMetadata) == 0 {
-		return
+		return nil
 	}
 	if !core.IsSmartContractAddress(outputAccount.Address) {
-		return
+		return nil
 	}
 
-	outputAccountCodeMetadataBytes, _ := sc.blockChainHook.FilterCodeMetadataForUpgrade(outputAccount.CodeMetadata)
+	outputAccountCodeMetadataBytes, err := sc.blockChainHook.FilterCodeMetadataForUpgrade(outputAccount.CodeMetadata)
+	if err != nil {
+		return err
+	}
+
 	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
 	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccountCodeMetadataBytes, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
-		return
+		return nil
 	}
 
 	currentOwner := stateAccount.GetOwnerAddress()
@@ -2554,7 +2562,7 @@ func (sc *scProcessor) updateSmartContractCode(
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
-		return
+		return nil
 	}
 
 	if isUpgrade {
@@ -2564,8 +2572,10 @@ func (sc *scProcessor) updateSmartContractCode(
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
-		return
+		return nil
 	}
+
+	return nil
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM

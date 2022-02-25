@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -36,11 +37,6 @@ var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
 const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
-
-// TODO move these in vmcommon, make a new type for them and make them exported
-const codeMetadataBytesUnchanged = 0
-const codeMetadataValidBytes = 1
-const codeMetadataInvalidBytes = 2
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
@@ -478,18 +474,19 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 
 // FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
 // taking into account the activation flags for the future flags. This should be used in the upgrade SC process
-func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, int) {
+func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
 	if !bh.flagFilterCodeMetadataEnableEpoch.IsSet() {
-		return input, codeMetadataBytesUnchanged
+		// return the raw bytes unconditioned here for backwards compatibility reasons
+		return input, nil
 	}
 
 	raw := vmcommon.CodeMetadataFromBytes(input)
 	filtered := bh.ApplyFiltersOnCodeMetadata(raw)
 	if bytes.Equal(input, filtered.ToBytes()) {
-		return filtered.ToBytes(), codeMetadataValidBytes
+		return filtered.ToBytes(), nil
 	}
 
-	return filtered.ToBytes(), codeMetadataInvalidBytes
+	return nil, parsers.ErrInvalidCodeMetadata
 }
 
 // ApplyFiltersOnCodeMetadata will apply all known filters on the provided code metadata value

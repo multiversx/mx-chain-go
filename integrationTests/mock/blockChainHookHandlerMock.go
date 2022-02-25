@@ -12,7 +12,7 @@ type BlockChainHookHandlerMock struct {
 	IsPayableCalled                    func(sndAddress []byte, rcvAddress []byte) (bool, error)
 	DeleteCompiledCodeCalled           func(codeHash []byte)
 	ProcessBuiltInFunctionCalled       func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	FilterCodeMetadataForUpgradeCalled func(input []byte) ([]byte, int)
+	FilterCodeMetadataForUpgradeCalled func(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadataCalled   func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 }
 
@@ -61,12 +61,12 @@ func (e *BlockChainHookHandlerMock) DeleteCompiledCode(codeHash []byte) {
 }
 
 // FilterCodeMetadataForUpgrade -
-func (e *BlockChainHookHandlerMock) FilterCodeMetadataForUpgrade(input []byte) ([]byte, int) {
+func (e *BlockChainHookHandlerMock) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
 	if e.FilterCodeMetadataForUpgradeCalled != nil {
 		return e.FilterCodeMetadataForUpgradeCalled(input)
 	}
 
-	return input, 0
+	return input, nil
 }
 
 // ApplyFiltersOnCodeMetadata -

@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -15,11 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
-	senderAddressBytes := []byte("12345678901234567890123456789012")
-	senderNonce := uint64(0)
-	senderBalance := big.NewInt(100000000)
+var senderAddressBytes = []byte("12345678901234567890123456789012")
+var senderNonce = uint64(0)
+var senderBalance = big.NewInt(1000000000000)
 
+func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		senderNonce,
 		senderAddressBytes,
@@ -66,16 +67,58 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 
 		assert.Equal(t, []byte{0, 0}, getCodeMetadata(t, testContext.Accounts, contractAddress))
 	})
+	t.Run("SC deploys child SC while payable by SC is inactive with a bad code metadata should work: backwards compatibility reasons", func(t *testing.T) {
+		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0})
+
+		goodCodeMetadata := []byte{05, 02}
+		badCodeMetadata := []byte{0xFF, 0xFF}
+		scParent, scChild, retCode, errDeploy := deployChildAndParentContracts(t, testContext, senderAddressBytes, hex.EncodeToString(goodCodeMetadata), hex.EncodeToString(badCodeMetadata))
+
+		assert.Equal(t, goodCodeMetadata, getCodeMetadata(t, testContext.Accounts, scParent))
+		assert.Equal(t, badCodeMetadata, getCodeMetadata(t, testContext.Accounts, scChild))
+		assert.Equal(t, vmcommon.Ok, retCode)
+		assert.Nil(t, errDeploy)
+	})
+	t.Run("SC deploys child SC while payable by SC is active should handle the child SC deploy", func(t *testing.T) {
+		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1})
+
+		goodCodeMetadata := []byte{05, 02}
+		t.Run("bad code metadata by value", func(t *testing.T) {
+			badCodeMetadata := []byte{0xFF, 0xFF}
+			scParent, scChild, retCode, errDeploy := deployChildAndParentContracts(t, testContext, senderAddressBytes, hex.EncodeToString(goodCodeMetadata), hex.EncodeToString(badCodeMetadata))
+
+			assert.Equal(t, goodCodeMetadata, getCodeMetadata(t, testContext.Accounts, scParent))
+			assert.False(t, accountExists(testContext.Accounts, scChild))
+			assert.Equal(t, vmcommon.ExecutionFailed, retCode)
+			assert.Nil(t, errDeploy)
+		})
+		t.Run("bad code metadata by number of values", func(t *testing.T) {
+			badCodeMetadata := []byte{0xFF, 0xFF, 0xFF}
+			scParent, scChild, retCode, errDeploy := deployChildAndParentContracts(t, testContext, senderAddressBytes, hex.EncodeToString(goodCodeMetadata), hex.EncodeToString(badCodeMetadata))
+
+			assert.Equal(t, goodCodeMetadata, getCodeMetadata(t, testContext.Accounts, scParent))
+			assert.False(t, accountExists(testContext.Accounts, scChild))
+			assert.Equal(t, vmcommon.ExecutionFailed, retCode)
+			assert.Nil(t, errDeploy)
+		})
+		t.Run("ok code metadata should work", func(t *testing.T) {
+			scParent, scChild, retCode, errDeploy := deployChildAndParentContracts(t, testContext, senderAddressBytes, hex.EncodeToString(goodCodeMetadata), hex.EncodeToString(goodCodeMetadata))
+
+			assert.Equal(t, goodCodeMetadata, getCodeMetadata(t, testContext.Accounts, scParent))
+			assert.Equal(t, goodCodeMetadata, getCodeMetadata(t, testContext.Accounts, scChild))
+			assert.Equal(t, vmcommon.Ok, retCode)
+			assert.Nil(t, errDeploy)
+		})
+	})
 }
 
-func deployDummySCReturningContractAddress(tb testing.TB, testContext *vm.VMTestContext, senderAddressBytes []byte, codeMetadataHex string) []byte {
+func deploySC(tb testing.TB, testContext *vm.VMTestContext, senderAddressBytes []byte, codeMetadataHex string, codeHex string) []byte {
 	transferOnCalls := big.NewInt(50)
 
 	accnt, err := testContext.Accounts.LoadAccount(senderAddressBytes)
 	require.Nil(tb, err)
 
 	nonce := accnt.GetNonce()
-	scCode := arwen.GetSCCode("../../testdata/misc/fib_arwen/output/fib_arwen.wasm")
 	tx := vm.CreateTx(
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
@@ -83,7 +126,7 @@ func deployDummySCReturningContractAddress(tb testing.TB, testContext *vm.VMTest
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		arwen.CreateDeployTxDataWithCodeMetadata(scCode, codeMetadataHex),
+		arwen.CreateDeployTxDataWithCodeMetadata(codeHex, codeMetadataHex),
 	)
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -100,10 +143,70 @@ func deployDummySCReturningContractAddress(tb testing.TB, testContext *vm.VMTest
 	return contractAddressBytes
 }
 
+func deployDummySCReturningContractAddress(tb testing.TB, testContext *vm.VMTestContext, senderAddressBytes []byte, codeMetadataHex string) []byte {
+	scCode := arwen.GetSCCode("../../testdata/misc/fib_arwen/output/fib_arwen.wasm")
+
+	return deploySC(tb, testContext, senderAddressBytes, codeMetadataHex, scCode)
+}
+
+func deployChildAndParentContracts(
+	tb testing.TB,
+	testContext *vm.VMTestContext,
+	senderAddressBytes []byte,
+	codeMetadataParentHex string,
+	codeMetadataChildHex string,
+) ([]byte, []byte, vmcommon.ReturnCode, error) {
+	transferOnCalls := big.NewInt(50)
+
+	parentScCode := arwen.GetSCCode("../../testdata/deployer-custom/output/deployer-custom.wasm")
+	scParentAddressBytes := deploySC(tb, testContext, senderAddressBytes, codeMetadataParentHex, parentScCode)
+
+	scParentAccnt, err := testContext.Accounts.LoadAccount(scParentAddressBytes)
+	require.Nil(tb, err)
+	parentNonce := scParentAccnt.GetNonce()
+
+	childScCode := arwen.GetSCCode("../../testdata/counter/output/counter.wasm")
+	accnt, err := testContext.Accounts.LoadAccount(senderAddressBytes)
+	require.Nil(tb, err)
+
+	nonce := accnt.GetNonce()
+	tx := vm.CreateTx(
+		senderAddressBytes,
+		scParentAddressBytes,
+		nonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit*10,
+		fmt.Sprintf("%s@%s@%s", "deployChild", childScCode, codeMetadataChildHex),
+	)
+
+	vmTypeBytes, _ := hex.DecodeString(arwen.VMTypeHex)
+	scChildAddressBytes, err := testContext.BlockchainHook.NewAddress(scParentAddressBytes, parentNonce, vmTypeBytes)
+	require.Nil(tb, err)
+
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	if err != nil || returnCode != vmcommon.Ok {
+		return scParentAddressBytes, scChildAddressBytes, returnCode, err
+	}
+	require.Nil(tb, err)
+	require.Equal(tb, returnCode, vmcommon.Ok)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(tb, err)
+
+	return scParentAddressBytes, scChildAddressBytes, vmcommon.Ok, nil
+}
+
 func getCodeMetadata(tb testing.TB, accounts state.AccountsAdapter, address []byte) []byte {
 	account, err := accounts.LoadAccount(address)
 	require.Nil(tb, err)
 
 	userAccount := account.(state.UserAccountHandler)
 	return userAccount.GetCodeMetadata()
+}
+
+func accountExists(accounts state.AccountsAdapter, address []byte) bool {
+	_, err := accounts.GetExistingAccount(address)
+
+	return err == nil
 }
