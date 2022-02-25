@@ -143,12 +143,13 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       context.VMContainer,
-		EconomicsFee:      context.EconomicsFee,
-		BlockChainHook:    context.BlockchainHook,
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      disabled.NewDisabledBootstrapper(),
+		VmContainer:              context.VMContainer,
+		EconomicsFee:             context.EconomicsFee,
+		BlockChainHook:           context.BlockchainHook,
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             disabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
