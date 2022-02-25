@@ -42,6 +42,7 @@ type ApiResolverArgs struct {
 	ProcessComponents   ProcessComponentsHolder
 	GasScheduleNotifier core.GasScheduleNotifier
 	Bootstrapper        process.Bootstrapper
+	AllowVMQueriesChan  chan struct{}
 }
 
 type scQueryServiceArgs struct {
@@ -55,6 +56,7 @@ type scQueryServiceArgs struct {
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
 	bootstrapper        process.Bootstrapper
+	allowVMQueriesChan  chan struct{}
 	workingDir          string
 }
 
@@ -69,6 +71,7 @@ type scQueryElementArgs struct {
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
 	bootstrapper        process.Bootstrapper
+	allowVMQueriesChan  chan struct{}
 	workingDir          string
 	index               int
 }
@@ -88,6 +91,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
 		systemSCConfig:      args.Configs.SystemSCConfig,
 		bootstrapper:        args.Bootstrapper,
+		allowVMQueriesChan:  args.AllowVMQueriesChan,
 		workingDir:          apiWorkingDir,
 	}
 
@@ -200,6 +204,7 @@ func createScQueryService(
 		systemSCConfig:      args.systemSCConfig,
 		workingDir:          args.workingDir,
 		bootstrapper:        args.bootstrapper,
+		allowVMQueriesChan:  args.allowVMQueriesChan,
 		index:               0,
 	}
 
@@ -332,16 +337,16 @@ func createScQueryElement(
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      args.coreComponents.EconomicsData(),
-		BlockChainHook:    vmFactory.BlockChainHookImpl(),
-		BlockChain:        args.dataComponents.Blockchain(),
-		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
-		Bootstrapper:      args.bootstrapper,
+		VmContainer:              vmContainer,
+		EconomicsFee:             args.coreComponents.EconomicsData(),
+		BlockChainHook:           vmFactory.BlockChainHookImpl(),
+		BlockChain:               args.dataComponents.Blockchain(),
+		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
+		Bootstrapper:             args.bootstrapper,
+		AllowExternalQueriesChan: args.allowVMQueriesChan,
 	}
-	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	return scQueryService, err
+	return smartContract.NewSCQueryService(argsNewSCQueryService)
 }
 
 func createBuiltinFuncs(

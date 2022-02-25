@@ -541,12 +541,13 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -733,12 +734,13 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -935,12 +937,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 
 	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    vmFactory.BlockChainHookImpl(),
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              vmContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           vmFactory.BlockChainHookImpl(),
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -951,12 +954,13 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap)
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
