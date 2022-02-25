@@ -375,7 +375,6 @@ func (txs *transactions) createScheduledMiniBlocks(
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks, mapSCTxs)
-
 	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, len(sortedTxs), mbInfo)
 
 	log.Debug("createScheduledMiniBlocks has been finished")
@@ -863,5 +862,5 @@ func (txs *transactions) applyVerifiedTransaction(
 
 	mapSCTxs[string(txHash)] = struct{}{}
 	mbInfo.schedulingInfo.numScheduledTxsAdded++
-	txs.scheduledTxsExecutionHandler.Add(txHash, tx)
+	txs.scheduledTxsExecutionHandler.AddScheduledTx(txHash, tx)
 }
