@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -60,7 +61,7 @@ func RunTest(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	if err != nil {
 		return ResultInfo{}, err
@@ -143,7 +144,7 @@ func DeployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	if err != nil {
 		return nil, err
