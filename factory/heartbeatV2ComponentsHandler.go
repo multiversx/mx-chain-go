@@ -59,6 +59,14 @@ func (mhc *managedHeartbeatV2Components) String() string {
 	return heartbeatV2ComponentsName
 }
 
+// Monitor returns the heartbeatV2 monitor
+func (mhc *managedHeartbeatV2Components) Monitor() HeartbeatV2Monitor {
+	mhc.mutHeartbeatV2Components.Lock()
+	defer mhc.mutHeartbeatV2Components.Unlock()
+
+	return mhc.monitor
+}
+
 // Close closes the heartbeat components
 func (mhc *managedHeartbeatV2Components) Close() error {
 	mhc.mutHeartbeatV2Components.Lock()

@@ -293,6 +293,8 @@ func GetGeneralConfig() config.Config {
 			HeartbeatThresholdBetweenSends:                   0.1,
 			MaxNumOfPeerAuthenticationInResponse:             5,
 			HeartbeatExpiryTimespanInSec:                     30,
+			MaxDurationPeerUnresponsiveInSec:                 10,
+			HideInactiveValidatorIntervalInSec:               60,
 			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 				DefaultSpanInSec: 30,
 				CacheExpiryInSec: 30,

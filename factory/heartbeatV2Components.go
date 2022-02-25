@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 )
@@ -41,6 +42,7 @@ type heartbeatV2ComponentsFactory struct {
 type heartbeatV2Components struct {
 	sender    HeartbeatV2Sender
 	processor PeerAuthenticationRequestsProcessor
+	monitor   HeartbeatV2Monitor
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -152,9 +154,24 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+	argsMonitor := monitor.ArgHeartbeatV2Monitor{
+		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
+		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
+		Marshaller:                    hcf.coreComponents.InternalMarshalizer(),
+		PeerShardMapper:               hcf.processComponents.PeerShardMapper(),
+		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
+		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
+		ShardId:                       epochBootstrapParams.SelfShardID(),
+	}
+	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
+	if err != nil {
+		return nil, err
+	}
+
 	return &heartbeatV2Components{
 		sender:    heartbeatV2Sender,
 		processor: paRequestsProcessor,
+		monitor:   heartbeatsMonitor,
 	}, nil
 }
 
