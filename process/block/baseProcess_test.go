@@ -1720,22 +1720,6 @@ func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAn
 func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	zeroGasAndFees := process.GetZeroGasAndFees()
 
-	initialGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(11),
-		DeveloperFees:   big.NewInt(12),
-		GasProvided:     13,
-		GasPenalized:    14,
-		GasRefunded:     15,
-	}
-
-	finalGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(103),
-		GasProvided:     105,
-		GasPenalized:    107,
-		GasRefunded:     109,
-	}
-
 	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
 		t.Parallel()
 
@@ -1828,6 +1812,22 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
+
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
+			GasPenalized:    14,
+			GasRefunded:     15,
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(103),
+			GasProvided:     105,
+			GasPenalized:    107,
+			GasRefunded:     109,
+		}
 
 		expectedGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees),
@@ -2304,4 +2304,52 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Proposed), mbHandler.GetConstructionState())
 	})
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrNilBlockBody(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(nil)
+	assert.Equal(t, err, process.ErrNilBlockBody)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFromStorageFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("error")
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 0, expectedError
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Equal(t, err, expectedError)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 1, nil
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Nil(t, err)
 }

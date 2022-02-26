@@ -449,7 +449,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 	dbb.mutDataForBroadcast.Unlock()
 
 	if vHeader == nil {
-		log.Warn("delayedBlockBroadcaster.headerAlarmExpired: alarm data is nil",
+		log.Debug("delayedBlockBroadcaster.headerAlarmExpired: alarm data is nil",
 			"headerHash", headerHash,
 			"alarmID", alarmID,
 		)

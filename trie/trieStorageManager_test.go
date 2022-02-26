@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -291,7 +292,7 @@ func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 	err := ts.PutInEpoch(key, value, 0)
-	assert.Equal(t, trie.ErrContextClosing, err)
+	assert.Equal(t, errors.ErrContextClosing, err)
 }
 
 func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
