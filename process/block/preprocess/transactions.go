@@ -764,9 +764,18 @@ func (txs *transactions) addTxsFromScheduledMiniBlocks() {
 		}
 
 		txShardInfoToSet := &txShardInfo{senderShardID: mb.SenderShardID, receiverShardID: mb.ReceiverShardID}
+		searchFirst := mb.Type == block.InvalidBlock
 
 		for _, txHash := range mb.TxHashes {
-			tx, err := txs.scheduledTxsExecutionHandler.GetScheduledTx(txHash)
+			tx, err := process.GetTransactionHandler(
+				mb.SenderShardID,
+				mb.ReceiverShardID,
+				txHash,
+				txs.txPool,
+				txs.storage,
+				txs.marshalizer,
+				searchFirst,
+			)
 			if err != nil {
 				log.Warn("transactions.addTxsFromScheduledMiniBlocks: GetScheduledTx", "tx hash", txHash, "error", err.Error())
 				continue
