@@ -1653,38 +1653,3 @@ func TestScheduledTxsExecution_IsMiniBlockExecuted(t *testing.T) {
 	ok = scheduledTxsExec.IsScheduledTx(hash2)
 	assert.False(t, ok)
 }
-
-func TestScheduledTxsExecution_GetScheduledTx(t *testing.T) {
-	t.Parallel()
-
-	txHash1 := []byte("hash1")
-	txHash2 := []byte("hash2")
-	txHash3 := []byte("hash3")
-
-	tx1 := &transaction.Transaction{Nonce: 1}
-	tx2 := &transaction.Transaction{Nonce: 2}
-
-	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&testscommon.TxProcessorMock{},
-		&mock.TransactionCoordinatorMock{},
-		&genericMocks.StorerMock{},
-		&marshal.GogoProtoMarshalizer{},
-		&mock.HasherStub{},
-		&mock.ShardCoordinatorStub{},
-	)
-
-	_ = scheduledTxsExec.AddScheduledTx(txHash1, tx1)
-	_ = scheduledTxsExec.AddScheduledTx(txHash2, tx2)
-
-	tx, err := scheduledTxsExec.GetScheduledTx(txHash1)
-	assert.Nil(t, err)
-	assert.Equal(t, tx1, tx)
-
-	tx, err = scheduledTxsExec.GetScheduledTx(txHash2)
-	assert.Nil(t, err)
-	assert.Equal(t, tx2, tx)
-
-	tx, err = scheduledTxsExec.GetScheduledTx(txHash3)
-	assert.Nil(t, tx)
-	assert.Equal(t, process.ErrMissingTransaction, err)
-}

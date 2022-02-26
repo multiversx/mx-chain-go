@@ -777,7 +777,7 @@ func (txs *transactions) addTxsFromScheduledMiniBlocks() {
 				searchFirst,
 			)
 			if err != nil {
-				log.Warn("transactions.addTxsFromScheduledMiniBlocks: GetScheduledTx", "tx hash", txHash, "error", err.Error())
+				log.Warn("transactions.addTxsFromScheduledMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
 				continue
 			}
 

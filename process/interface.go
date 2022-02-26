@@ -1153,7 +1153,6 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
 	IsMiniBlockExecuted(mbHash []byte) bool
-	GetScheduledTx(txHash []byte) (data.TransactionHandler, error)
 	IsInterfaceNil() bool
 }
 
