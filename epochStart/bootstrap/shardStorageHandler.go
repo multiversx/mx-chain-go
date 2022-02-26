@@ -489,7 +489,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 
 	lastCrossMetaHdrHash := shardData.GetLastFinishedMetaBlock()
 	if len(shardData.GetPendingMiniBlockHeaderHandlers()) == 0 {
-		log.Warn("saveLastCrossNotarizedHeaders changing lastCrossMetaHdrHash", "initial hash", lastCrossMetaHdrHash, "final hash", shardData.GetFirstPendingMetaBlock())
+		log.Debug("saveLastCrossNotarizedHeaders changing lastCrossMetaHdrHash", "initial hash", lastCrossMetaHdrHash, "final hash", shardData.GetFirstPendingMetaBlock())
 		lastCrossMetaHdrHash = shardData.GetFirstPendingMetaBlock()
 	}
 
