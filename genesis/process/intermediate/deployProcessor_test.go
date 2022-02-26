@@ -79,7 +79,7 @@ func TestNewDeployProcessor_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Deploy
+// ------- Deploy
 
 func TestDeployProcessor_DeployGetCodeFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -222,7 +222,7 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 	assert.Equal(t, scResulting, scAddresses[0])
 }
 
-//------- getSCCodeAsHex
+// ------- getSCCodeAsHex
 
 func TestDeployProcessor_GetSCCodeAsHexShouldWork(t *testing.T) {
 	t.Parallel()
