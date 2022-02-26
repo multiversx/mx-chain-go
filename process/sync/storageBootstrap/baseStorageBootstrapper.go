@@ -134,15 +134,6 @@ func (st *storageBootstrapper) loadBlocks() error {
 			continue
 		}
 
-		if len(bootInfos) > 1 {
-			err = st.restoreBlockBodyIntoPools(headerInfo.LastHeader.Hash)
-			if err != nil {
-				log.Warn("storageBootstrapper.loadBlocks: checkBlockBodyIntegrity", "error", err.Error())
-				round = headerInfo.LastRound
-				continue
-			}
-		}
-
 		break
 	}
 
@@ -403,6 +394,14 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	if err != nil {
 		log.Debug("cannot load epoch start trigger state", "error", err.Error())
 		return err
+	}
+
+	if len(bootInfos) > 1 {
+		err = st.restoreBlockBodyIntoPools(bootInfos[0].LastHeader.Hash)
+		if err != nil {
+			log.Debug("cannot restore block body into pool", "error", err.Error())
+			return err
+		}
 	}
 
 	return nil

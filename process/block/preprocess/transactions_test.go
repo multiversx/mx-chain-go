@@ -1714,4 +1714,35 @@ func createWrappedTxsWithData(nb int, srcShard uint32, rcvShard uint32, sender [
 	return txs
 }
 
-//TODO: Add unit tests for methods: addTxsFromScheduledMiniBlocks
+func TestTxsPreprocessor_AddTxsFromScheduledMiniBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+			mbs := []*block.MiniBlock{
+				{
+					Type: block.SmartContractResultBlock,
+				},
+				{
+					Type: block.TxBlock,
+					TxHashes: [][]byte{
+						[]byte("tx1_hash"),
+						[]byte("tx2_hash"),
+						[]byte("tx3_hash"),
+					},
+				},
+			}
+			return mbs
+		},
+	}
+	txs, _ := NewTransactionPreprocessor(args)
+
+	txs.addTxsFromScheduledMiniBlocks()
+	assert.Equal(t, 0, len(txs.txsForCurrBlock.txHashAndInfo))
+
+	txs.EpochConfirmed(2, 0)
+
+	txs.addTxsFromScheduledMiniBlocks()
+	assert.Equal(t, 2, len(txs.txsForCurrBlock.txHashAndInfo))
+}
