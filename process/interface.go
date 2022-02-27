@@ -149,6 +149,7 @@ type TransactionCoordinator interface {
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
+	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	IsInterfaceNil() bool
 }
 
@@ -215,6 +216,7 @@ type PreProcessor interface {
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
+	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	IsInterfaceNil() bool
 }
 

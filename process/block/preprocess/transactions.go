@@ -742,18 +742,11 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 	txs.accountTxsShards.Unlock()
 
-	txs.addTxsFromScheduledMiniBlocks()
-
 	txs.scheduledTxsExecutionHandler.Init()
 }
 
-func (txs *transactions) addTxsFromScheduledMiniBlocks() {
-	if !txs.flagScheduledMiniBlocks.IsSet() {
-		return
-	}
-
-	scheduledMiniBlocks := txs.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
-	for _, mb := range scheduledMiniBlocks {
+func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	for _, mb := range miniBlocks {
 		if !txs.isMiniBlockCorrect(mb.Type) {
 			log.Warn("transactions.addTxsFromScheduledMiniBlocks: mini block type is not correct",
 				"type", mb.Type,
@@ -777,7 +770,7 @@ func (txs *transactions) addTxsFromScheduledMiniBlocks() {
 				searchFirst,
 			)
 			if err != nil {
-				log.Warn("transactions.addTxsFromScheduledMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
+				log.Warn("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
 				continue
 			}
 

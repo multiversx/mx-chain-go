@@ -1909,7 +1909,10 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+	if sp.flagScheduledMiniBlocks.IsSet() {
+		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+	}
 
 	// placeholder for shardProcessor.createMiniBlocks script
 
