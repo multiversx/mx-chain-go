@@ -413,8 +413,8 @@ func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat
 }
 
 // GetInternalMiniBlock return the miniblock for a given hash
-func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string) (interface{}, error) {
-	return nf.apiResolver.GetInternalMiniBlock(format, txHash)
+func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
 
 // Close will cleanup started go routines

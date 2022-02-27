@@ -116,7 +116,7 @@ type ApiResolver interface {
 	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string) (interface{}, error)
+	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	Close() error
 	IsInterfaceNil() bool
 }

@@ -12,7 +12,7 @@ type InternalBlockApiHandlerStub struct {
 	GetInternalMetaBlockByNonceCalled  func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHashCalled   func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled  func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockCalled         func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalMiniBlockCalled         func(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
 }
 
 // GetInternalShardBlockByNonce -
@@ -64,9 +64,9 @@ func (ibah *InternalBlockApiHandlerStub) GetInternalMetaBlockByRound(format comm
 }
 
 // GetInternalMiniBlock -
-func (ibah *InternalBlockApiHandlerStub) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte) (interface{}, error) {
+func (ibah *InternalBlockApiHandlerStub) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error) {
 	if ibah.GetInternalMiniBlockCalled != nil {
-		return ibah.GetInternalMiniBlockCalled(format, hash)
+		return ibah.GetInternalMiniBlockCalled(format, hash, epoch)
 	}
 	return nil, nil
 }

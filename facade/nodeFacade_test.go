@@ -1185,13 +1185,13 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 	}
 
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetInternalMiniBlockCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
 			return blk, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
-	ret, err := nf.GetInternalMiniBlockByHash(common.ApiOutputFormatProto, "dummyhash")
+	ret, err := nf.GetInternalMiniBlockByHash(common.ApiOutputFormatProto, "dummyhash", 1)
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)

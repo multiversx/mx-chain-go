@@ -282,7 +282,7 @@ func (inf *initialNodeFacade) GetInternalShardBlockByRound(_ common.ApiOutputFor
 }
 
 // GetInternalMiniBlockByHash return nil and error
-func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+func (inf *initialNodeFacade) GetInternalMiniBlockByHash(_ common.ApiOutputFormat, _ string, _ uint32) (interface{}, error) {
 	return nil, errNodeStarting
 }
 

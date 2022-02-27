@@ -3,6 +3,7 @@ package groups
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,8 +27,8 @@ const (
 	getInternalShardBlockByNoncePath = "/json/shardblock/by-nonce/:nonce"
 	getInternalShardBlockByHashPath  = "/json/shardblock/by-hash/:hash"
 	getInternalShardBlockByRoundPath = "/json/shardblock/by-round/:round"
-	getRawMiniBlockByHashPath        = "/raw/miniblock/by-hash/:hash"
-	getInternalMiniBlockByHashPath   = "/json/miniblock/by-hash/:hash"
+	getRawMiniBlockByHashPath        = "/raw/miniblock/by-hash/:hash/epoch/:epoch"
+	getInternalMiniBlockByHashPath   = "/json/miniblock/by-hash/:hash/epoch/:epoch"
 )
 
 // internalBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
@@ -38,7 +39,7 @@ type internalBlockFacadeHandler interface {
 	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -457,8 +458,16 @@ func (ib *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 		return
 	}
 
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidMiniBlockEpoch.Error()),
+		)
+		return
+	}
+
 	start := time.Now()
-	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatProto, hash)
+	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatProto, hash, epoch)
 	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -483,8 +492,16 @@ func (ib *internalBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 		return
 	}
 
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidMiniBlockEpoch.Error()),
+		)
+		return
+	}
+
 	start := time.Now()
-	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatInternal, hash)
+	miniBlock, err := ib.getFacade().GetInternalMiniBlockByHash(common.ApiOutputFormatInternal, hash, epoch)
 	log.Debug(fmt.Sprintf("GetInternalMiniBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
@@ -522,6 +539,12 @@ func (ib *internalBlockGroup) UpdateFacade(newFacade interface{}) error {
 	ib.mutFacade.Unlock()
 
 	return nil
+}
+
+func getQueryParamEpoch(c *gin.Context) (uint32, error) {
+	roundStr := c.Param("epoch")
+	epoch, err := strconv.ParseUint(roundStr, 10, 64)
+	return uint32(epoch), err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

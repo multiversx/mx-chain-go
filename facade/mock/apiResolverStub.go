@@ -27,7 +27,7 @@ type ApiResolverStub struct {
 	GetInternalMetaBlockByNonceCalled  func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHashCalled   func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled  func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockCalled         func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMiniBlockCalled         func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 }
 
 // GetTransaction -
@@ -169,9 +169,9 @@ func (ars *ApiResolverStub) GetInternalMetaBlockByRound(format common.ApiOutputF
 }
 
 // GetInternalMiniBlock -
-func (ars *ApiResolverStub) GetInternalMiniBlock(format common.ApiOutputFormat, hash string) (interface{}, error) {
+func (ars *ApiResolverStub) GetInternalMiniBlock(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
 	if ars.GetInternalMiniBlockCalled != nil {
-		return ars.GetInternalMiniBlockCalled(format, hash)
+		return ars.GetInternalMiniBlockCalled(format, hash, epoch)
 	}
 	return nil, nil
 }

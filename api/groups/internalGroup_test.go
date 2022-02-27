@@ -632,7 +632,7 @@ func TestGetRawMiniBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -651,13 +651,36 @@ func TestGetRawMiniBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.Code)
 }
 
+func TestGetRawMiniBlockByHash_NoEpochUrlParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash/aaaa/epoch", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawMiniBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+}
+
 func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedOutput := bytes.Repeat([]byte("1"), 10)
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -667,7 +690,7 @@ func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash/dummyhash", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash/aaaa/epoch/1", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -1244,7 +1267,7 @@ func TestGetInternalMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T)
 	t.Parallel()
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
 			return []byte{}, nil
 		},
 	}
@@ -1263,13 +1286,36 @@ func TestGetInternalMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T)
 	assert.Equal(t, http.StatusNotFound, resp.Code)
 }
 
+func TestGetInternalMiniBlockByHash_NoEpochUrlParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/json/miniblock/by-hash/aaaa/epoch", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawMiniBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+}
+
 func TestGetInternalMiniBlockByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedOutput := block.MiniBlock{}
 
 	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
 			return expectedOutput, nil
 		},
 	}
@@ -1279,7 +1325,7 @@ func TestGetInternalMiniBlockByHash_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/json/miniblock/by-hash/dummyhash", nil)
+	req, _ := http.NewRequest("GET", "/internal/json/miniblock/by-hash/dummyhash/epoch/1", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -1301,14 +1347,14 @@ func getInternalBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/raw/shardblock/by-nonce/:nonce", Open: true},
 					{Name: "/raw/shardblock/by-hash/:hash", Open: true},
 					{Name: "/raw/shardblock/by-round/:round", Open: true},
-					{Name: "/raw/miniblock/by-hash/:hash", Open: true},
+					{Name: "/raw/miniblock/by-hash/:hash/epoch/:epoch", Open: true},
 					{Name: "/json/metablock/by-nonce/:nonce", Open: true},
 					{Name: "/json/metablock/by-hash/:hash", Open: true},
 					{Name: "/json/metablock/by-round/:round", Open: true},
 					{Name: "/json/shardblock/by-nonce/:nonce", Open: true},
 					{Name: "/json/shardblock/by-hash/:hash", Open: true},
 					{Name: "/json/shardblock/by-round/:round", Open: true},
-					{Name: "/json/miniblock/by-hash/:hash", Open: true},
+					{Name: "/json/miniblock/by-hash/:hash/epoch/:epoch", Open: true},
 				},
 			},
 		},

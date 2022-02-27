@@ -550,26 +550,32 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 
 	miniBlockHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 	txHash := []byte("dummyhash")
+	expEpoch := uint32(1)
 
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("key not found err")
-		storerMock := &mock.ChainStorerMock{
-			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
+
 		ibp := newInternalBlockProcessor(
 			&ArgAPIBlockProcessor{
-				SelfShardID:              1,
-				Marshalizer:              &mock.MarshalizerFake{},
-				Store:                    storerMock,
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &mock.ChainStorerMock{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+						return storerMock
+					},
+				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, []byte("invalidHash"))
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, []byte("invalidHash"), 1)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -581,23 +587,28 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			TxHashes: [][]byte{txHash},
 		}
 		mbBytes, _ := json.Marshal(mb)
-		storerMock := &mock.ChainStorerMock{
-			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				assert.Equal(t, miniBlockHash, key)
+				assert.Equal(t, expEpoch, epoch)
 				return mbBytes, nil
 			},
 		}
 
 		ibp := newInternalBlockProcessor(
 			&ArgAPIBlockProcessor{
-				SelfShardID:              1,
-				Marshalizer:              &mock.MarshalizerFake{},
-				Store:                    storerMock,
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &mock.ChainStorerMock{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+						return storerMock
+					},
+				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatProto, miniBlockHash)
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatProto, miniBlockHash, 1)
 		assert.Nil(t, err)
 		assert.Equal(t, mbBytes, blk)
 	})
@@ -609,23 +620,29 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 			TxHashes: [][]byte{txHash},
 		}
 		mbBytes, _ := json.Marshal(mb)
-		storerMock := &mock.ChainStorerMock{
-			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				assert.Equal(t, miniBlockHash, key)
+				assert.Equal(t, expEpoch, epoch)
 				return mbBytes, nil
 			},
 		}
 
 		ibp := newInternalBlockProcessor(
 			&ArgAPIBlockProcessor{
-				SelfShardID:              1,
-				Marshalizer:              &mock.MarshalizerFake{},
-				Store:                    storerMock,
+				SelfShardID: 1,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &mock.ChainStorerMock{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+						return storerMock
+					},
+				},
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, miniBlockHash)
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, miniBlockHash, expEpoch)
 		assert.Nil(t, err)
 		assert.Equal(t, mb, blk)
 	})
