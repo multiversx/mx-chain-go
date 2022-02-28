@@ -161,6 +161,12 @@ func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputF
 	return nar.apiInternalBlockHandler.GetInternalMetaBlockByRound(format, round)
 }
 
+// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// for a specified epoch
+func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
 // GetInternalShardBlockByHash wil return a shard block by hash
 func (nar *nodeApiResolver) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	decodedHash, err := hex.DecodeString(hash)

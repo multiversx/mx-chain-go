@@ -397,6 +397,12 @@ func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat,
 	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
 }
 
+// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// for a specified epoch
+func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
 // GetInternalShardBlockByHash return the shard block for a given hash
 func (nf *nodeFacade) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
 	return nf.apiResolver.GetInternalShardBlockByHash(format, hash)

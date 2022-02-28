@@ -15,20 +15,22 @@ import (
 )
 
 const (
-	getRawMetaBlockByNoncePath       = "/raw/metablock/by-nonce/:nonce"
-	getRawMetaBlockByHashPath        = "/raw/metablock/by-hash/:hash"
-	getRawMetaBlockByRoundPath       = "/raw/metablock/by-round/:round"
-	getRawShardBlockByNoncePath      = "/raw/shardblock/by-nonce/:nonce"
-	getRawShardBlockByHashPath       = "/raw/shardblock/by-hash/:hash"
-	getRawShardBlockByRoundPath      = "/raw/shardblock/by-round/:round"
-	getInternalMetaBlockByNoncePath  = "/json/metablock/by-nonce/:nonce"
-	getInternalMetaBlockByHashPath   = "/json/metablock/by-hash/:hash"
-	getInternalMetaBlockByRoundPath  = "/json/metablock/by-round/:round"
-	getInternalShardBlockByNoncePath = "/json/shardblock/by-nonce/:nonce"
-	getInternalShardBlockByHashPath  = "/json/shardblock/by-hash/:hash"
-	getInternalShardBlockByRoundPath = "/json/shardblock/by-round/:round"
-	getRawMiniBlockByHashPath        = "/raw/miniblock/by-hash/:hash/epoch/:epoch"
-	getInternalMiniBlockByHashPath   = "/json/miniblock/by-hash/:hash/epoch/:epoch"
+	getRawMetaBlockByNoncePath           = "/raw/metablock/by-nonce/:nonce"
+	getRawMetaBlockByHashPath            = "/raw/metablock/by-hash/:hash"
+	getRawMetaBlockByRoundPath           = "/raw/metablock/by-round/:round"
+	getRawStartOfEpochMetaBlockPath      = "/raw/startofepoch/metablock/by-epoch/:epoch"
+	getRawShardBlockByNoncePath          = "/raw/shardblock/by-nonce/:nonce"
+	getRawShardBlockByHashPath           = "/raw/shardblock/by-hash/:hash"
+	getRawShardBlockByRoundPath          = "/raw/shardblock/by-round/:round"
+	getInternalMetaBlockByNoncePath      = "/json/metablock/by-nonce/:nonce"
+	getInternalMetaBlockByHashPath       = "/json/metablock/by-hash/:hash"
+	getInternalMetaBlockByRoundPath      = "/json/metablock/by-round/:round"
+	getInternalStartOfEpochMetaBlockPath = "/json/startofepoch/metablock/by-epoch/:epoch"
+	getInternalShardBlockByNoncePath     = "/json/shardblock/by-nonce/:nonce"
+	getInternalShardBlockByHashPath      = "/json/shardblock/by-hash/:hash"
+	getInternalShardBlockByRoundPath     = "/json/shardblock/by-round/:round"
+	getRawMiniBlockByHashPath            = "/raw/miniblock/by-hash/:hash/epoch/:epoch"
+	getInternalMiniBlockByHashPath       = "/json/miniblock/by-hash/:hash/epoch/:epoch"
 )
 
 // internalBlockFacadeHandler defines the methods to be implemented by a facade for handling block requests
@@ -40,6 +42,7 @@ type internalBlockFacadeHandler interface {
 	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -77,6 +80,11 @@ func NewInternalBlockGroup(facade internalBlockFacadeHandler) (*internalBlockGro
 			Handler: ib.getRawMetaBlockByRound,
 		},
 		{
+			Path:    getRawStartOfEpochMetaBlockPath,
+			Method:  http.MethodGet,
+			Handler: ib.getRawStartOfEpochMetaBlock,
+		},
+		{
 			Path:    getRawShardBlockByNoncePath,
 			Method:  http.MethodGet,
 			Handler: ib.getRawShardBlockByNonce,
@@ -105,6 +113,11 @@ func NewInternalBlockGroup(facade internalBlockFacadeHandler) (*internalBlockGro
 			Path:    getInternalMetaBlockByRoundPath,
 			Method:  http.MethodGet,
 			Handler: ib.getInternalMetaBlockByRound,
+		},
+		{
+			Path:    getInternalStartOfEpochMetaBlockPath,
+			Method:  http.MethodGet,
+			Handler: ib.getInternalStartOfEpochMetaBlock,
 		},
 		{
 			Path:    getInternalShardBlockByNoncePath,
@@ -201,6 +214,32 @@ func (ib *internalBlockGroup) getRawMetaBlockByRound(c *gin.Context) {
 	start := time.Now()
 	rawBlock, err := ib.getFacade().GetInternalMetaBlockByRound(common.ApiOutputFormatProto, round)
 	log.Debug(fmt.Sprintf("GetInternalMetaBlockByRound with proto took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": rawBlock}, "", shared.ReturnCodeSuccess)
+}
+
+func (ib *internalBlockGroup) getRawStartOfEpochMetaBlock(c *gin.Context) {
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	rawBlock, err := ib.getFacade().GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatProto, epoch)
+	log.Debug(fmt.Sprintf("GetInternalStartOfEpochMetaBlock with proto took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -371,6 +410,32 @@ func (ib *internalBlockGroup) getInternalMetaBlockByRound(c *gin.Context) {
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
 }
 
+func (ib *internalBlockGroup) getInternalStartOfEpochMetaBlock(c *gin.Context) {
+	epoch, err := getQueryParamEpoch(c)
+	if err != nil {
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
+		)
+		return
+	}
+
+	start := time.Now()
+	block, err := ib.getFacade().GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, epoch)
+	log.Debug(fmt.Sprintf("GetInternalStartOfEpochMetaBlock took %s", time.Since(start)))
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
+			shared.ReturnCodeInternalError,
+		)
+		return
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+}
+
 func (ib *internalBlockGroup) getInternalShardBlockByNonce(c *gin.Context) {
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
@@ -461,7 +526,7 @@ func (ib *internalBlockGroup) getRawMiniBlockByHash(c *gin.Context) {
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
 		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidMiniBlockEpoch.Error()),
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
 		)
 		return
 	}
@@ -495,7 +560,7 @@ func (ib *internalBlockGroup) getInternalMiniBlockByHash(c *gin.Context) {
 	epoch, err := getQueryParamEpoch(c)
 	if err != nil {
 		shared.RespondWithValidationError(
-			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidMiniBlockEpoch.Error()),
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidEpoch.Error()),
 		)
 		return
 	}

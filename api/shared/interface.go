@@ -79,6 +79,7 @@ type FacadeHandler interface {
 	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool

@@ -29,6 +29,7 @@ type APIInternalBlockHandler interface {
 	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash []byte) (interface{}, error)
 	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 	GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
 	IsInterfaceNil() bool
 }
