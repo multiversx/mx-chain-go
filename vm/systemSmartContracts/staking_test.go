@@ -59,6 +59,7 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch: 10,
 				StakeEnableEpoch:     0,
+				StakingV4EnableEpoch: 445,
 			},
 		},
 	}
