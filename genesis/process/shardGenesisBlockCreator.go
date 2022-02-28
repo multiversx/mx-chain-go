@@ -386,15 +386,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             arg.VirtualMachineConfig,
 		BlockGasLimit:      math.MaxUint64,
 		GasSchedule:        arg.GasSchedule,
-		ArgBlockChainHook:  argsHook,
+		BlockChainHook:     blockChainHookImpl,
 		EpochNotifier:      epochNotifier,
 		EpochConfig:        arg.EpochConfig.EnableEpochs,
 		ArwenChangeLocker:  genesisArwenLocker,
 		ESDTTransferParser: esdtTransferParser,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -643,10 +649,10 @@ func deployInitialSmartContracts(
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
 		var scResulted [][]byte
-		scResulted, scTxs, err := deployInitialSmartContract(processors, sc, arg, deployMetrics)
-		if err != nil {
+		scResulted, scTxs, errDeploy := deployInitialSmartContract(processors, sc, arg, deployMetrics)
+		if errDeploy != nil {
 			return nil, nil, fmt.Errorf("%w for owner %s and filename %s",
-				err, sc.GetOwner(), sc.GetFilename())
+				errDeploy, sc.GetOwner(), sc.GetFilename())
 		}
 
 		scAddresses = append(scAddresses, scResulted...)
