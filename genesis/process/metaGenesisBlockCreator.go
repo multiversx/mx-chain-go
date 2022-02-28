@@ -299,8 +299,15 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	if err != nil {
 		return nil, err
 	}
+
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           arg.Economics,
 		MessageSignVerifier: pubKeyVerifier,
 		GasSchedule:         arg.GasSchedule,

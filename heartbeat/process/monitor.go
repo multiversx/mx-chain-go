@@ -230,8 +230,6 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	receivedHbmi := m.convertFromExportedStruct(*heartbeatDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
 	crtTime := m.timer.Now()
-	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
-	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
 		receivedHbmi.timeStamp = crtTime
 	}
@@ -262,8 +260,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
+		// this situation is so severe that we have to black list both the message originator and the connected peer
+		// that disseminated this message.
 		reason := "blacklisted due to invalid heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -277,8 +275,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	}
 
 	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
+		// this situation is so severe that we have to black list both the message originator and the connected peer
+		// that disseminated this message.
 		reason := "blacklisted due to inconsistent heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -290,7 +288,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		)
 	}
 
-	//message is validated, process should be done async, method can return nil
+	// message is validated, process should be done async, method can return nil
 	go m.addHeartbeatMessageToMap(hbRecv)
 
 	go m.computeAllHeartbeatMessages()

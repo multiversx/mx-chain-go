@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -1240,7 +1239,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return &genesisMock.BaseAccountMock{}, nil
+				return &stateMock.UserAccountStub{}, nil
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1287,7 +1286,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &genesisMock.BaseAccountMock{}, nil
+				return &stateMock.UserAccountStub{}, nil
 			},
 		}
 

@@ -204,7 +204,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		NodesCoordinator:    tpn.NodesCoordinator,
 		FeeHandler:          tpn.FeeAccumulator,
 		RequestHandler:      tpn.RequestHandler,
-		BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		HeaderValidator:     tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
@@ -216,7 +216,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler:             TestBlockSizeThrottler,
 		HistoryRepository:              tpn.HistoryRepository,
 		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:      coreComponents.RoundNotifier(),
+		RoundNotifier:                  coreComponents.RoundNotifier(),
 		GasHandler:                     tpn.GasHandler,
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
