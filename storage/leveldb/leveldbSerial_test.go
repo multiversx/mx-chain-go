@@ -1,10 +1,12 @@
 package leveldb_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +14,7 @@ import (
 )
 
 func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
-	lvdb, err := leveldb.NewSerialDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	lvdb, err := leveldb.NewSerialDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles, common.Normal)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb
@@ -218,4 +220,35 @@ func TestSerialDB_Destroy(t *testing.T) {
 	err := ldb.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
+}
+
+func TestSerialDB_OperationsThatChangeDataInReadonlyDB(t *testing.T) {
+	t.Parallel()
+
+	// create a directory containing valid level DB files (an empty level DB)
+	tempDir := t.TempDir()
+	createEmptyLevelDB(t, tempDir)
+
+	lvdb, err := leveldb.NewSerialDB(tempDir, 1, 10, 10, common.ImportDb)
+	assert.Nil(t, err)
+	defer func() {
+		err = lvdb.Close()
+		assert.Nil(t, err)
+	}()
+
+	key := []byte("key")
+	value := []byte("value")
+
+	err = lvdb.Put(key, value)
+	assert.Equal(t, storage.ErrReadOnlyDB, err)
+
+	result, err := lvdb.Get(key)
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, storage.ErrKeyNotFound))
+
+	err = lvdb.Remove(key)
+	assert.Equal(t, storage.ErrReadOnlyDB, err)
+
+	err = lvdb.Destroy()
+	assert.Equal(t, storage.ErrReadOnlyDB, err)
 }

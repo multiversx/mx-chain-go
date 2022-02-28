@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -304,7 +305,7 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 		MaxBatchSize:      100,
 		MaxOpenFiles:      10,
 		BatchDelaySeconds: 2,
-	})
+	}, common.Normal)
 	var err error
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)

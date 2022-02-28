@@ -11,6 +11,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -36,7 +37,7 @@ type DB struct {
 
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *DB, err error) {
+func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, processingType common.NodeProcessingMode) (s *DB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
@@ -50,6 +51,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		// disable internal cache
 		BlockCacheCapacity:     -1,
 		OpenFilesCacheCapacity: maxOpenFiles,
+		ReadOnly:               processingType == common.ImportDb,
 	}
 
 	db, err := openLevelDB(path, options)
@@ -58,8 +60,9 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 	}
 
 	bldb := &baseLevelDb{
-		db:   db,
-		path: path,
+		db:       db,
+		path:     path,
+		readOnly: processingType == common.ImportDb,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -136,6 +139,10 @@ func (s *DB) updateBatchWithIncrement() error {
 
 // Put adds the value to the (key, val) storage medium
 func (s *DB) Put(key, val []byte) error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
+
 	err := s.batch.Put(key, val)
 	if err != nil {
 		return err
@@ -239,6 +246,10 @@ func (s *DB) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *DB) Remove(key []byte) error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
+
 	s.mutBatch.Lock()
 	_ = s.batch.Delete(key)
 	s.mutBatch.Unlock()
@@ -248,6 +259,10 @@ func (s *DB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
+
 	s.mutBatch.Lock()
 	s.batch.Reset()
 	s.sizeBatch = 0
@@ -267,6 +282,10 @@ func (s *DB) Destroy() error {
 
 // DestroyClosed removes the already closed storage medium stored data
 func (s *DB) DestroyClosed() error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
+
 	return os.RemoveAll(s.path)
 }
 

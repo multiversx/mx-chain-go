@@ -43,13 +43,13 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 }
 
 // GetMostRecentStorageUnit will open bootstrap storage unit
-func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (storage.Storer, error) {
+func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig, processingMode common.NodeProcessingMode) (storage.Storer, error) {
 	parentDir, lastEpoch, err := o.latestStorageDataProvider.GetParentDirAndLastEpoch()
 	if err != nil {
 		return nil, err
 	}
 
-	persisterFactory := NewPersisterFactory(dbConfig)
+	persisterFactory := NewPersisterFactory(dbConfig, processingMode)
 	pathWithoutShard := o.getPathWithoutShard(parentDir, lastEpoch)
 	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
 	if err != nil {
@@ -97,11 +97,11 @@ func (o *openStorageUnits) getPersisterPath(pathWithoutShard string, shardID str
 }
 
 // OpenDB opens or creates a given DB
-func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32) (storage.Storer, error) {
+func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32, processingMode common.NodeProcessingMode) (storage.Storer, error) {
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
 	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
-	persisterFactory := NewPersisterFactory(dbConfig)
+	persisterFactory := NewPersisterFactory(dbConfig, processingMode)
 
 	persister, err := createDB(persisterFactory, persisterPath)
 	if err != nil {
@@ -125,7 +125,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
-		//TODO: extract this in a parameter and inject it
+		// TODO: extract this in a parameter and inject it
 		time.Sleep(common.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err

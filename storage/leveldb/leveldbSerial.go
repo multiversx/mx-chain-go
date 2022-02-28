@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -34,7 +35,7 @@ type SerialDB struct {
 
 // NewSerialDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *SerialDB, err error) {
+func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, processingMode common.NodeProcessingMode) (s *SerialDB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
@@ -48,6 +49,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		// disable internal cache
 		BlockCacheCapacity:     -1,
 		OpenFilesCacheCapacity: maxOpenFiles,
+		ReadOnly:               processingMode == common.ImportDb,
 	}
 
 	db, err := openLevelDB(path, options)
@@ -56,8 +58,9 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 	}
 
 	bldb := &baseLevelDb{
-		db:   db,
-		path: path,
+		db:       db,
+		path:     path,
+		readOnly: processingMode == common.ImportDb,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,6 +127,9 @@ func (s *SerialDB) updateBatchWithIncrement() error {
 
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
@@ -265,6 +271,9 @@ func (s *SerialDB) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
@@ -278,6 +287,9 @@ func (s *SerialDB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *SerialDB) Destroy() error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
 	log.Debug("serialDB.Destroy", "path", s.path)
 
 	// calling close on the SafeCloser instance should be the last instruction called
@@ -294,6 +306,9 @@ func (s *SerialDB) Destroy() error {
 
 // DestroyClosed removes the already closed storage medium stored data
 func (s *SerialDB) DestroyClosed() error {
+	if s.readOnly {
+		return storage.ErrReadOnlyDB
+	}
 	err := os.RemoveAll(s.path)
 	if err != nil {
 		log.Error("error destroy closed", "error", err, "path", s.path)

@@ -46,7 +46,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 }
 
 func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
-	storer, err := e.storageOpenerHandler.GetMostRecentStorageUnit(e.generalConfig.BootstrapStorage.DB)
+	storer, err := e.storageOpenerHandler.GetMostRecentStorageUnit(e.generalConfig.BootstrapStorage.DB, common.Normal)
 	defer func() {
 		if check.IfNil(storer) {
 			return

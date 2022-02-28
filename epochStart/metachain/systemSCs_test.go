@@ -78,6 +78,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		BatchDelaySeconds: 2,
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
+		ProcessingMode:    common.Normal,
 	}
 
 	cache, _ := storageUnit.NewCache(cacheConfig)
@@ -1313,7 +1314,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, len(updatedContractConfig))
 	require.Equal(t, args.ESDTOwnerAddressBytes, updatedContractConfig[0])
-	//the other config values should be unchanged
+	// the other config values should be unchanged
 	for i := 1; i < len(initialContractConfig); i++ {
 		assert.Equal(t, initialContractConfig[i], updatedContractConfig[i])
 	}

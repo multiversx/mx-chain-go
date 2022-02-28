@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -91,7 +92,7 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 	cacheConf.Capacity = 40
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return leveldb.NewSerialDB(path, 1, 20, 10)
+			return leveldb.NewSerialDB(path, 1, 20, 10, common.Normal)
 		},
 	}
 	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
@@ -846,7 +847,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 		MaxBatchSize:      100,
 		MaxOpenFiles:      10,
 		BatchDelaySeconds: 2,
-	})
+	}, common.Normal)
 	var err error
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)

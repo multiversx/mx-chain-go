@@ -144,3 +144,6 @@ var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
 // ErrNilStoredDataFactory signals that a nil stored data factory has been provided
 var ErrNilStoredDataFactory = errors.New("nil stored data factory")
+
+// ErrReadOnlyDB signals that the database is in readonly mode
+var ErrReadOnlyDB = errors.New("DB is in read-only mode")

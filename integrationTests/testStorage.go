@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -77,7 +78,7 @@ func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 
 // CreateStorageLevelDB creates a storage levelDB
 func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
-	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles, common.Normal)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
@@ -89,7 +90,7 @@ func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
 
 // CreateStorageLevelDBSerial creates a storage levelDB serial
 func (ts *TestStorage) CreateStorageLevelDBSerial() storage.Storer {
-	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles, common.Normal)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
@@ -173,11 +174,11 @@ func (ts *TestStorage) RemoveMultiple(
 			fmt.Println("Done Removing!")
 			return
 		case <-time.After(time.Millisecond * 100):
-			//remove happen less often than writes
+			// remove happen less often than writes
 		}
 
 		if atomic.LoadUint64(ts.maxWritten) == 0 {
-			//not written yet
+			// not written yet
 			continue
 		}
 

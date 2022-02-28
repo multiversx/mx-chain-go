@@ -269,7 +269,7 @@ func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, error) {
+func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, processingNode common.NodeProcessingMode) (*Unit, error) {
 	var cache storage.Cacher
 	var db storage.Persister
 	var err error
@@ -295,6 +295,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, erro
 		BatchDelaySeconds: dbConf.BatchDelaySeconds,
 		MaxBatchSize:      dbConf.MaxBatchSize,
 		MaxOpenFiles:      dbConf.MaxOpenFiles,
+		ProcessingMode:    processingNode,
 	}
 	db, err = NewDB(argDB)
 	if err != nil {
@@ -357,6 +358,7 @@ type ArgDB struct {
 	BatchDelaySeconds int
 	MaxBatchSize      int
 	MaxOpenFiles      int
+	ProcessingMode    common.NodeProcessingMode
 }
 
 // NewDB creates a new database from database config
@@ -367,9 +369,9 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 	for i := 0; i < common.MaxRetriesToCreateDB; i++ {
 		switch argDB.DBType {
 		case LvlDB:
-			db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+			db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles, argDB.ProcessingMode)
 		case LvlDBSerial:
-			db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+			db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles, argDB.ProcessingMode)
 		case MemoryDB:
 			db = memorydb.New()
 		default:

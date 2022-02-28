@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -68,7 +69,7 @@ func TestGetMostRecentBootstrapStorageUnit_GetShardsFromDirectoryErr(t *testing.
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{}, common.Normal)
 	assert.Nil(t, storer)
 	assert.Equal(t, localErr, err)
 }
@@ -84,7 +85,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotGetMostUpToDateDirectory(t *tes
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{}, common.Normal)
 	assert.Nil(t, storer)
 	assert.Equal(t, storage.ErrBootstrapDataNotFoundInStorage, err)
 }
@@ -111,7 +112,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{}, common.Normal)
 	assert.Nil(t, storer)
 	assert.Equal(t, storage.ErrNotSupportedDBType, err)
 }
@@ -137,7 +138,7 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 	}
 	suoh, _ := NewStorageUnitOpenHandler(args)
 
-	storer, err := suoh.GetMostRecentStorageUnit(generalConfig.BootstrapStorage.DB)
+	storer, err := suoh.GetMostRecentStorageUnit(generalConfig.BootstrapStorage.DB, common.Normal)
 	assert.NoError(t, err)
 	assert.NotNil(t, storer)
 

@@ -33,6 +33,7 @@ func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 			"error", err,
 			"path", path,
 			"retry", retries,
+			"readonly", options.ReadOnly,
 		)
 
 		time.Sleep(timeBetweenRetries)
@@ -74,9 +75,10 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 }
 
 type baseLevelDb struct {
-	mutDb sync.RWMutex
-	path  string
-	db    *leveldb.DB
+	mutDb    sync.RWMutex
+	path     string
+	db       *leveldb.DB
+	readOnly bool
 }
 
 func (bldb *baseLevelDb) getDbPointer() *leveldb.DB {

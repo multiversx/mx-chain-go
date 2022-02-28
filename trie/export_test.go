@@ -78,6 +78,7 @@ func (tsm *trieStorageManager) NewSnapshotDb() (storage.Persister, error) {
 		BatchDelaySeconds: tsm.snapshotDbCfg.BatchDelaySeconds,
 		MaxBatchSize:      tsm.snapshotDbCfg.MaxBatchSize,
 		MaxOpenFiles:      tsm.snapshotDbCfg.MaxOpenFiles,
+		ProcessingMode:    common.Normal,
 	}
 	db, err := storageUnit.NewDB(arg)
 	if err != nil {

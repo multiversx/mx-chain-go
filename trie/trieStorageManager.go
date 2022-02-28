@@ -265,6 +265,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]common.Snapshot
 			BatchDelaySeconds: snapshotDbCfg.BatchDelaySeconds,
 			MaxBatchSize:      snapshotDbCfg.MaxBatchSize,
 			MaxOpenFiles:      snapshotDbCfg.MaxOpenFiles,
+			ProcessingMode:    common.Normal,
 		}
 		db, err = storageUnit.NewDB(arg)
 		if err != nil {

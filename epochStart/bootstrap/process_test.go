@@ -632,7 +632,7 @@ func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
-			GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+			GetMostRecentStorageUnitCalled: func(config config.DBConfig, processingMode common.NodeProcessingMode) (storage.Storer, error) {
 				return &storageMocks.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
 						return nil, expectedErr
@@ -706,7 +706,7 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 	nodesCoordBytes, _ := json.Marshal(nodesCoord)
 
 	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
-		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+		GetMostRecentStorageUnitCalled: func(config config.DBConfig, processingMode common.NodeProcessingMode) (storage.Storer, error) {
 			return &storageMocks.StorerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					return nodesCoordBytes, nil
@@ -2124,7 +2124,7 @@ func TestEpochStartBootstrap_getDataToSyncErrorOpeningDB(t *testing.T) {
 
 	expectedErr := fmt.Errorf("expected error")
 	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
-		OpenDBCalled: func(dbConfig config.DBConfig, shardID uint32, epoch uint32) (storage.Storer, error) {
+		OpenDBCalled: func(dbConfig config.DBConfig, shardID uint32, epoch uint32, processingMode common.NodeProcessingMode) (storage.Storer, error) {
 			return nil, expectedErr
 		},
 	}

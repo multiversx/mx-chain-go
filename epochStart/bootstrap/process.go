@@ -929,6 +929,7 @@ func (e *epochStartBootstrap) getDataToSync(
 		e.generalConfig.ScheduledSCRsStorage.DB,
 		epochStartData.GetShardID(),
 		epochStartData.GetEpoch(),
+		common.Normal,
 	)
 	if err != nil {
 		return nil, err
@@ -1048,6 +1049,7 @@ func (e *epochStartBootstrap) createStorageService(
 		e.coreComponentsHolder.NodeTypeProvider(),
 		startEpoch,
 		createTrieEpochRootHashStorer,
+		common.Normal,
 	)
 	if err != nil {
 		return nil, err

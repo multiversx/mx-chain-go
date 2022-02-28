@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -53,7 +54,7 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := factory.NewPersisterFactory(dbConfig)
+	persisterFactory := factory.NewPersisterFactory(dbConfig, common.Normal)
 	tempDir, err := ioutil.TempDir("", "integrationTest")
 	if err != nil {
 		return nil, err

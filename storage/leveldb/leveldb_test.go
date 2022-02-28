@@ -2,12 +2,15 @@ package leveldb_test
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
@@ -15,15 +18,15 @@ import (
 )
 
 func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.DB) {
-	lvdb, err := leveldb.NewDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	lvdb, err := leveldb.NewDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles, common.Normal)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb
 }
 
-func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
+func TestDB_CorruptedDBShouldRecover(t *testing.T) {
 	dir := t.TempDir()
-	db, err := leveldb.NewDB(dir, 10, 1, 10)
+	db, err := leveldb.NewDB(dir, 10, 1, 10, common.Normal)
 	require.Nil(t, err)
 
 	key := []byte("key")
@@ -35,7 +38,7 @@ func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 	err = os.Remove(path.Join(dir, "MANIFEST-000000"))
 	require.Nil(t, err)
 
-	dbRecovered, err := leveldb.NewDB(dir, 10, 1, 10)
+	dbRecovered, err := leveldb.NewDB(dir, 10, 1, 10, common.Normal)
 	if err != nil {
 		assert.Fail(t, fmt.Sprintf("should have not errored %s", err.Error()))
 		return
@@ -50,20 +53,20 @@ func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 
 func TestDB_DoubleOpenShouldError(t *testing.T) {
 	dir := t.TempDir()
-	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10)
+	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10, common.Normal)
 	require.Nil(t, err)
 
 	defer func() {
 		_ = lvdb1.Close()
 	}()
 
-	_, err = leveldb.NewDB(dir, 10, 1, 10)
+	_, err = leveldb.NewDB(dir, 10, 1, 10, common.Normal)
 	assert.NotNil(t, err)
 }
 
 func TestDB_DoubleOpenButClosedInTimeShouldWork(t *testing.T) {
 	dir := t.TempDir()
-	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10)
+	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10, common.Normal)
 	require.Nil(t, err)
 
 	defer func() {
@@ -75,7 +78,7 @@ func TestDB_DoubleOpenButClosedInTimeShouldWork(t *testing.T) {
 		_ = lvdb1.Close()
 	}()
 
-	lvdb2, err := leveldb.NewDB(dir, 10, 1, 10)
+	lvdb2, err := leveldb.NewDB(dir, 10, 1, 10, common.Normal)
 	assert.Nil(t, err)
 	assert.NotNil(t, lvdb2)
 
@@ -350,4 +353,52 @@ func testDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.
 
 	err = ldb.Remove([]byte("key4"))
 	require.Equal(t, storage.ErrDBIsClosed, err)
+}
+
+func TestDB_DBDoesNotExistsShouldError(t *testing.T) {
+	t.Parallel()
+
+	lvdb, err := leveldb.NewDB(t.TempDir(), 2, 10, 10, common.ImportDb)
+	assert.Nil(t, lvdb)
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), "file does not exist for path"))
+}
+
+func TestDB_OperationsThatChangeDataInReadonlyDB(t *testing.T) {
+	t.Parallel()
+
+	// create a directory containing valid level DB files (an empty level DB)
+	tempDir := t.TempDir()
+	createEmptyLevelDB(t, tempDir)
+
+	lvdb, err := leveldb.NewDB(tempDir, 1, 10, 10, common.ImportDb)
+	assert.Nil(t, err)
+	defer func() {
+		err = lvdb.Close()
+		assert.Nil(t, err)
+	}()
+
+	key := []byte("key")
+	value := []byte("value")
+
+	err = lvdb.Put(key, value)
+	assert.Equal(t, storage.ErrReadOnlyDB, err)
+
+	result, err := lvdb.Get(key)
+	assert.Nil(t, result)
+	assert.True(t, errors.Is(err, storage.ErrKeyNotFound))
+
+	err = lvdb.Remove(key)
+	assert.Equal(t, storage.ErrReadOnlyDB, err)
+
+	err = lvdb.Destroy()
+	assert.Equal(t, storage.ErrReadOnlyDB, err)
+}
+
+func createEmptyLevelDB(tb testing.TB, directory string) {
+	lvdb, err := leveldb.NewDB(directory, 2, 10, 10, common.Normal)
+	require.Nil(tb, err)
+	require.NotNil(tb, lvdb)
+	err = lvdb.Close()
+	require.Nil(tb, err)
 }

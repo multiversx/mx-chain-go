@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -127,8 +128,8 @@ type PersisterFactory interface {
 
 // UnitOpenerHandler defines which actions should be done for opening storage units
 type UnitOpenerHandler interface {
-	OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32) (Storer, error)
-	GetMostRecentStorageUnit(config config.DBConfig) (Storer, error)
+	OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32, processingMode common.NodeProcessingMode) (Storer, error)
+	GetMostRecentStorageUnit(config config.DBConfig, processingMode common.NodeProcessingMode) (Storer, error)
 	IsInterfaceNil() bool
 }
 

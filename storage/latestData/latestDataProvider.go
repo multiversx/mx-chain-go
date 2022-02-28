@@ -124,7 +124,7 @@ func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterFactory := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB, common.Normal)
 	pathWithoutShard := filepath.Join(
 		parentDir,
 		fmt.Sprintf("%s_%d", ldp.defaultEpochString, lastEpoch),

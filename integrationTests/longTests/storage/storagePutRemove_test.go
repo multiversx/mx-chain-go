@@ -6,6 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -20,7 +21,7 @@ func TestPutRemove(t *testing.T) {
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 5000, Shards: 16, SizeInBytes: 0})
 	dir := t.TempDir()
 	log.Info("opened in", "directory", dir)
-	lvdb1, err := leveldb.NewDB(dir, 2, 1000, 10)
+	lvdb1, err := leveldb.NewDB(dir, 2, 1000, 10, common.Normal)
 	assert.NoError(t, err)
 
 	defer func() {
@@ -58,7 +59,7 @@ func TestPutRemove(t *testing.T) {
 	}
 }
 
-//nolint
+// nolint
 func generateValues(numPuts int, valuesPayloadSize int) map[string][]byte {
 	m := make(map[string][]byte)
 	for i := 0; i < numPuts; i++ {
@@ -74,7 +75,7 @@ func generateValues(numPuts int, valuesPayloadSize int) map[string][]byte {
 	return m
 }
 
-//nolint
+// nolint
 func putValues(store storage.Storer, values map[string][]byte, rmv map[int][][]byte, idx int) {
 	hashes := make([][]byte, 0, len(rmv))
 	for key, val := range values {
@@ -86,7 +87,7 @@ func putValues(store storage.Storer, values map[string][]byte, rmv map[int][][]b
 	rmv[idx] = hashes
 }
 
-//nolint
+// nolint
 func removeOld(store storage.Storer, rmv map[int][][]byte, idx int) {
 	hashes, found := rmv[idx-2]
 	if !found {

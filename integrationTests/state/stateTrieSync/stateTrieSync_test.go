@@ -55,7 +55,7 @@ func createTestProcessorNodeAndTrieStorage(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := storageFactory.NewPersisterFactory(dbConfig)
+	persisterFactory := storageFactory.NewPersisterFactory(dbConfig, common.Normal)
 
 	triePersister, err := persisterFactory.Create(t.TempDir())
 	require.Nil(t, err)

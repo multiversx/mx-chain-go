@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -32,6 +33,7 @@ type StorageServiceFactory struct {
 	oldDataCleanerProvider        clean.OldDataCleanerProvider
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
+	processingMode                common.NodeProcessingMode
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -44,6 +46,7 @@ func NewStorageServiceFactory(
 	nodeTypeProvider NodeTypeProviderHandler,
 	currentEpoch uint32,
 	createTrieEpochRootHashStorer bool,
+	processingMode common.NodeProcessingMode,
 ) (*StorageServiceFactory, error) {
 	if config == nil {
 		return nil, fmt.Errorf("%w for config.Config", storage.ErrNilConfig)
@@ -84,6 +87,7 @@ func NewStorageServiceFactory(
 		currentEpoch:                  currentEpoch,
 		createTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
+		processingMode:                processingMode,
 	}, nil
 }
 
@@ -199,7 +203,8 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	metaHdrHashNonceUnitConfig.FilePath = dbPath
 	metaHdrHashNonceUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Cache),
-		metaHdrHashNonceUnitConfig)
+		metaHdrHashNonceUnitConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +217,8 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	shardHdrHashNonceConfig.FilePath = dbPath
 	shardHdrHashNonceUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Cache),
-		shardHdrHashNonceConfig)
+		shardHdrHashNonceConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +230,8 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	heartbeatDbConfig.FilePath = dbPath
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.Cache),
-		heartbeatDbConfig)
+		heartbeatDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +243,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	statusMetricsDbConfig.FilePath = dbPath
 	statusMetricsStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.StatusMetricsStorage.Cache),
-		statusMetricsDbConfig)
+		statusMetricsDbConfig, psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +396,8 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	metaHdrHashNonceUnitConfig.FilePath = dbPath
 	metaHdrHashNonceUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Cache),
-		metaHdrHashNonceUnitConfig)
+		metaHdrHashNonceUnitConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +411,8 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		shardHdrHashNonceConfig.FilePath = dbPath
 		shardHdrHashNonceUnits[i], err = storageUnit.NewStorageUnitFromConf(
 			GetCacherFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Cache),
-			shardHdrHashNonceConfig)
+			shardHdrHashNonceConfig,
+			psf.processingMode)
 		if err != nil {
 			return nil, err
 		}
@@ -417,7 +426,8 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	heartbeatDbConfig.FilePath = dbPath
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.Cache),
-		heartbeatDbConfig)
+		heartbeatDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +439,8 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	statusMetricsDbConfig.FilePath = dbPath
 	statusMetricsStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.StatusMetricsStorage.Cache),
-		statusMetricsDbConfig)
+		statusMetricsDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +603,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	miniblockHashByTxHashDbConfig := GetDBFromConfig(miniblockHashByTxHashConfig.DB)
 	miniblockHashByTxHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, miniblockHashByTxHashConfig.DB.FilePath)
 	miniblockHashByTxHashCacherConfig := GetCacherFromConfig(miniblockHashByTxHashConfig.Cache)
-	miniblockHashByTxHashUnit, err := storageUnit.NewStorageUnitFromConf(miniblockHashByTxHashCacherConfig, miniblockHashByTxHashDbConfig)
+	miniblockHashByTxHashUnit, err := storageUnit.NewStorageUnitFromConf(
+		miniblockHashByTxHashCacherConfig,
+		miniblockHashByTxHashDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return createdStorers, err
 	}
@@ -605,7 +619,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	blockHashByRoundDBConfig := GetDBFromConfig(blockHashByRoundConfig.DB)
 	blockHashByRoundDBConfig.FilePath = psf.pathManager.PathForStatic(shardID, blockHashByRoundConfig.DB.FilePath)
 	blockHashByRoundCacherConfig := GetCacherFromConfig(blockHashByRoundConfig.Cache)
-	blockHashByRoundUnit, err := storageUnit.NewStorageUnitFromConf(blockHashByRoundCacherConfig, blockHashByRoundDBConfig)
+	blockHashByRoundUnit, err := storageUnit.NewStorageUnitFromConf(
+		blockHashByRoundCacherConfig,
+		blockHashByRoundDBConfig,
+		psf.processingMode)
 	if err != nil {
 		return createdStorers, err
 	}
@@ -618,7 +635,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	epochByHashDbConfig := GetDBFromConfig(epochByHashConfig.DB)
 	epochByHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, epochByHashConfig.DB.FilePath)
 	epochByHashCacherConfig := GetCacherFromConfig(epochByHashConfig.Cache)
-	epochByHashUnit, err := storageUnit.NewStorageUnitFromConf(epochByHashCacherConfig, epochByHashDbConfig)
+	epochByHashUnit, err := storageUnit.NewStorageUnitFromConf(
+		epochByHashCacherConfig,
+		epochByHashDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return createdStorers, err
 	}
@@ -630,7 +650,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 	esdtSuppliesDbConfig := GetDBFromConfig(esdtSuppliesConfig.DB)
 	esdtSuppliesDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, esdtSuppliesConfig.DB.FilePath)
 	esdtSuppliesCacherConfig := GetCacherFromConfig(esdtSuppliesConfig.Cache)
-	esdtSuppliesUnit, err := storageUnit.NewStorageUnitFromConf(esdtSuppliesCacherConfig, esdtSuppliesDbConfig)
+	esdtSuppliesUnit, err := storageUnit.NewStorageUnitFromConf(
+		esdtSuppliesCacherConfig,
+		esdtSuppliesDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return createdStorers, err
 	}
@@ -656,7 +679,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 		CacheConf:                 GetCacherFromConfig(storageConfig.Cache),
 		PathManager:               psf.pathManager,
 		DbPath:                    dbPath,
-		PersisterFactory:          NewPersisterFactory(storageConfig.DB),
+		PersisterFactory:          NewPersisterFactory(storageConfig.DB, psf.processingMode),
 		NumOfEpochsToKeep:         numOfEpochsToKeep,
 		NumOfActivePersisters:     numOfActivePersisters,
 		Notifier:                  psf.epochStartNotifier,
@@ -678,7 +701,8 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 	trieEpochRootHashDbConfig.FilePath = dbPath
 	trieEpochRootHashStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.TrieEpochRootHashStorage.Cache),
-		trieEpochRootHashDbConfig)
+		trieEpochRootHashDbConfig,
+		psf.processingMode)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -260,6 +261,7 @@ func TestCreateDBFromConfWrongType(t *testing.T) {
 		BatchDelaySeconds: 10,
 		MaxBatchSize:      10,
 		MaxOpenFiles:      10,
+		ProcessingMode:    common.Normal,
 	}
 	persister, err := storageUnit.NewDB(arg)
 
@@ -278,6 +280,7 @@ func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
 		BatchDelaySeconds: 10,
 		MaxBatchSize:      10,
 		MaxOpenFiles:      10,
+		ProcessingMode:    common.Normal,
 	}
 	persister, err := storageUnit.NewDB(arg)
 	assert.NotNil(t, err, "error expected")
@@ -291,6 +294,7 @@ func TestCreateDBFromConfLvlDBOk(t *testing.T) {
 		BatchDelaySeconds: 10,
 		MaxBatchSize:      10,
 		MaxOpenFiles:      10,
+		ProcessingMode:    common.Normal,
 	}
 	persister, err := storageUnit.NewDB(arg)
 	assert.Nil(t, err, "no error expected")
@@ -311,7 +315,7 @@ func TestNewStorageUnit_FromConfWrongCacheSizeVsBatchSize(t *testing.T) {
 		MaxBatchSize:      11,
 		BatchDelaySeconds: 1,
 		MaxOpenFiles:      10,
-	})
+	}, common.Normal)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
@@ -328,7 +332,7 @@ func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
-	})
+	}, common.Normal)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
@@ -341,7 +345,7 @@ func TestNewStorageUnit_FromConfWrongDBConfig(t *testing.T) {
 	}, storageUnit.DBConfig{
 		FilePath: "Blocks",
 		Type:     "NotLvlDB",
-	})
+	}, common.Normal)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
@@ -357,7 +361,7 @@ func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 		MaxBatchSize:      1,
 		BatchDelaySeconds: 1,
 		MaxOpenFiles:      10,
-	})
+	}, common.Normal)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, storer, "valid storer expected but got nil")
@@ -375,7 +379,7 @@ func TestNewStorageUnit_ShouldWorkLvlDB(t *testing.T) {
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
-	})
+	}, common.Normal)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, storer, "valid storer expected but got nil")
