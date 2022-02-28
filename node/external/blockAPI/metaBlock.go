@@ -14,8 +14,8 @@ type metaAPIBlockProcessor struct {
 	*baseAPIBlockProcessor
 }
 
-// NewMetaApiBlockProcessor will create a new instance of meta api block processor
-func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor {
+// newMetaApiBlockProcessor will create a new instance of meta api block processor
+func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byte) *metaAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 
 	return &metaAPIBlockProcessor{
@@ -26,8 +26,11 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor 
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
-			unmarshalTx:              arg.UnmarshalTx,
+			txUnmarshaller:           arg.TxUnmarshaller,
 			txStatusComputer:         arg.StatusComputer,
+			hasher:                   arg.Hasher,
+			addressPubKeyConverter:   arg.AddressPubkeyConverter,
+			emptyReceiptsHash:        emptyReceiptsHash,
 		},
 	}
 }
@@ -101,10 +104,15 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if withTxs {
 			miniBlockCopy := mb
-			miniblockAPI.Transactions = mbp.getTxsByMb(&miniBlockCopy, headerEpoch)
+			mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
+	}
+
+	intraMb := mbp.getIntraMiniblocks(blockHeader.GetReceiptsHash(), headerEpoch, withTxs)
+	if len(intraMb) > 0 {
+		miniblocks = append(miniblocks, intraMb...)
 	}
 
 	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.ShardInfo))
@@ -153,4 +161,9 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	}
 
 	return metaBlock, nil
+}
+
+// IsInterfaceNil returns true if underlying object is nil
+func (mbp *metaAPIBlockProcessor) IsInterfaceNil() bool {
+	return mbp == nil
 }
