@@ -334,9 +334,9 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagStakingV4Enabled.IsSet() {
-		allNodesKeys := s.getAllNodesKeyMapOfType(validatorInfos)
+		allNodesKeys := s.getAllNodeKeys(validatorInfos)
 
-		err := s.stakingDataProvider.PrepareStakingDataForRewards(allNodesKeys)
+		err := s.stakingDataProvider.PrepareStakingData(allNodesKeys)
 		if err != nil {
 			return err
 		}
@@ -395,7 +395,7 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, 
 		nodeTopUpPubKey2, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
 		if err != nil {
 			errors = append(errors, err)
-			log.Debug(fmt.Sprintf("%v when trying to get top up per node for %s", err, hex.EncodeToString(pubKey1)))
+			log.Debug(fmt.Sprintf("%v when trying to get top up per node for %s", err, hex.EncodeToString(pubKey2)))
 		}
 
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
@@ -406,7 +406,7 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, 
 	})
 
 	if len(errors) > 0 {
-		return fmt.Errorf("error(s) while trying to sort auction list; last known error %w", errors[len(errors)-1])
+		return fmt.Errorf("%w; last known error %v", epochStart.ErrSortAuctionList, errors[len(errors)-1])
 	}
 	return nil
 }
@@ -693,7 +693,7 @@ func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[u
 		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements()...)
 	}()
 
-	return s.stakingDataProvider.PrepareStakingDataForRewards(eligibleNodesKeys)
+	return s.stakingDataProvider.PrepareStakingData(eligibleNodesKeys)
 }
 
 func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
@@ -712,7 +712,7 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	return eligibleNodesKeys
 }
 
-func (s *systemSCProcessor) getAllNodesKeyMapOfType(
+func (s *systemSCProcessor) getAllNodeKeys(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 ) map[uint32][][]byte {
 	nodeKeys := make(map[uint32][][]byte)

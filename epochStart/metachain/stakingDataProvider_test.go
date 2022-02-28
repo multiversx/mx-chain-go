@@ -366,7 +366,7 @@ func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
 
 	keys := make(map[uint32][][]byte)
 	keys[0] = append(keys[0], []byte("owner"))
-	err := sdp.PrepareStakingDataForRewards(keys)
+	err := sdp.PrepareStakingData(keys)
 	require.NoError(t, err)
 }
 

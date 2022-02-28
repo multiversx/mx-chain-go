@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
@@ -1928,6 +1929,68 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 		},
 	}
 	require.Equal(t, expectedValidatorsInfo, validatorInfos)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepareStakingData(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+
+	errProcessStakingData := errors.New("error processing staking data")
+	args.StakingDataProvider = &mock.StakingDataProviderStub{
+		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
+			return errProcessStakingData
+		},
+	}
+
+	owner := []byte("owner")
+	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
+	registerValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner))
+	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner))
+
+	s, _ := NewSystemSCProcessor(args)
+	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, []byte("rand"))
+	require.Equal(t, errProcessStakingData, err)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingAuctionList(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+
+	errGetNodeTopUp := errors.New("error getting top up per node")
+	args.StakingDataProvider = &mock.StakingDataProviderStub{
+		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+			switch string(blsKey) {
+			case "pubKey0", "pubKey1":
+				return nil, errGetNodeTopUp
+			default:
+				require.Fail(t, "should not call this func with other params")
+				return nil, nil
+			}
+		},
+	}
+
+	owner := []byte("owner")
+	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
+	registerValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner))
+	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner))
+
+	s, _ := NewSystemSCProcessor(args)
+	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, []byte("rand"))
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), errGetNodeTopUp.Error()))
+	require.True(t, strings.Contains(err.Error(), epochStart.ErrSortAuctionList.Error()))
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing.T) {

@@ -105,8 +105,8 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.topUpPerNode, nil
 }
 
-// PrepareStakingDataForRewards prepares the staking data for the given map of node keys per shard
-func (sdp *stakingDataProvider) PrepareStakingDataForRewards(keys map[uint32][][]byte) error {
+// PrepareStakingData prepares the staking data for the given map of node keys per shard
+func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
 	sdp.Clean()
 
 	for _, keysList := range keys {
