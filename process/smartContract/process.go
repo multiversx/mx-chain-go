@@ -466,7 +466,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	return vmOutput, nil
 }
 
-func (sc *scProcessor) isInformativeSCR(txHandler data.TransactionHandler) bool {
+func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler) bool {
 	if txHandler.GetValue().Cmp(zero) > 0 {
 		return false
 	}
@@ -494,7 +494,7 @@ func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) 
 	logsFromSCRs := make([]*vmcommon.LogEntry, 0)
 
 	for _, scr := range scrs {
-		if sc.isInformativeSCR(scr) {
+		if sc.isInformativeTxHandler(scr) {
 			logsFromSCRs = append(logsFromSCRs, createNewLogFromSCR(scr))
 			continue
 		}
@@ -1366,7 +1366,7 @@ func (sc *scProcessor) ProcessIfError(
 
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.flagCleanUpInformativeSCRs.IsSet() || !sc.isInformativeSCR(scrIfError) {
+	if !sc.flagCleanUpInformativeSCRs.IsSet() || !sc.isInformativeTxHandler(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
@@ -2756,11 +2756,18 @@ func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 	txHash []byte,
 	results []data.TransactionHandler,
 ) *vmcommon.LogEntry {
+	sndShardID := sc.shardCoordinator.ComputeId(tx.GetSndAddr())
+	dstShardID := sc.shardCoordinator.ComputeId(tx.GetRcvAddr())
+	isCrossShardTxWithExecAtSender := sc.shardCoordinator.SelfId() == sndShardID && sndShardID != dstShardID
+	if isCrossShardTxWithExecAtSender && !sc.isInformativeTxHandler(tx) {
+		return nil
+	}
+
 	for _, scr := range results {
-		sndShardID := sc.shardCoordinator.ComputeId(scr.GetSndAddr())
-		dstShardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
+		sndShardID = sc.shardCoordinator.ComputeId(scr.GetSndAddr())
+		dstShardID = sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
 		isCrossShard := sndShardID != dstShardID
-		if isCrossShard && !sc.isInformativeSCR(scr) {
+		if isCrossShard && !sc.isInformativeTxHandler(scr) {
 			return nil
 		}
 	}

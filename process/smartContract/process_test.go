@@ -3933,25 +3933,25 @@ func TestProcessIsInformativeSCR(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.Value = big.NewInt(0)
 	scr.CallType = vmData.AsynchronousCallBack
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.CallType = vmData.DirectCall
 	scr.Data = []byte("@abab")
-	assert.True(t, sc.isInformativeSCR(scr))
+	assert.True(t, sc.isInformativeTxHandler(scr))
 
 	scr.Data = []byte("ab@ab")
 	scr.RcvAddr = make([]byte, 32)
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.RcvAddr = []byte("address")
-	assert.True(t, sc.isInformativeSCR(scr))
+	assert.True(t, sc.isInformativeTxHandler(scr))
 
 	_ = builtInFuncs.Add("ab", &mock.BuiltInFunctionStub{})
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 }
 
 func TestCleanInformativeOnlySCRs(t *testing.T) {
