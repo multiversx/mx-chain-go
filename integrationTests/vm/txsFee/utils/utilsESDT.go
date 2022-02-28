@@ -165,12 +165,14 @@ func CreateESDTTransferTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier
 	}
 }
 
+// TransferESDTData -
 type TransferESDTData struct {
 	Token []byte
 	Nonce uint64
 	Value *big.Int
 }
 
+// CreateMultiTransferTX -
 func CreateMultiTransferTX(nonce uint64, sender, dest []byte, gasPrice, gasLimit uint64, tds ...*TransferESDTData) *transaction.Transaction {
 	numTransfers := len(tds)
 	encodedReceiver := hex.EncodeToString(dest)

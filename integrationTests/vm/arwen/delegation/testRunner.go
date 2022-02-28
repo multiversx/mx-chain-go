@@ -38,7 +38,7 @@ func RunDelegationStressTest(
 	cacheConfig := storageUnit.CacheConfig{
 		Name:        "trie",
 		Type:        "SizeLRU",
-		SizeInBytes: 314572800, //300MB
+		SizeInBytes: 314572800, // 300MB
 		Capacity:    500000,
 	}
 	trieCache, err := storageUnit.NewCache(cacheConfig)
@@ -82,7 +82,7 @@ func RunDelegationStressTest(
 		gasSchedule,
 	)
 
-	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) //20MIL eGLD
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20MIL eGLD
 	nodeInitialBalance := big.NewInt(0).Set(totalSupply)
 	nodeInitialBalance.Div(nodeInitialBalance, big.NewInt(2))
 	node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
@@ -92,7 +92,7 @@ func RunDelegationStressTest(
 	integrationTests.MintAllNodes([]*integrationTests.TestProcessorNode{node}, nodeInitialBalance)
 
 	numAccounts := 100000
-	accountsInitialBalance, _ := big.NewInt(0).SetString("1000000000000000000000", 10) //1000eGLD
+	accountsInitialBalance, _ := big.NewInt(0).SetString("1000000000000000000000", 10) // 1000eGLD
 	addresses, err := generateAndMintAccounts(node, accountsInitialBalance, numAccounts)
 	if err != nil {
 		return nil, err
@@ -262,7 +262,7 @@ func generateAndMintAccounts(node *integrationTests.TestProcessorNode, initialBa
 }
 
 func doStake(node *integrationTests.TestProcessorNode, addresses [][]byte, scAddress []byte) error {
-	stakeVal, _ := big.NewInt(0).SetString("10000000000000000000", 10) //10eGLD
+	stakeVal, _ := big.NewInt(0).SetString("10000000000000000000", 10) // 10eGLD
 
 	for _, addr := range addresses {
 		err := doStakeOneAddress(node, addr, stakeVal, scAddress)
