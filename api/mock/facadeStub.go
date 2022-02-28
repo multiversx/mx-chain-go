@@ -60,17 +60,17 @@ type FacadeStub struct {
 	GetInternalMetaBlockByNonceCalled       func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalMetaBlockByHashCalled        func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled       func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-
-	GetInternalMiniBlockByHashCalled func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
-	GetTotalStakedValueHandler       func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled          func(tokenType string) ([]string, error)
-	GetDirectStakedListHandler       func() ([]*api.DirectStakedValue, error)
-	GetDelegatorsListHandler         func() ([]*api.Delegator, error)
-	GetProofCalled                   func(string, string) (*common.GetProofResponse, error)
-	GetProofCurrentRootHashCalled    func(string) (*common.GetProofResponse, error)
-	GetProofDataTrieCalled           func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
-	VerifyProofCalled                func(string, string, [][]byte) (bool, error)
-	GetTokenSupplyCalled             func(token string) (*api.ESDTSupply, error)
+	GetInternalStartOfEpochMetaBlockCalled  func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalMiniBlockByHashCalled        func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
+	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
+	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
+	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
+	GetProofCalled                          func(string, string) (*common.GetProofResponse, error)
+	GetProofCurrentRootHashCalled           func(string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
 }
 
 // GetTokenSupply -
@@ -422,6 +422,14 @@ func (f *FacadeStub) GetInternalShardBlockByHash(format common.ApiOutputFormat, 
 func (f *FacadeStub) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
 	if f.GetInternalShardBlockByRoundCalled != nil {
 		return f.GetInternalShardBlockByRoundCalled(format, round)
+	}
+	return nil, nil
+}
+
+// GetInternalStartOfEpochMetaBlock -
+func (f *FacadeStub) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	if f.GetInternalStartOfEpochMetaBlockCalled != nil {
+		return f.GetInternalStartOfEpochMetaBlockCalled(format, epoch)
 	}
 	return nil, nil
 }
