@@ -2757,8 +2757,9 @@ func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 	results []data.TransactionHandler,
 ) *vmcommon.LogEntry {
 	for _, scr := range results {
+		sndShardID := sc.shardCoordinator.ComputeId(scr.GetSndAddr())
 		dstShardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
-		isCrossShard := sc.shardCoordinator.SelfId() != dstShardID
+		isCrossShard := sndShardID != dstShardID
 		if isCrossShard && !sc.isInformativeSCR(scr) {
 			return nil
 		}
