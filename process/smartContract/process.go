@@ -48,8 +48,7 @@ const (
 
 	generalSCRIdentifier = "writeLog"
 	signalError          = "signalError"
-	// TODO: invalidate the use of this endpoint name
-	completedTxEvent = "completedTxEvent"
+	completedTxEvent     = "completedTxEvent"
 )
 
 var zero = big.NewInt(0)
