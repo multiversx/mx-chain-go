@@ -1679,6 +1679,19 @@ func (tc *transactionCoordinator) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("transactionCoordinator: scheduled mini blocks", "enabled", tc.flagScheduledMiniBlocks.IsSet())
 }
 
+// AddTxsFromMiniBlocks adds transactions from given mini blocks needed by the current block
+func (tc *transactionCoordinator) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	for _, mb := range miniBlocks {
+		preProc := tc.getPreProcessor(mb.Type)
+		if check.IfNil(preProc) {
+			log.Warn("transactionCoordinator.AddTxsFromMiniBlocks: preProc is nil", "blockType", mb.Type)
+			continue
+		}
+
+		preProc.AddTxsFromMiniBlocks(miniBlocks)
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
 	return tc == nil
