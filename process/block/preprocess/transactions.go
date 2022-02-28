@@ -745,6 +745,42 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.scheduledTxsExecutionHandler.Init()
 }
 
+func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	for _, mb := range miniBlocks {
+		if !txs.isMiniBlockCorrect(mb.Type) {
+			log.Warn("transactions.addTxsFromScheduledMiniBlocks: mini block type is not correct",
+				"type", mb.Type,
+				"sender", mb.SenderShardID,
+				"receiver", mb.ReceiverShardID,
+				"num txs", len(mb.TxHashes))
+			continue
+		}
+
+		txShardInfoToSet := &txShardInfo{senderShardID: mb.SenderShardID, receiverShardID: mb.ReceiverShardID}
+		searchFirst := mb.Type == block.InvalidBlock
+
+		for _, txHash := range mb.TxHashes {
+			tx, err := process.GetTransactionHandler(
+				mb.SenderShardID,
+				mb.ReceiverShardID,
+				txHash,
+				txs.txPool,
+				txs.storage,
+				txs.marshalizer,
+				searchFirst,
+			)
+			if err != nil {
+				log.Warn("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
+				continue
+			}
+
+			txs.txsForCurrBlock.mutTxsForBlock.Lock()
+			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
+			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+		}
+	}
+}
+
 // RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
 	if check.IfNil(body) {

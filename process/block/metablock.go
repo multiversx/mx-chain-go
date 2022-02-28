@@ -965,7 +965,10 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+	if mp.flagScheduledMiniBlocks.IsSet() {
+		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+	}
 
 	if !haveTime() {
 		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
