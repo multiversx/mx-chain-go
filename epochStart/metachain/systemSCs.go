@@ -351,18 +351,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 }
 
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32][]*state.ValidatorInfo, randomness []byte) error {
-	auctionList := make([]*state.ValidatorInfo, 0)
-	noOfValidators := uint32(0)
-	for _, validatorsInShard := range validatorInfos {
-		for _, validator := range validatorsInShard {
-			if validator.List == string(common.AuctionList) {
-				auctionList = append(auctionList, validator)
-			} else if isValidator(validator) {
-				noOfValidators++
-			}
-		}
-	}
-
+	auctionList, noOfValidators := getAuctionListAndNoOfValidators(validatorInfos)
 	err := s.sortAuctionList(auctionList, randomness)
 	if err != nil {
 		return err
@@ -377,6 +366,23 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32
 	}
 
 	return nil
+}
+
+func getAuctionListAndNoOfValidators(validatorInfos map[uint32][]*state.ValidatorInfo) ([]*state.ValidatorInfo, uint32) {
+	auctionList := make([]*state.ValidatorInfo, 0)
+	noOfValidators := uint32(0)
+
+	for _, validatorsInShard := range validatorInfos {
+		for _, validator := range validatorsInShard {
+			if validator.List == string(common.AuctionList) {
+				auctionList = append(auctionList, validator)
+			} else if isValidator(validator) {
+				noOfValidators++
+			}
+		}
+	}
+
+	return auctionList, noOfValidators
 }
 
 func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, randomness []byte) error {
@@ -428,7 +434,6 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInf
 	lines := make([]*display.LineData, 0, len(auctionList))
 	horizontalLine := false
 	for idx, validator := range auctionList {
-		horizontalLine = uint32(idx) == noOfSelectedNodes-1
 		pubKey := validator.GetPublicKey()
 
 		owner, err := s.stakingDataProvider.GetBlsKeyOwner(pubKey)
@@ -437,6 +442,7 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInf
 		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
 		log.LogIfError(err)
 
+		horizontalLine = uint32(idx) == noOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
 			hex.EncodeToString([]byte(owner)),
 			hex.EncodeToString(pubKey),
