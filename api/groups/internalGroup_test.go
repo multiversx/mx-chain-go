@@ -386,13 +386,13 @@ func TestGetRawStartOfEpochMetaBlock_NoEpochUrlParameterShouldErr(t *testing.T) 
 
 	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch", nil)
+	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/a", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
 	response := rawBlockResponse{}
 	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
 }
 
 func TestGetRawStartOfEpochMetaBlock_FacadeErrorShouldErr(t *testing.T) {
