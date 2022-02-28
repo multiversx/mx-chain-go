@@ -835,7 +835,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	arwenChangeLocker common.Locker,
 	mapDNSAddresses map[string]struct{},
 ) (process.VirtualMachinesContainerFactory, error) {
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapter())
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}
@@ -959,7 +959,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapter())
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}
@@ -1038,11 +1038,17 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		EnableEpochs:       pcf.epochConfig.EnableEpochs,
 	}
 
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
+		BlockChainHook:     blockChainHookImpl,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 		Config:             pcf.config.VirtualMachine.Execution,
 		BlockGasLimit:      pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:        pcf.gasSchedule,
-		ArgBlockChainHook:  argsHook,
 		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		EpochConfig:        pcf.epochConfig.EnableEpochs,
 		ArwenChangeLocker:  arwenChangeLocker,
@@ -1077,8 +1083,14 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EnableEpochs:       pcf.epochConfig.EnableEpochs,
 	}
 
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           pcf.coreData.EconomicsData(),
 		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
 		GasSchedule:         pcf.gasSchedule,

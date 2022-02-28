@@ -2935,7 +2935,7 @@ func (d *delegation) claimDelegatedPosition(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	_, err = d.deleteDelegatorIfNeeded(address, delegator)
+	_, err = d.deleteDelegatorOnClaimRewardsIfNeeded(address, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
