@@ -48,10 +48,12 @@ type stakingSC struct {
 	flagCorrectLastUnjailed                 atomic.Flag
 	flagCorrectFirstQueued                  atomic.Flag
 	flagCorrectJailedNotUnstakedEmptyQueue  atomic.Flag
+	flagStakingV4                           atomic.Flag
 	correctJailedNotUnstakedEmptyQueueEpoch uint32
 	correctFirstQueuedEpoch                 uint32
 	correctLastUnjailedEpoch                uint32
 	stakingV2Epoch                          uint32
+	stakingV4Epoch                          uint32
 	walletAddressLen                        int
 	mutExecution                            sync.RWMutex
 	minNodePrice                            *big.Int
@@ -138,6 +140,7 @@ func NewStakingSmartContract(
 		validatorToDelegationEnableEpoch:        args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		correctFirstQueuedEpoch:                 args.EpochConfig.EnableEpochs.CorrectFirstQueuedEpoch,
 		correctJailedNotUnstakedEmptyQueueEpoch: args.EpochConfig.EnableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch,
+		stakingV4Epoch:                          args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
@@ -145,6 +148,7 @@ func NewStakingSmartContract(
 	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 	log.Debug("staking: enable epoch for correct first queued", "epoch", reg.correctFirstQueuedEpoch)
 	log.Debug("staking: enable epoch for correct jailed not unstaked with empty queue", "epoch", reg.correctJailedNotUnstakedEmptyQueueEpoch)
+	log.Debug("staking: enable epoch for staking v4", "epoch", reg.stakingV4Epoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -258,6 +262,10 @@ func (s *stakingSC) numSpareNodes() int64 {
 }
 
 func (s *stakingSC) canStake() bool {
+	if s.flagStakingV4.IsSet() {
+		return true
+	}
+
 	stakeConfig := s.getConfig()
 	return stakeConfig.StakedNodes < stakeConfig.MaxNumNodes
 }
@@ -536,10 +544,12 @@ func (s *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0
 		return nil
 	}
 
-	err := s.removeFromWaitingList(blsKey)
-	if err != nil {
-		s.eei.AddReturnMessage("error while removing from waiting")
-		return err
+	if !s.flagStakingV4.IsSet() {
+		err := s.removeFromWaitingList(blsKey)
+		if err != nil {
+			s.eei.AddReturnMessage("error while removing from waiting")
+			return err
+		}
 	}
 	s.addToStakedNodes(1)
 	s.activeStakingFor(registrationData)
@@ -588,11 +598,16 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 	if registrationData.Staked {
 		s.removeFromStakedNodes()
 	}
-	if registrationData.Waiting {
-		err = s.removeFromWaitingList(args.Arguments[0])
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
+
+	// This is an extra check. We should not save any registrationData
+	// with Waiting = true when staking v4 is enabled
+	if !s.flagStakingV4.IsSet() {
+		if registrationData.Waiting {
+			err = s.removeFromWaitingList(args.Arguments[0])
+			if err != nil {
+				s.eei.AddReturnMessage(err.Error())
+				return vmcommon.UserError
+			}
 		}
 	}
 
@@ -1147,6 +1162,10 @@ func createWaitingListKey(blsKey []byte) []byte {
 }
 
 func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		return vmcommon.UserError
+	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
 		s.eei.AddReturnMessage("switchJailedWithWaiting function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
@@ -1298,6 +1317,13 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.Finish([]byte(strconv.Itoa(int(0))))
+
+		return vmcommon.Ok
+	}
+
 	waitingElementKey := createWaitingListKey(args.Arguments[0])
 	_, err := s.getWaitingListElement(waitingElementKey)
 	if err != nil {
@@ -1362,6 +1388,13 @@ func (s *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommo
 	if err != nil {
 		s.eei.AddReturnMessage("insufficient gas")
 		return vmcommon.OutOfGas
+	}
+
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.Finish([]byte(strconv.Itoa(int(0))))
+
+		return vmcommon.Ok
 	}
 
 	waitingListHead, err := s.getWaitingListHead()
@@ -1581,14 +1614,19 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 		return vmcommon.UserError
 	}
 
-	stakeConfig := s.getConfig()
-	waitingListHead, err := s.getWaitingListHead()
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	waitingListLength := int64(0)
+	if !s.flagStakingV4.IsSet() {
+		waitingListHead, err := s.getWaitingListHead()
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		waitingListLength = int64(waitingListHead.Length)
 	}
 
-	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
+	stakeConfig := s.getConfig()
+	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + waitingListLength
 	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
 	return vmcommon.Ok
 }
@@ -1596,6 +1634,10 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagCorrectLastUnjailed.IsSet() {
 		// backward compatibility
+		return vmcommon.UserError
+	}
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
@@ -1682,6 +1724,10 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
 		s.eei.AddReturnMessage("stake nodes from waiting list can be called by endOfEpochAccess address only")
 		return vmcommon.UserError
@@ -1752,6 +1798,10 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagCorrectLastUnjailed.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
@@ -1964,6 +2014,10 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		return vmcommon.UserError
+	}
 
 	if args.CallValue.Cmp(zero) != 0 {
 		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
@@ -2033,6 +2087,10 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagCorrectFirstQueued.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
@@ -2114,6 +2172,9 @@ func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagCorrectJailedNotUnstakedEmptyQueue.SetValue(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug("stakingSC: correct jailed not unstaked with empty queue", "enabled", s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
+
+	s.flagStakingV4.SetValue(epoch >= s.stakingV4Epoch)
+	log.Debug("stakingSC: staking v4", "enabled", s.flagStakingV4.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
