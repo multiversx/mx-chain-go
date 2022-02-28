@@ -1602,7 +1602,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		stateCheckpointModulus,
 	)
 
-	roundsPerEpoch := uint64(5)
+	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
@@ -1639,7 +1639,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	prunedRootHashes := make(map[int][][]byte)
 
 	numShardNodes := numOfShards * nodesPerShard
-	numRounds := uint32(9)
+	numRounds := uint32(20)
 	for i := uint64(0); i < uint64(numRounds); i++ {
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -1717,6 +1717,16 @@ func collectSnapshotAndCheckpointHashes(
 	}
 }
 
+// the rounds for the blocks on epoch e that are confirmed by a block that gets finalized in the epoch e+1
+//should be skipped from pruning
+func isRoundSkippedForPruning(nonce uint64, roundsPerEpoch uint64) bool {
+	skip:= nonce%roundsPerEpoch > roundsPerEpoch-2
+	if skip{
+		fmt.Println(fmt.Sprintf("skipping nonce %d", nonce))
+	}
+	return skip
+}
+
 func testNodeStateCheckpointSnapshotAndPruning(
 	t *testing.T,
 	node *integrationTests.TestProcessorNode,
@@ -1726,7 +1736,7 @@ func testNodeStateCheckpointSnapshotAndPruning(
 ) {
 
 	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-	require.Equal(t, 3, len(checkpointsRootHashes))
+	require.Equal(t, 6, len(checkpointsRootHashes))
 	for i := range checkpointsRootHashes {
 		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
 		require.Nil(t, err)
@@ -1740,12 +1750,10 @@ func testNodeStateCheckpointSnapshotAndPruning(
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 5, len(prunedRootHashes))
+	require.Equal(t, 13, len(prunedRootHashes))
+	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
-		if err == nil {
-			fmt.Println(hex.EncodeToString(prunedRootHashes[i]))
-		}
 		require.Nil(t, tr)
 		require.NotNil(t, err)
 	}
@@ -2130,6 +2138,9 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 }
 
 func TestTrieDBPruning_PruningOldData(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 	adb := createAccountsDBTestSetup()
 	numAccounts := uint32(10000)
 	numIncreaseDecreaseIterations := 100
@@ -2156,6 +2167,10 @@ func TestTrieDBPruning_PruningOldData(t *testing.T) {
 }
 
 func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	adb := createAccountsDBTestSetup()
 	numAccounts := uint32(1000)
 	numIncreaseDecreaseIterations := 100

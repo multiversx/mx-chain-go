@@ -52,6 +52,7 @@ type StorageManager interface {
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
+	//RemoveFromCurrentEpoch(hash []byte) error
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool

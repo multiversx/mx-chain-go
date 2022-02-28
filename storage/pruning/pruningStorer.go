@@ -577,6 +577,21 @@ func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
 	ps.lock.Unlock()
 }
 
+// RemoveFromCurrentEpoch removes the data associated to the given key from both cache and the current epoch persistence medium
+func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
+	ps.cacher.Remove(key)
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	if len(ps.activePersisters) == 0 {
+		return nil
+	}
+
+	persisterToUse := ps.activePersisters[0]
+
+	return persisterToUse.persister.Remove(key)
+}
+
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (ps *PruningStorer) Remove(key []byte) error {
 	var err error
