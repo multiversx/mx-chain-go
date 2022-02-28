@@ -242,7 +242,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.flagCorrectLastUnjailedEnabled.IsSet() {
+	if s.flagCorrectLastUnjailedEnabled.IsSet() && !s.flagStakingV4Enabled.IsSet() {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
@@ -256,14 +256,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.flagCorrectNumNodesToStake.IsSet() {
-		err := s.cleanAdditionalQueue() // TODO: Deactivate this?
+	if s.flagCorrectNumNodesToStake.IsSet() && !s.flagStakingV4Enabled.IsSet() {
+		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.flagSwitchJailedWaiting.IsSet() {
+	if s.flagSwitchJailedWaiting.IsSet() && !s.flagStakingV4Enabled.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
