@@ -4005,6 +4005,46 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	assert.Equal(t, scrHash, logHash)
 }
 
+func TestProcess_createCompletedTxEvent(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
+	arguments.ShardCoordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scAddress := bytes.Repeat([]byte{0}, 32)
+	scAddress[31] = 2
+	userAddress := bytes.Repeat([]byte{1}, 32)
+
+	scr := &smartContractResult.SmartContractResult{
+		Value:      big.NewInt(1),
+		SndAddr:    userAddress,
+		RcvAddr:    scAddress,
+		PrevTxHash: []byte("prevTxHash"),
+	}
+	scrHash := []byte("hash")
+
+	completeTxEvent := sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, nil)
+	assert.NotNil(t, completeTxEvent)
+
+	scrWithTransfer := &smartContractResult.SmartContractResult{
+		Value:   big.NewInt(1),
+		SndAddr: scAddress,
+		RcvAddr: userAddress,
+		Data:    []byte("transfer"),
+	}
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.Nil(t, completeTxEvent)
+
+	scrWithTransfer.Value = big.NewInt(0)
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.NotNil(t, completeTxEvent)
+	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
+	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
+}
+
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 	return &economics.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
