@@ -191,6 +191,9 @@
     # nodes queue is removed and all nodes from queue are moved to a new list
     StakingV4InitEnableEpoch = 1000000
 
+    # StakingV4EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4InitEnableEpoch
+    StakingV4EnableEpoch = 1000001
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

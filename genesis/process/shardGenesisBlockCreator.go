@@ -114,6 +114,7 @@ func createGenesisConfig() config.EnableEpochs {
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 		StakeLimitsEnableEpoch:                            unreachableEpoch,
 		StakingV4InitEnableEpoch:                          unreachableEpoch,
+		StakingV4EnableEpoch:                              unreachableEpoch,
 	}
 }
 
