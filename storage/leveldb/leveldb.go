@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -136,6 +137,10 @@ func (s *DB) updateBatchWithIncrement() error {
 
 // Put adds the value to the (key, val) storage medium
 func (s *DB) Put(key, val []byte) error {
+	if strings.Contains(s.path, "import-db") {
+		panic("DB - not allowed to be called in import-db")
+	}
+
 	err := s.batch.Put(key, val)
 	if err != nil {
 		return err
@@ -239,6 +244,10 @@ func (s *DB) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *DB) Remove(key []byte) error {
+	if strings.Contains(s.path, "import-db") {
+		panic("DB - not allowed to be called in import-db")
+	}
+
 	s.mutBatch.Lock()
 	_ = s.batch.Delete(key)
 	s.mutBatch.Unlock()
@@ -248,6 +257,10 @@ func (s *DB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
+	if strings.Contains(s.path, "import-db") {
+		panic("DB - not allowed to be called in import-db")
+	}
+
 	s.mutBatch.Lock()
 	s.batch.Reset()
 	s.sizeBatch = 0
@@ -267,6 +280,10 @@ func (s *DB) Destroy() error {
 
 // DestroyClosed removes the already closed storage medium stored data
 func (s *DB) DestroyClosed() error {
+	if strings.Contains(s.path, "import-db") {
+		panic("DB - not allowed to be called in import-db")
+	}
+
 	return os.RemoveAll(s.path)
 }
 

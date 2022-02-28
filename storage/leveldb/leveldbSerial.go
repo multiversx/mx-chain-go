@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -124,6 +125,10 @@ func (s *SerialDB) updateBatchWithIncrement() error {
 
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
+	if strings.Contains(s.path, "import-db") {
+		panic("SerialDB - not allowed to be called in import-db")
+	}
+
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
@@ -265,6 +270,10 @@ func (s *SerialDB) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
+	if strings.Contains(s.path, "import-db") {
+		panic("SerialDB - not allowed to be called in import-db")
+	}
+
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
@@ -278,6 +287,10 @@ func (s *SerialDB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *SerialDB) Destroy() error {
+	if strings.Contains(s.path, "import-db") {
+		panic("SerialDB - not allowed to be called in import-db")
+	}
+
 	log.Debug("serialDB.Destroy", "path", s.path)
 
 	// calling close on the SafeCloser instance should be the last instruction called
@@ -294,6 +307,10 @@ func (s *SerialDB) Destroy() error {
 
 // DestroyClosed removes the already closed storage medium stored data
 func (s *SerialDB) DestroyClosed() error {
+	if strings.Contains(s.path, "import-db") {
+		panic("SerialDB - not allowed to be called in import-db")
+	}
+
 	err := os.RemoveAll(s.path)
 	if err != nil {
 		log.Error("error destroy closed", "error", err, "path", s.path)
