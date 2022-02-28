@@ -77,9 +77,7 @@ func (adb *PeerAccountsDB) MarkSnapshotDone() {
 	}
 
 	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-	if err != nil {
-		log.Warn("error while putting active DB value into main storer", "error", err)
-	}
+	handleLoggingWhenError("error while putting active DB value into main storer", err)
 }
 
 func (adb *PeerAccountsDB) getTrieStorageManagerAndLatestEpoch() (common.StorageManager, uint32, error) {
@@ -126,9 +124,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		printStats(stats, "snapshotState peer trie", rootHash)
 
 		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		if err != nil {
-			log.Warn("error while putting active DB value into main storer", "error", err)
-		}
+		handleLoggingWhenError("error while putting active DB value into main storer", err)
 	}()
 
 	if adb.processingMode == common.ImportDb {

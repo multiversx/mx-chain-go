@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -38,10 +39,11 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
-		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      disabled.NewDisabledBootstrapper(),
+		BlockChainHook:           &mock.BlockChainHookHandlerMock{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             disabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

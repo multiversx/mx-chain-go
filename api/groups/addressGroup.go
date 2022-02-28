@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -377,7 +378,7 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 	tokenData := esdtTokenData{
 		TokenIdentifier: tokenIdentifier,
 		Balance:         esdtData.Value.String(),
-		Properties:      string(esdtData.Properties),
+		Properties:      hex.EncodeToString(esdtData.Properties),
 	}
 
 	c.JSON(
@@ -657,7 +658,7 @@ func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalT
 	tokenData := &esdtNFTTokenData{
 		TokenIdentifier: tokenIdentifier,
 		Balance:         esdtData.Value.String(),
-		Properties:      string(esdtData.Properties),
+		Properties:      hex.EncodeToString(esdtData.Properties),
 	}
 	if esdtData.TokenMetaData != nil {
 		tokenData.Name = string(esdtData.TokenMetaData.Name)
