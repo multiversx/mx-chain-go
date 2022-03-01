@@ -647,3 +647,115 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 		assert.Equal(t, mb, blk)
 	})
 }
+
+func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	expEpoch := uint32(1)
+
+	header := &block.MetaBlock{
+		Nonce: 1,
+	}
+	headerBytes, _ := json.Marshal(header)
+
+	t.Run("not metachain shard, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    &mock.ChainStorerMock{},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, expEpoch)
+		assert.Nil(t, blk)
+		assert.Equal(t, ErrMetachainOnlyEndpoint, err)
+	})
+
+	t.Run("fail to get from storer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("key not found err")
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &mock.ChainStorerMock{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+						return storerMock
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, expEpoch)
+		assert.Nil(t, blk)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("raw data meta block, should work", func(t *testing.T) {
+		t.Parallel()
+
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				assert.Equal(t, expEpoch, epoch)
+				return headerBytes, nil
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &mock.ChainStorerMock{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+						return storerMock
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatProto, expEpoch)
+		assert.Nil(t, err)
+		assert.Equal(t, headerBytes, blk)
+	})
+
+	t.Run("internal data meta block, should work", func(t *testing.T) {
+		t.Parallel()
+
+		storerMock := &storageMocks.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				assert.Equal(t, expEpoch, epoch)
+				return headerBytes, nil
+			},
+		}
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID: core.MetachainShardId,
+				Marshalizer: &mock.MarshalizerFake{},
+				Store: &mock.ChainStorerMock{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+						return storerMock
+					},
+				},
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+			}, nil)
+
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, expEpoch)
+		assert.Nil(t, err)
+		assert.Equal(t, header, blk)
+	})
+}
