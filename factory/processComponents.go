@@ -241,7 +241,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider)
+	// TODO: maybe move PeerShardMapper to network components
+	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
+
+	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider, peerShardMapper)
 	if err != nil {
 		return nil, err
 	}
@@ -424,12 +427,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	if err != nil {
+		return nil, err
+	}
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
 		pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		blockTracker,
 		epochStartTrigger,
 		requestHandler,
+		peerShardMapper,
 	)
 	if err != nil {
 		return nil, err
@@ -517,12 +524,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	err = nodesSetupChecker.Check(pcf.coreData.GenesisNodesSetup().AllInitialNodes())
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
 	if err != nil {
 		return nil, err
 	}
@@ -995,6 +996,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 // -- Resolvers container Factory begin
 func (pcf *processComponentsFactory) newResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+	peerShardMapper *networksharding.PeerShardMapper,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	if pcf.importDBConfig.IsImportDBMode {
@@ -1002,10 +1004,10 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 		return pcf.newStorageResolver()
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.newShardResolverContainerFactory(currentEpochProvider)
+		return pcf.newShardResolverContainerFactory(currentEpochProvider, peerShardMapper)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory(currentEpochProvider)
+		return pcf.newMetaResolverContainerFactory(currentEpochProvider, peerShardMapper)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
@@ -1013,6 +1015,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory(
 
 func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+	peerShardMapper *networksharding.PeerShardMapper,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1039,6 +1042,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		PreferredPeersHolder:                 pcf.network.PreferredPeersHolderHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
+		PeerShardMapper:                      peerShardMapper,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1050,6 +1054,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 
 func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+	peerShardMapper *networksharding.PeerShardMapper,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
@@ -1076,6 +1081,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		PreferredPeersHolder:                 pcf.network.PreferredPeersHolderHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
+		PeerShardMapper:                      peerShardMapper,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1090,6 +1096,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper *networksharding.PeerShardMapper,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
@@ -1098,6 +1105,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			requestHandler,
+			peerShardMapper,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1107,6 +1115,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			requestHandler,
+			peerShardMapper,
 		)
 	}
 
@@ -1243,6 +1252,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper *networksharding.PeerShardMapper,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1272,6 +1282,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerShardMapper:              peerShardMapper,
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1289,6 +1300,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper *networksharding.PeerShardMapper,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1318,6 +1330,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		PeerSignatureHandler:         pcf.crypto.PeerSignatureHandler(),
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerShardMapper:              peerShardMapper,
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 

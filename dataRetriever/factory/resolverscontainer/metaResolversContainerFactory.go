@@ -57,6 +57,7 @@ func NewMetaResolversContainerFactory(
 		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
 		nodesCoordinator:                     args.NodesCoordinator,
 		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
+		peerShardMapper:                      args.PeerShardMapper,
 	}
 
 	err = base.checkParams()

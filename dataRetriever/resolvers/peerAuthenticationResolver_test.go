@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,6 +48,12 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 			},
 		},
 		MaxNumOfPeerAuthenticationInResponse: 5,
+		PeerShardMapper: &processMock.PeerShardMapperStub{
+			GetPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+				pid := core.PeerID("pid")
+				return &pid, true
+			},
+		},
 	}
 }
 
@@ -128,6 +135,15 @@ func TestNewPeerAuthenticationResolver(t *testing.T) {
 		arg.MaxNumOfPeerAuthenticationInResponse = 1
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Equal(t, dataRetriever.ErrInvalidNumOfPeerAuthentication, err)
+		assert.Nil(t, res)
+	})
+	t.Run("nil PeerShardMapper should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgPeerAuthenticationResolver()
+		arg.PeerShardMapper = nil
+		res, err := resolvers.NewPeerAuthenticationResolver(arg)
+		assert.Equal(t, dataRetriever.ErrNilPeerShardMapper, err)
 		assert.Nil(t, res)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -451,6 +467,13 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
+			GetPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+				pid := core.PeerID(pk)
+				return &pid, true
+			},
+		}
+
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
@@ -515,6 +538,13 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
+			GetPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+				pid := core.PeerID(pk)
+				return &pid, true
+			},
+		}
+
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
