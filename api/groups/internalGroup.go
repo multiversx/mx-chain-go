@@ -607,8 +607,8 @@ func (ib *internalBlockGroup) UpdateFacade(newFacade interface{}) error {
 }
 
 func getQueryParamEpoch(c *gin.Context) (uint32, error) {
-	roundStr := c.Param("epoch")
-	epoch, err := strconv.ParseUint(roundStr, 10, 64)
+	epochStr := c.Param("epoch")
+	epoch, err := strconv.ParseUint(epochStr, 10, 32)
 	return uint32(epoch), err
 }
 
