@@ -335,5 +335,5 @@ var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer fac
 // ErrCouldNotInitLiquidStakingSystemSC signals that liquid staking system sc init failed
 var ErrCouldNotInitLiquidStakingSystemSC = errors.New("could not init liquid staking system sc")
 
-// ErrSortAuctionList signals that one or more errors occurred while trying to sort auction list
-var ErrSortAuctionList = errors.New("error(s) while trying to sort auction list")
+// ErrSortAuctionList signals that an error occurred while trying to sort auction list
+var ErrSortAuctionList = errors.New("error while trying to sort auction list")
