@@ -4045,19 +4045,6 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	assert.NotNil(t, completeTxEvent)
 	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
 	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
-
-	vmOutput := &vmcommon.VMOutput{GasRemaining: 1000}
-	scrForSender, _ := sc.createSCRForSenderAndRelayer(
-		vmOutput,
-		scr,
-		scrHash,
-		vmData.DirectCall,
-	)
-
-	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrForSender})
-	assert.NotNil(t, completeTxEvent)
-	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
-	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {

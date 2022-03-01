@@ -2669,7 +2669,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.MoveBalance:
-		err = sc.processSimpleSCR(scr, dstAcc)
+		err = sc.processSimpleSCR(scr, txHash, dstAcc)
 		if err != nil {
 			return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
 		}
@@ -2708,6 +2708,7 @@ func (sc *scProcessor) getGasLockedFromSCR(scr *smartContractResult.SmartContrac
 
 func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
+	txHash []byte,
 	dstAcc state.UserAccountHandler,
 ) error {
 	if scResult.Value.Cmp(zero) <= 0 {
@@ -2727,7 +2728,20 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	return sc.accounts.SaveAccount(dstAcc)
+	err = sc.accounts.SaveAccount(dstAcc)
+	if err != nil {
+		return err
+	}
+
+	if isReturnOKTxHandler(scResult) {
+		completedTxLog := createCompleteEventLog(scResult, txHash)
+		ignorableError := sc.txLogsProcessor.SaveLog(txHash, scResult, []*vmcommon.LogEntry{completedTxLog})
+		if ignorableError != nil {
+			log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+		}
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
@@ -2752,27 +2766,6 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 	return process.ErrUpgradeNotAllowed
 }
 
-func isReturnOKTxHandler(
-	originalTx data.TransactionHandler,
-	resultTx data.TransactionHandler,
-) bool {
-	if bytes.Compare(originalTx.GetSndAddr(), resultTx.GetRcvAddr()) != 0 {
-		return false
-	}
-	if bytes.Compare(originalTx.GetRcvAddr(), resultTx.GetSndAddr()) != 0 {
-		return false
-	}
-	if len(resultTx.GetData()) < len([]byte(returnOkData)) {
-		return false
-	}
-	firstBytesOfData := string(resultTx.GetData()[:len([]byte(returnOkData))])
-	if firstBytesOfData != returnOkData {
-		return false
-	}
-
-	return true
-}
-
 func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 	tx data.TransactionHandler,
 	txHash []byte,
@@ -2789,19 +2782,15 @@ func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 		sndShardID = sc.shardCoordinator.ComputeId(scr.GetSndAddr())
 		dstShardID = sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
 		isCrossShard := sndShardID != dstShardID
-		if !isCrossShard {
-			continue
+		if isCrossShard && !sc.isInformativeTxHandler(scr) {
+			return nil
 		}
-		if sc.isInformativeTxHandler(scr) {
-			continue
-		}
-		if isReturnOKTxHandler(tx, scr) {
-			continue
-		}
-
-		return nil
 	}
 
+	return createCompleteEventLog(tx, txHash)
+}
+
+func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon.LogEntry {
 	prevTxHash := txHash
 	originalSCR, ok := tx.(*smartContractResult.SmartContractResult)
 	if ok {
@@ -2815,6 +2804,20 @@ func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 	}
 
 	return newLog
+}
+
+func isReturnOKTxHandler(
+	resultTx data.TransactionHandler,
+) bool {
+	if len(resultTx.GetData()) < len([]byte(returnOkData)) {
+		return false
+	}
+	firstBytesOfData := string(resultTx.GetData()[:len([]byte(returnOkData))])
+	if firstBytesOfData != returnOkData {
+		return false
+	}
+
+	return true
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false
