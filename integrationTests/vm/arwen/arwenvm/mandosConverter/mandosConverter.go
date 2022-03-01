@@ -18,7 +18,7 @@ import (
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")
 
 // CreateAccountsFromMandosAccs uses mandosAccounts to populate the AccountsAdapter
-func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) (err error) {
+func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mge.TestAccount) error {
 	for _, mandosAcc := range mandosUserAccounts {
 		acc, err := tc.Accounts.LoadAccount(mandosAcc.GetAddress())
 		if err != nil {
@@ -51,7 +51,7 @@ func CreateAccountsFromMandosAccs(tc *vm.VMTestContext, mandosUserAccounts []*mg
 			return err
 		}
 	}
-	_, err = tc.Accounts.Commit()
+	_, err := tc.Accounts.Commit()
 	if err != nil {
 		return err
 	}
@@ -92,8 +92,8 @@ func CreateTransactionsFromMandosTxs(mandosTxs []*mge.Transaction) (transactions
 }
 
 // DeploySCsFromMandosDeployTxs deploys all smartContracts correspondent to "scDeploy" in a mandos test, then replaces with the correct computed address in all the transactions.
-func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs []*mge.Transaction) (newScAddresses [][]byte, err error) {
-	newScAddresses = make([][]byte, 0)
+func DeploySCsFromMandosDeployTxs(testContext *vm.VMTestContext, deployMandosTxs []*mge.Transaction) ([][]byte, error) {
+	newScAddresses := make([][]byte, 0)
 	for _, deployMandosTransaction := range deployMandosTxs {
 		deployedScAddress, err := deploySC(testContext, deployMandosTransaction)
 		if err != nil {

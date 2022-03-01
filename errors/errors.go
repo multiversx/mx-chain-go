@@ -50,7 +50,7 @@ var ErrNilAccountsAdapter = errors.New("nil accounts adapter")
 // ErrNilAccountsParser signals that a nil accounts parser has been provided
 var ErrNilAccountsParser = errors.New("nil accounts parser")
 
-//ErrNilAddressPublicKeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
+// ErrNilAddressPublicKeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilAddressPublicKeyConverter = errors.New("nil address pubkey converter")
 
 // ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is used
@@ -154,9 +154,6 @@ var ErrNilOutportHandler = errors.New("nil outport handler")
 
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")
-
-// ErrNilRoundActivationHandler signals that a nil round activation handler has been provided
-var ErrNilRoundActivationHandler = errors.New("nil round activation handler")
 
 // ErrNilEpochStartBootstrapper signals that a nil epoch start bootstrapper was provided
 var ErrNilEpochStartBootstrapper = errors.New("nil epoch start bootstrapper")
@@ -350,9 +347,6 @@ var ErrNilSyncTimer = errors.New("nil sync timer provided")
 // ErrNilSystemSCConfig signals that a nil system smart contracts cofiguration was provided
 var ErrNilSystemSCConfig = errors.New("nil system smart contract configuration")
 
-// ErrNilTpsBenchmark signals that a nil tps benchmark handler was provided
-var ErrNilTpsBenchmark = errors.New("nil tps benchmark")
-
 // ErrNilTriesContainer signals that a nil tries container was provided
 var ErrNilTriesContainer = errors.New("nil tries container provided")
 
@@ -455,9 +449,6 @@ var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 // ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
-// ErrNilLocker signals that a nil locker was provided
-var ErrNilLocker = errors.New("nil locker")
-
 // ErrNilCurrentEpochProvider signals that a nil current epoch provider was provided
 var ErrNilCurrentEpochProvider = errors.New("nil current epoch provider")
 
@@ -466,3 +457,6 @@ var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions 
 
 // ErrNilScheduledProcessor signals that a nil scheduled processor was provided
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
+
+// ErrContextClosing signals that the parent context requested the closing of its children
+var ErrContextClosing = errors.New("context closing")

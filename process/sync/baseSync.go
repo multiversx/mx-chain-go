@@ -631,7 +631,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.roundHandler.TimeDuration()
+	waitTime := boot.roundHandler.TimeDuration() * process.TimeDurationMultiplierForProcessBlockWhenSync
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
@@ -725,8 +725,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 				if currHeader != nil {
 					rootHash = currHeader.GetRootHash()
 				}
-				gasAndFees := process.GetZeroGasAndFees()
-				boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(rootHash, make(map[block.Type][]data.TransactionHandler), gasAndFees)
+				scheduledInfo := &process.ScheduledInfo{
+					RootHash:        rootHash,
+					IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+					GasAndFees:      process.GetZeroGasAndFees(),
+					MiniBlocks:      make(block.MiniBlockSlice, 0),
+				}
+				boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 			}
 		}
 	}()
@@ -793,8 +798,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 		if err != nil {
-			gasAndFees := process.GetZeroGasAndFees()
-			boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(prevHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+			scheduledInfo := &process.ScheduledInfo{
+				RootHash:        prevHeader.GetRootHash(),
+				IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+				GasAndFees:      process.GetZeroGasAndFees(),
+				MiniBlocks:      make(block.MiniBlockSlice, 0),
+			}
+			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
 
 		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
@@ -947,8 +957,13 @@ func (boot *baseBootstrap) restoreState(
 
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
-		gasAndFees := process.GetZeroGasAndFees()
-		boot.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(currHeader.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        currHeader.GetRootHash(),
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+		boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())

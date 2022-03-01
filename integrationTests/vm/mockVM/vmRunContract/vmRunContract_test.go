@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -15,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
+// TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
 
 func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	vmOpGas := uint64(1)
@@ -33,7 +34,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
@@ -53,7 +54,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	destinationAddressBytes, _ := hex.DecodeString("0000000000000000ffff1a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
-	//contract call tx
+	// contract call tx
 	txRun := vm.CreateTx(
 		senderAddressBytes,
 		destinationAddressBytes,
@@ -103,12 +104,12 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
-	//deploy will transfer 0
+	// deploy will transfer 0
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -124,7 +125,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	destinationAddressBytes, _ := hex.DecodeString("0000000000000000ffff1a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
-	//contract call tx
+	// contract call tx
 	txRun := vm.CreateTx(
 		senderAddressBytes,
 		destinationAddressBytes,
@@ -174,12 +175,12 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
-	//deploy will transfer 0
+	// deploy will transfer 0
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -195,7 +196,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	destinationAddressBytes, _ := hex.DecodeString("0000000000000000ffff1a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
-	//contract call tx
+	// contract call tx
 	txRun := vm.CreateTx(
 		senderAddressBytes,
 		destinationAddressBytes,
@@ -245,12 +246,12 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
-	//deploy will transfer 0 and will succeed
+	// deploy will transfer 0 and will succeed
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -266,7 +267,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	destinationAddressBytes, _ := hex.DecodeString("0000000000000000ffff1a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
-	//contract call tx
+	// contract call tx
 	txRun := vm.CreateTx(
 		senderAddressBytes,
 		destinationAddressBytes,
@@ -288,16 +289,16 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		accnts,
 		senderAddressBytes,
 		senderNonce+2,
-		//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
+		// following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
 		vm.ComputeExpectedBalance(senderBalance, big.NewInt(0), gasLimit+vmOpGas+uint64(len(data)), gasPrice))
 
-	//value did not change, remained initial
+	// value did not change, remained initial
 	expectedValueForVariable := big.NewInt(0).SetUint64(initialValueForInternalVariable)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
 		accnts,
-		//transfer did not happened
+		// transfer did not happened
 		big.NewInt(0),
 		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})
@@ -315,7 +316,7 @@ func deployContract(
 	accnts state.AccountsAdapter,
 ) {
 
-	//contract creation tx
+	// contract creation tx
 	tx := vm.CreateTx(
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),

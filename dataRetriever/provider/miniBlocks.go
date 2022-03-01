@@ -120,6 +120,28 @@ func (mbp *miniBlockProvider) getMiniblockFromPool(hash []byte) *block.MiniBlock
 	return miniBlock
 }
 
+// GetMiniBlocksFromStorer method returns a list of deserialized mini blocks from a given hash list from data storage
+func (mbp *miniBlockProvider) GetMiniBlocksFromStorer(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+	miniBlocksAndHashes := make([]*block.MiniblockAndHash, 0)
+	missingMiniBlocksHashes := make([][]byte, 0)
+
+	for i := 0; i < len(hashes); i++ {
+		miniblock := mbp.getMiniBlockFromStorer(hashes[i])
+		if miniblock == nil {
+			missingMiniBlocksHashes = append(missingMiniBlocksHashes, hashes[i])
+			continue
+		}
+
+		miniBlockAndHash := &block.MiniblockAndHash{
+			Miniblock: miniblock,
+			Hash:      hashes[i],
+		}
+		miniBlocksAndHashes = append(miniBlocksAndHashes, miniBlockAndHash)
+	}
+
+	return miniBlocksAndHashes, missingMiniBlocksHashes
+}
+
 // getMiniBlocksFromStorer returns a list of mini blocks from storage and a list of missing hashes
 func (mbp *miniBlockProvider) getMiniBlockFromStorer(hash []byte) *block.MiniBlock {
 	buff, err := mbp.miniBlockStorage.Get(hash)

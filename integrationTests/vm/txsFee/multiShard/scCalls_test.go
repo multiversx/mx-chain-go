@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -18,11 +19,11 @@ import (
 )
 
 func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
@@ -72,7 +73,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	require.Equal(t, "100", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
-	//execute on destination shard
+	// execute on destination shard
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -112,11 +113,11 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 }
 
 func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
@@ -164,7 +165,7 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	require.Equal(t, "100", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
-	//execute on destination shard
+	// execute on destination shard
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
