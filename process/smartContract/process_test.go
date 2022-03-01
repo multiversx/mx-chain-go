@@ -4023,6 +4023,8 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 		SndAddr:    userAddress,
 		RcvAddr:    scAddress,
 		PrevTxHash: []byte("prevTxHash"),
+		GasLimit:   1000,
+		GasPrice:   1000,
 	}
 	scrHash := []byte("hash")
 
@@ -4040,6 +4042,19 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 
 	scrWithTransfer.Value = big.NewInt(0)
 	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.NotNil(t, completeTxEvent)
+	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
+	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
+
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 1000}
+	scrForSender, _ := sc.createSCRForSenderAndRelayer(
+		vmOutput,
+		scr,
+		scrHash,
+		vmData.DirectCall,
+	)
+
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrForSender})
 	assert.NotNil(t, completeTxEvent)
 	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
 	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)

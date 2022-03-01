@@ -49,6 +49,7 @@ const (
 	generalSCRIdentifier = "writeLog"
 	signalError          = "signalError"
 	completedTxEvent     = "completedTxEvent"
+	returnOkData         = "@6f"
 )
 
 var zero = big.NewInt(0)
@@ -2751,6 +2752,27 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 	return process.ErrUpgradeNotAllowed
 }
 
+func isReturnOKTxHandler(
+	originalTx data.TransactionHandler,
+	resultTx data.TransactionHandler,
+) bool {
+	if bytes.Compare(originalTx.GetSndAddr(), resultTx.GetRcvAddr()) != 0 {
+		return false
+	}
+	if bytes.Compare(originalTx.GetRcvAddr(), resultTx.GetSndAddr()) != 0 {
+		return false
+	}
+	if len(resultTx.GetData()) < len([]byte(returnOkData)) {
+		return false
+	}
+	firstBytesOfData := string(resultTx.GetData()[:len([]byte(returnOkData))])
+	if firstBytesOfData != returnOkData {
+		return false
+	}
+
+	return true
+}
+
 func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 	tx data.TransactionHandler,
 	txHash []byte,
@@ -2767,9 +2789,17 @@ func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
 		sndShardID = sc.shardCoordinator.ComputeId(scr.GetSndAddr())
 		dstShardID = sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
 		isCrossShard := sndShardID != dstShardID
-		if isCrossShard && !sc.isInformativeTxHandler(scr) {
-			return nil
+		if !isCrossShard {
+			continue
 		}
+		if sc.isInformativeTxHandler(scr) {
+			continue
+		}
+		if isReturnOKTxHandler(tx, scr) {
+			continue
+		}
+
+		return nil
 	}
 
 	prevTxHash := txHash
