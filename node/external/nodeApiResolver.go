@@ -182,13 +182,13 @@ func (nar *nodeApiResolver) GetInternalShardBlockByRound(format common.ApiOutput
 }
 
 // GetInternalMiniBlock wil return a shard block by round
-func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, hash string) (interface{}, error) {
+func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
 	decodedHash, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return nar.apiInternalBlockHandler.GetInternalMiniBlock(format, decodedHash)
+	return nar.apiInternalBlockHandler.GetInternalMiniBlock(format, decodedHash, epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

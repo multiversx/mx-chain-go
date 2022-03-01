@@ -175,8 +175,9 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format co
 }
 
 // GetInternalMiniBlock will return the miniblock based on the hash
-func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte) (interface{}, error) {
-	blockBytes, err := ibp.getFromStorer(dataRetriever.MiniBlockUnit, hash)
+func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error) {
+	storer := ibp.store.GetStorer(dataRetriever.MiniBlockUnit)
+	blockBytes, err := storer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}

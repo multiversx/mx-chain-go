@@ -61,7 +61,7 @@ type FacadeStub struct {
 	GetInternalMetaBlockByHashCalled        func(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalMetaBlockByRoundCalled       func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 
-	GetInternalMiniBlockByHashCalled func(format common.ApiOutputFormat, txHash string) (interface{}, error)
+	GetInternalMiniBlockByHashCalled func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetTotalStakedValueHandler       func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled          func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler       func() ([]*api.DirectStakedValue, error)
@@ -427,9 +427,9 @@ func (f *FacadeStub) GetInternalShardBlockByRound(format common.ApiOutputFormat,
 }
 
 // GetInternalMiniBlockByHash -
-func (f *FacadeStub) GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+func (f *FacadeStub) GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
 	if f.GetInternalMiniBlockByHashCalled != nil {
-		return f.GetInternalMiniBlockByHashCalled(format, hash)
+		return f.GetInternalMiniBlockByHashCalled(format, hash, epoch)
 	}
 	return nil, nil
 }
