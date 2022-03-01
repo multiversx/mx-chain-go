@@ -48,7 +48,7 @@ func TestCreateApiResolver(t *testing.T) {
 			GasSchedule: gasSchedule,
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
-		AllowVMQueriesChan: make(chan struct{}),
+		AllowVMQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 
 	apiResolver, err := factory.CreateApiResolver(args)
