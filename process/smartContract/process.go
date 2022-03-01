@@ -2880,8 +2880,6 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagIsPayableBySC.SetValue(epoch >= sc.isPayableBySCEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
-
-	// try sign
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
