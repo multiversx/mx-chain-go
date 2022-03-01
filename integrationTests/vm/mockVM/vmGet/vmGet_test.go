@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -25,7 +27,7 @@ import (
 func TestVmGetShouldReturnValue(t *testing.T) {
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
-	mockVM := vm.CreateOneSCExecutorMockVM(accnts)
+	mockVM := vm.CreateOneSCExecutorMockVM(accnts, config.EnableEpochs{})
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return mockVM, nil
@@ -37,10 +39,11 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
-		BlockChainHook:    &testscommon.BlockChainHookStub{},
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      disabled.NewDisabledBootstrapper(),
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             disabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -85,7 +88,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)

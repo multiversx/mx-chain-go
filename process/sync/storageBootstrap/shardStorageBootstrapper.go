@@ -37,6 +37,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		bootstrapRoundIndex:          arguments.BootstrapRoundIndex,
 		chainID:                      arguments.ChainID,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+		miniBlocksProvider:           arguments.MiniblocksProvider,
 	}
 
 	boot := shardStorageBootstrapper{

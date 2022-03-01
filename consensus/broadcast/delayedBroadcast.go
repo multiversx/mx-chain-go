@@ -449,7 +449,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 	dbb.mutDataForBroadcast.Unlock()
 
 	if vHeader == nil {
-		log.Warn("delayedBlockBroadcaster.headerAlarmExpired: alarm data is nil",
+		log.Debug("delayedBlockBroadcaster.headerAlarmExpired: alarm data is nil",
 			"headerHash", headerHash,
 			"alarmID", alarmID,
 		)
@@ -733,9 +733,10 @@ func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header dat
 
 func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler, toShardID uint32) map[string]struct{} {
 	mbHashesForShard := make(map[string]struct{})
-	miniBlockHeaders := header.GetMiniBlockHeadersWithDst(toShardID)
-	for key := range miniBlockHeaders {
-		mbHashesForShard[key] = struct{}{}
+	// Remove mini blocks which are not final to avoid sending them
+	mbHashes := process.GetFinalCrossMiniBlockHashes(header, toShardID)
+	for mbHash := range mbHashes {
+		mbHashesForShard[mbHash] = struct{}{}
 	}
 
 	return mbHashesForShard

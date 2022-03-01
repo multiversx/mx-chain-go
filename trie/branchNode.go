@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ = node(&branchNode{})
@@ -295,7 +296,7 @@ func (bn *branchNode) commitCheckpoint(
 	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -340,7 +341,7 @@ func (bn *branchNode) commitSnapshot(
 	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
