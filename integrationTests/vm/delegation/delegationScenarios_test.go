@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
@@ -895,8 +894,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 		assert.Nil(t, err)
 	}
 
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
+	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 528)
 
 	//unStake 2 nodes
@@ -916,8 +914,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(400), 4, 100)
 	checkRewardData(t, tpn, delegationScAddress, 4, 400, 3000, serviceFee)
 
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
+	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 928)
 
 	//unDelegate all from owner
@@ -930,8 +927,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(500), 5, 100)
 	checkRewardData(t, tpn, delegationScAddress, 5, 500, 0, serviceFee)
 
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
+	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 928)
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 5, Nonce: 150})
@@ -947,16 +943,12 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 	assert.Nil(t, err)
 
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 0)
+	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(600), 6, 150)
 	checkRewardData(t, tpn, delegationScAddress, 6, 600, 0, serviceFee)
 
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
-	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 0)
+	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 }
 
 func TestDelegationSystemCleanUpContract(t *testing.T) {
@@ -1140,7 +1132,7 @@ func addRewardsToDelegation(tpn *integrationTests.TestProcessorNode, recvAddr []
 		},
 	}
 
-	txCacher, _ := dataPool.NewCurrentBlockPool()
+	txCacher := dataPool.NewCurrentBlockPool()
 	txCacher.AddTx(rewardTxHash, tx)
 
 	_ = tpn.EpochStartSystemSCProcessor.ProcessDelegationRewards(mbSlice, txCacher)
@@ -1189,27 +1181,21 @@ func deployNewSc(
 	value *big.Int,
 	ownerAddress []byte,
 ) []byte {
-	scrForwarder, _ := tpn.ScrForwarder.(interface {
-		CleanIntermediateTransactions()
-	})
-	scrForwarder.CleanIntermediateTransactions()
-
 	txData := "createNewDelegationContract" + "@" + hex.EncodeToString(maxDelegationCap.Bytes()) + "@" + hex.EncodeToString(serviceFee.Bytes())
 	returnedCode, err := processTransaction(tpn, ownerAddress, vm.DelegationManagerSCAddress, txData, value)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	scrs := tpn.ScProcessor.GetAllSCRs()
-	for i := range scrs {
-		tx, isScr := scrs[i].(*smartContractResult.SmartContractResult)
-		if !isScr {
-			continue
-		}
+	logs := tpn.TransactionLogProcessor.GetAllCurrentLogs()
+	tpn.TransactionLogProcessor.Clean()
 
-		if bytes.Equal(tx.RcvAddr, ownerAddress) {
-			tokens := strings.Split(string(tx.GetData()), "@")
-			address, _ := hex.DecodeString(tokens[2])
-			return address
+	for _, log := range logs {
+		for _, event := range log.GetLogEvents() {
+			if string(event.GetIdentifier()) == "writeLog" && bytes.Equal(event.GetAddress(), vm.DelegationManagerSCAddress) {
+				tokens := strings.Split(string(event.GetData()), "@")
+				address, _ := hex.DecodeString(tokens[2])
+				return address
+			}
 		}
 	}
 

@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"time"
+
+	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
@@ -8,8 +11,10 @@ import (
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	ElasticIndexerFactoryArgs *indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs  *notifierFactory.EventNotifierFactoryArgs
+	RetrialInterval            time.Duration
+	ElasticIndexerFactoryArgs  *indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs   *notifierFactory.EventNotifierFactoryArgs
+	CovalentIndexerFactoryArgs *covalentFactory.ArgsCovalentIndexerFactory
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -19,7 +24,11 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 		return nil, err
 	}
 
-	outportHandler := outport.NewOutport()
+	outportHandler, err := outport.NewOutport(args.RetrialInterval)
+	if err != nil {
+		return nil, err
+	}
+
 	err = createAndSubscribeDrivers(outportHandler, args)
 	if err != nil {
 		return nil, err
@@ -39,7 +48,28 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
+	err = createAndSubscribeCovalentDriverIfNeeded(outport, args.CovalentIndexerFactoryArgs)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func createAndSubscribeCovalentDriverIfNeeded(
+	outport outport.OutportHandler,
+	args *covalentFactory.ArgsCovalentIndexerFactory,
+) error {
+	if !args.Enabled {
+		return nil
+	}
+
+	covalentDriver, err := covalentFactory.CreateCovalentIndexer(args)
+	if err != nil {
+		return err
+	}
+
+	return outport.SubscribeDriver(covalentDriver)
 }
 
 func createAndSubscribeElasticDriverIfNeeded(

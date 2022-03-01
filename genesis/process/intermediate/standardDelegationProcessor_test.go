@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -149,10 +150,11 @@ func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *tes
 
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, err := dp.ExecuteDelegation()
+	result, delegationTxs, err := dp.ExecuteDelegation()
 
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, genesis.DelegationResult{}, result)
+	assert.Equal(t, []coreData.TransactionHandler(nil), delegationTxs)
 }
 
 func TestStandardDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *testing.T) {
@@ -179,7 +181,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil
 	}
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, err := dp.ExecuteDelegation()
+	result, _, err := dp.ExecuteDelegation()
 
 	assert.Nil(t, err)
 	assert.Equal(t, genesis.DelegationResult{}, result)
@@ -293,7 +295,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 	}
 	dp, _ := NewStandardDelegationProcessor(arg)
 
-	result, err := dp.ExecuteDelegation()
+	result, _, err := dp.ExecuteDelegation()
 
 	expectedResult := genesis.DelegationResult{
 		NumTotalDelegated: 3,

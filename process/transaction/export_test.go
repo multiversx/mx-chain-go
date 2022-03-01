@@ -83,6 +83,6 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		errorMsg)
 }
 
-func (txProc *metaTxProcessor) ToggleFlagMetaBuiltIn(set bool) {
-	txProc.flagBuiltInFunction.Toggle(set)
+func (txProc *metaTxProcessor) SetValueFlagMetaBuiltIn(set bool) {
+	txProc.flagBuiltInFunction.SetValue(set)
 }

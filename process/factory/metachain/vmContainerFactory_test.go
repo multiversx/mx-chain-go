@@ -13,47 +13,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
-	datapool := dataRetrieverMock.NewPoolsHolderMock()
-	arguments := hooks.ArgBlockChainHook{
-		Accounts: &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-				return &mock.AccountWrapMock{}, nil
-			},
-		},
-		PubkeyConv:         mock.NewPubkeyConverterMock(32),
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		Marshalizer:        &mock.MarshalizerMock{},
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
-	}
-	return arguments
-}
-
 func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
 	return ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		PubkeyConv:          mock.NewPubkeyConverterMock(32),
 		Economics:           &economicsmocks.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
-		Hasher:              &mock.HasherMock{},
+		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
@@ -86,7 +64,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch: 10,
@@ -213,7 +191,7 @@ func TestNewVMContainerFactory_NilPubkeyConverter(t *testing.T) {
 
 	gasSchedule := makeGasSchedule()
 	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
-	argsNewVmContainerFactory.ArgBlockChainHook.PubkeyConv = nil
+	argsNewVmContainerFactory.PubkeyConv = nil
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.True(t, check.IfNil(vmf))
@@ -225,11 +203,11 @@ func TestNewVMContainerFactory_NilBlockChainHookFails(t *testing.T) {
 
 	gasSchedule := makeGasSchedule()
 	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
-	argsNewVmContainerFactory.ArgBlockChainHook.Accounts = nil
+	argsNewVmContainerFactory.BlockChainHook = nil
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.True(t, check.IfNil(vmf))
-	assert.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
+	assert.True(t, errors.Is(err, process.ErrNilBlockChainHook))
 }
 
 func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
@@ -295,27 +273,35 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     "10000000000",
-				MaxGasLimitPerMetaBlock: "10000000000",
-				MinGasPrice:             "10",
-				MinGasLimit:             "10",
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "10000000000",
+						MaxGasLimitPerMiniBlock:     "10000000000",
+						MaxGasLimitPerMetaBlock:     "10000000000",
+						MaxGasLimitPerMetaMiniBlock: "10000000000",
+						MaxGasLimitPerTx:            "10000000000",
+						MinGasLimit:                 "10",
+					},
+				},
+				MinGasPrice:      "10",
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
 	argsNewVMContainerFactory := ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		PubkeyConv:          mock.NewPubkeyConverterMock(32),
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         makeGasSchedule(),
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
-		Hasher:              &mock.HasherMock{},
+		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
@@ -359,7 +345,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               10,
@@ -443,6 +429,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
+	gasMap["FixWaitingListSize"] = value
 	gasMap["LiquidStakingOps"] = value
 
 	return gasMap

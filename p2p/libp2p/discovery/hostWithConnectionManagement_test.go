@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
@@ -21,89 +22,128 @@ func createStubNetwork() network.Network {
 	}
 }
 
-func TestNewHostWithConnectionManagement_NilHostShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hwcm, err := discovery.NewHostWithConnectionManagement(nil, &mock.KadSharderStub{})
-
-	assert.True(t, check.IfNil(hwcm))
-	assert.Equal(t, p2p.ErrNilHost, err)
+func createMockArgsHostWithConnectionManagement() discovery.ArgsHostWithConnectionManagement {
+	return discovery.ArgsHostWithConnectionManagement{
+		ConnectableHost:    &mock.ConnectableHostStub{},
+		Sharder:            &mock.KadSharderStub{},
+		ConnectionsWatcher: &mock.ConnectionsWatcherStub{},
+	}
 }
 
-func TestNewHostWithConnectionManagement_NilSharderShouldErr(t *testing.T) {
+func TestNewHostWithConnectionManagement(t *testing.T) {
 	t.Parallel()
 
-	hwcm, err := discovery.NewHostWithConnectionManagement(&mock.ConnectableHostStub{}, nil)
+	t.Run("nil connectable host should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.True(t, check.IfNil(hwcm))
-	assert.Equal(t, p2p.ErrNilSharder, err)
+		args := createMockArgsHostWithConnectionManagement()
+		args.ConnectableHost = nil
+		hwcm, err := discovery.NewHostWithConnectionManagement(args)
+
+		assert.True(t, check.IfNil(hwcm))
+		assert.Equal(t, p2p.ErrNilHost, err)
+	})
+	t.Run("nil sharder should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsHostWithConnectionManagement()
+		args.Sharder = nil
+		hwcm, err := discovery.NewHostWithConnectionManagement(args)
+
+		assert.True(t, check.IfNil(hwcm))
+		assert.Equal(t, p2p.ErrNilSharder, err)
+	})
+	t.Run("nil connection watcher should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsHostWithConnectionManagement()
+		args.ConnectionsWatcher = nil
+		hwcm, err := discovery.NewHostWithConnectionManagement(args)
+
+		assert.True(t, check.IfNil(hwcm))
+		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsHostWithConnectionManagement()
+		hwcm, err := discovery.NewHostWithConnectionManagement(args)
+
+		assert.False(t, check.IfNil(hwcm))
+		assert.Nil(t, err)
+	})
 }
 
-func TestNewHostWithConnectionManagement_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hwcm, err := discovery.NewHostWithConnectionManagement(&mock.ConnectableHostStub{}, &mock.KadSharderStub{})
-
-	assert.False(t, check.IfNil(hwcm))
-	assert.Nil(t, err)
-}
-
-//------- Connect
+// ------- Connect
 
 func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConnect(t *testing.T) {
 	t.Parallel()
 
 	connectCalled := false
-	hwcm, _ := discovery.NewHostWithConnectionManagement(
-		&mock.ConnectableHostStub{
-			ConnectCalled: func(_ context.Context, _ peer.AddrInfo) error {
-				connectCalled = true
-				return nil
-			},
-			NetworkCalled: func() network.Network {
-				return createStubNetwork()
-			},
+	args := createMockArgsHostWithConnectionManagement()
+	args.ConnectableHost = &mock.ConnectableHostStub{
+		ConnectCalled: func(_ context.Context, _ peer.AddrInfo) error {
+			connectCalled = true
+			return nil
 		},
-		&mock.KadSharderStub{
-			ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
-				return make([]peer.ID, 0)
-			},
-			HasCalled: func(pid peer.ID, list []peer.ID) bool {
-				return false
-			},
+		NetworkCalled: func() network.Network {
+			return createStubNetwork()
 		},
-	)
+	}
+	args.Sharder = &mock.KadSharderStub{
+		ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
+			return make([]peer.ID, 0)
+		},
+		HasCalled: func(pid peer.ID, list []peer.ID) bool {
+			return false
+		},
+	}
+	newKnownConnectionCalled := false
+	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
+		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
+			newKnownConnectionCalled = true
+		},
+	}
+	hwcm, _ := discovery.NewHostWithConnectionManagement(args)
 
 	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.True(t, connectCalled)
+	assert.True(t, newKnownConnectionCalled)
 }
 
 func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConnect(t *testing.T) {
 	t.Parallel()
 
 	connectCalled := false
-	hwcm, _ := discovery.NewHostWithConnectionManagement(
-		&mock.ConnectableHostStub{
-			ConnectCalled: func(_ context.Context, _ peer.AddrInfo) error {
-				connectCalled = true
-				return nil
-			},
-			NetworkCalled: func() network.Network {
-				return createStubNetwork()
-			},
+	args := createMockArgsHostWithConnectionManagement()
+	args.ConnectableHost = &mock.ConnectableHostStub{
+		ConnectCalled: func(_ context.Context, _ peer.AddrInfo) error {
+			connectCalled = true
+			return nil
 		},
-		&mock.KadSharderStub{
-			ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
-				return make([]peer.ID, 0)
-			},
-			HasCalled: func(pid peer.ID, list []peer.ID) bool {
-				return true
-			},
+		NetworkCalled: func() network.Network {
+			return createStubNetwork()
 		},
-	)
+	}
+	args.Sharder = &mock.KadSharderStub{
+		ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
+			return make([]peer.ID, 0)
+		},
+		HasCalled: func(pid peer.ID, list []peer.ID) bool {
+			return true
+		},
+	}
+	newKnownConnectionCalled := false
+	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
+		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
+			newKnownConnectionCalled = true
+		},
+	}
+	hwcm, _ := discovery.NewHostWithConnectionManagement(args)
 
 	_ = hwcm.Connect(context.Background(), peer.AddrInfo{})
 
 	assert.False(t, connectCalled)
+	assert.True(t, newKnownConnectionCalled)
 }

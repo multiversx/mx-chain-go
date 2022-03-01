@@ -34,7 +34,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -46,7 +46,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//all node should have received the shard header
+	// all nodes should have received the shard header
 	for _, n := range nodes {
 		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
@@ -59,7 +59,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//all node should have received the meta header
+	// all nodes should have received the meta header
 	for _, n := range nodes {
 		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
@@ -87,7 +87,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -113,21 +113,21 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//all node should have received the shard header
+	// all nodes should have received the shard header
 	for _, n := range nodes {
 		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 
 	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
 	_, metaHdr, _ := nodes[1].ProposeBlock(round, nonce)
-	_ = nodes[1].BlockChain.SetCurrentBlockHeader(metaHdr)
+	_ = nodes[1].BlockChain.SetCurrentBlockHeaderAndRootHash(metaHdr, metaHdr.GetRootHash())
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	nodes[1].BlockChain.SetCurrentBlockHeaderHash(metaHeaderHash)
 	_ = nodes[1].Storage.GetStorer(dataRetriever.MetaBlockUnit).Put(metaHeaderHash, metaHeaderBytes)
 	for i := 0; i < numMetaNodes; i++ {
 		nodes[i+1].DataPool.Headers().AddHeader(metaHeaderHash, metaHdr)
-		_ = nodes[i+1].BlockChain.SetCurrentBlockHeader(metaHdr)
+		_ = nodes[i+1].BlockChain.SetCurrentBlockHeaderAndRootHash(metaHdr, metaHdr.GetRootHash())
 		nodes[i+1].BlockChain.SetCurrentBlockHeaderHash(metaHeaderHash)
 	}
 
@@ -141,7 +141,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//all node should have received the meta header
+	// all nodes should have received the meta header
 	for _, n := range nodes {
 		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
@@ -167,7 +167,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	//all node should have received the meta header
+	// all nodes should have received the meta header
 	for _, n := range nodes {
 		assert.Equal(t, int32(3), atomic.LoadInt32(&n.CounterHdrRecv))
 	}

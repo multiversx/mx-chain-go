@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	processInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -207,13 +206,6 @@ func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() 
 }
 
 func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
-	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
-	// against blockchain's latest nonce - k finality
-	hdrValidator, err := dataValidators.NewNilHeaderValidator()
-	if err != nil {
-		return nil, err
-	}
-
 	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(micf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
@@ -221,7 +213,6 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        micf.dataPool.Headers(),
-		HdrValidator:   hdrValidator,
 		BlockBlackList: micf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)

@@ -38,6 +38,7 @@
     GetAllNodeStates      = 20000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
+    FixWaitingListSize    = 500000000
     LiquidStakingOps      = 10000000
 
 [BaseOperationCost]
@@ -62,6 +63,7 @@
     GetNumArguments    = 100
     StorageStore       = 250000
     StorageLoad        = 100000
+    CachedStorageLoad  = 100000
     GetCaller          = 100
     GetCallValue       = 100
     Log                = 3750
@@ -168,6 +170,7 @@
     BigIntGetSignedArgument     = 1000
     BigIntGetCallValue          = 1000
     BigIntGetExternalBalance    = 10000
+    CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
     SHA256                 = 1000000
@@ -658,3 +661,5 @@
     I16x8RoundingAverageU = 200
     LocalAllocate = 2
     LocalsUnmetered = 100
+    MaxMemoryGrowDelta = 100
+    MaxMemoryGrow = 100

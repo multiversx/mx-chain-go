@@ -1,71 +1,58 @@
-// +build !race
-
-// TODO remove build condition above to allow -race -short, after Arwen fix
-
 package shard
 
 import (
 	"sync"
 	"testing"
 
-	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/ipc/nodepart"
+	ipcNodePart1p2 "github.com/ElrondNetwork/arwen-wasm-vm/v1_2/ipc/nodepart"
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
-	datapool := dataRetrieverMock.NewPoolsHolderMock()
-	arguments := hooks.ArgBlockChainHook{
-		Accounts: &stateMock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-				return &mock.AccountWrapMock{}, nil
-			},
+func makeVMConfig() config.VirtualMachineConfig {
+	return config.VirtualMachineConfig{
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2"},
+			{StartEpoch: 10, Version: "v1.2"},
+			{StartEpoch: 12, Version: "v1.3"},
+			{StartEpoch: 14, Version: "v1.4"},
 		},
-		PubkeyConv:         mock.NewPubkeyConverterMock(32),
-		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		Marshalizer:        &mock.MarshalizerMock{},
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		NilCompiledSCStore: true,
 	}
-	return arguments
+}
+
+func createMockVMAccountsArguments() ArgVMContainerFactory {
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
+	return ArgVMContainerFactory{
+		Config:             makeVMConfig(),
+		BlockGasLimit:      10000,
+		GasSchedule:        mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		EpochConfig:        config.EnableEpochs{},
+		ArwenChangeLocker:  &sync.RWMutex{},
+		ESDTTransferParser: esdtTransferParser,
+		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		BlockChainHook:     &testscommon.BlockChainHookStub{},
+	}
 }
 
 func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 	t.Parallel()
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
-	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         config.VirtualMachineConfig{},
-		BlockGasLimit:                  10000,
-		GasSchedule:                    nil,
-		ArgBlockChainHook:              createMockVMAccountsArguments(),
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              &sync.RWMutex{},
-		EpochNotifier:                  &mock.EpochNotifierStub{},
-		ESDTTransferParser:             esdtTransferParser,
-	}
-	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	args := createMockVMAccountsArguments()
+	args.GasSchedule = nil
+	vmf, err := NewVMContainerFactory(args)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilGasSchedule, err)
@@ -74,19 +61,9 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 func TestNewVMContainerFactory_NilESDTTransferParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         config.VirtualMachineConfig{},
-		BlockGasLimit:                  10000,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:              createMockVMAccountsArguments(),
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              &sync.RWMutex{},
-		EpochNotifier:                  &mock.EpochNotifierStub{},
-		ESDTTransferParser:             nil,
-	}
-	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	args := createMockVMAccountsArguments()
+	args.ESDTTransferParser = nil
+	vmf, err := NewVMContainerFactory(args)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilESDTTransferParser, err)
@@ -95,41 +72,52 @@ func TestNewVMContainerFactory_NilESDTTransferParserShouldErr(t *testing.T) {
 func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
-	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         makeVMConfig(),
-		BlockGasLimit:                  10000,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:              createMockVMAccountsArguments(),
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ESDTTransferParser:             esdtTransferParser,
-	}
-	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	args := createMockVMAccountsArguments()
+	args.ArwenChangeLocker = nil
+	vmf, err := NewVMContainerFactory(args)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilLocker, err)
 }
 
+func TestNewVMContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.EpochNotifier = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
+func TestNewVMContainerFactory_NilBuiltinFunctionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.BuiltInFunctions = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilBuiltInFunction, err)
+}
+
+func TestNewVMContainerFactory_NilBlockChainHookShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+	args.BlockChainHook = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilBlockChainHook, err)
+}
+
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
-	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         makeVMConfig(),
-		BlockGasLimit:                  10000,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:              createMockVMAccountsArguments(),
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              &sync.RWMutex{},
-		ESDTTransferParser:             esdtTransferParser,
-	}
-	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	args := createMockVMAccountsArguments()
+	vmf, err := NewVMContainerFactory(args)
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -139,22 +127,9 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
-	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         makeVMConfig(),
-		BlockGasLimit:                  10000,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:              createMockVMAccountsArguments(),
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              &sync.RWMutex{},
-		ESDTTransferParser:             esdtTransferParser,
-	}
-	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	args := createMockVMAccountsArguments()
+	vmf, _ := NewVMContainerFactory(args)
 	require.NotNil(t, vmf)
-	require.Nil(t, err)
 
 	container, err := vmf.Create()
 	require.Nil(t, err)
@@ -175,25 +150,19 @@ func TestVmContainerFactory_Create(t *testing.T) {
 }
 
 func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
-	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
 
-	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
-	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         makeVMConfig(),
-		BlockGasLimit:                  10000,
-		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		ArgBlockChainHook:              createMockVMAccountsArguments(),
-		EpochNotifier:                  epochNotifier,
-		DeployEnableEpoch:              0,
-		AheadOfTimeGasUsageEnableEpoch: 0,
-		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              &sync.RWMutex{},
-		ESDTTransferParser:             esdtTransferParser,
+	numCalled := 0
+	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests())
+	gasScheduleNotifier.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
+		numCalled++
+		handler.GasScheduleChange(gasScheduleNotifier.GasSchedule)
 	}
-
-	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	args := createMockVMAccountsArguments()
+	args.GasSchedule = gasScheduleNotifier
+	args.EpochNotifier = epochNotifierInstance
+	vmf, _ := NewVMContainerFactory(args)
 	require.NotNil(t, vmf)
-	require.Nil(t, err)
 
 	container, err := vmf.Create()
 	require.Nil(t, err)
@@ -204,33 +173,35 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(1))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(1))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(6))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(6))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(10))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(10))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(11))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(11))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(12))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(12))
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(13))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(13))
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(makeHeaderHandlerStub(20))
+	epochNotifierInstance.CheckEpoch(makeHeaderHandlerStub(20))
 	require.Equal(t, "v1.4", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
+
+	require.Equal(t, numCalled, 1)
 }
 
 func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
@@ -244,7 +215,7 @@ func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bo
 	require.Nil(t, err)
 	require.NotNil(t, vm)
 
-	_, ok := vm.(*ipcNodePart1_2.ArwenDriver)
+	_, ok := vm.(*ipcNodePart1p2.ArwenDriver)
 	return ok
 }
 
@@ -254,15 +225,4 @@ func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) s
 	require.NotNil(t, vm)
 
 	return vm.GetVersion()
-}
-
-func makeVMConfig() config.VirtualMachineConfig {
-	return config.VirtualMachineConfig{
-		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2"},
-			{StartEpoch: 10, Version: "v1.2"},
-			{StartEpoch: 12, Version: "v1.3"},
-			{StartEpoch: 14, Version: "v1.4"},
-		},
-	}
 }

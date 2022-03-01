@@ -14,12 +14,20 @@ import (
 var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
-	economicsFee   process.FeeHandler
-	txTypeHandler  process.TxTypeHandler
-	gasConsumed    map[string]uint64
-	mutGasConsumed sync.RWMutex
-	gasRefunded    map[string]uint64
-	mutGasRefunded sync.RWMutex
+	economicsFee  process.FeeHandler
+	txTypeHandler process.TxTypeHandler
+	//TODO: Refactor these mutexes and maps in separated structures that handle the locking and unlocking for each operation required
+	gasProvided                                      map[string]uint64
+	txHashesWithGasProvidedSinceLastReset            [][]byte
+	gasProvidedAsScheduled                           map[string]uint64
+	txHashesWithGasProvidedAsScheduledSinceLastReset [][]byte
+	mutGasProvided                                   sync.RWMutex
+	gasRefunded                                      map[string]uint64
+	txHashesWithGasRefundedSinceLastReset            [][]byte
+	mutGasRefunded                                   sync.RWMutex
+	gasPenalized                                     map[string]uint64
+	txHashesWithGasPenalizedSinceLastReset           [][]byte
+	mutGasPenalized                                  sync.RWMutex
 
 	flagGasComputeV2        atomic.Flag
 	gasComputeV2EnableEpoch uint32
@@ -43,11 +51,17 @@ func NewGasComputation(
 	}
 
 	g := &gasComputation{
-		txTypeHandler:           txTypeHandler,
-		economicsFee:            economicsFee,
-		gasConsumed:             make(map[string]uint64),
-		gasRefunded:             make(map[string]uint64),
-		gasComputeV2EnableEpoch: gasComputeV2EnableEpoch,
+		txTypeHandler:                         txTypeHandler,
+		economicsFee:                          economicsFee,
+		gasProvided:                           make(map[string]uint64),
+		txHashesWithGasProvidedSinceLastReset: make([][]byte, 0),
+		gasProvidedAsScheduled:                make(map[string]uint64),
+		txHashesWithGasProvidedAsScheduledSinceLastReset: make([][]byte, 0),
+		gasRefunded:                            make(map[string]uint64),
+		txHashesWithGasRefundedSinceLastReset:  make([][]byte, 0),
+		gasPenalized:                           make(map[string]uint64),
+		txHashesWithGasPenalizedSinceLastReset: make([][]byte, 0),
+		gasComputeV2EnableEpoch:                gasComputeV2EnableEpoch,
 	}
 	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
 
@@ -56,38 +70,95 @@ func NewGasComputation(
 	return g, nil
 }
 
-// Init method resets consumed and refunded gas structures
+// Init method inits provided, refunded and penalized gas structures
 func (gc *gasComputation) Init() {
-	gc.mutGasConsumed.Lock()
-	gc.gasConsumed = make(map[string]uint64)
-	gc.mutGasConsumed.Unlock()
+	gc.mutGasProvided.Lock()
+	gc.gasProvided = make(map[string]uint64)
+	gc.txHashesWithGasProvidedSinceLastReset = make([][]byte, 0)
+	gc.gasProvidedAsScheduled = make(map[string]uint64)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = make([][]byte, 0)
+	gc.mutGasProvided.Unlock()
 
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded = make(map[string]uint64)
+	gc.txHashesWithGasRefundedSinceLastReset = make([][]byte, 0)
 	gc.mutGasRefunded.Unlock()
+
+	gc.mutGasPenalized.Lock()
+	gc.gasPenalized = make(map[string]uint64)
+	gc.txHashesWithGasPenalizedSinceLastReset = make([][]byte, 0)
+	gc.mutGasPenalized.Unlock()
 }
 
-// SetGasConsumed sets gas consumed for a given hash
-func (gc *gasComputation) SetGasConsumed(gasConsumed uint64, hash []byte) {
-	gc.mutGasConsumed.Lock()
-	gc.gasConsumed[string(hash)] = gasConsumed
-	gc.mutGasConsumed.Unlock()
+// Reset method resets tx hashes with gas provided, refunded and penalized since last reset
+func (gc *gasComputation) Reset() {
+	gc.mutGasProvided.Lock()
+	gc.txHashesWithGasProvidedSinceLastReset = make([][]byte, 0)
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = make([][]byte, 0)
+	gc.mutGasProvided.Unlock()
+
+	gc.mutGasRefunded.Lock()
+	gc.txHashesWithGasRefundedSinceLastReset = make([][]byte, 0)
+	gc.mutGasRefunded.Unlock()
+
+	gc.mutGasPenalized.Lock()
+	gc.txHashesWithGasPenalizedSinceLastReset = make([][]byte, 0)
+	gc.mutGasPenalized.Unlock()
+}
+
+// SetGasProvided sets gas provided for a given hash
+func (gc *gasComputation) SetGasProvided(gasProvided uint64, hash []byte) {
+	gc.mutGasProvided.Lock()
+	gc.gasProvided[string(hash)] = gasProvided
+	gc.txHashesWithGasProvidedSinceLastReset = append(gc.txHashesWithGasProvidedSinceLastReset, hash)
+	gc.mutGasProvided.Unlock()
+}
+
+// SetGasProvidedAsScheduled sets gas provided as scheduled for a given hash
+func (gc *gasComputation) SetGasProvidedAsScheduled(gasProvided uint64, hash []byte) {
+	gc.mutGasProvided.Lock()
+	gc.gasProvidedAsScheduled[string(hash)] = gasProvided
+	gc.txHashesWithGasProvidedAsScheduledSinceLastReset = append(gc.txHashesWithGasProvidedAsScheduledSinceLastReset, hash)
+	gc.mutGasProvided.Unlock()
 }
 
 // SetGasRefunded sets gas refunded for a given hash
 func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded[string(hash)] = gasRefunded
+	gc.txHashesWithGasRefundedSinceLastReset = append(gc.txHashesWithGasRefundedSinceLastReset, hash)
 	gc.mutGasRefunded.Unlock()
+
+	log.Trace("gasComputation.SetGasRefunded", "tx hash", hash, "gas refunded", gasRefunded)
 }
 
-// GasConsumed gets gas consumed for a given hash
-func (gc *gasComputation) GasConsumed(hash []byte) uint64 {
-	gc.mutGasConsumed.RLock()
-	gasConsumed := gc.gasConsumed[string(hash)]
-	gc.mutGasConsumed.RUnlock()
+// SetGasPenalized sets gas penalized for a given hash
+func (gc *gasComputation) SetGasPenalized(gasPenalized uint64, hash []byte) {
+	gc.mutGasPenalized.Lock()
+	gc.gasPenalized[string(hash)] = gasPenalized
+	gc.txHashesWithGasPenalizedSinceLastReset = append(gc.txHashesWithGasPenalizedSinceLastReset, hash)
+	gc.mutGasPenalized.Unlock()
 
-	return gasConsumed
+	log.Trace("gasComputation.SetGasPenalized", "tx hash", hash, "gas penalized", gasPenalized)
+}
+
+// GasProvided gets gas provided for a given hash
+func (gc *gasComputation) GasProvided(hash []byte) uint64 {
+	gc.mutGasProvided.RLock()
+	gasProvided := gc.gasProvided[string(hash)]
+	gc.mutGasProvided.RUnlock()
+
+	return gasProvided
+
+}
+
+// GasProvidedAsScheduled gets gas provided as scheduled for a given hash
+func (gc *gasComputation) GasProvidedAsScheduled(hash []byte) uint64 {
+	gc.mutGasProvided.RLock()
+	gasProvidedAsScheduled := gc.gasProvidedAsScheduled[string(hash)]
+	gc.mutGasProvided.RUnlock()
+
+	return gasProvidedAsScheduled
 
 }
 
@@ -100,17 +171,47 @@ func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
 	return gasRefunded
 }
 
-// TotalGasConsumed gets the total gas consumed
-func (gc *gasComputation) TotalGasConsumed() uint64 {
-	totalGasConsumed := uint64(0)
+// GasPenalized gets gas penalized for a given hash
+func (gc *gasComputation) GasPenalized(hash []byte) uint64 {
+	gc.mutGasPenalized.RLock()
+	gasPenalized := gc.gasPenalized[string(hash)]
+	gc.mutGasPenalized.RUnlock()
 
-	gc.mutGasConsumed.RLock()
-	for _, gasConsumed := range gc.gasConsumed {
-		totalGasConsumed += gasConsumed
+	return gasPenalized
+}
+
+// TotalGasProvided gets the total gas provided
+func (gc *gasComputation) TotalGasProvided() uint64 {
+	totalGasProvided := uint64(0)
+
+	gc.mutGasProvided.RLock()
+	for _, gasProvided := range gc.gasProvided {
+		totalGasProvided += gasProvided
 	}
-	gc.mutGasConsumed.RUnlock()
+	gc.mutGasProvided.RUnlock()
 
-	return totalGasConsumed
+	return totalGasProvided
+}
+
+// TotalGasProvidedAsScheduled gets the total gas provided as scheduled
+func (gc *gasComputation) TotalGasProvidedAsScheduled() uint64 {
+	totalGasProvided := uint64(0)
+
+	gc.mutGasProvided.RLock()
+	for _, gasProvided := range gc.gasProvidedAsScheduled {
+		totalGasProvided += gasProvided
+	}
+	gc.mutGasProvided.RUnlock()
+
+	return totalGasProvided
+}
+
+// TotalGasProvidedWithScheduled gets the total gas provided both as normal and scheduled operation
+func (gc *gasComputation) TotalGasProvidedWithScheduled() uint64 {
+	gasProvidedAsScheduled := gc.TotalGasProvidedAsScheduled()
+	gasProvidedNormalOperation := gc.TotalGasProvided()
+
+	return gasProvidedAsScheduled + gasProvidedNormalOperation
 }
 
 // TotalGasRefunded gets the total gas refunded
@@ -125,13 +226,34 @@ func (gc *gasComputation) TotalGasRefunded() uint64 {
 	return totalGasRefunded
 }
 
-// RemoveGasConsumed removes gas consumed for the given hashes
-func (gc *gasComputation) RemoveGasConsumed(hashes [][]byte) {
-	gc.mutGasConsumed.Lock()
-	for _, hash := range hashes {
-		delete(gc.gasConsumed, string(hash))
+// TotalGasPenalized gets the total gas penalized
+func (gc *gasComputation) TotalGasPenalized() uint64 {
+	totalGasPenalized := uint64(0)
+	gc.mutGasPenalized.RLock()
+	for _, gasPenalized := range gc.gasPenalized {
+		totalGasPenalized += gasPenalized
 	}
-	gc.mutGasConsumed.Unlock()
+	gc.mutGasPenalized.RUnlock()
+
+	return totalGasPenalized
+}
+
+// RemoveGasProvided removes gas provided for the given hashes
+func (gc *gasComputation) RemoveGasProvided(hashes [][]byte) {
+	gc.mutGasProvided.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasProvided, string(hash))
+	}
+	gc.mutGasProvided.Unlock()
+}
+
+// RemoveGasProvidedAsScheduled removes gas provided as scheduled for the given hashes
+func (gc *gasComputation) RemoveGasProvidedAsScheduled(hashes [][]byte) {
+	gc.mutGasProvided.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasProvidedAsScheduled, string(hash))
+	}
+	gc.mutGasProvided.Unlock()
 }
 
 // RemoveGasRefunded removes gas refunded for the given hashes
@@ -143,23 +265,64 @@ func (gc *gasComputation) RemoveGasRefunded(hashes [][]byte) {
 	gc.mutGasRefunded.Unlock()
 }
 
-// ComputeGasConsumedByMiniBlock computes gas consumed by the given miniblock in sender and receiver shard
-func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
+// RemoveGasPenalized removes gas penalized for the given hashes
+func (gc *gasComputation) RemoveGasPenalized(hashes [][]byte) {
+	gc.mutGasPenalized.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasPenalized, string(hash))
+	}
+	gc.mutGasPenalized.Unlock()
+}
+
+// RestoreGasSinceLastReset method restores gas provided, refunded and penalized since last reset
+func (gc *gasComputation) RestoreGasSinceLastReset() {
+	gc.RemoveGasProvided(gc.getTxHashesWithGasProvidedSinceLastReset())
+	gc.RemoveGasProvidedAsScheduled(gc.getTxHashesWithGasProvidedAsScheduledSinceLastReset())
+	gc.RemoveGasRefunded(gc.getTxHashesWithGasRefundedSinceLastReset())
+	gc.RemoveGasPenalized(gc.getTxHashesWithGasPenalizedSinceLastReset())
+}
+
+func (gc *gasComputation) getTxHashesWithGasProvidedSinceLastReset() [][]byte {
+	gc.mutGasProvided.RLock()
+	defer gc.mutGasProvided.RUnlock()
+	return gc.txHashesWithGasProvidedSinceLastReset
+}
+
+func (gc *gasComputation) getTxHashesWithGasProvidedAsScheduledSinceLastReset() [][]byte {
+	gc.mutGasProvided.RLock()
+	defer gc.mutGasProvided.RUnlock()
+	return gc.txHashesWithGasProvidedAsScheduledSinceLastReset
+}
+
+func (gc *gasComputation) getTxHashesWithGasRefundedSinceLastReset() [][]byte {
+	gc.mutGasRefunded.RLock()
+	defer gc.mutGasRefunded.RUnlock()
+	return gc.txHashesWithGasRefundedSinceLastReset
+}
+
+func (gc *gasComputation) getTxHashesWithGasPenalizedSinceLastReset() [][]byte {
+	gc.mutGasPenalized.RLock()
+	defer gc.mutGasPenalized.RUnlock()
+	return gc.txHashesWithGasPenalizedSinceLastReset
+}
+
+// ComputeGasProvidedByMiniBlock computes gas provided by the given miniblock in sender and receiver shard
+func (gc *gasComputation) ComputeGasProvidedByMiniBlock(
 	miniBlock *block.MiniBlock,
 	mapHashTx map[string]data.TransactionHandler,
 ) (uint64, uint64, error) {
 
-	gasConsumedByMiniBlockInSenderShard := uint64(0)
-	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+	gasProvidedByMiniBlockInSenderShard := uint64(0)
+	gasProvidedByMiniBlockInReceiverShard := uint64(0)
 
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
-			log.Debug("missing transaction in ComputeGasConsumedByMiniBlock ", "type", miniBlock.Type, "txHash", txHash)
+			log.Debug("missing transaction in ComputeGasProvidedByMiniBlock ", "type", miniBlock.Type, "txHash", txHash)
 			return 0, 0, process.ErrMissingTransaction
 		}
 
-		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gc.ComputeGasConsumedByTx(
+		gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, err := gc.ComputeGasProvidedByTx(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			txHandler)
@@ -167,15 +330,15 @@ func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 			return 0, 0, err
 		}
 
-		gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
-		gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+		gasProvidedByMiniBlockInSenderShard += gasProvidedByTxInSenderShard
+		gasProvidedByMiniBlockInReceiverShard += gasProvidedByTxInReceiverShard
 	}
 
-	return gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, nil
+	return gasProvidedByMiniBlockInSenderShard, gasProvidedByMiniBlockInReceiverShard, nil
 }
 
-// ComputeGasConsumedByTx computes gas consumed by the given transaction in sender and receiver shard
-func (gc *gasComputation) ComputeGasConsumedByTx(
+// ComputeGasProvidedByTx computes gas provided by the given transaction in sender and receiver shard
+func (gc *gasComputation) ComputeGasProvidedByTx(
 	txSenderShardId uint32,
 	txReceiverShardId uint32,
 	txHandler data.TransactionHandler,
@@ -186,7 +349,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	}
 
 	if !gc.flagGasComputeV2.IsSet() {
-		return gc.computeGasConsumedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
+		return gc.computeGasProvidedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
 	}
 
 	if txHandler.GetGasLimit() == 0 {
@@ -195,7 +358,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 
 	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 	if moveBalanceConsumption > txHandler.GetGasLimit() {
-		log.Warn("ComputeGasConsumedByTx less gasLimit than moveBalance", "gasLimit", txHandler.GetGasLimit(), "moveBalanceGasCost", moveBalanceConsumption)
+		log.Trace("ComputeGasProvidedByTx less gasLimit than moveBalance", "gasLimit", txHandler.GetGasLimit(), "moveBalanceGasCost", moveBalanceConsumption)
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
@@ -221,7 +384,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	return moveBalanceConsumption, moveBalanceConsumption, nil
 }
 
-func (gc *gasComputation) computeGasConsumedByTxV1(
+func (gc *gasComputation) computeGasProvidedByTxV1(
 	txSenderShardId uint32,
 	txReceiverShardId uint32,
 	txHandler data.TransactionHandler,
@@ -238,10 +401,10 @@ func (gc *gasComputation) computeGasConsumedByTxV1(
 			moveBalanceConsumption < txHandler.GetGasLimit() &&
 			txTypeInShard != process.BuiltInFunctionCall
 		if isCrossShardSCCall {
-			gasConsumedByTxInSenderShard := moveBalanceConsumption
-			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - moveBalanceConsumption
+			gasProvidedByTxInSenderShard := moveBalanceConsumption
+			gasProvidedByTxInReceiverShard := txHandler.GetGasLimit() - moveBalanceConsumption
 
-			return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+			return gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, nil
 		}
 
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
@@ -256,7 +419,7 @@ func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (gc *gasComputation) EpochConfirmed(epoch uint32, _ uint64) {
-	gc.flagGasComputeV2.Toggle(epoch >= gc.gasComputeV2EnableEpoch)
+	gc.flagGasComputeV2.SetValue(epoch >= gc.gasComputeV2EnableEpoch)
 	log.Debug("gasComputation: compute v2", "enabled", gc.flagGasComputeV2.IsSet())
 }
 

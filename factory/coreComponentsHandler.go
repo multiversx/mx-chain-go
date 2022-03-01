@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -405,6 +406,18 @@ func (mcc *managedCoreComponents) EconomicsData() process.EconomicsDataHandler {
 	return mcc.coreComponents.economicsData
 }
 
+// APIEconomicsData returns the configured economics data to be used on the REST API sub-system
+func (mcc *managedCoreComponents) APIEconomicsData() process.EconomicsDataHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.apiEconomicsData
+}
+
 // RatingsData returns the configured ratings data
 func (mcc *managedCoreComponents) RatingsData() process.RatingsInfoHandler {
 	mcc.mutCoreComponents.RLock()
@@ -477,6 +490,18 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	return mcc.coreComponents.epochNotifier
 }
 
+// RoundNotifier returns the round notifier
+func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.roundNotifier
+}
+
 // EpochStartNotifierWithConfirm returns the epoch notifier with confirm
 func (mcc *managedCoreComponents) EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm {
 	mcc.mutCoreComponents.RLock()
@@ -511,6 +536,18 @@ func (mcc *managedCoreComponents) NodeTypeProvider() core.NodeTypeProviderHandle
 	}
 
 	return mcc.coreComponents.nodeTypeProvider
+}
+
+// ArwenChangeLocker returns the arwen change locker
+func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.arwenChangeLocker
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

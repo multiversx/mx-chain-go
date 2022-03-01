@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"math/big"
 	"time"
 
@@ -110,11 +111,13 @@ type CoreComponentsHolder interface {
 	SyncTimer() ntp.SyncTimer
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
+	APIEconomicsData() process.EconomicsDataHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() sharding.NodesShuffler
 	EpochNotifier() process.EpochNotifier
+	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
@@ -123,6 +126,7 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() process.TxVersionCheckerHandler
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
+	ArwenChangeLocker() common.Locker
 	IsInterfaceNil() bool
 }
 
@@ -254,8 +258,9 @@ type ProcessComponentsHolder interface {
 	ImportStartHandler() update.ImportStartHandler
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
-	ArwenChangeLocker() process.Locker
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
+	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	TxsSenderHandler() process.TxsSenderHandler
 	IsInterfaceNil() bool
 }
 
@@ -276,7 +281,7 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
-	TriesContainer() state.TriesHolder
+	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
 	IsInterfaceNil() bool
 }
@@ -340,25 +345,25 @@ type HeartbeatComponentsHandler interface {
 type ConsensusWorker interface {
 	Close() error
 	StartWorking()
-	//AddReceivedMessageCall adds a new handler function for a received message type
-	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
-	//AddReceivedHeaderHandler adds a new handler function for a received header
+	// AddReceivedMessageCall adds a new handler function for a received message type
+	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
+	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
-	//RemoveAllReceivedMessagesCalls removes all the functions handlers
+	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
-	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
+	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	//Extend does an extension for the subround with subroundId
+	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
-	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 	GetConsensusStateChangedChannel() chan bool
-	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+	// ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
-	//DisplayStatistics method displays statistics of worker at the end of the round
+	// DisplayStatistics method displays statistics of worker at the end of the round
 	DisplayStatistics()
-	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
-	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -383,6 +388,7 @@ type ConsensusComponentsHolder interface {
 	BroadcastMessenger() consensus.BroadcastMessenger
 	ConsensusGroupSize() (int, error)
 	HardforkTrigger() HardforkTrigger
+	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }
 
@@ -403,7 +409,6 @@ type BootstrapParamsHolder interface {
 
 // EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
-	GetTriesComponents() (state.TriesHolder, map[string]common.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
 	Close() error
@@ -411,10 +416,13 @@ type EpochStartBootstrapper interface {
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
+	RoundActivationHandler() process.RoundActivationHandler
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
 	ShardCoordinator() sharding.Coordinator
+	VersionedHeaderFactory() factory.VersionedHeaderFactory
+	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }

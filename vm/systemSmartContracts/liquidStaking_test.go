@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -23,7 +24,7 @@ func createMockArgumentsForLiquidStaking() ArgsNewLiquidStaking {
 		LiquidStakingSCAddress: vm.LiquidStakingSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{LiquidStakingOps: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
+		Hasher:                 &hashingMocks.HasherMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 }
@@ -145,14 +146,14 @@ func TestLiquidStaking_NotActiveWrongCalls(t *testing.T) {
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vm.ErrInputArgsIsNil.Error())
 
-	l.flagLiquidStaking.Unset()
+	l.flagLiquidStaking.Reset()
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForFunc("returnViaLiquidStaking", make([][]byte, 0))
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, "liquid staking contract is not enabled")
 
-	l.flagLiquidStaking.Set()
+	l.flagLiquidStaking.SetValue(true)
 	eei.returnMessage = ""
 	returnCode = l.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)

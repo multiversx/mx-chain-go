@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/urfave/cli"
+	// test point 1 for custom profiler
 )
 
 const (
@@ -23,7 +24,8 @@ const (
 )
 
 var (
-	nodeHelpTemplate = `NAME:
+	memoryBallastObject []byte
+	nodeHelpTemplate    = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
@@ -53,6 +55,8 @@ func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
+	// test point 2 for custom profiler
+
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
@@ -74,6 +78,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -101,6 +106,14 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	err := applyFlags(c, cfgs, flagsConfig, log)
 	if err != nil {
 		return err
+	}
+
+	memBallastValue := c.GlobalUint64(memBallast.Name)
+	if memBallastValue > 0 {
+		// memory ballast is an optimization for golang's garbage collector. If set to a high value, it can decrease
+		// the number of times when GC performs STW processes, that results is a better performance over high load
+		memoryBallastObject = make([]byte, memBallastValue*core.MegabyteSize)
+		log.Debug("initialized memory ballast object", "size", core.ConvertBytes(uint64(len(memoryBallastObject))))
 	}
 
 	cfgs.FlagsConfig.Version = version
@@ -191,6 +204,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.Epoch)
 
+	configurationPaths.RoundActivation = ctx.GlobalString(roundConfigurationFile.Name)
+	roundConfig, err := common.LoadRoundConfig(configurationPaths.RoundActivation)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.RoundActivation)
+
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -215,6 +235,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		P2pConfig:                p2pConfig,
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
+		RoundConfig:              roundConfig,
 	}, nil
 }
 

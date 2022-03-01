@@ -102,9 +102,11 @@ type DataTrieTracker interface {
 // implementation
 type AccountsAdapter interface {
 	GetExistingAccount(address []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
 	LoadAccount(address []byte) (vmcommon.AccountHandler, error)
 	SaveAccount(account vmcommon.AccountHandler) error
 	RemoveAccount(address []byte) error
+	CommitInEpoch(currentEpoch uint32, epochToCommit uint32) ([]byte, error)
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
@@ -120,6 +122,7 @@ type AccountsAdapter interface {
 	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
+	GetStackDebugFirstEntry() []byte
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -127,16 +130,6 @@ type AccountsAdapter interface {
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
 	Revert() (vmcommon.AccountHandler, error)
-	IsInterfaceNil() bool
-}
-
-// TriesHolder is used to store multiple tries
-type TriesHolder interface {
-	Put([]byte, common.Trie)
-	Replace(key []byte, tr common.Trie)
-	Get([]byte) common.Trie
-	GetAll() []common.Trie
-	Reset()
 	IsInterfaceNil() bool
 }
 

@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
@@ -14,8 +15,6 @@ type Persister interface {
 	Get(key []byte) ([]byte, error)
 	// Has returns true if the given key is present in the persistence medium
 	Has(key []byte) error
-	// Init initializes the persistence medium and prepares it for usage
-	Init() error
 	// Close closes the files/resources associated to the persistence medium
 	Close() error
 	// Remove removes the data associated to the given key
@@ -81,19 +80,6 @@ type Cacher interface {
 	IsInterfaceNil() bool
 }
 
-// BloomFilter provides services for filtering database requests
-type BloomFilter interface {
-	//Add adds the value to the bloom filter
-	Add([]byte)
-	// MayContain checks if the value is in in the set. If it returns 'false',
-	//the item is definitely not in the DB
-	MayContain([]byte) bool
-	//Clear sets all the bits from the filter to 0
-	Clear()
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
 // Storer provides storage services in a two layered storage construct, where the first layer is
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
@@ -141,7 +127,8 @@ type PersisterFactory interface {
 
 // UnitOpenerHandler defines which actions should be done for opening storage units
 type UnitOpenerHandler interface {
-	GetMostRecentBootstrapStorageUnit() (Storer, error)
+	OpenDB(dbConfig config.DBConfig, shardID uint32, epoch uint32) (Storer, error)
+	GetMostRecentStorageUnit(config config.DBConfig) (Storer, error)
 	IsInterfaceNil() bool
 }
 
@@ -155,6 +142,7 @@ type DirectoryReaderHandler interface {
 
 // LatestStorageDataProviderHandler defines which actions be done by a component who fetches latest data from storage
 type LatestStorageDataProviderHandler interface {
+	GetParentDirectory() string
 	GetParentDirAndLastEpoch() (string, uint32, error)
 	Get() (LatestDataFromStorage, error)
 	GetShardsFromDirectory(path string) ([]string, error)

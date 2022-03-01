@@ -7,12 +7,14 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/api"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/groups"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/config"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -20,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -102,7 +105,7 @@ func createTestApiConfig() config.ApiRoutesConfig {
 		"validator":   {"/statistics"},
 		"vm-values":   {"/hex", "/string", "/int", "/query"},
 		"transaction": {"/send", "/simulate", "/send-multiple", "/cost", "/:txhash"},
-		"block":       {"/by-nonce/:nonce", "/by-hash/:hash"},
+		"block":       {"/by-nonce/:nonce", "/by-hash/:hash", "/by-round/:round"},
 	}
 
 	routesConfig := config.ApiRoutesConfig{
@@ -137,7 +140,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator: tpn.ShardCoordinator,
 		EpochNotifier:    tpn.EpochNotifier,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -173,7 +176,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardID:            tpn.ShardCoordinator.SelfId(),
 		Accounts:           accountsWrapper,
 		QueryService:       tpn.SCQueryService,
-		BlockChain:         tpn.BlockChain,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
@@ -185,6 +187,35 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
+	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		Marshalizer:              TestMarshalizer,
+		AddressPubKeyConverter:   TestAddressPubkeyConverter,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		HistoryRepository:        tpn.HistoryRepository,
+		StorageService:           tpn.Storage,
+		DataPool:                 tpn.DataPool,
+		Uint64ByteSliceConverter: TestUint64Converter,
+	}
+	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
+	log.LogIfError(err)
+
+	statusCom, err := txstatus.NewStatusComputer(tpn.ShardCoordinator.SelfId(), TestUint64Converter, tpn.Storage)
+	log.LogIfError(err)
+
+	argsBlockAPI := &blockAPI.ArgAPIBlockProcessor{
+		SelfShardID:              tpn.ShardCoordinator.SelfId(),
+		Store:                    tpn.Storage,
+		Marshalizer:              TestMarshalizer,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		HistoryRepo:              tpn.HistoryRepository,
+		TxUnmarshaller:           apiTransactionHandler,
+		StatusComputer:           statusCom,
+		Hasher:                   TestHasher,
+		AddressPubkeyConverter:   TestAddressPubkeyConverter,
+	}
+	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
+	log.LogIfError(err)
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          tpn.SCQueryService,
 		StatusMetricsHandler:    &mock.StatusMetricsStub{},
@@ -192,6 +223,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		APITransactionHandler:   apiTransactionHandler,
+		APIBlockHandler:         blockAPIHandler,
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
@@ -216,13 +249,62 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 func createGinServer(facade Facade, apiConfig config.ApiRoutesConfig) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	ws.Use(middleware.WithFacade(facade))
 
-	api.RegisterRoutes(
-		ws,
-		apiConfig,
-		facade,
-	)
+	groupsMap := createGroups(facade)
+	for groupName, groupHandler := range groupsMap {
+		ginGroup := ws.Group(groupName)
+		groupHandler.RegisterRoutes(ginGroup, apiConfig)
+	}
 
 	return ws
+}
+
+func createGroups(facade Facade) map[string]shared.GroupHandler {
+	groupsMap := make(map[string]shared.GroupHandler)
+	addressGroup, err := groups.NewAddressGroup(facade)
+	if err == nil {
+		groupsMap["address"] = addressGroup
+	}
+
+	blockGroup, err := groups.NewBlockGroup(facade)
+	if err == nil {
+		groupsMap["block"] = blockGroup
+	}
+
+	hardforkGroup, err := groups.NewHardforkGroup(facade)
+	if err == nil {
+		groupsMap["hardfork"] = hardforkGroup
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(facade)
+	if err == nil {
+		groupsMap["network"] = networkGroup
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(facade)
+	if err == nil {
+		groupsMap["node"] = nodeGroup
+	}
+
+	proofGroup, err := groups.NewProofGroup(facade)
+	if err == nil {
+		groupsMap["proof"] = proofGroup
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(facade)
+	if err == nil {
+		groupsMap["transaction"] = transactionGroup
+	}
+
+	validatorGroup, err := groups.NewValidatorGroup(facade)
+	if err == nil {
+		groupsMap["validator"] = validatorGroup
+	}
+
+	vmValuesGroup, err := groups.NewVmValuesGroup(facade)
+	if err == nil {
+		groupsMap["vm-values"] = vmValuesGroup
+	}
+
+	return groupsMap
 }

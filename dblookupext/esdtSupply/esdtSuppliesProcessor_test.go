@@ -8,24 +8,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewSuppliesProcessor(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewSuppliesProcessor(nil, &testscommon.StorerStub{}, &testscommon.StorerStub{})
+	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
-	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, nil, &testscommon.StorerStub{})
+	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilStore, err)
 
-	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &testscommon.StorerStub{}, nil)
+	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
 	require.Equal(t, core.ErrNilStore, err)
 
-	proc, err := NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &testscommon.StorerStub{}, &testscommon.StorerStub{})
+	proc, err := NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, proc)
 	require.False(t, proc.IsInterfaceNil())
@@ -35,37 +37,42 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]data.LogHandler{
-		"txLog": &transaction.Log{
-			Events: []*transaction.Event{
-				{
-					Identifier: []byte("something"),
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+	logs := []*data.LogData{
+		{
+			TxHash: "txLog",
+			LogHandler: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Identifier: []byte("something"),
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+						},
 					},
-				},
-				{
-					Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
-					Topics: [][]byte{
-						token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+						},
 					},
 				},
 			},
 		},
-		"log": nil,
+		{
+			TxHash: "log",
+		},
 	}
 
 	marshalizer := testscommon.MarshalizerMock{}
-	suppliesStorer := &testscommon.StorerStub{
+	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
@@ -81,7 +88,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &testscommon.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(0, logs)
@@ -92,7 +99,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &testscommon.MarshalizerMock{}
-	proc, _ := NewSuppliesProcessor(marshalizer, &testscommon.StorerStub{
+	proc, _ := NewSuppliesProcessor(marshalizer, &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if string(key) == "my-token" {
 				supply := &SupplyESDT{Supply: big.NewInt(123456)}
@@ -100,9 +107,15 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 			}
 			return nil, errors.New("local err")
 		},
-	}, &testscommon.StorerStub{})
+	}, &storageStubs.StorerStub{})
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)
-	require.Equal(t, "123456", res)
+	expectedESDTSupply := &SupplyESDT{
+		Supply: big.NewInt(123456),
+		Burned: big.NewInt(0),
+		Minted: big.NewInt(0),
+	}
+
+	require.Equal(t, expectedESDTSupply, res)
 }

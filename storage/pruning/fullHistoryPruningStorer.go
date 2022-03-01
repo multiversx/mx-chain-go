@@ -33,10 +33,22 @@ func NewShardedFullHistoryPruningStorer(
 }
 
 func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (*FullHistoryPruningStorer, error) {
-	ps, err := initPruningStorer(args.StorerArgs, shardId)
+	err := checkArgs(args.StorerArgs)
 	if err != nil {
 		return nil, err
 	}
+
+	activePersisters, persistersMapByEpoch, err := initPersistersInEpoch(args.StorerArgs, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	ps, err := initPruningStorer(args.StorerArgs, shardId, activePersisters, persistersMapByEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	ps.registerHandler(args.Notifier)
 
 	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
 		return nil, storage.ErrInvalidNumberOfOldPersisters
@@ -55,29 +67,6 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 	return fhps, nil
 }
 
-func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface{}) {
-	pd, ok := value.(*persisterData)
-	if ok {
-		//since the put operation on oldEpochsActivePersistersCache is already done under the mutex we shall not lock
-		// the same mutex again here. It is safe to proceed without lock.
-
-		for _, active := range fhps.activePersisters {
-			if active.epoch == pd.epoch {
-				return
-			}
-		}
-
-		if pd.getIsClosed() {
-			return
-		}
-
-		err := pd.Close()
-		if err != nil {
-			log.Warn("initFullHistoryPruningStorer - onEvicted", "key", key, "err", err.Error())
-		}
-	}
-}
-
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	data, err := fhps.searchInEpoch(key, epoch)
@@ -86,6 +75,42 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 	}
 
 	return fhps.searchInEpoch(key, epoch+1)
+}
+
+// GetBulkFromEpoch will search a a bulk of keys in the persister for the given epoch
+// doesn't return an error if a key or any isn't found
+func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+	persister, err := fhps.getOrOpenPersister(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string][]byte)
+	for _, key := range keys {
+		dataInCache, found := fhps.cacher.Get(key)
+		if found {
+			results[string(key)] = dataInCache.([]byte)
+			continue
+		}
+		data, errGet := persister.Get(key)
+		if errGet == nil && data != nil {
+			results[string(key)] = data
+		}
+	}
+
+	return results, nil
+}
+
+// PutInEpoch will set the key-value pair in the given epoch
+func (fhps *FullHistoryPruningStorer) PutInEpoch(key []byte, data []byte, epoch uint32) error {
+	fhps.cacher.Put(key, data, len(data))
+
+	persister, err := fhps.getOrOpenPersister(epoch)
+	if err != nil {
+		return err
+	}
+
+	return fhps.doPutInPersister(key, data, persister)
 }
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
@@ -160,7 +185,7 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 
 		return newPdata.getPersister(), nil
 	}
-	persister, _, err := fhps.createAndInitPersisterIfClosed(pdata)
+	persister, _, err := fhps.createAndInitPersisterIfClosedUnprotected(pdata)
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +204,18 @@ func (fhps *FullHistoryPruningStorer) getPersisterData(epochString string, epoch
 		return pdata.(*persisterData), true
 	}
 
-	pdata, exists = fhps.persistersMapByEpoch[epoch]
+	var pDataObj *persisterData
+	pDataObj, exists = fhps.persistersMapByEpoch[epoch]
 	if exists {
-		return pdata.(*persisterData), true
+		return pDataObj, true
 	}
 
 	return nil, false
+}
+
+// Close will try to close all opened persisters, including the ones in the LRU cache
+func (fhps *FullHistoryPruningStorer) Close() error {
+	fhps.oldEpochsActivePersistersCache.Clear()
+
+	return fhps.PruningStorer.Close()
 }

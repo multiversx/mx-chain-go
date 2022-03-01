@@ -44,6 +44,11 @@ func (a *accountsAdapter) GetExistingAccount(_ []byte) (vmcommon.AccountHandler,
 	return nil, nil
 }
 
+// GetAccountFromBytes -
+func (a *accountsAdapter) GetAccountFromBytes(_ []byte, _ []byte) (vmcommon.AccountHandler, error) {
+	return nil, nil
+}
+
 // RemoveAccount -
 func (a *accountsAdapter) RemoveAccount(_ []byte) error {
 	return nil
@@ -109,6 +114,16 @@ func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]common.Trie, er
 // GetNumCheckpoints -
 func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
+}
+
+// CommitInEpoch -
+func (a *accountsAdapter) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
+	return nil, nil
+}
+
+// GetStackDebugFirstEntry -
+func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
+	return nil
 }
 
 // Close -

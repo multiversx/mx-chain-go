@@ -2,9 +2,15 @@ package factory_test
 
 import (
 	"math/big"
+	"strings"
+	"sync"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/common"
 	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -12,9 +18,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,6 +41,21 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	err = pc.Close()
 	require.NoError(t, err)
+}
+
+func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
+	processArgs.Config.Antiflood.TxAccumulator.MaxAllowedTimeInMilliseconds = 0
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
+
+	instance, err := pcf.Create()
+	require.Nil(t, instance)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), process.ErrInvalidValue.Error()))
 }
 
 func getProcessComponentsArgs(shardCoordinator sharding.Coordinator) factory.ProcessComponentsFactoryArgs {
@@ -140,6 +164,14 @@ func getProcessArgs(
 
 				return initialAccounts
 			},
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+				txsPool := make(map[uint32]*indexer.Pool)
+				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+					txsPool[i] = &indexer.Pool{}
+				}
+
+				return make([]*block.MiniBlock, 4), txsPool, nil
+			},
 		},
 		SmartContractParser:    &mock.SmartContractParserStub{},
 		GasSchedule:            gasScheduleNotifier,
@@ -232,7 +264,57 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
+	gasMap["FixWaitingListSize"] = value
 	gasMap["LiquidStakingOps"] = value
 
 	return gasMap
+}
+
+func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
+	processArgs.Data = &mock.DataComponentsMock{
+		Storage: &mock.ChainStorerMock{},
+	}
+
+	saveBlockCalledMutex := sync.Mutex{}
+
+	outportHandler := &testscommon.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+			saveBlockCalledMutex.Lock()
+			require.NotNil(t, args)
+
+			bodyRequired := &dataBlock.Body{
+				MiniBlocks: make([]*block.MiniBlock, 4),
+			}
+
+			txsPoolRequired := &indexer.Pool{}
+
+			assert.Equal(t, txsPoolRequired, args.TransactionsPool)
+			assert.Equal(t, bodyRequired, args.Body)
+			saveBlockCalledMutex.Unlock()
+		},
+	}
+
+	processArgs.StatusComponents = &mainFactoryMocks.StatusComponentsStub{
+		Outport: outportHandler,
+	}
+
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
+
+	genesisBlocks := make(map[uint32]coreData.HeaderHandler)
+	indexingData := make(map[uint32]*genesis.IndexingData)
+
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		genesisBlocks[i] = &block.Header{}
+	}
+
+	err = pcf.IndexGenesisBlocks(genesisBlocks, indexingData)
+	require.Nil(t, err)
 }

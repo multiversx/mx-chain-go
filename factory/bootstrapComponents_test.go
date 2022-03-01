@@ -10,6 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -136,6 +139,7 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 		ImportDbConfig: config.ImportDbConfig{
 			IsImportDBMode: false,
 		},
+		RoundConfig: config.RoundConfig{},
 	}
 }
 
@@ -155,16 +159,16 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:      &testscommon.AppStatusHandlerStub{},
-		WatchdogTimer:     &testscommon.WatchdogMock{},
-		AlarmSch:          &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:      &testscommon.SyncTimerStub{},
-		RoundHandlerField: &testscommon.RoundHandlerMock{},
-		//TODO: uncomment this
-		//EconomicsHandler: &testscommon.EconomicsHandlerMock{},
-		RatingsConfig: &testscommon.RatingsInfoMock{},
-		RatingHandler: &testscommon.RaterMock{},
-		NodesConfig:   &testscommon.NodesSetupStub{},
-		StartTime:     time.Time{},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		WatchdogTimer:         &testscommon.WatchdogMock{},
+		AlarmSch:              &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:          &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerStub{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
 	}
 }

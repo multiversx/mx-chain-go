@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -49,7 +50,7 @@ type NodeHandler interface {
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
 	// GetTokenSupply returns the provided token supply from current shard
-	GetTokenSupply(token string) (string, error)
+	GetTokenSupply(token string) (*api.ESDTSupply, error)
 
 	// CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -61,9 +62,6 @@ type NodeHandler interface {
 
 	// SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
-
-	// GetTransaction will return a transaction based on the hash
-	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
@@ -89,8 +87,9 @@ type NodeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 
-	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
+	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
@@ -107,6 +106,10 @@ type ApiResolver interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 	Close() error
 	IsInterfaceNil() bool
 }

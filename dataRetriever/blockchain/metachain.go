@@ -15,6 +15,7 @@ var _ data.ChainHandler = (*metaChain)(nil)
 // The MetaChain also holds pointers to the Genesis block and the current block.
 type metaChain struct {
 	*baseBlockChain
+	currentBlockRootHash []byte
 }
 
 // NewMetaChain will initialize a new metachain instance
@@ -45,17 +46,18 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 		return ErrWrongTypeInSet
 	}
 	mc.mut.Lock()
-	mc.genesisHeader = genBlock.Clone()
+	mc.genesisHeader = genBlock.ShallowClone()
 	mc.mut.Unlock()
 
 	return nil
 }
 
-// SetCurrentBlockHeader sets current block header pointer
-func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(header) {
 		mc.mut.Lock()
 		mc.currentBlockHeader = nil
+		mc.currentBlockRootHash = nil
 		mc.mut.Unlock()
 
 		return nil
@@ -70,15 +72,25 @@ func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	mc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, currHead.Round)
 
 	mc.mut.Lock()
-	mc.currentBlockHeader = currHead.Clone()
+	mc.currentBlockHeader = currHead.ShallowClone()
+	mc.currentBlockRootHash = make([]byte, len(rootHash))
+	copy(mc.currentBlockRootHash, rootHash)
 	mc.mut.Unlock()
 
 	return nil
 }
 
-// CreateNewHeader creates a new meta block
-func (mc *metaChain) CreateNewHeader() data.HeaderHandler {
-	return &block.MetaBlock{}
+// GetCurrentBlockRootHash returns the current committed block root hash. The returned byte slice is a new copy
+// of the contained root hash.
+func (mc *metaChain) GetCurrentBlockRootHash() []byte {
+	mc.mut.RLock()
+	rootHash := mc.currentBlockRootHash
+	mc.mut.RUnlock()
+
+	cloned := make([]byte, len(rootHash))
+	copy(cloned, rootHash)
+
+	return cloned
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

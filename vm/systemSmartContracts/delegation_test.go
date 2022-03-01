@@ -44,6 +44,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
 	}
 }
 
@@ -66,7 +67,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext) {
 		}
 
 		if bytes.Equal(key, vm.ValidatorSCAddress) {
-			validatorSc.flagEnableTopUp.Set()
+			_ = validatorSc.flagEnableTopUp.SetReturningPrevious()
 			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
 				RewardAddress:   []byte("rewardAddr"),
 				TotalStakeValue: big.NewInt(1000),
@@ -283,7 +284,7 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 		&mock.RaterMock{})
 	args.Eei = eei
 	d, _ := NewDelegationSystemSC(args)
-	d.delegationEnabled.Unset()
+	d.delegationEnabled.Reset()
 	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{})
 
 	output := d.Execute(vmInput)
@@ -2789,6 +2790,59 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	assert.Equal(t, big.NewInt(0).SetBytes(lastValue).Uint64(), uint64(180))
 }
 
+func TestDelegation_ExecuteClaimRewardsShouldDeleteDelegator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 10
+		},
+	}
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	vmInput := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:            nil,
+		RewardsCheckpoint:     0,
+		UnClaimedRewards:      big.NewInt(135),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		NumUsers: 10,
+	})
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.True(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	assert.Equal(t, 1, len(destAcc.OutputTransfers))
+	outputTransfer := destAcc.OutputTransfers[0]
+	assert.Equal(t, big.NewInt(135), outputTransfer.Value)
+
+	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{vmInput.CallerAddr})
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	res := d.eei.GetStorage(vmInput.CallerAddr)
+	require.Len(t, res, 0)
+}
+
 func TestDelegation_ExecuteReDelegateRewardsNoExtraCheck(t *testing.T) {
 	t.Parallel()
 
@@ -4409,12 +4463,12 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	d.flagValidatorToDelegation.Unset()
+	d.flagValidatorToDelegation.Reset()
 	returnCode := d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	d.flagValidatorToDelegation.Set()
+	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 	eei.returnMessage = ""
 	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4557,12 +4611,12 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	d.flagValidatorToDelegation.Unset()
+	d.flagValidatorToDelegation.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	d.flagValidatorToDelegation.Set()
+	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4690,12 +4744,12 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(mergeValidatorDataToDelegation, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	d.flagValidatorToDelegation.Unset()
+	d.flagValidatorToDelegation.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, mergeValidatorDataToDelegation+" is an unknown function")
 
-	d.flagValidatorToDelegation.Set()
+	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4774,7 +4828,7 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 		stakedData := &StakedDataV2_0{
 			Staked: true,
 		}
-		if i == 0 {
+		if i == 2 {
 			stakedData.Staked = false
 		}
 		marshaledData, _ = d.marshalizer.Marshal(stakedData)
@@ -4799,6 +4853,11 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	dStatus, err := d.getDelegationStatus()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(dStatus.StakedKeys))
 }
 
 func TestDelegation_whitelistForMerge(t *testing.T) {
@@ -4830,12 +4889,12 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("whitelistForMerge", [][]byte{[]byte("address")})
 
-	d.flagValidatorToDelegation.Unset()
+	d.flagValidatorToDelegation.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "whitelistForMerge"+" is an unknown function")
 
-	d.flagValidatorToDelegation.Set()
+	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
@@ -4913,12 +4972,12 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("deleteWhitelistForMerge", [][]byte{[]byte("address")})
 
-	d.flagValidatorToDelegation.Unset()
+	d.flagValidatorToDelegation.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "deleteWhitelistForMerge"+" is an unknown function")
 
-	d.flagValidatorToDelegation.Set()
+	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
 	vmInput.CallerAddr = []byte("address0")
 
@@ -4975,12 +5034,12 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("getWhitelistForMerge", make([][]byte, 0))
 
-	d.flagValidatorToDelegation.Unset()
+	d.flagValidatorToDelegation.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "getWhitelistForMerge"+" is an unknown function")
 
-	d.flagValidatorToDelegation.Set()
+	_ = d.flagValidatorToDelegation.SetReturningPrevious()
 
 	addr := []byte("address1")
 	vmInput = getDefaultVmInputForFunc("whitelistForMerge", [][]byte{addr})
@@ -4995,6 +5054,253 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnCode)
 	require.Equal(t, 1, len(eei.output))
 	assert.Equal(t, addr, eei.output[0])
+}
+
+func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	currentEpoch := uint32(2)
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return currentEpoch
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+	_ = d.saveDelegationContractConfig(&DelegationConfig{
+		MaxDelegationCap:  big.NewInt(10000),
+		InitialOwnerFunds: big.NewInt(1000),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive: big.NewInt(1000),
+	})
+
+	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
+
+	delegator := []byte("delegator")
+	_ = d.saveDelegatorData(delegator, &DelegatorData{
+		ActiveFund:            nil,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(1000),
+		TotalCumulatedRewards: big.NewInt(0),
+		RewardsCheckpoint:     0,
+	})
+
+	vmInput := getDefaultVmInputForFunc("updateRewards", [][]byte{})
+	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+
+	for i := 0; i < 10; i++ {
+		currentEpoch++
+		output := d.Execute(vmInput)
+		assert.Equal(t, vmcommon.Ok, output)
+	}
+
+	vmInput = getDefaultVmInputForFunc("delegate", [][]byte{})
+	vmInput.CallValue = big.NewInt(1000)
+	vmInput.CallerAddr = delegator
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	currentEpoch++
+	vmInput = getDefaultVmInputForFunc("updateRewards", [][]byte{})
+	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("claimRewards", [][]byte{})
+	vmInput.CallerAddr = delegator
+
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.True(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	assert.Equal(t, 1, len(destAcc.OutputTransfers))
+	outputTransfer := destAcc.OutputTransfers[0]
+	assert.Equal(t, big.NewInt(1010), outputTransfer.Value)
+
+	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, uint32(14), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, 1010, int(delegatorData.TotalCumulatedRewards.Uint64()))
+}
+
+func TestDelegation_AddTokens(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&stateMock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	d, _ := NewDelegationSystemSC(args)
+
+	vmInput := getDefaultVmInputForFunc("addTokens", [][]byte{})
+	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+
+	d.flagAddTokens.Reset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
+
+	eei.returnMessage = ""
+	_ = d.flagAddTokens.SetReturningPrevious()
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, vmInput.Function+" can be called by whitelisted address only")
+
+	vmInput.CallerAddr = args.AddTokensAddress
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+}
+
+func TestDelegation_correctNodesStatus(t *testing.T) {
+	d, eei := createDelegationContractAndEEI()
+	vmInput := getDefaultVmInputForFunc("correctNodesStatus", nil)
+
+	d.flagAddTokens.Reset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "correctNodesStatus is an unknown function")
+
+	_ = d.flagAddTokens.SetReturningPrevious()
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(10)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "call value must be zero")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 1
+	d.gasCost.MetaChainSystemSCsCost.GetAllNodeStates = 10
+	vmInput.CallValue.SetUint64(0)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, returnCode)
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 11
+	vmInput.CallValue.SetUint64(0)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key delegation status")
+
+	wrongStatus := &DelegationContractStatus{
+		StakedKeys:    []*NodesData{{BLSKey: []byte("key1")}, {BLSKey: []byte("key2")}, {BLSKey: []byte("key3")}},
+		NotStakedKeys: []*NodesData{{BLSKey: []byte("key4")}, {BLSKey: []byte("key5")}, {BLSKey: []byte("key3")}},
+		UnStakedKeys:  []*NodesData{{BLSKey: []byte("key6")}, {BLSKey: []byte("key7")}, {BLSKey: []byte("key3")}},
+		NumUsers:      0,
+	}
+	_ = d.saveDelegationStatus(wrongStatus)
+
+	stakedKeys := [][]byte{[]byte("key1"), []byte("key4"), []byte("key7")}
+	unStakedKeys := [][]byte{[]byte("key2"), []byte("key6")}
+	for i, blsKey := range stakedKeys {
+		stakedData := &StakedDataV2_0{
+			Staked: true,
+		}
+		if i == 2 {
+			stakedData.Staked = false
+			stakedData.Jailed = true
+		}
+		marshaledData, _ := d.marshalizer.Marshal(stakedData)
+		eei.SetStorageForAddress(d.stakingSCAddr, blsKey, marshaledData)
+	}
+
+	for _, blsKey := range unStakedKeys {
+		stakedData := &StakedDataV2_0{
+			Staked: false,
+		}
+		marshaledData, _ := d.marshalizer.Marshal(stakedData)
+		eei.SetStorageForAddress(d.stakingSCAddr, blsKey, marshaledData)
+	}
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 11
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "storage is nil for given key")
+
+	validatorData := &ValidatorDataV2{BlsPubKeys: [][]byte{[]byte("key8")}}
+	marshaledData, _ := d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, vmInput.RecipientAddr, marshaledData)
+
+	stakedData := &StakedDataV2_0{
+		Staked: false,
+		Jailed: true,
+	}
+	marshaledData, _ = d.marshalizer.Marshal(stakedData)
+	eei.SetStorageForAddress(d.stakingSCAddr, []byte("key8"), marshaledData)
+	stakedKeys = append(stakedKeys, []byte("key8"))
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 11
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	correctedStatus, _ := d.getDelegationStatus()
+	assert.Equal(t, 4, len(correctedStatus.StakedKeys))
+	assert.Equal(t, 2, len(correctedStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(correctedStatus.NotStakedKeys))
+
+	for _, stakedKey := range stakedKeys {
+		found := false
+		for _, stakedNode := range correctedStatus.StakedKeys {
+			if bytes.Equal(stakedNode.BLSKey, stakedKey) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
+	}
+
+	for _, unStakedKey := range unStakedKeys {
+		found := false
+		for _, unStakedNode := range correctedStatus.UnStakedKeys {
+			if bytes.Equal(unStakedNode.BLSKey, unStakedKey) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
+	}
+
+	notStakedKeys := [][]byte{[]byte("key3"), []byte("key5")}
+	for _, notStakedKey := range notStakedKeys {
+		found := false
+		for _, notStakedNode := range correctedStatus.NotStakedKeys {
+			if bytes.Equal(notStakedNode.BLSKey, notStakedKey) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
+	}
 }
 
 func createDelegationContractAndEEI() (*delegation, *vmContext) {
@@ -5049,13 +5355,13 @@ func TestDelegation_BasicCheckForLiquidStaking(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("claimDelegatedPosition", make([][]byte, 0))
 
-	d.flagLiquidStaking.Unset()
+	d.flagLiquidStaking.Reset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
 
 	eei.returnMessage = ""
-	d.flagLiquidStaking.Set()
+	d.flagLiquidStaking.SetValue(true)
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "only liquid staking sc can call this function")

@@ -26,7 +26,7 @@ func (bbc *baseBlockChain) GetGenesisHeader() data.HeaderHandler {
 		return nil
 	}
 
-	return bbc.genesisHeader.Clone()
+	return bbc.genesisHeader.ShallowClone()
 }
 
 // GetGenesisHeaderHash returns the genesis block header hash
@@ -53,7 +53,7 @@ func (bbc *baseBlockChain) GetCurrentBlockHeader() data.HeaderHandler {
 		return nil
 	}
 
-	return bbc.currentBlockHeader.Clone()
+	return bbc.currentBlockHeader.ShallowClone()
 }
 
 // GetCurrentBlockHeaderHash returns the current block header hash

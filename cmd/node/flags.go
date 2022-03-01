@@ -97,6 +97,13 @@ var (
 			" activation epochs configurations",
 		Value: "./config/enableEpochs.toml",
 	}
+	// roundConfigurationFile defines a flag for the path to the toml file containing the round configuration
+	roundConfigurationFile = cli.StringFlag{
+		Name: "round-config",
+		Usage: "The `" + filePathPlaceholder + "` for the round configuration file. This TOML file contains" +
+			" activation round configurations",
+		Value: "./config/enableRounds.toml",
+	}
 	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
 	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",
@@ -299,6 +306,16 @@ var (
 		Name:  "full-archive",
 		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
 	}
+	// memBallast defines a flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization
+	// if set to 0, the memory ballast won't be used
+	memBallast = cli.Uint64Flag{
+		Name:  "mem-ballast",
+		Value: 0,
+		Usage: "Flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization. " +
+			"If set to 0 (or not set at all), the feature will be disabled. This flag should be used only for well-monitored nodes " +
+			"and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast " +
+			"should not be higher than 20-25% of the machine's available RAM",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -315,6 +332,7 @@ func getFlags() []cli.Flag {
 		externalConfigFile,
 		p2pConfigurationFile,
 		epochConfigurationFile,
+		roundConfigurationFile,
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
@@ -345,6 +363,7 @@ func getFlags() []cli.Flag {
 		importDbStartInEpoch,
 		redundancyLevel,
 		fullArchive,
+		memBallast,
 	}
 }
 
@@ -472,6 +491,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 	generalConfigs.TrieStorageManagerConfig.KeepSnapshots = true
 	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
+	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
@@ -488,6 +508,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
+		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"TrieStorageManagerConfig.KeepSnapshots", generalConfigs.TrieStorageManagerConfig.KeepSnapshots,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
@@ -511,14 +532,12 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true
-	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 
 	log.Warn("the node is in full archive mode! Will auto-set some config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 		"StoragePruning.ValidatorCleanOldEpochsData", generalConfigs.StoragePruning.ValidatorCleanOldEpochsData,
 		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
-		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
 	)
 
 	return nil

@@ -62,13 +62,13 @@ func NewIntermediateResultsProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: coordinator,
-		store:            store,
-		storageType:      dataRetriever.UnsignedTransactionUnit,
-		mapTxToResult:    make(map[string][]string),
-		economicsFee:     economicsFee,
+		hasher:             hasher,
+		marshalizer:        marshalizer,
+		shardCoordinator:   coordinator,
+		store:              store,
+		storageType:        dataRetriever.UnsignedTransactionUnit,
+		mapProcessedResult: make(map[string]struct{}),
+		economicsFee:       economicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -134,7 +134,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
 			})
 
-			log.Trace("intermediateResultsProcessor.CreateAllInterMiniBlocks",
+			log.Debug("intermediateResultsProcessor.CreateAllInterMiniBlocks",
 				"type", miniblock.Type,
 				"senderShardID", miniblock.SenderShardID,
 				"receiverShardID", miniblock.ReceiverShardID,
@@ -165,7 +165,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 	scrMbs := irp.CreateAllInterMiniBlocks()
 	createdMapMbs := createMiniBlocksMap(scrMbs)
 
-	countedCrossShard := 0
+	receivedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
 		if mb.Type != irp.blockType {
@@ -175,14 +175,14 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 			continue
 		}
 
-		countedCrossShard++
+		receivedCrossShard++
 		err := irp.verifyMiniBlock(createdMapMbs, mb)
 		if err != nil {
 			return err
 		}
 	}
 
-	createCrossShard := 0
+	createdCrossShard := 0
 	for _, mb := range scrMbs {
 		if mb.Type != irp.blockType {
 			continue
@@ -191,10 +191,13 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 			continue
 		}
 
-		createCrossShard++
+		createdCrossShard++
 	}
 
-	if createCrossShard != countedCrossShard {
+	if createdCrossShard != receivedCrossShard {
+		log.Debug("intermediateResultsProcessor.VerifyInterMiniBlocks",
+			"num created cross shard", createdCrossShard,
+			"num received cross shard", receivedCrossShard)
 		return process.ErrMiniBlockNumMissMatch
 	}
 
@@ -236,7 +239,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
-		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
+		irp.mapProcessedResult[string(scrHash)] = struct{}{}
 	}
 
 	return nil

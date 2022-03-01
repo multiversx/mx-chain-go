@@ -22,11 +22,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -75,16 +77,23 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				},
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     "10000000",
-				MaxGasLimitPerMetaBlock: "10000000",
-				MinGasPrice:             "10",
-				MinGasLimit:             "10",
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "10000000",
+						MaxGasLimitPerMiniBlock:     "10000000",
+						MaxGasLimitPerMetaBlock:     "10000000",
+						MaxGasLimitPerMetaMiniBlock: "10000000",
+						MaxGasLimitPerTx:            "10000000",
+						MinGasLimit:                 "10",
+					},
+				},
+				MinGasPrice:      "10",
+				GasPerDataByte:   "1",
+				GasPriceModifier: 1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -96,17 +105,19 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:       &mock.ChainStorerMock{},
-		NodesCoordinator:     &mock.NodesCoordinatorMock{},
-		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		PubkeyConv:           createMockPubkeyConverter(),
-		PeerAdapter:          getAccountsMock(),
-		Rater:                createMockRater(),
-		RewardsHandler:       economicsData,
-		MaxComputableRounds:  1000,
-		NodesSetup:           &mock.NodesSetupStub{},
-		EpochNotifier:        &mock.EpochNotifierStub{},
-		StakingV2EnableEpoch: 5,
+		StorageService:                       &mock.ChainStorerMock{},
+		NodesCoordinator:                     &mock.NodesCoordinatorMock{},
+		ShardCoordinator:                     mock.NewOneShardCoordinatorMock(),
+		PubkeyConv:                           createMockPubkeyConverter(),
+		PeerAdapter:                          getAccountsMock(),
+		Rater:                                createMockRater(),
+		RewardsHandler:                       economicsData,
+		MaxComputableRounds:                  1000,
+		MaxConsecutiveRoundsOfRatingDecrease: 2000,
+		NodesSetup:                           &mock.NodesSetupStub{},
+		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
+		StakingV2EnableEpoch:                 5,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 1500,
 	}
 	return arguments
 }
@@ -195,6 +206,17 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 
 	assert.Nil(t, validatorStatistics)
 	assert.Equal(t, process.ErrZeroMaxComputableRounds, err)
+}
+
+func TestNewValidatorStatisticsProcessor_ZeroMaxConsecutiveRoundsOfRatingDecreaseShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.MaxConsecutiveRoundsOfRatingDecrease = 0
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease, err)
 }
 
 func TestNewValidatorStatisticsProcessor_NilRaterShouldErr(t *testing.T) {
@@ -502,7 +524,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, getHeaderError
 				},
@@ -558,7 +580,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
@@ -1230,7 +1252,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testscommon.StorerStub{
+			return &storageStubs.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
@@ -1325,6 +1347,58 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	err = validatorStatistics.CheckForMissedBlocks(2, 1, []byte("prev"), 0, 0)
 	assert.Nil(t, err)
 	assert.False(t, computeValidatorGroupCalled)
+}
+
+func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterThanMaxConsecutiveRoundsOfRatingDecrease(t *testing.T) {
+	t.Parallel()
+
+	validatorPublicKeys := make(map[uint32][][]byte)
+	validatorPublicKeys[0] = make([][]byte, 1)
+	validatorPublicKeys[0][0] = []byte("validator")
+	validatorRating := 100
+
+	nodesCoordinatorMock := &mock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			return validatorPublicKeys, nil
+		},
+	}
+
+	peerAdapter := getAccountsMock()
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		return &mock.PeerAccountHandlerMock{
+			SetTempRatingCalled: func(value uint32) {
+				validatorRating--
+			},
+		}, nil
+	}
+
+	arguments := createMockArguments()
+	arguments.PeerAdapter = peerAdapter
+	arguments.NodesCoordinator = nodesCoordinatorMock
+	arguments.MaxComputableRounds = 1
+	arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch = 2
+	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	// Flag to stop decreasing validator rating is NOT set => decrease validator rating
+	err := validatorStatistics.CheckForMissedBlocks(5, 0, []byte("prev"), 0, 0)
+	require.Nil(t, err)
+	require.Equal(t, 99, validatorRating)
+
+	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
+	validatorStatistics.EpochConfirmed(2, 0)
+	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
+	require.Nil(t, err)
+	require.Equal(t, 98, validatorRating)
+
+	// Flag to stop decreasing validator rating is set AND missed rounds > max rounds of rating decrease => validator rating is NOT decreased
+	err = validatorStatistics.CheckForMissedBlocks(5, 0, []byte("prev"), 0, 0)
+	require.Nil(t, err)
+	require.Equal(t, 98, validatorRating)
+	err = validatorStatistics.CheckForMissedBlocks(6, 0, []byte("prev"), 0, 0)
+	require.Nil(t, err)
+	require.Equal(t, 98, validatorRating)
 }
 
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorList(t *testing.T) {

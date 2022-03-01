@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -85,42 +86,44 @@ func NewStandardDelegationProcessor(arg ArgStandardDelegationProcessor) (*standa
 }
 
 // ExecuteDelegation will execute stake, set bls keys and activate on all delegation contracts from this shard
-func (sdp *standardDelegationProcessor) ExecuteDelegation() (genesis.DelegationResult, error) {
+func (sdp *standardDelegationProcessor) ExecuteDelegation() (genesis.DelegationResult, []data.TransactionHandler, error) {
 	smartContracts, err := sdp.getDelegationScOnCurrentShard()
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 	if len(smartContracts) == 0 {
-		return genesis.DelegationResult{}, nil
+		return genesis.DelegationResult{}, nil, nil
 	}
 
 	err = sdp.setDelegationStartParameters(smartContracts)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
 	dr := genesis.DelegationResult{}
 	dr.NumTotalDelegated, err = sdp.executeManageBlsKeys(smartContracts)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
 	dr.NumTotalStaked, err = sdp.executeStake(smartContracts)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
 	err = sdp.executeActivation(smartContracts)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
 	err = sdp.executeVerify(smartContracts)
 	if err != nil {
-		return genesis.DelegationResult{}, err
+		return genesis.DelegationResult{}, nil, err
 	}
 
-	return dr, err
+	delegationTxs := sdp.TxExecutionProcessor.GetExecutedTransactions()
+
+	return dr, delegationTxs, err
 }
 
 func (sdp *standardDelegationProcessor) getDelegationScOnCurrentShard() ([]genesis.InitialSmartContractHandler, error) {

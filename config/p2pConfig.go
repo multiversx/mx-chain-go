@@ -9,10 +9,12 @@ type P2PConfig struct {
 
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
-	Port                       string
-	Seed                       string
-	MaximumExpectedPeerCount   uint64
-	ThresholdMinConnectedPeers uint32
+	Port                            string
+	Seed                            string
+	MaximumExpectedPeerCount        uint64
+	ThresholdMinConnectedPeers      uint32
+	ConnectionWatcherType           string
+	MinNumPeersToWaitForOnBootstrap uint32
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings

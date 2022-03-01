@@ -4,10 +4,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+const maxLenMiniBlockReservedField = 10
+const maxLenMiniBlockHeaderReservedField = 1
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
@@ -84,9 +86,9 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 	return nil
 }
 
-func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordinator) error {
+func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.Coordinator) error {
 	for _, sd := range shardInfo {
-		if sd.ShardID >= coordinator.NumberOfShards() && sd.ShardID != core.MetachainShardId {
+		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
@@ -99,42 +101,42 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 	return nil
 }
 
-func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
-	for _, smbh := range sd.ShardMiniBlockHeaders {
-		isWrongSenderShardId := smbh.SenderShardID >= coordinator.NumberOfShards() &&
-			smbh.SenderShardID != core.MetachainShardId &&
-			smbh.SenderShardID != core.AllShardId
-		isWrongDestinationShardId := smbh.ReceiverShardID >= coordinator.NumberOfShards() &&
-			smbh.ReceiverShardID != core.MetachainShardId &&
-			smbh.ReceiverShardID != core.AllShardId
+func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {
+	for _, smbh := range sd.GetShardMiniBlockHeaderHandlers() {
+		isWrongSenderShardId := smbh.GetSenderShardID() >= coordinator.NumberOfShards() &&
+			smbh.GetSenderShardID() != core.MetachainShardId &&
+			smbh.GetSenderShardID() != core.AllShardId
+		isWrongDestinationShardId := smbh.GetReceiverShardID() >= coordinator.NumberOfShards() &&
+			smbh.GetReceiverShardID() != core.MetachainShardId &&
+			smbh.GetReceiverShardID() != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
 
-		if len(smbh.Reserved) > 0 {
-			return process.ErrReservedFieldNotSupportedYet
+		if len(smbh.GetReserved()) > maxLenMiniBlockHeaderReservedField {
+			return process.ErrReservedFieldInvalid
 		}
 	}
 
 	return nil
 }
 
-func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
+func checkMiniblocks(miniblocks []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
-		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards() &&
-			miniblock.SenderShardID != core.MetachainShardId &&
-			miniblock.SenderShardID != core.AllShardId
-		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards() &&
-			miniblock.ReceiverShardID != core.MetachainShardId &&
-			miniblock.ReceiverShardID != core.AllShardId
+		isWrongSenderShardId := miniblock.GetSenderShardID() >= coordinator.NumberOfShards() &&
+			miniblock.GetSenderShardID() != core.MetachainShardId &&
+			miniblock.GetSenderShardID() != core.AllShardId
+		isWrongDestinationShardId := miniblock.GetReceiverShardID() >= coordinator.NumberOfShards() &&
+			miniblock.GetReceiverShardID() != core.MetachainShardId &&
+			miniblock.GetReceiverShardID() != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
 
-		if len(miniblock.Reserved) > 0 {
-			return process.ErrReservedFieldNotSupportedYet
+		if len(miniblock.GetReserved()) > maxLenMiniBlockReservedField {
+			return process.ErrReservedFieldInvalid
 		}
 	}
 

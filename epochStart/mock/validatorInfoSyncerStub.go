@@ -1,8 +1,7 @@
 package mock
 
 import (
-	data "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 )
 
 // ValidatorInfoSyncerStub -
@@ -10,7 +9,7 @@ type ValidatorInfoSyncerStub struct {
 }
 
 // SyncMiniBlocks -
-func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(*block.MetaBlock) ([][]byte, data.BodyHandler, error) {
+func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(_ data.HeaderHandler) ([][]byte, data.BodyHandler, error) {
 	return nil, nil, nil
 }
 

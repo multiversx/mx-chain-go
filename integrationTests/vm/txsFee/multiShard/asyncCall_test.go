@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package multiShard
@@ -62,8 +63,9 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextFirstContract)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextSecondContract)
-	testContextFirstContract.TxFeeHandler.CreateBlockStarted()
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+
+	testContextFirstContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	gasLimit := uint64(5000000)
 	tx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, gasPrice, gasLimit, []byte("doSomething"))
@@ -72,11 +74,10 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err := testContextSender.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	require.Equal(t, big.NewInt(120), testContextSender.TxFeeHandler.GetAccumulatedFees())
 
-	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContextSender.ShardCoordinator, testContextSender.EconomicsData, false, testContextSender.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -90,13 +91,12 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	retCode, err = testContextSecondContract.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContextSender.GetLatestError())
 
 	require.Equal(t, big.NewInt(3830), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(383), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs := testContextSecondContract.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData)
+	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData, true, testContextSecondContract.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
@@ -117,7 +117,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	intermediateTxs = testContextFirstContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
 
-	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	scr = intermediateTxs[0]
 	utils.ProcessSCRResult(t, testContextSecondContract, scr, vmcommon.Ok, nil)
 

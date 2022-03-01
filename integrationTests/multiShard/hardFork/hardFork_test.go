@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +72,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 
 		_ = hardforkTriggerNode.Messenger.Close()
@@ -146,7 +147,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 
 		_ = hardforkTriggerNode.Messenger.Close()
@@ -268,7 +269,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 
 	defer func() {
 		for _, n := range allNodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -479,7 +480,7 @@ func hardForkImport(
 					MaxServiceFee: 100,
 				},
 			},
-			AccountsParser:      &mock.AccountsParserStub{},
+			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
 			ImportStartHandler: &mock.ImportStartHandlerStub{

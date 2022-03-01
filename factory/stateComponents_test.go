@@ -6,11 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -100,83 +102,172 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator 
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 
 	stateComponentsFactoryArgs := factory.StateComponentsFactoryArgs{
-		Config: config.Config{
-			AddressPubkeyConverter: config.PubkeyConfig{
-				Length:          32,
-				Type:            "hex",
-				SignatureLength: 0,
-			},
-			ValidatorPubkeyConverter: config.PubkeyConfig{
-				Length:          96,
-				Type:            "hex",
-				SignatureLength: 0,
-			},
-			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     5,
-				AccountsStatePruningEnabled: true,
-				PeerStatePruningEnabled:     true,
-				MaxStateTrieLevelInMemory:   5,
-				MaxPeerTrieLevelInMemory:    5,
-			},
-			EvictionWaitingList: config.EvictionWaitingListConfig{
-				HashesSize:     100,
-				RootHashesSize: 100,
-				DB: config.DBConfig{
-					FilePath:          "EvictionWaitingList",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "TrieSnapshot",
+		Config:           getGeneralConfig(),
+		ShardCoordinator: shardCoordinator,
+		Core:             coreComponents,
+		StorageService:   disabled.NewChainStorer(),
+		ProcessingMode:   common.Normal,
+		ChainHandler:     &testscommon.ChainHandlerStub{},
+	}
+
+	return stateComponentsFactoryArgs
+}
+
+func getGeneralConfig() config.Config {
+	return config.Config{
+		AddressPubkeyConverter: config.PubkeyConfig{
+			Length:          32,
+			Type:            "hex",
+			SignatureLength: 0,
+		},
+		ValidatorPubkeyConverter: config.PubkeyConfig{
+			Length:          96,
+			Type:            "hex",
+			SignatureLength: 0,
+		},
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus:     5,
+			AccountsStatePruningEnabled: true,
+			PeerStatePruningEnabled:     true,
+			MaxStateTrieLevelInMemory:   5,
+			MaxPeerTrieLevelInMemory:    5,
+		},
+		EvictionWaitingList: config.EvictionWaitingListConfig{
+			HashesSize:     100,
+			RootHashesSize: 100,
+			DB: config.DBConfig{
+				FilePath:          "EvictionWaitingList",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
 			},
-			AccountsTrieStorage: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "AccountsTrie/MainDB",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
+		},
+		TrieSnapshotDB: config.DBConfig{
+			FilePath:          "TrieSnapshot",
+			Type:              "MemoryDB",
+			BatchDelaySeconds: 30,
+			MaxBatchSize:      6,
+			MaxOpenFiles:      10,
+		},
+		AccountsTrieStorageOld: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
-			PeerAccountsTrieStorage: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "PeerAccountsTrie/MainDB",
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:   1000,
-				SnapshotsBufferLen: 10,
-				MaxSnapshots:       2,
+			DB: config.DBConfig{
+				FilePath:          "AccountsTrie",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
 			},
 		},
-		ShardCoordinator:    shardCoordinator,
-		Core:                coreComponents,
-		TriesContainer:      triesHolder,
-		TrieStorageManagers: trieStorageManagers,
+		AccountsTrieStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "AccountsTrie/MainDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		AccountsTrieCheckpointsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "AccountsTrieCheckpoints",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieStorageOld: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "PeerAccountsTrie",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "PeerAccountsTrie/MainDB",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "PeerAccountsTrieCheckpoints",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+			PruningBufferLen:      1000,
+			SnapshotsBufferLen:    10,
+			MaxSnapshots:          2,
+			SnapshotsGoroutineNum: 1,
+		},
+		VirtualMachine: config.VirtualMachineServicesConfig{
+			Querying: config.QueryVirtualMachineConfig{
+				NumConcurrentVMs: 1,
+				VirtualMachineConfig: config.VirtualMachineConfig{
+					ArwenVersions: []config.ArwenVersionByEpoch{
+						{StartEpoch: 0, Version: "v0.3"},
+					},
+				},
+			},
+			Execution: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "v0.3"},
+				},
+			},
+		},
+		SmartContractsStorageForSCQuery: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
+			},
+		},
+		SmartContractDataPool: config.CacheConfig{
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
+		},
 	}
-
-	return stateComponentsFactoryArgs
 }
 
 func getCoreComponents() factory.CoreComponentsHolder {

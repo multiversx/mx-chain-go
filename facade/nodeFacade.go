@@ -16,12 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/node"
-	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
-	"github.com/ElrondNetwork/elrond-go/api/validator"
-	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -39,13 +34,6 @@ const DefaultRestInterface = "localhost:8080"
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
-
-var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.FacadeHandler(&nodeFacade{})
-var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.FacadeHandler(&nodeFacade{})
-var _ = validator.FacadeHandler(&nodeFacade{})
-var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
 
@@ -219,7 +207,7 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 }
 
 // GetTokenSupply returns the provided token supply
-func (nf *nodeFacade) GetTokenSupply(token string) (string, error) {
+func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) {
 	return nf.node.GetTokenSupply(token)
 }
 
@@ -275,7 +263,7 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash, withResults)
+	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -381,12 +369,17 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 
 // GetBlockByHash return the block for a given hash
 func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByHash(hash, withTxs)
+	return nf.apiResolver.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
 func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByNonce(nonce, withTxs)
+	return nf.apiResolver.GetBlockByNonce(nonce, withTxs)
+}
+
+// GetBlockByRound returns the block for a given round
+func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
+	return nf.apiResolver.GetBlockByRound(round, withTxs)
 }
 
 // Close will cleanup started go routines
@@ -404,69 +397,31 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 }
 
 // GetProof returns the Merkle proof for the given address and root hash
-func (nf *nodeFacade) GetProof(rootHash string, address string) ([][]byte, error) {
-	rootHashBytes, err := hex.DecodeString(rootHash)
-	if err != nil {
-		return nil, err
-	}
+func (nf *nodeFacade) GetProof(rootHash string, address string) (*common.GetProofResponse, error) {
+	return nf.node.GetProof(rootHash, address)
+}
 
-	trie, err := nf.accountsState.GetTrie(rootHashBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	addressBytes, err := nf.DecodeAddressPubkey(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return trie.GetProof(addressBytes)
+// GetProofDataTrie returns the Merkle Proof for the given address, and another Merkle Proof
+// for the given key, if it exists in the dataTrie
+func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
+	return nf.node.GetProofDataTrie(rootHash, address, key)
 }
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
-func (nf *nodeFacade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
-	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil, nil, ErrNilBlockHeader
+func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
+	rootHash := nf.blockchain.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		return nil, ErrEmptyRootHash
 	}
 
-	rootHash := currentBlockHeader.GetRootHash()
-	trie, err := nf.accountsState.GetTrie(rootHash)
-	if err != nil {
-		return nil, nil, err
-	}
+	hexRootHash := hex.EncodeToString(rootHash)
 
-	addressBytes, err := nf.DecodeAddressPubkey(address)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	proof, err := trie.GetProof(addressBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return proof, rootHash, nil
+	return nf.node.GetProof(hexRootHash, address)
 }
 
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
-	rootHashBytes, err := hex.DecodeString(rootHash)
-	if err != nil {
-		return false, err
-	}
-
-	trie, err := nf.accountsState.GetTrie(rootHashBytes)
-	if err != nil {
-		return false, err
-	}
-
-	addressBytes, err := nf.DecodeAddressPubkey(address)
-	if err != nil {
-		return false, err
-	}
-
-	return trie.VerifyProof(addressBytes, proof)
+	return nf.node.VerifyProof(rootHash, address, proof)
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state

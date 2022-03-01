@@ -574,7 +574,7 @@ func (l *liquidStaking) SetNewGasCost(gasCost vm.GasCost) {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (l *liquidStaking) EpochConfirmed(epoch uint32, _ uint64) {
-	l.flagLiquidStaking.Toggle(epoch >= l.liquidStakingEnableEpoch)
+	l.flagLiquidStaking.SetValue(epoch >= l.liquidStakingEnableEpoch)
 	log.Debug("liquid staking system sc", "enabled", l.flagLiquidStaking.IsSet())
 }
 

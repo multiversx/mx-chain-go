@@ -3,13 +3,13 @@ package sharding
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
-	sbp := NewSelectionBasedProvider(&mock.HasherMock{}, 7)
+	sbp := NewSelectionBasedProvider(&hashingMocks.HasherMock{}, 7)
 
 	v1 := &validatorEntry{
 		startIndex:     0,
@@ -58,7 +58,7 @@ func TestSelectionBasedProvider_AddToSortedSlice(t *testing.T) {
 }
 
 func TestSelectionBasedProvider_Get(t *testing.T) {
-	sbp := NewSelectionBasedProvider(&mock.HasherMock{}, 7)
+	sbp := NewSelectionBasedProvider(&hashingMocks.HasherMock{}, 7)
 
 	numVals := 7
 	randomness := []byte("randomness")

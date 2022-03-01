@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -23,7 +24,6 @@ type NodeStub struct {
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
-	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (api.AccountResponse, error)
 	GetCodeCalled                                  func(codeHash []byte) []byte
@@ -37,8 +37,6 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
@@ -47,6 +45,36 @@ type NodeStub struct {
 	GetESDTsRolesCalled                            func(address string) (map[string][]string, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
+	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
+	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
+	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
+}
+
+// GetProof -
+func (ns *NodeStub) GetProof(rootHash string, key string) (*common.GetProofResponse, error) {
+	if ns.GetProofCalled != nil {
+		return ns.GetProofCalled(rootHash, key)
+	}
+
+	return nil, nil
+}
+
+// GetProofDataTrie -
+func (ns *NodeStub) GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error) {
+	if ns.GetProofDataTrieCalled != nil {
+		return ns.GetProofDataTrieCalled(rootHash, address, key)
+	}
+
+	return nil, nil, nil
+}
+
+// VerifyProof -
+func (ns *NodeStub) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if ns.VerifyProofCalled != nil {
+		return ns.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -
@@ -58,7 +86,7 @@ func (ns *NodeStub) GetUsername(address string) (string, error) {
 	return "", nil
 }
 
-// GetKeyValuesPairs -
+// GetKeyValuePairs -
 func (ns *NodeStub) GetKeyValuePairs(address string) (map[string]string, error) {
 	if ns.GetKeyValuePairsCalled != nil {
 		return ns.GetKeyValuePairsCalled(address)
@@ -79,16 +107,6 @@ func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
 // EncodeAddressPubkey -
 func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 	return hex.EncodeToString(pk), nil
-}
-
-// GetBlockByHash -
-func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByHashCalled(hash, withTxs)
-}
-
-// GetBlockByNonce -
-func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	return ns.GetBlockByNonceCalled(nonce, withTxs)
 }
 
 // DecodeAddressPubkey -
@@ -116,11 +134,6 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 // ValidateTransactionForSimulation -
 func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
 	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
-}
-
-// GetTransaction -
-func (ns *NodeStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
-	return ns.GetTransactionHandler(hash, withEvents)
 }
 
 // SendBulkTransactions -
@@ -217,8 +230,8 @@ func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigital
 }
 
 // GetTokenSupply -
-func (ns *NodeStub) GetTokenSupply(_ string) (string, error) {
-	return "", nil
+func (ns *NodeStub) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+	return nil, nil
 }
 
 // GetAllIssuedESDTs -
