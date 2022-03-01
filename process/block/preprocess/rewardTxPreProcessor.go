@@ -497,6 +497,10 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 	return rewardTxPool
 }
 
+// AddTxsFromMiniBlocks does nothing
+func (rtp *rewardTxPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
 	return rtp == nil

@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1735,5 +1736,131 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
+	})
+}
+
+func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
+	t.Parallel()
+
+	t.Run("PayableBySC flag is not set; should reset the flag", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 1000000
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		provided := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+	})
+	t.Run("PayableBySC flag is set; should not reset the flag", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		provided := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+
+		provided = vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		resulted = bh.ApplyFiltersOnCodeMetadata(provided)
+		expected = vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+	})
+}
+
+func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flag not set should not filter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 100000
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF, 0xFF}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, providedBytes, resultBytes)
+		assert.Nil(t, err)
+	})
+	t.Run("correct bytes and flag set should filter correctly", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0x05, 0x06}
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, expected.ToBytes(), resultBytes)
+		assert.Nil(t, err)
+	})
+	t.Run("incorrect number of bytes and flag set should return nil and error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF, 0xFF}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Nil(t, resultBytes)
+		assert.Equal(t, parsers.ErrInvalidCodeMetadata, err)
+	})
+	t.Run("incorrect bytes and flag set should return nil and error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Nil(t, resultBytes)
+		assert.Equal(t, parsers.ErrInvalidCodeMetadata, err)
 	})
 }

@@ -1,6 +1,6 @@
 module github.com/ElrondNetwork/elrond-go
 
-go 1.13
+go 1.15
 
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.35

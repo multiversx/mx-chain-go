@@ -1,6 +1,10 @@
 package trie
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/errors"
+)
 
 type snapshotTrieStorageManager struct {
 	*trieStorageManager
@@ -21,14 +25,14 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 	}, nil
 }
 
-//Get checks all the storers for the given key, and returns it if it is found
+// Get checks all the storers for the given key, and returns it if it is found
 func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 	stsm.storageOperationMutex.Lock()
 	defer stsm.storageOperationMutex.Unlock()
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
-		return nil, ErrContextClosing
+		return nil, errors.ErrContextClosing
 	}
 
 	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
@@ -49,7 +53,7 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
@@ -63,7 +67,7 @@ func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, er
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
-		return nil, ErrContextClosing
+		return nil, errors.ErrContextClosing
 	}
 
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)

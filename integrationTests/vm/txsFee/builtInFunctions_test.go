@@ -13,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -24,7 +25,7 @@ import (
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		vm.ArgEnableEpoch{
+		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
 	require.Nil(t, err)
@@ -69,7 +70,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -115,7 +116,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -158,7 +159,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -195,7 +196,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 }
 
 func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -241,12 +242,15 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{CleanUpInformativeSCRsEnableEpoch: 10}, shardCoord)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
+		config.EnableEpochs{
+			CleanUpInformativeSCRsEnableEpoch: 10,
+		}, shardCoord)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	sndAddr := []byte("12345678901234567890123456789112")  //shard 0
-	destAddr := []byte("12345678901234567890123456789111") //shard 1
+	sndAddr := []byte("12345678901234567890123456789112")  // shard 0
+	destAddr := []byte("12345678901234567890123456789111") // shard 1
 	require.False(t, shardCoord.SameShard(sndAddr, destAddr))
 
 	senderBalance := big.NewInt(100000)
@@ -264,8 +268,8 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	require.True(t, len(intermediateTxs) > 1)
 
-	//defined here for backwards compatibility reasons.
-	//Should not reference builtInFunctions.ErrNilSCDestAccount as that might change and this test will still pass.
+	// defined here for backwards compatibility reasons.
+	// Should not reference builtInFunctions.ErrNilSCDestAccount as that might change and this test will still pass.
 	requiredData := hex.EncodeToString([]byte("nil destination SC account"))
 	require.Equal(t, "@"+requiredData, string(intermediateTxs[0].GetData()))
 }
@@ -273,7 +277,10 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(vm.ArgEnableEpoch{BackwardCompSaveKeyValueEnableEpoch: 5}, shardCoord)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
+		config.EnableEpochs{
+			BackwardCompSaveKeyValueEnableEpoch: 5,
+		}, shardCoord)
 	require.Nil(t, err)
 	defer testContext.Close()
 

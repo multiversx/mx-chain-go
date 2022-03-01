@@ -189,27 +189,24 @@ func (txc *transactionCounter) displayTxBlockBody(
 ) []*display.LineData {
 	currentBlockTxs := 0
 
-	miniBlockHeaders := header.GetMiniBlockHeadersHashes()
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
-		scheduledModeInMiniBlockHeader, _ := process.IsScheduledMode(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, txc.hasher, txc.marshalizer)
-		scheduledModeInMiniBlock := miniBlock.IsScheduledMiniBlock()
-
-		executionTypeInMiniBlockHeaderStr := ""
-		if scheduledModeInMiniBlockHeader {
-			executionTypeInMiniBlockHeaderStr = common.ScheduledMode + "_"
+		processingTypeInMiniBlockHeaderStr := ""
+		if len(miniBlockHeaders) > i {
+			processingTypeInMiniBlockHeaderStr = getProcessingTypeAsString(miniBlockHeaders[i])
 		}
 
-		executionTypeInMiniBlockStr := ""
-		if scheduledModeInMiniBlock {
-			executionTypeInMiniBlockStr = "S_"
+		processingTypeInMiniBlockStr := ""
+		if miniBlock.IsScheduledMiniBlock() {
+			processingTypeInMiniBlockStr = "S_"
 		}
 
 		part := fmt.Sprintf("%s%s_MiniBlock_%s%d->%d",
-			executionTypeInMiniBlockHeaderStr,
+			processingTypeInMiniBlockHeaderStr,
 			miniBlock.Type.String(),
-			executionTypeInMiniBlockStr,
+			processingTypeInMiniBlockStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
@@ -219,7 +216,7 @@ func (txc *transactionCounter) displayTxBlockBody(
 		}
 
 		if len(miniBlockHeaders) > i {
-			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i])}))
+			lines = append(lines, display.NewLineData(false, []string{"", "MbHash", logger.DisplayByteSlice(miniBlockHeaders[i].GetHash())}))
 		}
 
 		currentBlockTxs += len(miniBlock.TxHashes)
@@ -254,6 +251,18 @@ func (txc *transactionCounter) displayTxBlockBody(
 	return lines
 }
 
+func getProcessingTypeAsString(miniBlockHeader data.MiniBlockHeaderHandler) string {
+	processingType := block.ProcessingType(miniBlockHeader.GetProcessingType())
+	switch processingType {
+	case block.Scheduled:
+		return "Scheduled_"
+	case block.Processed:
+		return "Processed_"
+	}
+
+	return ""
+}
+
 // DisplayLastNotarized will display information about last notarized block
 func DisplayLastNotarized(
 	marshalizer marshal.Marshalizer,
@@ -276,6 +285,7 @@ func DisplayLastNotarized(
 
 	log.Debug("last notarized block from shard",
 		"shard", shardId,
+		"epoch", lastNotarizedHdrForShard.GetEpoch(),
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
 		"hash", lastNotarizedHdrHashForShard)
