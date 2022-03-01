@@ -978,6 +978,65 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 }
 
+func TestStakingSc_StakeWithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		GetStorageDataCalled: func(accountsAddress []byte, index []byte) ([]byte, error) {
+			return nil, nil
+		},
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 4
+	args.StakingAccessAddr = stakingAccessAddress
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingSmartContract.flagStakingV2.SetValue(true)
+
+	for i := 0; i < 10; i++ {
+		idxStr := strconv.Itoa(i)
+		addr := []byte("addr" + idxStr)
+		doStake(t, stakingSmartContract, stakingAccessAddress, addr, addr)
+
+		if uint64(i) < stakingSmartContract.maxNumNodes {
+			checkIsStaked(t, stakingSmartContract, []byte("caller"), addr, vmcommon.Ok)
+		} else {
+			checkIsStaked(t, stakingSmartContract, []byte("caller"), addr, vmcommon.UserError)
+			require.True(t, strings.Contains(eei.returnMessage, "staking is full"))
+		}
+	}
+
+	stakeConfig := stakingSmartContract.getConfig()
+	waitingList, _ := stakingSmartContract.getWaitingListHead()
+	require.Equal(t, int64(4), stakeConfig.StakedNodes)
+	require.Equal(t, uint32(6), waitingList.Length)
+	requireTotalNumberOfRegisteredNodes(t, stakingSmartContract, eei, big.NewInt(10))
+
+	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+
+	for i := 4; i < 10; i++ {
+		idxStr := strconv.Itoa(i)
+		addr := []byte("addr" + idxStr)
+		err := stakingSmartContract.removeFromWaitingList(addr)
+		require.Nil(t, err)
+	}
+
+	for i := 10; i < 20; i++ {
+		idxStr := strconv.Itoa(i)
+		addr := []byte("addr" + idxStr)
+		doStake(t, stakingSmartContract, stakingAccessAddress, addr, addr)
+		checkIsStaked(t, stakingSmartContract, []byte("caller"), addr, vmcommon.Ok)
+	}
+	stakeConfig = stakingSmartContract.getConfig()
+	waitingList, _ = stakingSmartContract.getWaitingListHead()
+	require.Equal(t, int64(14), stakeConfig.StakedNodes)
+	require.Equal(t, uint32(0), waitingList.Length)
+	requireTotalNumberOfRegisteredNodes(t, stakingSmartContract, eei, big.NewInt(14))
+}
+
 func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -3282,6 +3341,18 @@ func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
 	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
 	assert.Equal(t, len(waitingListData.blsKeys), 1)
 	assert.Equal(t, waitingListData.blsKeys[0], blsKey)
+}
+
+func requireTotalNumberOfRegisteredNodes(t *testing.T, stakingSC *stakingSC, eei *vmContext, expectedRegisteredNodes *big.Int) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getTotalNumberOfRegisteredNodes"
+	arguments.Arguments = [][]byte{}
+
+	retCode := stakingSC.Execute(arguments)
+	lastOutput := eei.output[len(eei.output)-1]
+	noOfRegisteredNodes := big.NewInt(0).SetBytes(lastOutput)
+	require.Equal(t, retCode, vmcommon.Ok)
+	require.Equal(t, expectedRegisteredNodes, noOfRegisteredNodes)
 }
 
 func TestStakingSc_fixMissingNodeAddAsLast(t *testing.T) {
