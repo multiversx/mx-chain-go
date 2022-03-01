@@ -153,7 +153,7 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByRound(format common.Api
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
-// GetInternalStartOfEpochMetaBlock wil return a meta block by hash
+// GetInternalStartOfEpochMetaBlock wil return the epoch start meta block for the provided epoch
 func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	if ibp.selfShardID != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint

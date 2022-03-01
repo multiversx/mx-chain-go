@@ -161,8 +161,8 @@ func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputF
 	return nar.apiInternalBlockHandler.GetInternalMetaBlockByRound(format, round)
 }
 
-// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
-// for a specified epoch
+// GetInternalStartOfEpochMetaBlock wil return the start of epoch meta block
+// for the specified epoch
 func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
 }
