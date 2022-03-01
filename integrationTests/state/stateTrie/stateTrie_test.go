@@ -1717,16 +1717,6 @@ func collectSnapshotAndCheckpointHashes(
 	}
 }
 
-// the rounds for the blocks on epoch e that are confirmed by a block that gets finalized in the epoch e+1
-//should be skipped from pruning
-func isRoundSkippedForPruning(nonce uint64, roundsPerEpoch uint64) bool {
-	skip:= nonce%roundsPerEpoch > roundsPerEpoch-2
-	if skip{
-		fmt.Println(fmt.Sprintf("skipping nonce %d", nonce))
-	}
-	return skip
-}
-
 func testNodeStateCheckpointSnapshotAndPruning(
 	t *testing.T,
 	node *integrationTests.TestProcessorNode,
