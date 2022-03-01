@@ -3,7 +3,6 @@ package leveldb_test
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -16,18 +15,14 @@ import (
 )
 
 func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.DB) {
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
-	lvdb, err := leveldb.NewDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	lvdb, err := leveldb.NewDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb
 }
 
 func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
-	defer func() {
-		_ = os.RemoveAll(dir)
-	}()
+	dir := t.TempDir()
 	db, err := leveldb.NewDB(dir, 10, 1, 10)
 	require.Nil(t, err)
 
@@ -54,13 +49,12 @@ func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 }
 
 func TestDB_DoubleOpenShouldError(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	dir := t.TempDir()
 	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10)
 	require.Nil(t, err)
 
 	defer func() {
 		_ = lvdb1.Close()
-		_ = os.RemoveAll(dir)
 	}()
 
 	_, err = leveldb.NewDB(dir, 10, 1, 10)
@@ -68,13 +62,12 @@ func TestDB_DoubleOpenShouldError(t *testing.T) {
 }
 
 func TestDB_DoubleOpenButClosedInTimeShouldWork(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	dir := t.TempDir()
 	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10)
 	require.Nil(t, err)
 
 	defer func() {
 		_ = lvdb1.Close()
-		_ = os.RemoveAll(dir)
 	}()
 
 	go func() {
