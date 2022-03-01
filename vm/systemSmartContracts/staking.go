@@ -599,15 +599,11 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 		s.removeFromStakedNodes()
 	}
 
-	// This is an extra check. We should not save any registrationData
-	// with Waiting = true when staking v4 is enabled
-	if !s.flagStakingV4.IsSet() {
-		if registrationData.Waiting {
-			err = s.removeFromWaitingList(args.Arguments[0])
-			if err != nil {
-				s.eei.AddReturnMessage(err.Error())
-				return vmcommon.UserError
-			}
+	if registrationData.Waiting {
+		err = s.removeFromWaitingList(args.Arguments[0])
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
 		}
 	}
 
@@ -674,12 +670,14 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
-	if addOneFromQueue {
-		_, err = s.moveFirstFromWaitingToStaked()
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
+	if !s.flagStakingV4.IsSet() {
+		addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
+		if addOneFromQueue {
+			_, err = s.moveFirstFromWaitingToStaked()
+			if err != nil {
+				s.eei.AddReturnMessage(err.Error())
+				return vmcommon.UserError
+			}
 		}
 	}
 
@@ -1308,6 +1306,12 @@ func (s *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2_0
 }
 
 func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.Finish([]byte{0})
+
+		return vmcommon.Ok
+	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
 		s.eei.AddReturnMessage("this is only a view function")
 		return vmcommon.UserError
@@ -1315,13 +1319,6 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 	if len(args.Arguments) != 1 {
 		s.eei.AddReturnMessage("number of arguments must be equal to 1")
 		return vmcommon.UserError
-	}
-
-	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
-		s.eei.Finish([]byte(strconv.Itoa(int(0))))
-
-		return vmcommon.Ok
 	}
 
 	waitingElementKey := createWaitingListKey(args.Arguments[0])
@@ -1379,6 +1376,13 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if s.flagStakingV4.IsSet() {
+		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.Finish([]byte(strconv.Itoa(0)))
+
+		return vmcommon.Ok
+	}
+
 	if args.CallValue.Cmp(zero) != 0 {
 		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
@@ -1388,13 +1392,6 @@ func (s *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommo
 	if err != nil {
 		s.eei.AddReturnMessage("insufficient gas")
 		return vmcommon.OutOfGas
-	}
-
-	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
-		s.eei.Finish([]byte(strconv.Itoa(int(0))))
-
-		return vmcommon.Ok
 	}
 
 	waitingListHead, err := s.getWaitingListHead()
@@ -1614,19 +1611,14 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 		return vmcommon.UserError
 	}
 
-	waitingListLength := int64(0)
-	if !s.flagStakingV4.IsSet() {
-		waitingListHead, err := s.getWaitingListHead()
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-
-		waitingListLength = int64(waitingListHead.Length)
+	waitingListHead, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
 	stakeConfig := s.getConfig()
-	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + waitingListLength
+	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
 	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
 	return vmcommon.Ok
 }

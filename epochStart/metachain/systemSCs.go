@@ -242,7 +242,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.flagCorrectLastUnjailedEnabled.IsSet() && !s.flagStakingV4Enabled.IsSet() {
+	if s.flagCorrectLastUnjailedEnabled.IsSet() {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
@@ -256,7 +256,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.flagCorrectNumNodesToStake.IsSet() && !s.flagStakingV4Enabled.IsSet() {
+	if s.flagCorrectNumNodesToStake.IsSet() {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
@@ -1697,7 +1697,7 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch)
+	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch && epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
