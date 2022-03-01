@@ -2812,7 +2812,7 @@ func isReturnOKTxHandler(
 	if len(resultTx.GetData()) < len(returnOkData) {
 		return false
 	}
-	firstBytesOfData := string(resultTx.GetData()[:len([]byte(returnOkData))])
+	firstBytesOfData := string(resultTx.GetData()[:len(returnOkData)])
 	return firstBytesOfData == returnOkData
 }
 
