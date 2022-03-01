@@ -2813,11 +2813,7 @@ func isReturnOKTxHandler(
 		return false
 	}
 	firstBytesOfData := string(resultTx.GetData()[:len([]byte(returnOkData))])
-	if firstBytesOfData != returnOkData {
-		return false
-	}
-
-	return true
+	return firstBytesOfData == returnOkData
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false
