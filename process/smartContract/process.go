@@ -2809,11 +2809,7 @@ func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon
 func isReturnOKTxHandler(
 	resultTx data.TransactionHandler,
 ) bool {
-	if len(resultTx.GetData()) < len(returnOkData) {
-		return false
-	}
-	firstBytesOfData := string(resultTx.GetData()[:len(returnOkData)])
-	return firstBytesOfData == returnOkData
+	return bytes.HasPrefix(resultTx.GetData(), []byte(returnOkData))
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false
