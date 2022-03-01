@@ -584,7 +584,7 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
-	calculatedMiniBlocks, _, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
+	calculatedMiniBlocks, _, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
@@ -604,7 +604,6 @@ func (txs *transactions) processTxsFromMe(
 		haveAdditionalTimeFalse,
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
-		mapSCTxs,
 		randomness,
 	)
 	if err != nil {
@@ -656,7 +655,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	haveAdditionalTime func() bool,
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
-	mapSCTxs map[string]struct{},
 	randomness []byte,
 ) (block.MiniBlockSlice, error) {
 
@@ -677,7 +675,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		isShardStuck,
 		isMaxBlockSizeReached,
 		scheduledTxsFromMe,
-		mapSCTxs,
 	)
 
 	if !haveTime() && !haveAdditionalTime() {
@@ -1004,7 +1001,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	)
 
 	startTime = time.Now()
-	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
+	miniBlocks, remainingTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		txs.blockTracker.IsShardStuck,
 		txs.blockSizeComputation.IsMaxBlockSizeReached,
@@ -1029,7 +1026,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		haveTime,
 		haveAdditionalTime,
 		sortedTxsForScheduled,
-		mapSCTxs,
 	)
 	if err != nil {
 		log.Debug("createAndProcessScheduledMiniBlocksFromMeAsProposer", "error", err.Error())
@@ -1045,7 +1041,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	sortedTxs []*txcache.WrappedTransaction,
-	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 
 	if !txs.flagScheduledMiniBlocks.IsSet() {
@@ -1059,7 +1054,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		txs.blockTracker.IsShardStuck,
 		txs.blockSizeComputation.IsMaxBlockSizeReached,
 		sortedTxs,
-		mapSCTxs,
 	)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to createScheduledMiniBlocks",
@@ -1747,14 +1741,13 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
 	sortedTxs []*txcache.WrappedTransaction,
-) (block.MiniBlockSlice, []*txcache.WrappedTransaction, map[string]struct{}, error) {
+) (block.MiniBlockSlice, []*txcache.WrappedTransaction, error) {
 	var miniBlocks block.MiniBlockSlice
 	var err error
-	var mapSCTxs map[string]struct{}
 	var remainingTxs []*txcache.WrappedTransaction
 
 	if txs.flagScheduledMiniBlocks.IsSet() {
-		miniBlocks, remainingTxs, mapSCTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
+		miniBlocks, remainingTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
 			haveTime,
 			isShardStuck,
 			isMaxBlockSizeReached,
@@ -1769,5 +1762,5 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		)
 	}
 
-	return miniBlocks, remainingTxs, mapSCTxs, err
+	return miniBlocks, remainingTxs, err
 }

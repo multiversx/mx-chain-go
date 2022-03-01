@@ -20,13 +20,6 @@ import (
 
 const maxGasLimitPercentUsedForDestMeTxs = 50
 
-type txType int32
-
-const (
-	nonScTx txType = 0
-	scTx    txType = 1
-)
-
 type gasConsumedInfo struct {
 	prevGasConsumedInReceiverShard        uint64
 	gasConsumedByMiniBlocksInSenderShard  uint64
@@ -39,13 +32,13 @@ type txAndMbInfo struct {
 	numNewMiniBlocks               int
 	isReceiverSmartContractAddress bool
 	isCrossShardScCallOrSpecialTx  bool
-	txType                         txType
 }
 
 type scheduledTxAndMbInfo struct {
-	numNewTxs            int
-	numNewMiniBlocks     int
-	isCrossShardScCallTx bool
+	numNewTxs                      int
+	numNewMiniBlocks               int
+	isReceiverSmartContractAddress bool
+	isCrossShardScCallOrSpecialTx  bool
 }
 
 type processedTxsInfo struct {
@@ -61,11 +54,10 @@ type processedTxsInfo struct {
 }
 
 type createAndProcessMiniBlocksInfo struct {
-	mapSCTxs                                 map[string]struct{}
 	mapTxsForShard                           map[uint32]int
 	mapScsForShard                           map[uint32]int
 	mapCrossShardScCallsOrSpecialTxs         map[uint32]int
-	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[txType]uint64
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
 	mapMiniBlocks                            map[uint32]*block.MiniBlock
 	senderAddressToSkip                      []byte
 	maxCrossShardScCallsOrSpecialTxsPerShard int
@@ -80,19 +72,21 @@ type scheduledTxsInfo struct {
 	numScheduledBadTxs                          int
 	numScheduledTxsSkipped                      int
 	numScheduledTxsWithInitialBalanceConsumed   int
-	numScheduledCrossShardScCalls               int
+	numScheduledCrossShardScCallsOrSpecialTxs   int
 	numCrossShardTxsWithTooMuchGas              int
 	totalTimeUsedForScheduledVerify             time.Duration
 	totalTimeUsedForScheduledComputeGasProvided time.Duration
 }
 
 type createScheduledMiniBlocksInfo struct {
+	mapTxsForShard                           map[uint32]int
+	mapScsForShard                           map[uint32]int
 	mapMiniBlocks                            map[uint32]*block.MiniBlock
-	mapCrossShardScCallTxs                   map[uint32]int
-	maxCrossShardScCallTxsPerShard           int
+	mapCrossShardScCallsOrSpecialTxs         map[uint32]int
+	maxCrossShardScCallsOrSpecialTxsPerShard int
 	schedulingInfo                           scheduledTxsInfo
-	firstCrossShardScCallTxFound             bool
-	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[txType]uint64
+	firstCrossShardScCallOrSpecialTxFound    bool
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64
 	gasInfo                                  gasConsumedInfo
 	senderAddressToSkip                      []byte
 }
