@@ -196,6 +196,6 @@
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV4.toml" },
-        { StartEpoch = 3, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV6.toml" },
     ]
