@@ -188,7 +188,7 @@
     StakeLimitsEnableEpoch = 5
 
     # StakingV4InitEnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
-    # nodes queue is removed and all nodes from queue are moved to a new list
+    # all nodes from staking queue are moved in the auction list
     StakingV4InitEnableEpoch = 1000000
 
     # StakingV4EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4InitEnableEpoch
