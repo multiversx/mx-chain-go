@@ -4012,6 +4012,15 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	arguments.ArgsParser = NewArgumentParser()
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
 	arguments.ShardCoordinator = shardCoordinator
+	completedLogSaved := false
+	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+		for _, log := range vmLogs {
+			if string(log.Identifier) == completedTxEvent {
+				completedLogSaved = true
+			}
+		}
+		return nil
+	}}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scAddress := bytes.Repeat([]byte{0}, 32)
@@ -4045,6 +4054,14 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	assert.NotNil(t, completeTxEvent)
 	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
 	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
+
+	scrWithRefund := &smartContractResult.SmartContractResult{Value: big.NewInt(10), PrevTxHash: scrHash, Data: []byte("@6f6b@aaffaa")}
+	completedLogSaved = false
+
+	acntDst, _ := state.NewUserAccount(userAddress)
+	err := sc.processSimpleSCR(scrWithRefund, []byte("scrHash"), acntDst)
+	assert.Nil(t, err)
+	assert.True(t, completedLogSaved)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {

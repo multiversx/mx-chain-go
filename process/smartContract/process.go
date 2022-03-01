@@ -49,7 +49,7 @@ const (
 	generalSCRIdentifier = "writeLog"
 	signalError          = "signalError"
 	completedTxEvent     = "completedTxEvent"
-	returnOkData         = "@6f"
+	returnOkData         = "@6f6b"
 )
 
 var zero = big.NewInt(0)
@@ -2809,7 +2809,7 @@ func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon
 func isReturnOKTxHandler(
 	resultTx data.TransactionHandler,
 ) bool {
-	if len(resultTx.GetData()) < len([]byte(returnOkData)) {
+	if len(resultTx.GetData()) < len(returnOkData) {
 		return false
 	}
 	firstBytesOfData := string(resultTx.GetData()[:len([]byte(returnOkData))])
