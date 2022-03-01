@@ -339,7 +339,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -629,7 +629,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{

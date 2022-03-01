@@ -47,7 +47,8 @@ func TestCreateApiResolver(t *testing.T) {
 		GasScheduleNotifier: &mock.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},
-		Bootstrapper: disabled.NewDisabledBootstrapper(),
+		Bootstrapper:       disabled.NewDisabledBootstrapper(),
+		AllowVMQueriesChan: make(chan struct{}),
 	}
 
 	apiResolver, err := factory.CreateApiResolver(args)
