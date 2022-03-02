@@ -655,6 +655,11 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	if !registrationData.Staked {
+		if s.flagStakingV4.IsSet() {
+			s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
+			return vmcommon.ExecutionFailed
+		}
+
 		registrationData.Waiting = false
 		err = s.removeFromWaitingList(args.Arguments[0])
 		if err != nil {
