@@ -189,10 +189,10 @@
 
     # StakingV4InitEnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
     # all nodes from staking queue are moved in the auction list
-    StakingV4InitEnableEpoch = 1000000
+    StakingV4InitEnableEpoch = 4
 
     # StakingV4EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4InitEnableEpoch
-    StakingV4EnableEpoch = 1000001
+    StakingV4EnableEpoch = 5
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
