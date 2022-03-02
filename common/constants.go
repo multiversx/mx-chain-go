@@ -803,8 +803,8 @@ const (
 type ApiOutputFormat uint8
 
 const (
-	// ApiOutputFormatInternal outport format returns struct directly, will be serialized into JSON by gin
-	ApiOutputFormatInternal ApiOutputFormat = 0
+	// ApiOutputFormatJSON outport format returns struct directly, will be serialized into JSON by gin
+	ApiOutputFormatJSON ApiOutputFormat = 0
 
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
