@@ -11,23 +11,24 @@ import (
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler              func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler               func() external.StatusMetricsHandler
-	ComputeTransactionGasLimitHandler  func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	GetTotalStakedValueHandler         func() (*api.StakeValues, error)
-	GetDirectStakedListHandler         func() ([]*api.DirectStakedValue, error)
-	GetDelegatorsListHandler           func() ([]*api.Delegator, error)
-	GetBlockByHashCalled               func(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonceCalled              func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRoundCalled              func(round uint64, withTxs bool) (*api.Block, error)
-	GetTransactionHandler              func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
-	GetInternalShardBlockByNonceCalled func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled  func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalShardBlockByRoundCalled func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled  func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled   func(format common.ApiOutputFormat, hash string) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled  func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockCalled         func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
+	ExecuteSCQueryHandler                  func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler                   func() external.StatusMetricsHandler
+	ComputeTransactionGasLimitHandler      func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	GetTotalStakedValueHandler             func() (*api.StakeValues, error)
+	GetDirectStakedListHandler             func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler               func() ([]*api.Delegator, error)
+	GetBlockByHashCalled                   func(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonceCalled                  func(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRoundCalled                  func(round uint64, withTxs bool) (*api.Block, error)
+	GetTransactionHandler                  func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
+	GetInternalShardBlockByNonceCalled     func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled      func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRoundCalled     func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled       func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMiniBlockCalled             func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 }
 
 // GetTransaction -
@@ -172,6 +173,14 @@ func (ars *ApiResolverStub) GetInternalMetaBlockByRound(format common.ApiOutputF
 func (ars *ApiResolverStub) GetInternalMiniBlock(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
 	if ars.GetInternalMiniBlockCalled != nil {
 		return ars.GetInternalMiniBlockCalled(format, hash, epoch)
+	}
+	return nil, nil
+}
+
+// GetInternalStartOfEpochMetaBlock -
+func (ars *ApiResolverStub) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	if ars.GetInternalStartOfEpochMetaBlockCalled != nil {
+		return ars.GetInternalStartOfEpochMetaBlockCalled(format, epoch)
 	}
 	return nil, nil
 }

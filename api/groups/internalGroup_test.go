@@ -370,6 +370,84 @@ func TestGetRawMetaBlockByHash_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
+// ---- StartOfEpoch MetaBlock - raw
+
+func TestGetRawStartOfEpochMetaBlock_NoEpochUrlParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/a", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+}
+
+func TestGetRawStartOfEpochMetaBlock_FacadeErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	facade := mock.FacadeStub{
+		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+			return nil, expectedErr
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/1", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetRawStartOfEpochMetaBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
+
+	facade := mock.FacadeStub{
+		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+			return expectedOutput, nil
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/1", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	assert.Equal(t, expectedOutput, response.Data.Block)
+}
+
 // ----------------- Shard Block ---------------
 
 func TestGetRawShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
@@ -996,6 +1074,84 @@ func TestGetInternalMetaBlockByHash_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedOutput, response.Data.Block)
 }
 
+// ---- StartOfEpoch MetaBlock - json
+
+func TestGetInternalStartOfEpochMetaBlock_NoEpochUrlParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+			return []byte{}, nil
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/json/startofepoch/metablock/by-epoch", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+}
+
+func TestGetInternalStartOfEpochMetaBlock_FacadeErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	facade := mock.FacadeStub{
+		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+			return nil, expectedErr
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/json/startofepoch/metablock/by-epoch/1", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetInternalStartOfEpochMetaBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedOutput := bytes.Repeat([]byte("1"), 10)
+
+	facade := mock.FacadeStub{
+		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+			return expectedOutput, nil
+		},
+	}
+
+	blockGroup, err := groups.NewInternalBlockGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/internal/json/startofepoch/metablock/by-epoch/1", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	assert.Equal(t, expectedOutput, response.Data.Block)
+}
+
 // ----------------- Shard Block ---------------
 
 func TestGetInternalShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
@@ -1344,6 +1500,7 @@ func getInternalBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/raw/metablock/by-nonce/:nonce", Open: true},
 					{Name: "/raw/metablock/by-hash/:hash", Open: true},
 					{Name: "/raw/metablock/by-round/:round", Open: true},
+					{Name: "/raw/startofepoch/metablock/by-epoch/:epoch", Open: true},
 					{Name: "/raw/shardblock/by-nonce/:nonce", Open: true},
 					{Name: "/raw/shardblock/by-hash/:hash", Open: true},
 					{Name: "/raw/shardblock/by-round/:round", Open: true},
@@ -1351,6 +1508,7 @@ func getInternalBlockRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/json/metablock/by-nonce/:nonce", Open: true},
 					{Name: "/json/metablock/by-hash/:hash", Open: true},
 					{Name: "/json/metablock/by-round/:round", Open: true},
+					{Name: "/json/startofepoch/metablock/by-epoch/:epoch", Open: true},
 					{Name: "/json/shardblock/by-nonce/:nonce", Open: true},
 					{Name: "/json/shardblock/by-hash/:hash", Open: true},
 					{Name: "/json/shardblock/by-round/:round", Open: true},

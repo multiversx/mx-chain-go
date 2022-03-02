@@ -266,6 +266,11 @@ func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputForm
 	return nil, errNodeStarting
 }
 
+// GetInternalStartOfEpochMetaBlockByEpoch returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
 // GetInternalShardBlockByHash return nil and error
 func (inf *initialNodeFacade) GetInternalShardBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting

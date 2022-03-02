@@ -6,13 +6,14 @@ import (
 
 // InternalBlockProcessorStub -
 type InternalBlockApiHandlerStub struct {
-	GetInternalShardBlockByNonceCalled func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalShardBlockByHashCalled  func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
-	GetInternalShardBlockByRoundCalled func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMetaBlockByNonceCalled  func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
-	GetInternalMetaBlockByHashCalled   func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
-	GetInternalMetaBlockByRoundCalled  func(format common.ApiOutputFormat, round uint64) (interface{}, error)
-	GetInternalMiniBlockCalled         func(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
+	GetInternalShardBlockByNonceCalled     func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled      func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalShardBlockByRoundCalled     func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled       func(format common.ApiOutputFormat, hash []byte) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMiniBlockCalled             func(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error)
+	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
 }
 
 // GetInternalShardBlockByNonce -
@@ -67,6 +68,14 @@ func (ibah *InternalBlockApiHandlerStub) GetInternalMetaBlockByRound(format comm
 func (ibah *InternalBlockApiHandlerStub) GetInternalMiniBlock(format common.ApiOutputFormat, hash []byte, epoch uint32) (interface{}, error) {
 	if ibah.GetInternalMiniBlockCalled != nil {
 		return ibah.GetInternalMiniBlockCalled(format, hash, epoch)
+	}
+	return nil, nil
+}
+
+// GetInternalStartOfEpochMetaBlock -
+func (ibah *InternalBlockApiHandlerStub) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	if ibah.GetInternalStartOfEpochMetaBlockCalled != nil {
+		return ibah.GetInternalStartOfEpochMetaBlockCalled(format, epoch)
 	}
 	return nil, nil
 }
