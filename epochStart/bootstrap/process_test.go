@@ -611,7 +611,7 @@ func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 		params, err := epochStartProvider.Bootstrap()
-		assert.Equal(t, sharding.ErrInvalidNumberOfShards, err)
+		assert.Equal(t, nodesCoordinator.ErrInvalidNumberOfShards, err)
 		assert.Equal(t, Parameters{}, params)
 	})
 	t.Run("boostrap from local storage, fail to get boostrap data", func(t *testing.T) {
@@ -683,25 +683,25 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
-	nodesCoord := &sharding.NodesCoordinatorRegistry{
-		EpochsConfig: map[string]*sharding.EpochValidators{
+	nodesCoord := &nodesCoordinator.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			strconv.Itoa(int(epoch)): {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{
+				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 					"0": {
-						&sharding.SerializableValidator{
+						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[0],
 							Chances: 1,
 						},
 					},
 					"4294967295": {
-						&sharding.SerializableValidator{
+						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
 						},
 					},
 				},
-				WaitingValidators: map[string][]*sharding.SerializableValidator{},
-				LeavingValidators: map[string][]*sharding.SerializableValidator{},
+				WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+				LeavingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
 			},
 		},
 	}
@@ -1276,7 +1276,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
-		epochStartProvider.nodesConfig = &sharding.NodesCoordinatorRegistry{}
+		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
 		err := epochStartProvider.requestAndProcessForShard()
 		assert.Equal(t, expectedErr, err)
@@ -1412,7 +1412,7 @@ func TestPrepareComponentsToSyncFromNetwork(t *testing.T) {
 
 	epochStartProvider.shardCoordinator = shardCoordinator
 	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
-	epochStartProvider.nodesConfig = &sharding.NodesCoordinatorRegistry{}
+	epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
 	assert.Nil(t, epochStartProvider.requestHandler)
 	assert.Nil(t, epochStartProvider.epochStartMetaBlockSyncer)
@@ -1644,7 +1644,7 @@ func TestRequestAndProcessing(t *testing.T) {
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
 		assert.Error(t, err)
-		assert.True(t, strings.Contains(err.Error(), sharding.ErrInvalidNumberOfShards.Error()))
+		assert.True(t, strings.Contains(err.Error(), nodesCoordinator.ErrInvalidNumberOfShards.Error()))
 	})
 	t.Run("failed to create messenger topic", func(t *testing.T) {
 		t.Parallel()
@@ -1923,25 +1923,25 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 	requiredParameters := Parameters{
 		SelfShardId: shardId,
 		NumOfShards: args.GenesisNodesConfig.NumberOfShards(),
-		NodesConfig: &sharding.NodesCoordinatorRegistry{
-			EpochsConfig: map[string]*sharding.EpochValidators{
+		NodesConfig: &nodesCoordinator.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 				"0": {
-					EligibleValidators: map[string][]*sharding.SerializableValidator{
+					EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 						"0": {
-							&sharding.SerializableValidator{
+							&nodesCoordinator.SerializableValidator{
 								PubKey:  pksBytes[0],
 								Chances: 1,
 							},
 						},
 						"4294967295": {
-							&sharding.SerializableValidator{
+							&nodesCoordinator.SerializableValidator{
 								PubKey:  pksBytes[core.MetachainShardId],
 								Chances: 1,
 							},
 						},
 					},
-					WaitingValidators: map[string][]*sharding.SerializableValidator{},
-					LeavingValidators: map[string][]*sharding.SerializableValidator{},
+					WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+					LeavingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
 				},
 			},
 		},

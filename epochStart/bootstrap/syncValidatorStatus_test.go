@@ -17,11 +17,8 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-<<<<<<< HEAD
-	"github.com/stretchr/testify/assert"
-=======
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
->>>>>>> feat/header-verification
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -138,7 +135,7 @@ func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
 	svs, _ := NewSyncValidatorStatus(args)
 
 	wasCalled := false
-	svs.nodeCoordinator = &mock.NodesCoordinatorStub{
+	svs.nodeCoordinator = &shardingMocks.NodesCoordinatorStub{
 		EpochStartPrepareCalled: func(metaHdr data.HeaderHandler, body data.BodyHandler) {
 			wasCalled = true
 			assert.Equal(t, metaBlock, metaHdr)
