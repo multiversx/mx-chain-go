@@ -243,6 +243,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	// TODO: maybe move PeerShardMapper to network components
 	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
+	if err != nil {
+		return nil, err
+	}
 
 	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider, peerShardMapper)
 	if err != nil {
@@ -427,9 +430,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
 		pcf.bootstrapComponents.HeaderIntegrityVerifier(),

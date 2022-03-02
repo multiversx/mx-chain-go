@@ -308,7 +308,7 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKey
 
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists
 func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []byte) ([]byte, error) {
-	pid, ok := res.peerShardMapper.GetPeerID(pk)
+	pid, ok := res.peerShardMapper.GetLastKnownPeerID(pk)
 	if !ok {
 		return nil, dataRetriever.ErrPeerAuthNotFound
 	}

@@ -234,8 +234,8 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 }
 
-// GetPeerID returns the newest updated peer id for the given public key
-func (psm *PeerShardMapper) GetPeerID(pk []byte) (*core.PeerID, bool) {
+// GetLastKnownPeerID returns the newest updated peer id for the given public key
+func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
 	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
 	if !found {
 		return nil, false
@@ -243,7 +243,7 @@ func (psm *PeerShardMapper) GetPeerID(pk []byte) (*core.PeerID, bool) {
 
 	pq, ok := objPidsQueue.(*pidQueue)
 	if !ok {
-		log.Warn("PeerShardMapper.GetPeerID: the contained element should have been of type pidQueue")
+		log.Warn("PeerShardMapper.GetLastKnownPeerID: the contained element should have been of type pidQueue")
 		return nil, false
 	}
 

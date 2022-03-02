@@ -182,24 +182,25 @@ func (thn *TestHeartbeatNode) initStorage() {
 func (thn *TestHeartbeatNode) initSender() {
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
 	argsSender := sender.ArgSender{
-		Messenger:                          thn.Messenger,
-		Marshaller:                         TestMarshaller,
-		PeerAuthenticationTopic:            common.PeerAuthenticationTopic,
-		HeartbeatTopic:                     identifierHeartbeat,
-		PeerAuthenticationTimeBetweenSends: timeBetweenPeerAuths,
+		Messenger:               thn.Messenger,
+		Marshaller:              TestMarshaller,
+		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
+		HeartbeatTopic:          identifierHeartbeat,
+		VersionNumber:           "v01",
+		NodeDisplayName:         defaultNodeName,
+		Identity:                defaultNodeName + "_identity",
+		PeerSubType:             core.RegularPeer,
+		CurrentBlockProvider:    &testscommon.ChainHandlerStub{},
+		PeerSignatureHandler:    thn.PeerSigHandler,
+		PrivateKey:              thn.NodeKeys.Sk,
+		RedundancyHandler:       &mock.RedundancyHandlerStub{},
+
+		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
 		PeerAuthenticationThresholdBetweenSends:     thresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatThresholdBetweenSends:              thresholdBetweenSends,
-		VersionNumber:                               "v01",
-		NodeDisplayName:                             defaultNodeName,
-		Identity:                                    defaultNodeName + "_identity",
-		PeerSubType:                                 core.RegularPeer,
-		CurrentBlockProvider:                        &testscommon.ChainHandlerStub{},
-		PeerSignatureHandler:                        thn.PeerSigHandler,
-		PrivateKey:                                  thn.NodeKeys.Sk,
-		RedundancyHandler:                           &mock.RedundancyHandlerStub{},
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
@@ -239,38 +240,43 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		PeerShardMapper:                      thn.PeerShardMapper,
 	}
 
-	var err error
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(resolverContainerFactory)
-
-		thn.ResolversContainer, err = resolversContainerFactory.Create()
-		log.LogIfError(err)
-
-		thn.ResolverFinder, _ = containers.NewResolversFinder(thn.ResolversContainer, thn.ShardCoordinator)
-		thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			thn.ResolverFinder,
-			thn.RequestedItemsHandler,
-			thn.WhiteListHandler,
-			100,
-			thn.ShardCoordinator.SelfId(),
-			time.Second,
-		)
+		thn.createMetaResolverContainer(resolverContainerFactory)
 	} else {
-		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
-
-		thn.ResolversContainer, err = resolversContainerFactory.Create()
-		log.LogIfError(err)
-
-		thn.ResolverFinder, _ = containers.NewResolversFinder(thn.ResolversContainer, thn.ShardCoordinator)
-		thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			thn.ResolverFinder,
-			thn.RequestedItemsHandler,
-			thn.WhiteListHandler,
-			100,
-			thn.ShardCoordinator.SelfId(),
-			time.Second,
-		)
+		thn.createShardResolverContainer(resolverContainerFactory)
 	}
+}
+
+func (thn *TestHeartbeatNode) createMetaResolverContainer(args resolverscontainer.FactoryArgs) {
+	resolversContainerFactory, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	var err error
+	thn.ResolversContainer, err = resolversContainerFactory.Create()
+	log.LogIfError(err)
+
+	thn.createRequestHandler()
+}
+
+func (thn *TestHeartbeatNode) createShardResolverContainer(args resolverscontainer.FactoryArgs) {
+	resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	var err error
+	thn.ResolversContainer, err = resolversContainerFactory.Create()
+	log.LogIfError(err)
+
+	thn.createRequestHandler()
+}
+
+func (thn *TestHeartbeatNode) createRequestHandler() {
+	thn.ResolverFinder, _ = containers.NewResolversFinder(thn.ResolversContainer, thn.ShardCoordinator)
+	thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		thn.ResolverFinder,
+		thn.RequestedItemsHandler,
+		thn.WhiteListHandler,
+		100,
+		thn.ShardCoordinator.SelfId(),
+		time.Second,
+	)
 }
 
 func (thn *TestHeartbeatNode) initRequestedItemsHandler() {

@@ -79,8 +79,8 @@ func (nscm *networkShardingCollectorMock) GetPeerInfo(pid core.PeerID) core.P2PP
 	}
 }
 
-// GetPeerID -
-func (nscm *networkShardingCollectorMock) GetPeerID(pk []byte) (*core.PeerID, bool) {
+// GetLastKnownPeerID -
+func (nscm *networkShardingCollectorMock) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
 	nscm.mutMaps.RLock()
 	defer nscm.mutMaps.RUnlock()
 

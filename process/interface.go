@@ -670,7 +670,7 @@ type PeerBlackListCacher interface {
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
-	GetPeerID(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -680,7 +680,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
-	GetPeerID(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
