@@ -1,12 +1,8 @@
 package shardingMocks
 
 import (
-<<<<<<< HEAD:epochStart/mock/nodesCoordinatorStub.go
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-=======
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
->>>>>>> feat/header-verification:testscommon/shardingMocks/nodesCoordinatorStub.go
 	state "github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -18,12 +14,12 @@ type NodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled            func(shardID uint32) int
-<<<<<<< HEAD:epochStart/mock/nodesCoordinatorStub.go
+	ComputeConsensusGroupCalled         func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled             func(metaHdr data.HeaderHandler, body data.BodyHandler)
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *sharding.NodesCoordinatorRegistry {
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry {
 	return nil
 }
 
@@ -32,9 +28,6 @@ func (ncm *NodesCoordinatorStub) EpochStartPrepare(metaHdr data.HeaderHandler, b
 	if ncm.EpochStartPrepareCalled != nil {
 		ncm.EpochStartPrepareCalled(metaHdr, body)
 	}
-=======
-	ComputeConsensusGroupCalled         func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
->>>>>>> feat/header-verification:testscommon/shardingMocks/nodesCoordinatorStub.go
 }
 
 // GetChance -
