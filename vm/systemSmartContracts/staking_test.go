@@ -1029,6 +1029,31 @@ func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 	requireRegisteredNodes(t, stakingSmartContract, eei, 13, 0)
 }
 
+func TestStakingSc_UnStakeNodeFromWaitingListAfterStakingV4ShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingSmartContract.flagStakingV2.SetValue(true)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address0"), []byte("address0"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address1"), []byte("address1"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"))
+	requireRegisteredNodes(t, stakingSmartContract, eei, 2, 1)
+
+	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+
+	eei.returnMessage = ""
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"), vmcommon.ExecutionFailed)
+	require.Equal(t, eei.returnMessage, vm.ErrWaitingListDisabled.Error())
+}
+
 func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	t.Parallel()
 
