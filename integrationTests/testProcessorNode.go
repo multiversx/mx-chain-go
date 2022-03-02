@@ -1965,7 +1965,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:   stateCheckpointModulus,
-			UserStatePruningQueueSize: uint(10),
+			UserStatePruningQueueSize: uint(5),
 			PeerStatePruningQueueSize: uint(3),
 		},
 	}
