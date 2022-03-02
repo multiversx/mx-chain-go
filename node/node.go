@@ -848,6 +848,10 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 		dataSlice = append(dataSlice, hb)
 	}
 
+	sort.Slice(dataSlice, func(i, j int) bool {
+		return strings.Compare(dataSlice[i].PublicKey, dataSlice[j].PublicKey) < 0
+	})
+
 	return dataSlice
 }
 

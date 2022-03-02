@@ -134,7 +134,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		_, err := monitor.parseMessage("pid", "dummy msg")
+		_, err := monitor.parseMessage("pid", "dummy msg", nil)
 		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 
 		message := createHeartbeatMessage(true)
 		message.Payload = []byte("dummy payload")
-		_, err := monitor.parseMessage("pid", message)
+		_, err := monitor.parseMessage("pid", message, nil)
 		assert.NotNil(t, err)
 	})
 	t.Run("skippable message should return error", func(t *testing.T) {
@@ -164,21 +164,34 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		assert.False(t, check.IfNil(monitor))
 
 		message := createHeartbeatMessage(false)
-		_, err := monitor.parseMessage("pid", message)
+		_, err := monitor.parseMessage("pid", message, nil)
 		assert.True(t, strings.Contains(err.Error(), "validator should be skipped"))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		providedPkBytes := []byte("provided pk")
 		args := createMockHeartbeatV2MonitorArgs()
+		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				return core.P2PPeerInfo{
+					PkBytes: providedPkBytes,
+				}
+			},
+		}
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
+		numInstances := make(map[string]uint64, 0)
 		message := createHeartbeatMessage(true)
 		providedPid := core.PeerID("pid")
-		hb, err := monitor.parseMessage(providedPid, message)
+		hb, err := monitor.parseMessage(providedPid, message, numInstances)
 		assert.Nil(t, err)
 		checkResults(t, message, hb, true, providedPid, 0)
+		pid := args.PubKeyConverter.Encode(providedPkBytes)
+		entries, ok := numInstances[pid]
+		assert.True(t, ok)
+		assert.Equal(t, uint64(1), entries)
 	})
 }
 
@@ -205,7 +218,7 @@ func TestHeartbeatV2Monitor_isActive(t *testing.T) {
 	assert.False(t, check.IfNil(monitor))
 
 	// negative age should not be active
-	assert.False(t, monitor.isActive(-10))
+	assert.False(t, monitor.isActive(monitor.getMessageAge(time.Now(), -10)))
 	// one sec old message should be active
 	assert.True(t, monitor.isActive(time.Second))
 	// too old messages should not be active

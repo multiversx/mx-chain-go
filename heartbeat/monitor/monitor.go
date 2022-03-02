@@ -40,7 +40,6 @@ type heartbeatV2Monitor struct {
 	maxDurationPeerUnresponsive   time.Duration
 	hideInactiveValidatorInterval time.Duration
 	shardId                       uint32
-	numInstances                  map[string]uint64
 }
 
 // NewHeartbeatV2Monitor creates a new instance of heartbeatV2Monitor
@@ -58,7 +57,6 @@ func NewHeartbeatV2Monitor(args ArgHeartbeatV2Monitor) (*heartbeatV2Monitor, err
 		maxDurationPeerUnresponsive:   args.MaxDurationPeerUnresponsive,
 		hideInactiveValidatorInterval: args.HideInactiveValidatorInterval,
 		shardId:                       args.ShardId,
-		numInstances:                  make(map[string]uint64, 0),
 	}, nil
 }
 
@@ -89,7 +87,7 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 
 // GetHeartbeats returns the heartbeat status
 func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
-	monitor.numInstances = make(map[string]uint64, 0)
+	numInstances := make(map[string]uint64, 0)
 
 	pids := monitor.cache.Keys()
 
@@ -99,11 +97,10 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 		peerId := core.PeerID(pid)
 		hb, ok := monitor.cache.Get(pid)
 		if !ok {
-			log.Debug("could not get data from cache for pid", "pid", peerId.Pretty())
 			continue
 		}
 
-		heartbeatData, err := monitor.parseMessage(peerId, hb)
+		heartbeatData, err := monitor.parseMessage(peerId, hb, numInstances)
 		if err != nil {
 			log.Debug("could not parse message for pid", "pid", peerId.Pretty(), "error", err.Error())
 			continue
@@ -113,8 +110,9 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	}
 
 	for idx := range heartbeatsV2 {
-		pk := heartbeatsV2[idx].PublicKey
-		heartbeatsV2[idx].NumInstances = monitor.numInstances[pk]
+		hbData := &heartbeatsV2[idx]
+		pk := hbData.PublicKey
+		hbData.NumInstances = numInstances[pk]
 	}
 
 	sort.Slice(heartbeatsV2, func(i, j int) bool {
@@ -124,7 +122,7 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	return heartbeatsV2
 }
 
-func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interface{}) (data.PubKeyHeartbeat, error) {
+func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interface{}, numInstances map[string]uint64) (data.PubKeyHeartbeat, error) {
 	pubKeyHeartbeat := data.PubKeyHeartbeat{}
 
 	heartbeatV2, ok := message.(heartbeat.HeartbeatV2)
@@ -142,13 +140,13 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 
 	crtTime := time.Now()
 	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
-	stringType := string(rune(peerInfo.PeerType))
+	stringType := peerInfo.PeerType.String()
 	if monitor.shouldSkipMessage(messageAge, stringType) {
 		return pubKeyHeartbeat, fmt.Errorf("validator should be skipped")
 	}
 
 	pk := monitor.pubKeyConverter.Encode(peerInfo.PkBytes)
-	monitor.numInstances[pk]++
+	numInstances[pk]++
 
 	pubKeyHeartbeat = data.PubKeyHeartbeat{
 		PublicKey:       pk,
@@ -171,14 +169,18 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 func (monitor *heartbeatV2Monitor) getMessageAge(crtTime time.Time, messageTimestamp int64) time.Duration {
 	messageTime := time.Unix(messageTimestamp, 0)
 	msgAge := crtTime.Sub(messageTime)
-	return msgAge
+	return monitor.maxDuration(0, msgAge)
+}
+
+func (monitor *heartbeatV2Monitor) maxDuration(first, second time.Duration) time.Duration {
+	if first > second {
+		return first
+	}
+
+	return second
 }
 
 func (monitor *heartbeatV2Monitor) isActive(messageAge time.Duration) bool {
-	if messageAge < 0 {
-		return false
-	}
-
 	return messageAge <= monitor.maxDurationPeerUnresponsive
 }
 

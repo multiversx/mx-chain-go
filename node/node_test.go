@@ -31,6 +31,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
+	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	integrationTestsMock "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -3477,4 +3480,179 @@ func TestNode_SendBulkTransactions(t *testing.T) {
 	require.True(t, flag.IsSet())
 	require.Equal(t, expectedNoOfTxs, actualNoOfTxs)
 	require.Nil(t, err)
+}
+
+func TestNode_GetHeartbeats(t *testing.T) {
+	t.Parallel()
+
+	t.Run("only heartbeat v1", func(t *testing.T) {
+		t.Parallel()
+
+		numMessages := 5
+		providedMessages := make([]heartbeatData.PubKeyHeartbeat, numMessages)
+		for i := 0; i < numMessages; i++ {
+			providedMessages[i] = createHeartbeatMessage(i, true)
+		}
+
+		heartbeatComponents := createMockHeartbeatComponents(providedMessages)
+
+		t.Run("should work - nil heartbeatV2Components", func(t *testing.T) {
+			n, err := node.NewNode(node.WithHeartbeatComponents(heartbeatComponents))
+			require.Nil(t, err)
+
+			receivedMessages := n.GetHeartbeats()
+			assert.True(t, sameMessages(providedMessages, receivedMessages))
+		})
+		t.Run("should work - nil heartbeatV2Components monitor", func(t *testing.T) {
+			n, err := node.NewNode(node.WithHeartbeatComponents(heartbeatComponents),
+				node.WithHeartbeatV2Components(&factoryMock.HeartbeatV2ComponentsStub{}))
+			require.Nil(t, err)
+
+			receivedMessages := n.GetHeartbeats()
+			assert.True(t, sameMessages(providedMessages, receivedMessages))
+		})
+		t.Run("should work - heartbeatV2Components no messages", func(t *testing.T) {
+			heartbeatV2Components := createMockHeartbeatV2Components(nil)
+			n, err := node.NewNode(node.WithHeartbeatComponents(heartbeatComponents),
+				node.WithHeartbeatV2Components(heartbeatV2Components))
+			require.Nil(t, err)
+
+			receivedMessages := n.GetHeartbeats()
+			assert.True(t, sameMessages(providedMessages, receivedMessages))
+		})
+	})
+
+	t.Run("only heartbeat v2", func(t *testing.T) {
+		t.Parallel()
+
+		numMessages := 5
+		providedMessages := make([]heartbeatData.PubKeyHeartbeat, numMessages)
+		for i := 0; i < numMessages; i++ {
+			providedMessages[i] = createHeartbeatMessage(i, true)
+		}
+
+		heartbeatV2Components := createMockHeartbeatV2Components(providedMessages)
+
+		t.Run("should work - nil heartbeatComponents", func(t *testing.T) {
+			n, err := node.NewNode(node.WithHeartbeatV2Components(heartbeatV2Components))
+			require.Nil(t, err)
+
+			receivedMessages := n.GetHeartbeats()
+			assert.True(t, sameMessages(providedMessages, receivedMessages))
+		})
+		t.Run("should work - nil heartbeatComponents monitor", func(t *testing.T) {
+			n, err := node.NewNode(node.WithHeartbeatV2Components(heartbeatV2Components),
+				node.WithHeartbeatComponents(&factoryMock.HeartbeatComponentsStub{}))
+			require.Nil(t, err)
+
+			receivedMessages := n.GetHeartbeats()
+			assert.True(t, sameMessages(providedMessages, receivedMessages))
+		})
+		t.Run("should work - heartbeatComponents no messages", func(t *testing.T) {
+			heartbeatComponents := createMockHeartbeatComponents(nil)
+			n, err := node.NewNode(node.WithHeartbeatV2Components(heartbeatV2Components),
+				node.WithHeartbeatComponents(heartbeatComponents))
+			require.Nil(t, err)
+
+			receivedMessages := n.GetHeartbeats()
+			assert.True(t, sameMessages(providedMessages, receivedMessages))
+		})
+	})
+	t.Run("mixed messages", func(t *testing.T) {
+		t.Parallel()
+
+		numV1Messages := 3
+		providedV1Messages := make([]heartbeatData.PubKeyHeartbeat, numV1Messages)
+		for i := 0; i < numV1Messages; i++ {
+			providedV1Messages[i] = createHeartbeatMessage(i, false)
+		}
+		heartbeatV1Components := createMockHeartbeatComponents(providedV1Messages)
+
+		numV2Messages := 5
+		providedV2Messages := make([]heartbeatData.PubKeyHeartbeat, numV2Messages)
+		for i := 0; i < numV2Messages; i++ {
+			providedV2Messages[i] = createHeartbeatMessage(i, true)
+		}
+		heartbeatV2Components := createMockHeartbeatV2Components(providedV2Messages)
+
+		n, err := node.NewNode(node.WithHeartbeatComponents(heartbeatV1Components),
+			node.WithHeartbeatV2Components(heartbeatV2Components))
+		require.Nil(t, err)
+
+		receivedMessages := n.GetHeartbeats()
+		// should be the same messages from V2
+		assert.True(t, sameMessages(providedV2Messages, receivedMessages))
+	})
+}
+
+func createMockHeartbeatComponents(providedMessages []heartbeatData.PubKeyHeartbeat) *factoryMock.HeartbeatComponentsStub {
+	heartbeatComponents := &factoryMock.HeartbeatComponentsStub{}
+	heartbeatComponents.MonitorField = &integrationTestsMock.HeartbeatMonitorStub{
+		GetHeartbeatsCalled: func() []heartbeatData.PubKeyHeartbeat {
+			return providedMessages
+		},
+	}
+
+	return heartbeatComponents
+}
+
+func createMockHeartbeatV2Components(providedMessages []heartbeatData.PubKeyHeartbeat) *factoryMock.HeartbeatV2ComponentsStub {
+	heartbeatV2Components := &factoryMock.HeartbeatV2ComponentsStub{}
+	heartbeatV2Components.MonitorField = &integrationTestsMock.HeartbeatMonitorStub{
+		GetHeartbeatsCalled: func() []heartbeatData.PubKeyHeartbeat {
+			return providedMessages
+		},
+	}
+
+	return heartbeatV2Components
+}
+
+func sameMessages(provided, received []heartbeatData.PubKeyHeartbeat) bool {
+	providedLen, receivedLen := len(provided), len(received)
+	if receivedLen != providedLen {
+		return false
+	}
+
+	areEqual := true
+	for i := 0; i < providedLen; i++ {
+		p := provided[i]
+		r := received[i]
+		areEqual = areEqual &&
+			(p.PublicKey == r.PublicKey) &&
+			(p.TimeStamp == r.TimeStamp) &&
+			(p.IsActive == r.IsActive) &&
+			(p.ReceivedShardID == r.ReceivedShardID) &&
+			(p.ComputedShardID == r.ComputedShardID) &&
+			(p.VersionNumber == r.VersionNumber) &&
+			(p.Identity == r.Identity) &&
+			(p.PeerType == r.PeerType) &&
+			(p.Nonce == r.Nonce) &&
+			(p.NumInstances == r.NumInstances) &&
+			(p.PeerSubType == r.PeerSubType) &&
+			(p.PidString == r.PidString)
+
+		if !areEqual {
+			return false
+		}
+	}
+
+	return true
+}
+
+func createHeartbeatMessage(idx int, isActive bool) heartbeatData.PubKeyHeartbeat {
+	return heartbeatData.PubKeyHeartbeat{
+		PublicKey:       fmt.Sprintf("%d%s", idx, "heartbeatPK"),
+		TimeStamp:       time.Now(),
+		IsActive:        isActive,
+		ReceivedShardID: 0,
+		ComputedShardID: 0,
+		VersionNumber:   "v01",
+		NodeDisplayName: fmt.Sprintf("%d%s", idx, "node"),
+		Identity:        "identity",
+		PeerType:        core.ValidatorPeer.String(),
+		Nonce:           10,
+		NumInstances:    1,
+		PeerSubType:     1,
+		PidString:       fmt.Sprintf("%d%s", idx, "heartbeatPid"),
+	}
 }
