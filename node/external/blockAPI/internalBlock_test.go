@@ -121,7 +121,7 @@ func TestInternalBlockProcessor_ConvertShardBlockBytesByOutputFormat(t *testing.
 	t.Run("internal format, should work", func(t *testing.T) {
 		t.Parallel()
 
-		headerOutput, err := ibp.convertShardBlockBytesByOutputFormat(common.ApiOutputFormatInternal, headerBytes)
+		headerOutput, err := ibp.convertShardBlockBytesByOutputFormat(common.ApiOutputFormatJSON, headerBytes)
 		require.Nil(t, err)
 		assert.Equal(t, header, headerOutput)
 	})
@@ -158,7 +158,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
 
-		blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatInternal, []byte("invalidHash"))
+		blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatJSON, []byte("invalidHash"))
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -166,7 +166,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 	t.Run("provided nonce not in storer", func(t *testing.T) {
 		t.Parallel()
 
-		blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatInternal, 100)
+		blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatJSON, 100)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -174,7 +174,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockShouldFail(t *testing.T) {
 	t.Run("provided round not in storer", func(t *testing.T) {
 		t.Parallel()
 
-		blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatInternal, 100)
+		blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatJSON, 100)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -192,7 +192,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockByHash(t *testing.T) {
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatInternal, headerHash)
+	blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatJSON, headerHash)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -223,7 +223,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockByNonce(t *testing.T) {
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatInternal, nonce)
+	blk, err := ibp.GetInternalShardBlockByNonce(common.ApiOutputFormatJSON, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -254,7 +254,7 @@ func TestInternalBlockProcessor_GetInternalShardBlockByRound(t *testing.T) {
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatInternal, round)
+	blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatJSON, round)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -367,7 +367,7 @@ func TestInternalBlockProcessor_ConvertMetaBlockBytesByOutputFormat(t *testing.T
 	t.Run("internal format, should work", func(t *testing.T) {
 		t.Parallel()
 
-		headerOutput, err := ibp.convertMetaBlockBytesByOutputFormat(common.ApiOutputFormatInternal, headerBytes)
+		headerOutput, err := ibp.convertMetaBlockBytesByOutputFormat(common.ApiOutputFormatJSON, headerBytes)
 		require.Nil(t, err)
 		assert.Equal(t, header, headerOutput)
 	})
@@ -404,7 +404,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 	t.Run("provided hash not in storer", func(t *testing.T) {
 		t.Parallel()
 
-		blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, []byte("invalidHash"))
+		blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, []byte("invalidHash"))
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -412,7 +412,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 	t.Run("provided nonce not in storer", func(t *testing.T) {
 		t.Parallel()
 
-		blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatInternal, 100)
+		blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatJSON, 100)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -420,7 +420,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockShouldFail(t *testing.T) {
 	t.Run("provided round not in storer", func(t *testing.T) {
 		t.Parallel()
 
-		blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatInternal, 100)
+		blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatJSON, 100)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -438,7 +438,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockByHash(t *testing.T) {
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatInternal, headerHash)
+	blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, headerHash)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -469,7 +469,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockByNonce(t *testing.T) {
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatInternal, nonce)
+	blk, err := ibp.GetInternalMetaBlockByNonce(common.ApiOutputFormatJSON, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -500,7 +500,7 @@ func TestInternalBlockProcessor_GetInternalMetaBlockByRound(t *testing.T) {
 	err := json.Unmarshal(headerBytes, header)
 	require.Nil(t, err)
 
-	blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatInternal, nonce)
+	blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatJSON, nonce)
 	assert.Nil(t, err)
 	assert.Equal(t, header, blk)
 }
@@ -575,12 +575,12 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, []byte("invalidHash"), 1)
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, []byte("invalidHash"), 1)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("raw data mini block, should work", func(t *testing.T) {
+	t.Run("proto raw data mini block, should work", func(t *testing.T) {
 		t.Parallel()
 
 		mb := &block.MiniBlock{
@@ -642,7 +642,7 @@ func TestInternalBlockProcessor_GetInternalMiniBlockByHash(t *testing.T) {
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatInternal, miniBlockHash, expEpoch)
+		blk, err := ibp.GetInternalMiniBlock(common.ApiOutputFormatJSON, miniBlockHash, expEpoch)
 		assert.Nil(t, err)
 		assert.Equal(t, mb, blk)
 	})
@@ -670,7 +670,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, expEpoch)
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
 		assert.Nil(t, blk)
 		assert.Equal(t, ErrMetachainOnlyEndpoint, err)
 	})
@@ -698,12 +698,12 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, expEpoch)
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
 		assert.Nil(t, blk)
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("raw data meta block, should work", func(t *testing.T) {
+	t.Run("proto raw data meta block, should work", func(t *testing.T) {
 		t.Parallel()
 
 		storerMock := &storageMocks.StorerStub{
@@ -754,7 +754,7 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 			}, nil)
 
-		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatInternal, expEpoch)
+		blk, err := ibp.GetInternalStartOfEpochMetaBlock(common.ApiOutputFormatJSON, expEpoch)
 		assert.Nil(t, err)
 		assert.Equal(t, header, blk)
 	})

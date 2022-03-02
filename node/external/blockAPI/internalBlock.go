@@ -94,7 +94,7 @@ func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBy
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
 	switch format {
-	case common.ApiOutputFormatInternal:
+	case common.ApiOutputFormatJSON:
 		return ibp.convertShardBlockBytesToInternalBlock(blockBytes)
 	case common.ApiOutputFormatProto:
 		return blockBytes, nil
@@ -182,7 +182,7 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockByt
 
 func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
 	switch format {
-	case common.ApiOutputFormatInternal:
+	case common.ApiOutputFormatJSON:
 		return ibp.convertMetaBlockBytesToInternalBlock(blockBytes)
 	case common.ApiOutputFormatProto:
 		return blockBytes, nil
@@ -204,7 +204,7 @@ func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputF
 
 func (ibp *internalBlockProcessor) convertMiniBlockBytesByOutportFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
 	switch format {
-	case common.ApiOutputFormatInternal:
+	case common.ApiOutputFormatJSON:
 		miniBlock := &block.MiniBlock{}
 		err := ibp.marshalizer.Unmarshal(miniBlock, blockBytes)
 		if err != nil {
