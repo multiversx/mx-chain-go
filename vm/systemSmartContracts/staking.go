@@ -1161,7 +1161,7 @@ func createWaitingListKey(blsKey []byte) []byte {
 
 func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
@@ -1307,7 +1307,7 @@ func (s *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2_0
 
 func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		s.eei.Finish([]byte{0})
 
 		return vmcommon.Ok
@@ -1377,8 +1377,8 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 
 func (s *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
-		s.eei.Finish([]byte(strconv.Itoa(0)))
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
+		s.eei.Finish([]byte{0})
 
 		return vmcommon.Ok
 	}
@@ -1629,7 +1629,7 @@ func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
@@ -1717,7 +1717,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("invalid method to call")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
@@ -1793,7 +1793,7 @@ func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcom
 		return vmcommon.UserError
 	}
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
@@ -2007,7 +2007,7 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
 
@@ -2082,7 +2082,7 @@ func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 	if s.flagStakingV4.IsSet() {
-		s.eei.AddReturnMessage("staking v4 enabled; waiting list is disabled")
+		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {

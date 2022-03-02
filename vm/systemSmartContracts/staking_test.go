@@ -981,11 +981,11 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
-	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 4
+	stakingAccessAddress := []byte("stakingAccessAddress")
 	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 4
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1001,6 +1001,7 @@ func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 		} else {
 			checkIsStaked(t, stakingSmartContract, addr, addr, vmcommon.UserError)
 			require.True(t, strings.Contains(eei.returnMessage, "staking is full"))
+			eei.returnMessage = ""
 		}
 	}
 	requireRegisteredNodes(t, stakingSmartContract, eei, 4, 6)
@@ -3311,6 +3312,74 @@ func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
 	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
 	assert.Equal(t, len(waitingListData.blsKeys), 1)
 	assert.Equal(t, waitingListData.blsKeys[0], blsKey)
+}
+
+func TestStakingSC_StakingV4Flags(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &stateMock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Arguments = [][]byte{}
+	arguments.Function = "getQueueIndex"
+	retCode := stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, []byte{0}, eei.output[0])
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "getQueueSize"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, []byte{0}, eei.output[0])
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "switchJailedWithWaiting"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Empty(t, eei.output)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "resetLastUnJailedFromQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Empty(t, eei.output)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "stakeNodesFromQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Empty(t, eei.output)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "cleanAdditionalQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Empty(t, eei.output)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "fixWaitingListQueueSize"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Empty(t, eei.output)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "addMissingNodeToQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Empty(t, eei.output)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 }
 
 func requireRegisteredNodes(t *testing.T, stakingSC *stakingSC, eei *vmContext, stakedNodes int64, waitingListNodes uint32) {

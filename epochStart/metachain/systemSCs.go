@@ -264,7 +264,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.flagSwitchJailedWaiting.IsSet() && !s.flagStakingV4Enabled.IsSet() {
+	if s.flagSwitchJailedWaiting.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err

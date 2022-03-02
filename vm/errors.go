@@ -265,3 +265,6 @@ var ErrInvalidNodeLimitPercentage = errors.New("invalid node limit percentage")
 
 // ErrNilNodesCoordinator signals that nil nodes coordinator was provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrWaitingListDisabled signals that waiting list has been disabled, since staking v4 is active
+var ErrWaitingListDisabled = errors.New("waiting list is disabled since staking v4 activation")
