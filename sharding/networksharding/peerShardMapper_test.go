@@ -249,6 +249,24 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWorkConcurrently(t *testing.T) {
 	assert.Equal(t, shardId, shardidRecovered)
 }
 
+// ------- UpdatePeerIDPublicKeyPair
+
+func TestPeerShardMapper_UpdatePeerIDPublicKeyPairShouldWork(t *testing.T) {
+	t.Parallel()
+
+	psm := createPeerShardMapper()
+	pid := core.PeerID("dummy peer ID")
+	pk := []byte("dummy pk")
+
+	psm.UpdatePeerIDPublicKeyPair(pid, pk)
+
+	pkRecovered := psm.GetPkFromPidPk(pid)
+	assert.Equal(t, pk, pkRecovered)
+
+	pidRecovered := psm.GetFromPkPeerId(pk)
+	assert.Equal(t, []core.PeerID{pid}, pidRecovered)
+}
+
 // ------- GetPeerInfo
 
 func TestPeerShardMapper_GetPeerInfoPkNotFoundShouldReturnUnknown(t *testing.T) {

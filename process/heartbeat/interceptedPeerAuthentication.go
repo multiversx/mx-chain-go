@@ -186,6 +186,11 @@ func (ipa *interceptedPeerAuthentication) PayloadSignature() []byte {
 	return ipa.peerAuthentication.PayloadSignature
 }
 
+// Message returns the peer authentication message
+func (ipa *interceptedPeerAuthentication) Message() interface{} {
+	return ipa.peerAuthentication
+}
+
 // String returns the most important fields as string
 func (ipa *interceptedPeerAuthentication) String() string {
 	return fmt.Sprintf("pk=%s, pid=%s, sig=%s, payload=%s, payloadSig=%s",

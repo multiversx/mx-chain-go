@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -109,7 +110,16 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	sender.messenger.Broadcast(sender.topic, msgBytes)
+	b := batch.Batch{
+		Data: make([][]byte, 1),
+	}
+	b.Data[0] = msgBytes
+	data, err := sender.marshaller.Marshal(b)
+	if err != nil {
+		return err
+	}
+
+	sender.messenger.Broadcast(sender.topic, data)
 
 	return nil
 }

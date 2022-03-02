@@ -726,7 +726,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID u
 		"epoch", rrh.epoch,
 	)
 
-	resolver, err := rrh.resolversFinder.CrossShardResolver(factory.PeerAuthenticationTopic, destShardID)
+	resolver, err := rrh.resolversFinder.MetaChainResolver(factory.PeerAuthenticationTopic)
 	if err != nil {
 		log.Error("RequestPeerAuthenticationsChunk.CrossShardResolver",
 			"error", err.Error(),
@@ -763,7 +763,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 		"shard", destShardID,
 	)
 
-	resolver, err := rrh.resolversFinder.CrossShardResolver(factory.PeerAuthenticationTopic, destShardID)
+	resolver, err := rrh.resolversFinder.MetaChainResolver(factory.PeerAuthenticationTopic)
 	if err != nil {
 		log.Error("RequestPeerAuthenticationsChunk.CrossShardResolver",
 			"error", err.Error(),
