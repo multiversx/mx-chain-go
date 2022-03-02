@@ -54,6 +54,14 @@ type FacadeStub struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                   func(round uint64, withTxs bool) (*api.Block, error)
+	GetInternalShardBlockByNonceCalled      func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHashCalled       func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonceCalled       func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHashCalled        func(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRoundCalled       func(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalStartOfEpochMetaBlockCalled  func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalMiniBlockByHashCalled        func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
@@ -366,6 +374,70 @@ func (f *FacadeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, erro
 func (f *FacadeStub) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	if f.GetBlockByRoundCalled != nil {
 		return f.GetBlockByRoundCalled(round, withTxs)
+	}
+	return nil, nil
+}
+
+// GetInternalMetaBlockByNonce -
+func (f *FacadeStub) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	if f.GetInternalMetaBlockByNonceCalled != nil {
+		return f.GetInternalMetaBlockByNonceCalled(format, nonce)
+	}
+	return nil, nil
+}
+
+// GetInternalMetaBlockByHash -
+func (f *FacadeStub) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	if f.GetInternalMetaBlockByHashCalled != nil {
+		return f.GetInternalMetaBlockByHashCalled(format, hash)
+	}
+	return nil, nil
+}
+
+// GetInternalMetaBlockByRound -
+func (f *FacadeStub) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	if f.GetInternalMetaBlockByRoundCalled != nil {
+		return f.GetInternalMetaBlockByRoundCalled(format, round)
+	}
+	return nil, nil
+}
+
+// GetInternalShardBlockByNonce -
+func (f *FacadeStub) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	if f.GetInternalShardBlockByNonceCalled != nil {
+		return f.GetInternalShardBlockByNonceCalled(format, nonce)
+	}
+	return nil, nil
+}
+
+// GetInternalShardBlockByHash -
+func (f *FacadeStub) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	if f.GetInternalShardBlockByHashCalled != nil {
+		return f.GetInternalShardBlockByHashCalled(format, hash)
+	}
+	return nil, nil
+}
+
+// GetInternalShardBlockByRound -
+func (f *FacadeStub) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	if f.GetInternalShardBlockByRoundCalled != nil {
+		return f.GetInternalShardBlockByRoundCalled(format, round)
+	}
+	return nil, nil
+}
+
+// GetInternalStartOfEpochMetaBlock -
+func (f *FacadeStub) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	if f.GetInternalStartOfEpochMetaBlockCalled != nil {
+		return f.GetInternalStartOfEpochMetaBlockCalled(format, epoch)
+	}
+	return nil, nil
+}
+
+// GetInternalMiniBlockByHash -
+func (f *FacadeStub) GetInternalMiniBlockByHash(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
+	if f.GetInternalMiniBlockByHashCalled != nil {
+		return f.GetInternalMiniBlockByHashCalled(format, hash, epoch)
 	}
 	return nil, nil
 }

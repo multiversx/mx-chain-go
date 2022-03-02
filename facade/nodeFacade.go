@@ -382,6 +382,47 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Bloc
 	return nf.apiResolver.GetBlockByRound(round, withTxs)
 }
 
+// GetInternalMetaBlockByHash return the meta block for a given hash
+func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)
+}
+
+// GetInternalMetaBlockByNonce returns the meta block for a given nonce
+func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByNonce(format, nonce)
+}
+
+// GetInternalMetaBlockByRound returns the meta block for a given round
+func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
+}
+
+// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// for a specified epoch
+func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalShardBlockByHash return the shard block for a given hash
+func (nf *nodeFacade) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByHash(format, hash)
+}
+
+// GetInternalShardBlockByNonce returns the shard block for a given nonce
+func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByNonce(format, nonce)
+}
+
+// GetInternalShardBlockByRound returns the shard block for a given round
+func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByRound(format, round)
+}
+
+// GetInternalMiniBlock return the miniblock for a given hash
+func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
+}
+
 // Close will cleanup started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())

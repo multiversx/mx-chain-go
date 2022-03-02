@@ -67,6 +67,9 @@ var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 // ErrInvalidBlockRound signals that an invalid block round was provided
 var ErrInvalidBlockRound = errors.New("invalid block round")
 
+// ErrInvalidEpoch signals that an invalid epoch parameter was provided
+var ErrInvalidEpoch = errors.New("invalid epoch parameter")
+
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
 var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 

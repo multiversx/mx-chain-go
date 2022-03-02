@@ -8,12 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ProcessComponentsMock -
 type ProcessComponentsMock struct {
-	NodesCoord                           sharding.NodesCoordinator
+	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	ResFinder                            dataRetriever.ResolversFinder
@@ -63,7 +64,7 @@ func (pcm *ProcessComponentsMock) CheckSubcomponents() error {
 }
 
 // NodesCoordinator -
-func (pcm *ProcessComponentsMock) NodesCoordinator() sharding.NodesCoordinator {
+func (pcm *ProcessComponentsMock) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return pcm.NodesCoord
 }
 

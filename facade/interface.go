@@ -110,6 +110,14 @@ type ApiResolver interface {
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
+	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
+	GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
+	GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)
+	GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetInternalMiniBlock(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	Close() error
 	IsInterfaceNil() bool
 }
