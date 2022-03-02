@@ -2162,30 +2162,31 @@ func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
 	}
 
 	adb := createAccountsDBTestSetup()
-	numAccounts := uint32(1000)
+	numAccounts := uint32(100)
 	numIncreaseDecreaseIterations := 100
-	numAccountsChances := uint32(100)
+	numAccountsChances := uint32(10)
 
 	rootHashes := make([][]byte, 0)
 	rootHash, err := createDummyAccountsWith100EGLD(numAccounts, adb)
 	require.Nil(t, err)
 	rootHashes = append(rootHashes, rootHash)
-	rootHash, err = addDataTriesForAccountsStartingWithIndex(100, numAccountsChances, 100, adb)
+	rootHash, err = addDataTriesForAccountsStartingWithIndex(10, numAccountsChances, 100, adb)
+	require.Nil(t, err)
 	rootHashes = append(rootHashes, rootHash)
 
 	for i := 0; i < numIncreaseDecreaseIterations; i++ {
 		// change some accounts
-		rootHash, err = addDataTriesForAccountsStartingWithIndex(100, numAccountsChances, 10, adb)
+		rootHash, err = addDataTriesForAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
-		checkAccountsDataTries(t, 100, numAccountsChances, 0, adb)
+		checkAccountsDataTries(t, 10, numAccountsChances, 0, adb)
 
 		// change same accounts state back
-		rootHash, err = removeKeysFromAccountsStartingWithIndex(100, numAccountsChances, 10, adb)
+		rootHash, err = removeKeysFromAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
 		require.Nil(t, err)
 		rootHashes = append(rootHashes, rootHash)
 		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
-		checkAccountsDataTries(t, 100, numAccountsChances, 10, adb)
+		checkAccountsDataTries(t, 10, numAccountsChances, 10, adb)
 	}
 }
 
