@@ -1656,6 +1656,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 			snapshotsRootHashes,
 			prunedRootHashes,
 			uint64(stateCheckpointModulus),
+			roundsPerEpoch,
 		)
 		time.Sleep(time.Second)
 	}
@@ -1683,7 +1684,11 @@ func collectSnapshotAndCheckpointHashes(
 	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
 	stateCheckpointModulus uint64,
+	roundsPerEpoch uint64,
 ) {
+	pruningQueueSize := uint64(5)
+	finality := uint64(2)
+
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
 		if currentBlockHeader.IsStartOfEpochBlock() {
@@ -1693,6 +1698,10 @@ func collectSnapshotAndCheckpointHashes(
 		checkpointRound := currentBlockHeader.GetNonce()%stateCheckpointModulus == 0
 		if checkpointRound {
 			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
+			continue
+		}
+
+		if currentBlockHeader.GetNonce() > roundsPerEpoch-pruningQueueSize-finality {
 			continue
 		}
 
@@ -1740,7 +1749,7 @@ func testNodeStateCheckpointSnapshotAndPruning(
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 13, len(prunedRootHashes))
+	require.Equal(t, 2, len(prunedRootHashes))
 	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
