@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vInfo "github.com/ElrondNetwork/elrond-go/common/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -350,59 +351,55 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	return nil
 }
 
-func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfos map[uint32][]*state.ValidatorInfo, randomness []byte) error {
-	auctionList, noOfValidators := getAuctionListAndNoOfValidators(validatorInfos)
+func (s *systemSCProcessor) selectNodesFromAuctionList(validatorInfoMap map[uint32][]*state.ValidatorInfo, randomness []byte) error {
+	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorInfoMap)
 	err := s.sortAuctionList(auctionList, randomness)
 	if err != nil {
 		return err
 	}
 
 	auctionListSize := uint32(len(auctionList))
-	noOfAvailableNodeSlots := core.MinUint32(auctionListSize, s.maxNodes-noOfValidators)
-	s.displayAuctionList(auctionList, noOfAvailableNodeSlots)
+	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, s.maxNodes-numOfValidators)
+	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 
-	for i := uint32(0); i < noOfAvailableNodeSlots; i++ {
+	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
 		auctionList[i].List = string(common.NewList)
 	}
 
 	return nil
 }
 
-func getAuctionListAndNoOfValidators(validatorInfos map[uint32][]*state.ValidatorInfo) ([]*state.ValidatorInfo, uint32) {
+func getAuctionListAndNumOfValidators(validatorInfoMap map[uint32][]*state.ValidatorInfo) ([]*state.ValidatorInfo, uint32) {
 	auctionList := make([]*state.ValidatorInfo, 0)
-	noOfValidators := uint32(0)
+	numOfValidators := uint32(0)
 
-	for _, validatorsInShard := range validatorInfos {
+	for _, validatorsInShard := range validatorInfoMap {
 		for _, validator := range validatorsInShard {
 			if validator.List == string(common.AuctionList) {
 				auctionList = append(auctionList, validator)
-			} else if isValidator(validator) {
-				noOfValidators++
+				continue
+			}
+			if isValidator(validator) {
+				numOfValidators++
 			}
 		}
 	}
 
-	return auctionList, noOfValidators
+	return auctionList, numOfValidators
 }
 
 func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, randomness []byte) error {
-	errors := make([]error, 0)
+	validatorTopUpMap, err := s.getValidatorTopUpMap(auctionList)
+	if err != nil {
+		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
+	}
 
 	sort.SliceStable(auctionList, func(i, j int) bool {
 		pubKey1 := auctionList[i].PublicKey
 		pubKey2 := auctionList[j].PublicKey
 
-		nodeTopUpPubKey1, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey1)
-		if err != nil {
-			errors = append(errors, err)
-			log.Debug(fmt.Sprintf("%v when trying to get top up per node for %s", err, hex.EncodeToString(pubKey1)))
-		}
-
-		nodeTopUpPubKey2, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey2)
-		if err != nil {
-			errors = append(errors, err)
-			log.Debug(fmt.Sprintf("%v when trying to get top up per node for %s", err, hex.EncodeToString(pubKey2)))
-		}
+		nodeTopUpPubKey1 := validatorTopUpMap[string(pubKey1)]
+		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
 
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
 			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
@@ -411,17 +408,32 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
 	})
 
-	if len(errors) > 0 {
-		return fmt.Errorf("%w; last known error %v", epochStart.ErrSortAuctionList, errors[len(errors)-1])
-	}
 	return nil
 }
 
-func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
-	key1Xor := make([]byte, len(randomness))
-	key2Xor := make([]byte, len(randomness))
+func (s *systemSCProcessor) getValidatorTopUpMap(validators []*state.ValidatorInfo) (map[string]*big.Int, error) {
+	ret := make(map[string]*big.Int, len(validators))
 
-	for idx := range randomness {
+	for _, validator := range validators {
+		pubKey := validator.PublicKey
+		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("%w when trying to get top up per node for %s", err, hex.EncodeToString(pubKey))
+		}
+
+		ret[string(pubKey)] = topUp
+	}
+
+	return ret, nil
+}
+
+func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
+	minLen := core.MinInt(len(pubKey1), len(randomness))
+
+	key1Xor := make([]byte, minLen)
+	key2Xor := make([]byte, minLen)
+
+	for idx := 0; idx < minLen; idx++ {
 		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
 		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
 	}
@@ -429,7 +441,11 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 	return bytes.Compare(key1Xor, key2Xor) == 1
 }
 
-func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInfo, noOfSelectedNodes uint32) {
+func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInfo, numOfSelectedNodes uint32) {
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
+
 	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
 	horizontalLine := false
@@ -442,7 +458,7 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInf
 		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
 		log.LogIfError(err)
 
-		horizontalLine = uint32(idx) == noOfSelectedNodes-1
+		horizontalLine = uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
 			hex.EncodeToString([]byte(owner)),
 			hex.EncodeToString(pubKey),
@@ -859,7 +875,6 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
 
-	// TODO: Check if flag is not enabled, should we move staked nodes to AuctionList?
 	if s.flagStakingQueueEnabled.IsSet() {
 		sw.Start("stakeNodesFromQueue")
 		err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
