@@ -3933,25 +3933,25 @@ func TestProcessIsInformativeSCR(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.Value = big.NewInt(0)
 	scr.CallType = vmData.AsynchronousCallBack
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.CallType = vmData.DirectCall
 	scr.Data = []byte("@abab")
-	assert.True(t, sc.isInformativeSCR(scr))
+	assert.True(t, sc.isInformativeTxHandler(scr))
 
 	scr.Data = []byte("ab@ab")
 	scr.RcvAddr = make([]byte, 32)
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.RcvAddr = []byte("address")
-	assert.True(t, sc.isInformativeSCR(scr))
+	assert.True(t, sc.isInformativeTxHandler(scr))
 
 	_ = builtInFuncs.Add("ab", &mock.BuiltInFunctionStub{})
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 }
 
 func TestCleanInformativeOnlySCRs(t *testing.T) {
@@ -4003,6 +4003,65 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
 	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, logHash)
+}
+
+func TestProcess_createCompletedTxEvent(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
+	arguments.ShardCoordinator = shardCoordinator
+	completedLogSaved := false
+	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+		for _, log := range vmLogs {
+			if string(log.Identifier) == completedTxEvent {
+				completedLogSaved = true
+			}
+		}
+		return nil
+	}}
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scAddress := bytes.Repeat([]byte{0}, 32)
+	scAddress[31] = 2
+	userAddress := bytes.Repeat([]byte{1}, 32)
+
+	scr := &smartContractResult.SmartContractResult{
+		Value:      big.NewInt(1),
+		SndAddr:    userAddress,
+		RcvAddr:    scAddress,
+		PrevTxHash: []byte("prevTxHash"),
+		GasLimit:   1000,
+		GasPrice:   1000,
+	}
+	scrHash := []byte("hash")
+
+	completeTxEvent := sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, nil)
+	assert.NotNil(t, completeTxEvent)
+
+	scrWithTransfer := &smartContractResult.SmartContractResult{
+		Value:   big.NewInt(1),
+		SndAddr: scAddress,
+		RcvAddr: userAddress,
+		Data:    []byte("transfer"),
+	}
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.Nil(t, completeTxEvent)
+
+	scrWithTransfer.Value = big.NewInt(0)
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.NotNil(t, completeTxEvent)
+	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
+	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
+
+	scrWithRefund := &smartContractResult.SmartContractResult{Value: big.NewInt(10), PrevTxHash: scrHash, Data: []byte("@6f6b@aaffaa")}
+	completedLogSaved = false
+
+	acntDst, _ := state.NewUserAccount(userAddress)
+	err := sc.processSimpleSCR(scrWithRefund, []byte("scrHash"), acntDst)
+	assert.Nil(t, err)
+	assert.True(t, completedLogSaved)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
