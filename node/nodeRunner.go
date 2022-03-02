@@ -49,6 +49,10 @@ import (
 )
 
 const (
+	// TODO: remove this after better handling VM versions switching
+	// delayBeforeScQueriesStart represents the delay before the sc query processor should start to allow external queries
+	delayBeforeScQueriesStart = 2 * time.Minute
+
 	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
 	SoftRestartMessage = "Shuffled out - soft restart"
@@ -436,13 +440,23 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		)
 	}
 
+	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
+	allowExternalVMQueriesChan := make(chan struct{})
+
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier)
+	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
 	if err != nil {
 		return true, err
 	}
 
 	log.Info("application is now running")
+
+	// TODO: remove this and treat better the VM versions switching
+	go func() {
+		time.Sleep(delayBeforeScQueriesStart)
+		close(allowExternalVMQueriesChan)
+	}()
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -466,6 +480,7 @@ func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
 	gasScheduleNotifier core.GasScheduleNotifier,
+	allowVMQueriesChan chan struct{},
 ) (closing.Closer, error) {
 	configs := nr.configs
 
@@ -481,6 +496,7 @@ func (nr *nodeRunner) createApiFacade(
 		ProcessComponents:   currentNode.processComponents,
 		GasScheduleNotifier: gasScheduleNotifier,
 		Bootstrapper:        currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:  allowVMQueriesChan,
 	}
 
 	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
@@ -1151,18 +1167,18 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:            *nr.configs.P2pConfig,
-		MainConfig:           *nr.configs.GeneralConfig,
-		RatingsConfig:        *nr.configs.RatingsConfig,
-		StatusHandler:        coreComponents.StatusHandler(),
-		Marshalizer:          coreComponents.InternalMarshalizer(),
-		Syncer:               coreComponents.SyncTimer(),
-		PreferredPublicKeys:  decodedPreferredPubKeys,
-		BootstrapWaitSeconds: common.SecondsToWaitForP2PBootstrap,
-		NodeOperationMode:    p2p.NormalOperation,
+		P2pConfig:           *nr.configs.P2pConfig,
+		MainConfig:          *nr.configs.GeneralConfig,
+		RatingsConfig:       *nr.configs.RatingsConfig,
+		StatusHandler:       coreComponents.StatusHandler(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		Syncer:              coreComponents.SyncTimer(),
+		PreferredPublicKeys: decodedPreferredPubKeys,
+		BootstrapWaitTime:   common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:   p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
-		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
 		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode

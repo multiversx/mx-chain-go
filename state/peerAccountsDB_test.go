@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -237,8 +238,11 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				GetCalled: func(_ []byte) ([]byte, error) {
-					return nil, fmt.Errorf("key not found")
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, []byte(common.ActiveDBKey)) {
+						return nil, fmt.Errorf("key not found")
+					}
+					return []byte("rootHash"), nil
 				},
 				ShouldTakeSnapshotCalled: func() bool {
 					return true

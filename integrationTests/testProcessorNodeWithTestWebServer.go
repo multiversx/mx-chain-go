@@ -13,6 +13,8 @@ import (
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -20,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -173,7 +176,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardID:            tpn.ShardCoordinator.SelfId(),
 		Accounts:           accountsWrapper,
 		QueryService:       tpn.SCQueryService,
-		BlockChain:         tpn.BlockChain,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
@@ -185,6 +187,35 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
 	log.LogIfError(err)
 
+	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		Marshalizer:              TestMarshalizer,
+		AddressPubKeyConverter:   TestAddressPubkeyConverter,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		HistoryRepository:        tpn.HistoryRepository,
+		StorageService:           tpn.Storage,
+		DataPool:                 tpn.DataPool,
+		Uint64ByteSliceConverter: TestUint64Converter,
+	}
+	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
+	log.LogIfError(err)
+
+	statusCom, err := txstatus.NewStatusComputer(tpn.ShardCoordinator.SelfId(), TestUint64Converter, tpn.Storage)
+	log.LogIfError(err)
+
+	argsBlockAPI := &blockAPI.ArgAPIBlockProcessor{
+		SelfShardID:              tpn.ShardCoordinator.SelfId(),
+		Store:                    tpn.Storage,
+		Marshalizer:              TestMarshalizer,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		HistoryRepo:              tpn.HistoryRepository,
+		TxUnmarshaller:           apiTransactionHandler,
+		StatusComputer:           statusCom,
+		Hasher:                   TestHasher,
+		AddressPubkeyConverter:   TestAddressPubkeyConverter,
+	}
+	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
+	log.LogIfError(err)
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          tpn.SCQueryService,
 		StatusMetricsHandler:    &mock.StatusMetricsStub{},
@@ -192,6 +223,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		APITransactionHandler:   apiTransactionHandler,
+		APIBlockHandler:         blockAPIHandler,
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

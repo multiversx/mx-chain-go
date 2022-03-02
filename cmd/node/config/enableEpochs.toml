@@ -184,6 +184,9 @@
     # disabled in the blockchain hook component
     DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
 
+    # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
+   AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
@@ -193,6 +196,6 @@
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV4.toml" },
-        { StartEpoch = 3, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV6.toml" },
     ]

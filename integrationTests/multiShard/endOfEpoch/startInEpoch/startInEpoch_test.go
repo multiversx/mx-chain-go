@@ -77,7 +77,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -298,6 +298,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		ChainID:                      string(integrationTests.ChainID),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

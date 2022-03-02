@@ -175,6 +175,7 @@ type CryptoComponentsHandler interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromStorer(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -260,6 +261,7 @@ type ProcessComponentsHolder interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
+	TxsSenderHandler() process.TxsSenderHandler
 	IsInterfaceNil() bool
 }
 

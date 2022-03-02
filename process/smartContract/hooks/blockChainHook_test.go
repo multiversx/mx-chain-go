@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -32,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -208,21 +208,21 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 func TestBlockChainHookImpl_GetCode(t *testing.T) {
 	t.Parallel()
 
-	args := createMockBlockChainHookArgs()
 	t.Run("nil account expect nil code", func(t *testing.T) {
 		t.Parallel()
 
+		args := createMockBlockChainHookArgs()
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 		code := bh.GetCode(nil)
 		require.Nil(t, code)
 	})
-
 	t.Run("expect correct returned code", func(t *testing.T) {
 		t.Parallel()
 
 		expectedCodeHash := []byte("codeHash")
 		expectedCode := []byte("code")
 
+		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetCodeCalled: func(codeHash []byte) []byte {
 				require.Equal(t, expectedCodeHash, codeHash)
@@ -1046,7 +1046,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		require.Equal(t, code, actualCode)
 		require.False(t, wasCodeSavedInPool.IsSet())
 	})
-
 	t.Run("compiled code found in compiled sc pool, but not as byte slice, error getting it from storage", func(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.NilCompiledSCStore = true
@@ -1069,7 +1068,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		require.Nil(t, actualCode)
 		require.False(t, wasCodeSavedInPool.IsSet())
 	})
-
 	t.Run("compiled code found in storage, but nil", func(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.NilCompiledSCStore = false
@@ -1108,7 +1106,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 
 		_ = bh.Close()
 	})
-
 	t.Run("compiled code not found in compiled sc pool, get it from storage", func(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.ConfigSCStorage = config.StorageConfig{
@@ -1205,7 +1202,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, process.ErrNilVmInput, err)
 	})
-
 	t.Run("no function set in built in function container, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1217,7 +1213,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), vmcommonBuiltInFunctions.ErrInvalidContainerKey.Error()))
 	})
-
 	t.Run("cannot get sender account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1237,7 +1232,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errGetAccount, err)
 	})
-
 	t.Run("cannot convert sender account to user account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1246,7 +1240,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return &genesisMock.BaseAccountMock{}, nil
+				return &stateMock.UserAccountStub{}, nil
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1256,7 +1250,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
-
 	t.Run("cannot load destination account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1281,7 +1274,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errGetAccount, err)
 	})
-
 	t.Run("cannot convert destination account to user account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1295,7 +1287,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &genesisMock.BaseAccountMock{}, nil
+				return &stateMock.UserAccountStub{}, nil
 			},
 		}
 
@@ -1306,7 +1298,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
-
 	t.Run("cannot process new built in function, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1345,7 +1336,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errProcessBuiltInFunc, err)
 	})
-
 	t.Run("sender and receiver not in same shard, expect they are not saved", func(t *testing.T) {
 		t.Parallel()
 
@@ -1394,7 +1384,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.False(t, getReceiverAccountCalled.IsSet())
 		require.False(t, saveAccountCalled.IsSet())
 	})
-
 	t.Run("sender and receiver same shard, expect accounts saved", func(t *testing.T) {
 		t.Parallel()
 
@@ -1427,7 +1416,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &vmcommon.VMOutput{}, output)
 	})
-
 	t.Run("sender and receiver same shard, sender = receiver, expect only one account is saved", func(t *testing.T) {
 		t.Parallel()
 
@@ -1462,7 +1450,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Equal(t, int64(1), ctSaveAccount.Get())
 		require.False(t, getReceiverAccountCalled.IsSet())
 	})
-
 	t.Run("cannot save sender account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1487,7 +1474,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errSaveAccount, err)
 	})
-
 	t.Run("cannot save receiver account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1750,5 +1736,131 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
+	})
+}
+
+func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
+	t.Parallel()
+
+	t.Run("PayableBySC flag is not set; should reset the flag", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 1000000
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		provided := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+	})
+	t.Run("PayableBySC flag is set; should not reset the flag", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		provided := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+
+		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+
+		provided = vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		resulted = bh.ApplyFiltersOnCodeMetadata(provided)
+		expected = vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: false,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		assert.Equal(t, expected.ToBytes(), resulted.ToBytes())
+	})
+}
+
+func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flag not set should not filter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 100000
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF, 0xFF}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, providedBytes, resultBytes)
+		assert.Nil(t, err)
+	})
+	t.Run("correct bytes and flag set should filter correctly", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0x05, 0x06}
+		expected := vmcommon.CodeMetadata{
+			Payable:     true,
+			PayableBySC: true,
+			Upgradeable: true,
+			Readable:    true,
+		}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Equal(t, expected.ToBytes(), resultBytes)
+		assert.Nil(t, err)
+	})
+	t.Run("incorrect number of bytes and flag set should return nil and error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF, 0xFF}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Nil(t, resultBytes)
+		assert.Equal(t, parsers.ErrInvalidCodeMetadata, err)
+	})
+	t.Run("incorrect bytes and flag set should return nil and error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochs.IsPayableBySCEnableEpoch = 0
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		providedBytes := []byte{0xFF, 0xFF}
+		resultBytes, err := bh.FilterCodeMetadataForUpgrade(providedBytes)
+		assert.Nil(t, resultBytes)
+		assert.Equal(t, parsers.ErrInvalidCodeMetadata, err)
 	})
 }

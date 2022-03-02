@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -49,6 +50,60 @@ import (
 
 func haveTime() time.Duration {
 	return 2000 * time.Millisecond
+}
+
+func createArgBaseProcessor(
+	coreComponents *mock.CoreComponentsMock,
+	dataComponents *mock.DataComponentsMock,
+	bootstrapComponents *mock.BootstrapComponentsMock,
+	statusComponents *mock.StatusComponentsMock,
+) blproc.ArgBaseProcessor {
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+
+	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
+
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	return blproc.ArgBaseProcessor{
+		CoreComponents:      coreComponents,
+		DataComponents:      dataComponents,
+		BootstrapComponents: bootstrapComponents,
+		StatusComponents:    statusComponents,
+		Config:              config.Config{},
+		AccountsDB:          accountsDb,
+		ForkDetector:        &mock.ForkDetectorMock{},
+		NodesCoordinator:    nodesCoordinator,
+		FeeHandler:          &mock.FeeAccumulatorStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
+		TxCoordinator:       &mock.TransactionCoordinatorMock{},
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		HeaderValidator:     headerValidator,
+		BootStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
+		BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
+		Version:                        "softwareVersion",
+		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                  &mock.RoundNotifierStub{},
+		GasHandler:                     &mock.GasHandlerMock{},
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch: 2,
+	}
 }
 
 func createTestBlockchain() *testscommon.ChainHandlerStub {
@@ -336,56 +391,9 @@ func CreateMockArguments(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgShardProcessor {
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
-	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+	return blproc.ArgShardProcessor{
+		ArgBaseProcessor: createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents),
 	}
-	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
-
-	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
-
-	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-	}
-
-	arguments := blproc.ArgShardProcessor{
-		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			CoreComponents:      coreComponents,
-			DataComponents:      dataComponents,
-			BootstrapComponents: bootstrapComponents,
-			StatusComponents:    statusComponents,
-			Config:              config.Config{},
-			AccountsDB:          accountsDb,
-			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    nodesCoordinator,
-			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-			HeaderValidator:     headerValidator,
-			BootStorer: &mock.BoostrapStorerMock{
-				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
-					return nil
-				},
-			},
-			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			Version:                        "softwareVersion",
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:                  &mock.RoundNotifierStub{},
-			GasHandler:                     &mock.GasHandlerMock{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 2,
-		},
-	}
-
-	return arguments
 }
 
 func createMockTransactionCoordinatorArguments(
@@ -417,9 +425,289 @@ func createMockTransactionCoordinatorArguments(
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	return argsTransactionCoordinator
+}
+
+func TestCheckProcessorNilParameters(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+	tests := []struct {
+		args        func() blproc.ArgBaseProcessor
+		expectedErr error
+	}{
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.AccountsDB[state.UserAccountsState] = nil
+				return args
+			},
+			expectedErr: process.ErrNilAccountsAdapter,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(coreComponents, nil, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilDataComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(nil, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilCoreComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BootstrapComponents = nil
+				return args
+			},
+			expectedErr: process.ErrNilBootstrapComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, nil)
+			},
+			expectedErr: process.ErrNilStatusComponentsHolder,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ForkDetector = nil
+				return args
+			},
+			expectedErr: process.ErrNilForkDetector,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.Hash = nil
+				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilHasher,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.IntMarsh = nil
+				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilMarshalizer,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.Storage = nil
+				args := createArgBaseProcessor(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilStorage,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BootstrapComponents = &mainFactoryMocks.BootstrapComponentsStub{ShCoordinator: nil}
+				return args
+			},
+			expectedErr: process.ErrNilShardCoordinator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.NodesCoordinator = nil
+				return args
+			},
+			expectedErr: process.ErrNilNodesCoordinator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.UInt64ByteSliceConv = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilUint64Converter,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RequestHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilRequestHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.EpochStartTrigger = nil
+				return args
+			},
+			expectedErr: process.ErrNilEpochStartTrigger,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.RoundField = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilRoundHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BootStorer = nil
+				return args
+			},
+			expectedErr: process.ErrNilStorage,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockChainHook = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockChainHook,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.TxCoordinator = nil
+				return args
+			},
+			expectedErr: process.ErrNilTransactionCoordinator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.HeaderValidator = nil
+				return args
+			},
+			expectedErr: process.ErrNilHeaderValidator,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.FeeHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilEconomicsFeeHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				dataComp := &mock.DataComponentsMock{
+					Storage:    dataComponents.Storage,
+					DataPool:   dataComponents.DataPool,
+					BlockChain: nil,
+				}
+				return createArgBaseProcessor(coreComponents, dataComp, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilBlockChain,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlockSizeThrottler = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlockSizeThrottler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				statusCompCopy := *statusComponents
+				statusCompCopy.Outport = nil
+				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, &statusCompCopy)
+			},
+			expectedErr: process.ErrNilOutportHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.HistoryRepository = nil
+				return args
+			},
+			expectedErr: process.ErrNilHistoryRepository,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				bootStrapCopy := *bootstrapComponents
+				bootStrapCopy.HdrIntegrityVerifier = nil
+				return createArgBaseProcessor(coreComponents, dataComponents, &bootStrapCopy, statusComponents)
+			},
+			expectedErr: process.ErrNilHeaderIntegrityVerifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.EpochNotifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilEpochNotifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RoundNotifier = nil
+				return args
+			},
+			expectedErr: process.ErrNilRoundNotifier,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.StatusField = nil
+				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: process.ErrNilAppStatusHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.GasHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilGasHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ScheduledTxsExecutionHandler = nil
+				return args
+			},
+			expectedErr: process.ErrNilScheduledTxsExecutionHandler,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				bootstrapCopy := *bootstrapComponents
+				bootstrapCopy.VersionedHdrFactory = nil
+				return createArgBaseProcessor(coreComponents, dataComponents, &bootstrapCopy, statusComponents)
+			},
+			expectedErr: process.ErrNilVersionedHeaderFactory,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		err := blproc.CheckProcessorNilParameters(test.args())
+		require.Equal(t, test.expectedErr, err)
+	}
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
@@ -1719,22 +2007,6 @@ func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAn
 func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	zeroGasAndFees := process.GetZeroGasAndFees()
 
-	initialGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(11),
-		DeveloperFees:   big.NewInt(12),
-		GasProvided:     13,
-		GasPenalized:    14,
-		GasRefunded:     15,
-	}
-
-	finalGasAndFees := scheduled.GasAndFees{
-		AccumulatedFees: big.NewInt(101),
-		DeveloperFees:   big.NewInt(103),
-		GasProvided:     105,
-		GasPenalized:    107,
-		GasRefunded:     109,
-	}
-
 	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
 		t.Parallel()
 
@@ -1828,6 +2100,22 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		initialGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(11),
+			DeveloperFees:   big.NewInt(12),
+			GasProvided:     13,
+			GasPenalized:    14,
+			GasRefunded:     15,
+		}
+
+		finalGasAndFees := scheduled.GasAndFees{
+			AccumulatedFees: big.NewInt(101),
+			DeveloperFees:   big.NewInt(103),
+			GasProvided:     105,
+			GasPenalized:    107,
+			GasRefunded:     109,
+		}
+
 		expectedGasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees),
 			DeveloperFees:   big.NewInt(0).Sub(finalGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees),
@@ -1841,4 +2129,514 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, expectedGasAndFees, gasAndFees)
 	})
 
+}
+
+func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
+	t.Parallel()
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		assert.Equal(t, 0, index)
+	})
+
+	t.Run("scheduledMiniBlocks flag is set, empty block", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		assert.Equal(t, 0, index)
+	})
+
+	t.Run("get first index for the miniBlockHeader which is not processed executionType", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mbh1 := block.MiniBlockHeader{}
+		mbhReserved1 := block.MiniBlockHeaderReserved{ExecutionType: block.Processed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{}
+		mbhReserved2 := block.MiniBlockHeaderReserved{ExecutionType: block.Normal}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(metaBlock)
+		assert.Equal(t, 1, index)
+	})
+}
+
+func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		assert.Nil(t, err)
+		assert.Equal(t, &block.Body{}, body)
+	})
+
+	t.Run("scheduledMiniBlocks flag is set, empty body", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		assert.Nil(t, err)
+		assert.Equal(t, &block.Body{}, body)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mb1 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash1")},
+		}
+		mb2 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash2")},
+		}
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+				mb2,
+			},
+		}
+
+		mbh1 := block.MiniBlockHeader{}
+		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{}
+		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		expectedBody := &block.Body{MiniBlocks: block.MiniBlockSlice{mb2}}
+
+		retBody, err := bp.GetFinalMiniBlocks(metaBlock, body)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBody, retBody)
+	})
+}
+
+func TestBaseProcessor_getScheduledMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	t.Run("wrong body type", func(t *testing.T) {
+		t.Parallel()
+
+		retBody, err := blproc.GetScheduledMiniBlocksFromMe(&block.Header{}, &wrongBody{})
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
+		assert.Nil(t, retBody)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		mb1 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash1")},
+		}
+		mb2 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash2")},
+		}
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+				mb2,
+			},
+		}
+
+		mbh1 := block.MiniBlockHeader{
+			SenderShardID: 1,
+		}
+		mbhReserved1 := block.MiniBlockHeaderReserved{ExecutionType: block.Normal}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{
+			SenderShardID: 1,
+		}
+		mbhReserved2 := block.MiniBlockHeaderReserved{ExecutionType: block.Scheduled}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		header := &block.Header{
+			ShardID: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		retBody, err := blproc.GetScheduledMiniBlocksFromMe(header, body)
+		assert.Nil(t, err)
+		assert.Equal(t, block.MiniBlockSlice{mb2}, retBody)
+	})
+}
+
+func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("Hash1")
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckScheduledMiniBlocksValidity(&block.MetaBlock{})
+		assert.Nil(t, err)
+	})
+
+	t.Run("fail to calculate hash", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		expectedErr := errors.New("expected error")
+		coreComponents.IntMarsh = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{&block.MiniBlock{
+					TxHashes: [][]byte{hash1},
+				}}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: []byte("differentHash")},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("scheduled miniblocks mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return hash1
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{&block.MiniBlock{
+					TxHashes: [][]byte{hash1},
+				}}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: []byte("differentHash")},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
+	})
+
+	t.Run("num header miniblocks lower than scheduled miniblocks, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						TxHashes: [][]byte{hash1},
+					},
+					&block.MiniBlock{
+						TxHashes: [][]byte{[]byte("hash2")},
+					},
+				}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: hash1},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
+	})
+
+	t.Run("same hash, should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return hash1
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						TxHashes: [][]byte{hash1},
+					},
+				}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: hash1},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Nil(t, err)
+	})
+}
+
+func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
+	t.Parallel()
+
+	miniBlockHash := []byte("miniBlockHash")
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, []byte{}, &block.MiniBlockHeader{})
+		assert.Nil(t, err)
+	})
+
+	t.Run("no scheduled miniBlock, miniBlock Not executed", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return false
+			},
+			IsMiniBlockExecutedCalled: func(hash []byte) bool {
+				assert.Equal(t, miniBlockHash, hash)
+				return false
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mbHandler := &block.MiniBlockHeader{}
+
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Normal), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
+	})
+
+	t.Run("no scheduled miniBlock, miniBlock executed", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return false
+			},
+			IsMiniBlockExecutedCalled: func(hash []byte) bool {
+				assert.Equal(t, miniBlockHash, hash)
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mbHandler := &block.MiniBlockHeader{}
+
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Processed), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
+	})
+
+	t.Run("is scheduled miniBlock, different shardId", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		bootstrapComponents.Coordinator = &testscommon.ShardsCoordinatorMock{
+			SelfIDCalled: func() uint32 {
+				return 1
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("hash")},
+		}
+
+		mbHandler := &block.MiniBlockHeader{
+			SenderShardID: 2,
+		}
+
+		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
+	})
+
+	t.Run("is scheduled miniBlock, same shardId", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		shardId := uint32(1)
+		bootstrapComponents.Coordinator = &testscommon.ShardsCoordinatorMock{
+			SelfIDCalled: func() uint32 {
+				return shardId
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("hash")},
+		}
+
+		mbHandler := &block.MiniBlockHeader{
+			SenderShardID: shardId,
+		}
+
+		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Proposed), mbHandler.GetConstructionState())
+	})
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrNilBlockBody(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(nil)
+	assert.Equal(t, err, process.ErrNilBlockBody)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFromStorageFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("error")
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 0, expectedError
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Equal(t, err, expectedError)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 1, nil
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Nil(t, err)
 }

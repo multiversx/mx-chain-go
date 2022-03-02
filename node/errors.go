@@ -43,9 +43,6 @@ var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
 
-// ErrNoTxToProcess signals that no transaction were sent for processing
-var ErrNoTxToProcess = errors.New("no transaction to process")
-
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
@@ -121,12 +118,6 @@ var ErrNilStateComponents = errors.New("nil state components")
 // ErrNilStatusComponents signals that a nil status components instance has been provided
 var ErrNilStatusComponents = errors.New("nil status components")
 
-// ErrTransactionNotFound signals that a transaction was not found
-var ErrTransactionNotFound = errors.New("transaction not found")
-
-// ErrCannotRetrieveTransaction signals that a transaction was not found
-var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
-
 // ErrNodeCloseFailed signals that the close function of the node failed
 var ErrNodeCloseFailed = errors.New("node closing failed ")
 
@@ -150,3 +141,6 @@ var ErrCannotCastAccountHandlerToUserAccountHandler = errors.New("cannot cast ac
 
 // ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler signals that an user account handler cannot be cast to vm common user account handler
 var ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler = errors.New("cannot cast user account handler to vm common user account handler")
+
+// ErrNilBlockHeader signals that current block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")

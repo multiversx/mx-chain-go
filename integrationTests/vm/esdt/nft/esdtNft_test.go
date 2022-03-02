@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package nft
@@ -42,7 +43,7 @@ func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -129,7 +130,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -262,7 +263,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -370,7 +371,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -523,7 +524,7 @@ func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *test
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -647,7 +648,7 @@ func testNFTSendCreateRole(t *testing.T, numOfShards int) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -763,7 +764,7 @@ func prepareNFTWithRoles(
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("SFT")))
 
-	//// /////// ----- set special roles
+	// ----- set special roles
 	esdt.SetRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
 
 	time.Sleep(time.Second)

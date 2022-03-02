@@ -2,7 +2,6 @@ package node
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,12 +9,10 @@ import (
 	"sort"
 	"strings"
 	syncGo "sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
@@ -32,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -43,16 +39,11 @@ import (
 )
 
 const (
-	// SendTransactionsPipe is the pipe used for sending new transactions
-	SendTransactionsPipe = "send transactions pipe"
-
 	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
 	esdtTickerNumChars = 6
 )
 
 var log = logger.GetOrCreate("node")
-var numSecondsBetweenPrints = 20
-
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
@@ -65,8 +56,6 @@ type filter interface {
 
 // Node is a structure that holds all managed components
 type Node struct {
-	ctx                 context.Context
-	cancelFunc          context.CancelFunc
 	initialNodesPubkeys map[uint32][]string
 	roundDuration       uint64
 	consensusGroupSize  int
@@ -75,15 +64,10 @@ type Node struct {
 	hardforkTrigger     HardforkTrigger
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
 
-	consensusType string
-
-	currentSendingGoRoutines int32
-	bootstrapRoundIndex      uint64
+	consensusType       string
+	bootstrapRoundIndex uint64
 
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
-
-	txSentCounter uint32
-	txAcumulator  core.Accumulator
 
 	addressSignatureSize    int
 	addressSignatureHexSize int
@@ -123,12 +107,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	node := &Node{
-		ctx:                      ctx,
-		cancelFunc:               cancelFunc,
-		currentSendingGoRoutines: 0,
-		queryHandlers:            make(map[string]debug.QueryHandler),
+		queryHandlers: make(map[string]debug.QueryHandler),
 	}
 
 	node.closableComponents = make([]mainFactory.Closer, 0)
@@ -584,123 +564,7 @@ func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserA
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	if len(txs) == 0 {
-		return 0, ErrNoTxToProcess
-	}
-
-	n.addTransactionsToSendPipe(txs)
-
-	return uint64(len(txs)), nil
-}
-
-func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
-	if check.IfNil(n.txAcumulator) {
-		log.Error("node has a nil tx accumulator instance")
-		return
-	}
-
-	for _, tx := range txs {
-		n.txAcumulator.AddData(tx)
-	}
-}
-
-func (n *Node) sendFromTxAccumulator(ctx context.Context) {
-	outputChannel := n.txAcumulator.OutputChannel()
-
-	for {
-		select {
-		case objs := <-outputChannel:
-			{
-				if len(objs) == 0 {
-					break
-				}
-
-				txs := make([]*transaction.Transaction, 0, len(objs))
-				for _, obj := range objs {
-					tx, ok := obj.(*transaction.Transaction)
-					if !ok {
-						continue
-					}
-
-					txs = append(txs, tx)
-				}
-
-				atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
-
-				n.sendBulkTransactions(txs)
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// printTxSentCounter prints the peak transaction counter from a time frame of about 'numSecondsBetweenPrints' seconds
-// if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
-// the peak counter resets after each print. There is also a total number of transactions sent to p2p
-// TODO make this function testable. Refactor if necessary.
-func (n *Node) printTxSentCounter(ctx context.Context) {
-	maxTxCounter := uint32(0)
-	totalTxCounter := uint64(0)
-	counterSeconds := 0
-
-	for {
-		select {
-		case <-time.After(time.Second):
-			txSent := atomic.SwapUint32(&n.txSentCounter, 0)
-			if txSent > maxTxCounter {
-				maxTxCounter = txSent
-			}
-			totalTxCounter += uint64(txSent)
-
-			counterSeconds++
-			if counterSeconds > numSecondsBetweenPrints {
-				counterSeconds = 0
-
-				if maxTxCounter > 0 {
-					log.Info("sent transactions on network",
-						"max/sec", maxTxCounter,
-						"total", totalTxCounter,
-					)
-				}
-				maxTxCounter = 0
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// sendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
-func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
-	transactionsByShards := make(map[uint32][][]byte)
-	log.Trace("node.sendBulkTransactions sending txs",
-		"num", len(txs),
-	)
-
-	for _, tx := range txs {
-		senderShardId := n.processComponents.ShardCoordinator().ComputeId(tx.SndAddr)
-
-		marshalizedTx, err := n.coreComponents.InternalMarshalizer().Marshal(tx)
-		if err != nil {
-			log.Warn("node.sendBulkTransactions",
-				"marshalizer error", err,
-			)
-			continue
-		}
-
-		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
-	}
-
-	numOfSentTxs := uint64(0)
-	for shardId, txsForShard := range transactionsByShards {
-		err := n.sendBulkTransactionsFromShard(txsForShard, shardId)
-		if err != nil {
-			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
-		} else {
-			numOfSentTxs += uint64(len(txsForShard))
-		}
-	}
+	return n.processComponents.TxsSenderHandler().SendBulkTransactions(txs)
 }
 
 // ValidateTransaction will validate a transaction
@@ -803,43 +667,6 @@ func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
 	if senderShardID != shardCoordinator.SelfId() {
 		return fmt.Errorf("%w, tx sender shard ID: %d, node's shard ID %d",
 			ErrDifferentSenderShardId, senderShardID, shardCoordinator.SelfId())
-	}
-
-	return nil
-}
-
-func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.coreComponents.InternalMarshalizer())
-	if err != nil {
-		return err
-	}
-
-	// the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
-
-	packets, err := dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
-	if err != nil {
-		return err
-	}
-
-	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
-	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			log.Trace("node.sendBulkTransactionsFromShard",
-				"topic", identifier,
-				"size", len(bufferToSend),
-			)
-			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
-				SendTransactionsPipe,
-				identifier,
-				bufferToSend,
-			)
-			if err != nil {
-				log.Debug("node.BroadcastOnChannelBlocking", "error", err.Error())
-			}
-
-			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
-		}(buff)
 	}
 
 	return nil
@@ -1181,8 +1008,6 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 
 // Close closes all underlying components
 func (n *Node) Close() error {
-	n.cancelFunc()
-
 	for _, qh := range n.queryHandlers {
 		log.LogIfError(qh.Close())
 	}

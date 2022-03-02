@@ -63,9 +63,6 @@ type NodeHandler interface {
 	// SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
-	// GetTransaction will return a transaction based on the hash
-	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
 	GetAccount(address string) (api.AccountResponse, error)
@@ -90,10 +87,6 @@ type NodeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 
-	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
-	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
-
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
@@ -113,6 +106,10 @@ type ApiResolver interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)
 	Close() error
 	IsInterfaceNil() bool
 }

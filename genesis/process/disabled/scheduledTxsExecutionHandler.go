@@ -18,9 +18,13 @@ type ScheduledTxsExecutionHandler struct {
 func (steh *ScheduledTxsExecutionHandler) Init() {
 }
 
-// Add does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) Add(_ []byte, _ data.TransactionHandler) bool {
+// AddScheduledTx does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) AddScheduledTx(_ []byte, _ data.TransactionHandler) bool {
 	return true
+}
+
+// AddScheduledMiniBlocks does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) AddScheduledMiniBlocks(_ block.MiniBlockSlice) {
 }
 
 // Execute does nothing as it is a disabled component
@@ -33,9 +37,14 @@ func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration) err
 	return nil
 }
 
-// GetScheduledSCRs does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
+// GetScheduledIntermediateTxs does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler {
 	return make(map[block.Type][]data.TransactionHandler)
+}
+
+// GetScheduledMiniBlocks does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledMiniBlocks() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
 }
 
 // GetScheduledGasAndFees returns a zero value structure for the gas and fees
@@ -49,8 +58,8 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledGasAndFees() scheduled.Gas
 	}
 }
 
-// SetScheduledRootHashSCRsGasAndFees does nothing as it is disabled
-func (steh *ScheduledTxsExecutionHandler) SetScheduledRootHashSCRsGasAndFees(_ []byte, _ map[block.Type][]data.TransactionHandler, _ scheduled.GasAndFees) {
+// SetScheduledInfo does nothing as it is disabled
+func (steh *ScheduledTxsExecutionHandler) SetScheduledInfo(_ *process.ScheduledInfo) {
 }
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
@@ -70,9 +79,7 @@ func (steh *ScheduledTxsExecutionHandler) SaveStateIfNeeded(_ []byte) {
 // SaveState does nothing as it is disabled
 func (steh *ScheduledTxsExecutionHandler) SaveState(
 	_ []byte,
-	_ []byte,
-	_ map[block.Type][]data.TransactionHandler,
-	_ scheduled.GasAndFees,
+	_ *process.ScheduledInfo,
 ) {
 }
 
@@ -99,6 +106,11 @@ func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.Tr
 
 // IsScheduledTx always returns false as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) IsScheduledTx(_ []byte) bool {
+	return false
+}
+
+// IsMiniBlockExecuted always returns false as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) IsMiniBlockExecuted(_ []byte) bool {
 	return false
 }
 

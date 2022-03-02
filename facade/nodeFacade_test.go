@@ -225,7 +225,10 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
-	node := &mock.NodeStub{
+	node := &mock.NodeStub{}
+
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
@@ -233,8 +236,6 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 			return nil, nil
 		},
 	}
-
-	arg := createMockArguments()
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
@@ -248,7 +249,8 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
-	node := &mock.NodeStub{
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
@@ -256,9 +258,6 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 			return nil, nil
 		},
 	}
-
-	arg := createMockArguments()
-	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
 	tx, err := nf.GetTransaction("unknownHash", false)
@@ -340,14 +339,12 @@ func TestNodeFacade_GetHeartbeats(t *testing.T) {
 				{
 					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
 					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
@@ -1029,7 +1026,7 @@ func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
 		Nonce: 2,
 	}
 
-	arg.Node = &mock.NodeStub{
+	arg.ApiResolver = &mock.ApiResolverStub{
 		GetBlockByRoundCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return blk, nil
 		},
