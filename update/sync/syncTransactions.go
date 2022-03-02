@@ -165,10 +165,16 @@ func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) i
 	switch mbType {
 	case block.TxBlock:
 		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
+		// TODO - uncomment this
+		// ts.requestHandler.RequestTransaction(miniBlock.ReceiverShardID, missingTxs)
 	case block.SmartContractResultBlock:
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
+		// TODO - uncomment this
+		// ts.requestHandler.RequestUnsignedTransactions(miniBlock.ReceiverShardID, missingTxs)
 	case block.RewardsBlock:
 		ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
+		// TODO - uncomment this
+		// ts.requestHandler.RequestRewardTransactions(miniBlock.ReceiverShardID, missingTxs)
 	}
 
 	return len(missingTxs)

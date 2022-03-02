@@ -1099,6 +1099,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 	storageService := disabled.NewChainStorer()
 
+	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:            e.shardCoordinator,
 		Messenger:                   e.messenger,

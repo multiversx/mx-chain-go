@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("dataretriever/requesthandlers")
 const bytesInUint32 = 4
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
-//TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
+// TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
 	mutEpoch              sync.RWMutex
@@ -568,8 +568,8 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataR
 		return nil, dataRetriever.ErrBadRequest
 	}
 
-	//requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
-	//the cross shard id
+	// requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
+	// the cross shard id
 	crossShardID := core.MetachainShardId
 	if isMetachainNode {
 		crossShardID = shardID

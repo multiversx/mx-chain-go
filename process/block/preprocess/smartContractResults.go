@@ -206,8 +206,8 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 			scr.scrPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
-		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
-		//would create problems or not
+		// TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		// would create problems or not
 		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
 			miniBlockHash, errHash := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
 			if errHash != nil {
@@ -333,6 +333,7 @@ func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		// TODO remove L337-L342
 		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
 			continue
 		}
