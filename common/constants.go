@@ -29,6 +29,10 @@ const ObserverList PeerType = "observer"
 // NewList -
 const NewList PeerType = "new"
 
+// AuctionList represents the list of peers which don't participate in consensus yet, but will be selected
+// based on their top up stake
+const AuctionList PeerType = "auction"
+
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
 

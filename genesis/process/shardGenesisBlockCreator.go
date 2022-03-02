@@ -113,6 +113,7 @@ func createGenesisConfig() config.EnableEpochs {
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 		StakeLimitsEnableEpoch:                            unreachableEpoch,
+		StakingV4InitEnableEpoch:                          unreachableEpoch,
 	}
 }
 

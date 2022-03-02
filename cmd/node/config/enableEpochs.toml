@@ -187,6 +187,10 @@
     # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
     StakeLimitsEnableEpoch = 5
 
+    # StakingV4InitEnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
+    # all nodes from staking queue are moved in the auction list
+    StakingV4InitEnableEpoch = 4
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
