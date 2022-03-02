@@ -253,7 +253,7 @@ func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte,
 	return res.sendData(dataBuff, hashesBuff, 0, 0, pid)
 }
 
-// sendLargeDataBuff splits dataBuff into chunks and sends a message for first chunk
+// sendLargeDataBuff splits dataBuff into chunks and sends a message for the first chunk
 func (res *peerAuthenticationResolver) sendLargeDataBuff(dataBuff [][]byte, reference []byte, chunkSize int, pid core.PeerID) error {
 	maxChunks := res.getMaxChunks(dataBuff)
 	chunk, err := res.extractChunk(dataBuff, 0, chunkSize, maxChunks)
