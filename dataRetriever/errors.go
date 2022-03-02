@@ -238,3 +238,6 @@ var InvalidChunkIndex = errors.New("invalid chunk index")
 
 // ErrInvalidNumOfPeerAuthentication signals that an invalid number of peer authentication was provided
 var ErrInvalidNumOfPeerAuthentication = errors.New("invalid num of peer authentication")
+
+// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
+var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")

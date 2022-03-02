@@ -72,6 +72,8 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
+	// TODO: move the peerShardMapper creation before boostrapComponents
+	peerShardMapper := disabled.NewPeerShardMapper()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:               args.CoreComponents,
@@ -100,6 +102,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		PeerSignatureHandler:         cryptoComponents.PeerSignatureHandler(),
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerShardMapper:              peerShardMapper,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

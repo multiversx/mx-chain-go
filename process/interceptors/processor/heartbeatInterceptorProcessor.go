@@ -36,12 +36,12 @@ func (hip *heartbeatInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 
 // Save will save the intercepted heartbeat inside the heartbeat cacher
 func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
-	interceptedHeartbeat, ok := data.(interceptedDataSizeHandler)
+	interceptedHeartbeat, ok := data.(interceptedDataMessageHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	hip.heartbeatCacher.Put(fromConnectedPeer.Bytes(), interceptedHeartbeat, interceptedHeartbeat.SizeInBytes())
+	hip.heartbeatCacher.Put(fromConnectedPeer.Bytes(), interceptedHeartbeat.Message(), interceptedHeartbeat.SizeInBytes())
 	return nil
 }
 

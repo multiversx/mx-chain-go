@@ -12,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -23,6 +24,7 @@ type ArgPeerAuthenticationResolver struct {
 	ArgBaseResolver
 	PeerAuthenticationPool               storage.Cacher
 	NodesCoordinator                     dataRetriever.NodesCoordinator
+	PeerShardMapper                      process.PeerShardMapper
 	MaxNumOfPeerAuthenticationInResponse int
 }
 
@@ -32,6 +34,7 @@ type peerAuthenticationResolver struct {
 	messageProcessor
 	peerAuthenticationPool               storage.Cacher
 	nodesCoordinator                     dataRetriever.NodesCoordinator
+	peerShardMapper                      process.PeerShardMapper
 	maxNumOfPeerAuthenticationInResponse int
 }
 
@@ -54,6 +57,7 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 		},
 		peerAuthenticationPool:               arg.PeerAuthenticationPool,
 		nodesCoordinator:                     arg.NodesCoordinator,
+		peerShardMapper:                      arg.PeerShardMapper,
 		maxNumOfPeerAuthenticationInResponse: arg.MaxNumOfPeerAuthenticationInResponse,
 	}, nil
 }
@@ -68,6 +72,9 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	}
 	if check.IfNil(arg.NodesCoordinator) {
 		return dataRetriever.ErrNilNodesCoordinator
+	}
+	if check.IfNil(arg.PeerShardMapper) {
+		return dataRetriever.ErrNilPeerShardMapper
 	}
 	if arg.MaxNumOfPeerAuthenticationInResponse < minNumOfPeerAuthentication {
 		return dataRetriever.ErrInvalidNumOfPeerAuthentication
@@ -91,11 +98,22 @@ func (res *peerAuthenticationResolver) RequestDataFromChunk(chunkIndex uint32, e
 	chunkBuffer := make([]byte, bytesInUint32)
 	binary.BigEndian.PutUint32(chunkBuffer, chunkIndex)
 
+	b := &batch.Batch{
+		Data: make([][]byte, 1),
+	}
+	b.Data[0] = chunkBuffer
+
+	dataBuff, err := res.marshalizer.Marshal(b)
+	if err != nil {
+		return err
+	}
+
 	return res.SendOnRequestTopic(
 		&dataRetriever.RequestData{
 			Type:       dataRetriever.ChunkType,
 			ChunkIndex: chunkIndex,
 			Epoch:      epoch,
+			Value:      dataBuff,
 		},
 		[][]byte{chunkBuffer},
 	)
@@ -235,20 +253,15 @@ func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte,
 	return res.sendData(dataBuff, hashesBuff, 0, 0, pid)
 }
 
-// sendLargeDataBuff splits dataBuff into chunks and sends a message for each
+// sendLargeDataBuff splits dataBuff into chunks and sends a message for the first chunk
 func (res *peerAuthenticationResolver) sendLargeDataBuff(dataBuff [][]byte, reference []byte, chunkSize int, pid core.PeerID) error {
 	maxChunks := res.getMaxChunks(dataBuff)
-	for chunkIndex := 0; chunkIndex < maxChunks; chunkIndex++ {
-		chunk, err := res.extractChunk(dataBuff, chunkIndex, chunkSize, maxChunks)
-		if err != nil {
-			return err
-		}
-		err = res.sendData(chunk, reference, 0, 0, pid)
-		if err != nil {
-			return err
-		}
+	chunk, err := res.extractChunk(dataBuff, 0, chunkSize, maxChunks)
+	if err != nil {
+		return err
 	}
-	return nil
+
+	return res.sendData(chunk, reference, 0, maxChunks, pid)
 }
 
 // getMaxChunks returns the max num of chunks from a buffer
@@ -295,7 +308,12 @@ func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKey
 
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists
 func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []byte) ([]byte, error) {
-	value, ok := res.peerAuthenticationPool.Peek(pk)
+	pid, ok := res.peerShardMapper.GetLastKnownPeerID(pk)
+	if !ok {
+		return nil, dataRetriever.ErrPeerAuthNotFound
+	}
+
+	value, ok := res.peerAuthenticationPool.Peek(pid.Bytes())
 	if ok {
 		return res.marshalizer.Marshal(value)
 	}

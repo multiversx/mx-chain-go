@@ -232,6 +232,7 @@ type Connectable interface {
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator sharding.NodesCoordinator
+	PeerShardMapper  process.PeerShardMapper
 	NodesSetup       sharding.GenesisNodesSetupHandler
 	Messenger        p2p.Messenger
 
@@ -415,6 +416,7 @@ func newBaseTestProcessorNode(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		PeerShardMapper:         mock.NewNetworkShardingCollectorMock(),
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -1230,6 +1232,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
+			PeerShardMapper:              tpn.PeerShardMapper,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1289,6 +1292,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
+			PeerShardMapper:              tpn.PeerShardMapper,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -1326,6 +1330,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		},
 		NodesCoordinator:                     tpn.NodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: 5,
+		PeerShardMapper:                      tpn.PeerShardMapper,
 	}
 
 	var err error

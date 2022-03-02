@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
@@ -331,8 +332,11 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		log.Info("args", "pid", argsBase.messenger.ID().Pretty(), "bls sk", skBytes, "bls pk", pkBytes)
 
 		// verify the received bytes if they can be converted in a valid peer authentication message
+		recoveredBatch := batch.Batch{}
+		err = argsBase.marshaller.Unmarshal(&recoveredBatch, buffResulted)
+		assert.Nil(t, err)
 		recoveredMessage := &heartbeat.PeerAuthentication{}
-		err = argsBase.marshaller.Unmarshal(recoveredMessage, buffResulted)
+		err = argsBase.marshaller.Unmarshal(recoveredMessage, recoveredBatch.Data[0])
 		assert.Nil(t, err)
 		assert.Equal(t, pkBytes, recoveredMessage.Pubkey)
 		assert.Equal(t, argsBase.messenger.ID().Pretty(), core.PeerID(recoveredMessage.Pid).Pretty())

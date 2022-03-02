@@ -1171,8 +1171,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return paResolver, errExpected
 				},
@@ -1199,8 +1198,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return mbResolver, nil
 				},
@@ -1228,8 +1226,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
@@ -1264,8 +1261,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
@@ -1299,8 +1295,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return paResolver, errExpected
 				},
@@ -1327,10 +1322,9 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
-					return mbResolver, nil
+					return mbResolver, errExpected
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
@@ -1356,8 +1350,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
@@ -1392,8 +1385,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
-				CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
-					assert.Equal(t, providedShardId, crossShard)
+				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},

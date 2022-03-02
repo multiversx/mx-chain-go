@@ -25,3 +25,8 @@ type ShardedPool interface {
 type interceptedDataSizeHandler interface {
 	SizeInBytes() int
 }
+
+type interceptedDataMessageHandler interface {
+	interceptedDataSizeHandler
+	Message() interface{}
+}

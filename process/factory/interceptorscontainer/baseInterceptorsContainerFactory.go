@@ -40,6 +40,7 @@ type baseInterceptorsContainerFactory struct {
 	preferredPeersHolder   process.PreferredPeersHolderHandler
 	hasher                 hashing.Hasher
 	requestHandler         process.RequestHandler
+	peerShardMapper        process.PeerShardMapper
 }
 
 func checkBaseParams(
@@ -57,6 +58,7 @@ func checkBaseParams(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	preferredPeersHolder process.PreferredPeersHolderHandler,
 	requestHandler process.RequestHandler,
+	peerShardMapper process.PeerShardMapper,
 ) error {
 	if check.IfNil(coreComponents) {
 		return process.ErrNilCoreComponentsHolder
@@ -138,6 +140,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(requestHandler) {
 		return process.ErrNilRequestHandler
+	}
+	if check.IfNil(peerShardMapper) {
+		return process.ErrNilPeerShardMapper
 	}
 
 	return nil
@@ -588,6 +593,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 
 	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
+		PeerShardMapper:          bicf.peerShardMapper,
 	}
 	peerAuthenticationProcessor, err := processor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
 	if err != nil {

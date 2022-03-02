@@ -37,6 +37,7 @@ func NewShardInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
+		args.PeerShardMapper,
 	)
 	if err != nil {
 		return nil, err
@@ -115,6 +116,7 @@ func NewShardInterceptorsContainerFactory(
 		preferredPeersHolder:   args.PreferredPeersHolder,
 		hasher:                 args.CoreComponents.Hasher(),
 		requestHandler:         args.RequestHandler,
+		peerShardMapper:        args.PeerShardMapper,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

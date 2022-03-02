@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,6 +48,12 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 			},
 		},
 		MaxNumOfPeerAuthenticationInResponse: 5,
+		PeerShardMapper: &processMock.PeerShardMapperStub{
+			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+				pid := core.PeerID("pid")
+				return &pid, true
+			},
+		},
 	}
 }
 
@@ -128,6 +135,15 @@ func TestNewPeerAuthenticationResolver(t *testing.T) {
 		arg.MaxNumOfPeerAuthenticationInResponse = 1
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Equal(t, dataRetriever.ErrInvalidNumOfPeerAuthentication, err)
+		assert.Nil(t, res)
+	})
+	t.Run("nil PeerShardMapper should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgPeerAuthenticationResolver()
+		arg.PeerShardMapper = nil
+		res, err := resolvers.NewPeerAuthenticationResolver(arg)
+		assert.Equal(t, dataRetriever.ErrNilPeerShardMapper, err)
 		assert.Nil(t, res)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -451,6 +467,13 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
+			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+				pid := core.PeerID(pk)
+				return &pid, true
+			},
+		}
+
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
@@ -509,18 +532,19 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				b := &batch.Batch{}
 				err := arg.Marshalizer.Unmarshal(b, buff)
 				assert.Nil(t, err)
-				if messagesSent == 0 {
-					// first message is full
-					assert.Equal(t, arg.MaxNumOfPeerAuthenticationInResponse, len(b.Data))
-				}
-				if messagesSent == 1 {
-					// second message is len(providedKeys)%MaxNumOfPeerAuthenticationInResponse
-					assert.Equal(t, len(providedKeys)%arg.MaxNumOfPeerAuthenticationInResponse, len(b.Data))
-				}
+				assert.Equal(t, arg.MaxNumOfPeerAuthenticationInResponse, len(b.Data))
+
 				messagesSent++
 				return nil
 			},
 		}
+		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
+			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+				pid := core.PeerID(pk)
+				return &pid, true
+			},
+		}
+
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
@@ -531,7 +555,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		err = res.ProcessReceivedMessage(createRequestMsgWithChunkIndex(dataRetriever.HashArrayType, providedHashes, epoch, chunkIndex), fromConnectedPeer)
 		assert.Nil(t, err)
-		assert.Equal(t, 2, messagesSent)
+		assert.Equal(t, 1, messagesSent) // only one message sent
 	})
 }
 
