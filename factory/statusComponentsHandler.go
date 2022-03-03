@@ -203,9 +203,13 @@ func registerPollConnectedPeers(
 		if check.IfNil(networkComponents) {
 			return
 		}
+		netMessenger := networkComponents.NetworkMessenger()
+		if check.IfNil(netMessenger) {
+			return
+		}
 
-		computeNumConnectedPeers(appStatusHandler, networkComponents)
-		computeConnectedPeers(appStatusHandler, networkComponents)
+		computeNumConnectedPeers(appStatusHandler, netMessenger)
+		computeConnectedPeers(appStatusHandler, netMessenger)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
@@ -239,17 +243,17 @@ func registerShardsInformation(
 
 func computeNumConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents NetworkComponentsHolder,
+	netMessenger p2p.Messenger,
 ) {
-	numOfConnectedPeers := uint64(len(networkComponents.NetworkMessenger().ConnectedAddresses()))
+	numOfConnectedPeers := uint64(len(netMessenger.ConnectedAddresses()))
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, numOfConnectedPeers)
 }
 
 func computeConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents NetworkComponentsHolder,
+	netMessenger p2p.Messenger,
 ) {
-	peersInfo := networkComponents.NetworkMessenger().GetConnectedPeersInfo()
+	peersInfo := netMessenger.GetConnectedPeersInfo()
 
 	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,fullObs:%d,unknown:%d,",
 		len(peersInfo.IntraShardValidators),
@@ -263,7 +267,7 @@ func computeConnectedPeers(
 	appStatusHandler.SetStringValue(common.MetricP2PNumConnectedPeersClassification, peerClassification)
 
 	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo)
-	setCurrentP2pNodeAddresses(appStatusHandler, networkComponents)
+	setCurrentP2pNodeAddresses(appStatusHandler, netMessenger)
 }
 
 func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
@@ -299,9 +303,9 @@ func mapToString(input map[uint32][]string) string {
 
 func setCurrentP2pNodeAddresses(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents NetworkComponentsHolder,
+	netMessenger p2p.Messenger,
 ) {
-	appStatusHandler.SetStringValue(common.MetricP2PPeerInfo, sliceToString(networkComponents.NetworkMessenger().Addresses()))
+	appStatusHandler.SetStringValue(common.MetricP2PPeerInfo, sliceToString(netMessenger.Addresses()))
 }
 
 func registerPollProbableHighestNonce(
