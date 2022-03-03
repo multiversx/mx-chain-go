@@ -16,8 +16,9 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 
 	interactingNodes := 3
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes)
+		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes, p2pConfig)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -42,8 +43,9 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 
 	interactingNodes := 3
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes)
+		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes, p2pConfig)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -57,7 +59,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	checkMessages(t, nodes, maxMessageAgeAllowed)
 
 	// Add new delayed node which requests messages
-	delayedNode := integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes+1)
+	delayedNode := integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes+1, p2pConfig)
 	nodes = append(nodes, delayedNode)
 	connectNodes(nodes, len(nodes))
 	// Wait for messages to broadcast and requests to finish

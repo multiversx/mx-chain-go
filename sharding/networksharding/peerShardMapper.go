@@ -41,7 +41,7 @@ type PeerShardMapper struct {
 	fallbackPkShardCache     storage.Cacher
 	fallbackPidShardCache    storage.Cacher
 	peerIdSubTypeCache       storage.Cacher
-	mutUpdatePeerIdPublicKey sync.Mutex
+	mutUpdatePeerIdPublicKey sync.RWMutex
 
 	mutEpoch             sync.RWMutex
 	epoch                uint32
@@ -236,6 +236,9 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 
 // GetPeerID returns the newest updated peer id for the given public key
 func (psm *PeerShardMapper) GetPeerID(pk []byte) (*core.PeerID, bool) {
+	psm.mutUpdatePeerIdPublicKey.RLock()
+	defer psm.mutUpdatePeerIdPublicKey.RUnlock()
+
 	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
 	if !found {
 		return nil, false
@@ -247,7 +250,12 @@ func (psm *PeerShardMapper) GetPeerID(pk []byte) (*core.PeerID, bool) {
 		return nil, false
 	}
 
-	latestPeerId := &pq.data[pq.size()-1]
+	if len(pq.data) == 0 {
+		log.Warn("PeerShardMapper.GetPeerID: empty pidQueue element")
+		return nil, false
+	}
+
+	latestPeerId := &pq.data[len(pq.data)-1]
 	return latestPeerId, true
 }
 
@@ -326,7 +334,7 @@ func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) bo
 		psm.peerIdPkCache.Remove([]byte(evictedPid))
 		psm.fallbackPidShardCache.Remove([]byte(evictedPid))
 	}
-	psm.pkPeerIdCache.Put(pk, pq, pq.size())
+	psm.pkPeerIdCache.Put(pk, pq, pq.dataSizeInBytes())
 	psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
 
 	return isNew
@@ -362,7 +370,7 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) []byte {
 		return oldPkBuff
 	}
 
-	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.size())
+	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.dataSizeInBytes())
 	return oldPkBuff
 }
 

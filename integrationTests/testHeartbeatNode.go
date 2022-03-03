@@ -29,6 +29,7 @@ import (
 	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -55,6 +56,7 @@ const (
 // TestMarshaller represents the main marshaller
 var TestMarshaller = &testscommon.MarshalizerMock{}
 
+// TestThrottler -
 var TestThrottler = &processMock.InterceptorThrottlerStub{
 	CanProcessCalled: func() bool {
 		return true
@@ -89,6 +91,7 @@ func NewTestHeartbeatNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	minPeersWaiting int,
+	p2pConfig config.P2PConfig,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	sk, pk := keygen.GeneratePair()
@@ -130,8 +133,27 @@ func NewTestHeartbeatNode(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithNoDiscovery()
-	peerShardMapper := mock.NewNetworkShardingCollectorMock()
+	messenger := CreateMessengerFromConfig(p2pConfig)
+	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	startInEpoch := uint32(0)
+	arg := networksharding.ArgPeerShardMapper{
+		PeerIdPkCache:         pidPk,
+		FallbackPkShardCache:  pkShardId,
+		FallbackPidShardCache: pidShardId,
+		NodesCoordinator:      nodesCoordinator,
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		StartEpoch:            startInEpoch,
+	}
+	peerShardMapper, err := networksharding.NewPeerShardMapper(arg)
+	if err != nil {
+		log.Error("error creating NewPeerShardMapper", "error", err)
+	}
+	err = messenger.SetPeerShardResolver(peerShardMapper)
+	if err != nil {
+		log.Error("error setting NewPeerShardMapper in p2p messenger", "error", err)
+	}
 
 	thn := &TestHeartbeatNode{
 		ShardCoordinator: shardCoordinator,
