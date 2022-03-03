@@ -1073,3 +1073,6 @@ var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blo
 
 // ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
 var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")
+
+// ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
+var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
