@@ -372,7 +372,6 @@ func CreateNodesWithTestHeartbeatNode(
 			nodesList[i] = NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
-				0,
 				p2pConfig,
 				nodesCoordinator,
 				*kp,
@@ -415,7 +414,6 @@ func CreateNodesWithTestHeartbeatNode(
 			n := NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
-				0,
 				p2pConfig,
 				nodesCoordinator,
 				createCryptoPair(),

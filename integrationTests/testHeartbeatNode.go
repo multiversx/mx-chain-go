@@ -174,7 +174,7 @@ func NewTestHeartbeatNode(
 	}
 
 	// start a go routine in order to allow peers to connect first
-	go thn.initTestHeartbeatNode(minPeersWaiting)
+	go thn.InitTestHeartbeatNode(minPeersWaiting)
 
 	return thn
 }
@@ -184,7 +184,6 @@ func NewTestHeartbeatNode(
 func NewTestHeartbeatNodeWithCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
-	minPeersWaiting int,
 	p2pConfig config.P2PConfig,
 	coordinator sharding.NodesCoordinator,
 	keys TestKeyPair,
@@ -247,13 +246,11 @@ func NewTestHeartbeatNodeWithCoordinator(
 
 	thn.NodeKeys = keys
 
-	// start a go routine in order to allow peers to connect first
-	go thn.initTestHeartbeatNode(minPeersWaiting)
-
 	return thn
 }
 
-func (thn *TestHeartbeatNode) initTestHeartbeatNode(minPeersWaiting int) {
+// InitTestHeartbeatNode initializes all the components and starts sender
+func (thn *TestHeartbeatNode) InitTestHeartbeatNode(minPeersWaiting int) {
 	thn.initStorage()
 	thn.initDataPools()
 	thn.initRequestedItemsHandler()
