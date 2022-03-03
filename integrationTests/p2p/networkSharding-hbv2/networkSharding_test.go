@@ -67,7 +67,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{seedAddress}
 
 	// create map of shard - testHeartbeatNodes for metachain and shard chain
-	nodesMap := integrationTests.CreateNodesWithTestP2PNodes(
+	nodesMap := integrationTests.CreateNodesWithTestHeartbeatNode(
 		nodesPerShard,
 		numMetaNodes,
 		numShards,
@@ -91,7 +91,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	time.Sleep(p2pBootstrapStepDelay)
 
 	for i := 0; i < 15; i++ {
-		fmt.Println("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
+		fmt.Println("\n" + integrationTests.MakeDisplayTableForHeartbeatNodes(nodesMap))
 
 		time.Sleep(time.Second)
 	}
@@ -101,7 +101,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	sendMessagesOnCrossShardTopic(nodesMap)
 
 	for i := 0; i < 10; i++ {
-		fmt.Println("\n" + integrationTests.MakeDisplayTableForP2PNodes(nodesMap))
+		fmt.Println("\n" + integrationTests.MakeDisplayTableForHeartbeatNodes(nodesMap))
 
 		time.Sleep(time.Second)
 	}
@@ -110,7 +110,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	testUnknownSeederPeers(t, nodesMap)
 }
 
-func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	_ = advertiser.Close()
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
@@ -119,7 +119,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 	}
 }
 
-func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+func startNodes(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
 			_ = n.Messenger.Bootstrap()
@@ -127,7 +127,7 @@ func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
 	}
 }
 
-func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
 			n.CreateTestInterceptors()
@@ -135,13 +135,13 @@ func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.Te
 	}
 }
 
-func sendMessageOnGlobalTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+func sendMessageOnGlobalTopic(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	fmt.Println("sending a message on global topic")
 	nodesMap[0][0].Messenger.Broadcast(integrationTests.GlobalTopic, []byte("global message"))
 	time.Sleep(time.Second)
 }
 
-func sendMessagesOnIntraShardTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+func sendMessagesOnIntraShardTopic(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	fmt.Println("sending a message on intra shard topic")
 	for _, nodes := range nodesMap {
 		n := nodes[0]
@@ -153,7 +153,7 @@ func sendMessagesOnIntraShardTopic(nodesMap map[uint32][]*integrationTests.TestP
 	time.Sleep(time.Second)
 }
 
-func sendMessagesOnCrossShardTopic(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+func sendMessagesOnCrossShardTopic(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	fmt.Println("sending messages on cross shard topics")
 
 	for shardIdSrc, nodes := range nodesMap {
@@ -174,7 +174,7 @@ func sendMessagesOnCrossShardTopic(nodesMap map[uint32][]*integrationTests.TestP
 
 func testCounters(
 	t *testing.T,
-	nodesMap map[uint32][]*integrationTests.TestP2PNode,
+	nodesMap map[uint32][]*integrationTests.TestHeartbeatNode,
 	globalTopicMessagesCount int,
 	intraTopicMessagesCount int,
 	crossTopicMessagesCount int,
@@ -191,7 +191,7 @@ func testCounters(
 
 func testUnknownSeederPeers(
 	t *testing.T,
-	nodesMap map[uint32][]*integrationTests.TestP2PNode,
+	nodesMap map[uint32][]*integrationTests.TestHeartbeatNode,
 ) {
 
 	for _, nodes := range nodesMap {

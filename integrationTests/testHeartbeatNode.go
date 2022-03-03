@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -68,14 +70,13 @@ var TestThrottler = &processMock.InterceptorThrottlerStub{
 type TestHeartbeatNode struct {
 	ShardCoordinator      sharding.Coordinator
 	NodesCoordinator      sharding.NodesCoordinator
-	PeerShardMapper       process.PeerShardMapper
+	PeerShardMapper       process.NetworkShardingCollector
 	Messenger             p2p.Messenger
 	NodeKeys              TestKeyPair
 	DataPool              dataRetriever.PoolsHolder
 	Sender                factory.HeartbeatV2Sender
 	PeerAuthInterceptor   *interceptors.MultiDataInterceptor
 	HeartbeatInterceptor  *interceptors.MultiDataInterceptor
-	PeerAuthResolver      dataRetriever.PeerAuthenticationResolver
 	PeerSigHandler        crypto.PeerSignatureHandler
 	WhiteListHandler      process.WhiteListHandler
 	Storage               dataRetriever.StorageService
@@ -84,6 +85,7 @@ type TestHeartbeatNode struct {
 	RequestHandler        process.RequestHandler
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 	RequestsProcessor     factory.PeerAuthenticationRequestsProcessor
+	Interceptor           *CountInterceptor
 }
 
 // NewTestHeartbeatNode returns a new TestHeartbeatNode instance with a libp2p messenger
@@ -163,10 +165,87 @@ func NewTestHeartbeatNode(
 		PeerShardMapper:  peerShardMapper,
 	}
 
+	localId := thn.Messenger.ID()
+	thn.PeerShardMapper.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
+
 	thn.NodeKeys = TestKeyPair{
 		Sk: sk,
 		Pk: pk,
 	}
+
+	// start a go routine in order to allow peers to connect first
+	go thn.initTestHeartbeatNode(minPeersWaiting)
+
+	return thn
+}
+
+// NewTestHeartbeatNodeWithCoordinator returns a new TestHeartbeatNode instance with a libp2p messenger
+// using provided coordinator and keys
+func NewTestHeartbeatNodeWithCoordinator(
+	maxShards uint32,
+	nodeShardId uint32,
+	minPeersWaiting int,
+	p2pConfig config.P2PConfig,
+	coordinator sharding.NodesCoordinator,
+	keys TestKeyPair,
+) *TestHeartbeatNode {
+	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
+	pksBytes := make(map[uint32][]byte, maxShards)
+	pksBytes[nodeShardId], _ = keys.Pk.ToByteArray()
+
+	singleSigner := singlesig.NewBlsSigner()
+
+	peerSigHandler := &cryptoMocks.PeerSignatureHandlerStub{
+		VerifyPeerSignatureCalled: func(pk []byte, pid core.PeerID, signature []byte) error {
+			senderPubKey, err := keygen.PublicKeyFromByteArray(pk)
+			if err != nil {
+				return err
+			}
+			return singleSigner.Verify(senderPubKey, pid.Bytes(), signature)
+		},
+		GetPeerSignatureCalled: func(privateKey crypto.PrivateKey, pid []byte) ([]byte, error) {
+			return singleSigner.Sign(privateKey, pid)
+		},
+	}
+
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+
+	messenger := CreateMessengerFromConfig(p2pConfig)
+	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	startInEpoch := uint32(0)
+	arg := networksharding.ArgPeerShardMapper{
+		PeerIdPkCache:         pidPk,
+		FallbackPkShardCache:  pkShardId,
+		FallbackPidShardCache: pidShardId,
+		NodesCoordinator:      coordinator,
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
+		StartEpoch:            startInEpoch,
+	}
+	peerShardMapper, err := networksharding.NewPeerShardMapper(arg)
+	if err != nil {
+		log.Error("error creating NewPeerShardMapper", "error", err)
+	}
+	err = messenger.SetPeerShardResolver(peerShardMapper)
+	if err != nil {
+		log.Error("error setting NewPeerShardMapper in p2p messenger", "error", err)
+	}
+
+	thn := &TestHeartbeatNode{
+		ShardCoordinator: shardCoordinator,
+		NodesCoordinator: coordinator,
+		Messenger:        messenger,
+		PeerSigHandler:   peerSigHandler,
+		PeerShardMapper:  peerShardMapper,
+		Interceptor:      NewCountInterceptor(),
+	}
+
+	localId := thn.Messenger.ID()
+	thn.PeerShardMapper.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
+
+	thn.NodeKeys = keys
 
 	// start a go routine in order to allow peers to connect first
 	go thn.initTestHeartbeatNode(minPeersWaiting)
@@ -355,8 +434,7 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 		},
 	)
 
-	_ = thn.Messenger.CreateTopic(topic, true)
-	_ = thn.Messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, mdInterceptor)
+	thn.registerTopicValidator(topic, mdInterceptor)
 
 	return mdInterceptor
 }
@@ -394,6 +472,108 @@ func (thn *TestHeartbeatNode) GetConnectableAddress() string {
 	}
 
 	return GetConnectableAddress(thn.Messenger)
+}
+
+// MakeDisplayTableForHeartbeatNodes will output a string containing counters for received messages for all provided test nodes
+func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) string {
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/FullObs/Unk/Sed"}
+	dataLines := make([]*display.LineData, 0)
+
+	for shardId, nodesList := range nodes {
+		for _, n := range nodesList {
+			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
+
+			peerInfo := n.Messenger.GetConnectedPeersInfo()
+
+			pid := n.Messenger.ID().Pretty()
+			lineData := display.NewLineData(
+				false,
+				[]string{
+					core.GetTrimmedPk(hex.EncodeToString(buffPk)),
+					pid[len(pid)-6:],
+					fmt.Sprintf("%d", shardId),
+					fmt.Sprintf("%d", n.CountGlobalMessages()),
+					fmt.Sprintf("%d", n.CountIntraShardMessages()),
+					fmt.Sprintf("%d", n.CountCrossShardMessages()),
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d/%d",
+						len(n.Messenger.ConnectedPeers()),
+						peerInfo.NumIntraShardValidators,
+						peerInfo.NumCrossShardValidators,
+						peerInfo.NumIntraShardObservers,
+						peerInfo.NumCrossShardObservers,
+						peerInfo.NumFullHistoryObservers,
+						len(peerInfo.UnknownPeers),
+						len(peerInfo.Seeders),
+					),
+				},
+			)
+
+			dataLines = append(dataLines, lineData)
+		}
+	}
+	table, _ := display.CreateTableString(header, dataLines)
+
+	return table
+}
+
+// registerTopicValidator registers a message processor instance on the provided topic
+func (thn *TestHeartbeatNode) registerTopicValidator(topic string, processor p2p.MessageProcessor) {
+	err := thn.Messenger.CreateTopic(topic, true)
+	if err != nil {
+		fmt.Printf("error while creating topic %s: %s\n", topic, err.Error())
+		return
+	}
+
+	err = thn.Messenger.RegisterMessageProcessor(topic, "test", processor)
+	if err != nil {
+		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
+		return
+	}
+}
+
+// CreateTestInterceptors creates test interceptors that count the number of received messages
+func (thn *TestHeartbeatNode) CreateTestInterceptors() {
+	thn.registerTopicValidator(GlobalTopic, thn.Interceptor)
+
+	metaIdentifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	thn.registerTopicValidator(metaIdentifier, thn.Interceptor)
+
+	for i := uint32(0); i < thn.ShardCoordinator.NumberOfShards(); i++ {
+		identifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(i)
+		thn.registerTopicValidator(identifier, thn.Interceptor)
+	}
+}
+
+// CountGlobalMessages returns the messages count on the global topic
+func (thn *TestHeartbeatNode) CountGlobalMessages() int {
+	return thn.Interceptor.MessageCount(GlobalTopic)
+}
+
+// CountIntraShardMessages returns the messages count on the intra-shard topic
+func (thn *TestHeartbeatNode) CountIntraShardMessages() int {
+	identifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
+	return thn.Interceptor.MessageCount(identifier)
+}
+
+// CountCrossShardMessages returns the messages count on the cross-shard topics
+func (thn *TestHeartbeatNode) CountCrossShardMessages() int {
+	messages := 0
+
+	if thn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		metaIdentifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+		messages += thn.Interceptor.MessageCount(metaIdentifier)
+	}
+
+	for i := uint32(0); i < thn.ShardCoordinator.NumberOfShards(); i++ {
+		if i == thn.ShardCoordinator.SelfId() {
+			continue
+		}
+
+		metaIdentifier := ShardTopic + thn.ShardCoordinator.CommunicationIdentifier(i)
+		messages += thn.Interceptor.MessageCount(metaIdentifier)
+	}
+
+	return messages
 }
 
 // Close -
