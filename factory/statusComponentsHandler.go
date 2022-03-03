@@ -200,6 +200,10 @@ func registerPollConnectedPeers(
 ) error {
 
 	p2pMetricsHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		if check.IfNil(networkComponents) {
+			return
+		}
+
 		computeNumConnectedPeers(appStatusHandler, networkComponents)
 		computeConnectedPeers(appStatusHandler, networkComponents)
 	}
