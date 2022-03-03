@@ -333,6 +333,12 @@ func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+			continue
+		}
+		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
+			continue
+		}
 
 		err := scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
 		if err != nil {
