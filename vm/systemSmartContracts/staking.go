@@ -1313,9 +1313,7 @@ func (s *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2_0
 func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.flagStakingV4.IsSet() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
-		s.eei.Finish([]byte{0})
-
-		return vmcommon.Ok
+		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
 		s.eei.AddReturnMessage("this is only a view function")
@@ -1383,9 +1381,7 @@ func (s *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 func (s *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.flagStakingV4.IsSet() {
 		s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
-		s.eei.Finish([]byte{0})
-
-		return vmcommon.Ok
+		return vmcommon.UserError
 	}
 
 	if args.CallValue.Cmp(zero) != 0 {

@@ -3353,56 +3353,48 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 	arguments.Arguments = [][]byte{}
 	arguments.Function = "getQueueIndex"
 	retCode := stakingSmartContract.Execute(arguments)
-	require.Equal(t, vmcommon.Ok, retCode)
-	require.Equal(t, []byte{0}, eei.output[0])
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "getQueueSize"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Equal(t, vmcommon.Ok, retCode)
-	require.Equal(t, []byte{0}, eei.output[0])
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "switchJailedWithWaiting"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Empty(t, eei.output)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "resetLastUnJailedFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Empty(t, eei.output)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Empty(t, eei.output)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "cleanAdditionalQueue"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Empty(t, eei.output)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "fixWaitingListQueueSize"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Empty(t, eei.output)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 
 	eei.CleanCache()
 	arguments.Function = "addMissingNodeToQueue"
 	retCode = stakingSmartContract.Execute(arguments)
-	require.Empty(t, eei.output)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
 }
