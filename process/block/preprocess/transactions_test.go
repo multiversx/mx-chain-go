@@ -1614,6 +1614,64 @@ func TestTransactionsPreProcessor_preFilterTransactionsHighBandwidth(t *testing.
 	require.Equal(t, expectedPreFiltered, filteredTxs)
 }
 
+func TestTransactionsPreProcessor_getRemainingGasPerBlock(t *testing.T) {
+	totalGasProvided := uint64(1000)
+	maxGasPerBlock := uint64(100000)
+	expectedGasPerBlock := maxGasPerBlock - totalGasProvided
+	gasHandler := &mock.GasHandlerMock{
+		TotalGasProvidedCalled: func() uint64 {
+			return totalGasProvided
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+			return maxGasPerBlock
+		},
+	}
+
+	txsProcessor := &transactions{
+		basePreProcess: &basePreProcess{
+			gasTracker: gasTracker{
+				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:     economicsFee,
+				gasHandler:       gasHandler,
+			},
+		},
+	}
+
+	gasPerBlock := txsProcessor.getRemainingGasPerBlock()
+	require.Equal(t, expectedGasPerBlock, gasPerBlock)
+}
+
+func TestTransactionsPreProcessor_getRemainingGasPerBlockAsScheduled(t *testing.T) {
+	totalGasProvided := uint64(1000)
+	maxGasPerBlock := uint64(100000)
+	expectedGasPerBlock := maxGasPerBlock - totalGasProvided
+	gasHandler := &mock.GasHandlerMock{
+		TotalGasProvidedAsScheduledCalled: func() uint64 {
+			return totalGasProvided
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+			return maxGasPerBlock
+		},
+	}
+
+	txsProcessor := &transactions{
+		basePreProcess: &basePreProcess{
+			gasTracker: gasTracker{
+				shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+				economicsFee:     economicsFee,
+				gasHandler:       gasHandler,
+			},
+		},
+	}
+
+	gasPerBlock := txsProcessor.getRemainingGasPerBlockAsScheduled()
+	require.Equal(t, expectedGasPerBlock, gasPerBlock)
+}
+
 func createWrappedMoveBalanceTxs(nb int, srcShard uint32, rcvShard uint32, sender []byte, gasCost uint64) []*txcache.WrappedTransaction {
 	txs := make([]*txcache.WrappedTransaction, nb)
 
@@ -1654,4 +1712,28 @@ func createWrappedTxsWithData(nb int, srcShard uint32, rcvShard uint32, sender [
 	}
 
 	return txs
+}
+
+func TestTxsPreprocessor_AddTxsFromMiniBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	txs, _ := NewTransactionPreprocessor(args)
+
+	mbs := []*block.MiniBlock{
+		{
+			Type: block.SmartContractResultBlock,
+		},
+		{
+			Type: block.TxBlock,
+			TxHashes: [][]byte{
+				[]byte("tx1_hash"),
+				[]byte("tx2_hash"),
+				[]byte("tx3_hash"),
+			},
+		},
+	}
+
+	txs.AddTxsFromMiniBlocks(mbs)
+	assert.Equal(t, 2, len(txs.txsForCurrBlock.txHashAndInfo))
 }

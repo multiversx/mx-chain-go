@@ -16,7 +16,6 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -89,6 +88,9 @@ var InitialRating = uint32(50)
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
+// GasSchedulePath --
+const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
+
 var log = logger.GetOrCreate("integrationtests")
 
 // shuffler constants
@@ -127,7 +129,8 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
+			Port:                  "0",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -214,8 +217,9 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "",
+			Port:                  "0",
+			Seed:                  "",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -2102,8 +2106,6 @@ func generateValidTx(
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 
-	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond, log)
-
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -2119,6 +2121,7 @@ func generateValidTx(
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
+	stateComponents.AccountsAPI = accnts
 
 	mockNode, _ := node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -2126,7 +2129,6 @@ func generateValidTx(
 		node.WithCoreComponents(coreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithStateComponents(stateComponents),
-		node.WithTxAccumulator(txAccumulator),
 	)
 
 	tx, err := mockNode.GenerateTransaction(
@@ -2283,7 +2285,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
 func CloseProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		_ = n.Messenger.Close()
+		n.Close()
 	}
 }
 

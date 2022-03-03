@@ -77,7 +77,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -93,7 +93,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	time.Sleep(time.Second)
 
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
@@ -277,7 +277,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BootStorer:     bootstrapStorer,
 		ForkDetector:   &mock.ForkDetectorStub{},
 		BlockProcessor: &mock.BlockProcessorMock{},
-		ChainHandler: &mock.BlockChainMock{
+		ChainHandler: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				if shardID != core.MetachainShardId {
 					return &block.Header{}
@@ -298,6 +298,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		ChainID:                      string(integrationTests.ChainID),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

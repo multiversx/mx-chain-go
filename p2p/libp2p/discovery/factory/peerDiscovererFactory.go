@@ -17,46 +17,46 @@ const defaultSeedersReconnectionInterval = time.Minute * 5
 
 var log = logger.GetOrCreate("p2p/discovery/factory")
 
+// ArgsPeerDiscoverer is the DTO struct used in the NewPeerDiscoverer function
+type ArgsPeerDiscoverer struct {
+	Context            context.Context
+	Host               discovery.ConnectableHost
+	Sharder            p2p.Sharder
+	P2pConfig          config.P2PConfig
+	ConnectionsWatcher p2p.ConnectionsWatcher
+}
+
 // NewPeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
-func NewPeerDiscoverer(
-	context context.Context,
-	host discovery.ConnectableHost,
-	sharder p2p.Sharder,
-	p2pConfig config.P2PConfig,
-) (p2p.PeerDiscoverer, error) {
-	if p2pConfig.KadDhtPeerDiscovery.Enabled {
-		return createKadDhtPeerDiscoverer(context, host, sharder, p2pConfig)
+func NewPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
+	if args.P2pConfig.KadDhtPeerDiscovery.Enabled {
+		return createKadDhtPeerDiscoverer(args)
 	}
 
 	log.Debug("using nil discoverer")
 	return discovery.NewNilDiscoverer(), nil
 }
 
-func createKadDhtPeerDiscoverer(
-	context context.Context,
-	host discovery.ConnectableHost,
-	sharder p2p.Sharder,
-	p2pConfig config.P2PConfig,
-) (p2p.PeerDiscoverer, error) {
+func createKadDhtPeerDiscoverer(args ArgsPeerDiscoverer) (p2p.PeerDiscoverer, error) {
 	arg := discovery.ArgKadDht{
-		Context:                     context,
-		Host:                        host,
-		KddSharder:                  sharder,
-		PeersRefreshInterval:        time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+		Context:                     args.Context,
+		Host:                        args.Host,
+		KddSharder:                  args.Sharder,
+		PeersRefreshInterval:        time.Second * time.Duration(args.P2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 		SeedersReconnectionInterval: defaultSeedersReconnectionInterval,
-		ProtocolID:                  p2pConfig.KadDhtPeerDiscovery.ProtocolID,
-		InitialPeersList:            p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
-		BucketSize:                  p2pConfig.KadDhtPeerDiscovery.BucketSize,
-		RoutingTableRefresh:         time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
+		ProtocolID:                  args.P2pConfig.KadDhtPeerDiscovery.ProtocolID,
+		InitialPeersList:            args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList,
+		BucketSize:                  args.P2pConfig.KadDhtPeerDiscovery.BucketSize,
+		RoutingTableRefresh:         time.Second * time.Duration(args.P2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
+		ConnectionWatcher:           args.ConnectionsWatcher,
 	}
 
-	switch p2pConfig.Sharding.Type {
+	switch args.P2pConfig.Sharding.Type {
 	case p2p.ListsSharder, p2p.OneListSharder, p2p.NilListSharder:
-		return createKadDhtDiscoverer(p2pConfig, arg)
+		return createKadDhtDiscoverer(args.P2pConfig, arg)
 	default:
 		return nil, fmt.Errorf("%w unable to select peer discoverer based on "+
-			"selected sharder: unknown sharder '%s'", p2p.ErrInvalidValue, p2pConfig.Sharding.Type)
+			"selected sharder: unknown sharder '%s'", p2p.ErrInvalidValue, args.P2pConfig.Sharding.Type)
 	}
 }
 

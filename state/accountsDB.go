@@ -16,11 +16,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const (
-	leavesChannelSize = 100
+	leavesChannelSize   = 100
+	lastSnapshotStarted = "lastSnapshot"
 )
 
 var numCheckpointsKey = []byte("state checkpoint")
@@ -78,7 +80,7 @@ type AccountsDB struct {
 	lastRootHash []byte
 	dataTries    common.TriesHolder
 	entries      []JournalEntry
-	//TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
+	// TODO use mutOp only for critical sections, and refactor to parallelize as much as possible
 	mutOp                sync.RWMutex
 	processingMode       common.NodeProcessingMode
 	numCheckpoints       uint32
@@ -143,11 +145,16 @@ func NewAccountsDB(
 }
 
 func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
-	rootHash, err := adb.RootHash()
+	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
 	if err != nil {
-		log.Error("startSnapshotAfterRestart root hash", "error", err)
+		log.Debug("startSnapshotAfterRestart root hash", "error", err)
+
+		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		handleLoggingWhenError("error while putting active DB value into main storer", err)
+
 		return
 	}
+	log.Debug("snapshot hash after restart", "hash", rootHash)
 
 	if tsm.ShouldTakeSnapshot() {
 		log.Debug("startSnapshotAfterRestart")
@@ -156,9 +163,21 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 	}
 
 	err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-	if err != nil {
-		log.Warn("newTrieStorageManager error while putting active DB value into main storer", "error", err)
+	handleLoggingWhenError("newTrieStorageManager error while putting active DB value into main storer", err)
+}
+
+func handleLoggingWhenError(message string, err error, extraArguments ...interface{}) {
+	if err == nil {
+		return
 	}
+	if err == errors.ErrContextClosing {
+		args := []interface{}{"reason", err}
+		log.Debug(message, append(args, extraArguments...)...)
+		return
+	}
+
+	args := []interface{}{"error", err}
+	log.Warn(message, append(args, extraArguments...)...)
 }
 
 func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
@@ -1079,8 +1098,9 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
+	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
+	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
 
-	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
 	stats := newSnapshotStatistics(1)
@@ -1099,10 +1119,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		printStats(stats, "snapshotState user trie", rootHash)
 
 		log.Debug("set activeDB in epoch", "epoch", epoch)
-		err := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		if err != nil {
-			log.Warn("error while putting active DB value into main storer", "error", err)
-		}
+		errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+		handleLoggingWhenError("error while putting active DB value into main storer", errPut)
 	}()
 
 	if adb.processingMode == common.ImportDb {
@@ -1199,9 +1217,7 @@ func (adb *AccountsDB) increaseNumCheckpoints() {
 	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
 
 	err := trieStorageManager.Put(numCheckpointsKey, numCheckpointsVal)
-	if err != nil {
-		log.Warn("could not add num checkpoints to database", "error", err)
-	}
+	handleLoggingWhenError("could not add num checkpoints to database", err)
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

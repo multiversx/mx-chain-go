@@ -35,7 +35,6 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 			AccountsAdapter: &stateMock.AccountsStub{},
 		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
-		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 

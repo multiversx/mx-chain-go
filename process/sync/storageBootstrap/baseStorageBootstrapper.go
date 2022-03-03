@@ -2,6 +2,7 @@ package storageBootstrap
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -36,6 +37,7 @@ type ArgsBaseStorageBootstrapper struct {
 	BlockTracker                 process.BlockTracker
 	ChainID                      string
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	MiniblocksProvider           process.MiniBlockProvider
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -67,6 +69,7 @@ type storageBootstrapper struct {
 	highestNonce                 uint64
 	chainID                      string
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	miniBlocksProvider           process.MiniBlockProvider
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -178,11 +181,13 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
 	if err != nil {
-		gasAndFees := process.GetZeroGasAndFees()
-		st.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(
-			st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
-			make(map[block.Type][]data.TransactionHandler),
-			gasAndFees)
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+		st.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
@@ -270,7 +275,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
-	err = st.applyBlock(headerFromStorage, headerHash)
+	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
@@ -391,6 +396,14 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		return err
 	}
 
+	if len(bootInfos) > 1 {
+		err = st.restoreBlockBodyIntoPools(bootInfos[0].LastHeader.Hash)
+		if err != nil {
+			log.Debug("cannot restore block body into pool", "error", err.Error())
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -414,8 +427,8 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 		"hash", headerInfo.Hash)
 }
 
-func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
-	err := st.blkc.SetCurrentBlockHeader(header)
+func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte) error {
+	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 	if err != nil {
 		return err
 	}
@@ -432,7 +445,7 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", genesisHeader.GetNonce())
 	}
 
-	err = st.blkc.SetCurrentBlockHeader(nil)
+	err = st.blkc.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	if err != nil {
 		log.Debug("cannot set current block header", "error", err.Error())
 	}
@@ -477,6 +490,49 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	if check.IfNil(args.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(args.MiniblocksProvider) {
+		return process.ErrNilMiniBlocksProvider
+	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) restoreBlockBodyIntoPools(headerHash []byte) error {
+	log.Debug("storageBootstrapper.checkBlockBodyIntegrity", "headerHash", headerHash)
+
+	headerHandler, err := st.bootstrapper.getHeader(headerHash)
+	if err != nil {
+		return err
+	}
+
+	bodyHandler, err := st.getBlockBody(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	err = st.blkExecutor.RestoreBlockBodyIntoPools(bodyHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (st *storageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	hashes := make([][]byte, len(headerHandler.GetMiniBlockHeaderHandlers()))
+	for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
+		hashes[i] = headerHandler.GetMiniBlockHeaderHandlers()[i].GetHash()
+	}
+
+	miniBlocksAndHashes, missingMiniBlocksHashes := st.miniBlocksProvider.GetMiniBlocksFromStorer(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+	for index, miniBlockAndHash := range miniBlocksAndHashes {
+		miniBlocks[index] = miniBlockAndHash.Miniblock
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }

@@ -481,6 +481,7 @@ func (txs *transactions) processTxsToMe(
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
@@ -491,6 +492,7 @@ func (txs *transactions) processTxsToMe(
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 			"num scrs processed", numTXsProcessed,
 			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 		)
@@ -536,7 +538,7 @@ func (txs *transactions) processTxsToMe(
 		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 
 		if scheduledMode {
-			txs.scheduledTxsExecutionHandler.Add(txHash, tx)
+			txs.scheduledTxsExecutionHandler.AddScheduledTx(txHash, tx)
 		} else {
 			err = txs.processAndRemoveBadTransaction(
 				txHash,
@@ -743,6 +745,42 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.scheduledTxsExecutionHandler.Init()
 }
 
+func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	for _, mb := range miniBlocks {
+		if !txs.isMiniBlockCorrect(mb.Type) {
+			log.Warn("transactions.addTxsFromScheduledMiniBlocks: mini block type is not correct",
+				"type", mb.Type,
+				"sender", mb.SenderShardID,
+				"receiver", mb.ReceiverShardID,
+				"num txs", len(mb.TxHashes))
+			continue
+		}
+
+		txShardInfoToSet := &txShardInfo{senderShardID: mb.SenderShardID, receiverShardID: mb.ReceiverShardID}
+		searchFirst := mb.Type == block.InvalidBlock
+
+		for _, txHash := range mb.TxHashes {
+			tx, err := process.GetTransactionHandler(
+				mb.SenderShardID,
+				mb.ReceiverShardID,
+				txHash,
+				txs.txPool,
+				txs.storage,
+				txs.marshalizer,
+				searchFirst,
+			)
+			if err != nil {
+				log.Warn("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
+				continue
+			}
+
+			txs.txsForCurrBlock.mutTxsForBlock.Lock()
+			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
+			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+		}
+	}
+}
+
 // RequestBlockTransactions request for transactions if missing from a block.Body
 func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
 	if check.IfNil(body) {
@@ -915,6 +953,16 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 	return gasBandwidth
 }
 
+func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
+	gasProvided := txs.gasHandler.TotalGasProvidedAsScheduled()
+	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	gasBandwidth := uint64(0)
+	if gasProvided < maxGasPerBlock {
+		gasBandwidth = maxGasPerBlock - gasProvided
+	}
+	return gasBandwidth
+}
+
 // CreateAndProcessMiniBlocks creates miniBlocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 // TODO: check if possible for transaction pre processor to receive a blockChainHook and use it to get the randomness instead
@@ -924,7 +972,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.flagScheduledMiniBlocks.IsSet() {
-		gasBandwidthForScheduled = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
+		gasBandwidth += gasBandwidthForScheduled
 	}
 
 	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
@@ -1384,6 +1433,7 @@ func (txs *transactions) ProcessMiniBlock(
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
@@ -1394,6 +1444,7 @@ func (txs *transactions) ProcessMiniBlock(
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
 			"num txs processed", numTXsProcessed,
 			"total gas provided", txs.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 		)
@@ -1475,7 +1526,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	if scheduledMode {
 		for index := range miniBlockTxs {
-			txs.scheduledTxsExecutionHandler.Add(miniBlockTxHashes[index], miniBlockTxs[index])
+			txs.scheduledTxsExecutionHandler.AddScheduledTx(miniBlockTxHashes[index], miniBlockTxs[index])
 		}
 	}
 

@@ -121,6 +121,10 @@ func (txCoordinator *TxCoordinator) GetAllIntermediateTxs() map[block.Type]map[s
 	return make(map[block.Type]map[string]data.TransactionHandler)
 }
 
+// AddTxsFromMiniBlocks does nothing as it is disabled
+func (txCoordinator *TxCoordinator) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
 // GetAllCurrentLogs returns empty logs map
 func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []*data.LogData {
 	return make([]*data.LogData, 0)

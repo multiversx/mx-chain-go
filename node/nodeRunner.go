@@ -49,6 +49,10 @@ import (
 )
 
 const (
+	// TODO: remove this after better handling VM versions switching
+	// delayBeforeScQueriesStart represents the delay before the sc query processor should start to allow external queries
+	delayBeforeScQueriesStart = 2 * time.Minute
+
 	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
 	SoftRestartMessage = "Shuffled out - soft restart"
@@ -168,8 +172,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("esdt: enable epoch for esdt register and set all roles function"), "epoch", enableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
-
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
+	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -419,6 +423,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedHeartbeatComponents,
 		managedConsensusComponents,
+		*configs.EpochConfig,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
@@ -435,13 +440,23 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		)
 	}
 
+	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
+	allowExternalVMQueriesChan := make(chan struct{})
+
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier)
+	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
 	if err != nil {
 		return true, err
 	}
 
 	log.Info("application is now running")
+
+	// TODO: remove this and treat better the VM versions switching
+	go func() {
+		time.Sleep(delayBeforeScQueriesStart)
+		close(allowExternalVMQueriesChan)
+	}()
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -465,6 +480,7 @@ func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
 	gasScheduleNotifier core.GasScheduleNotifier,
+	allowVMQueriesChan chan struct{},
 ) (closing.Closer, error) {
 	configs := nr.configs
 
@@ -480,6 +496,7 @@ func (nr *nodeRunner) createApiFacade(
 		ProcessComponents:   currentNode.processComponents,
 		GasScheduleNotifier: gasScheduleNotifier,
 		Bootstrapper:        currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:  allowVMQueriesChan,
 	}
 
 	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
@@ -1083,6 +1100,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		Core:             coreComponents,
 		StorageService:   dataComponents.StorageService(),
 		ProcessingMode:   processingMode,
+		ChainHandler:     dataComponents.Blockchain(),
 	}
 
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
@@ -1149,18 +1167,18 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:            *nr.configs.P2pConfig,
-		MainConfig:           *nr.configs.GeneralConfig,
-		RatingsConfig:        *nr.configs.RatingsConfig,
-		StatusHandler:        coreComponents.StatusHandler(),
-		Marshalizer:          coreComponents.InternalMarshalizer(),
-		Syncer:               coreComponents.SyncTimer(),
-		PreferredPublicKeys:  decodedPreferredPubKeys,
-		BootstrapWaitSeconds: common.SecondsToWaitForP2PBootstrap,
-		NodeOperationMode:    p2p.NormalOperation,
+		P2pConfig:           *nr.configs.P2pConfig,
+		MainConfig:          *nr.configs.GeneralConfig,
+		RatingsConfig:       *nr.configs.RatingsConfig,
+		StatusHandler:       coreComponents.StatusHandler(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		Syncer:              coreComponents.SyncTimer(),
+		PreferredPublicKeys: decodedPreferredPubKeys,
+		BootstrapWaitTime:   common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:   p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
-		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
 		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode
