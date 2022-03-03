@@ -106,7 +106,8 @@ func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 }
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
-	unrequestedHashes := rrh.getUnrequestedHashes(hashes)
+	suffix := fmt.Sprintf("%s_%d", topic, destShardID)
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
 	}
@@ -139,7 +140,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
 
-	rrh.addRequestedItems(unrequestedHashes)
+	rrh.addRequestedItems(unrequestedHashes, suffix)
 }
 
 func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
@@ -196,7 +197,8 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardID uint32,
 
 // RequestMiniBlock method asks for miniblock from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
-	if !rrh.testIfRequestIsNeeded(miniblockHash) {
+	suffix := fmt.Sprintf("miniblocks_%d", destShardID)
+	if !rrh.testIfRequestIsNeeded(miniblockHash, suffix) {
 		return
 	}
 
@@ -229,12 +231,13 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{miniblockHash})
+	rrh.addRequestedItems([][]byte{miniblockHash}, suffix)
 }
 
 // RequestMiniBlocks method asks for miniblocks from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte) {
-	unrequestedHashes := rrh.getUnrequestedHashes(miniblocksHashes)
+	suffix := fmt.Sprintf("miniblocks_%d", destShardID)
+	unrequestedHashes := rrh.getUnrequestedHashes(miniblocksHashes, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
 	}
@@ -273,12 +276,13 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		return
 	}
 
-	rrh.addRequestedItems(unrequestedHashes)
+	rrh.addRequestedItems(unrequestedHashes, suffix)
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
 func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byte) {
-	if !rrh.testIfRequestIsNeeded(hash) {
+	suffix := fmt.Sprintf("headers_%d", shardID)
+	if !rrh.testIfRequestIsNeeded(hash, suffix) {
 		return
 	}
 
@@ -309,12 +313,13 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{hash})
+	rrh.addRequestedItems([][]byte{hash}, suffix)
 }
 
 // RequestMetaHeader method asks for meta header from the connected peers
 func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
-	if !rrh.testIfRequestIsNeeded(hash) {
+	suffix := "metablocks"
+	if !rrh.testIfRequestIsNeeded(hash, suffix) {
 		return
 	}
 
@@ -344,13 +349,14 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{hash})
+	rrh.addRequestedItems([][]byte{hash}, suffix)
 }
 
 // RequestShardHeaderByNonce method asks for shard header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, nonce uint64) {
+	suffix := fmt.Sprintf("headers_%d", shardID)
 	key := []byte(fmt.Sprintf("%d-%d", shardID, nonce))
-	if !rrh.testIfRequestIsNeeded(key) {
+	if !rrh.testIfRequestIsNeeded(key, suffix) {
 		return
 	}
 
@@ -381,12 +387,13 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{key})
+	rrh.addRequestedItems([][]byte{key}, suffix)
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
-	unrequestedHashes := rrh.getUnrequestedHashes(hashes)
+	suffix := fmt.Sprintf("trienodes")
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
 	}
@@ -440,7 +447,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	go rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
 
-	rrh.addRequestedItems(itemsToRequest)
+	rrh.addRequestedItems(itemsToRequest, suffix)
 	rrh.lastTrieRequestTime = time.Now()
 	rrh.trieHashesAccumulator = make(map[string]struct{})
 }
@@ -456,7 +463,8 @@ func (rrh *resolverRequestHandler) CreateTrieNodeIdentifier(requestHash []byte, 
 // RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
 func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
 	identifier := rrh.CreateTrieNodeIdentifier(requestHash, chunkIndex)
-	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier})
+	suffix := fmt.Sprintf("trienodes")
+	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier}, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
 	}
@@ -487,7 +495,7 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 
 	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieResolver)
 
-	rrh.addRequestedItems([][]byte{identifier})
+	rrh.addRequestedItems([][]byte{identifier}, suffix)
 }
 
 func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
@@ -503,7 +511,8 @@ func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
-	if !rrh.testIfRequestIsNeeded(key) {
+	suffix := "metablocks"
+	if !rrh.testIfRequestIsNeeded(key, suffix) {
 		return
 	}
 
@@ -532,13 +541,13 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{key})
+	rrh.addRequestedItems([][]byte{key}, suffix)
 }
 
-func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
+func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
 	rrh.sweepIfNeeded()
 
-	if rrh.requestedItemsHandler.Has(string(key)) {
+	if rrh.requestedItemsHandler.Has(string(key) + suffix) {
 		log.Trace("item already requested",
 			"key", key)
 		return false
@@ -547,9 +556,9 @@ func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
 	return true
 }
 
-func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte) {
+func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte, suffix string) {
 	for _, key := range keys {
-		err := rrh.requestedItemsHandler.Add(string(key))
+		err := rrh.requestedItemsHandler.Add(string(key) + suffix)
 		if err != nil {
 			log.Trace("addRequestedItems",
 				"error", err.Error(),
@@ -617,7 +626,8 @@ func (rrh *resolverRequestHandler) getMetaHeaderResolver() (dataRetriever.Header
 // RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers
 func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	epochStartIdentifier := []byte(core.EpochStartIdentifier(epoch))
-	if !rrh.testIfRequestIsNeeded(epochStartIdentifier) {
+	suffix := "metablocks"
+	if !rrh.testIfRequestIsNeeded(epochStartIdentifier, suffix) {
 		return
 	}
 
@@ -654,7 +664,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{epochStartIdentifier})
+	rrh.addRequestedItems([][]byte{epochStartIdentifier}, suffix)
 }
 
 // RequestInterval returns the request interval between sending the same request
@@ -667,13 +677,13 @@ func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 	return rrh == nil
 }
 
-func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byte {
+func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte, suffix string) [][]byte {
 	unrequestedHashes := make([][]byte, 0)
 
 	rrh.sweepIfNeeded()
 
 	for _, hash := range hashes {
-		if !rrh.requestedItemsHandler.Has(string(hash)) {
+		if !rrh.requestedItemsHandler.Has(string(hash) + suffix) {
 			unrequestedHashes = append(unrequestedHashes, hash)
 		}
 	}
