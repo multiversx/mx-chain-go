@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -8,7 +9,7 @@ import (
 
 // EpochStartSystemSCStub -
 type EpochStartSystemSCStub struct {
-	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32, randomness []byte) error
+	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error
 	ProcessDelegationRewardsCalled   func(miniBlocks block.MiniBlockSlice, txCache epochStart.TransactionCacher) error
 	ToggleUnStakeUnBondCalled        func(value bool) error
 }
@@ -24,12 +25,10 @@ func (e *EpochStartSystemSCStub) ToggleUnStakeUnBond(value bool) error {
 // ProcessSystemSmartContract -
 func (e *EpochStartSystemSCStub) ProcessSystemSmartContract(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
-	nonce uint64,
-	epoch uint32,
-	randomness []byte,
+	header data.HeaderHandler,
 ) error {
 	if e.ProcessSystemSmartContractCalled != nil {
-		return e.ProcessSystemSmartContractCalled(validatorInfos, nonce, epoch, randomness)
+		return e.ProcessSystemSmartContractCalled(validatorInfos, header)
 	}
 	return nil
 }

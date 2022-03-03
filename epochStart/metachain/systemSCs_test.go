@@ -185,7 +185,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 	}
 	validatorInfos[0] = append(validatorInfos[0], vInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(validatorInfos[0]), 1)
@@ -231,7 +231,7 @@ func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, s
 	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
 	validatorsInfo[0] = append(validatorsInfo[0], jailed...)
 
-	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
 	for i := 0; i < numWaiting; i++ {
 		assert.Equal(t, string(common.NewList), validatorsInfo[0][i].List)
@@ -302,7 +302,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	}
 	validatorsInfo[0] = append(validatorsInfo[0], jailed)
 
-	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorsInfo[0] {
@@ -1055,7 +1055,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 	_ = s.flagDelegationEnabled.SetReturningPrevious()
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
@@ -1198,7 +1198,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
@@ -1250,7 +1250,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 		EpochField: 10,
 	})
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 10, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{Epoch: 10})
 	assert.Nil(t, err)
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
@@ -1276,7 +1276,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Equal(t, 4, len(initialContractConfig))
 	require.Equal(t, []byte("aaaaaa"), initialContractConfig[0])
 
-	err = s.ProcessSystemSmartContract(nil, 1, 1, nil)
+	err = s.ProcessSystemSmartContract(nil, &block.Header{Nonce: 1, Epoch: 1})
 
 	require.Nil(t, err)
 
@@ -1344,7 +1344,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	}
 
 	s.flagSetOwnerEnabled.Reset()
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
@@ -1397,7 +1397,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWor
 
 	s.flagSetOwnerEnabled.Reset()
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 }
 
@@ -1489,7 +1489,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	}
 
 	s.flagSetOwnerEnabled.Reset()
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorInfos[0] {
@@ -1578,7 +1578,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	}
 
 	s.flagSetOwnerEnabled.Reset()
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	for _, vInfo := range validatorInfos[0] {
@@ -1675,7 +1675,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 		_ = args.PeerAccountsDB.SaveAccount(peerAcc)
 	}
 	s.flagSetOwnerEnabled.Reset()
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr2)
@@ -1749,7 +1749,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 		AccumulatedFees: big.NewInt(0),
 	})
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(validatorInfos[0]), 1)
@@ -1847,7 +1847,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	}
 
 	s.flagSetOwnerEnabled.Reset()
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	assert.Nil(t, err)
 
 	_, err = s.peerAccountsDB.GetExistingAccount([]byte("waitingPubKey"))
@@ -1911,7 +1911,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2))
 
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, nil)
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	require.Nil(t, err)
 
 	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
@@ -1957,7 +1957,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, []byte("rand"))
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	require.Equal(t, errProcessStakingData, err)
 }
 
@@ -1990,7 +1990,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, []byte("rand"))
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
 	require.Error(t, err)
 	require.True(t, strings.Contains(err.Error(), errGetNodeTopUp.Error()))
 	require.True(t, strings.Contains(err.Error(), epochStart.ErrSortAuctionList.Error()))
@@ -2034,7 +2034,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0, []byte("pubKey7"))
+	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{PrevRandSeed: []byte("pubKey7")})
 	require.Nil(t, err)
 
 	/*
