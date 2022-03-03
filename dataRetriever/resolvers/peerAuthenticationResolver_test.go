@@ -49,7 +49,7 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 		},
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper: &processMock.PeerShardMapperStub{
-			GetPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
 				pid := core.PeerID("pid")
 				return &pid, true
 			},
@@ -468,7 +468,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
-			GetPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
 				pid := core.PeerID(pk)
 				return &pid, true
 			},
@@ -539,7 +539,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		arg.PeerShardMapper = &processMock.PeerShardMapperStub{
-			GetPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
+			GetLastKnownPeerIDCalled: func(pk []byte) (*core.PeerID, bool) {
 				pid := core.PeerID(pk)
 				return &pid, true
 			},

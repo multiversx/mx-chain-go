@@ -2,29 +2,30 @@ package disabled
 
 import "github.com/ElrondNetwork/elrond-go-core/core"
 
-// peerShardMapper -
+// peerShardMapper represents the disabled structure of peerShardMapper
 type peerShardMapper struct {
 }
 
-// NewPeerShardMapper -
+// NewPeerShardMapper returns default instance
 func NewPeerShardMapper() *peerShardMapper {
 	return &peerShardMapper{}
 }
 
-func (p *peerShardMapper) GetPeerID(_ []byte) (*core.PeerID, bool) {
+// GetLastKnownPeerID returns nothing
+func (p *peerShardMapper) GetLastKnownPeerID(_ []byte) (*core.PeerID, bool) {
 	return nil, false
 }
 
-// UpdatePeerIDPublicKeyPair -
+// UpdatePeerIDPublicKeyPair does nothing
 func (p *peerShardMapper) UpdatePeerIDPublicKeyPair(_ core.PeerID, _ []byte) {
 }
 
-// GetPeerInfo -
+// GetPeerInfo returns default instance
 func (p *peerShardMapper) GetPeerInfo(_ core.PeerID) core.P2PPeerInfo {
 	return core.P2PPeerInfo{}
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns true if there is no value under the interface
 func (p *peerShardMapper) IsInterfaceNil() bool {
 	return p == nil
 }

@@ -45,7 +45,7 @@ type NodesCoordinatorFactory interface {
 
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
-	GetPeerID(pk []byte) (*core.PeerID, bool)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
