@@ -514,7 +514,7 @@ func (bp *baseProcessor) createBlockStarted() error {
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
-	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
+	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs())
 	if err != nil {
 		return err
 	}
@@ -604,23 +604,85 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			return 0, nil, err
 		}
 
-		var reserved []byte
-		notEmpty := len(body.MiniBlocks[i].TxHashes) > 0
-		if notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(body.MiniBlocks[i].TxHashes[0]) {
-			reserved = []byte{byte(block.Scheduled)}
-		}
-
 		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
 			Hash:            miniBlockHash,
 			SenderShardID:   body.MiniBlocks[i].SenderShardID,
 			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
 			TxCount:         uint32(txCount),
 			Type:            body.MiniBlocks[i].Type,
-			Reserved:        reserved,
+		}
+
+		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHash, miniBlockHeaderHandlers[i])
+		if err != nil {
+			return 0, nil, err
 		}
 	}
 
 	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
+func (bp *baseProcessor) setMiniBlockHeaderReservedField(
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	notEmpty := len(miniBlock.TxHashes) > 0
+	isScheduledMiniBlock := notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
+	if isScheduledMiniBlock {
+		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler)
+	}
+
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, miniBlockHash)
+}
+
+func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+	err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
+	if err != nil {
+		return err
+	}
+
+	if miniBlockHeaderHandler.GetSenderShardID() == bp.shardCoordinator.SelfId() {
+		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Proposed))
+		if err != nil {
+			return err
+		}
+	} else {
+		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	miniBlockHash []byte,
+) error {
+	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
+		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
+		if err != nil {
+			return err
+		}
+	} else {
+		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Normal))
+		if err != nil {
+			return err
+		}
+	}
+
+	err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // check if header has the same miniblocks as presented in body
@@ -660,6 +722,32 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 
 		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
+		}
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return nil
+	}
+
+	scheduledMiniBlocks := bp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
+	if len(scheduledMiniBlocks) > len(headerHandler.GetMiniBlockHeadersHashes()) {
+		log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "num mbs scheduled", len(scheduledMiniBlocks), "num mbs received", len(headerHandler.GetMiniBlockHeadersHashes()))
+		return process.ErrScheduledMiniBlocksMismatch
+	}
+
+	for index, scheduledMiniBlock := range scheduledMiniBlocks {
+		scheduledMiniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, scheduledMiniBlock)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(scheduledMiniBlockHash, headerHandler.GetMiniBlockHeadersHashes()[index]) {
+			log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "index", index, "scheduled mb hash", scheduledMiniBlockHash, "received mb hash", headerHandler.GetMiniBlockHeadersHashes()[index])
+			return process.ErrScheduledMiniBlocksMismatch
 		}
 	}
 
@@ -824,13 +912,38 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 	return nil
 }
 
-func (bp *baseProcessor) removeTxsFromPools(bodyHandler data.BodyHandler) error {
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
+func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *block.Body) error {
+	newBody, err := bp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return err
 	}
 
-	return bp.txCoordinator.RemoveTxsFromPool(body)
+	return bp.txCoordinator.RemoveTxsFromPool(newBody)
+}
+
+func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return body, nil
+	}
+
+	var miniBlocks block.MiniBlockSlice
+
+	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
+		log.Warn("baseProcessor.getFinalMiniBlocks: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
+		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
+	for index, miniBlock := range body.MiniBlocks {
+		miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
+		if !miniBlockHeader.IsFinal() {
+			log.Debug("shardProcessor.getFinalMiniBlocks: do not remove from pool / broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			continue
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
@@ -1190,7 +1303,7 @@ func (bp *baseProcessor) updateStateStorage(
 // RevertCurrentBlock reverts the current block for cleanup failed process
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
-	bp.revertScheduledRootHashSCRsGasAndFees()
+	bp.revertScheduledInfo()
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1202,13 +1315,18 @@ func (bp *baseProcessor) revertAccountState() {
 	}
 }
 
-func (bp *baseProcessor) revertScheduledRootHashSCRsGasAndFees() {
+func (bp *baseProcessor) revertScheduledInfo() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		log.Trace("baseProcessor.revertScheduledRootHashSCRsAndGas", "error", err.Error())
-		gasAndFees := process.GetZeroGasAndFees()
-		bp.scheduledTxsExecutionHandler.SetScheduledRootHashSCRsGasAndFees(header.GetRootHash(), make(map[block.Type][]data.TransactionHandler), gasAndFees)
+		log.Trace("baseProcessor.revertScheduledInfo", "error", err.Error())
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        header.GetRootHash(),
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+		bp.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 }
 
@@ -1393,6 +1511,25 @@ func (bp *baseProcessor) restoreBlockBody(bodyHandler data.BodyHandler) {
 	go bp.txCounter.subtractRestoredTxs(restoredTxNr)
 }
 
+// RestoreBlockBodyIntoPools restores the block body into associated pools
+func (bp *baseProcessor) RestoreBlockBodyIntoPools(bodyHandler data.BodyHandler) error {
+	if check.IfNil(bodyHandler) {
+		return process.ErrNilBlockBody
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	_, err := bp.txCoordinator.RestoreBlockDataFromStorage(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHandler) {
 	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
@@ -1565,7 +1702,7 @@ func (bp *baseProcessor) Close() error {
 }
 
 // ProcessScheduledBlock processes a scheduled block
-func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
 	defer func() {
 		if err != nil {
@@ -1573,10 +1710,16 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 		}
 	}()
 
-	startTime := time.Now()
+	scheduledMiniBlocksFromMe, err := getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
+	if err != nil {
+		return err
+	}
+
+	bp.scheduledTxsExecutionHandler.AddScheduledMiniBlocks(scheduledMiniBlocksFromMe)
 
 	normalProcessingGasAndFees := bp.getGasAndFees()
 
+	startTime := time.Now()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
@@ -1598,6 +1741,30 @@ func (bp *baseProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ data.Body
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
 
 	return nil
+}
+
+func getScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	if len(body.MiniBlocks) != len(headerHandler.GetMiniBlockHeaderHandlers()) {
+		log.Warn("getScheduledMiniBlocksFromMe: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(headerHandler.GetMiniBlockHeaderHandlers()))
+		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	for index, miniBlock := range body.MiniBlocks {
+		miniBlockHeader := headerHandler.GetMiniBlockHeaderHandlers()[index]
+		isScheduledMiniBlockFromMe := miniBlockHeader.GetSenderShardID() == headerHandler.GetShardID() && miniBlockHeader.GetProcessingType() == int32(block.Scheduled)
+		if isScheduledMiniBlockFromMe {
+			miniBlocks = append(miniBlocks, miniBlock)
+		}
+
+	}
+
+	return miniBlocks, nil
 }
 
 func (bp *baseProcessor) getGasAndFees() scheduled.GasAndFees {
@@ -1672,6 +1839,25 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 		GasPenalized:    uint64(deltaGasPenalized),
 		GasRefunded:     uint64(deltaGasRefunded),
 	}
+}
+
+func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+	if !bp.flagScheduledMiniBlocks.IsSet() {
+		return 0
+	}
+
+	for index, miniBlockHeaderHandler := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed) {
+			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
+				"mb hash", miniBlockHeaderHandler.GetHash(),
+				"mb index", index)
+			continue
+		}
+
+		return index
+	}
+
+	return len(header.GetMiniBlockHeaderHandlers())
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

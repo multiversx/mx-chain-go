@@ -16,8 +16,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.37 h1:2YkpnGVvvRiioBsRylbk/75BZwCj0Z
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.37/go.mod h1:JhzIiFmoefbtbPvbd5I1gVyYA8QHgrujU+QgNTKobn4=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.37 h1:BHqxK2tKjQCrTS8LS28wDvxCwepIkAwR9jq9Jcbcy+c=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.37/go.mod h1:6kogylULF71umFbE2RJNWYhYNXowjygSD9C/esVqhmk=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.39 h1:MuaFCHFRgsiiocWm6PIxeY9NVZ2OV+T0voahlVM1dJs=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.39/go.mod h1:fgbwHuOmbdGm8s75pGY2/611Z7TbDsx2CHHiq4wLTc8=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.40 h1:tfsr4RcuKgbjgVtZl4MjDa79DXcZBIjEDIUdnakyG8o=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.40/go.mod h1:E9ndnwHiP+mdEAjJUthx6/IkThymTrxWMC2vdBrQZU4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -29,10 +29,10 @@ github.com/ElrondNetwork/elastic-indexer-go v1.1.34/go.mod h1:2XJCGXNCOv9MIhbZeG
 github.com/ElrondNetwork/elrond-go-core v1.0.0/go.mod h1:FQMem7fFF4+8pQ6lVsBZq6yO+smD0nV23P4bJpmPjTo=
 github.com/ElrondNetwork/elrond-go-core v1.1.6/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
 github.com/ElrondNetwork/elrond-go-core v1.1.7/go.mod h1:O9FkkTT2H9kxCzfn40TbhoCDXzGmUrRVusMomhK/Y3g=
-github.com/ElrondNetwork/elrond-go-core v1.1.8-0.20220112112600-5ad56d3f2305/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.9/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
-github.com/ElrondNetwork/elrond-go-core v1.1.12 h1:hlItqHpnAYrr65lHuaK0CY2vRTbPS6fij4bCcCy6wEI=
-github.com/ElrondNetwork/elrond-go-core v1.1.12/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
+github.com/ElrondNetwork/elrond-go-core v1.1.13/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
+github.com/ElrondNetwork/elrond-go-core v1.1.14 h1:JKpeI+1US4FuE8NwN3dqe0HUTYKLQuYKvwbTqhGt334=
+github.com/ElrondNetwork/elrond-go-core v1.1.14/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.1 h1:xJUUshIZQ7h+rG7Art/9QHVyaPRV1wEjrxXYBdpmRlM=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.1/go.mod h1:uunsvweBrrhVojL8uiQSaTPsl3YIQ9iBqtYGM6xs4s0=
@@ -42,7 +42,6 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.6 h1:FGbO2C/s9cfNHag9jaKSB+sjuWUo
 github.com/ElrondNetwork/elrond-go-logger v1.0.6/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
-github.com/ElrondNetwork/elrond-vm-common v1.2.10-0.20220117090702-5fe837c6c8b4/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.0/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.2 h1:O/Wr5k7HXX7p0+U3ZsGdY5ydqfSABZvBSzwyV/xbu08=
 github.com/ElrondNetwork/elrond-vm-common v1.3.2/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=

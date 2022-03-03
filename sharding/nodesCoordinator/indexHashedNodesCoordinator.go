@@ -230,7 +230,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 
 	nodesConfig, ok := ihnc.nodesConfig[epoch]
 	if !ok {
-		log.Warn("Did not find nodesConfig", "epoch", epoch)
+		log.Debug("Did not find nodesConfig", "epoch", epoch)
 		nodesConfig = &epochNodesConfig{}
 	}
 
@@ -571,7 +571,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	//TODO: remove the copy if no changes are done to the maps
+	// TODO: remove the copy if no changes are done to the maps
 	copiedPrevious := &epochNodesConfig{}
 	copiedPrevious.eligibleMap = copyValidatorMap(previousConfig.eligibleMap)
 	copiedPrevious.waitingMap = copyValidatorMap(previousConfig.waitingMap)

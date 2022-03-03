@@ -631,6 +631,10 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 	return scrPool
 }
 
+// AddTxsFromMiniBlocks does nothing
+func (scr *smartContractResults) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (scr *smartContractResults) IsInterfaceNil() bool {
 	return scr == nil

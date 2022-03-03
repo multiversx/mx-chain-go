@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -102,7 +103,7 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 		case <-time.After(d.waitTimeBetweenChecks):
 			continue
 		case <-ctx.Done():
-			return ErrContextClosing
+			return errors.ErrContextClosing
 		}
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -63,7 +62,7 @@ type testKeyPair struct {
 	validatorKey []byte
 }
 
-func createPhysicalUnit() (storage.Storer, string) {
+func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 	cacheConfig := storageUnit.CacheConfig{
 		Name:                 "test",
 		Type:                 "SizeLRU",
@@ -73,7 +72,7 @@ func createPhysicalUnit() (storage.Storer, string) {
 		SizePerSender:        0,
 		Shards:               0,
 	}
-	dir, _ := ioutil.TempDir("", "")
+	dir := t.TempDir()
 	persisterConfig := storageUnit.ArgDB{
 		Path:              dir,
 		DBType:            "LvlDBSerial",
@@ -364,7 +363,7 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	t.Parallel()
 
-	db, dir := createPhysicalUnit()
+	db, dir := createPhysicalUnit(t)
 	require.False(t, check.IfNil(db))
 
 	log.Info("using temporary directory", "path", dir)
@@ -926,8 +925,11 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
 
 	nodesSetup := &mock.NodesSetupStub{}
+
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -1315,7 +1317,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, len(updatedContractConfig))
 	require.Equal(t, args.ESDTOwnerAddressBytes, updatedContractConfig[0])
-	//the other config values should be unchanged
+	// the other config values should be unchanged
 	for i := 1; i < len(initialContractConfig); i++ {
 		assert.Equal(t, initialContractConfig[i], updatedContractConfig[i])
 	}

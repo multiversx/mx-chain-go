@@ -1,20 +1,24 @@
 package bootstrap
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -94,6 +98,145 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 	registry, _, err := svs.NodesConfigFromMetaBlock(currMb, prevMb)
 	require.NoError(t, err)
 	require.NotNil(t, registry)
+}
+
+func TestSyncValidatorStatus_processValidatorChangesFor(t *testing.T) {
+	t.Parallel()
+
+	mbHeaderHash1 := []byte("mb-hash1")
+	mbHeaderHash2 := []byte("mb-hash2")
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 10,
+		Epoch: 1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash: mbHeaderHash1,
+				Type: block.TxBlock,
+			},
+			{
+				Hash: mbHeaderHash2,
+				Type: block.PeerBlock,
+			},
+		},
+	}
+
+	mb := &block.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+	expectedBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			mb,
+		},
+	}
+
+	args := getSyncValidatorStatusArgs()
+	svs, _ := NewSyncValidatorStatus(args)
+
+	wasCalled := false
+	svs.nodeCoordinator = &shardingMocks.NodesCoordinatorStub{
+		EpochStartPrepareCalled: func(metaHdr data.HeaderHandler, body data.BodyHandler) {
+			wasCalled = true
+			assert.Equal(t, metaBlock, metaHdr)
+			assert.Equal(t, expectedBody, body)
+		},
+	}
+	svs.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+			return nil
+		},
+		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
+			return map[string]*block.MiniBlock{
+				string(mbHeaderHash2): mb,
+			}, nil
+		},
+	}
+
+	err := svs.processValidatorChangesFor(metaBlock)
+	require.NoError(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestSyncValidatorStatus_findPeerMiniBlockHeaders(t *testing.T) {
+	t.Parallel()
+
+	mbHeader1 := block.MiniBlockHeader{
+		Hash: []byte("mb-hash1"),
+		Type: block.TxBlock,
+	}
+	mbHeader2 := block.MiniBlockHeader{
+		Hash: []byte("mb-hash2"),
+		Type: block.PeerBlock,
+	}
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 37,
+		Epoch: 0,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			mbHeader1,
+			mbHeader2,
+		},
+	}
+
+	expectedMbHeaders := []data.MiniBlockHeaderHandler{
+		&mbHeader2,
+	}
+
+	mbHeaderHandlers := findPeerMiniBlockHeaders(metaBlock)
+	require.Equal(t, expectedMbHeaders, mbHeaderHandlers)
+}
+
+func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
+	t.Parallel()
+
+	args := getSyncValidatorStatusArgs()
+
+	mbHeaderHash1 := []byte("mb-hash1")
+	mbHeaderHash2 := []byte("mb-hash2")
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 37,
+		Epoch: 0,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash: mbHeaderHash1,
+				Type: block.TxBlock,
+			},
+			{
+				Hash: mbHeaderHash2,
+				Type: block.PeerBlock,
+			},
+		},
+	}
+
+	svs, _ := NewSyncValidatorStatus(args)
+	svs.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+			return nil
+		},
+		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
+			return map[string]*block.MiniBlock{
+				string(mbHeaderHash2): {
+					ReceiverShardID: 1,
+					SenderShardID:   0,
+				},
+			}, nil
+		},
+	}
+
+	expectedBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				ReceiverShardID: 1,
+				SenderShardID:   0,
+			},
+		},
+	}
+
+	body, err := svs.getPeerBlockBodyForMeta(metaBlock)
+	require.NoError(t, err)
+	require.Equal(t, expectedBody, body)
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {

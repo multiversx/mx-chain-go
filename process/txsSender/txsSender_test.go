@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	epochStartMock "github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -104,11 +103,10 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &mock.MarshalizerFake{}
-
+	marshaller := &testscommon.MarshalizerMock{}
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		items := strings.Split(string(address), "Shard")
 		sId, _ := strconv.ParseUint(items[1], 2, 32)
@@ -436,7 +434,7 @@ func generateMockArgsTxsSender() ArgsTxsSenderWithAccumulator {
 	}
 	return ArgsTxsSenderWithAccumulator{
 		Marshaller:        marshaller,
-		ShardCoordinator:  &mock.ShardCoordinatorMock{},
+		ShardCoordinator:  &testscommon.ShardsCoordinatorMock{},
 		NetworkMessenger:  &p2pmocks.MessengerStub{},
 		DataPacker:        dataPacker,
 		AccumulatorConfig: accumulatorConfig,

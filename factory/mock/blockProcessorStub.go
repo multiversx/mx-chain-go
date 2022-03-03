@@ -17,6 +17,7 @@ type BlockProcessorStub struct {
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
+	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -75,6 +76,11 @@ func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, ha
 // RestoreBlockIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bps.RestoreBlockIntoPoolsCalled(header, body)
+}
+
+// RestoreBlockBodyIntoPools -
+func (bps *BlockProcessorStub) RestoreBlockBodyIntoPools(body data.BodyHandler) error {
+	return bps.RestoreBlockBodyIntoPoolsCalled(body)
 }
 
 // MarshalizedDataToBroadcast -

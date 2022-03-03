@@ -158,19 +158,19 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		ReturnMessage:  string(scr.ReturnMessage),
 	}
 
-	if len(scr.SndAddr) != arp.addressPubKeyConverter.Len() {
+	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
 		apiSCR.SndAddr = arp.addressPubKeyConverter.Encode(scr.SndAddr)
 	}
 
-	if len(scr.RcvAddr) != arp.addressPubKeyConverter.Len() {
+	if len(scr.RcvAddr) == arp.addressPubKeyConverter.Len() {
 		apiSCR.RcvAddr = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
 	}
 
-	if len(scr.RelayerAddr) != arp.addressPubKeyConverter.Len() {
+	if len(scr.RelayerAddr) == arp.addressPubKeyConverter.Len() {
 		apiSCR.RelayerAddr = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
 	}
 
-	if len(scr.OriginalSender) != arp.addressPubKeyConverter.Len() {
+	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
 		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 
