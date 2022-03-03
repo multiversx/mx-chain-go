@@ -964,7 +964,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 	err := txs.SaveTxsToStorage(body)
 	assert.Nil(t, err)
 
-	expectedStoredTxHashes := txHashes[:4]
+	expectedStoredTxHashes := [][]byte{txHashes[0]}
 	assert.Equal(t, len(expectedStoredTxHashes), len(storedTxs))
 	for _, hash := range expectedStoredTxHashes {
 		scr := storedTxs[string(hash)]
