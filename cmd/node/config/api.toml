@@ -29,10 +29,7 @@
         { Name = "/debug", Open = true },
     
         # /node/peerinfo will return the p2p peer info of the provided pid
-        { Name = "/peerinfo", Open = true },
-
-        # /node/genesisnodes will return the genesis nodes public keys
-        { Name = "/genesisnodes", Open = true }
+        { Name = "/peerinfo", Open = true }
     ]
 
 [APIPackages.address]
@@ -116,7 +113,10 @@
         { Name = "/delegated-info", Open = true},
 
         # /network/ratings will return metrics related to ratings config
-        { Name = "/ratings", Open = true }
+        { Name = "/ratings", Open = true },
+
+        # /network/genesisnodes will return the genesis nodes public keys
+        { Name = "/genesisnodes", Open = true }
     ]
 
 [APIPackages.log]

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -17,14 +16,13 @@ import (
 )
 
 const (
-	pidQueryParam          = "pid"
-	debugPath              = "/debug"
-	heartbeatStatusPath    = "/heartbeatstatus"
-	metricsPath            = "/metrics"
-	p2pStatusPath          = "/p2pstatus"
-	peerInfoPath           = "/peerinfo"
-	statusPath             = "/status"
-	genesisNodesConfigPath = "/genesisnodes"
+	pidQueryParam       = "pid"
+	debugPath           = "/debug"
+	heartbeatStatusPath = "/heartbeatstatus"
+	metricsPath         = "/metrics"
+	p2pStatusPath       = "/p2pstatus"
+	peerInfoPath        = "/peerinfo"
+	statusPath          = "/status"
 
 	// AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
 	AccStateCheckpointsKey = "erd_num_accounts_state_checkpoints"
@@ -41,7 +39,6 @@ type nodeFacadeHandler interface {
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetNumCheckpointsFromAccountState() uint32
 	GetNumCheckpointsFromPeerState() uint32
-	GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -49,11 +46,6 @@ type nodeFacadeHandler interface {
 type QueryDebugRequest struct {
 	Name   string `form:"name" json:"name"`
 	Search string `form:"search" json:"search"`
-}
-
-type genesisNodesConfig struct {
-	Eligible map[uint32][][]byte `json:"eligible"`
-	Waiting  map[uint32][][]byte `json:"waiting"`
 }
 
 type nodeGroup struct {
@@ -103,11 +95,6 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    peerInfoPath,
 			Method:  http.MethodGet,
 			Handler: ng.peerInfo,
-		},
-		{
-			Path:    genesisNodesConfigPath,
-			Method:  http.MethodGet,
-			Handler: ng.getGenesisNodesConfig,
 		},
 	}
 	ng.endpoints = endpoints
@@ -247,32 +234,6 @@ func (ng *nodeGroup) prometheusMetrics(c *gin.Context) {
 		http.StatusOK,
 		metrics,
 	)
-}
-
-// getGenesisNodesConfig return genesis nodes configuration
-func (ng *nodeGroup) getGenesisNodesConfig(c *gin.Context) {
-	start := time.Now()
-	eligibleNodesConfig, waitingNodesConfig := ng.getFacade().GetGenesisNodesPubKeys()
-	log.Debug(fmt.Sprintf("GetGenesisNodesConfig took %s", time.Since(start)))
-
-	if eligibleNodesConfig == nil || waitingNodesConfig == nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("error: %s", errors.ErrGetGenesisNodes.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	nc := genesisNodesConfig{
-		Eligible: eligibleNodesConfig,
-		Waiting:  waitingNodesConfig,
-	}
-
-	shared.RespondWith(c, http.StatusOK, gin.H{"nodesconfig": nc}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *nodeGroup) getFacade() nodeFacadeHandler {

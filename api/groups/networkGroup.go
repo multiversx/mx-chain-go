@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -16,18 +17,19 @@ import (
 )
 
 const (
-	getConfigPath        = "/config"
-	getStatusPath        = "/status"
-	economicsPath        = "/economics"
-	enableEpochsPath     = "/enable-epochs"
-	getESDTsPath         = "/esdts"
-	getFFTsPath          = "/esdt/fungible-tokens"
-	getSFTsPath          = "/esdt/semi-fungible-tokens"
-	getNFTsPath          = "/esdt/non-fungible-tokens"
-	getESDTSupplyPath    = "/esdt/supply/:token"
-	directStakedInfoPath = "/direct-staked-info"
-	delegatedInfoPath    = "/delegated-info"
-	ratingsPath          = "/ratings"
+	getConfigPath          = "/config"
+	getStatusPath          = "/status"
+	economicsPath          = "/economics"
+	enableEpochsPath       = "/enable-epochs"
+	getESDTsPath           = "/esdts"
+	getFFTsPath            = "/esdt/fungible-tokens"
+	getSFTsPath            = "/esdt/semi-fungible-tokens"
+	getNFTsPath            = "/esdt/non-fungible-tokens"
+	getESDTSupplyPath      = "/esdt/supply/:token"
+	directStakedInfoPath   = "/direct-staked-info"
+	delegatedInfoPath      = "/delegated-info"
+	ratingsPath            = "/ratings"
+	genesisNodesConfigPath = "/genesisnodes"
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests
@@ -38,7 +40,13 @@ type networkFacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
+	GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte)
 	IsInterfaceNil() bool
+}
+
+type GenesisNodesConfig struct {
+	Eligible map[uint32][][]byte `json:"eligible"`
+	Waiting  map[uint32][][]byte `json:"waiting"`
 }
 
 type networkGroup struct {
@@ -118,6 +126,11 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Path:    ratingsPath,
 			Method:  http.MethodGet,
 			Handler: ng.getRatingsConfig,
+		},
+		{
+			Path:    genesisNodesConfigPath,
+			Method:  http.MethodGet,
+			Handler: ng.getGenesisNodesConfig,
 		},
 	}
 	ng.endpoints = endpoints
@@ -312,6 +325,32 @@ func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+// getGenesisNodesConfig return genesis nodes configuration
+func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
+	start := time.Now()
+	eligibleNodesConfig, waitingNodesConfig := ng.getFacade().GetGenesisNodesPubKeys()
+	log.Debug(fmt.Sprintf("GetGenesisNodesConfig took %s", time.Since(start)))
+
+	if eligibleNodesConfig == nil || waitingNodesConfig == nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("error: %s", errors.ErrGetGenesisNodes.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	nc := GenesisNodesConfig{
+		Eligible: eligibleNodesConfig,
+		Waiting:  waitingNodesConfig,
+	}
+
+	shared.RespondWith(c, http.StatusOK, gin.H{"nodes": nc}, "", shared.ReturnCodeSuccess)
 }
 
 func (ng *networkGroup) getFacade() networkFacadeHandler {
