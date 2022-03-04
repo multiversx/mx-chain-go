@@ -58,14 +58,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 			return err
 		}
 
-		txHash := bpp.hasher.Compute(string(buff))
-
-		//TODO: Remove this if
-		if bpp.shardCoordinator.SelfId() == core.MetachainShardId {
-			log.Debug("basePostProcessor.SaveCurrentIntermediateTxToStorage", "storage", bpp.storageType.String(), "txHash", txHash)
-		}
-
-		errNotCritical := bpp.store.Put(bpp.storageType, txHash, buff)
+		errNotCritical := bpp.store.Put(bpp.storageType, bpp.hasher.Compute(string(buff)), buff)
 		if errNotCritical != nil {
 			log.Debug("SaveCurrentIntermediateTxToStorage put", "type", bpp.storageType, "error", errNotCritical.Error())
 		}
