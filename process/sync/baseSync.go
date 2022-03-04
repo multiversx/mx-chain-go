@@ -483,7 +483,7 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
 	if arguments.ProcessWaitTime < minimumProcessWaitTime {
-		return fmt.Errorf("%w, minimum id %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
+		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
 	}
 
 	return nil
