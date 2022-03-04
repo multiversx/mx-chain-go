@@ -4186,3 +4186,31 @@ func TestMergeVmOutputLogs(t *testing.T) {
 	mergeVMOutputLogs(vmOutput1, vmOutput2)
 	require.Len(t, vmOutput1.Logs, 2)
 }
+
+func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+
+	sc.flagCleanUpInformativeSCRs.Reset()
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 10}
+	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
+	returnMessage := "@" + fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+		TooMuchGasProvidedMessage, 1, 10)
+	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+
+	sc.flagCleanUpInformativeSCRs.SetValue(true)
+	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
+	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
+	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
+		TooMuchGasProvidedMessage, 11, 1)
+	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+}
