@@ -1,8 +1,6 @@
 package trigger
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -37,12 +35,8 @@ func TestNewImportStartHandler(t *testing.T) {
 func TestImportStartHandler_SetGetRemove(t *testing.T) {
 	t.Parallel()
 
-	workingDir, _ := ioutil.TempDir("", "importstarthandler_temp")
-	defer func() {
-		_ = os.RemoveAll(workingDir)
-	}()
 	version := "v1"
-	ish, _ := NewImportStartHandler(workingDir, version)
+	ish, _ := NewImportStartHandler(t.TempDir(), version)
 
 	err := ish.SetStartImport()
 	assert.Nil(t, err)
@@ -64,12 +58,8 @@ func TestImportStartHandler_SetGetRemove(t *testing.T) {
 func TestImportStartHandler_DoubleSetShouldNotError(t *testing.T) {
 	t.Parallel()
 
-	workingDir, _ := ioutil.TempDir("", "importstarthandler_temp")
-	defer func() {
-		_ = os.RemoveAll(workingDir)
-	}()
 	version := "v1"
-	ish, _ := NewImportStartHandler(workingDir, version)
+	ish, _ := NewImportStartHandler(t.TempDir(), version)
 
 	err := ish.SetStartImport()
 	assert.Nil(t, err)

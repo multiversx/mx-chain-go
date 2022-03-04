@@ -425,6 +425,7 @@ func createMockTransactionCoordinatorArguments(
 		EpochNotifier:                     &epochNotifier.EpochNotifierStub{},
 		ScheduledTxsExecutionHandler:      &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch:    2,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 
 	return argsTransactionCoordinator
@@ -2128,4 +2129,514 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 		assert.Equal(t, expectedGasAndFees, gasAndFees)
 	})
 
+}
+
+func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
+	t.Parallel()
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		assert.Equal(t, 0, index)
+	})
+
+	t.Run("scheduledMiniBlocks flag is set, empty block", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		assert.Equal(t, 0, index)
+	})
+
+	t.Run("get first index for the miniBlockHeader which is not processed executionType", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mbh1 := block.MiniBlockHeader{}
+		mbhReserved1 := block.MiniBlockHeaderReserved{ExecutionType: block.Processed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{}
+		mbhReserved2 := block.MiniBlockHeaderReserved{ExecutionType: block.Normal}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(metaBlock)
+		assert.Equal(t, 1, index)
+	})
+}
+
+func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		assert.Nil(t, err)
+		assert.Equal(t, &block.Body{}, body)
+	})
+
+	t.Run("scheduledMiniBlocks flag is set, empty body", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		assert.Nil(t, err)
+		assert.Equal(t, &block.Body{}, body)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mb1 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash1")},
+		}
+		mb2 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash2")},
+		}
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+				mb2,
+			},
+		}
+
+		mbh1 := block.MiniBlockHeader{}
+		mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{}
+		mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		expectedBody := &block.Body{MiniBlocks: block.MiniBlockSlice{mb2}}
+
+		retBody, err := bp.GetFinalMiniBlocks(metaBlock, body)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBody, retBody)
+	})
+}
+
+func TestBaseProcessor_getScheduledMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	t.Run("wrong body type", func(t *testing.T) {
+		t.Parallel()
+
+		retBody, err := blproc.GetScheduledMiniBlocksFromMe(&block.Header{}, &wrongBody{})
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
+		assert.Nil(t, retBody)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		mb1 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash1")},
+		}
+		mb2 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash2")},
+		}
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+				mb2,
+			},
+		}
+
+		mbh1 := block.MiniBlockHeader{
+			SenderShardID: 1,
+		}
+		mbhReserved1 := block.MiniBlockHeaderReserved{ExecutionType: block.Normal}
+		mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+		mbh2 := block.MiniBlockHeader{
+			SenderShardID: 1,
+		}
+		mbhReserved2 := block.MiniBlockHeaderReserved{ExecutionType: block.Scheduled}
+		mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+		header := &block.Header{
+			ShardID: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbh1,
+				mbh2,
+			},
+		}
+
+		retBody, err := blproc.GetScheduledMiniBlocksFromMe(header, body)
+		assert.Nil(t, err)
+		assert.Equal(t, block.MiniBlockSlice{mb2}, retBody)
+	})
+}
+
+func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("Hash1")
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckScheduledMiniBlocksValidity(&block.MetaBlock{})
+		assert.Nil(t, err)
+	})
+
+	t.Run("fail to calculate hash", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		expectedErr := errors.New("expected error")
+		coreComponents.IntMarsh = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{&block.MiniBlock{
+					TxHashes: [][]byte{hash1},
+				}}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: []byte("differentHash")},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("scheduled miniblocks mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return hash1
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{&block.MiniBlock{
+					TxHashes: [][]byte{hash1},
+				}}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: []byte("differentHash")},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
+	})
+
+	t.Run("num header miniblocks lower than scheduled miniblocks, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						TxHashes: [][]byte{hash1},
+					},
+					&block.MiniBlock{
+						TxHashes: [][]byte{[]byte("hash2")},
+					},
+				}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: hash1},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Equal(t, process.ErrScheduledMiniBlocksMismatch, err)
+	})
+
+	t.Run("same hash, should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return hash1
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						TxHashes: [][]byte{hash1},
+					},
+				}
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		header := &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: hash1},
+			},
+		}
+
+		err := bp.CheckScheduledMiniBlocksValidity(header)
+		assert.Nil(t, err)
+	})
+}
+
+func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
+	t.Parallel()
+
+	miniBlockHash := []byte("miniBlockHash")
+
+	t.Run("scheduledMiniBlocks flag not set", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, []byte{}, &block.MiniBlockHeader{})
+		assert.Nil(t, err)
+	})
+
+	t.Run("no scheduled miniBlock, miniBlock Not executed", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return false
+			},
+			IsMiniBlockExecutedCalled: func(hash []byte) bool {
+				assert.Equal(t, miniBlockHash, hash)
+				return false
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mbHandler := &block.MiniBlockHeader{}
+
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Normal), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
+	})
+
+	t.Run("no scheduled miniBlock, miniBlock executed", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return false
+			},
+			IsMiniBlockExecutedCalled: func(hash []byte) bool {
+				assert.Equal(t, miniBlockHash, hash)
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mbHandler := &block.MiniBlockHeader{}
+
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Processed), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
+	})
+
+	t.Run("is scheduled miniBlock, different shardId", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		bootstrapComponents.Coordinator = &testscommon.ShardsCoordinatorMock{
+			SelfIDCalled: func() uint32 {
+				return 1
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("hash")},
+		}
+
+		mbHandler := &block.MiniBlockHeader{
+			SenderShardID: 2,
+		}
+
+		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
+	})
+
+	t.Run("is scheduled miniBlock, same shardId", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		shardId := uint32(1)
+		bootstrapComponents.Coordinator = &testscommon.ShardsCoordinatorMock{
+			SelfIDCalled: func() uint32 {
+				return shardId
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledMiniBlocksEnableEpoch = 3
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsScheduledTxCalled: func(hash []byte) bool {
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+		bp.EpochConfirmed(4, 0)
+
+		mb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("hash")},
+		}
+
+		mbHandler := &block.MiniBlockHeader{
+			SenderShardID: shardId,
+		}
+
+		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
+		assert.Equal(t, int32(block.Proposed), mbHandler.GetConstructionState())
+	})
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrNilBlockBody(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(nil)
+	assert.Equal(t, err, process.ErrNilBlockBody)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFromStorageFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("error")
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 0, expectedError
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Equal(t, err, expectedError)
+}
+
+func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.Storage = initStore()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			return 1, nil
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
+	assert.Nil(t, err)
 }

@@ -26,12 +26,13 @@ const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb9908
 
 func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 	return ArgsNewSCQueryService{
-		VmContainer:       &mock.VMContainerMock{},
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		BlockChainHook:    &testscommon.BlockChainHookStub{},
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      &mock.BootstrapperStub{},
+		VmContainer:              &mock.VMContainerMock{},
+		EconomicsFee:             &mock.FeeHandlerStub{},
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             &mock.BootstrapperStub{},
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 }
 
@@ -116,7 +117,6 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
@@ -135,7 +135,6 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
@@ -148,6 +147,75 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 
 	assert.Nil(t, output)
 	assert.Equal(t, process.ErrEmptyFunctionName, err)
+}
+
+func TestExecuteQuery_ShouldPerformActionsInRegardsToAllowanceChannel(t *testing.T) {
+	t.Parallel()
+
+	chanAllowedQueries := make(chan struct{})
+	args := createMockArgumentsForSCQuery()
+	args.AllowExternalQueriesChan = chanAllowedQueries
+	target, _ := NewSCQueryService(args)
+
+	query := process.SCQuery{
+		ScAddress: []byte(DummyScAddress),
+		FuncName:  "func",
+		Arguments: [][]byte{},
+	}
+
+	output, err := target.ExecuteQuery(&query)
+	assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
+	assert.Nil(t, output)
+
+	close(chanAllowedQueries)
+	_, err = target.ExecuteQuery(&query)
+	assert.NoError(t, err)
+}
+
+func TestExecuteQuery_AllowanceChannelShouldWorkUnderConcurrentRequests(t *testing.T) {
+	t.Parallel()
+
+	chanAllowedQueries := make(chan struct{})
+	args := createMockArgumentsForSCQuery()
+	args.AllowExternalQueriesChan = chanAllowedQueries
+	target, _ := NewSCQueryService(args)
+
+	query := process.SCQuery{
+		ScAddress: []byte(DummyScAddress),
+		FuncName:  "func",
+		Arguments: [][]byte{},
+	}
+
+	defer func() {
+		r := recover()
+		assert.Nil(t, r)
+	}()
+
+	numTries := 200
+	wg := sync.WaitGroup{}
+	wg.Add(numTries)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		close(chanAllowedQueries)
+	}()
+
+	for i := 0; i < numTries; i++ {
+		go func(idx int) {
+			select {
+			case <-chanAllowedQueries:
+				_, err := target.ExecuteQuery(&query)
+				assert.NoError(t, err)
+			default:
+				output, err := target.ExecuteQuery(&query)
+				assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
+				assert.Nil(t, output)
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
@@ -592,11 +660,12 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		BlockChainHook:    &testscommon.BlockChainHookStub{},
-		BlockChain:        &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker: &sync.RWMutex{},
-		Bootstrapper:      &mock.BootstrapperStub{},
+		EconomicsFee:             &mock.FeeHandlerStub{},
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             &mock.BootstrapperStub{},
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 
 	target, _ := NewSCQueryService(argsNewSCQueryService)
