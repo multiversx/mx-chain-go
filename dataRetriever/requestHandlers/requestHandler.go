@@ -3,6 +3,7 @@ package requestHandlers
 import (
 	"encoding/binary"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -132,7 +133,10 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}
 
 	for _, txHash := range hashes {
-		log.Trace("requestByHashes", "hash", txHash)
+		log.Trace("requestByHashes", "hash", txHash, "topic", topic,
+			"shard", destShardID,
+			"num txs", len(unrequestedHashes),
+			"stack", string(debug.Stack()))
 	}
 
 	rrh.whiteList.Add(unrequestedHashes)

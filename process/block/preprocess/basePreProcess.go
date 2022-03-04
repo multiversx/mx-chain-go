@@ -299,6 +299,7 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 
 	missingTxsForShard := make(map[uint32][][]byte, bpp.shardCoordinator.NumberOfShards())
 	txHashes := make([][]byte, 0)
+	uniqueTxHashes := make(map[string]struct{})
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if !isMiniBlockCorrect(miniBlock.Type) {
@@ -309,6 +310,13 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 		searchFirst := miniBlock.Type == block.InvalidBlock
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
+
+			_, isAlreadyEvaluated := uniqueTxHashes[string(txHash)]
+			if isAlreadyEvaluated {
+				continue
+			}
+			uniqueTxHashes[string(txHash)] = struct{}{}
+
 			tx, err := process.GetTransactionHandlerFromPool(
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
@@ -336,7 +344,7 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], txHashes...)
 		}
 
-		txHashes = txHashes[:0]
+		txHashes = make([][]byte, 0)
 	}
 
 	return bpp.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
@@ -370,7 +378,9 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	requestedTxs := 0
 	for shardID, txHashes := range missingTxsForShard {
 		requestedTxs += len(txHashes)
-		go onRequestTxs(shardID, txHashes)
+		go func(providedsShardID uint32, providedTxHashes [][]byte) {
+			onRequestTxs(providedsShardID, providedTxHashes)
+		}(shardID, txHashes)
 	}
 
 	return requestedTxs
