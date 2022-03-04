@@ -220,15 +220,15 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	header data.HeaderHandler,
 ) error {
-	err := s.checkOldFlags(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	err := s.processWithOldFlags(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
-	return s.checkNewFlags(validatorsInfoMap, header)
+	return s.processWithNewFlags(validatorsInfoMap, header)
 }
 
-func (s *systemSCProcessor) checkOldFlags(
+func (s *systemSCProcessor) processWithOldFlags(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	nonce uint64,
 	epoch uint32,
@@ -288,7 +288,12 @@ func (s *systemSCProcessor) checkOldFlags(
 	}
 
 	if s.flagStakingV2Enabled.IsSet() {
-		numUnStaked, err := s.prepareStakingAndUnStakeNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
+		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
+		if err != nil {
+			return err
+		}
+
+		numUnStaked, err := s.unStakeNonEligibleNodes(validatorsInfoMap, epoch)
 		if err != nil {
 			return err
 		}
@@ -310,24 +315,7 @@ func (s *systemSCProcessor) checkOldFlags(
 	return nil
 }
 
-func (s *systemSCProcessor) prepareStakingAndUnStakeNodesWithNotEnoughFunds(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
-	epoch uint32,
-) (uint32, error) {
-	err := s.prepareStakingData(validatorsInfoMap)
-	if err != nil {
-		return 0, err
-	}
-
-	err = s.fillStakingDataForNonEligible(validatorsInfoMap)
-	if err != nil {
-		return 0, err
-	}
-
-	return s.unStakeNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
-}
-
-func (s *systemSCProcessor) checkNewFlags(
+func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	header data.HeaderHandler,
 ) error {
@@ -358,7 +346,12 @@ func (s *systemSCProcessor) checkNewFlags(
 	}
 
 	if s.flagStakingV4Enabled.IsSet() {
-		_, err := s.prepareStakingAndUnStakeNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
+		err := s.prepareStakingDataForAllNodes(validatorsInfoMap)
+		if err != nil {
+			return err
+		}
+
+		_, err = s.unStakeNonEligibleNodes(validatorsInfoMap, header.GetEpoch())
 		if err != nil {
 			return err
 		}
@@ -374,13 +367,19 @@ func (s *systemSCProcessor) checkNewFlags(
 
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uint32][]*state.ValidatorInfo, randomness []byte) error {
 	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
+	availableSlots := s.maxNodes - numOfValidators
+	if availableSlots <= 0 {
+		log.Info("not enough available slots for auction nodes; skip selecting nodes from auction list")
+		return nil
+	}
+
 	err := s.sortAuctionList(auctionList, randomness)
 	if err != nil {
 		return err
 	}
 
 	auctionListSize := uint32(len(auctionList))
-	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, s.maxNodes-numOfValidators)
+	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 
 	// TODO: Think of a better way of handling these pointers; perhaps use an interface which handles validators
@@ -717,16 +716,26 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMap map[
 	return nil
 }
 
-func (s *systemSCProcessor) prepareStakingData(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
-	nodes := make(map[uint32][][]byte)
-	if s.flagStakingV2Enabled.IsSet() {
-		nodes = s.getEligibleNodeKeys(validatorsInfoMap)
+func (s *systemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	eligibleNodes := s.getEligibleNodeKeys(validatorsInfoMap)
+	return s.prepareStakingData(eligibleNodes)
+}
+
+func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	allNodes := s.getAllNodeKeys(validatorsInfoMap)
+	return s.prepareStakingData(allNodes)
+}
+
+func (s *systemSCProcessor) unStakeNonEligibleNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo, epoch uint32) (uint32, error) {
+	err := s.fillStakingDataForNonEligible(validatorsInfoMap)
+	if err != nil {
+		return 0, err
 	}
 
-	if s.flagStakingV4Enabled.IsSet() {
-		nodes = s.getAllNodeKeys(validatorsInfoMap)
-	}
+	return s.unStakeNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
+}
 
+func (s *systemSCProcessor) prepareStakingData(nodeKeys map[uint32][][]byte) error {
 	sw := core.NewStopWatch()
 	sw.Start("prepareStakingDataForRewards")
 	defer func() {
@@ -734,7 +743,7 @@ func (s *systemSCProcessor) prepareStakingData(validatorsInfoMap map[uint32][]*s
 		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements()...)
 	}()
 
-	return s.stakingDataProvider.PrepareStakingData(nodes)
+	return s.stakingDataProvider.PrepareStakingData(nodeKeys)
 }
 
 func (s *systemSCProcessor) getEligibleNodeKeys(
