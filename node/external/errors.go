@@ -34,3 +34,6 @@ var ErrNilAPIBlockHandler = errors.New("nil api block handler")
 
 // ErrNilAPIInternalBlockHandler signals that a nil api internal block handler has been provided
 var ErrNilAPIInternalBlockHandler = errors.New("nil api internal block handler")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")

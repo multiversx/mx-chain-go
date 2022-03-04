@@ -552,6 +552,11 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 	}
 }
 
+// GetGenesisNodesPubKeys will return genesis nodes public keys by shard
+func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte) {
+	return nf.apiResolver.GetGenesisNodesPubKeys()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *nodeFacade) IsInterfaceNil() bool {
 	return nf == nil
