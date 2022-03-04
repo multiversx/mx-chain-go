@@ -164,20 +164,13 @@ func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) i
 
 	switch mbType {
 	case block.TxBlock:
-		// TODO extra prints
-		log.Debug("transactionsSync.requestTransactionsFor: RequestTransaction", "requesting on shard", miniBlock.SenderShardID)
 		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
-		log.Debug("transactionsSync.requestTransactionsFor: RequestTransaction", "requesting on shard", miniBlock.ReceiverShardID)
 		ts.requestHandler.RequestTransaction(miniBlock.ReceiverShardID, missingTxs)
 	case block.SmartContractResultBlock:
-		log.Debug("transactionsSync.requestTransactionsFor: RequestUnsignedTransactions", "requesting on shard", miniBlock.SenderShardID)
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
-		log.Debug("transactionsSync.requestTransactionsFor: RequestUnsignedTransactions", "requesting on shard", miniBlock.ReceiverShardID)
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.ReceiverShardID, missingTxs)
 	case block.RewardsBlock:
-		log.Debug("transactionsSync.requestTransactionsFor: RequestRewardTransactions", "requesting on shard", miniBlock.SenderShardID)
 		ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
-		log.Debug("transactionsSync.requestTransactionsFor: RequestRewardTransactions", "requesting on shard", miniBlock.ReceiverShardID)
 		ts.requestHandler.RequestRewardTransactions(miniBlock.ReceiverShardID, missingTxs)
 	}
 
