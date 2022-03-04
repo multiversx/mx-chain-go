@@ -71,6 +71,7 @@ func createGenesisConfig() config.EnableEpochs {
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: unreachableEpoch,
 		FixOOGReturnCodeEnableEpoch:                 unreachableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:          unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResult:             unreachableEpoch,
 	}
 }
 
