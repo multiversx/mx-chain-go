@@ -17,6 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testNftCreateValue = 10
+	testAddQuantityValue = 50
+	testBurnValue = 30
+)
+
 func TestNewSuppliesProcessor(t *testing.T) {
 	t.Parallel()
 
@@ -50,19 +56,19 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
 						Topics: [][]byte{
-							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+							token, big.NewInt(2).Bytes(), big.NewInt(testNftCreateValue).Bytes(),
 						},
 					},
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
 						Topics: [][]byte{
-							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+							token, big.NewInt(2).Bytes(), big.NewInt(testAddQuantityValue).Bytes(),
 						},
 					},
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
 						Topics: [][]byte{
-							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+							token, big.NewInt(2).Bytes(), big.NewInt(testBurnValue).Bytes(),
 						},
 					},
 				},
@@ -127,7 +133,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
 						Topics: [][]byte{
-							token, big.NewInt(2).Bytes(), big.NewInt(10).Bytes(),
+							token, big.NewInt(2).Bytes(), big.NewInt(testNftCreateValue).Bytes(),
 						},
 					},
 				},
@@ -148,7 +154,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
 						Topics: [][]byte{
-							token, big.NewInt(2).Bytes(), big.NewInt(50).Bytes(),
+							token, big.NewInt(2).Bytes(), big.NewInt(testAddQuantityValue).Bytes(),
 						},
 					},
 				},
@@ -170,7 +176,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
 						Topics: [][]byte{
-							token, big.NewInt(2).Bytes(), big.NewInt(30).Bytes(),
+							token, big.NewInt(2).Bytes(), big.NewInt(testBurnValue).Bytes(),
 						},
 					},
 				},
@@ -207,19 +213,19 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				switch numTimesCalled {
 				case 0:
 					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(10), supplyEsdt.Supply)
+					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Supply)
 					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(10), supplyEsdt.Minted)
+					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Minted)
 				case 1:
 					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(60), supplyEsdt.Supply)
+					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue), supplyEsdt.Supply)
 					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(60), supplyEsdt.Minted)
+					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue), supplyEsdt.Minted)
 				case 2:
 					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(30), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(30), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(60), supplyEsdt.Minted)
+					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue - testBurnValue), supplyEsdt.Supply)
+					require.Equal(t, big.NewInt(testBurnValue), supplyEsdt.Burned)
+					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue), supplyEsdt.Minted)
 				}
 
 				_ = membDB.Put(key, data)
