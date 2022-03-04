@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -63,7 +62,7 @@ type testKeyPair struct {
 	validatorKey []byte
 }
 
-func createPhysicalUnit() (storage.Storer, string) {
+func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 	cacheConfig := storageUnit.CacheConfig{
 		Name:                 "test",
 		Type:                 "SizeLRU",
@@ -73,7 +72,7 @@ func createPhysicalUnit() (storage.Storer, string) {
 		SizePerSender:        0,
 		Shards:               0,
 	}
-	dir, _ := ioutil.TempDir("", "")
+	dir := t.TempDir()
 	persisterConfig := storageUnit.ArgDB{
 		Path:              dir,
 		DBType:            "LvlDBSerial",
@@ -364,7 +363,7 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	t.Parallel()
 
-	db, dir := createPhysicalUnit()
+	db, dir := createPhysicalUnit(t)
 	require.False(t, check.IfNil(db))
 
 	log.Info("using temporary directory", "path", dir)

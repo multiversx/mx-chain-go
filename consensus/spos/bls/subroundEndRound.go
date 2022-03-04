@@ -223,6 +223,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
 		return false
 	}

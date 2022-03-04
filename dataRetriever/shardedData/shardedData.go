@@ -168,14 +168,14 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 		}
 	}
 
-	log.Debug("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved)
+	log.Trace("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved)
 }
 
 // ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable
 func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
 	store := sd.getOrCreateShardStoreWithLock(cacheID)
 	numNow, numFuture := store.cache.ImmunizeKeys(keys)
-	log.Debug("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+	log.Trace("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 }
 
 // RemoveData will remove data hash from the corresponding shard store
@@ -273,7 +273,7 @@ func (sd *shardedData) GetCounts() counting.CountsWithSize {
 
 // Diagnose diagnoses the internal caches
 func (sd *shardedData) Diagnose(deep bool) {
-	log.Debug("shardedData.Diagnose()", "counts", sd.GetCounts().String())
+	log.Trace("shardedData.Diagnose()", "counts", sd.GetCounts().String())
 
 	sd.mutShardedDataStore.RLock()
 	defer sd.mutShardedDataStore.RUnlock()

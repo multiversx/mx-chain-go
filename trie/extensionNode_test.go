@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -1022,10 +1023,10 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
-	assert.Equal(t, ErrContextClosing, err)
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
 	err = en.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
-	assert.Equal(t, ErrContextClosing, err)
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
 func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
