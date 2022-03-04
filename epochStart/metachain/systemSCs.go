@@ -426,7 +426,7 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, 
 			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
 		}
 
-		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 1
+		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
 	})
 
 	return nil
