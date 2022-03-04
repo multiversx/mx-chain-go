@@ -51,7 +51,7 @@ type QueryDebugRequest struct {
 	Search string `form:"search" json:"search"`
 }
 
-type genesisNodesPubKeys struct {
+type genesisNodesConfig struct {
 	Eligible map[uint32][][]byte `json:"eligible"`
 	Waiting  map[uint32][][]byte `json:"waiting"`
 }
@@ -267,7 +267,7 @@ func (ng *nodeGroup) getGenesisNodesConfig(c *gin.Context) {
 		return
 	}
 
-	nc := genesisNodesPubKeys{
+	nc := genesisNodesConfig{
 		Eligible: eligibleNodesConfig,
 		Waiting:  waitingNodesConfig,
 	}
