@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -1172,6 +1173,44 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+// GetGenesisNodesConfig
+func (n *Node) GetGenesisNodesConfig() (
+	map[uint32][]*sharding.InitialNode,
+	map[uint32][]*sharding.InitialNode,
+) {
+	eligibleNodesConfig, waitingNodesConfig := n.coreComponents.GenesisNodesSetup().InitialNodesInfo()
+
+	el := make(map[uint32][]*sharding.InitialNode)
+
+	for shardID, nc := range eligibleNodesConfig {
+		nodes := make([]*sharding.InitialNode, len(nc))
+		for i := 0; i < len(nc); i++ {
+			nodes[i] = &sharding.InitialNode{
+				PubKey:        n.GetCoreComponents().ValidatorPubKeyConverter().Encode(nc[i].PubKeyBytes()),
+				Address:       n.GetCoreComponents().AddressPubKeyConverter().Encode(nc[i].AddressBytes()),
+				InitialRating: nc[i].GetInitialRating(),
+			}
+		}
+		el[shardID] = nodes
+	}
+
+	wt := make(map[uint32][]*sharding.InitialNode)
+
+	for shardID, nc := range waitingNodesConfig {
+		nodes := make([]*sharding.InitialNode, len(nc))
+		for i := 0; i < len(nc); i++ {
+			nodes[i] = &sharding.InitialNode{
+				PubKey:        n.GetCoreComponents().ValidatorPubKeyConverter().Encode(nc[i].PubKeyBytes()),
+				Address:       n.GetCoreComponents().AddressPubKeyConverter().Encode(nc[i].AddressBytes()),
+				InitialRating: nc[i].GetInitialRating(),
+			}
+		}
+		wt[shardID] = nodes
+	}
+
+	return el, wt
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
