@@ -653,7 +653,12 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 }
 
 func (sc *scProcessor) isSelfShard(address []byte) bool {
-	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
+	addressShardID := sc.shardCoordinator.ComputeId(address)
+	if !sc.flagCleanUpInformativeSCRs.IsSet() && core.IsEmptyAddress(address) {
+		addressShardID = 0
+	}
+
+	return addressShardID == sc.shardCoordinator.SelfId()
 }
 
 func (sc *scProcessor) gasConsumedChecks(
