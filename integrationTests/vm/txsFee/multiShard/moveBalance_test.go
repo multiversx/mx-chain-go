@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestMoveBalanceShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -40,7 +41,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	//verify receiver
+	// verify receiver
 	expectedBalanceReceiver := big.NewInt(100)
 	utils.TestAccount(t, testContext.Accounts, rcvAddr, 0, expectedBalanceReceiver)
 
@@ -60,7 +61,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -109,7 +110,7 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -137,7 +138,7 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	//verify receiver
+	// verify receiver
 	expectedBalanceReceiver := big.NewInt(0)
 	utils.TestAccount(t, testContext.Accounts, scAddrBytes, 0, expectedBalanceReceiver)
 
@@ -156,11 +157,11 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 }
 
 func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
@@ -185,7 +186,7 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	//verify sender
+	// verify sender
 	expectedBalanceSender := big.NewInt(99810)
 	utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalanceSender)
 
@@ -209,7 +210,7 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)
 
-	//verify receiver
+	// verify receiver
 	expectedBalanceReceiver := big.NewInt(100)
 	utils.TestAccount(t, testContextDst.Accounts, rcvAddr, 0, expectedBalanceReceiver)
 
