@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -255,7 +256,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 
@@ -306,9 +307,9 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 				GasLimit: gasLimit,
 			}
 
-			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-			if returnCode != vmcommon.Ok {
-				fmt.Printf("return code %s \n", returnCode.String())
+			returnCodeAfterProcess, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCodeAfterProcess != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCodeAfterProcess.String())
 			}
 		}
 
@@ -330,9 +331,9 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 				GasLimit: gasLimit,
 			}
 
-			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-			if returnCode != vmcommon.Ok {
-				fmt.Printf("return code %s \n", returnCode.String())
+			returnCodeAfterProcess, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCodeAfterProcess != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCodeAfterProcess.String())
 			}
 		}
 
@@ -353,9 +354,9 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 				GasLimit: gasLimit,
 			}
 
-			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-			if returnCode != vmcommon.Ok {
-				fmt.Printf("return code %s \n", returnCode.String())
+			returnCodeAfterProcess, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCodeAfterProcess != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCodeAfterProcess.String())
 			}
 		}
 
@@ -376,9 +377,9 @@ func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark in
 		}
 
 		ownerNonce++
-		returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-		if returnCode != vmcommon.Ok {
-			fmt.Printf("return code %s \n", returnCode.String())
+		returnCodeAfterProcess, _ := testContext.TxProcessor.ProcessTransaction(tx)
+		if returnCodeAfterProcess != vmcommon.Ok {
+			fmt.Printf("return code %s \n", returnCodeAfterProcess.String())
 		}
 
 		elapsedTime = time.Since(start)

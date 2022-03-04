@@ -9,8 +9,10 @@ import (
 type MessengerStub struct {
 	ConnectedPeersCalled           func() []core.PeerID
 	RegisterMessageProcessorCalled func(topic string, identifier string, handler p2p.MessageProcessor) error
-	UnjoinAllTopicsCalled          func() error
-	IDCalled                       func() core.PeerID
+
+	CreateTopicCalled     func(topic string, identifier bool) error
+	UnjoinAllTopicsCalled func() error
+	IDCalled              func() core.PeerID
 }
 
 // ConnectedPeersOnTopic -
@@ -39,7 +41,10 @@ func (m *MessengerStub) HasTopic(_ string) bool {
 }
 
 // CreateTopic -
-func (m *MessengerStub) CreateTopic(_ string, _ bool) error {
+func (m *MessengerStub) CreateTopic(topic string, identifier bool) error {
+	if m.CreateTopicCalled != nil {
+		return m.CreateTopicCalled(topic, identifier)
+	}
 	return nil
 }
 
