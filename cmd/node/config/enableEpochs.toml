@@ -184,6 +184,9 @@
     # disabled in the blockchain hook component
     DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
 
+   	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+   	FailExecutionOnEveryAPIErrorEnableEpoch = 3
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
