@@ -4210,7 +4210,7 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	sc.flagCleanUpInformativeSCRs.SetValue(true)
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
 	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
-	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas remained = %d",
+	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 		TooMuchGasProvidedMessage, 11, 1)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 }

@@ -1956,7 +1956,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 			TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	} else {
-		vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas remained = %d",
+		vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 			TooMuchGasProvidedMessage, gasProvidedForProcessing, gasProvidedForProcessing-vmOutput.GasRemaining)
 	}
 
