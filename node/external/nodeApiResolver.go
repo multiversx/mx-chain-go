@@ -208,11 +208,7 @@ func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, 
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
-
-	eligible := getInitialNodesPubKeysBytes(eligibleNodesConfig)
-	waiting := getInitialNodesPubKeysBytes(waitingNodesConfig)
-
-	return eligible, waiting
+	return getInitialNodesPubKeysBytes(eligibleNodesConfig), getInitialNodesPubKeysBytes(waitingNodesConfig)
 }
 
 func getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][][]byte {
