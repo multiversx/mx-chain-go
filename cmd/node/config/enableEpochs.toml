@@ -144,6 +144,9 @@
     # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
     RemoveNonUpdatedStorageEnableEpoch = 1
 
+    # SCRSizeInvariantOnBuiltInResult represents the epoch when scr size invariant on built in result is enabled
+    SCRSizeInvariantOnBuiltInResult = 2
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
