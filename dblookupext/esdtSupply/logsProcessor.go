@@ -163,7 +163,9 @@ func (lp *logsProcessor) updateTokenSupply(tokenSupply *SupplyESDT, valueFromEve
 	switch {
 	case isBurnOP:
 		tokenSupply.Burned.Add(tokenSupply.Burned, valueFromEvent)
-	case eventIdentifier == core.BuiltInFunctionESDTNFTAddQuantity || eventIdentifier == core.BuiltInFunctionESDTLocalMint:
+	case eventIdentifier == core.BuiltInFunctionESDTNFTAddQuantity ||
+		eventIdentifier == core.BuiltInFunctionESDTLocalMint ||
+		eventIdentifier == core.BuiltInFunctionESDTNFTCreate:
 		tokenSupply.Minted.Add(tokenSupply.Minted, valueFromEvent)
 	}
 
