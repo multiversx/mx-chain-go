@@ -1952,12 +1952,12 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 	}
 
-	if sc.flagCleanUpInformativeSCRs.IsSet() {
+	if !sc.flagCleanUpInformativeSCRs.IsSet() {
 		vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 			TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	} else {
-		vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas needed = %d, gas remained = %d",
-			TooMuchGasProvidedMessage, gasProvidedForProcessing-vmOutput.GasRemaining, vmOutput.GasRemaining)
+		vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas remained = %d",
+			TooMuchGasProvidedMessage, gasProvidedForProcessing, gasProvidedForProcessing-vmOutput.GasRemaining)
 	}
 
 	vmOutput.GasRemaining = 0
