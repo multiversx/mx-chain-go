@@ -1033,11 +1033,8 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	if sc.flagSCRSizeInvariantOnBuiltInResult.IsSet() {
-		err = sc.checkSCRSizeInvariant(scrResults)
+		err := sc.checkSCRSizeInvariant(scrResults)
 		if err != nil {
-			if !check.IfNil(acntSnd) {
-				return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
-			}
 			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 	}
