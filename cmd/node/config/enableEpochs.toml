@@ -187,8 +187,8 @@
     # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
    AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
 
-    # SCRSizeInvariantOnBuiltInResult represents the epoch when scr size invariant on built in result is enabled
-    SCRSizeInvariantOnBuiltInResult = 2
+    # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
