@@ -6,11 +6,13 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -69,6 +71,7 @@ func NewTestSyncNode(
 
 	messenger := CreateMessengerWithNoDiscovery()
 
+	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
@@ -88,7 +91,7 @@ func NewTestSyncNode(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: logsProcessor,
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -112,7 +115,8 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
@@ -137,11 +141,13 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.setGenesisBlock()
 	tpn.initNode()
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.addHandlersForCounters()
@@ -180,7 +186,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
-	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()
@@ -210,11 +216,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:       tpn.BlockTracker,
-		BlockSizeThrottler: TestBlockSizeThrottler,
-		HistoryRepository:  tpn.HistoryRepository,
-		EpochNotifier:      tpn.EpochNotifier,
-		GasHandler:         tpn.GasHandler,
+		BlockTracker:                   tpn.BlockTracker,
+		BlockSizeThrottler:             TestBlockSizeThrottler,
+		HistoryRepository:              tpn.HistoryRepository,
+		EpochNotifier:                  tpn.EpochNotifier,
+		RoundNotifier:                  coreComponents.RoundNotifier(),
+		GasHandler:                     tpn.GasHandler,
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -239,6 +248,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
+		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}
@@ -253,31 +263,32 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:          tpn.DataPool,
-		Store:                tpn.Storage,
-		ChainHandler:         tpn.BlockChain,
-		RoundHandler:         tpn.RoundHandler,
-		BlockProcessor:       tpn.BlockProcessor,
-		WaitTime:             tpn.RoundHandler.TimeDuration(),
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ForkDetector:         tpn.ForkDetector,
-		RequestHandler:       tpn.RequestHandler,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		BlackListHandler:     tpn.BlockBlackListHandler,
-		NetworkWatcher:       tpn.Messenger,
-		BootStorer:           tpn.BootstrapStorer,
-		StorageBootstrapper:  tpn.StorageBootstrapper,
-		EpochHandler:         tpn.EpochStartTrigger,
-		MiniblocksProvider:   tpn.MiniblocksProvider,
-		Uint64Converter:      TestUint64Converter,
-		AppStatusHandler:     TestAppStatusHandler,
-		OutportHandler:       mock.NewNilOutport(),
-		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
-		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
-		IsInImportMode:       false,
-		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
+		PoolsHolder:                  tpn.DataPool,
+		Store:                        tpn.Storage,
+		ChainHandler:                 tpn.BlockChain,
+		RoundHandler:                 tpn.RoundHandler,
+		BlockProcessor:               tpn.BlockProcessor,
+		WaitTime:                     tpn.RoundHandler.TimeDuration(),
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		ForkDetector:                 tpn.ForkDetector,
+		RequestHandler:               tpn.RequestHandler,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		Accounts:                     tpn.AccntState,
+		BlackListHandler:             tpn.BlockBlackListHandler,
+		NetworkWatcher:               tpn.Messenger,
+		BootStorer:                   tpn.BootstrapStorer,
+		StorageBootstrapper:          tpn.StorageBootstrapper,
+		EpochHandler:                 tpn.EpochStartTrigger,
+		MiniblocksProvider:           tpn.MiniblocksProvider,
+		Uint64Converter:              TestUint64Converter,
+		AppStatusHandler:             TestAppStatusHandler,
+		OutportHandler:               mock.NewNilOutport(),
+		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
+		IsInImportMode:               false,
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -296,31 +307,32 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:          tpn.DataPool,
-		Store:                tpn.Storage,
-		ChainHandler:         tpn.BlockChain,
-		RoundHandler:         tpn.RoundHandler,
-		BlockProcessor:       tpn.BlockProcessor,
-		WaitTime:             tpn.RoundHandler.TimeDuration(),
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ForkDetector:         tpn.ForkDetector,
-		RequestHandler:       tpn.RequestHandler,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		BlackListHandler:     tpn.BlockBlackListHandler,
-		NetworkWatcher:       tpn.Messenger,
-		BootStorer:           tpn.BootstrapStorer,
-		StorageBootstrapper:  tpn.StorageBootstrapper,
-		EpochHandler:         tpn.EpochStartTrigger,
-		MiniblocksProvider:   tpn.MiniblocksProvider,
-		Uint64Converter:      TestUint64Converter,
-		AppStatusHandler:     TestAppStatusHandler,
-		OutportHandler:       mock.NewNilOutport(),
-		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
-		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
-		IsInImportMode:       false,
-		HistoryRepo:          &dblookupext.HistoryRepositoryStub{},
+		PoolsHolder:                  tpn.DataPool,
+		Store:                        tpn.Storage,
+		ChainHandler:                 tpn.BlockChain,
+		RoundHandler:                 tpn.RoundHandler,
+		BlockProcessor:               tpn.BlockProcessor,
+		WaitTime:                     tpn.RoundHandler.TimeDuration(),
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		ForkDetector:                 tpn.ForkDetector,
+		RequestHandler:               tpn.RequestHandler,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		Accounts:                     tpn.AccntState,
+		BlackListHandler:             tpn.BlockBlackListHandler,
+		NetworkWatcher:               tpn.Messenger,
+		BootStorer:                   tpn.BootstrapStorer,
+		StorageBootstrapper:          tpn.StorageBootstrapper,
+		EpochHandler:                 tpn.EpochStartTrigger,
+		MiniblocksProvider:           tpn.MiniblocksProvider,
+		Uint64Converter:              TestUint64Converter,
+		AppStatusHandler:             TestAppStatusHandler,
+		OutportHandler:               mock.NewNilOutport(),
+		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
+		IsInImportMode:               false,
+		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

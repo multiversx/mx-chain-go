@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -22,6 +23,7 @@ type trieNodeInfo struct {
 }
 
 type trieSyncer struct {
+	baseSyncTrie
 	rootFound                 bool
 	shardId                   uint32
 	topic                     string
@@ -51,7 +53,7 @@ type ArgTrieSyncer struct {
 	InterceptedNodes          storage.Cacher
 	ShardId                   uint32
 	Topic                     string
-	TrieSyncStatistics        data.SyncStatisticsHandler
+	TrieSyncStatistics        common.SizeSyncStatisticsHandler
 	MaxHardCapForMissingNodes int
 	TimeoutHandler            TimeoutHandler
 }
@@ -131,6 +133,11 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.rootFound = false
 	ts.rootHash = rootHash
 
+	timeStart := time.Now()
+	defer func() {
+		ts.setSyncDuration(time.Since(timeStart))
+	}()
+
 	for {
 		shouldRetryAfterRequest, err := ts.checkIfSynced()
 		if err != nil {
@@ -146,7 +153,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			return ErrContextClosing
+			return errors.ErrContextClosing
 		}
 	}
 }
@@ -226,11 +233,14 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			delete(ts.nodesForTrie, nodeHash)
 
-			_, err = encodeNodeAndCommitToDB(currentNode, ts.db)
+			var numBytes int
+			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.db)
 			if err != nil {
 				return false, err
 			}
 			ts.timeoutHandler.ResetWatchdog()
+
+			ts.updateStats(uint64(numBytes), currentNode)
 
 			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
 				ts.rootFound = true
@@ -275,7 +285,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return nodeInfo.trieNode, nil
 	}
 
-	return getNodeFromStorage(
+	return getNodeFromCacheOrStorage(
 		hash,
 		ts.interceptedNodesCacher,
 		ts.db,
@@ -284,17 +294,16 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	)
 }
 
-func getNodeFromStorage(
+func getNodeFromCacheOrStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
 	db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {
-	n, ok := interceptedNodesCacher.Get(hash)
-	if ok {
-		interceptedNodesCacher.Remove(hash)
-		return trieNode(n, marshalizer, hasher)
+	n, err := getNodeFromCache(hash, interceptedNodesCacher, marshalizer, hasher)
+	if err == nil {
+		return n, nil
 	}
 
 	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
@@ -307,6 +316,21 @@ func getNodeFromStorage(
 	}
 
 	return existingNode, nil
+}
+
+func getNodeFromCache(
+	hash []byte,
+	interceptedNodesCacher storage.Cacher,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (node, error) {
+	n, ok := interceptedNodesCacher.Get(hash)
+	if ok {
+		interceptedNodesCacher.Remove(hash)
+		return trieNode(n, marshalizer, hasher)
+	}
+
+	return nil, ErrNodeNotFound
 }
 
 func trieNode(

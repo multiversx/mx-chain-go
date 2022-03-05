@@ -155,6 +155,9 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 // ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
 var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
+// ErrNilRoundTimeDurationHandler signals that an operation has been attempted to or with a nil RoundTimeDurationHandler implementation
+var ErrNilRoundTimeDurationHandler = errors.New("nil RoundTimeDurationHandler")
+
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
 
@@ -290,8 +293,8 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
-// ErrReservedFieldNotSupportedYet signals that reserved field is not empty
-var ErrReservedFieldNotSupportedYet = errors.New("reserved field not supported yet")
+// ErrReservedFieldInvalid signals that reserved field has an invalid content
+var ErrReservedFieldInvalid = errors.New("reserved field content is invalid")
 
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
@@ -306,7 +309,7 @@ var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 var ErrHigherNonceInBlock = errors.New("higher nonce in block")
 
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
-var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
+var ErrRandSeedDoesNotMatch = errors.New("random seed does not match")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -325,6 +328,10 @@ var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblo
 
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
+
+// ErrScheduledMiniBlocksMismatch signals that scheduled mini blocks created and executed in the last block, which are not yet final,
+// do not match with the ones received in the next proposed body
+var ErrScheduledMiniBlocksMismatch = errors.New("scheduled miniblocks does not match")
 
 // ErrNilSmartContractProcessor signals that smart contract call executor is nil
 var ErrNilSmartContractProcessor = errors.New("smart contract processor is nil")
@@ -470,9 +477,6 @@ var ErrOverflow = errors.New("type overflow occured")
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
 
-// ErrNilHdrValidator signals that a nil header validator has been provided
-var ErrNilHdrValidator = errors.New("nil header validator")
-
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
@@ -500,6 +504,9 @@ var ErrInvalidMaxGasLimitPerMetaBlock = errors.New("invalid max gas limit per me
 // ErrInvalidMaxGasLimitPerMetaMiniBlock signals that an invalid max gas limit per meta mini block has been read from config file
 var ErrInvalidMaxGasLimitPerMetaMiniBlock = errors.New("invalid max gas limit per meta mini block")
 
+// ErrInvalidMaxGasLimitPerTx signals that an invalid max gas limit per tx has been read from config file
+var ErrInvalidMaxGasLimitPerTx = errors.New("invalid max gas limit per tx")
+
 // ErrInvalidGasPerDataByte signals that an invalid gas per data byte has been read from config file
 var ErrInvalidGasPerDataByte = errors.New("invalid gas per data byte")
 
@@ -511,6 +518,9 @@ var ErrMaxGasLimitPerOneTxInReceiverShardIsReached = errors.New("max gas limit p
 
 // ErrMaxGasLimitPerBlockInSelfShardIsReached signals that max gas limit per block in self shard has been reached
 var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per block in self shard is reached")
+
+// ErrMaxGasLimitUsedForDestMeTxsIsReached signals that max gas limit used for dest me txs has been reached
+var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for dest me txs is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
@@ -568,6 +578,9 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrZeroMaxComputableRounds signals that a value of zero was provided on the maxComputableRounds
 var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
+
+// ErrZeroMaxConsecutiveRoundsOfRatingDecrease signals that a value of zero was provided on the MaxConsecutiveRoundsOfRatingDecrease
+var ErrZeroMaxConsecutiveRoundsOfRatingDecrease = errors.New("max consecutive number of rounds, in which we can decrease a validator rating, is zero")
 
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
@@ -709,9 +722,6 @@ var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator
 
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
-
-// ErrInvalidAddressLength signals that address length is invalid
-var ErrInvalidAddressLength = errors.New("invalid address length")
 
 // ErrDuplicateThreshold signals that two thresholds are the same
 var ErrDuplicateThreshold = errors.New("two thresholds are the same")
@@ -938,6 +948,9 @@ var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 // ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
 var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
 
+// ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard signals that more gas was provided than gas limit per mini block for safe cross shard
+var ErrMoreGasThanGasLimitPerMiniBlockForSafeCrossShard = errors.New("more gas was provided than gas limit per mini block for safe cross shard")
+
 // ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
 var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
 
@@ -971,6 +984,12 @@ var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers 
 // ErrNilLocker signals that a nil locker was provided
 var ErrNilLocker = errors.New("nil locker")
 
+// ErrNilAllowExternalQueriesChan signals that a nil channel for signaling the allowance of external queries provided is nil
+var ErrNilAllowExternalQueriesChan = errors.New("nil channel for signaling the allowance of external queries")
+
+// ErrQueriesNotAllowedYet signals that the node is not ready yet to process VM Queries
+var ErrQueriesNotAllowedYet = errors.New("node is not ready yet to process VM Queries")
+
 // ErrNilChunksProcessor signals that a nil chunks processor has been provided
 var ErrNilChunksProcessor = errors.New("nil chunks processor")
 
@@ -986,7 +1005,7 @@ var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
 
-// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provider
+// ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provided
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
 
 // ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
@@ -994,3 +1013,63 @@ var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
 
 // ErrNotAllowedToWriteUnderProtectedKey signals that writing under protected key is not allowed
 var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write under protected key")
+
+// ErrNilNFTStorageHandler signals that nil NFT storage handler has been provided
+var ErrNilNFTStorageHandler = errors.New("nil NFT storage handler")
+
+// ErrNilBootstrapper signals that a nil bootstraper has been provided
+var ErrNilBootstrapper = errors.New("nil bootstrapper")
+
+// ErrNodeIsNotSynced signals that the VM query cannot be executed because the node is not synced and the request required this
+var ErrNodeIsNotSynced = errors.New("node is not synced")
+
+// ErrStateChangedWhileExecutingVmQuery signals that the state has been changed while executing a vm query and the request required not to
+var ErrStateChangedWhileExecutingVmQuery = errors.New("state changed while executing vm query")
+
+// ErrDuplicateRoundActivationName signals a round activation name is already taken
+var ErrDuplicateRoundActivationName = errors.New("round activation name already exists in config file")
+
+// ErrNilActivationRoundName signals an empty activation round name has been set in config file
+var ErrNilActivationRoundName = errors.New("round activation name is empty in config file")
+
+// ErrInvalidRoundActivationConfig signals that RoundConfig struct is invalid
+var ErrInvalidRoundActivationConfig = errors.New("invalid round config struct; should be of type config.ActivationRoundByName")
+
+// ErrNilRoundNotifier signals a nil round notifier has been provided
+var ErrNilRoundNotifier = errors.New("nil round notifier has been provided")
+
+// ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
+var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
+
+// ErrNilVersionedHeaderFactory signals that the versioned header factory is nil
+var ErrNilVersionedHeaderFactory = errors.New("nil versioned header factory")
+
+// ErrNilIntermediateProcessor signals that intermediate processors is nil
+var ErrNilIntermediateProcessor = errors.New("intermediate processor is nil")
+
+// ErrNilSyncTimer signals that the sync timer is nil
+var ErrNilSyncTimer = errors.New("sync timer is nil")
+
+// ErrNilIsShardStuckHandler signals a nil shard stuck handler
+var ErrNilIsShardStuckHandler = errors.New("nil handler for checking stuck shard")
+
+// ErrNilIsMaxBlockSizeReachedHandler signals a nil max block size reached handler
+var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block size reached")
+
+// ErrNilTxMaxTotalCostHandler signals a nil transaction max total cost
+var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
+
+// ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
+var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
+
+// ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
+var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
+
+// ErrNilAdditionalData signals that additional data is nil
+var ErrNilAdditionalData = errors.New("nil additional data")
+
+// ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch signals that number of mini blocks and mini blocks headers does not match
+var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blocks and mini blocks headers does not match")
+
+// ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
+var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")

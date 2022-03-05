@@ -1,5 +1,7 @@
 package process
 
+import "time"
+
 // BlockHeaderState specifies which is the state of the block header received
 type BlockHeaderState int
 
@@ -82,10 +84,6 @@ const MaxRoundsWithoutCommittedBlock = 10
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
-// MaxNumPendingMiniBlocksPerShard defines the maximum number of pending miniblocks per shard, after which a shard
-// could be considered stuck if this value multiplied by the number of shards is reached
-const MaxNumPendingMiniBlocksPerShard = 10
-
 // MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
 // nonce before a shard is considered stuck
 const MaxMetaNoncesBehind = 15
@@ -111,6 +109,9 @@ const MinShardHeadersFromSameShardInOneMetaBlock = 10
 // MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
 const MaxNumOfTxsToSelect = 30000
 
+// MaxGasBandwidthPerBatchPerSender defines the maximum gas bandwidth that should be selected for a sender per batch from the cache
+const MaxGasBandwidthPerBatchPerSender = 5000000
+
 // MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
 const MaxRoundsToKeepUnprocessedMiniBlocks = 100
 
@@ -124,3 +125,7 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
+
+// TimeDurationMultiplierForProcessBlockWhenSync represents the constant that will be multiplied with the round duration
+// when considering the maximum available time window for block processing when syncing blocks
+const TimeDurationMultiplierForProcessBlockWhenSync = time.Duration(2)

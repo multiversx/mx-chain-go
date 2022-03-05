@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -60,7 +61,7 @@ func RunTest(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	if err != nil {
 		return ResultInfo{}, err
@@ -143,7 +144,7 @@ func DeployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	if err != nil {
 		return nil, err
@@ -162,12 +163,12 @@ func DeployAndExecuteERC20WithBigInt(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
-	if testContext.GetLatestError() != nil {
-		return nil, testContext.GetLatestError()
+	if returnCode != vmcommon.Ok {
+		return nil, fmt.Errorf(returnCode.String())
 	}
 	ownerNonce++
 
@@ -181,7 +182,7 @@ func DeployAndExecuteERC20WithBigInt(
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -254,12 +255,12 @@ func SetupERC20Test(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
-	if testContext.GetLatestError() != nil {
-		return testContext.GetLatestError()
+	if returnCode != vmcommon.Ok {
+		return fmt.Errorf(returnCode.String())
 	}
 
 	testContext.ContractOwner.Nonce++
@@ -285,7 +286,7 @@ func SetupERC20Test(
 		"transferToken",
 	)
 
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}

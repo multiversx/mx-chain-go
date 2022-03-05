@@ -230,7 +230,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
-		log.Warn("Did not find nodesConfig", "epoch", epoch)
+		log.Debug("Did not find nodesConfig", "epoch", epoch)
 		nodesConfig = &epochNodesConfig{}
 	}
 
@@ -571,7 +571,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	//TODO: remove the copy if no changes are done to the maps
+	// TODO: remove the copy if no changes are done to the maps
 	copiedPrevious := &epochNodesConfig{}
 	copiedPrevious.eligibleMap = copyValidatorMap(previousConfig.eligibleMap)
 	copiedPrevious.waitingMap = copyValidatorMap(previousConfig.waitingMap)
@@ -1193,6 +1193,6 @@ func createValidatorInfoFromBody(
 }
 
 func (ihgs *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihgs.flagWaitingListFix.Toggle(epoch >= ihgs.waitingListFixEnableEpoch)
+	ihgs.flagWaitingListFix.SetValue(epoch >= ihgs.waitingListFixEnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihgs.flagWaitingListFix.IsSet())
 }

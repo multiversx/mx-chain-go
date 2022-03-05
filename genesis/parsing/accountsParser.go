@@ -7,7 +7,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	coreData "github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
+	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -15,44 +23,55 @@ import (
 
 // accountsParser hold data for initial accounts decoded data from json file
 type accountsParser struct {
-	initialAccounts []*data.InitialAccount
-	entireSupply    *big.Int
-	pubkeyConverter core.PubkeyConverter
-	keyGenerator    crypto.KeyGenerator
+	initialAccounts    []*data.InitialAccount
+	entireSupply       *big.Int
+	minterAddressBytes []byte
+	pubkeyConverter    core.PubkeyConverter
+	keyGenerator       crypto.KeyGenerator
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
 }
 
 // NewAccountsParser creates a new decoded accounts genesis structure from json config file
-func NewAccountsParser(
-	genesisFilePath string,
-	entireSupply *big.Int,
-	pubkeyConverter core.PubkeyConverter,
-	keyGenerator crypto.KeyGenerator,
-) (*accountsParser, error) {
-
-	if entireSupply == nil {
+func NewAccountsParser(args genesis.AccountsParserArgs) (*accountsParser, error) {
+	if args.EntireSupply == nil {
 		return nil, genesis.ErrNilEntireSupply
 	}
-	if big.NewInt(0).Cmp(entireSupply) >= 0 {
+	if big.NewInt(0).Cmp(args.EntireSupply) >= 0 {
 		return nil, genesis.ErrInvalidEntireSupply
 	}
-	if check.IfNil(pubkeyConverter) {
+	if check.IfNil(args.PubkeyConverter) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
-	if check.IfNil(keyGenerator) {
+	if check.IfNil(args.KeyGenerator) {
 		return nil, genesis.ErrNilKeyGenerator
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, genesis.ErrNilHasher
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, genesis.ErrNilMarshalizer
+	}
+
+	minterAddressBytes, err := args.PubkeyConverter.Decode(args.MinterAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding minter address. error: %s", genesis.ErrInvalidAddress, err.Error())
 	}
 
 	initialAccounts := make([]*data.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, genesisFilePath)
+	err = core.LoadJsonFile(&initialAccounts, args.GenesisFilePath)
 	if err != nil {
 		return nil, err
 	}
 
 	gp := &accountsParser{
-		initialAccounts: initialAccounts,
-		entireSupply:    entireSupply,
-		pubkeyConverter: pubkeyConverter,
-		keyGenerator:    keyGenerator,
+		initialAccounts:    initialAccounts,
+		entireSupply:       args.EntireSupply,
+		minterAddressBytes: minterAddressBytes,
+		pubkeyConverter:    args.PubkeyConverter,
+		keyGenerator:       args.KeyGenerator,
+		hasher:             args.Hasher,
+		marshalizer:        args.Marshalizer,
 	}
 
 	err = gp.process()
@@ -275,7 +294,185 @@ func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []
 	return list
 }
 
-// IsInterfaceNil returns if underlying object is true
+func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*indexer.Pool {
+	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+
+	for _, id := range shardIDs {
+		txsPoolPerShard[id] = &indexer.Pool{
+			Txs:  make(map[string]coreData.TransactionHandler),
+			Scrs: make(map[string]coreData.TransactionHandler),
+		}
+	}
+
+	return txsPoolPerShard
+}
+
+func (ap *accountsParser) createMintTransactions() []coreData.TransactionHandler {
+	txs := make([]coreData.TransactionHandler, 0, len(ap.initialAccounts))
+
+	for nonce, ia := range ap.initialAccounts {
+		tx := ap.createMintTransaction(ia, uint64(nonce))
+		txs = append(txs, tx)
+	}
+
+	return txs
+}
+
+func (ap *accountsParser) createMintTransaction(ia genesis.InitialAccountHandler, nonce uint64) *transactionData.Transaction {
+	tx := &transactionData.Transaction{
+		Nonce:     nonce,
+		SndAddr:   ap.minterAddressBytes,
+		Value:     ia.GetSupply(),
+		RcvAddr:   ia.AddressBytes(),
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: []byte(common.GenesisTxSignatureString),
+	}
+
+	return tx
+}
+
+// TODO: extend sharding Coordinator with a similar function, GetShardIDs
+func getShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
+	shardIDs := make([]uint32, shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		shardIDs[i] = i
+	}
+	shardIDs[shardCoordinator.NumberOfShards()] = core.MetachainShardId
+
+	return shardIDs
+}
+
+func createMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+
+	for _, i := range shardIDs {
+		for _, j := range shardIDs {
+			miniBlock := &block.MiniBlock{
+				TxHashes:        nil,
+				ReceiverShardID: i,
+				SenderShardID:   j,
+				Type:            blockType,
+			}
+
+			miniBlocks = append(miniBlocks, miniBlock)
+		}
+	}
+
+	return miniBlocks
+}
+
+func (ap *accountsParser) getAllTxs(
+	indexingData map[uint32]*genesis.IndexingData,
+	mintTxs []coreData.TransactionHandler,
+) []coreData.TransactionHandler {
+	allTxs := make([]coreData.TransactionHandler, 0)
+
+	for _, txs := range indexingData {
+		allTxs = append(allTxs, txs.DelegationTxs...)
+		allTxs = append(allTxs, txs.StakingTxs...)
+		allTxs = append(allTxs, txs.DeploySystemScTxs...)
+		allTxs = append(allTxs, txs.DeployInitialScTxs...)
+	}
+
+	allTxs = append(allTxs, mintTxs...)
+
+	return allTxs
+}
+
+func (ap *accountsParser) setScrsTxsPool(
+	shardCoordinator sharding.Coordinator,
+	indexingData map[uint32]*genesis.IndexingData,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+) {
+	for _, id := range indexingData {
+		for txHash, tx := range id.ScrsTxs {
+			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
+			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
+
+			scrTx, ok := tx.(*scrData.SmartContractResult)
+			if !ok {
+				continue
+			}
+			scrTx.GasLimit = uint64(0)
+
+			txsPoolPerShard[senderShardID].Scrs[txHash] = scrTx
+			txsPoolPerShard[receiverShardID].Scrs[txHash] = scrTx
+		}
+	}
+}
+
+func (ap *accountsParser) setTxsPoolAndMiniBlocks(
+	shardCoordinator sharding.Coordinator,
+	allTxs []coreData.TransactionHandler,
+	txsPoolPerShard map[uint32]*indexer.Pool,
+	miniBlocks []*block.MiniBlock,
+) error {
+	var senderShardID uint32
+
+	for _, txHandler := range allTxs {
+		receiverShardID := shardCoordinator.ComputeId(txHandler.GetRcvAddr())
+
+		// treat minting transactions as intra shard
+		if bytes.Equal(txHandler.GetSndAddr(), ap.minterAddressBytes) {
+			senderShardID = receiverShardID
+		} else {
+			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
+		}
+
+		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
+		if err != nil {
+			return err
+		}
+
+		tx, ok := txHandler.(*transactionData.Transaction)
+		if !ok {
+			continue
+		}
+		tx.Signature = []byte(common.GenesisTxSignatureString)
+		tx.GasLimit = uint64(0)
+
+		txsPoolPerShard[senderShardID].Txs[string(txHash)] = tx
+		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = tx
+
+		for _, miniBlock := range miniBlocks {
+			if senderShardID == miniBlock.GetSenderShardID() &&
+				receiverShardID == miniBlock.GetReceiverShardID() {
+				miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+			}
+		}
+	}
+
+	return nil
+}
+
+// GenerateInitialTransactions will generate initial transactions pool and the miniblocks for the generated transactions
+func (ap *accountsParser) GenerateInitialTransactions(
+	shardCoordinator sharding.Coordinator,
+	indexingData map[uint32]*genesis.IndexingData,
+) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+	if check.IfNil(shardCoordinator) {
+		return nil, nil, genesis.ErrNilShardCoordinator
+	}
+
+	mintTxs := ap.createMintTransactions()
+	allTxs := ap.getAllTxs(indexingData, mintTxs)
+
+	shardIDs := getShardIDs(shardCoordinator)
+	txsPoolPerShard := ap.createIndexerPools(shardIDs)
+	miniBlocks := createMiniBlocks(shardIDs, block.TxBlock)
+
+	err := ap.setTxsPoolAndMiniBlocks(shardCoordinator, allTxs, txsPoolPerShard, miniBlocks)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
+
+	return miniBlocks, txsPoolPerShard, nil
+}
+
+// IsInterfaceNil returns true if the underlying object is nil
 func (ap *accountsParser) IsInterfaceNil() bool {
 	return ap == nil
 }

@@ -13,26 +13,29 @@ var errNotImplemented = errors.New("not implemented")
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled  func(addressContainer []byte) (vmcommon.AccountHandler, error)
-	GetAccountFromBytesCalled func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
-	LoadAccountCalled         func(container []byte) (vmcommon.AccountHandler, error)
-	SaveAccountCalled         func(account vmcommon.AccountHandler) error
-	RemoveAccountCalled       func(addressContainer []byte) error
-	CommitCalled              func() ([]byte, error)
-	JournalLenCalled          func() int
-	RevertToSnapshotCalled    func(snapshot int) error
-	RootHashCalled            func() ([]byte, error)
-	RecreateTrieCalled        func(rootHash []byte) error
-	PruneTrieCalled           func(rootHash []byte, identifier state.TriePruningIdentifier)
-	CancelPruneCalled         func(rootHash []byte, identifier state.TriePruningIdentifier)
-	SnapshotStateCalled       func(rootHash []byte)
-	SetStateCheckpointCalled  func(rootHash []byte)
-	IsPruningEnabledCalled    func() bool
-	GetAllLeavesCalled        func(rootHash []byte) (chan core.KeyValueHolder, error)
-	RecreateAllTriesCalled    func(rootHash []byte) (map[string]common.Trie, error)
-	GetNumCheckpointsCalled   func() uint32
-	GetCodeCalled             func([]byte) []byte
-	GetTrieCalled             func([]byte) (common.Trie, error)
+	GetExistingAccountCalled      func(addressContainer []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytesCalled     func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
+	LoadAccountCalled             func(container []byte) (vmcommon.AccountHandler, error)
+	SaveAccountCalled             func(account vmcommon.AccountHandler) error
+	RemoveAccountCalled           func(addressContainer []byte) error
+	CommitCalled                  func() ([]byte, error)
+	CommitInEpochCalled           func(uint32, uint32) ([]byte, error)
+	JournalLenCalled              func() int
+	RevertToSnapshotCalled        func(snapshot int) error
+	RootHashCalled                func() ([]byte, error)
+	RecreateTrieCalled            func(rootHash []byte) error
+	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier)
+	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
+	SnapshotStateCalled           func(rootHash []byte)
+	SetStateCheckpointCalled      func(rootHash []byte)
+	IsPruningEnabledCalled        func() bool
+	GetAllLeavesCalled            func(rootHash []byte) (chan core.KeyValueHolder, error)
+	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
+	GetNumCheckpointsCalled       func() uint32
+	GetCodeCalled                 func([]byte) []byte
+	GetTrieCalled                 func([]byte) (common.Trie, error)
+	GetStackDebugFirstEntryCalled func() []byte
+	CloseCalled                   func() error
 }
 
 // GetTrie -
@@ -200,13 +203,30 @@ func (as *AccountsStub) GetNumCheckpoints() uint32 {
 	return 0
 }
 
+// CommitInEpoch -
+func (as *AccountsStub) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) ([]byte, error) {
+	if as.CommitInEpochCalled != nil {
+		return as.CommitInEpochCalled(currentEpoch, epochToCommit)
+	}
+
+	return nil, nil
+}
+
 // GetStackDebugFirstEntry -
 func (as *AccountsStub) GetStackDebugFirstEntry() []byte {
+	if as.GetStackDebugFirstEntryCalled != nil {
+		return as.GetStackDebugFirstEntryCalled()
+	}
+
 	return nil
 }
 
 // Close -
 func (as *AccountsStub) Close() error {
+	if as.CloseCalled != nil {
+		return as.CloseCalled()
+	}
+
 	return nil
 }
 

@@ -26,6 +26,7 @@ type TxCache struct {
 	numSendersInGracePeriod   atomic.Counter
 	sweepingMutex             sync.Mutex
 	sweepingListOfSenders     []*txListForSender
+	mutTxOperation            sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
@@ -70,8 +71,10 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
+	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
 		// - A adds to "txByHash"
@@ -97,16 +100,16 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	return tx, ok
 }
 
-// SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
+// SelectTransactionsWithBandwidth selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns at most "numRequested" transactions
-// Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
-	result := cache.doSelectTransactions(numRequested, batchSizePerSender)
+// Each sender gets the chance to give at least bandwidthPerSender gas worth of transactions, unless "numRequested" limit is reached before iterating over all senders
+func (cache *TxCache) SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
+	result := cache.doSelectTransactions(numRequested, batchSizePerSender, bandwidthPerSender)
 	go cache.doAfterSelection()
 	return result
 }
 
-func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
+func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
 	stopWatch := cache.monitorSelectionStart()
 
 	result := make([]*WrappedTransaction, numRequested)
@@ -122,7 +125,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
-			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
+			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient, bandwidthPerSender)
 			cache.monitorBatchSelectionEnd(journal)
 
 			if isFirstBatch {
@@ -161,6 +164,9 @@ func (cache *TxCache) doAfterSelection() {
 
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
+	cache.mutTxOperation.Lock()
+	defer cache.mutTxOperation.Unlock()
+
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
 		return false
@@ -214,8 +220,10 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 
 // Clear clears the cache
 func (cache *TxCache) Clear() {
+	cache.mutTxOperation.Lock()
 	cache.txListBySender.clear()
 	cache.txByHash.clear()
+	cache.mutTxOperation.Unlock()
 }
 
 // Put is not implemented
@@ -268,7 +276,7 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	//TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
+	// TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
 	return int(cache.config.CountThreshold)
 }
 

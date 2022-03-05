@@ -7,11 +7,13 @@ import (
 
 // BlockChainHookHandlerMock -
 type BlockChainHookHandlerMock struct {
-	SetCurrentHeaderCalled       func(hdr data.HeaderHandler)
-	NewAddressCalled             func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	IsPayableCalled              func(address []byte) (bool, error)
-	DeleteCompiledCodeCalled     func(codeHash []byte)
-	ProcessBuiltInFunctionCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetCurrentHeaderCalled             func(hdr data.HeaderHandler)
+	NewAddressCalled                   func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsPayableCalled                    func(sndAddress []byte, rcvAddress []byte) (bool, error)
+	DeleteCompiledCodeCalled           func(codeHash []byte)
+	ProcessBuiltInFunctionCalled       func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	FilterCodeMetadataForUpgradeCalled func(input []byte) ([]byte, error)
+	ApplyFiltersOnCodeMetadataCalled   func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 }
 
 // ProcessBuiltInFunction -
@@ -23,11 +25,16 @@ func (e *BlockChainHookHandlerMock) ProcessBuiltInFunction(input *vmcommon.Contr
 }
 
 // IsPayable -
-func (e *BlockChainHookHandlerMock) IsPayable(address []byte) (bool, error) {
+func (e *BlockChainHookHandlerMock) IsPayable(sndAddress []byte, recvAddress []byte) (bool, error) {
 	if e.IsPayableCalled != nil {
-		return e.IsPayableCalled(address)
+		return e.IsPayableCalled(sndAddress, recvAddress)
 	}
 	return true, nil
+}
+
+// SaveNFTMetaDataToSystemAccount -
+func (e *BlockChainHookHandlerMock) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
+	return nil
 }
 
 // SetCurrentHeader -
@@ -51,6 +58,24 @@ func (e *BlockChainHookHandlerMock) DeleteCompiledCode(codeHash []byte) {
 	if e.DeleteCompiledCodeCalled != nil {
 		e.DeleteCompiledCodeCalled(codeHash)
 	}
+}
+
+// FilterCodeMetadataForUpgrade -
+func (e *BlockChainHookHandlerMock) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
+	if e.FilterCodeMetadataForUpgradeCalled != nil {
+		return e.FilterCodeMetadataForUpgradeCalled(input)
+	}
+
+	return input, nil
+}
+
+// ApplyFiltersOnCodeMetadata -
+func (e *BlockChainHookHandlerMock) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+	if e.ApplyFiltersOnCodeMetadataCalled != nil {
+		return e.ApplyFiltersOnCodeMetadataCalled(codeMetadata)
+	}
+
+	return codeMetadata
 }
 
 // IsInterfaceNil -

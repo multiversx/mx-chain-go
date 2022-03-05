@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,10 +31,10 @@ func TestTrieStorageManagerWithoutPruning_TakeSnapshotShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	ts.TakeSnapshot([]byte{}, true, nil)
+	ts.TakeSnapshot([]byte{}, make([]byte, 0), nil, &trie.MockStatistics{}, 0)
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot([]byte("rootHash"), true, chLeaves)
+	ts.TakeSnapshot([]byte("rootHash"), make([]byte, 0), chLeaves, &trie.MockStatistics{}, 0)
 
 	select {
 	case <-chLeaves:
@@ -45,10 +47,10 @@ func TestTrieStorageManagerWithoutPruning_SetCheckpointShouldWork(t *testing.T) 
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	ts.SetCheckpoint([]byte{}, nil)
+	ts.SetCheckpoint(make([]byte, 0), make([]byte, 0), nil, &trie.MockStatistics{})
 
 	chLeaves := make(chan core.KeyValueHolder)
-	ts.SetCheckpoint([]byte("rootHash"), chLeaves)
+	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), chLeaves, &trie.MockStatistics{})
 
 	select {
 	case <-chLeaves:
@@ -68,7 +70,7 @@ func TestTrieStorageManagerWithoutPruning_Close(t *testing.T) {
 	t.Parallel()
 
 	closeCalled := false
-	ts, _ := NewTrieStorageManagerWithoutPruning(&testscommon.StorerStub{
+	ts, _ := NewTrieStorageManagerWithoutPruning(&storageStubs.StorerStub{
 		CloseCalled: func() error {
 			closeCalled = true
 			return nil
@@ -91,4 +93,11 @@ func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
 	assert.Nil(t, ts.Remove([]byte("key")))
+}
+
+func TestTrieStorageManagerWithoutPruning_ShouldTakeSnapshot(t *testing.T) {
+	t.Parallel()
+
+	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
+	assert.False(t, ts.ShouldTakeSnapshot())
 }

@@ -1,5 +1,3 @@
-// +build cgo
-
 package vm
 
 import (
@@ -18,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
@@ -42,7 +41,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -54,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -79,15 +81,14 @@ var log = logger.GetOrCreate("integrationtests")
 
 const maxTrieLevelInMemory = uint(5)
 
-// ArgEnableEpoch will specify the enable epoch values for certain flags
-type ArgEnableEpoch struct {
-	PenalizedTooMuchGasEnableEpoch      uint32
-	BuiltinEnableEpoch                  uint32
-	DeployEnableEpoch                   uint32
-	MetaProtectionEnableEpoch           uint32
-	RelayedTxEnableEpoch                uint32
-	UnbondTokensV2EnableEpoch           uint32
-	BackwardCompSaveKeyValueEnableEpoch uint32
+func getZeroGasAndFees() scheduled.GasAndFees {
+	return scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		GasProvided:     0,
+		GasPenalized:    0,
+		GasRefunded:     0,
+	}
 }
 
 // VMTestAccount -
@@ -120,7 +121,8 @@ type VMTestContext struct {
 	ContractOwner VMTestAccount
 	Contract      VMTestAccount
 
-	TxCostHandler external.TransactionCostHandler
+	TxCostHandler    external.TransactionCostHandler
+	TxsLogsProcessor process.TransactionLogProcessor
 }
 
 // Close -
@@ -135,7 +137,7 @@ func (vmTestContext *VMTestContext) GetLatestError() error {
 
 // CreateBlockStarted -
 func (vmTestContext *VMTestContext) CreateBlockStarted() {
-	vmTestContext.TxFeeHandler.CreateBlockStarted()
+	vmTestContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	vmTestContext.ScForwarder.CreateBlockStarted()
 	vmTestContext.ScProcessor.CleanGasRefunded()
 }
@@ -218,16 +220,7 @@ func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName st
 
 // GetVMOutputWithTransientVM -
 func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
-	gasSchedule := vmTestContext.GasSchedule
-	accnts := vmTestContext.Accounts
 	scAddressBytes := vmTestContext.Contract.Address
-	vmConfig := vmTestContext.VMConfiguration
-	arwenChangeLocker := &sync.RWMutex{}
-	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(accnts, gasSchedule, vmConfig, oneShardCoordinator, arwenChangeLocker)
-	defer func() {
-		_ = vmContainer.Close()
-	}()
-
 	feeHandler := &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
@@ -235,11 +228,13 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      feeHandler,
-		BlockChainHook:    blockChainHook,
-		BlockChain:        &mock.BlockChainMock{},
-		ArwenChangeLocker: &sync.RWMutex{},
+		VmContainer:              vmTestContext.VMContainer,
+		EconomicsFee:             feeHandler,
+		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookHandler),
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -294,14 +289,17 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:   1000,
-		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:          store,
-		Marshalizer: marsh,
-		Hasher:      testHasher,
+		DB:                store,
+		MainStorer:        CreateMemUnit(),
+		CheckpointsStorer: CreateMemUnit(),
+		Marshalizer:       marsh,
+		Hasher:            testHasher,
 		SnapshotDbConfig: config.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "MemoryDB",
@@ -311,12 +309,13 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		},
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm)
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm, common.Normal)
 
 	return adb
 }
@@ -385,6 +384,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
+						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 					},
 				},
@@ -394,7 +394,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
 		BuiltInFunctionsCostHandler:    builtInCost,
 	}
 
@@ -405,7 +405,7 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 func CreateTxProcessorWithOneSCExecutorMockVM(
 	accnts state.AccountsAdapter,
 	opGas uint64,
-	argEnableEpoch ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, error) {
 
@@ -415,15 +415,17 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   oneShardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -448,16 +450,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	economicsData, err := createEconomicsData(argEnableEpoch.PenalizedTooMuchGasEnableEpoch)
+	economicsData, err := createEconomicsData(enableEpochs.PenalizedTooMuchGasEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
 
-	enableEpochs := config.EnableEpochs{
-		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
-		BuiltInFunctionsEnableEpoch:    argEnableEpoch.BuiltinEnableEpoch,
-		SCDeployEnableEpoch:            argEnableEpoch.DeployEnableEpoch,
-	}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
@@ -465,6 +462,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Marshalizer:      testMarshalizer,
 		AccountsDB:       accnts,
 		BlockChainHook:   blockChainHook,
+		BuiltInFunctions: builtInFuncs,
 		PubkeyConv:       pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
@@ -472,7 +470,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		EconomicsFee:     economicsData,
 		TxTypeHandler:    txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
+		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -500,30 +498,33 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ArgsParser:                     smartContract.NewArgumentParser(),
 		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
 		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:      argEnableEpoch.MetaProtectionEnableEpoch,
-		RelayedTxEnableEpoch:           argEnableEpoch.RelayedTxEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
+		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
 }
 
 // CreateOneSCExecutorMockVM -
-func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
+func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter, enableEpochs config.EnableEpochs) vmcommon.VMExecutionHandler {
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   oneShardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		EnableEpochs:       enableEpochs,
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -538,6 +539,8 @@ func CreateVMAndBlockchainHookAndDataPool(
 	vmConfig *config.VirtualMachineConfig,
 	shardCoordinator sharding.Coordinator,
 	arwenChangeLocker common.Locker,
+	epochNotifierInstance process.EpochNotifier,
+	enableEpochs config.EnableEpochs,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl, dataRetriever.PoolsHolder) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
 		testGasSchedule := arwenConfig.MakeGasMapForTests()
@@ -553,24 +556,27 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Marshalizer:      testMarshalizer,
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    globalEpochNotifier,
+		EpochNotifier:    epochNotifierInstance,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   shardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
+		EpochNotifier:      epochNotifierInstance,
+		EnableEpochs:       enableEpochs,
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -580,8 +586,8 @@ func CreateVMAndBlockchainHookAndDataPool(
 		BlockGasLimit:      maxGasLimitPerBlock,
 		GasSchedule:        gasSchedule,
 		ArgBlockChainHook:  args,
-		EpochNotifier:      globalEpochNotifier,
-		EpochConfig:        config.EnableEpochs{},
+		EpochNotifier:      epochNotifierInstance,
+		EpochConfig:        enableEpochs,
 		ArwenChangeLocker:  arwenChangeLocker,
 		ESDTTransferParser: esdtTransferParser,
 	}
@@ -606,7 +612,7 @@ func CreateVMAndBlockchainHookMeta(
 	accnts state.AccountsAdapter,
 	gasSchedule core.GasScheduleNotifier,
 	shardCoordinator sharding.Coordinator,
-	arg ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
 		testGasSchedule := arwenConfig.MakeGasMapForTests()
@@ -624,21 +630,23 @@ func CreateVMAndBlockchainHookMeta(
 		ShardCoordinator: shardCoordinator,
 		EpochNotifier:    globalEpochNotifier,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
 		StorageService:     &mock.ChainStorerMock{},
-		BlockChain:         &mock.BlockChainMock{},
+		BlockChain:         &testscommon.ChainHandlerStub{},
 		ShardCoordinator:   shardCoordinator,
 		Marshalizer:        testMarshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFuncs,
+		NFTStorageHandler:  nftStorageHandler,
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 	}
 
 	economicsData, err := createEconomicsData(0)
@@ -657,11 +665,10 @@ func CreateVMAndBlockchainHookMeta(
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
-		EpochConfig:         createEpochConfig(),
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		EpochConfig:         createEpochConfig(enableEpochs),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}
-	argVMContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
 	if err != nil {
 		log.LogIfError(err)
@@ -678,17 +685,9 @@ func CreateVMAndBlockchainHookMeta(
 	return vmContainer, blockChainHook
 }
 
-func createEpochConfig() *config.EpochConfig {
+func createEpochConfig(enableEpochs config.EnableEpochs) *config.EpochConfig {
 	return &config.EpochConfig{
-		EnableEpochs: config.EnableEpochs{
-			StakingV2EnableEpoch:               0,
-			StakeEnableEpoch:                   0,
-			DoubleKeyProtectionEnableEpoch:     0,
-			ESDTEnableEpoch:                    0,
-			GovernanceEnableEpoch:              0,
-			DelegationManagerEnableEpoch:       0,
-			DelegationSmartContractEnableEpoch: 0,
-		},
+		EnableEpochs: enableEpochs,
 	}
 }
 
@@ -748,6 +747,16 @@ func createDefaultVMConfig() *config.VirtualMachineConfig {
 	}
 }
 
+// ResultsCreateTxProcessor is the struct that will hold all needed processor instances
+type ResultsCreateTxProcessor struct {
+	TxProc             process.TransactionProcessor
+	SCProc             *smartContract.TestScProcessor
+	IntermediateTxProc process.IntermediateTransactionHandler
+	EconomicsHandler   process.EconomicsDataHandler
+	CostHandler        external.TransactionCostHandler
+	TxLogProc          process.TransactionLogProcessor
+}
+
 // CreateTxProcessorWithOneSCExecutorWithVMs -
 func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
@@ -755,17 +764,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	blockChainHook *hooks.BlockChainHookImpl,
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
-	argEnableEpoch ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 	arwenChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
-) (
-	process.TransactionProcessor,
-	*smartContract.TestScProcessor,
-	process.IntermediateTransactionHandler,
-	process.EconomicsDataHandler,
-	external.TransactionCostHandler,
-	error,
-) {
+	epochNotifierInstance process.EpochNotifier,
+) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
 	}
@@ -783,22 +786,20 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	economicsData, err := createEconomicsData(argEnableEpoch.PenalizedTooMuchGasEnableEpoch)
+	economicsData, err := createEconomicsData(enableEpochs.PenalizedTooMuchGasEnableEpoch)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, forking.NewGenericEpochNotifier(), argEnableEpoch.DeployEnableEpoch)
+	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, forking.NewGenericEpochNotifier(), enableEpochs.SCDeployEnableEpoch)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	enableEpochs := config.EnableEpochs{
-		PenalizedTooMuchGasEnableEpoch:      argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
-		BuiltInFunctionsEnableEpoch:         argEnableEpoch.BuiltinEnableEpoch,
-		SCDeployEnableEpoch:                 argEnableEpoch.DeployEnableEpoch,
-		BackwardCompSaveKeyValueEnableEpoch: argEnableEpoch.BackwardCompSaveKeyValueEnableEpoch,
-	}
+	logProc, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		SaveInStorageEnabled: false,
+		Marshalizer:          testMarshalizer,
+	})
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:       vmContainer,
@@ -807,6 +808,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:       testMarshalizer,
 		AccountsDB:        accnts,
 		BlockChainHook:    blockChainHook,
+		BuiltInFunctions:  blockChainHook.GetBuiltinFunctionsContainer(),
 		PubkeyConv:        pubkeyConv,
 		ShardCoordinator:  shardCoordinator,
 		ScrForwarder:      intermediateTxHandler,
@@ -816,8 +818,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		TxTypeHandler:     txTypeHandler,
 		GasHandler:        gasComp,
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
-		EpochNotifier:     forking.NewGenericEpochNotifier(),
+		TxLogsProcessor:   logProc,
+		EpochNotifier:     epochNotifierInstance,
 		ArwenChangeLocker: arwenChangeLocker,
 		VMOutputCacher:    txcache.NewDisabledCache(),
 		EnableEpochs:      enableEpochs,
@@ -825,39 +827,41 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                       accnts,
-		Hasher:                         testHasher,
-		PubkeyConv:                     pubkeyConv,
-		Marshalizer:                    testMarshalizer,
-		SignMarshalizer:                testMarshalizer,
-		ShardCoordinator:               shardCoordinator,
-		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   feeAccumulator,
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   economicsData,
-		ReceiptForwarder:               intermediateTxHandler,
-		BadTxForwarder:                 intermediateTxHandler,
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		ScrForwarder:                   intermediateTxHandler,
-		EpochNotifier:                  forking.NewGenericEpochNotifier(),
-		PenalizedTooMuchGasEnableEpoch: argEnableEpoch.PenalizedTooMuchGasEnableEpoch,
-		RelayedTxEnableEpoch:           argEnableEpoch.RelayedTxEnableEpoch,
-		MetaProtectionEnableEpoch:      argEnableEpoch.MetaProtectionEnableEpoch,
+		Accounts:                              accnts,
+		Hasher:                                testHasher,
+		PubkeyConv:                            pubkeyConv,
+		Marshalizer:                           testMarshalizer,
+		SignMarshalizer:                       testMarshalizer,
+		ShardCoordinator:                      shardCoordinator,
+		ScProcessor:                           scProcessor,
+		TxFeeHandler:                          feeAccumulator,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          economicsData,
+		ReceiptForwarder:                      intermediateTxHandler,
+		BadTxForwarder:                        intermediateTxHandler,
+		ArgsParser:                            smartContract.NewArgumentParser(),
+		ScrForwarder:                          intermediateTxHandler,
+		EpochNotifier:                         epochNotifierInstance,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
+		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
+		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
+		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	// create transaction simulator
 	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(accnts)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
@@ -870,30 +874,30 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&processDisabled.FeeHandler{},
 	)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	scForwarder, err := interimProcContainer.Get(block.SmartContractResultBlock)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	argsNewSCProcessor.ScrForwarder = scForwarder
 
 	receiptTxInterim, err := interimProcContainer.Get(block.ReceiptBlock)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	argsNewTxProcessor.ReceiptForwarder = receiptTxInterim
 
 	badTxInterim, err := interimProcContainer.Get(block.InvalidBlock)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	argsNewSCProcessor.BadTxForwarder = badTxInterim
 	argsNewTxProcessor.BadTxForwarder = badTxInterim
@@ -919,7 +923,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	scProcessorTxSim, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	argsNewTxProcessor.ScProcessor = scProcessorTxSim
 
@@ -927,14 +931,14 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	txSimulator, err := txsimulator.NewTransactionSimulator(txSimulatorProcessorArgs)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	txCostEstimator, err := transaction.NewTransactionCostEstimator(
@@ -945,10 +949,17 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		shardCoordinator,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	return txProcessor, testScProcessor, intermediateTxHandler, economicsData, txCostEstimator, nil
+	return &ResultsCreateTxProcessor{
+		TxProc:             txProcessor,
+		SCProc:             testScProcessor,
+		IntermediateTxProc: intermediateTxHandler,
+		EconomicsHandler:   economicsData,
+		CostHandler:        txCostEstimator,
+		TxLogProc:          logProc,
+	}, nil
 }
 
 // TestDeployedContractContents -
@@ -999,46 +1010,57 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-	argEnableEpoch ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, oneShardCoordinator, arwenChangeLocker)
-	txProcessor, testScProcessor, scForwarder, _, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
+		accounts,
+		nil,
+		vmConfig,
+		oneShardCoordinator,
+		arwenChangeLocker,
+		epochNotifierInstance,
+		enableEpochs,
+	)
+	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
 		oneShardCoordinator,
-		argEnableEpoch,
+		enableEpochs,
 		arwenChangeLocker,
 		pool,
+		epochNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:    txProcessor,
-		ScProcessor:    testScProcessor,
+		TxProcessor:    res.TxProc,
+		ScProcessor:    res.SCProc,
 		Accounts:       accounts,
 		BlockchainHook: blockchainHook,
 		VMContainer:    vmContainer,
 		TxFeeHandler:   feeAccumulator,
-		ScForwarder:    scForwarder,
+		ScForwarder:    res.IntermediateTxProc,
+		EpochNotifier:  epochNotifierInstance,
 	}, nil
 }
 
 // CreatePreparedTxProcessorWithVMs -
-func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch, oneShardCoordinator)
+func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochs, oneShardCoordinator)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
-func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnableEpoch, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
+func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochs config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
@@ -1047,34 +1069,45 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinator(argEnableEpoch ArgEnab
 	testGasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(testGasSchedule, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(testGasSchedule)
-
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, gasSchedule, vmConfig, shardCoordinator, arwenChangeLocker)
-	txProcessor, scProcessor, scForwarder, economicsData, txCostHandler, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
+		accounts,
+		gasSchedule,
+		vmConfig,
+		shardCoordinator,
+		arwenChangeLocker,
+		epochNotifierInstance,
+		enableEpochs,
+	)
+	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
 		shardCoordinator,
-		argEnableEpoch,
+		enableEpochs,
 		arwenChangeLocker,
 		pool,
+		epochNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:      txProcessor,
-		ScProcessor:      scProcessor,
+		TxProcessor:      res.TxProc,
+		ScProcessor:      res.SCProc,
 		Accounts:         accounts,
 		BlockchainHook:   blockchainHook,
 		VMContainer:      vmContainer,
 		TxFeeHandler:     feeAccumulator,
-		ScForwarder:      scForwarder,
+		ScForwarder:      res.IntermediateTxProc,
 		ShardCoordinator: shardCoordinator,
-		EconomicsData:    economicsData,
-		TxCostHandler:    txCostHandler,
+		EconomicsData:    res.EconomicsHandler,
+		TxCostHandler:    res.CostHandler,
+		TxsLogsProcessor: res.TxLogProc,
 		GasSchedule:      gasSchedule,
+		EpochNotifier:    epochNotifierInstance,
 	}, nil
 }
 
@@ -1084,7 +1117,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	gasScheduleMap map[string]map[string]uint64,
-	argEnableEpoch ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
@@ -1093,37 +1126,46 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	arwenChangeLocker := &sync.RWMutex{}
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasScheduleMap)
-
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, gasScheduleNotifier, vmConfig, oneShardCoordinator, arwenChangeLocker)
-	txProcessor, scProcessor, scForwarder, _, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
+		accounts,
+		gasScheduleNotifier,
+		vmConfig,
+		oneShardCoordinator,
+		arwenChangeLocker,
+		epochNotifierInstance,
+		enableEpochs,
+	)
+	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
 		oneShardCoordinator,
-		argEnableEpoch,
+		enableEpochs,
 		arwenChangeLocker,
 		pool,
+		epochNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:    txProcessor,
-		ScProcessor:    scProcessor,
+		TxProcessor:    res.TxProc,
+		ScProcessor:    res.SCProc,
 		Accounts:       accounts,
 		BlockchainHook: blockchainHook,
 		VMContainer:    vmContainer,
 		TxFeeHandler:   feeAccumulator,
-		ScForwarder:    scForwarder,
+		ScForwarder:    res.IntermediateTxProc,
 		GasSchedule:    gasScheduleNotifier,
 	}, nil
 }
 
 // CreateTxProcessorArwenWithVMConfig -
 func CreateTxProcessorArwenWithVMConfig(
-	argEnableEpoch ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 	vmConfig *config.VirtualMachineConfig,
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
@@ -1131,32 +1173,42 @@ func CreateTxProcessorArwenWithVMConfig(
 	accounts := CreateInMemoryShardAccountsDB()
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, gasScheduleNotifier, vmConfig, oneShardCoordinator, arwenChangeLocker)
-	txProcessor, scProcessor, scForwarder, _, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
+		accounts,
+		gasScheduleNotifier,
+		vmConfig,
+		oneShardCoordinator,
+		arwenChangeLocker,
+		epochNotifierInstance,
+		enableEpochs,
+	)
+	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
 		oneShardCoordinator,
-		argEnableEpoch,
+		enableEpochs,
 		arwenChangeLocker,
 		pool,
+		epochNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:     txProcessor,
-		ScProcessor:     scProcessor,
+		TxProcessor:     res.TxProc,
+		ScProcessor:     res.SCProc,
 		Accounts:        accounts,
 		BlockchainHook:  blockchainHook,
 		VMContainer:     vmContainer,
 		TxFeeHandler:    feeAccumulator,
-		ScForwarder:     scForwarder,
+		ScForwarder:     res.IntermediateTxProc,
 		GasSchedule:     gasScheduleNotifier,
 		VMConfiguration: vmConfig,
-		EpochNotifier:   globalEpochNotifier,
+		EpochNotifier:   epochNotifierInstance,
 	}, nil
 }
 
@@ -1166,14 +1218,14 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-	argEnableEpoch ArgEnableEpoch,
+	enableEpochs config.EnableEpochs,
 	arwenChangeLocker common.Locker,
 ) (process.TransactionProcessor, state.AccountsAdapter, error) {
 
 	accnts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, argEnableEpoch, arwenChangeLocker)
+	txProcessor, err := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas, enableEpochs, arwenChangeLocker)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1281,7 +1333,16 @@ func GetIntValueFromSC(
 func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *vmcommon.VMOutput {
 	vmConfig := createDefaultVMConfig()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
-	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(accnts, gasScheduleNotifier, vmConfig, oneShardCoordinator, &sync.RWMutex{})
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(
+		accnts,
+		gasScheduleNotifier,
+		vmConfig,
+		oneShardCoordinator,
+		&sync.RWMutex{},
+		epochNotifierInstance,
+		config.EnableEpochs{},
+	)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
@@ -1293,11 +1354,13 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      feeHandler,
-		BlockChainHook:    blockChainHook,
-		BlockChain:        &mock.BlockChainMock{},
-		ArwenChangeLocker: &sync.RWMutex{},
+		VmContainer:              vmContainer,
+		EconomicsFee:             feeHandler,
+		BlockChainHook:           blockChainHook,
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1319,7 +1382,15 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTx.Transaction) uint64 {
 	vmConfig := createDefaultVMConfig()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
-	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(testContext.Accounts, gasScheduleNotifier, vmConfig, oneShardCoordinator, &sync.RWMutex{})
+	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(
+		testContext.Accounts,
+		gasScheduleNotifier,
+		vmConfig,
+		oneShardCoordinator,
+		&sync.RWMutex{},
+		testContext.EpochNotifier,
+		config.EnableEpochs{},
+	)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
@@ -1328,14 +1399,16 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		VmContainer:    vmContainer,
 		EconomicsFee:   testContext.EconomicsData,
 		BlockChainHook: blockChainHook,
-		BlockChain: &mock.BlockChainMock{
+		BlockChain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					ShardID: testContext.ShardCoordinator.SelfId(),
 				}
 			},
 		},
-		ArwenChangeLocker: &sync.RWMutex{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1402,7 +1475,7 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 }
 
 // CreatePreparedTxProcessorWithVMsMultiShard -
-func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpoch ArgEnableEpoch) (*VMTestContext, error) {
+func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs config.EnableEpochs) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
@@ -1411,38 +1484,49 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 	arwenChangeLocker := &sync.RWMutex{}
 	var vmContainer process.VirtualMachinesContainer
 	var blockchainHook *hooks.BlockChainHookImpl
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	if selfShardID == core.MetachainShardId {
-		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, argEnableEpoch)
+		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochs)
 	} else {
 		vmConfig := createDefaultVMConfig()
-		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHookAndDataPool(accounts, nil, vmConfig, shardCoordinator, arwenChangeLocker)
+		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHookAndDataPool(
+			accounts,
+			nil,
+			vmConfig,
+			shardCoordinator,
+			arwenChangeLocker,
+			epochNotifierInstance,
+			enableEpochs,
+		)
 	}
 
-	txProcessor, scProcessor, scrForwarder, economicsData, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
 		shardCoordinator,
-		argEnableEpoch,
+		enableEpochs,
 		arwenChangeLocker,
 		nil,
+		epochNotifierInstance,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:      txProcessor,
-		ScProcessor:      scProcessor,
+		TxProcessor:      res.TxProc,
+		ScProcessor:      res.SCProc,
 		Accounts:         accounts,
 		BlockchainHook:   blockchainHook,
 		VMContainer:      vmContainer,
 		TxFeeHandler:     feeAccumulator,
 		ShardCoordinator: shardCoordinator,
-		ScForwarder:      scrForwarder,
-		EconomicsData:    economicsData,
+		ScForwarder:      res.IntermediateTxProc,
+		EconomicsData:    res.EconomicsHandler,
 		Marshalizer:      testMarshalizer,
+		TxsLogsProcessor: res.TxLogProc,
 	}, nil
 }
 

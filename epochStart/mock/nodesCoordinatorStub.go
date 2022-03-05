@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	state "github.com/ElrondNetwork/elrond-go/state"
 )
@@ -13,6 +14,19 @@ type NodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled            func(shardID uint32) int
+	EpochStartPrepareCalled             func(metaHdr data.HeaderHandler, body data.BodyHandler)
+}
+
+// NodesCoordinatorToRegistry -
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *sharding.NodesCoordinatorRegistry {
+	return nil
+}
+
+// EpochStartPrepare -
+func (ncm *NodesCoordinatorStub) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+	if ncm.EpochStartPrepareCalled != nil {
+		ncm.EpochStartPrepareCalled(metaHdr, body)
+	}
 }
 
 // GetChance -

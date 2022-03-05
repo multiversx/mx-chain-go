@@ -159,13 +159,16 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 }
 
 // RemoveProcessedResults will remove the processed results since the last init
-func (bpp *basePostProcessor) RemoveProcessedResults() {
+func (bpp *basePostProcessor) RemoveProcessedResults() [][]byte {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
+	listHashes := make([][]byte, 0, len(bpp.mapProcessedResult))
 	for txHash := range bpp.mapProcessedResult {
+		listHashes = append(listHashes, []byte(txHash))
 		delete(bpp.interResultsForBlock, txHash)
 	}
+	return listHashes
 }
 
 // InitProcessedResults will initialize the processed results

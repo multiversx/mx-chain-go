@@ -11,19 +11,21 @@ import (
 // BlockProcessorStub mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func(header data.HeaderHandler)
+	RevertCurrentBlockCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
+	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled            func(round uint64, nonce uint64) data.HeaderHandler
-	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
-	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
+	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	RevertIndexedBlockCalled         func(header data.HeaderHandler)
 }
 
@@ -35,9 +37,14 @@ func (bps *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 func (bps *BlockProcessorStub) SetNumProcessedObj(_ uint64) {
 }
 
-// ProcessBlock mocks pocessing a block
+// ProcessBlock mocks processing a block
 func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bps.ProcessBlockCalled(header, body, haveTime)
+}
+
+// ProcessScheduledBlock mocks processing a scheduled block
+func (bps *BlockProcessorStub) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bps.ProcessScheduledBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block
@@ -45,9 +52,9 @@ func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.
 	return bps.CommitBlockCalled(header, body)
 }
 
-// RevertAccountState mocks revert of the accounts state
-func (bps *BlockProcessorStub) RevertAccountState(header data.HeaderHandler) {
-	bps.RevertAccountStateCalled(header)
+// RevertCurrentBlock mocks revert of the current block
+func (bps *BlockProcessorStub) RevertCurrentBlock() {
+	bps.RevertCurrentBlockCalled()
 }
 
 // CreateGenesisBlock mocks the creation of a genesis block body
@@ -56,9 +63,9 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 }
 
 // PruneStateOnRollback recreates thee state tries to the root hashes indicated by the provided header
-func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
+func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	if bps.PruneStateOnRollbackCalled != nil {
-		bps.PruneStateOnRollbackCalled(currHeader, prevHeader)
+		bps.PruneStateOnRollbackCalled(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
 	}
 }
 
@@ -70,6 +77,11 @@ func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, ha
 // RestoreBlockIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return bps.RestoreBlockIntoPoolsCalled(header, body)
+}
+
+// RestoreBlockBodyIntoPools -
+func (bps *BlockProcessorStub) RestoreBlockBodyIntoPools(body data.BodyHandler) error {
+	return bps.RestoreBlockBodyIntoPoolsCalled(body)
 }
 
 // MarshalizedDataToBroadcast -
@@ -93,7 +105,7 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 }
 
 // CreateNewHeader creates a new header
-func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	return bps.CreateNewHeaderCalled(round, nonce)
 }
 
@@ -112,9 +124,9 @@ func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
-func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
+func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 	if bps.RevertStateToBlockCalled != nil {
-		return bps.RevertStateToBlockCalled(header)
+		return bps.RevertStateToBlockCalled(header, rootHash)
 	}
 
 	return nil

@@ -85,6 +85,7 @@ type coreComponents struct {
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
 	economicsData                 process.EconomicsDataHandler
+	apiEconomicsData              process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
 	nodesShuffler                 sharding.NodesShuffler
@@ -93,6 +94,7 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
+	roundNotifier                 process.RoundNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
@@ -221,6 +223,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
+	roundNotifier := forking.NewRoundNotifier()
 
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
@@ -252,6 +255,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		BuiltInFunctionsCostHandler:    builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
+	if err != nil {
+		return nil, err
+	}
+
+	apiEconomicsData, err := economics.NewAPIEconomicsData(economicsData)
 	if err != nil {
 		return nil, err
 	}
@@ -333,6 +341,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		watchdog:                      watchdogTimer,
 		nodesSetupHandler:             genesisNodesConfig,
 		economicsData:                 economicsData,
+		apiEconomicsData:              apiEconomicsData,
 		ratingsData:                   ratingsData,
 		rater:                         rater,
 		nodesShuffler:                 nodesShuffler,
@@ -341,6 +350,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
+		roundNotifier:                 roundNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),

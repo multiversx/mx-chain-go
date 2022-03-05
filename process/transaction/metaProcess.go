@@ -76,7 +76,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		flagPenalizedTooMuchGas: atomic.Flag{},
 	}
 	// backwards compatibility
-	baseTxProcess.flagPenalizedTooMuchGas.Unset()
+	baseTxProcess.flagPenalizedTooMuchGas.Reset()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor:            baseTxProcess,
@@ -146,6 +146,20 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	return vmcommon.UserError, nil
 }
 
+// VerifyTransaction verifies the account states in respect with the transaction data
+func (txProc *metaTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+	if err != nil {
+		return err
+	}
+
+	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
+}
+
 func (txProc *metaTxProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc []byte,
@@ -188,10 +202,10 @@ func (txProc *metaTxProcessor) processBuiltInFunctionCall(
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32, _ uint64) {
-	txProc.flagESDTEnabled.Toggle(epoch >= txProc.esdtEnableEpoch)
+	txProc.flagESDTEnabled.SetValue(epoch >= txProc.esdtEnableEpoch)
 	log.Debug("txProcessor: esdt", "enabled", txProc.flagESDTEnabled.IsSet())
 
-	txProc.flagBuiltInFunction.Toggle(epoch >= txProc.builtInFunctionEnableEpoch)
+	txProc.flagBuiltInFunction.SetValue(epoch >= txProc.builtInFunctionEnableEpoch)
 	log.Debug("txProcessor: built in function on metachain", "enabled", txProc.flagBuiltInFunction.IsSet())
 }
 

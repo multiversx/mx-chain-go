@@ -7,8 +7,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -833,7 +836,7 @@ func getCollapsedEn(t *testing.T, n node) *extensionNode {
 func TestExtensionNode_newExtensionNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	en, err := newExtensionNode([]byte("key"), &branchNode{}, nil, testscommon.HasherMock{})
+	en, err := newExtensionNode([]byte("key"), &branchNode{}, nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, en)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
@@ -899,7 +902,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, db, nil, context.Background())
+	_ = collapsedEn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
@@ -912,7 +915,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, db, nil, context.Background())
+	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -937,7 +940,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, db, nil, context.Background())
+	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1019,11 +1022,11 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := en.commitCheckpoint(db, db, nil, nil, ctx)
-	assert.Equal(t, ErrContextClosing, err)
+	err := en.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = en.commitSnapshot(db, db, nil, ctx)
-	assert.Equal(t, ErrContextClosing, err)
+	err = en.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
 func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {

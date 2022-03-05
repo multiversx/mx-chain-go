@@ -207,7 +207,7 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 }
 
 // GetTokenSupply returns the provided token supply
-func (nf *nodeFacade) GetTokenSupply(token string) (string, error) {
+func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) {
 	return nf.node.GetTokenSupply(token)
 }
 
@@ -409,12 +409,11 @@ func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key stri
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
 func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
-	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil, ErrNilBlockHeader
+	rootHash := nf.blockchain.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		return nil, ErrEmptyRootHash
 	}
 
-	rootHash := currentBlockHeader.GetRootHash()
 	hexRootHash := hex.EncodeToString(rootHash)
 
 	return nf.node.GetProof(hexRootHash, address)

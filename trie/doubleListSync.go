@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type doubleListTrieSyncer struct {
+	baseSyncTrie
 	rootFound                 bool
 	shardId                   uint32
 	topic                     string
@@ -27,7 +28,7 @@ type doubleListTrieSyncer struct {
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
 	handlerID                 string
-	trieSyncStatistics        data.SyncStatisticsHandler
+	trieSyncStatistics        common.SizeSyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
 	existingNodes             map[string]node
@@ -83,6 +84,11 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 
 	d.missingHashes[string(rootHash)] = struct{}{}
 
+	timeStart := time.Now()
+	defer func() {
+		d.setSyncDuration(time.Since(timeStart))
+	}()
+
 	for {
 		isSynced, err := d.checkIsSyncedWhileProcessingMissingAndExisting()
 		if err != nil {
@@ -97,7 +103,7 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 		case <-time.After(d.waitTimeBetweenChecks):
 			continue
 		case <-ctx.Done():
-			return ErrContextClosing
+			return errors.ErrContextClosing
 		}
 	}
 }
@@ -115,6 +121,14 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 	if len(d.missingHashes) > 0 {
 		marginSlice := make([][]byte, 0, len(d.missingHashes))
 		for hash := range d.missingHashes {
+			n, errGet := d.getNodeFromCache([]byte(hash))
+			if errGet == nil {
+				d.existingNodes[hash] = n
+				delete(d.missingHashes, hash)
+
+				continue
+			}
+
 			marginSlice = append(marginSlice, []byte(hash))
 		}
 
@@ -139,7 +153,7 @@ func (d *doubleListTrieSyncer) processMissingAndExisting() error {
 
 func (d *doubleListTrieSyncer) processMissingHashes() {
 	for hash := range d.missingHashes {
-		n, err := d.getNode([]byte(hash))
+		n, err := d.getNodeFromCache([]byte(hash))
 		if err != nil {
 			continue
 		}
@@ -157,10 +171,6 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		d.trieSyncStatistics.AddNumReceived(1)
-		if numBytes > core.MaxBufferSizeToSendTrieNodes {
-			d.trieSyncStatistics.AddNumLarge(1)
-		}
 		d.timeoutHandler.ResetWatchdog()
 
 		var children []node
@@ -170,9 +180,12 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		if len(missingChildrenHashes) > 0 && len(d.missingHashes) > d.maxHardCapForMissingNodes {
-			break
+		d.trieSyncStatistics.AddNumReceived(1)
+		if numBytes > core.MaxBufferSizeToSendTrieNodes {
+			d.trieSyncStatistics.AddNumLarge(1)
 		}
+		d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
+		d.updateStats(uint64(numBytes), element)
 
 		delete(d.existingNodes, hash)
 
@@ -183,16 +196,29 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 		for _, missingHash := range missingChildrenHashes {
 			d.missingHashes[string(missingHash)] = struct{}{}
 		}
+
+		if len(missingChildrenHashes) > 0 && len(d.missingHashes) > d.maxHardCapForMissingNodes {
+			break
+		}
 	}
 
 	return nil
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	return getNodeFromStorage(
+	return getNodeFromCacheOrStorage(
 		hash,
 		d.interceptedNodesCacher,
 		d.db,
+		d.marshalizer,
+		d.hasher,
+	)
+}
+
+func (d *doubleListTrieSyncer) getNodeFromCache(hash []byte) (node, error) {
+	return getNodeFromCache(
+		hash,
+		d.interceptedNodesCacher,
 		d.marshalizer,
 		d.hasher,
 	)

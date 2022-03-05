@@ -16,6 +16,9 @@ var ErrNilMarshalizer = errors.New("no marshalizer provided")
 // ErrNilDatabase is raised when a database operation is called, but no database is provided
 var ErrNilDatabase = errors.New("no database provided")
 
+// ErrNilStorer is raised when a nil storer has been provided
+var ErrNilStorer = errors.New("nil storer")
+
 // ErrInvalidEncoding is raised when the encoded information cannot be decoded
 var ErrInvalidEncoding = errors.New("cannot decode this invalid encoding")
 
@@ -64,9 +67,6 @@ var ErrNilRequestHandler = errors.New("the request handler is nil")
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
 
-// ErrHashNotFound signals that the given hash was not found in db or snapshots
-var ErrHashNotFound = errors.New("hash not found")
-
 // ErrNilTrieStorage is raised when a nil trie storage is provided
 var ErrNilTrieStorage = errors.New("nil trie storage provided")
 
@@ -85,9 +85,6 @@ var ErrInvalidLevelValue = errors.New("invalid trie level in memory value")
 // ErrNilTrieSyncStatistics signals that a nil trie sync statistics handler was provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics handler")
 
-// ErrContextClosing signals that the parent context requested the closing of its children
-var ErrContextClosing = errors.New("context closing")
-
 // ErrNilTimeoutHandler signals that a nil timeout handler has been provided
 var ErrNilTimeoutHandler = errors.New("nil timeout handler")
 
@@ -102,3 +99,9 @@ var ErrNilCheckpointHashesHolder = errors.New("nil checkpoint hashes holder")
 
 // ErrTrieSyncTimeout signals that a timeout occurred while syncing the trie
 var ErrTrieSyncTimeout = errors.New("trie sync timeout")
+
+// ErrKeyNotFound is raised when a key is not found
+var ErrKeyNotFound = errors.New("key not found")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")

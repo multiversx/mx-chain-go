@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. staking.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. staking.proto
 package systemSmartContracts
 
 import (
@@ -29,32 +29,34 @@ const waitingListHeadKey = "waitingList"
 const waitingElementPrefix = "w_"
 
 type stakingSC struct {
-	eei                              vm.SystemEI
-	unBondPeriod                     uint64
-	stakeAccessAddr                  []byte // TODO add a viewAddress field and use it on all system SC view functions
-	jailAccessAddr                   []byte
-	endOfEpochAccessAddr             []byte
-	numRoundsWithoutBleed            uint64
-	bleedPercentagePerRound          float64
-	maximumPercentageToBleed         float64
-	gasCost                          vm.GasCost
-	minNumNodes                      uint64
-	maxNumNodes                      uint64
-	marshalizer                      marshal.Marshalizer
-	enableStakingEpoch               uint32
-	stakeValue                       *big.Int
-	flagEnableStaking                atomic.Flag
-	flagStakingV2                    atomic.Flag
-	flagCorrectLastUnjailed          atomic.Flag
-	flagCorrectFirstQueued           atomic.Flag
-	correctFirstQueuedEpoch          uint32
-	correctLastUnjailedEpoch         uint32
-	stakingV2Epoch                   uint32
-	walletAddressLen                 int
-	mutExecution                     sync.RWMutex
-	minNodePrice                     *big.Int
-	validatorToDelegationEnableEpoch uint32
-	flagValidatorToDelegation        atomic.Flag
+	eei                                     vm.SystemEI
+	unBondPeriod                            uint64
+	stakeAccessAddr                         []byte // TODO add a viewAddress field and use it on all system SC view functions
+	jailAccessAddr                          []byte
+	endOfEpochAccessAddr                    []byte
+	numRoundsWithoutBleed                   uint64
+	bleedPercentagePerRound                 float64
+	maximumPercentageToBleed                float64
+	gasCost                                 vm.GasCost
+	minNumNodes                             uint64
+	maxNumNodes                             uint64
+	marshalizer                             marshal.Marshalizer
+	enableStakingEpoch                      uint32
+	stakeValue                              *big.Int
+	flagEnableStaking                       atomic.Flag
+	flagStakingV2                           atomic.Flag
+	flagCorrectLastUnjailed                 atomic.Flag
+	flagCorrectFirstQueued                  atomic.Flag
+	flagCorrectJailedNotUnstakedEmptyQueue  atomic.Flag
+	correctJailedNotUnstakedEmptyQueueEpoch uint32
+	correctFirstQueuedEpoch                 uint32
+	correctLastUnjailedEpoch                uint32
+	stakingV2Epoch                          uint32
+	walletAddressLen                        int
+	mutExecution                            sync.RWMutex
+	minNodePrice                            *big.Int
+	validatorToDelegationEnableEpoch        uint32
+	flagValidatorToDelegation               atomic.Flag
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -116,31 +118,33 @@ func NewStakingSmartContract(
 	}
 
 	reg := &stakingSC{
-		eei:                              args.Eei,
-		unBondPeriod:                     args.StakingSCConfig.UnBondPeriod,
-		stakeAccessAddr:                  args.StakingAccessAddr,
-		jailAccessAddr:                   args.JailAccessAddr,
-		numRoundsWithoutBleed:            args.StakingSCConfig.NumRoundsWithoutBleed,
-		bleedPercentagePerRound:          args.StakingSCConfig.BleedPercentagePerRound,
-		maximumPercentageToBleed:         args.StakingSCConfig.MaximumPercentageToBleed,
-		gasCost:                          args.GasCost,
-		minNumNodes:                      args.MinNumNodes,
-		maxNumNodes:                      args.StakingSCConfig.MaxNumberOfNodesForStake,
-		marshalizer:                      args.Marshalizer,
-		endOfEpochAccessAddr:             args.EndOfEpochAccessAddr,
-		enableStakingEpoch:               args.EpochConfig.EnableEpochs.StakeEnableEpoch,
-		stakingV2Epoch:                   args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		walletAddressLen:                 len(args.StakingAccessAddr),
-		minNodePrice:                     minStakeValue,
-		correctLastUnjailedEpoch:         args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
-		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
-		correctFirstQueuedEpoch:          args.EpochConfig.EnableEpochs.CorrectFirstQueuedEpoch,
+		eei:                                     args.Eei,
+		unBondPeriod:                            args.StakingSCConfig.UnBondPeriod,
+		stakeAccessAddr:                         args.StakingAccessAddr,
+		jailAccessAddr:                          args.JailAccessAddr,
+		numRoundsWithoutBleed:                   args.StakingSCConfig.NumRoundsWithoutBleed,
+		bleedPercentagePerRound:                 args.StakingSCConfig.BleedPercentagePerRound,
+		maximumPercentageToBleed:                args.StakingSCConfig.MaximumPercentageToBleed,
+		gasCost:                                 args.GasCost,
+		minNumNodes:                             args.MinNumNodes,
+		maxNumNodes:                             args.StakingSCConfig.MaxNumberOfNodesForStake,
+		marshalizer:                             args.Marshalizer,
+		endOfEpochAccessAddr:                    args.EndOfEpochAccessAddr,
+		enableStakingEpoch:                      args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingV2Epoch:                          args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		walletAddressLen:                        len(args.StakingAccessAddr),
+		minNodePrice:                            minStakeValue,
+		correctLastUnjailedEpoch:                args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
+		validatorToDelegationEnableEpoch:        args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
+		correctFirstQueuedEpoch:                 args.EpochConfig.EnableEpochs.CorrectFirstQueuedEpoch,
+		correctJailedNotUnstakedEmptyQueueEpoch: args.EpochConfig.EnableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch,
 	}
 	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
 	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 	log.Debug("staking: enable epoch for correct first queued", "epoch", reg.correctFirstQueuedEpoch)
+	log.Debug("staking: enable epoch for correct jailed not unstaked with empty queue", "epoch", reg.correctJailedNotUnstakedEmptyQueueEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -1151,7 +1155,8 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	registrationData, err := s.getOrCreateRegisteredData(args.Arguments[0])
+	blsKey := args.Arguments[0]
+	registrationData, err := s.getOrCreateRegisteredData(blsKey)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1168,7 +1173,7 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 		s.eei.AddReturnMessage(vm.ErrBLSPublicKeyAlreadyJailed.Error())
 		return vmcommon.UserError
 	}
-	switched, err := s.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
+	switched, err := s.moveFirstFromWaitingToStakedIfNeeded(blsKey)
 	if err != nil {
 		s.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1177,23 +1182,42 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	registrationData.NumJailed++
 	registrationData.Jailed = true
 	registrationData.JailedNonce = s.eei.BlockChainHook().CurrentNonce()
-	if !switched {
+
+	if !switched && !s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet() {
 		s.eei.AddReturnMessage("did not switch as nobody in waiting, but jailed")
 	} else {
-		s.removeFromStakedNodes()
-		registrationData.Staked = false
-		registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
-		registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
-		registrationData.StakedNonce = math.MaxUint64
+		s.tryRemoveJailedNodeFromStaked(registrationData)
 	}
 
-	err = s.saveStakingData(args.Arguments[0], registrationData)
+	err = s.saveStakingData(blsKey, registrationData)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (s *stakingSC) tryRemoveJailedNodeFromStaked(registrationData *StakedDataV2_0) {
+	if !s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet() {
+		s.removeAndSetUnstaked(registrationData)
+		return
+	}
+
+	if s.canUnStake() {
+		s.removeAndSetUnstaked(registrationData)
+		return
+	}
+
+	s.eei.AddReturnMessage("did not switch as not enough validators remaining")
+}
+
+func (s *stakingSC) removeAndSetUnstaked(registrationData *StakedDataV2_0) {
+	s.removeFromStakedNodes()
+	registrationData.Staked = false
+	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
+	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
+	registrationData.StakedNonce = math.MaxUint64
 }
 
 func (s *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -2073,20 +2097,23 @@ func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmco
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
-	s.flagEnableStaking.Toggle(epoch >= s.enableStakingEpoch)
+	s.flagEnableStaking.SetValue(epoch >= s.enableStakingEpoch)
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", s.flagEnableStaking.IsSet())
 
-	s.flagStakingV2.Toggle(epoch >= s.stakingV2Epoch)
+	s.flagStakingV2.SetValue(epoch >= s.stakingV2Epoch)
 	log.Debug("stakingSC: set owner", "enabled", s.flagStakingV2.IsSet())
 
-	s.flagCorrectLastUnjailed.Toggle(epoch >= s.correctLastUnjailedEpoch)
+	s.flagCorrectLastUnjailed.SetValue(epoch >= s.correctLastUnjailedEpoch)
 	log.Debug("stakingSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailed.IsSet())
 
-	s.flagValidatorToDelegation.Toggle(epoch >= s.validatorToDelegationEnableEpoch)
+	s.flagValidatorToDelegation.SetValue(epoch >= s.validatorToDelegationEnableEpoch)
 	log.Debug("stakingSC: validator to delegation", "enabled", s.flagValidatorToDelegation.IsSet())
 
-	s.flagCorrectFirstQueued.Toggle(epoch >= s.correctFirstQueuedEpoch)
+	s.flagCorrectFirstQueued.SetValue(epoch >= s.correctFirstQueuedEpoch)
 	log.Debug("stakingSC: correct first queued", "enabled", s.flagCorrectFirstQueued.IsSet())
+
+	s.flagCorrectJailedNotUnstakedEmptyQueue.SetValue(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
+	log.Debug("stakingSC: correct jailed not unstaked with empty queue", "enabled", s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

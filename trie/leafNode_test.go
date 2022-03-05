@@ -8,8 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -604,7 +607,7 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, testscommon.HasherMock{})
+	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, &hashingMocks.HasherMock{})
 	assert.Nil(t, ln)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
@@ -721,15 +724,15 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
-	ln := getLn(marshalizer, hasher)
+	ln := getLn(marshalizer, hasherMock)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitCheckpoint(db, db, nil, nil, ctx)
-	assert.Equal(t, ErrContextClosing, err)
+	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, db, nil, ctx)
-	assert.Equal(t, ErrContextClosing, err)
+	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
 func TestLeafNode_getValue(t *testing.T) {

@@ -137,7 +137,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator: tpn.ShardCoordinator,
 		EpochNotifier:    tpn.EpochNotifier,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	log.LogIfError(err)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -173,7 +173,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardID:            tpn.ShardCoordinator.SelfId(),
 		Accounts:           accountsWrapper,
 		QueryService:       tpn.SCQueryService,
-		BlockChain:         tpn.BlockChain,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)

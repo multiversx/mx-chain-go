@@ -2,6 +2,7 @@ package unsigned_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +44,7 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 	return unsigned.NewInterceptedUnsignedTransaction(
 		txBuff,
 		marshalizer,
-		mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		&mock.PubkeyConverterStub{},
 		shardCoordinator,
 	)
@@ -52,7 +54,7 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
-//------- NewInterceptedUnsignedTransaction
+// ------- NewInterceptedUnsignedTransaction
 
 func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
 	t.Parallel()
@@ -60,7 +62,7 @@ func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		nil,
 		&mock.MarshalizerMock{},
-		mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
@@ -75,7 +77,7 @@ func TestNewInterceptedUnsignedTransaction_NilMarshalizerShouldErr(t *testing.T)
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		nil,
-		mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
@@ -105,7 +107,7 @@ func TestNewInterceptedUnsignedTransaction_NilPubkeyConverterShouldErr(t *testin
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
-		mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 	)
@@ -120,7 +122,7 @@ func TestNewInterceptedUnsignedTransaction_NilCoordinatorShouldErr(t *testing.T)
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
-		mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		nil,
 	)
@@ -141,7 +143,7 @@ func TestNewInterceptedUnsignedTransaction_UnmarshalingTxFailsShouldErr(t *testi
 				return errExpected
 			},
 		},
-		mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
@@ -167,7 +169,7 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CheckValidity
+// ------- CheckValidity
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testing.T) {
 	t.Parallel()
@@ -295,7 +297,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
@@ -312,7 +314,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
 	marshalizer := &mock.MarshalizerMock{}
-	hasher := mock.HasherMock{}
+	hasher := &hashingMocks.HasherMock{}
 	expectedHash, _ := core.CalculateHash(marshalizer, hasher, tx)
 
 	assert.Equal(t, senderShard, txi.SenderShardId())
@@ -325,7 +327,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, senderAddress, txi.SenderAddress())
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
@@ -369,8 +371,8 @@ func TestInterceptedUnsignedTransaction_String(t *testing.T) {
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
 	expectedFormat := fmt.Sprintf(
-		"sender=%s, nonce=%d, value=%s, recv=%s",
-		logger.DisplayByteSlice(senderAddress), nonce, value, logger.DisplayByteSlice(recvAddress),
+		"sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
+		logger.DisplayByteSlice(senderAddress), nonce, value, logger.DisplayByteSlice(recvAddress), hex.EncodeToString(tx.Data),
 	)
 
 	assert.Equal(t, expectedFormat, txi.String())

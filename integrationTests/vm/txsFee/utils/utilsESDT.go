@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -164,6 +165,42 @@ func CreateESDTTransferTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier
 	}
 }
 
+// TransferESDTData -
+type TransferESDTData struct {
+	Token []byte
+	Nonce uint64
+	Value *big.Int
+}
+
+// CreateMultiTransferTX -
+func CreateMultiTransferTX(nonce uint64, sender, dest []byte, gasPrice, gasLimit uint64, tds ...*TransferESDTData) *transaction.Transaction {
+	numTransfers := len(tds)
+	encodedReceiver := hex.EncodeToString(dest)
+	hexEncodedNumTransfers := hex.EncodeToString(big.NewInt(int64(numTransfers)).Bytes())
+
+	txDataField := []byte(strings.Join([]string{core.BuiltInFunctionMultiESDTNFTTransfer, encodedReceiver, hexEncodedNumTransfers}, "@"))
+	for _, td := range tds {
+		hexEncodedToken := hex.EncodeToString(td.Token)
+		esdtValueEncoded := hex.EncodeToString(td.Value.Bytes())
+		hexEncodedNonce := "00"
+		if td.Nonce != 0 {
+			hexEncodedNonce = hex.EncodeToString(big.NewInt(int64(td.Nonce)).Bytes())
+		}
+
+		txDataField = []byte(strings.Join([]string{string(txDataField), hexEncodedToken, hexEncodedNonce, esdtValueEncoded}, "@"))
+	}
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sender,
+		RcvAddr:  sender,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+}
+
 // CreateESDTNFTTransferTx -
 func CreateESDTNFTTransferTx(
 	nonce uint64,
@@ -253,28 +290,9 @@ func checkEsdtBalance(
 	addr []byte,
 	tokenIdentifier []byte,
 	esdtNonce uint64,
-	expectedBalance *big.Int) {
-
-	account, err := testContext.Accounts.LoadAccount(addr)
+	expectedBalance *big.Int,
+) {
+	esdtData, err := testContext.BlockchainHook.GetESDTToken(addr, tokenIdentifier, esdtNonce)
 	require.Nil(t, err)
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	require.True(t, ok)
-
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenIdentifier)
-	if esdtNonce > 0 {
-		tokenKey += string(big.NewInt(int64(esdtNonce)).Bytes())
-	}
-
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
-	if err != nil || len(valueBytes) == 0 {
-		require.Equal(t, big.NewInt(0), expectedBalance)
-		return
-	}
-
-	esdtToken := &esdt.ESDigitalToken{}
-	err = protoMarshalizer.Unmarshal(esdtToken, valueBytes)
-	require.Nil(t, err)
-
-	require.Equal(t, expectedBalance, esdtToken.Value)
+	require.Equal(t, expectedBalance, esdtData.Value)
 }

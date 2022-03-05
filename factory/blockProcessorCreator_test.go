@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -46,6 +47,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			VMOutputCacher: txcache.NewDisabledCache(),
 		},
 		&sync.RWMutex{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	require.NoError(t, err)
@@ -87,7 +89,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	accounts, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
+		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
 		trieStorageManagers[trieFactory.UserAccountTrie],
 	)
@@ -113,7 +115,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts
 		},
-		TriesContainerCalled: func() state.TriesHolder {
+		TriesContainerCalled: func() common.TriesHolder {
 			return &mock.TriesHolderStub{}
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
@@ -150,6 +152,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 			VMOutputCacher: txcache.NewDisabledCache(),
 		},
 		&sync.RWMutex{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	require.NoError(t, err)
@@ -168,7 +171,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager())
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), common.Normal)
 	if err != nil {
 		return nil, err
 	}

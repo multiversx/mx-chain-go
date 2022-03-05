@@ -3,13 +3,13 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"strconv"
 	"testing"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -42,7 +42,7 @@ func createTestProcessorNodeAndTrieStorage(
 	cacheConfig := storageUnit.CacheConfig{
 		Name:        "trie",
 		Type:        "SizeLRU",
-		SizeInBytes: 314572800, //300MB
+		SizeInBytes: 314572800, // 300MB
 		Capacity:    500000,
 	}
 	trieCache, err := storageUnit.NewCache(cacheConfig)
@@ -56,10 +56,8 @@ func createTestProcessorNodeAndTrieStorage(
 		MaxOpenFiles:      10,
 	}
 	persisterFactory := storageFactory.NewPersisterFactory(dbConfig)
-	tempDir, err := ioutil.TempDir("", "integrationTest")
-	require.Nil(t, err)
 
-	triePersister, err := persisterFactory.Create(tempDir)
+	triePersister, err := persisterFactory.Create(t.TempDir())
 	require.Nil(t, err)
 
 	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
@@ -101,7 +99,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-	//we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
+	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -134,7 +132,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
 		InterceptedNodes:          nRequester.DataPool.TrieNodes(),
-		DB:                        requesterTrie.GetStorageManager().Database(),
+		DB:                        requesterTrie.GetStorageManager(),
 		Marshalizer:               integrationTests.TestMarshalizer,
 		Hasher:                    integrationTests.TestHasher,
 		ShardId:                   shardID,
@@ -146,17 +144,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
-	go func() {
-		for {
-			select {
-			case <-ctxPrint.Done():
-				fmt.Printf("Sync done: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
-				return
-			case <-time.After(time.Millisecond * 100):
-				fmt.Printf("Sync in progress: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
-			}
-		}
-	}()
+	go printStatistics(ctxPrint, tss)
 
 	err = trieSyncer.StartSyncing(rootHash, context.Background())
 	assert.Nil(t, err)
@@ -175,6 +163,39 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		numLeaves++
 	}
 	assert.Equal(t, numTrieLeaves, numLeaves)
+}
+
+func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler) {
+	lastDataReceived := uint64(0)
+	printInterval := time.Second
+	for {
+		select {
+		case <-ctx.Done():
+			log.Info("finished trie sync",
+				"num received", stats.NumReceived(),
+				"num large nodes", stats.NumLarge(),
+				"num missing", stats.NumMissing(),
+				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
+			)
+			return
+		case <-time.After(printInterval):
+			bytesReceivedDelta := stats.NumBytesReceived() - lastDataReceived
+			if stats.NumBytesReceived() < lastDataReceived {
+				bytesReceivedDelta = 0
+			}
+			lastDataReceived = stats.NumBytesReceived()
+
+			bytesReceivedPerSec := float64(bytesReceivedDelta) / printInterval.Seconds()
+			speed := fmt.Sprintf("%s/s", core.ConvertBytes(uint64(bytesReceivedPerSec)))
+
+			log.Info("trie sync in progress",
+				"num received", stats.NumReceived(),
+				"num large nodes", stats.NumLarge(),
+				"num missing", stats.NumMissing(),
+				"data size received", core.ConvertBytes(stats.NumBytesReceived()),
+				"speed", speed)
+		}
+	}
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T) {
@@ -207,7 +228,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-	//we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
+	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -239,7 +260,7 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            nRequester.RequestHandler,
 		InterceptedNodes:          nRequester.DataPool.TrieNodes(),
-		DB:                        requesterTrie.GetStorageManager().Database(),
+		DB:                        requesterTrie.GetStorageManager(),
 		Marshalizer:               integrationTests.TestMarshalizer,
 		Hasher:                    integrationTests.TestHasher,
 		ShardId:                   shardID,
@@ -251,20 +272,10 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
-	go func() {
-		for {
-			select {
-			case <-ctxPrint.Done():
-				fmt.Printf("Sync done: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
-				return
-			case <-time.After(time.Millisecond * 100):
-				fmt.Printf("Sync in progress: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
-			}
-		}
-	}()
+	go printStatistics(ctxPrint, tss)
 
 	go func() {
-		//sudden close of the resolver node after just 2 seconds
+		// sudden close of the resolver node after just 2 seconds
 		time.Sleep(time.Second * 2)
 		_ = nResolver.Messenger.Close()
 		log.Info("resolver node closed, the requester should soon fail in error")
@@ -362,8 +373,9 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
 		},
-		ShardId:   shardID,
-		Throttler: thr,
+		ShardId:                shardID,
+		Throttler:              thr,
+		AddressPubKeyConverter: integrationTests.TestAddressPubkeyConverter,
 	}
 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)

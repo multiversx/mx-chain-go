@@ -10,9 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,11 +26,13 @@ const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb9908
 
 func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 	return ArgsNewSCQueryService{
-		VmContainer:       &mock.VMContainerMock{},
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainMock{},
-		ArwenChangeLocker: &sync.RWMutex{},
+		VmContainer:              &mock.VMContainerMock{},
+		EconomicsFee:             &mock.FeeHandlerStub{},
+		BlockChainHook:           &mock.BlockChainHookHandlerMock{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             &mock.BootstrapperStub{},
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 }
 
@@ -85,6 +91,17 @@ func TestNewSCQueryService_NilArwenLockerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilLocker, err)
 }
 
+func TestNewSCQueryService_NilBootstrapperShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.Bootstrapper = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilBootstrapper, err)
+}
+
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -100,7 +117,6 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
@@ -119,7 +135,6 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
@@ -132,6 +147,75 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 
 	assert.Nil(t, output)
 	assert.Equal(t, process.ErrEmptyFunctionName, err)
+}
+
+func TestExecuteQuery_ShouldPerformActionsInRegardsToAllowanceChannel(t *testing.T) {
+	t.Parallel()
+
+	chanAllowedQueries := make(chan struct{})
+	args := createMockArgumentsForSCQuery()
+	args.AllowExternalQueriesChan = chanAllowedQueries
+	target, _ := NewSCQueryService(args)
+
+	query := process.SCQuery{
+		ScAddress: []byte(DummyScAddress),
+		FuncName:  "func",
+		Arguments: [][]byte{},
+	}
+
+	output, err := target.ExecuteQuery(&query)
+	assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
+	assert.Nil(t, output)
+
+	close(chanAllowedQueries)
+	_, err = target.ExecuteQuery(&query)
+	assert.NoError(t, err)
+}
+
+func TestExecuteQuery_AllowanceChannelShouldWorkUnderConcurrentRequests(t *testing.T) {
+	t.Parallel()
+
+	chanAllowedQueries := make(chan struct{})
+	args := createMockArgumentsForSCQuery()
+	args.AllowExternalQueriesChan = chanAllowedQueries
+	target, _ := NewSCQueryService(args)
+
+	query := process.SCQuery{
+		ScAddress: []byte(DummyScAddress),
+		FuncName:  "func",
+		Arguments: [][]byte{},
+	}
+
+	defer func() {
+		r := recover()
+		assert.Nil(t, r)
+	}()
+
+	numTries := 200
+	wg := sync.WaitGroup{}
+	wg.Add(numTries)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		close(chanAllowedQueries)
+	}()
+
+	for i := 0; i < numTries; i++ {
+		go func(idx int) {
+			select {
+			case <-chanAllowedQueries:
+				_, err := target.ExecuteQuery(&query)
+				assert.NoError(t, err)
+			default:
+				output, err := target.ExecuteQuery(&query)
+				assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
+				assert.Nil(t, output)
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
@@ -399,6 +483,101 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 	require.True(t, callerAddressAndCallValueAreSet)
 }
 
+func TestSCQueryService_ShouldFailIfNodeIsNotSynced(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.Bootstrapper = &mock.BootstrapperStub{
+		GetNodeStateCalled: func() common.NodeState {
+			return common.NsNotSynchronized
+		},
+	}
+
+	qs, _ := NewSCQueryService(args)
+
+	res, err := qs.ExecuteQuery(&process.SCQuery{
+		ShouldBeSynced: true,
+		ScAddress:      []byte(DummyScAddress),
+		FuncName:       "function",
+	})
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNodeIsNotSynced, err)
+}
+
+func TestSCQueryService_ShouldWorkIfNodeIsSynced(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.Bootstrapper = &mock.BootstrapperStub{
+		GetNodeStateCalled: func() common.NodeState {
+			return common.NsSynchronized
+		},
+	}
+
+	qs, _ := NewSCQueryService(args)
+
+	res, err := qs.ExecuteQuery(&process.SCQuery{
+		ShouldBeSynced: true,
+		ScAddress:      []byte(DummyScAddress),
+		FuncName:       "function",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+}
+
+func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+
+	rootHashCalled := false
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockRootHashCalled: func() []byte {
+			if !rootHashCalled {
+				rootHashCalled = true
+				return []byte("first root hash")
+			}
+
+			return []byte("second root hash")
+		},
+	}
+
+	qs, _ := NewSCQueryService(args)
+
+	res, err := qs.ExecuteQuery(&process.SCQuery{
+		SameScState: true,
+		ScAddress:   []byte(DummyScAddress),
+		FuncName:    "function",
+	})
+	require.Nil(t, res)
+	require.True(t, errors.Is(err, process.ErrStateChangedWhileExecutingVmQuery))
+}
+
+func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				RootHash: []byte("same root hash"),
+			}
+
+		},
+	}
+
+	qs, _ := NewSCQueryService(args)
+
+	res, err := qs.ExecuteQuery(&process.SCQuery{
+		SameScState: true,
+		ScAddress:   []byte(DummyScAddress),
+		FuncName:    "function",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res)
+}
+
 func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	t.Parallel()
 
@@ -481,10 +660,12 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		BlockChain:        &mock.BlockChainMock{},
-		ArwenChangeLocker: &sync.RWMutex{},
+		EconomicsFee:             &mock.FeeHandlerStub{},
+		BlockChainHook:           &mock.BlockChainHookHandlerMock{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ArwenChangeLocker:        &sync.RWMutex{},
+		Bootstrapper:             &mock.BootstrapperStub{},
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 
 	target, _ := NewSCQueryService(argsNewSCQueryService)

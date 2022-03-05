@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,7 +92,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testi
 	ess, _ := NewEpochStartMetaSyncer(args)
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
-		GetEpochStartMetaBlockCalled: func() (*block.MetaBlock, error) {
+		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
 			return nil, expectedErr
 		},
 	}
@@ -116,7 +118,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 	ess, _ := NewEpochStartMetaSyncer(args)
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
-		GetEpochStartMetaBlockCalled: func() (*block.MetaBlock, error) {
+		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
 			return expectedMb, nil
 		},
 	}
@@ -132,7 +134,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		CoreComponentsHolder: &mock.CoreComponentsMock{
 			IntMarsh:            &mock.MarshalizerMock{},
 			Marsh:               &mock.MarshalizerMock{},
-			Hash:                &mock.HasherMock{},
+			Hash:                &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 			PathHdl:             &testscommon.PathManagerStub{},

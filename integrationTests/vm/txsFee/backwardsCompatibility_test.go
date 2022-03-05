@@ -7,8 +7,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,12 +18,12 @@ import (
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		vm.ArgEnableEpoch{
-			PenalizedTooMuchGasEnableEpoch: 100,
-			BuiltinEnableEpoch:             100,
-			DeployEnableEpoch:              100,
-			MetaProtectionEnableEpoch:      100,
-			RelayedTxEnableEpoch:           100,
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch:   100,
+			BuiltInFunctionOnMetaEnableEpoch: 100,
+			SCDeployEnableEpoch:              100,
+			MetaProtectionEnableEpoch:        100,
+			RelayedTransactionsEnableEpoch:   100,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -35,9 +37,9 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -46,7 +48,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	expectedBalance := big.NewInt(9950)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
-	//check receipts
+	// check receipts
 	require.Equal(t, 1, len(testContext.GetIntermediateTransactions(t)))
 	rcpt := testContext.GetIntermediateTransactions(t)[0].(*receipt.Receipt)
 	assert.Equal(t, "950", rcpt.Value.String())
@@ -55,7 +57,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
@@ -66,12 +68,12 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		vm.ArgEnableEpoch{
+		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: 100,
-			BuiltinEnableEpoch:             100,
-			DeployEnableEpoch:              100,
+			BuiltInFunctionsEnableEpoch:    100,
+			SCDeployEnableEpoch:            100,
 			MetaProtectionEnableEpoch:      100,
-			RelayedTxEnableEpoch:           100,
+			RelayedTransactionsEnableEpoch: 100,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -91,12 +93,12 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		vm.ArgEnableEpoch{
-			PenalizedTooMuchGasEnableEpoch: 0,
-			BuiltinEnableEpoch:             100,
-			DeployEnableEpoch:              100,
-			MetaProtectionEnableEpoch:      100,
-			RelayedTxEnableEpoch:           100,
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch:   0,
+			BuiltInFunctionsEnableEpoch:      100,
+			SCDeployEnableEpoch:              100,
+			MetaProtectionEnableEpoch:        100,
+			RelayedTransactionsV2EnableEpoch: 100,
 		})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -110,9 +112,9 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -121,7 +123,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	expectedBalance := big.NewInt(9950)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
-	//check receipts
+	// check receipts
 	require.Equal(t, 1, len(testContext.GetIntermediateTransactions(t)))
 	rcpt := testContext.GetIntermediateTransactions(t)[0].(*receipt.Receipt)
 	assert.Equal(t, "950", rcpt.Value.String())
@@ -130,7 +132,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
 	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)

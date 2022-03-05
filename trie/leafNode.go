@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ = node(&leafNode{})
@@ -132,9 +133,10 @@ func (ln *leafNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -159,22 +161,24 @@ func (ln *leafNode) commitCheckpoint(
 
 	checkpointHashes.Remove(hash)
 
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	nodeSize, err := encodeNodeAndCommitToDB(ln, targetDb)
 	if err != nil {
 		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	return nil
 }
 
 func (ln *leafNode) commitSnapshot(
-	_ common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -187,10 +191,12 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
 	if err != nil {
 		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	return nil
 }

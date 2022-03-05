@@ -94,11 +94,13 @@ func NewSmartContractResultPreprocessor(
 	}
 
 	bpp := &basePreProcess{
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		shardCoordinator:     shardCoordinator,
-		gasHandler:           gasHandler,
-		economicsFee:         economicsFee,
+		hasher:      hasher,
+		marshalizer: marshalizer,
+		gasTracker: gasTracker{
+			shardCoordinator: shardCoordinator,
+			gasHandler:       gasHandler,
+			economicsFee:     economicsFee,
+		},
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
@@ -223,6 +225,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(
+	_ data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {
@@ -230,9 +233,31 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		return process.ErrNilBlockBody
 	}
 
-	gasConsumedByMiniBlockInSenderShard := uint64(0)
-	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
+	numSCRsProcessed := 0
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
+	}
+
+	log.Debug("smartContractResults.ProcessBlockTransactions: before processing",
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", scr.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
+		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("smartContractResults.ProcessBlockTransactions after processing",
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num scrs processed", numSCRsProcessed,
+			"total gas provided", scr.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
+			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -268,18 +293,18 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
-				err := scr.computeGasConsumed(
+				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
 					currScr,
 					txHash,
-					&gasConsumedByMiniBlockInSenderShard,
-					&gasConsumedByMiniBlockInReceiverShard,
-					&totalGasConsumedInSelfShard)
+					&gasInfo)
 
 				if err != nil {
 					return err
 				}
+
+				scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 			}
 
 			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
@@ -289,9 +314,11 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return err
 			}
 
-			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
+			numSCRsProcessed++
 		}
 	}
+
 	return nil
 }
 
@@ -460,17 +487,26 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool) (block.MiniBlockSlice, error) {
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(_ func() bool, _ []byte) (block.MiniBlockSlice, error) {
 	return make(block.MiniBlockSlice, 0), nil
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, int, error) {
+func (scr *smartContractResults) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	_ func() bool,
+	_ func() (int, int),
+	_ bool,
+) (processedTxHashes [][]byte, numProcessedSCRs int, err error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 
+	numSCRsProcessed := 0
+	var gasProvidedByTxInSelfShard uint64
+	processedTxHashes = make([][]byte, 0)
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return nil, 0, err
@@ -480,42 +516,73 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		return nil, 0, process.ErrMaxBlockSizeReached
 	}
 
-	processedTxHashes := make([][]byte, 0)
-
 	defer func() {
 		if err != nil {
-			scr.gasHandler.RemoveGasConsumed(processedTxHashes)
-			scr.gasHandler.RemoveGasRefunded(processedTxHashes)
-			scr.gasHandler.RemoveGasPenalized(processedTxHashes)
+			for _, hash := range processedTxHashes {
+				log.Trace("smartContractResults.ProcessMiniBlock: defer func()", "tx hash", hash)
+			}
+
+			scr.gasHandler.RestoreGasSinceLastReset()
 		}
 	}()
 
-	gasConsumedByMiniBlockInSenderShard := uint64(0)
-	gasConsumedByMiniBlockInReceiverShard := uint64(0)
-	totalGasConsumedInSelfShard := scr.getTotalGasConsumed()
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
+	}
 
-	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	var maxGasLimitUsedForDestMeTxs uint64
+	isFirstMiniBlockDestMe := gasInfo.totalGasConsumedInSelfShard == 0
+	if isFirstMiniBlockDestMe {
+		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId())
+	} else {
+		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
+	}
+
+	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", scr.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
+		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("smartContractResults.ProcessMiniBlock after processing",
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num scrs processed", numSCRsProcessed,
+			"total gas provided", scr.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
+			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
+			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
+		)
+	}()
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return processedTxHashes, index, err
+			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
-		err = scr.computeGasConsumed(
+		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[index],
 			miniBlockTxHashes[index],
-			&gasConsumedByMiniBlockInSenderShard,
-			&gasConsumedByMiniBlockInReceiverShard,
-			&totalGasConsumedInSelfShard)
+			&gasInfo)
 
 		if err != nil {
 			return processedTxHashes, index, err
 		}
 
+		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+
+		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
+			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
+				return processedTxHashes, index, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+			}
+		}
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
@@ -524,7 +591,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, index, err
 		}
 
-		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasConsumedByMiniBlockInReceiverShard, &totalGasConsumedInSelfShard)
+		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
+		numSCRsProcessed++
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -563,6 +631,10 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 	return scrPool
 }
 
+// AddTxsFromMiniBlocks does nothing
+func (scr *smartContractResults) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (scr *smartContractResults) IsInterfaceNil() bool {
 	return scr == nil
@@ -570,4 +642,10 @@ func (scr *smartContractResults) IsInterfaceNil() bool {
 
 func (scr *smartContractResults) isMiniBlockCorrect(mbType block.Type) bool {
 	return mbType == block.SmartContractResultBlock
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (scr *smartContractResults) EpochConfirmed(epoch uint32, _ uint64) {
+	scr.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= scr.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
+	log.Debug("smartContractResults: optimize gas used in cross mini blocks", "enabled", scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }

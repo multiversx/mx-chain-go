@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ = node(&branchNode{})
@@ -292,9 +293,10 @@ func (bn *branchNode) commitCheckpoint(
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -322,24 +324,24 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats)
 		if err != nil {
 			return err
 		}
 	}
 
 	checkpointHashes.Remove(hash)
-	return bn.saveToStorage(targetDb)
+	return bn.saveToStorage(targetDb, stats)
 }
 
 func (bn *branchNode) commitSnapshot(
-	originDb common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	db common.DBWriteCacher,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
+	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -348,7 +350,7 @@ func (bn *branchNode) commitSnapshot(
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), originDb)
+		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
 			return err
 		}
@@ -357,20 +359,22 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan, ctx)
+		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(targetDb)
+	return bn.saveToStorage(db, stats)
 }
 
-func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher) error {
-	_, err := encodeNodeAndCommitToDB(bn, targetDb)
+func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	bn.removeChildrenPointers()
 	return nil
