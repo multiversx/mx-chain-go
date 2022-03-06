@@ -54,12 +54,12 @@ const (
 	refreshPeersOnTopic             = time.Second * 3
 	ttlPeersOnTopic                 = time.Second * 10
 	pubsubTimeCacheDuration         = 10 * time.Minute
-	acceptMessagesInAdvanceDuration = 20 * time.Second //we are accepting the messages with timestamp in the future only for this delta
+	acceptMessagesInAdvanceDuration = 20 * time.Second // we are accepting the messages with timestamp in the future only for this delta
 	broadcastGoRoutines             = 1000
 	timeBetweenPeerPrints           = time.Second * 20
 	timeBetweenExternalLoggersCheck = time.Second * 20
 	minRangePortValue               = 1025
-	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) //should be used only in tests
+	noSignPolicy                    = pubsub.MessageSignaturePolicy(0) // should be used only in tests
 	msgBindError                    = "address already in use"
 	maxRetriesIfBindError           = 10
 )
@@ -78,10 +78,10 @@ const (
 	preventReusePorts reusePortsConfig = false
 )
 
-//TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
+// TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
-var messageHeader = 64 * 1024 //64kB
-var maxSendBuffSize = (1 << 20) - messageHeader
+var messageHeader = 64 * 1024 // 64kB
+var maxSendBuffSize = (1 << 21) - messageHeader
 var log = logger.GetOrCreate("p2p/libp2p")
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
@@ -95,7 +95,7 @@ func init() {
 	}
 }
 
-//TODO refactor this struct to have be a wrapper (with logic) over a glue code
+// TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -103,7 +103,7 @@ type networkMessenger struct {
 	port       int
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
-	//TODO refactor this (connMonitor & connMonitorWrapper)
+	// TODO refactor this (connMonitor & connMonitorWrapper)
 	connMonitor          ConnectionMonitor
 	connMonitorWrapper   p2p.ConnectionMonitorWrapper
 	peerDiscoverer       p2p.PeerDiscoverer
@@ -200,7 +200,7 @@ func constructNode(
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		transportOption,
-		//we need the disable relay option in order to save the node's bandwidth as much as possible
+		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
@@ -237,7 +237,7 @@ func constructNodeWithPortRetry(
 
 		lastErr = err
 		if !strings.Contains(err.Error(), msgBindError) {
-			//not a bind error, return directly
+			// not a bind error, return directly
 			return nil, err
 		}
 
@@ -736,7 +736,7 @@ func (netMes *networkMessenger) PeerAddresses(pid core.PeerID) []string {
 	h := netMes.p2pHost
 	result := make([]string, 0)
 
-	//check if the peer is connected to return it's connected address
+	// check if the peer is connected to return it's connected address
 	for _, c := range h.Network().Conns() {
 		if string(c.RemotePeer()) == string(pid.Bytes()) {
 			result = append(result, c.RemoteMultiaddr().String())
@@ -744,7 +744,7 @@ func (netMes *networkMessenger) PeerAddresses(pid core.PeerID) []string {
 		}
 	}
 
-	//check in peerstore (maybe it is known but not connected)
+	// check in peerstore (maybe it is known but not connected)
 	addresses := h.Peerstore().Addrs(peer.ID(pid.Bytes()))
 	for _, addr := range addresses {
 		result = append(result, addr.String())
@@ -797,7 +797,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		err = netMes.outgoingPLB.AddChannel(name)
 	}
 
-	//just a dummy func to consume messages received by the newly created topic
+	// just a dummy func to consume messages received by the newly created topic
 	go func() {
 		var errSubscrNext error
 		for {
@@ -937,7 +937,7 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
 	msg, errUnmarshal := NewMessage(pbMsg, netMes.marshalizer)
 	if errUnmarshal != nil {
-		//this error is so severe that will need to blacklist both the originator and the connected peer as there is
+		// this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
 		pidFrom := core.PeerID(pbMsg.From)
 		netMes.blacklistPid(pid, common.WrongP2PMessageBlacklistDuration)
@@ -948,7 +948,7 @@ func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, 
 
 	err := netMes.validMessageByTimestamp(msg)
 	if err != nil {
-		//not reprocessing nor re-broadcasting the same message over and over again
+		// not reprocessing nor re-broadcasting the same message over and over again
 		log.Trace("received an invalid message",
 			"originator pid", p2p.MessageOriginatorPid(msg),
 			"from connected pid", p2p.PeerIdToShortString(pid),
@@ -1138,7 +1138,7 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 			return
 		}
 
-		//we won't recheck the message id against the cacher here as there might be collisions since we are using
+		// we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
 		messageOk := true
 		for index, handler := range handlers {
@@ -1205,7 +1205,7 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 }
 
 // SetPeerDenialEvaluator sets the peer black list handler
-//TODO decide if we continue on using setters or switch to options. Refactor if necessary
+// TODO decide if we continue on using setters or switch to options. Refactor if necessary
 func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
 	return netMes.connMonitorWrapper.SetPeerDenialEvaluator(handler)
 }
