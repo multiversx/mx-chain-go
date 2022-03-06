@@ -83,6 +83,7 @@ type scProcessor struct {
 	cleanUpInformativeSCRsEnableEpoch           uint32
 	isPayableBySCEnableEpoch                    uint32
 	fixCodeMetadataOnUpgradeContract            uint32
+	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -102,6 +103,7 @@ type scProcessor struct {
 	flagCleanUpInformativeSCRs                  atomic.Flag
 	flagIsPayableBySC                           atomic.Flag
 	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
+	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -251,6 +253,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		cleanUpInformativeSCRsEnableEpoch:           args.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
 		isPayableBySCEnableEpoch:                    args.EnableEpochs.IsPayableBySCEnableEpoch,
 		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
+		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
 	}
 
 	var err error
@@ -274,6 +277,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for cleaning up created scrs that are informative only", "epoch", sc.cleanUpInformativeSCRsEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for payable by SC", "epoch", sc.isPayableBySCEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
+	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -1025,6 +1029,13 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 		if !check.IfNil(scrForRelayer) {
 			scrResults = append(scrResults, scrForRelayer)
+		}
+	}
+
+	if sc.flagSCRSizeInvariantOnBuiltInResult.IsSet() {
+		err := sc.checkSCRSizeInvariant(scrResults)
+		if err != nil {
+			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 	}
 
@@ -2878,6 +2889,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagIsPayableBySC.SetValue(epoch >= sc.isPayableBySCEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
+
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(epoch >= sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
+	log.Debug("scProcessor: scr size invariant check on build in result", "enabled", sc.flagSCRSizeInvariantOnBuiltInResult.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
