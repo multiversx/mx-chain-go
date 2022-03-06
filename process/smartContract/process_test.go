@@ -805,6 +805,64 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
+	t.Parallel()
+
+	vmContainer := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	accountState := &stateMock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+	arguments.AccountsDB = accountState
+	arguments.VmContainer = vmContainer
+	arguments.ArgsParser = argParser
+
+	funcName := "builtIn"
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte(funcName + "@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+	userAcc, _ := acntSrc.(vmcommon.UserAccountHandler)
+
+	builtInFunc := &mock.BuiltInFunctionStub{ProcessBuiltinFunctionCalled: func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		longData := bytes.Repeat([]byte{1}, 1<<21)
+
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, ReturnData: [][]byte{longData}}, nil
+	}}
+	_ = arguments.BuiltInFunctions.Add(funcName, builtInFunc)
+	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
+	}}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+	accountState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		return acntSrc, nil
+	}
+
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(false)
+	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_ = acntSrc.AddToBalance(big.NewInt(100))
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(true)
+	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Nil(t, err)
+}
+
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
