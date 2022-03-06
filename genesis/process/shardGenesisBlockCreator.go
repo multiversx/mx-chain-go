@@ -114,6 +114,7 @@ func createGenesisConfig() config.EnableEpochs {
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 	}
 }
 
