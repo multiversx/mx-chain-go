@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"bytes"
 	"math/big"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 )
@@ -126,4 +128,25 @@ func CreateReward(round uint64) (data.TransactionHandler, []byte) {
 	Log.LogIfError(err)
 
 	return reward, hash
+}
+
+// CreateLargeSmartContractResults -
+func CreateLargeSmartContractResults() (data.TransactionHandler, []byte) {
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:      1,
+		Value:      big.NewInt(3),
+		RcvAddr:    make([]byte, 32),
+		SndAddr:    make([]byte, 32),
+		Code:       nil,
+		Data:       bytes.Repeat([]byte{'A'}, 1100000),
+		PrevTxHash: make([]byte, 32),
+		GasLimit:   0,
+		GasPrice:   0,
+		CallType:   0,
+	}
+
+	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, scr)
+	Log.LogIfError(err)
+
+	return scr, hash
 }
