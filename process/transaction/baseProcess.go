@@ -36,6 +36,9 @@ func (txProc *baseTxProcessor) getAccounts(
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	shardForDst := txProc.shardCoordinator.ComputeId(adrDst)
+	if core.IsEmptyAddress(adrDst) {
+		shardForDst = 0
+	}
 
 	srcInShard := shardForSrc == shardForCurrentNode
 	dstInShard := shardForDst == shardForCurrentNode
