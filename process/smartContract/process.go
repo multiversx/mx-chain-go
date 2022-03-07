@@ -1926,7 +1926,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	tx data.TransactionHandler,
 	txHash []byte,
 	callType vmData.CallType,
-	gasProvided uint64,
+	gasProvidedForProcessing uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	if !sc.flagPenalizedTooMuchGas.IsSet() {
@@ -1936,12 +1936,12 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	isTooMuchProvided := isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	isTooMuchProvided := isTooMuchGasProvided(gasProvidedForProcessing, vmOutput.GasRemaining)
 	if !isTooMuchProvided {
 		return
 	}
 
-	gasUsed := gasProvided - vmOutput.GasRemaining
+	gasUsed := gasProvidedForProcessing - vmOutput.GasRemaining
 	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas provided",
 		"hash", txHash,
 		"nonce", tx.GetNonce(),
@@ -1950,7 +1950,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"receiver", tx.GetRcvAddr(),
 		"gas limit", tx.GetGasLimit(),
 		"gas price", tx.GetGasPrice(),
-		"gas provided", gasProvided,
+		"gas provided", gasProvidedForProcessing,
 		"gas remained", vmOutput.GasRemaining,
 		"gas used", gasUsed,
 		"return code", vmOutput.ReturnCode.String(),
@@ -1968,8 +1968,14 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 	}
 
-	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
-		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
+	if !sc.flagCleanUpInformativeSCRs.IsSet() {
+		vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+			TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
+	} else {
+		vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
+			TooMuchGasProvidedMessage, gasProvidedForProcessing, gasProvidedForProcessing-vmOutput.GasRemaining)
+	}
+
 	vmOutput.GasRemaining = 0
 }
 
