@@ -1444,6 +1444,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
+	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
 			ArwenVersions: []config.ArwenVersionByEpoch{
