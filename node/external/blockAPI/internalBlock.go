@@ -84,20 +84,7 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.Ap
 }
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (interface{}, error) {
-	hdr, err := process.CreateShardHeader(ibp.marshalizer, blockBytes)
-	if err != nil {
-		return nil, err
-	}
-	blockHeaderV2, ok := hdr.(*block.HeaderV2)
-	if ok {
-		return blockHeaderV2, nil
-	}
-
-	blockHeader, ok := hdr.(*block.Header)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-	return blockHeader, nil
+	return process.CreateShardHeader(ibp.marshalizer, blockBytes)
 }
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
