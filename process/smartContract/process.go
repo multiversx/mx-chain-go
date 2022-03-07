@@ -297,6 +297,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return 0, process.ErrNilTransaction
 	}
 
+	sc.blockChainHook.CleanAccumulatedTime()
+
 	sw := core.NewStopWatch()
 	sw.Start("execute")
 	returnCode, err := sc.doExecuteSmartContractTransaction(tx, acntSnd, acntDst)
@@ -308,6 +310,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
+
+	sc.blockChainHook.PrintAccumulatedTime()
 
 	return returnCode, err
 }
@@ -415,7 +419,13 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	var vmOutput *vmcommon.VMOutput
+	sw := core.NewStopWatch()
+	sw.Start("scExec")
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	sw.Stop("scExec")
+	duration := sw.GetMeasurement("scExec")
+	log.Trace("vmExec.RunSmartContractCall", "sc", tx.GetRcvAddr(), "duration", duration, "function", vmInput.Function, "txHash", txHash)
+
 	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
@@ -808,6 +818,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
+	sc.blockChainHook.CleanAccumulatedTime()
+
 	sw := core.NewStopWatch()
 	sw.Start("executeBuiltIn")
 	returnCode, err := sc.doExecuteBuiltInFunction(tx, acntSnd, acntDst)
@@ -819,6 +831,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	} else {
 		log.Trace("scProcessor.ExecuteBuiltInFunction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
+
+	sc.blockChainHook.PrintAccumulatedTime()
 
 	return returnCode, err
 }
@@ -1452,6 +1466,8 @@ func (sc *scProcessor) addBackTxValues(
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	sc.blockChainHook.CleanAccumulatedTime()
+
 	err := sc.checkTxValidity(tx)
 	if err != nil {
 		log.Debug("invalid transaction", "error", err.Error())
@@ -1469,6 +1485,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	} else {
 		log.Trace("scProcessor.DeploySmartContract()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
+
+	sc.blockChainHook.PrintAccumulatedTime()
 
 	return returnCode, err
 }
@@ -2261,6 +2279,16 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
+
+	sw := core.NewStopWatch()
+	sw.Start("processSCOutputAccounts")
+
+	defer func() {
+		sw.Stop("processSCOutputAccounts")
+		duration := sw.GetMeasurement("processSCOutputAccounts")
+
+		log.Trace("time for processSCOutputAccounts", "duration", duration)
+	}()
 
 	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {

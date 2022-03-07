@@ -53,6 +53,14 @@ func (e *BlockChainHookHandlerStub) DeleteCompiledCode(codeHash []byte) {
 	}
 }
 
+// PrintAccumulatedTime -
+func (e *BlockChainHookHandlerStub) PrintAccumulatedTime() {
+}
+
+// CleanAccumulatedTime -
+func (e *BlockChainHookHandlerStub) CleanAccumulatedTime() {
+}
+
 // IsInterfaceNil -
 func (e *BlockChainHookHandlerStub) IsInterfaceNil() bool {
 	return e == nil

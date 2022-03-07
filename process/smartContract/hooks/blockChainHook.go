@@ -72,6 +72,8 @@ type BlockChainHookImpl struct {
 	configSCStorage    config.StorageConfig
 	workingDir         string
 	nilCompiledSCStore bool
+
+	accumulatedTime time.Duration
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -96,6 +98,7 @@ func NewBlockChainHookImpl(
 		configSCStorage:    args.ConfigSCStorage,
 		workingDir:         args.WorkingDir,
 		nilCompiledSCStore: args.NilCompiledSCStore,
+		accumulatedTime:    0,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -141,8 +144,19 @@ func checkForNil(args ArgBlockChainHook) error {
 	return nil
 }
 
+// CleanAccumulatedTime cleans the accumulated time
+func (bh *BlockChainHookImpl) CleanAccumulatedTime() {
+	bh.accumulatedTime = 0
+}
+
+// PrintAccumulatedTime prints the accumulated time
+func (bh *BlockChainHookImpl) PrintAccumulatedTime() {
+	log.Trace("accumulated time for BlockchainHook", "duration", bh.accumulatedTime)
+}
+
 // GetCode returns the code for the given account
 func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byte {
+	defer bh.stopMeasure(bh.startMeasure("GetCode"))
 	return bh.accounts.GetCode(account.GetCodeHash())
 }
 
@@ -153,7 +167,7 @@ func (bh *BlockChainHookImpl) isNotSystemAccountAndCrossShard(address []byte) bo
 
 // GetUserAccount returns the balance of a shard account
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
-	defer stopMeasure(startMeasure("GetUserAccount"))
+	defer bh.stopMeasure(bh.startMeasure("GetUserAccount"))
 
 	if bh.isNotSystemAccountAndCrossShard(address) {
 		return nil, state.ErrAccNotFound
@@ -174,7 +188,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 
 // GetStorageData returns the storage value of a variable held in account's data trie
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
-	defer stopMeasure(startMeasure("GetStorageData"))
+	defer bh.stopMeasure(bh.startMeasure("GetStorageData"))
 
 	userAcc, err := bh.GetUserAccount(accountAddress)
 	if err == state.ErrAccNotFound {
@@ -201,7 +215,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 
 // GetBlockhash returns the header hash for a requested nonce delta
 func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
-	defer stopMeasure(startMeasure("GetBlockhash"))
+	defer bh.stopMeasure(bh.startMeasure("GetBlockhash"))
 
 	hdr := bh.blockChain.GetCurrentBlockHeader()
 
@@ -343,7 +357,7 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 
 // ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
 func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	defer stopMeasure(startMeasure("ProcessBuiltInFunction"))
+	defer bh.stopMeasure(bh.startMeasure("ProcessBuiltInFunction"))
 
 	if input == nil {
 		return nil, process.ErrNilVmInput
@@ -635,13 +649,13 @@ func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 	return bh == nil
 }
 
-func startMeasure(hook string) (string, *core.StopWatch) {
+func (bh *BlockChainHookImpl) startMeasure(hook string) (string, *core.StopWatch) {
 	sw := core.NewStopWatch()
 	sw.Start(hook)
 	return hook, sw
 }
 
-func stopMeasure(hook string, sw *core.StopWatch) {
+func (bh *BlockChainHookImpl) stopMeasure(hook string, sw *core.StopWatch) {
 	sw.Stop(hook)
 
 	duration := sw.GetMeasurement(hook)
@@ -650,4 +664,6 @@ func stopMeasure(hook string, sw *core.StopWatch) {
 	} else {
 		log.Trace(hook, "duration", duration)
 	}
+
+	bh.accumulatedTime += duration
 }
