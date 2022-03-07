@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1172,7 +1172,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return paResolver, errExpected
 				},
 			},
@@ -1199,7 +1199,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return mbResolver, nil
 				},
 			},
@@ -1227,7 +1227,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
 			},
@@ -1262,7 +1262,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsChunk(t *testing.T) {
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
 			},
@@ -1296,7 +1296,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return paResolver, errExpected
 				},
 			},
@@ -1323,7 +1323,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return mbResolver, errExpected
 				},
 			},
@@ -1351,7 +1351,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
 			},
@@ -1386,7 +1386,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-					assert.Equal(t, factory.PeerAuthenticationTopic, baseTopic)
+					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
 					return paResolver, nil
 				},
 			},

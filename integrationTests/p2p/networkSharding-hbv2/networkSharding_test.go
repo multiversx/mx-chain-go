@@ -90,7 +90,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(p2pBootstrapStepDelay)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 5; i++ {
 		fmt.Println("\n" + integrationTests.MakeDisplayTableForHeartbeatNodes(nodesMap))
 
 		time.Sleep(time.Second)
@@ -99,7 +99,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	fmt.Println("Initializing nodes components...")
 	initNodes(nodesMap)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		fmt.Println("\n" + integrationTests.MakeDisplayTableForHeartbeatNodes(nodesMap))
 
 		time.Sleep(time.Second)
@@ -109,7 +109,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	sendMessagesOnIntraShardTopic(nodesMap)
 	sendMessagesOnCrossShardTopic(nodesMap)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		fmt.Println("\n" + integrationTests.MakeDisplayTableForHeartbeatNodes(nodesMap))
 
 		time.Sleep(time.Second)
@@ -148,6 +148,7 @@ func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.Te
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
 			n.CreateTestInterceptors()
+			n.CreateTxInterceptors()
 		}
 	}
 }

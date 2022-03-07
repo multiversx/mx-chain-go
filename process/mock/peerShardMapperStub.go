@@ -10,6 +10,7 @@ type PeerShardMapperStub struct {
 	UpdatePublicKeyShardIdCalled    func(pk []byte, shardId uint32)
 	UpdatePeerIdShardIdCalled       func(pid core.PeerID, shardId uint32)
 	UpdatePeerIDPublicKeyPairCalled func(pid core.PeerID, pk []byte)
+	UpdatePeerIdSubTypeCalled       func(pid core.PeerID, peerSubType core.P2PPeerSubType)
 }
 
 // GetLastKnownPeerID -
@@ -55,6 +56,13 @@ func (psms *PeerShardMapperStub) UpdatePublicKeyShardId(pk []byte, shardId uint3
 func (psms *PeerShardMapperStub) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	if psms.UpdatePeerIdShardIdCalled != nil {
 		psms.UpdatePeerIdShardIdCalled(pid, shardId)
+	}
+}
+
+// UpdatePeerIdSubType -
+func (psms *PeerShardMapperStub) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+	if psms.UpdatePeerIdSubTypeCalled != nil {
+		psms.UpdatePeerIdSubTypeCalled(pid, peerSubType)
 	}
 }
 

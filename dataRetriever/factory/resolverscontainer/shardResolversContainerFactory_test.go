@@ -335,7 +335,7 @@ func TestShardResolversContainerFactory_CreateRegisterPeerAuthenticationShouldEr
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.Messenger = createStubTopicMessageHandlerForShard("", factory.PeerAuthenticationTopic)
+	args.Messenger = createStubTopicMessageHandlerForShard("", common.PeerAuthenticationTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()

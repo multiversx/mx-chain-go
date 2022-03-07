@@ -19,10 +19,6 @@ const (
 	AccountTrieNodesTopic = "accountTrieNodes"
 	// ValidatorTrieNodesTopic is used for sharding validator state trie nodes
 	ValidatorTrieNodesTopic = "validatorTrieNodes"
-	// PeerAuthenticationTopic is used for sharing peer authentication messages
-	PeerAuthenticationTopic = "peerAuthentication"
-	// HeartbeatTopic is used for sharing heartbeat messages
-	HeartbeatTopic = "heartbeat"
 )
 
 // SystemVirtualMachine is a byte array identifier for the smart contract address created for system VM

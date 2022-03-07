@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -720,17 +721,17 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 // RequestPeerAuthenticationsChunk asks for a chunk of peer authentication messages from connected peers
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32) {
 	log.Debug("requesting peer authentication messages from network",
-		"topic", factory.PeerAuthenticationTopic,
+		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
 		"chunk", chunkIndex,
 		"epoch", rrh.epoch,
 	)
 
-	resolver, err := rrh.resolversFinder.MetaChainResolver(factory.PeerAuthenticationTopic)
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
 	if err != nil {
 		log.Error("RequestPeerAuthenticationsChunk.CrossShardResolver",
 			"error", err.Error(),
-			"topic", factory.PeerAuthenticationTopic,
+			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
 			"chunk", chunkIndex,
 			"epoch", rrh.epoch,
@@ -748,7 +749,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID u
 	if err != nil {
 		log.Debug("RequestPeerAuthenticationsChunk.RequestDataFromChunk",
 			"error", err.Error(),
-			"topic", factory.PeerAuthenticationTopic,
+			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
 			"chunk", chunkIndex,
 			"epoch", rrh.epoch,
@@ -759,15 +760,15 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID u
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
 	log.Debug("requesting peer authentication messages from network",
-		"topic", factory.PeerAuthenticationTopic,
+		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
 	)
 
-	resolver, err := rrh.resolversFinder.MetaChainResolver(factory.PeerAuthenticationTopic)
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.PeerAuthenticationTopic)
 	if err != nil {
 		log.Error("RequestPeerAuthenticationsChunk.CrossShardResolver",
 			"error", err.Error(),
-			"topic", factory.PeerAuthenticationTopic,
+			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
 		)
 		return
@@ -783,7 +784,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 	if err != nil {
 		log.Debug("RequestPeerAuthenticationsChunk.RequestDataFromChunk",
 			"error", err.Error(),
-			"topic", factory.PeerAuthenticationTopic,
+			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
 		)
 	}

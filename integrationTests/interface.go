@@ -48,6 +48,7 @@ type NetworkShardingUpdater interface {
 	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIdShardId(pid core.PeerID, shardID uint32)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool

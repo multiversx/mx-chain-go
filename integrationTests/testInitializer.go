@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -20,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/display"
@@ -38,7 +36,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
@@ -65,7 +62,6 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -320,110 +316,6 @@ func connectPeerToOthers(peers []p2p.Messenger, idx int, connectToIdxes []int) e
 	}
 
 	return nil
-}
-
-// CreateNodesWithTestHeartbeatNode returns a map with nodes per shard each using a real nodes coordinator
-// and TestHeartbeatNode
-func CreateNodesWithTestHeartbeatNode(
-	nodesPerShard int,
-	numMetaNodes int,
-	numShards int,
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	numObserversOnShard int,
-	p2pConfig config.P2PConfig,
-) map[uint32][]*TestHeartbeatNode {
-
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
-	validatorsForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
-	nodesMap := make(map[uint32][]*TestHeartbeatNode)
-	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
-	for shardId, validatorList := range validatorsMap {
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(numShards),
-			EligibleNodes:              validatorsForNodesCoordinator,
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        cache,
-			Shuffler:                   &mock.NodeShufflerMock{},
-			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]sharding.Validator),
-			Epoch:                      0,
-			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
-		}
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-		log.LogIfError(err)
-
-		nodesList := make([]*TestHeartbeatNode, len(validatorList))
-		for i := range validatorList {
-			kp := cp.Keys[shardId][i]
-			nodesList[i] = NewTestHeartbeatNodeWithCoordinator(
-				uint32(numShards),
-				shardId,
-				p2pConfig,
-				nodesCoordinator,
-				*kp,
-			)
-		}
-		nodesMap[shardId] = nodesList
-	}
-
-	for counter := uint32(0); counter < uint32(numShards+1); counter++ {
-		for j := 0; j < numObserversOnShard; j++ {
-			shardId := counter
-			if shardId == uint32(numShards) {
-				shardId = core.MetachainShardId
-			}
-
-			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-				ShardConsensusGroupSize:    shardConsensusGroupSize,
-				MetaConsensusGroupSize:     metaConsensusGroupSize,
-				Marshalizer:                TestMarshalizer,
-				Hasher:                     TestHasher,
-				ShardIDAsObserver:          shardId,
-				NbShards:                   uint32(numShards),
-				EligibleNodes:              validatorsForNodesCoordinator,
-				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:        cache,
-				Shuffler:                   &mock.NodeShufflerMock{},
-				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]sharding.Validator),
-				Epoch:                      0,
-				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-				WaitingListFixEnabledEpoch: 0,
-				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-				IsFullArchive:              false,
-			}
-			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-			log.LogIfError(err)
-
-			n := NewTestHeartbeatNodeWithCoordinator(
-				uint32(numShards),
-				shardId,
-				p2pConfig,
-				nodesCoordinator,
-				createCryptoPair(),
-			)
-
-			nodesMap[shardId] = append(nodesMap[shardId], n)
-		}
-	}
-
-	return nodesMap
 }
 
 // ClosePeers calls Messenger.Close on the provided peers

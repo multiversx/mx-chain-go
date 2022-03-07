@@ -3,29 +3,52 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ArgHeartbeatInterceptorProcessor is the argument for the interceptor processor used for heartbeat
 type ArgHeartbeatInterceptorProcessor struct {
-	HeartbeatCacher storage.Cacher
+	HeartbeatCacher  storage.Cacher
+	ShardCoordinator sharding.Coordinator
+	PeerShardMapper  process.PeerShardMapper
 }
 
 // heartbeatInterceptorProcessor is the processor used when intercepting heartbeat
 type heartbeatInterceptorProcessor struct {
-	heartbeatCacher storage.Cacher
+	heartbeatCacher  storage.Cacher
+	shardCoordinator sharding.Coordinator
+	peerShardMapper  process.PeerShardMapper
 }
 
 // NewHeartbeatInterceptorProcessor creates a new heartbeatInterceptorProcessor
-func NewHeartbeatInterceptorProcessor(arg ArgHeartbeatInterceptorProcessor) (*heartbeatInterceptorProcessor, error) {
-	if check.IfNil(arg.HeartbeatCacher) {
-		return nil, process.ErrNilHeartbeatCacher
+func NewHeartbeatInterceptorProcessor(args ArgHeartbeatInterceptorProcessor) (*heartbeatInterceptorProcessor, error) {
+	err := checkArgsHeartbeat(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return &heartbeatInterceptorProcessor{
-		heartbeatCacher: arg.HeartbeatCacher,
+		heartbeatCacher:  args.HeartbeatCacher,
+		shardCoordinator: args.ShardCoordinator,
+		peerShardMapper:  args.PeerShardMapper,
 	}, nil
+}
+
+func checkArgsHeartbeat(args ArgHeartbeatInterceptorProcessor) error {
+	if check.IfNil(args.HeartbeatCacher) {
+		return process.ErrNilHeartbeatCacher
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PeerShardMapper) {
+		return process.ErrNilPeerShardMapper
+	}
+
+	return nil
 }
 
 // Validate checks if the intercepted data can be processed
@@ -42,6 +65,19 @@ func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fro
 	}
 
 	hip.heartbeatCacher.Put(fromConnectedPeer.Bytes(), interceptedHeartbeat.Message(), interceptedHeartbeat.SizeInBytes())
+
+	return hip.updatePeerInfo(interceptedHeartbeat.Message(), fromConnectedPeer)
+}
+
+func (hip *heartbeatInterceptorProcessor) updatePeerInfo(message interface{}, fromConnectedPeer core.PeerID) error {
+	heartbeatData, ok := message.(heartbeat.HeartbeatV2)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	hip.peerShardMapper.UpdatePeerIdShardId(fromConnectedPeer, hip.shardCoordinator.SelfId())
+	hip.peerShardMapper.UpdatePeerIdSubType(fromConnectedPeer, core.P2PPeerSubType(heartbeatData.GetPeerSubType()))
+
 	return nil
 }
 

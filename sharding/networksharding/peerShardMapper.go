@@ -269,7 +269,7 @@ func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte
 	}
 }
 
-// UpdatePeerIDInfo updates the public keys and the shard ID for the peer IDin the corresponding maps
+// UpdatePeerIDInfo updates the public keys and the shard ID for the peer ID in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same Elrond PK that will make the node prone to an eclipse attack
 func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
@@ -282,7 +282,7 @@ func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID
 		return
 	}
 	psm.updatePublicKeyShardId(pk, shardID)
-	psm.updatePeerIdShardId(pid, shardID)
+	psm.UpdatePeerIdShardId(pid, shardID)
 	psm.preferredPeersHolder.Put(pk, pid, shardID)
 }
 
@@ -290,7 +290,8 @@ func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
 }
 
-func (psm *PeerShardMapper) updatePeerIdShardId(pid core.PeerID, shardId uint32) {
+// UpdatePeerIdShardId adds the peer ID and shard ID into fallback cache in case it does not exists
+func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 

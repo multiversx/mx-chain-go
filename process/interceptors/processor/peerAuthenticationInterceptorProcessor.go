@@ -22,7 +22,7 @@ type peerAuthenticationInterceptorProcessor struct {
 
 // NewPeerAuthenticationInterceptorProcessor creates a new peerAuthenticationInterceptorProcessor
 func NewPeerAuthenticationInterceptorProcessor(args ArgPeerAuthenticationInterceptorProcessor) (*peerAuthenticationInterceptorProcessor, error) {
-	err := checkArgs(args)
+	err := checkArgsPeerAuthentication(args)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func NewPeerAuthenticationInterceptorProcessor(args ArgPeerAuthenticationInterce
 	}, nil
 }
 
-func checkArgs(args ArgPeerAuthenticationInterceptorProcessor) error {
+func checkArgsPeerAuthentication(args ArgPeerAuthenticationInterceptorProcessor) error {
 	if check.IfNil(args.PeerAuthenticationCacher) {
 		return process.ErrNilPeerAuthenticationCacher
 	}
