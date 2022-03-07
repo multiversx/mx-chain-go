@@ -103,7 +103,7 @@ func DoDeploySecond(
 	owner := senderAccount.AddressBytes()
 	scCode := []byte(arwen.GetSCCode(pathToContract))
 
-	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), []byte(arwen.DummyCodeMetadataHex)}, []byte("@"))
+	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), []byte("0000")}, []byte("@"))
 	if args != nil {
 		txData = []byte(string(txData) + "@" + string(bytes.Join(args, []byte("@"))))
 	}
