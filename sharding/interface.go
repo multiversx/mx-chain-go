@@ -72,6 +72,7 @@ type ArgsUpdateNodes struct {
 	NewNodes          []Validator
 	UnStakeLeaving    []Validator
 	AdditionalLeaving []Validator
+	Auction           []Validator
 	Rand              []byte
 	NbShards          uint32
 	Epoch             uint32
@@ -81,6 +82,7 @@ type ArgsUpdateNodes struct {
 type ResUpdateNodes struct {
 	Eligible       map[uint32][]Validator
 	Waiting        map[uint32][]Validator
+	ShuffledOut    map[uint32][]Validator
 	Leaving        []Validator
 	StillRemaining []Validator
 }

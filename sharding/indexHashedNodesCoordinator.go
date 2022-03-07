@@ -56,14 +56,16 @@ func (v validatorList) Less(i, j int) bool {
 
 // TODO: add a parameter for shardID  when acting as observer
 type epochNodesConfig struct {
-	nbShards     uint32
-	shardID      uint32
-	eligibleMap  map[uint32][]Validator
-	waitingMap   map[uint32][]Validator
-	selectors    map[uint32]RandomSelector
-	leavingMap   map[uint32][]Validator
-	newList      []Validator
-	mutNodesMaps sync.RWMutex
+	nbShards       uint32
+	shardID        uint32
+	eligibleMap    map[uint32][]Validator
+	waitingMap     map[uint32][]Validator
+	selectors      map[uint32]RandomSelector
+	leavingMap     map[uint32][]Validator
+	shuffledOutMap map[uint32][]Validator
+	newList        []Validator
+	auctionList    []Validator
+	mutNodesMaps   sync.RWMutex
 }
 
 type indexHashedNodesCoordinator struct {
@@ -170,6 +172,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		currentConfig.waitingMap,
 		currentConfig.leavingMap,
 		make(map[uint32][]Validator),
+		currentConfig.shuffledOutMap,
 		currentConfig.nbShards)
 
 	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
@@ -607,6 +610,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		Eligible:          newNodesConfig.eligibleMap,
 		Waiting:           newNodesConfig.waitingMap,
 		NewNodes:          newNodesConfig.newList,
+		Auction:           newNodesConfig.auctionList,
 		UnStakeLeaving:    unStakeLeavingList,
 		AdditionalLeaving: additionalLeavingList,
 		Rand:              randomness,
@@ -642,6 +646,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		resUpdateNodes.Waiting,
 		leavingNodesMap,
 		stillRemainingNodesMap,
+		resUpdateNodes.ShuffledOut,
 		newNodesConfig.nbShards)
 
 	ihgs.mutSavedStateKey.Lock()
@@ -702,6 +707,7 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	waitingMap := make(map[uint32][]Validator)
 	leavingMap := make(map[uint32][]Validator)
 	newNodesList := make([]Validator, 0)
+	auctionList := make([]Validator, 0)
 
 	if ihgs.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
@@ -739,6 +745,8 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
 		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
+		case string(common.AuctionList):
+			auctionList = append(auctionList, currentValidator)
 		}
 	}
 
@@ -764,6 +772,7 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		waitingMap:  waitingMap,
 		leavingMap:  leavingMap,
 		newList:     newNodesList,
+		auctionList: auctionList,
 		nbShards:    uint32(nbShards),
 	}
 
