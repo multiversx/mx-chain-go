@@ -203,15 +203,17 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsApiResolver := external.ArgNodeApiResolver{
-		SCQueryService:          scQueryService,
-		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
-		TxCostHandler:           txCostHandler,
-		TotalStakedValueHandler: totalStakedValueHandler,
-		DirectStakedListHandler: directStakedListHandler,
-		DelegatedListHandler:    delegatedListHandler,
-		APITransactionHandler:   apiTransactionProcessor,
-		APIBlockHandler:         apiBlockProcessor,
-		APIInternalBlockHandler: apiInternalBlockProcessor,
+		SCQueryService:           scQueryService,
+		StatusMetricsHandler:     args.CoreComponents.StatusHandlerUtils().Metrics(),
+		TxCostHandler:            txCostHandler,
+		TotalStakedValueHandler:  totalStakedValueHandler,
+		DirectStakedListHandler:  directStakedListHandler,
+		DelegatedListHandler:     delegatedListHandler,
+		APITransactionHandler:    apiTransactionProcessor,
+		APIBlockHandler:          apiBlockProcessor,
+		APIInternalBlockHandler:  apiInternalBlockProcessor,
+		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
+		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)

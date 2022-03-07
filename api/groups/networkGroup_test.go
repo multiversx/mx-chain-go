@@ -47,7 +47,17 @@ type esdtTokensResponseData struct {
 type esdtTokensResponse struct {
 	Data  esdtTokensResponseData `json:"data"`
 	Error string                 `json:"error"`
-	Code  string
+	Code  string                 `json:"code"`
+}
+
+type genesisNodesConfigResponse struct {
+	Data  genesisNodesConfigData `json:"data"`
+	Error string                 `json:"error"`
+	Code  string                 `json:"code"`
+}
+
+type genesisNodesConfigData struct {
+	Nodes groups.GenesisNodesConfig `json:"nodes"`
 }
 
 func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
@@ -408,6 +418,8 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 }
 
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetTokenSupplyCalled: func(token string) (*api.ESDTSupply, error) {
@@ -433,6 +445,8 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 }
 
 func TestGetESDTTotalSupply(t *testing.T) {
+	t.Parallel()
+
 	type supplyResponse struct {
 		Data *api.ESDTSupply `json:"data"`
 	}
@@ -470,6 +484,74 @@ func TestGetESDTTotalSupply(t *testing.T) {
 	}}, respSupply)
 }
 
+func TestGetGenesisNodes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		facade := mock.FacadeStub{
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
+				return nil, nil, expectedErr
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/genesisnodes", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		eligible := map[uint32][]string{
+			1: {"pubkey1"},
+		}
+		waiting := map[uint32][]string{
+			1: {"pubkey2"},
+		}
+
+		expectedOutput := groups.GenesisNodesConfig{
+			Eligible: eligible,
+			Waiting:  waiting,
+		}
+
+		facade := mock.FacadeStub{
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
+				return eligible, waiting, nil
+			},
+		}
+
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/genesisnodes", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
+
+		assert.Equal(t, expectedOutput, response.Data.Nodes)
+	})
+}
+
 func getNetworkRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -484,6 +566,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 					{Name: "/esdt/supply/:token", Open: true},
+					{Name: "/genesisnodes", Open: true},
 				},
 			},
 		},

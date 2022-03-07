@@ -71,6 +71,7 @@ type FacadeStub struct {
 	GetProofDataTrieCalled                  func(string, string, string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
 	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
+	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
 }
 
 // GetTokenSupply -
@@ -440,6 +441,14 @@ func (f *FacadeStub) GetInternalMiniBlockByHash(format common.ApiOutputFormat, h
 		return f.GetInternalMiniBlockByHashCalled(format, hash, epoch)
 	}
 	return nil, nil
+}
+
+// GetGenesisNodesPubKeys -
+func (f *FacadeStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
+	if f.GetGenesisNodesPubKeysCalled != nil {
+		return f.GetGenesisNodesPubKeysCalled()
+	}
+	return nil, nil, nil
 }
 
 // Trigger -

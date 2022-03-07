@@ -10,3 +10,6 @@ var ErrShardOnlyEndpoint = errors.New("the endpoint is only available on shard n
 
 // ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
 var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

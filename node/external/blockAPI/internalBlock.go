@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type internalBlockProcessor struct {
@@ -82,14 +83,8 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.Ap
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
-func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (*block.Header, error) {
-	blockHeader := &block.Header{}
-	err := ibp.marshalizer.Unmarshal(blockHeader, blockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockHeader, nil
+func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (interface{}, error) {
+	return process.CreateShardHeader(ibp.marshalizer, blockBytes)
 }
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
