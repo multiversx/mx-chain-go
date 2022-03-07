@@ -490,9 +490,10 @@ func TestGetGenesisNodes(t *testing.T) {
 	t.Run("facade error, should fail", func(t *testing.T) {
 		t.Parallel()
 
+		expectedErr := errors.New("expected err")
 		facade := mock.FacadeStub{
-			GetGenesisNodesPubKeysCalled: func() (map[uint32][][]byte, map[uint32][][]byte) {
-				return nil, nil
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][][]byte, map[uint32][][]byte, error) {
+				return nil, nil, expectedErr
 			},
 		}
 
@@ -505,12 +506,11 @@ func TestGetGenesisNodes(t *testing.T) {
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
-		respBytes, _ := ioutil.ReadAll(resp.Body)
-		respStr := string(respBytes)
-		assert.Equal(t, resp.Code, http.StatusInternalServerError)
+		response := genesisNodesConfigResponse{}
+		loadResponse(resp.Body, &response)
 
-		assert.Equal(t, resp.Code, http.StatusInternalServerError)
-		assert.True(t, strings.Contains(respStr, apiErrors.ErrGetGenesisNodes.Error()))
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -529,8 +529,8 @@ func TestGetGenesisNodes(t *testing.T) {
 		}
 
 		facade := mock.FacadeStub{
-			GetGenesisNodesPubKeysCalled: func() (map[uint32][][]byte, map[uint32][][]byte) {
-				return eligible, waiting
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][][]byte, map[uint32][][]byte, error) {
+				return eligible, waiting, nil
 			},
 		}
 
