@@ -194,6 +194,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	transferEGLD := big.NewInt(42)
 
 	logger.ToggleLoggerName(true)
+	// logger.SetLogLevel("*:TRACE")
 
 	// Deploy Funder SC in shard 0
 	funderOwnerAccount, _ := testContextFunderSC.Accounts.LoadAccount(funderOwner)
@@ -233,7 +234,6 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 
 	// execute on the sender shard, which emits an async call
 	// from ParentSC (shard 1) to FunderSC (shard 0)
-	logger.SetLogLevel("*:TRACE")
 	retCode, err := testContextParentSC.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -244,10 +244,15 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	_, err = testContextParentSC.Accounts.Commit()
 	_, err = testContextFunderSC.Accounts.Commit()
 
+	utils.TestAccount(t, testContextParentSC.Accounts, parentAddress, 0, big.NewInt(0))
+
 	// execute async call on the FunderSC shard (shard 0)
 	scr := intermediateTxs[0]
+	require.Equal(t, transferEGLD, scr.GetValue())
+	require.Equal(t, parentAddress, scr.GetSndAddr())
+	require.Equal(t, funderAddress, scr.GetRcvAddr())
+	require.Equal(t, []byte("acceptFunds@01a5c7"), scr.GetData())
 	utils.ProcessSCRResult(t, testContextFunderSC, scr, vmcommon.Ok, nil)
-	utils.TestAccount(t, testContextFunderSC.Accounts, funderAddress, 0, transferEGLD)
 
 	intermediateTxs = testContextFunderSC.GetIntermediateTransactions(t)
 	require.NotEmpty(t, intermediateTxs)
@@ -261,6 +266,9 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 
 	intermediateTxs = testContextParentSC.GetIntermediateTransactions(t)
 	require.NotEmpty(t, intermediateTxs)
+
+	utils.TestAccount(t, testContextParentSC.Accounts, parentAddress, 0, big.NewInt(0))
+	utils.TestAccount(t, testContextFunderSC.Accounts, funderAddress, 0, transferEGLD)
 }
 
 func getZeroGasAndFees() scheduled.GasAndFees {
