@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -63,7 +62,7 @@ type testKeyPair struct {
 	validatorKey []byte
 }
 
-func createPhysicalUnit() (storage.Storer, string) {
+func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 	cacheConfig := storageUnit.CacheConfig{
 		Name:                 "test",
 		Type:                 "SizeLRU",
@@ -73,7 +72,7 @@ func createPhysicalUnit() (storage.Storer, string) {
 		SizePerSender:        0,
 		Shards:               0,
 	}
-	dir, _ := ioutil.TempDir("", "")
+	dir := t.TempDir()
 	persisterConfig := storageUnit.ArgDB{
 		Path:              dir,
 		DBType:            "LvlDBSerial",
@@ -364,7 +363,7 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	t.Parallel()
 
-	db, dir := createPhysicalUnit()
+	db, dir := createPhysicalUnit(t)
 	require.False(t, check.IfNil(db))
 
 	log.Info("using temporary directory", "path", dir)
@@ -1905,13 +1904,13 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	addKeysToWaitingList(args.UserAccountsDB, owner3ListPubKeysWaiting, args.Marshalizer, owner3, owner3)
 	addValidatorData(args.UserAccountsDB, owner3, owner3ListPubKeysWaiting, big.NewInt(2000), args.Marshalizer)
 
-	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1))
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1))
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2))
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1))
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2))
 
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch, 0)
-	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Nil(t, err)
 
 	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
@@ -1931,7 +1930,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2),
 		},
 	}
-	require.Equal(t, expectedValidatorsInfo, validatorInfos)
+	require.Equal(t, expectedValidatorsInfo, validatorsInfo)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepareStakingData(t *testing.T) {
@@ -1950,14 +1949,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
 	registerValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
 
-	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner))
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner))
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner))
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner))
 
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Equal(t, errProcessStakingData, err)
 }
 
@@ -1965,6 +1964,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
 
 	errGetNodeTopUp := errors.New("error getting top up per node")
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
@@ -1983,17 +1983,51 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
 	registerValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
 
-	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner))
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner))
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner))
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner))
 
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{})
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	require.Error(t, err)
 	require.True(t, strings.Contains(err.Error(), errGetNodeTopUp.Error()))
 	require.True(t, strings.Contains(err.Error(), epochStart.ErrSortAuctionList.Error()))
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4NotEnoughSlotsForAuctionNodes(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
+
+	owner1 := []byte("owner1")
+	owner2 := []byte("owner2")
+
+	owner1StakedKeys := [][]byte{[]byte("pubKey0")}
+	owner2StakedKeys := [][]byte{[]byte("pubKey1")}
+
+	registerValidatorKeys(args.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(2000), args.Marshalizer)
+	registerValidatorKeys(args.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(2000), args.Marshalizer)
+
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1))
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2))
+
+	s, _ := NewSystemSCProcessor(args)
+	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+	require.Nil(t, err)
+
+	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
+		0: {
+			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1),
+			createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2),
+		},
+	}
+	require.Equal(t, expectedValidatorsInfo, validatorsInfo)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing.T) {
@@ -2017,24 +2051,24 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	registerValidatorKeys(args.UserAccountsDB, owner3, owner3, owner3StakedKeys, big.NewInt(2000), args.Marshalizer)
 	registerValidatorKeys(args.UserAccountsDB, owner4, owner4, owner4StakedKeys, big.NewInt(3000), args.Marshalizer)
 
-	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1))
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1StakedKeys[1], common.WaitingList, owner1))
-	validatorInfos[0] = append(validatorInfos[0], createValidatorInfo(owner1StakedKeys[2], common.AuctionList, owner1))
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1))
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner1StakedKeys[1], common.WaitingList, owner1))
+	validatorsInfo[0] = append(validatorsInfo[0], createValidatorInfo(owner1StakedKeys[2], common.AuctionList, owner1))
 
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner2StakedKeys[0], common.EligibleList, owner2))
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner2StakedKeys[1], common.AuctionList, owner2))
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner2StakedKeys[2], common.AuctionList, owner2))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner2StakedKeys[0], common.EligibleList, owner2))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner2StakedKeys[1], common.AuctionList, owner2))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner2StakedKeys[2], common.AuctionList, owner2))
 
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner3StakedKeys[0], common.LeavingList, owner3))
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner3StakedKeys[0], common.LeavingList, owner3))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3))
 
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4))
-	validatorInfos[1] = append(validatorInfos[1], createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4))
+	validatorsInfo[1] = append(validatorsInfo[1], createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4))
 
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
-	err := s.ProcessSystemSmartContract(validatorInfos, &block.Header{PrevRandSeed: []byte("pubKey7")})
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("pubKey7")})
 	require.Nil(t, err)
 
 	/*
@@ -2086,7 +2120,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 			createValidatorInfo(owner4StakedKeys[1], common.NewList, owner4),
 		},
 	}
-	require.Equal(t, expectedValidatorsInfo, validatorInfos)
+	require.Equal(t, expectedValidatorsInfo, validatorsInfo)
 }
 
 func registerValidatorKeys(

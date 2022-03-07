@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -723,15 +724,15 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
-	ln := getLn(marshalizer, hasher)
+	ln := getLn(marshalizer, hasherMock)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
-	assert.Equal(t, ErrContextClosing, err)
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
 	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
-	assert.Equal(t, ErrContextClosing, err)
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
 func TestLeafNode_getValue(t *testing.T) {
