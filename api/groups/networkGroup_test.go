@@ -47,13 +47,13 @@ type esdtTokensResponseData struct {
 type esdtTokensResponse struct {
 	Data  esdtTokensResponseData `json:"data"`
 	Error string                 `json:"error"`
-	Code  string
+	Code  string                 `json:"code"`
 }
 
 type genesisNodesConfigResponse struct {
 	Data  genesisNodesConfigData `json:"data"`
 	Error string                 `json:"error"`
-	Code  string
+	Code  string                 `json:"code"`
 }
 
 type genesisNodesConfigData struct {

@@ -341,7 +341,7 @@ func (inf *initialNodeFacade) GetTokenSupply(_ string) (*api.ESDTSupply, error) 
 	return nil, errNodeStarting
 }
 
-// GetGenesisNodesPubKeys returns nothing
+// GetGenesisNodesPubKeys returns nil and error
 func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
 	return nil, nil, errNodeStarting
 }

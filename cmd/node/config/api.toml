@@ -227,7 +227,7 @@
         { Name = "/raw/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
 
         # /internal/json/miniblock/by-hash/:hash will return the miniblock in JSON format based on hash for a specified epoch
-        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
+        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true }
     ]
 
 [APIPackages.proof]
