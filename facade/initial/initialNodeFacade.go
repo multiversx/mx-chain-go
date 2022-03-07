@@ -342,8 +342,8 @@ func (inf *initialNodeFacade) GetTokenSupply(_ string) (*api.ESDTSupply, error) 
 }
 
 // GetGenesisNodesPubKeys returns nothing
-func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte) {
-	return nil, nil
+func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte, error) {
+	return nil, nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

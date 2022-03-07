@@ -40,10 +40,11 @@ type networkFacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
-	GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte)
+	GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte, error)
 	IsInterfaceNil() bool
 }
 
+// GenesisNodesConfig defines the eligible and waiting nodes configurations
 type GenesisNodesConfig struct {
 	Eligible map[uint32][][]byte `json:"eligible"`
 	Waiting  map[uint32][][]byte `json:"waiting"`
@@ -330,15 +331,15 @@ func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
 // getGenesisNodesConfig return genesis nodes configuration
 func (ng *networkGroup) getGenesisNodesConfig(c *gin.Context) {
 	start := time.Now()
-	eligibleNodesConfig, waitingNodesConfig := ng.getFacade().GetGenesisNodesPubKeys()
-	log.Debug(fmt.Sprintf("GetGenesisNodesConfig took %s", time.Since(start)))
+	eligibleNodesConfig, waitingNodesConfig, err := ng.getFacade().GetGenesisNodesPubKeys()
+	log.Debug(fmt.Sprintf("GetGenesisNodesPubKeys took %s", time.Since(start)))
 
-	if eligibleNodesConfig == nil || waitingNodesConfig == nil {
+	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("error: %s", errors.ErrGetGenesisNodes.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetGenesisNodes.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
