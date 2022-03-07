@@ -3,8 +3,8 @@ module github.com/ElrondNetwork/elrond-go
 go 1.15
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.35
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.35
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.37
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.37
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.42
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
@@ -53,8 +53,8 @@ require (
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.35 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.37
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.37 => github.com/ElrondNetwork/arwen-wasm-vm v1.2.37
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.35 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.37
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.37 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.37
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.42 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.43-0.20220303131152-1c81f3f0025f
