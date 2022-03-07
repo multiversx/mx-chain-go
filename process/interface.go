@@ -89,6 +89,7 @@ type InterceptedTxHandler interface {
 
 // TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
 type TxVersionCheckerHandler interface {
+	IsGuardedTransaction(tx *transaction.Transaction) bool
 	IsSignedWithHash(tx *transaction.Transaction) bool
 	CheckTxVersion(tx *transaction.Transaction) error
 	IsInterfaceNil() bool

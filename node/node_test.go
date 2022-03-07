@@ -2111,7 +2111,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	txData := []byte("-")
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	options := versioning.MaskSignedWithHash
+	options := transaction.MaskSignedWithHash
 	tx, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version, options)
 	require.Nil(t, err)
 	err = n.ValidateTransaction(tx)
@@ -2212,7 +2212,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	options := versioning.MaskSignedWithHash
+	options := transaction.MaskSignedWithHash
 	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version+1, options)
 
 	err := n.ValidateTransaction(tx)

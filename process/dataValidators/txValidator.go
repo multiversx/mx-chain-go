@@ -139,7 +139,7 @@ func checkPermission(interceptedTx process.InterceptedTxHandler, account state.U
 		}
 
 		// TODO: verify guardian signature on Tx
-		interceptedTx.Transaction()
+		//interceptedTx.Transaction()
 	}
 
 	return nil

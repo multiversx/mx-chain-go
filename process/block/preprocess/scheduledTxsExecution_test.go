@@ -791,10 +791,10 @@ func TestScheduledTxsExecution_getScheduledRootHashSCRsGasAndFeesForHeaderShould
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: headerHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{},
+		RootHash:   headerHash,
+		Scrs:       []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 1,
 			},
 		},
 		GasAndFees: expectedGasAndFees,
@@ -869,17 +869,14 @@ func TestScheduledTxsExecution_getMarshalledScheduledRootHashSCRsGasAndFeesShoul
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
 		RootHash: scheduledRootHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{
-					{
-						Nonce: 1,
-					},
-				},
+		Scrs: []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 1,
 			},
 		},
 		GasAndFees: &gasAndFees,
 	}
+
 	expectedScheduledSCRs, _ := json.Marshal(scheduledSCRs)
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
@@ -932,10 +929,10 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 	}
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
-		RootHash: headerHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{},
+		RootHash:   headerHash,
+		Scrs:       []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 1,
 			},
 		},
 		GasAndFees: expectedGasAndFees,
@@ -982,13 +979,9 @@ func TestScheduledTxsExecution_SaveState(t *testing.T) {
 
 	scheduledSCRs := &scheduled.ScheduledSCRs{
 		RootHash: scheduledRootHash,
-		Scrs: map[int32]scheduled.SmartContractResults{
-			0: {
-				TxHandlers: []*smartContractResult.SmartContractResult{
-					{
-						Nonce: 1,
-					},
-				},
+		Scrs: []*smartContractResult.SmartContractResult{
+			{
+				Nonce: 1,
 			},
 		},
 		GasAndFees: &gasAndFees,
