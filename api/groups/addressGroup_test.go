@@ -486,10 +486,10 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 
 	testAddress := "address"
 	testValue := big.NewInt(100).String()
-	testProperties := "frozen"
+	testProperties := []byte{byte(0), byte(1), byte(0)}
 	facade := mock.FacadeStub{
 		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
-			return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: []byte(testProperties)}, nil
+			return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: testProperties}, nil
 		},
 	}
 
@@ -506,7 +506,7 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &esdtBalanceResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
-	assert.Equal(t, testProperties, esdtBalanceResponseObj.Data.Properties)
+	assert.Equal(t, "000100", esdtBalanceResponseObj.Data.Properties)
 }
 
 func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
@@ -541,7 +541,7 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	testAddress := "address"
 	testValue := big.NewInt(100).String()
 	testNonce := uint64(37)
-	testProperties := "frozen"
+	testProperties := []byte{byte(1), byte(0), byte(0)}
 	facade := mock.FacadeStub{
 		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
 			return &esdt.ESDigitalToken{
@@ -564,7 +564,7 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &esdtResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testValue, esdtResponseObj.Data.Balance)
-	assert.Equal(t, testProperties, esdtResponseObj.Data.Properties)
+	assert.Equal(t, "010000", esdtResponseObj.Data.Properties)
 	assert.Equal(t, testAddress, esdtResponseObj.Data.Creator)
 	assert.Equal(t, testNonce, esdtResponseObj.Data.Nonce)
 }

@@ -291,7 +291,7 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 		ic.hospitality.Set(hospitalityUpperLimit)
 	}
 
-	log.Debug("ImmunityCache.Diagnose()",
+	log.Trace("ImmunityCache.Diagnose()",
 		"name", ic.config.Name,
 		"count", count,
 		"countImmune", countImmune,

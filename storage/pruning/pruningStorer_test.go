@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -837,8 +836,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	_ = logger.SetLogLevel("*:DEBUG")
 
 	dbName := "db-concurrent-test"
-	testDir, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
+	testDir := t.TempDir()
 
 	fmt.Println(testDir)
 	args := getDefaultArgs()
@@ -849,6 +847,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 		MaxOpenFiles:      10,
 		BatchDelaySeconds: 2,
 	})
+	var err error
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)
 

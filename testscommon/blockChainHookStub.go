@@ -42,6 +42,8 @@ type BlockChainHookStub struct {
 	DeleteCompiledCodeCalled             func(codeHash []byte)
 	SaveNFTMetaDataToSystemAccountCalled func(tx data.TransactionHandler) error
 	CloseCalled                          func() error
+	FilterCodeMetadataForUpgradeCalled   func(input []byte) ([]byte, error)
+	ApplyFiltersOnCodeMetadataCalled     func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 }
 
 // GetCode -
@@ -331,6 +333,24 @@ func (stub *BlockChainHookStub) RevertToSnapshot(snapshot int) error {
 	}
 
 	return nil
+}
+
+// FilterCodeMetadataForUpgrade -
+func (stub *BlockChainHookStub) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
+	if stub.FilterCodeMetadataForUpgradeCalled != nil {
+		return stub.FilterCodeMetadataForUpgradeCalled(input)
+	}
+
+	return input, nil
+}
+
+// ApplyFiltersOnCodeMetadata -
+func (stub *BlockChainHookStub) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+	if stub.ApplyFiltersOnCodeMetadataCalled != nil {
+		stub.ApplyFiltersOnCodeMetadataCalled(codeMetadata)
+	}
+
+	return codeMetadata
 }
 
 // Close -

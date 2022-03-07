@@ -1713,3 +1713,27 @@ func createWrappedTxsWithData(nb int, srcShard uint32, rcvShard uint32, sender [
 
 	return txs
 }
+
+func TestTxsPreprocessor_AddTxsFromMiniBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	txs, _ := NewTransactionPreprocessor(args)
+
+	mbs := []*block.MiniBlock{
+		{
+			Type: block.SmartContractResultBlock,
+		},
+		{
+			Type: block.TxBlock,
+			TxHashes: [][]byte{
+				[]byte("tx1_hash"),
+				[]byte("tx2_hash"),
+				[]byte("tx3_hash"),
+			},
+		},
+	}
+
+	txs.AddTxsFromMiniBlocks(mbs)
+	assert.Equal(t, 2, len(txs.txsForCurrBlock.txHashAndInfo))
+}

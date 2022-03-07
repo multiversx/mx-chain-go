@@ -750,8 +750,7 @@ func IsScheduledMode(
 
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHash, miniBlockHeader.GetHash()) {
-			reserved := miniBlockHeader.GetReserved()
-			return len(reserved) > 0 && reserved[0] == byte(block.Scheduled), nil
+			return miniBlockHeader.GetProcessingType() == int32(block.Scheduled), nil
 		}
 	}
 
@@ -777,4 +776,40 @@ func GetZeroGasAndFees() scheduled.GasAndFees {
 		GasPenalized:    0,
 		GasRefunded:     0,
 	}
+}
+
+// ScheduledInfo holds all the info needed for scheduled SC execution
+type ScheduledInfo struct {
+	RootHash        []byte
+	IntermediateTxs map[block.Type][]data.TransactionHandler
+	GasAndFees      scheduled.GasAndFees
+	MiniBlocks      block.MiniBlockSlice
+}
+
+// GetFinalCrossMiniBlockHashes returns all the finalized miniblocks hashes, from the given header and with the given destination
+func GetFinalCrossMiniBlockHashes(header data.HeaderHandler, shardID uint32) map[string]uint32 {
+	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(shardID)
+
+	miniBlockHashes := make(map[string]uint32)
+	for crossMiniBlockHash, senderShardID := range crossMiniBlockHashes {
+		miniBlockHeader := GetMiniBlockHeaderWithHash(header, []byte(crossMiniBlockHash))
+		if miniBlockHeader != nil && !miniBlockHeader.IsFinal() {
+			log.Debug("GetFinalCrossMiniBlockHashes: skip mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			continue
+		}
+
+		miniBlockHashes[crossMiniBlockHash] = senderShardID
+	}
+
+	return miniBlockHashes
+}
+
+// GetMiniBlockHeaderWithHash returns the miniblock header with the given hash
+func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte) data.MiniBlockHeaderHandler {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader
+		}
+	}
+	return nil
 }
