@@ -29,6 +29,7 @@ type ApiResolverStub struct {
 	GetInternalMetaBlockByRoundCalled      func(format common.ApiOutputFormat, round uint64) (interface{}, error)
 	GetInternalMiniBlockCalled             func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error)
 	GetInternalStartOfEpochMetaBlockCalled func(format common.ApiOutputFormat, epoch uint32) (interface{}, error)
+	GetGenesisNodesPubKeysCalled           func() (map[uint32][][]byte, map[uint32][][]byte)
 }
 
 // GetTransaction -
@@ -181,6 +182,14 @@ func (ars *ApiResolverStub) GetInternalMiniBlock(format common.ApiOutputFormat, 
 func (ars *ApiResolverStub) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	if ars.GetInternalStartOfEpochMetaBlockCalled != nil {
 		return ars.GetInternalStartOfEpochMetaBlockCalled(format, epoch)
+	}
+	return nil, nil
+}
+
+// GetGenesisNodesPubKeys -
+func (ars *ApiResolverStub) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte) {
+	if ars.GetGenesisNodesPubKeysCalled != nil {
+		return ars.GetGenesisNodesPubKeysCalled()
 	}
 	return nil, nil
 }
