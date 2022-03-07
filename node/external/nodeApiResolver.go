@@ -3,6 +3,7 @@ package external
 import (
 	"encoding/hex"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -26,6 +27,7 @@ type ArgNodeApiResolver struct {
 	APIBlockHandler          blockAPI.APIBlockHandler
 	APIInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
+	ValidatorPubKeyConverter core.PubkeyConverter
 }
 
 // nodeApiResolver can resolve API requests
@@ -40,6 +42,7 @@ type nodeApiResolver struct {
 	apiBlockHandler          blockAPI.APIBlockHandler
 	apiInternalBlockHandler  blockAPI.APIInternalBlockHandler
 	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
+	validatorPubKeyConverter core.PubkeyConverter
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -74,6 +77,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.GenesisNodesSetupHandler) {
 		return nil, ErrNilGenesisNodesSetupHandler
 	}
+	if check.IfNil(arg.ValidatorPubKeyConverter) {
+		return nil, ErrNilValidatorPubKeyConverter
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
@@ -86,6 +92,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		apiTransactionHandler:    arg.APITransactionHandler,
 		apiInternalBlockHandler:  arg.APIInternalBlockHandler,
 		genesisNodesSetupHandler: arg.GenesisNodesSetupHandler,
+		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 	}, nil
 }
 
@@ -206,17 +213,17 @@ func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, 
 }
 
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
-func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte) {
+func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
-	return getInitialNodesPubKeysBytes(eligibleNodesConfig), getInitialNodesPubKeysBytes(waitingNodesConfig)
+	return nar.getInitialNodesPubKeysBytes(eligibleNodesConfig), nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
 }
 
-func getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][][]byte {
-	nodesInfoPubkeys := make(map[uint32][][]byte)
+func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
+	nodesInfoPubkeys := make(map[uint32][]string)
 
 	for shardID, ni := range nodesInfo {
 		for i := 0; i < len(ni); i++ {
-			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], ni[i].PubKeyBytes())
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes()))
 		}
 	}
 

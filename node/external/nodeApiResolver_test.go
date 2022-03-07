@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -30,6 +31,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 		APITransactionHandler:    &mock.TransactionAPIHandlerStub{},
 		APIInternalBlockHandler:  &mock.InternalBlockApiHandlerStub{},
 		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 }
 
@@ -340,7 +342,9 @@ func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	t.Parallel()
 
 	pubKey1 := []byte("pubKey1")
+	expPubKey1 := hex.EncodeToString(pubKey1)
 	pubKey2 := []byte("pubKey2")
+	expPubKey2 := hex.EncodeToString(pubKey2)
 
 	eligible := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 		1: {shardingMocks.NewNodeInfo([]byte("address1"), pubKey1, 1, 1)},
@@ -359,11 +363,11 @@ func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	nar, err := external.NewNodeApiResolver(arg)
 	require.Nil(t, err)
 
-	expectedEligible := map[uint32][][]byte{
-		1: {pubKey1},
+	expectedEligible := map[uint32][]string{
+		1: {expPubKey1},
 	}
-	expectedWaiting := map[uint32][][]byte{
-		1: {pubKey2},
+	expectedWaiting := map[uint32][]string{
+		1: {expPubKey2},
 	}
 
 	el, wt := nar.GetGenesisNodesPubKeys()

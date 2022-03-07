@@ -37,3 +37,6 @@ var ErrNilAPIInternalBlockHandler = errors.New("nil api internal block handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilValidatorPubKeyConverter signals that a nil validator pubkey converter has been provided
+var ErrNilValidatorPubKeyConverter = errors.New("nil validator public key converter")

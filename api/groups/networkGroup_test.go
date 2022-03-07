@@ -492,7 +492,7 @@ func TestGetGenesisNodes(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		facade := mock.FacadeStub{
-			GetGenesisNodesPubKeysCalled: func() (map[uint32][][]byte, map[uint32][][]byte, error) {
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
 				return nil, nil, expectedErr
 			},
 		}
@@ -516,11 +516,11 @@ func TestGetGenesisNodes(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		eligible := map[uint32][][]byte{
-			1: {[]byte("pubkey1")},
+		eligible := map[uint32][]string{
+			1: {"pubkey1"},
 		}
-		waiting := map[uint32][][]byte{
-			1: {[]byte("pubkey2")},
+		waiting := map[uint32][]string{
+			1: {"pubkey2"},
 		}
 
 		expectedOutput := groups.GenesisNodesConfig{
@@ -529,7 +529,7 @@ func TestGetGenesisNodes(t *testing.T) {
 		}
 
 		facade := mock.FacadeStub{
-			GetGenesisNodesPubKeysCalled: func() (map[uint32][][]byte, map[uint32][][]byte, error) {
+			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
 				return eligible, waiting, nil
 			},
 		}

@@ -231,6 +231,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		APIBlockHandler:          blockAPIHandler,
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
 		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

@@ -114,6 +114,6 @@ type FacadeHandler interface {
 	RestApiInterface() string
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
-	GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte, error)
+	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	IsInterfaceNil() bool
 }

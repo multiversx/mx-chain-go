@@ -213,6 +213,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		APIBlockHandler:          apiBlockProcessor,
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
 		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
+		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)

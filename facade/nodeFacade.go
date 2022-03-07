@@ -553,7 +553,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 }
 
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
-func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte, error) {
+func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
 	eligible, waiting := nf.apiResolver.GetGenesisNodesPubKeys()
 	if eligible == nil || waiting == nil {
 		return nil, nil, ErrNilGenesiNodes

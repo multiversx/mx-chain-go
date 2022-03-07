@@ -40,14 +40,14 @@ type networkFacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs(tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
-	GetGenesisNodesPubKeys() (map[uint32][][]byte, map[uint32][][]byte, error)
+	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	IsInterfaceNil() bool
 }
 
 // GenesisNodesConfig defines the eligible and waiting nodes configurations
 type GenesisNodesConfig struct {
-	Eligible map[uint32][][]byte `json:"eligible"`
-	Waiting  map[uint32][][]byte `json:"waiting"`
+	Eligible map[uint32][]string `json:"eligible"`
+	Waiting  map[uint32][]string `json:"waiting"`
 }
 
 type networkGroup struct {
