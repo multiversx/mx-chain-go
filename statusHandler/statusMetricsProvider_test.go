@@ -123,7 +123,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutDefaultSh
 	sm.SetUInt64Value(key1, value1)
 	sm.SetStringValue(key2, value2)
 
-	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, 0, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
@@ -141,7 +141,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	sm.SetStringValue(key2, value2)
 	sm.SetUInt64Value(key3, uint64(value3))
 
-	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, common.MetricShardId, shardID, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
@@ -194,7 +194,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_max_gas_per_transaction":       uint64(15000),
 	}
 
-	configMetrics := sm.ConfigMetrics()
+	configMetrics, _ := sm.ConfigMetrics()
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
@@ -223,7 +223,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_nonces_passed_in_current_epoch": uint64(85),
 	}
 
-	configMetrics := sm.NetworkMetrics()
+	configMetrics, _ := sm.NetworkMetrics()
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
@@ -279,7 +279,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 	}
 
-	epochsMetrics := sm.EnableEpochsMetrics()
+	epochsMetrics, _ := sm.EnableEpochsMetrics()
 	assert.Equal(t, expectedMetrics, epochsMetrics)
 }
 
@@ -372,19 +372,19 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 			case 5:
 				sm.SetStringValue("test str", "test val")
 			case 6:
-				_ = sm.NetworkMetrics()
+				_, _ = sm.NetworkMetrics()
 			case 7:
-				_ = sm.ConfigMetrics()
+				_, _ = sm.ConfigMetrics()
 			case 8:
-				_ = sm.EconomicsMetrics()
+				_, _ = sm.EconomicsMetrics()
 			case 9:
 				_ = sm.StatusMetricsMap()
 			case 10:
-				_ = sm.StatusMetricsMapWithoutP2P()
+				_, _ = sm.StatusMetricsMapWithoutP2P()
 			case 11:
-				_ = sm.StatusMetricsWithoutP2PPrometheusString()
+				_, _ = sm.StatusMetricsWithoutP2PPrometheusString()
 			case 12:
-				_ = sm.StatusP2pMetricsMap()
+				_, _ = sm.StatusP2pMetricsMap()
 			}
 			wg.Done()
 		}(i)

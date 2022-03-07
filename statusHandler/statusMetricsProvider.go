@@ -109,17 +109,17 @@ func (sm *statusMetrics) Close() {
 }
 
 // StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
-func (sm *statusMetrics) StatusMetricsMapWithoutP2P() map[string]interface{} {
+func (sm *statusMetrics) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
 	return sm.getMetricsWithKeyFilterMutexProtected(func(input string) bool {
 		return !strings.Contains(input, "_p2p_")
-	})
+	}), nil
 }
 
 // StatusP2pMetricsMap will return the p2p metrics in a map
-func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
+func (sm *statusMetrics) StatusP2pMetricsMap() (map[string]interface{}, error) {
 	return sm.getMetricsWithKeyFilterMutexProtected(func(input string) bool {
 		return strings.Contains(input, "_p2p_")
-	})
+	}), nil
 }
 
 func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(input string) bool) map[string]interface{} {
@@ -159,8 +159,11 @@ func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(i
 }
 
 // StatusMetricsWithoutP2PPrometheusString returns the metrics in a string format which respects prometheus style
-func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
-	metrics := sm.StatusMetricsMapWithoutP2P()
+func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() (string, error) {
+	metrics, err := sm.StatusMetricsMapWithoutP2P()
+	if err != nil {
+		return "", err
+	}
 
 	sm.mutUint64Operations.RLock()
 	shardID := sm.uint64Metrics[common.MetricShardId]
@@ -176,11 +179,11 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 		}
 	}
 
-	return stringBuilder.String()
+	return stringBuilder.String(), nil
 }
 
 // EconomicsMetrics returns the economics related metrics
-func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
+func (sm *statusMetrics) EconomicsMetrics() (map[string]interface{}, error) {
 	economicsMetrics := make(map[string]interface{})
 
 	sm.mutStringOperations.RLock()
@@ -194,11 +197,11 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 	economicsMetrics[common.MetricEpochForEconomicsData] = sm.uint64Metrics[common.MetricEpochForEconomicsData]
 	sm.mutUint64Operations.RUnlock()
 
-	return economicsMetrics
+	return economicsMetrics, nil
 }
 
 // ConfigMetrics will return metrics related to current configuration
-func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
+func (sm *statusMetrics) ConfigMetrics() (map[string]interface{}, error) {
 	configMetrics := make(map[string]interface{})
 
 	sm.mutUint64Operations.RLock()
@@ -226,11 +229,11 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[common.MetricGasPriceModifier] = sm.stringMetrics[common.MetricGasPriceModifier]
 	sm.mutStringOperations.RUnlock()
 
-	return configMetrics
+	return configMetrics, nil
 }
 
 // EnableEpochsMetrics will return metrics related to activation epochs
-func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
+func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics := make(map[string]interface{})
 
 	sm.mutUint64Operations.RLock()
@@ -257,11 +260,11 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
 	sm.mutUint64Operations.RUnlock()
 
-	return enableEpochsMetrics
+	return enableEpochsMetrics, nil
 }
 
 // NetworkMetrics will return metrics related to current configuration
-func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
+func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
 	sm.mutUint64Operations.RLock()
 	defer sm.mutUint64Operations.RUnlock()
 
@@ -291,5 +294,5 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	}
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
 
-	return networkMetrics
+	return networkMetrics, nil
 }

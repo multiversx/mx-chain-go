@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,7 +93,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 	assert.Equal(t, errExpected.Error(), statusRsp.Error)
 }
 
-func TestHeartbeatstatus(t *testing.T) {
+func TestHeartbeatStatus(t *testing.T) {
 	t.Parallel()
 
 	hbStatus := []data.PubKeyHeartbeat{
@@ -123,6 +124,66 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.NotEqual(t, "", statusRsp.Message)
+}
+
+func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				StatusP2pMetricsMapCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/p2pstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/status", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
 }
 
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
@@ -338,6 +399,36 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	require.True(t, ok)
 
 	assert.NotNil(t, responseInfo["info"])
+}
+
+func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				StatusMetricsWithoutP2PPrometheusStringCalled: func() (string, error) {
+					return "", expectedErr
+				},
+			}
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/metrics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
 }
 
 func TestPrometheusMetrics_ShouldWork(t *testing.T) {

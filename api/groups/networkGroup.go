@@ -121,7 +121,19 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 
 // getNetworkConfig returns metrics related to the network configuration (shard independent)
 func (ng *networkGroup) getNetworkConfig(c *gin.Context) {
-	configMetrics := ng.getFacade().StatusMetrics().ConfigMetrics()
+	configMetrics, err := ng.getFacade().StatusMetrics().ConfigMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -134,7 +146,19 @@ func (ng *networkGroup) getNetworkConfig(c *gin.Context) {
 
 // getEnableEpochs returns metrics related to the activation epochs of the network
 func (ng *networkGroup) getEnableEpochs(c *gin.Context) {
-	enableEpochsMetrics := ng.getFacade().StatusMetrics().EnableEpochsMetrics()
+	enableEpochsMetrics, err := ng.getFacade().StatusMetrics().EnableEpochsMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -147,7 +171,19 @@ func (ng *networkGroup) getEnableEpochs(c *gin.Context) {
 
 // getNetworkStatus returns metrics related to the network status (shard specific)
 func (ng *networkGroup) getNetworkStatus(c *gin.Context) {
-	networkMetrics := ng.getFacade().StatusMetrics().NetworkMetrics()
+	networkMetrics, err := ng.getFacade().StatusMetrics().NetworkMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -173,7 +209,19 @@ func (ng *networkGroup) economicsMetrics(c *gin.Context) {
 		return
 	}
 
-	metrics := ng.getFacade().StatusMetrics().EconomicsMetrics()
+	metrics, err := ng.getFacade().StatusMetrics().EconomicsMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	metrics[common.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
 	metrics[common.MetricTopUpValue] = stakeValues.TopUp.String()
 

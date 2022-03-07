@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 // StatusMetricsStub -
 type StatusMetricsStub struct {
@@ -54,3 +54,4 @@ func (sms *StatusMetricsStub) EnableEpochsMetrics() (map[string]interface{}, err
 func (sms *StatusMetricsStub) IsInterfaceNil() bool {
 	return sms == nil
 }
+
