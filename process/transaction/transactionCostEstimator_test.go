@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"math"
 	"math/big"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
