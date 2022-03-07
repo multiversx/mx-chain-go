@@ -221,15 +221,16 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	argsApiResolver := external.ArgNodeApiResolver{
-		SCQueryService:          tpn.SCQueryService,
-		StatusMetricsHandler:    &statusHandler.StatusMetricsStub{},
-		TxCostHandler:           txCostHandler,
-		TotalStakedValueHandler: totalStakedValueHandler,
-		DirectStakedListHandler: directStakedListHandler,
-		DelegatedListHandler:    delegatedListHandler,
-		APITransactionHandler:   apiTransactionHandler,
-		APIBlockHandler:         blockAPIHandler,
-		APIInternalBlockHandler: apiInternalBlockProcessor,
+		SCQueryService:           tpn.SCQueryService,
+		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		TxCostHandler:            txCostHandler,
+		TotalStakedValueHandler:  totalStakedValueHandler,
+		DirectStakedListHandler:  directStakedListHandler,
+		DelegatedListHandler:     delegatedListHandler,
+		APITransactionHandler:    apiTransactionHandler,
+		APIBlockHandler:          blockAPIHandler,
+		APIInternalBlockHandler:  apiInternalBlockProcessor,
+		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
