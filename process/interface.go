@@ -150,6 +150,7 @@ type TransactionCoordinator interface {
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
+	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	IsInterfaceNil() bool
 }
 
@@ -216,6 +217,7 @@ type PreProcessor interface {
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
+	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	IsInterfaceNil() bool
 }
 
@@ -235,6 +237,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
+	RestoreBlockBodyIntoPools(body data.BodyHandler) error
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -493,6 +496,8 @@ type BlockChainHookHandler interface {
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
 	Close() error
+	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
+	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
 }
 
@@ -924,6 +929,7 @@ type ValidityAttester interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromStorer(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -1162,22 +1168,31 @@ type CurrentNetworkEpochProviderHandler interface {
 // ScheduledTxsExecutionHandler defines the functionality for execution of scheduled transactions
 type ScheduledTxsExecutionHandler interface {
 	Init()
-	Add(txHash []byte, tx data.TransactionHandler) bool
+	AddScheduledTx(txHash []byte, tx data.TransactionHandler) bool
+	AddScheduledMiniBlocks(miniBlocks block.MiniBlockSlice)
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
-	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
+	GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler
+	GetScheduledMiniBlocks() block.MiniBlockSlice
 	GetScheduledGasAndFees() scheduled.GasAndFees
-	SetScheduledRootHashSCRsGasAndFees(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
-	SaveState(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
+	IsMiniBlockExecuted(mbHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
+type DoubleTransactionDetector interface {
+	ProcessBlockBody(body *block.Body)
 	IsInterfaceNil() bool
 }
 

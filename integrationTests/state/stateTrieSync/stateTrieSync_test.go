@@ -3,7 +3,6 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"strconv"
 	"testing"
@@ -57,10 +56,8 @@ func createTestProcessorNodeAndTrieStorage(
 		MaxOpenFiles:      10,
 	}
 	persisterFactory := storageFactory.NewPersisterFactory(dbConfig)
-	tempDir, err := ioutil.TempDir("", "integrationTest")
-	require.Nil(t, err)
 
-	triePersister, err := persisterFactory.Create(tempDir)
+	triePersister, err := persisterFactory.Create(t.TempDir())
 	require.Nil(t, err)
 
 	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
