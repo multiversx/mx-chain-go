@@ -29,4 +29,5 @@ type ArgNodesCoordinator struct {
 	ChanStopNode               chan endProcess.ArgEndProcess
 	NodeTypeProvider           NodeTypeProviderHandler
 	IsFullArchive              bool
+	StakingV4EnableEpoch       uint32
 }

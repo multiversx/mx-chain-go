@@ -84,7 +84,12 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihgs.NodesCoordinatorToRegistry()
+	var registry interface{}
+	if ihgs.flagStakingV4.IsSet() {
+		registry = ihgs.NodesCoordinatorToRegistryWithAuction()
+	} else {
+		registry = ihgs.NodesCoordinatorToRegistry()
+	}
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err

@@ -91,9 +91,11 @@ type indexHashedNodesCoordinator struct {
 	startEpoch                    uint32
 	publicKeyToValidatorMap       map[string]*validatorWithShardID
 	waitingListFixEnableEpoch     uint32
+	stakingV4EnableEpoch          uint32
 	isFullArchive                 bool
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
+	flagStakingV4                 atomicFlags.Flag
 	nodeTypeProvider              NodeTypeProviderHandler
 }
 
@@ -107,13 +109,15 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
-		nbShards:    arguments.NbShards,
-		shardID:     arguments.ShardIDAsObserver,
-		eligibleMap: make(map[uint32][]Validator),
-		waitingMap:  make(map[uint32][]Validator),
-		selectors:   make(map[uint32]RandomSelector),
-		leavingMap:  make(map[uint32][]Validator),
-		newList:     make([]Validator, 0),
+		nbShards:       arguments.NbShards,
+		shardID:        arguments.ShardIDAsObserver,
+		eligibleMap:    make(map[uint32][]Validator),
+		waitingMap:     make(map[uint32][]Validator),
+		selectors:      make(map[uint32]RandomSelector),
+		leavingMap:     make(map[uint32][]Validator),
+		shuffledOutMap: make(map[uint32][]Validator),
+		newList:        make([]Validator, 0),
+		auctionList:    make([]Validator, 0),
 	}
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
@@ -136,11 +140,13 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		startEpoch:                    arguments.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
 		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
+		stakingV4EnableEpoch:          arguments.StakingV4EnableEpoch,
 		chanStopNode:                  arguments.ChanStopNode,
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihgs.waitingListFixEnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: staking v4", "epoch", ihgs.stakingV4EnableEpoch)
 
 	ihgs.loadingFromDisk.Store(false)
 
@@ -1204,4 +1210,7 @@ func createValidatorInfoFromBody(
 func (ihgs *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihgs.flagWaitingListFix.SetValue(epoch >= ihgs.waitingListFixEnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihgs.flagWaitingListFix.IsSet())
+
+	ihgs.flagStakingV4.SetValue(epoch >= ihgs.stakingV4EnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihgs.flagStakingV4.IsSet())
 }

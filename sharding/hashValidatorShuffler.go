@@ -298,7 +298,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}
 
 	if arg.flagStakingV4 {
-		err = distributeValidators(newWaiting, arg.auction, arg.randomness, arg.flagBalanceWaitingLists)
+		err = distributeValidators(newWaiting, arg.auction, arg.randomness, false)
 		if err != nil {
 			log.Warn("distributeValidators auction list failed", "error", err)
 		}
