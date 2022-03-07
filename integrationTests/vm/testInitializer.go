@@ -947,6 +947,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		txSimulator,
 		argsNewTxProcessor.Accounts,
 		shardCoordinator,
+		argsNewSCProcessor.EpochNotifier,
+		0,
 	)
 	if err != nil {
 		return nil, err
