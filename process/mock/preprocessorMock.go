@@ -20,7 +20,7 @@ type PreProcessorMock struct {
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, indexOfLastTxProcessed int32) ([][]byte, int, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
@@ -107,11 +107,11 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.Mi
 }
 
 // ProcessMiniBlock -
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error) {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, indexOfLastTxProcessed int32) ([][]byte, int, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil, 0, nil
 	}
-	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, getNumOfCrossInterMbsAndTxs, scheduledMode)
+	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, getNumOfCrossInterMbsAndTxs, scheduledMode, indexOfLastTxProcessed)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

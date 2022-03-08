@@ -68,16 +68,16 @@ func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) 
 	pmb.mutProcessedMiniBlocks.Unlock()
 }
 
-// GetProcessedMiniBlocksHashes will return all processed miniblocks for a metablock
-func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksHashes(metaBlockHash string) map[string]*ProcessedMiniBlockInfo {
+// GetProcessedMiniBlocksInfo will return all processed miniblocks info for a metablock
+func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksInfo(metaBlockHash string) map[string]*ProcessedMiniBlockInfo {
 	pmb.mutProcessedMiniBlocks.RLock()
-	processedMiniBlocksHashes := make(map[string]*ProcessedMiniBlockInfo)
+	processedMiniBlocksInfo := make(map[string]*ProcessedMiniBlockInfo)
 	for hash, value := range pmb.processedMiniBlocks[metaBlockHash] {
-		processedMiniBlocksHashes[hash] = value
+		processedMiniBlocksInfo[hash] = value
 	}
 	pmb.mutProcessedMiniBlocks.RUnlock()
 
-	return processedMiniBlocksHashes
+	return processedMiniBlocksInfo
 }
 
 // IsMiniBlockFullyProcessed will return true if a mini block is fully processed

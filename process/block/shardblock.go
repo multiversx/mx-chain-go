@@ -27,16 +27,16 @@ var _ process.BlockProcessor = (*shardProcessor)(nil)
 const timeBetweenCheckForEpochStart = 100 * time.Millisecond
 
 type createMbsAndProcessTxsDestMeInfo struct {
-	currMetaHdr               data.HeaderHandler
-	currMetaHdrHash           []byte
-	processedMiniBlocksHashes map[string]*processedMb.ProcessedMiniBlockInfo
-	haveTime                  func() bool
-	haveAdditionalTime        func() bool
-	miniBlocks                block.MiniBlockSlice
-	hdrAdded                  bool
-	numTxsAdded               uint32
-	numHdrsAdded              uint32
-	scheduledMode             bool
+	currMetaHdr             data.HeaderHandler
+	currMetaHdrHash         []byte
+	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo
+	haveTime                func() bool
+	haveAdditionalTime      func() bool
+	miniBlocks              block.MiniBlockSlice
+	hdrAdded                bool
+	numTxsAdded             uint32
+	numHdrsAdded            uint32
+	scheduledMode           bool
 }
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
@@ -1816,7 +1816,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 			continue
 		}
 
-		createAndProcessInfo.processedMiniBlocksHashes = sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(createAndProcessInfo.currMetaHdrHash))
+		createAndProcessInfo.processedMiniBlocksInfo = sp.processedMiniBlocks.GetProcessedMiniBlocksInfo(string(createAndProcessInfo.currMetaHdrHash))
 		createAndProcessInfo.hdrAdded = false
 
 		shouldContinue, errCreated := sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
@@ -1853,7 +1853,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 ) (bool, error) {
 	currMiniBlocksAdded, currNumTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 		createAndProcessInfo.currMetaHdr,
-		createAndProcessInfo.processedMiniBlocksHashes,
+		createAndProcessInfo.processedMiniBlocksInfo,
 		createAndProcessInfo.haveTime,
 		createAndProcessInfo.haveAdditionalTime,
 		createAndProcessInfo.scheduledMode)

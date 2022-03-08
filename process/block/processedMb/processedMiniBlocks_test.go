@@ -37,7 +37,7 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 	assert.False(t, pmb.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 }
 
-func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
+func TestProcessedMiniBlocks_GetProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
 	pmb := processedMb.NewProcessedMiniBlocks()
@@ -51,11 +51,11 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
 	pmb.AddMiniBlockHash(mtbHash1, mbHash2, nil)
 	pmb.AddMiniBlockHash(mtbHash2, mbHash2, nil)
 
-	mapData := pmb.GetProcessedMiniBlocksHashes(mtbHash1)
+	mapData := pmb.GetProcessedMiniBlocksInfo(mtbHash1)
 	assert.NotNil(t, mapData[mbHash1])
 	assert.NotNil(t, mapData[mbHash2])
 
-	mapData = pmb.GetProcessedMiniBlocksHashes(mtbHash2)
+	mapData = pmb.GetProcessedMiniBlocksInfo(mtbHash2)
 	assert.NotNil(t, mapData[mbHash1])
 }
 

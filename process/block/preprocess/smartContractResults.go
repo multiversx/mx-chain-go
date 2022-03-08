@@ -498,6 +498,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	_ func() bool,
 	_ func() (int, int),
 	_ bool,
+	indexOfLastTxProcessed int32,
 ) (processedTxHashes [][]byte, numProcessedSCRs int, err error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
@@ -515,16 +516,6 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockScrs)) {
 		return nil, 0, process.ErrMaxBlockSizeReached
 	}
-
-	defer func() {
-		if err != nil {
-			for _, hash := range processedTxHashes {
-				log.Trace("smartContractResults.ProcessMiniBlock: defer func()", "tx hash", hash)
-			}
-
-			scr.gasHandler.RestoreGasSinceLastReset()
-		}
-	}()
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
@@ -560,6 +551,9 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	}()
 
 	for index := range miniBlockScrs {
+		if index <= int(indexOfLastTxProcessed) {
+			continue
+		}
 		if !haveTime() {
 			return processedTxHashes, index, process.ErrTimeIsOut
 		}
@@ -575,9 +569,6 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			return processedTxHashes, index, err
 		}
 
-		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
-
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				return processedTxHashes, index, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
@@ -586,12 +577,22 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
+		snapshot := scr.accounts.JournalLen()
+		scr.gasHandler.Reset(miniBlockTxHashes[index])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {
+			errRevert := scr.accounts.RevertToSnapshot(snapshot)
+			if errRevert != nil {
+				log.Debug("smartContractResults.ProcessMiniBlock: RevertToSnapshot", "error", errRevert.Error())
+			}
+
+			scr.gasHandler.RestoreGasSinceLastReset(miniBlockTxHashes[index])
 			return processedTxHashes, index, err
 		}
 
 		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
+		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 		numSCRsProcessed++
 	}
 
@@ -606,7 +607,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	scr.blockSizeComputation.AddNumMiniBlocks(1)
 	scr.blockSizeComputation.AddNumTxs(len(miniBlockScrs))
 
-	return nil, len(processedTxHashes), nil
+	return nil, len(miniBlockScrs), nil
 }
 
 // CreateMarshalizedData marshalizes smartContractResults and creates and saves them into a new structure

@@ -137,7 +137,7 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -213,7 +213,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, indexOfLastTxProcessed int32) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -728,7 +728,7 @@ type SCQuery struct {
 // GasHandler is able to perform some gas calculation
 type GasHandler interface {
 	Init()
-	Reset()
+	Reset(key []byte)
 	SetGasProvided(gasProvided uint64, hash []byte)
 	SetGasProvidedAsScheduled(gasProvided uint64, hash []byte)
 	SetGasRefunded(gasRefunded uint64, hash []byte)
@@ -746,7 +746,7 @@ type GasHandler interface {
 	RemoveGasProvidedAsScheduled(hashes [][]byte)
 	RemoveGasRefunded(hashes [][]byte)
 	RemoveGasPenalized(hashes [][]byte)
-	RestoreGasSinceLastReset()
+	RestoreGasSinceLastReset(key []byte)
 	ComputeGasProvidedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasProvidedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
