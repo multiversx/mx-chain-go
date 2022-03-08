@@ -838,9 +838,11 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, ReturnData: [][]byte{longData}}, nil
 	}}
 	_ = arguments.BuiltInFunctions.Add(funcName, builtInFunc)
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
-	}}
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
+		},
+	}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
