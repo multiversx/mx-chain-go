@@ -46,6 +46,9 @@ import (
 var log = logger.GetOrCreate("arwenVMtest")
 
 func TestCommunityContract_InShard(t *testing.T) {
+	zero := big.NewInt(0)
+	transferEGLD := big.NewInt(42)
+
 	net := integrationTests.NewTestNetworkSized(t, 1, 1, 1)
 	net.Start()
 	net.Step()
@@ -58,22 +61,22 @@ func TestCommunityContract_InShard(t *testing.T) {
 	funderCode := codePath + "/funder.wasm"
 	parentCode := codePath + "/parent.wasm"
 
-	funderAddress := net.DeployNonpayableSC(owner, funderCode)
+	funderAddress := net.DeployPayableSC(owner, funderCode)
 	funderSC := net.GetAccountHandler(funderAddress)
-	require.Equal(t, funderSC.GetOwnerAddress(), owner.Address)
+	require.Equal(t, owner.Address, funderSC.GetOwnerAddress())
 
 	parentAddress := net.DeploySCWithInitArgs(
 		owner,
 		parentCode,
-		false,
+		true,
 		funderAddress,
 	)
 
 	parentSC := net.GetAccountHandler(parentAddress)
-	require.Equal(t, parentSC.GetOwnerAddress(), owner.Address)
+	require.Equal(t, owner.Address, parentSC.GetOwnerAddress())
 
 	txData := txDataBuilder.NewBuilder().Func("register").ToBytes()
-	tx := net.CreateTxUint64(owner, parentAddress, 10, txData)
+	tx := net.CreateTx(owner, parentAddress, transferEGLD, txData)
 	tx.GasLimit = 1_000_000
 
 	logger.SetLogLevel("*:TRACE")
@@ -81,10 +84,14 @@ func TestCommunityContract_InShard(t *testing.T) {
 
 	net.Steps(2)
 	funderSC = net.GetAccountHandler(funderAddress)
-	require.Equal(t, funderSC.GetBalance(), big.NewInt(10))
+	require.Equal(t, transferEGLD, funderSC.GetBalance())
+	require.Equal(t, zero, parentSC.GetBalance())
 }
 
 func TestCommunityContract_CrossShard(t *testing.T) {
+	zero := big.NewInt(0)
+	transferEGLD := big.NewInt(42)
+
 	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
 	net.Start()
 	net.Step()
@@ -97,65 +104,35 @@ func TestCommunityContract_CrossShard(t *testing.T) {
 	funderCode := codePath + "/funder.wasm"
 	parentCode := codePath + "/parent.wasm"
 
-	funderAddress := net.DeployNonpayableSC(ownerOfFunder, funderCode)
+	funderAddress := net.DeployPayableSC(ownerOfFunder, funderCode)
 	funderSC := net.GetAccountHandler(funderAddress)
-	require.Equal(t, funderSC.GetOwnerAddress(), ownerOfFunder.Address)
+	require.Equal(t, ownerOfFunder.Address, funderSC.GetOwnerAddress())
 
 	ownerOfParent := net.Wallets[1]
 	parentAddress := net.DeploySCWithInitArgs(
 		ownerOfParent,
 		parentCode,
-		false,
+		true,
 		funderAddress,
 	)
 
 	parentSC := net.GetAccountHandler(parentAddress)
-	require.Equal(t, parentSC.GetOwnerAddress(), ownerOfParent.Address)
+	require.Equal(t, ownerOfParent.Address, parentSC.GetOwnerAddress())
 
 	txData := txDataBuilder.NewBuilder().Func("register").ToBytes()
-	tx := net.CreateTxUint64(ownerOfParent, parentAddress, 10, txData)
+	tx := net.CreateTx(ownerOfParent, parentAddress, transferEGLD, txData)
 	tx.GasLimit = 1_000_000
 
 	logger.SetLogLevel("arwen:TRACE")
 	logger.ToggleLoggerName(true)
 	_ = net.SignAndSendTx(ownerOfParent, tx)
 
-	net.Step() // 1
+	net.Steps(8)
 	funderSC = net.GetAccountHandler(funderAddress)
-	require.Equal(t, big.NewInt(0), funderSC.GetBalance())
+	require.Equal(t, transferEGLD, funderSC.GetBalance())
 
-	net.Step() // 2
-	funderSC = net.GetAccountHandler(funderAddress)
-	require.Equal(t, big.NewInt(0), funderSC.GetBalance())
-
-	net.Step() // 3
-	funderSC = net.GetAccountHandler(funderAddress)
-	require.Equal(t, big.NewInt(0), funderSC.GetBalance())
-
-	net.Step() // 4
-	funderSC = net.GetAccountHandler(funderAddress)
-	require.Equal(t, big.NewInt(0), funderSC.GetBalance())
-
-	net.Step() // 5
-	funderSC = net.GetAccountHandler(funderAddress)
-
-	net.Step() // 6
-	funderSC = net.GetAccountHandler(funderAddress)
-
-	net.Step() // 7
-	funderSC = net.GetAccountHandler(funderAddress)
-
-	net.Step() // 8
-	funderSC = net.GetAccountHandler(funderAddress)
-
-	net.Step() // 9
-	funderSC = net.GetAccountHandler(funderAddress)
-
-	net.Step() // 10
-	funderSC = net.GetAccountHandler(funderAddress)
-	require.Equal(t, big.NewInt(10), funderSC.GetBalance())
-
-	require.Equal(t, big.NewInt(0), parentSC.GetBalance())
+	parentSC = net.GetAccountHandler(parentAddress)
+	require.Equal(t, zero, parentSC.GetBalance())
 }
 
 func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
@@ -165,6 +142,9 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	// 3. parentOwner sends tx to ParentSC with method call 'register' and 42 EGLD (in-shard call, shard 1)
 	// 4. ParentSC emits a cross-shard asyncCall to FunderSC with method 'acceptFunds' and 42 EGLD
 	// 5. assert FunderSC has 42 EGLD
+	zero := big.NewInt(0)
+	transferEGLD := big.NewInt(42)
+
 	testContextFunderSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextFunderSC.Close()
@@ -191,8 +171,6 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	funderCode := codePath + "/funder.wasm"
 	parentCode := codePath + "/parent.wasm"
 
-	transferEGLD := big.NewInt(42)
-
 	logger.ToggleLoggerName(true)
 	// logger.SetLogLevel("*:TRACE")
 
@@ -205,7 +183,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 		gasPrice,
 		deployGasLimit,
 		nil,
-		big.NewInt(0))
+		zero)
 
 	// Deploy Parent SC in shard 1
 	parentOwnerAccount, _ := testContextParentSC.Accounts.LoadAccount(parentOwner)
@@ -217,7 +195,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 		gasPrice,
 		deployGasLimit,
 		args,
-		big.NewInt(0))
+		zero)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextFunderSC)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextParentSC)
@@ -267,7 +245,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	intermediateTxs = testContextParentSC.GetIntermediateTransactions(t)
 	require.NotEmpty(t, intermediateTxs)
 
-	utils.TestAccount(t, testContextParentSC.Accounts, parentAddress, 0, big.NewInt(0))
+	utils.TestAccount(t, testContextParentSC.Accounts, parentAddress, 0, zero)
 	utils.TestAccount(t, testContextFunderSC.Accounts, funderAddress, 0, transferEGLD)
 }
 
