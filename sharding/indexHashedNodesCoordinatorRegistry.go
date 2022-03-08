@@ -8,83 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// EpochValidators holds one epoch configuration for a nodes coordinator
-type EpochValidators struct {
-	EligibleValidators map[string][]*SerializableValidator `json:"eligibleValidators"`
-	WaitingValidators  map[string][]*SerializableValidator `json:"waitingValidators"`
-	LeavingValidators  map[string][]*SerializableValidator `json:"leavingValidators"`
-}
-
-func (ev *EpochValidators) GetEligibleValidators() map[string][]*SerializableValidator {
-	return ev.EligibleValidators
-}
-
-func (ev *EpochValidators) GetWaitingValidators() map[string][]*SerializableValidator {
-	return ev.WaitingValidators
-}
-
-func (ev *EpochValidators) GetLeavingValidators() map[string][]*SerializableValidator {
-	return ev.LeavingValidators
-}
-
-// NodesCoordinatorRegistry holds the data that can be used to initialize a nodes coordinator
-type NodesCoordinatorRegistry struct {
-	EpochsConfig map[string]*EpochValidators `json:"epochConfigs"`
-	CurrentEpoch uint32                      `json:"currentEpoch"`
-}
-
-func (ncr *NodesCoordinatorRegistry) GetCurrentEpoch() uint32 {
-	return ncr.CurrentEpoch
-}
-
-func (ncr *NodesCoordinatorRegistry) GetEpochsConfig() map[string]EpochValidatorsHandler {
-	ret := make(map[string]EpochValidatorsHandler)
-	for epoch, config := range ncr.EpochsConfig {
-		ret[epoch] = config
-	}
-
-	return ret
-}
-
-func (ncr *NodesCoordinatorRegistry) SetCurrentEpoch(epoch uint32) {
-	ncr.CurrentEpoch = epoch
-}
-
-func (ncr *NodesCoordinatorRegistry) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
-	ncr.EpochsConfig = make(map[string]*EpochValidators)
-
-	for epoch, config := range epochsConfig {
-		ncr.EpochsConfig[epoch] = &EpochValidators{
-			EligibleValidators: config.GetEligibleValidators(),
-			WaitingValidators:  config.GetWaitingValidators(),
-			LeavingValidators:  config.GetLeavingValidators(),
-		}
-	}
-}
-
-// EpochValidatorsHandler defines what one epoch configuration for a nodes coordinator should hold
-type EpochValidatorsHandler interface {
-	GetEligibleValidators() map[string][]*SerializableValidator
-	GetWaitingValidators() map[string][]*SerializableValidator
-	GetLeavingValidators() map[string][]*SerializableValidator
-}
-
-type EpochValidatorsHandlerWithAuction interface {
-	EpochValidatorsHandler
-	GetShuffledOutValidators() map[string][]*SerializableValidator
-}
-
-// NodesCoordinatorRegistryHandler defines that used to initialize nodes coordinator
-type NodesCoordinatorRegistryHandler interface {
-	GetEpochsConfig() map[string]EpochValidatorsHandler
-	GetCurrentEpoch() uint32
-
-	SetCurrentEpoch(epoch uint32)
-	SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler)
-}
-
-// TODO: add proto marshalizer for these package - replace all json marshalizers
-
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihgs.baseLoadState(key)
@@ -106,7 +29,7 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	var config NodesCoordinatorRegistryHandler
 	if ihgs.flagStakingV4.IsSet() {
 		config = &NodesCoordinatorRegistryWithAuction{}
-		err = json.Unmarshal(data, config)
+		err = ihgs.marshalizer.Unmarshal(config, data)
 		if err != nil {
 			return err
 		}
@@ -148,17 +71,30 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihgs.NodesCoordinatorToRegistry()
-	data, err := json.Marshal(registry) // TODO: Choose different marshaller depending on registry
+	data, err := ihgs.getRegistryData()
 	if err != nil {
 		return err
 	}
 
 	ncInternalKey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
-
 	log.Debug("saving nodes coordinator config", "key", ncInternalKey)
 
 	return ihgs.bootStorer.Put(ncInternalKey, data)
+}
+
+func (ihgs *indexHashedNodesCoordinator) getRegistryData() ([]byte, error) {
+	var err error
+	var data []byte
+
+	if ihgs.flagStakingV4.IsSet() {
+		registry := ihgs.nodesCoordinatorToRegistryWithAuction()
+		data, err = ihgs.marshalizer.Marshal(registry)
+	} else {
+		registry := ihgs.nodesCoordinatorToOldRegistry()
+		data, err = json.Marshal(registry)
+	}
+
+	return data, err
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry

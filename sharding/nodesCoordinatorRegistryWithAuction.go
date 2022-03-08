@@ -21,22 +21,27 @@ func sliceMapToProtoMap(validators map[string][]*SerializableValidator) map[stri
 	return ret
 }
 
+// GetEligibleValidators returns all eligible validators from all shards
 func (m *EpochValidatorsWithAuction) GetEligibleValidators() map[string][]*SerializableValidator {
 	return protoValidatorsMapToSliceMap(m.GetEligible())
 }
 
+// GetWaitingValidators returns all waiting validators from all shards
 func (m *EpochValidatorsWithAuction) GetWaitingValidators() map[string][]*SerializableValidator {
 	return protoValidatorsMapToSliceMap(m.GetWaiting())
 }
 
+// GetLeavingValidators returns all leaving validators from all shards
 func (m *EpochValidatorsWithAuction) GetLeavingValidators() map[string][]*SerializableValidator {
 	return protoValidatorsMapToSliceMap(m.GetLeaving())
 }
 
+// GetShuffledOutValidators returns all shuffled out validators from all shards
 func (m *EpochValidatorsWithAuction) GetShuffledOutValidators() map[string][]*SerializableValidator {
 	return protoValidatorsMapToSliceMap(m.GetShuffledOut())
 }
 
+// GetEpochsConfig returns epoch-validators configuration
 func (m *NodesCoordinatorRegistryWithAuction) GetEpochsConfig() map[string]EpochValidatorsHandler {
 	ret := make(map[string]EpochValidatorsHandler)
 	for epoch, config := range m.GetEpochsConfigWithAuction() {
@@ -46,10 +51,12 @@ func (m *NodesCoordinatorRegistryWithAuction) GetEpochsConfig() map[string]Epoch
 	return ret
 }
 
+// SetCurrentEpoch sets internally the current epoch
 func (m *NodesCoordinatorRegistryWithAuction) SetCurrentEpoch(epoch uint32) {
 	m.CurrentEpoch = epoch
 }
 
+// SetEpochsConfig sets internally epoch-validators configuration
 func (m *NodesCoordinatorRegistryWithAuction) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
 	m.EpochsConfigWithAuction = make(map[string]*EpochValidatorsWithAuction)
 

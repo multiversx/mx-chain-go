@@ -25,6 +25,6 @@ message EpochValidatorsWithAuction {
 }
 
 message NodesCoordinatorRegistryWithAuction {
-  uint32 CurrentEpoch                                             = 2;
-  map<string, EpochValidatorsWithAuction> EpochsConfigWithAuction = 1;
+  uint32 CurrentEpoch                                             = 1;
+  map<string, EpochValidatorsWithAuction> EpochsConfigWithAuction = 2;
 }
