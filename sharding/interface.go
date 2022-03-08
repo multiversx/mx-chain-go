@@ -223,7 +223,5 @@ type EpochValidatorsHandlerWithAuction interface {
 type NodesCoordinatorRegistryHandler interface {
 	GetEpochsConfig() map[string]EpochValidatorsHandler
 	GetCurrentEpoch() uint32
-
 	SetCurrentEpoch(epoch uint32)
-	SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler)
 }

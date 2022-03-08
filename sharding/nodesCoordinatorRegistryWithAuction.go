@@ -11,16 +11,6 @@ func protoValidatorsMapToSliceMap(validators map[string]Validators) map[string][
 	return ret
 }
 
-func sliceMapToProtoMap(validators map[string][]*SerializableValidator) map[string]Validators {
-	ret := make(map[string]Validators)
-
-	for shardID, val := range validators {
-		ret[shardID] = Validators{Data: val}
-	}
-
-	return ret
-}
-
 // GetEligibleValidators returns all eligible validators from all shards
 func (m *EpochValidatorsWithAuction) GetEligibleValidators() map[string][]*SerializableValidator {
 	return protoValidatorsMapToSliceMap(m.GetEligible())
@@ -54,24 +44,4 @@ func (m *NodesCoordinatorRegistryWithAuction) GetEpochsConfig() map[string]Epoch
 // SetCurrentEpoch sets internally the current epoch
 func (m *NodesCoordinatorRegistryWithAuction) SetCurrentEpoch(epoch uint32) {
 	m.CurrentEpoch = epoch
-}
-
-// SetEpochsConfig sets internally epoch-validators configuration
-func (m *NodesCoordinatorRegistryWithAuction) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
-	m.EpochsConfigWithAuction = make(map[string]*EpochValidatorsWithAuction)
-
-	for epoch, config := range epochsConfig {
-		shuffledOut := make(map[string]Validators)
-		configWithAuction, castOk := config.(EpochValidatorsHandlerWithAuction)
-		if castOk {
-			shuffledOut = sliceMapToProtoMap(configWithAuction.GetShuffledOutValidators())
-		}
-
-		m.EpochsConfigWithAuction[epoch] = &EpochValidatorsWithAuction{
-			Eligible:    sliceMapToProtoMap(config.GetEligibleValidators()),
-			Waiting:     sliceMapToProtoMap(config.GetWaitingValidators()),
-			Leaving:     sliceMapToProtoMap(config.GetLeavingValidators()),
-			ShuffledOut: shuffledOut,
-		}
-	}
 }

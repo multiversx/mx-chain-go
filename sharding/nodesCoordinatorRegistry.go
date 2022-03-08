@@ -47,16 +47,3 @@ func (ncr *NodesCoordinatorRegistry) GetEpochsConfig() map[string]EpochValidator
 func (ncr *NodesCoordinatorRegistry) SetCurrentEpoch(epoch uint32) {
 	ncr.CurrentEpoch = epoch
 }
-
-// SetEpochsConfig sets internally epoch-validators configuration
-func (ncr *NodesCoordinatorRegistry) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
-	ncr.EpochsConfig = make(map[string]*EpochValidators)
-
-	for epoch, config := range epochsConfig {
-		ncr.EpochsConfig[epoch] = &EpochValidators{
-			EligibleValidators: config.GetEligibleValidators(),
-			WaitingValidators:  config.GetWaitingValidators(),
-			LeavingValidators:  config.GetLeavingValidators(),
-		}
-	}
-}
