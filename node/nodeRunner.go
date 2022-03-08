@@ -797,7 +797,7 @@ func (nr *nodeRunner) logInformation(
 	log.Info("Bootstrap", "epoch", bootstrapComponents.EpochBootstrapParams().Epoch())
 	if bootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
 		log.Info("the epoch from nodesConfig is",
-			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
+			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().GetCurrentEpoch())
 	}
 
 	var shardIdString = core.GetShardIDString(bootstrapComponents.ShardCoordinator().SelfId())
