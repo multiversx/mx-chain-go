@@ -807,6 +807,64 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
+	t.Parallel()
+
+	vmContainer := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	accountState := &stateMock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+	arguments.AccountsDB = accountState
+	arguments.VmContainer = vmContainer
+	arguments.ArgsParser = argParser
+
+	funcName := "builtIn"
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte(funcName + "@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+	userAcc, _ := acntSrc.(vmcommon.UserAccountHandler)
+
+	builtInFunc := &mock.BuiltInFunctionStub{ProcessBuiltinFunctionCalled: func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		longData := bytes.Repeat([]byte{1}, 1<<21)
+
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, ReturnData: [][]byte{longData}}, nil
+	}}
+	_ = arguments.BuiltInFunctions.Add(funcName, builtInFunc)
+	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
+	}}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+	accountState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		return acntSrc, nil
+	}
+
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(false)
+	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_ = acntSrc.AddToBalance(big.NewInt(100))
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(true)
+	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Nil(t, err)
+}
+
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
@@ -3935,25 +3993,25 @@ func TestProcessIsInformativeSCR(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1)}
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.Value = big.NewInt(0)
 	scr.CallType = vmData.AsynchronousCallBack
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.CallType = vmData.DirectCall
 	scr.Data = []byte("@abab")
-	assert.True(t, sc.isInformativeSCR(scr))
+	assert.True(t, sc.isInformativeTxHandler(scr))
 
 	scr.Data = []byte("ab@ab")
 	scr.RcvAddr = make([]byte, 32)
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 
 	scr.RcvAddr = []byte("address")
-	assert.True(t, sc.isInformativeSCR(scr))
+	assert.True(t, sc.isInformativeTxHandler(scr))
 
 	_ = builtInFuncs.Add("ab", &mock.BuiltInFunctionStub{})
-	assert.False(t, sc.isInformativeSCR(scr))
+	assert.False(t, sc.isInformativeTxHandler(scr))
 }
 
 func TestCleanInformativeOnlySCRs(t *testing.T) {
@@ -4005,6 +4063,65 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
 	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, logHash)
+}
+
+func TestProcess_createCompletedTxEvent(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, 0)
+	arguments.ShardCoordinator = shardCoordinator
+	completedLogSaved := false
+	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+		for _, log := range vmLogs {
+			if string(log.Identifier) == completedTxEvent {
+				completedLogSaved = true
+			}
+		}
+		return nil
+	}}
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scAddress := bytes.Repeat([]byte{0}, 32)
+	scAddress[31] = 2
+	userAddress := bytes.Repeat([]byte{1}, 32)
+
+	scr := &smartContractResult.SmartContractResult{
+		Value:      big.NewInt(1),
+		SndAddr:    userAddress,
+		RcvAddr:    scAddress,
+		PrevTxHash: []byte("prevTxHash"),
+		GasLimit:   1000,
+		GasPrice:   1000,
+	}
+	scrHash := []byte("hash")
+
+	completeTxEvent := sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, nil)
+	assert.NotNil(t, completeTxEvent)
+
+	scrWithTransfer := &smartContractResult.SmartContractResult{
+		Value:   big.NewInt(1),
+		SndAddr: scAddress,
+		RcvAddr: userAddress,
+		Data:    []byte("transfer"),
+	}
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.Nil(t, completeTxEvent)
+
+	scrWithTransfer.Value = big.NewInt(0)
+	completeTxEvent = sc.createCompleteEventLogIfNoMoreAction(scr, scrHash, []data.TransactionHandler{scrWithTransfer})
+	assert.NotNil(t, completeTxEvent)
+	assert.Equal(t, completeTxEvent.Identifier, []byte(completedTxEvent))
+	assert.Equal(t, completeTxEvent.Topics[0], scr.PrevTxHash)
+
+	scrWithRefund := &smartContractResult.SmartContractResult{Value: big.NewInt(10), PrevTxHash: scrHash, Data: []byte("@6f6b@aaffaa")}
+	completedLogSaved = false
+
+	acntDst, _ := state.NewUserAccount(userAddress)
+	err := sc.processSimpleSCR(scrWithRefund, []byte("scrHash"), acntDst)
+	assert.Nil(t, err)
+	assert.True(t, completedLogSaved)
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
@@ -4128,4 +4245,32 @@ func TestMergeVmOutputLogs(t *testing.T) {
 
 	mergeVMOutputLogs(vmOutput1, vmOutput2)
 	require.Len(t, vmOutput1.Logs, 2)
+}
+
+func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+
+	sc.flagCleanUpInformativeSCRs.Reset()
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 10}
+	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
+	returnMessage := "@" + fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+		TooMuchGasProvidedMessage, 1, 10)
+	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+
+	sc.flagCleanUpInformativeSCRs.SetValue(true)
+	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
+	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
+	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
+		TooMuchGasProvidedMessage, 11, 1)
+	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 }

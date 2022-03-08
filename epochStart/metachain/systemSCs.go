@@ -1279,6 +1279,10 @@ func (s *systemSCProcessor) cleanAdditionalQueue() error {
 			continue
 		}
 
+		if len(currentOwner) != addressLength {
+			continue
+		}
+
 		mapOwnersKeys[currentOwner] = append(mapOwnersKeys[currentOwner], returnData)
 	}
 
