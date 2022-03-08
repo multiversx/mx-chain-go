@@ -2,58 +2,14 @@ package sharding
 
 import "fmt"
 
-// EpochValidatorsWithAuction holds one epoch configuration for a nodes coordinator
-type EpochValidatorsWithAuction struct {
-	*EpochValidators
-	ShuffledOutValidators map[string][]*SerializableValidator `json:"shuffledOutValidators"`
-}
-
-// NodesCoordinatorRegistryWithAuction holds the data that can be used to initialize a nodes coordinator
-type NodesCoordinatorRegistryWithAuction struct {
-	EpochsConfig map[string]*EpochValidatorsWithAuction `json:"epochConfigs"`
-	CurrentEpoch uint32                                 `json:"currentEpoch"`
-}
-
-func (ncr *NodesCoordinatorRegistryWithAuction) GetCurrentEpoch() uint32 {
-	return ncr.CurrentEpoch
-}
-
-func (ncr *NodesCoordinatorRegistryWithAuction) GetEpochsConfig() map[string]EpochValidatorsHandler {
-	ret := make(map[string]EpochValidatorsHandler)
-	for epoch, config := range ncr.EpochsConfig {
-		ret[epoch] = config
-	}
-
-	return ret
-}
-
-func (ncr *NodesCoordinatorRegistryWithAuction) SetCurrentEpoch(epoch uint32) {
-	ncr.CurrentEpoch = epoch
-}
-
-func (ncr *NodesCoordinatorRegistryWithAuction) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
-	ncr.EpochsConfig = make(map[string]*EpochValidatorsWithAuction)
-
-	for epoch, config := range epochsConfig {
-		ncr.EpochsConfig[epoch] = &EpochValidatorsWithAuction{
-			EpochValidators: &EpochValidators{
-				EligibleValidators: config.GetEligibleValidators(),
-				WaitingValidators:  config.GetWaitingValidators(),
-				LeavingValidators:  config.GetLeavingValidators(),
-			},
-			ShuffledOutValidators: nil,
-		}
-	}
-}
-
 // nodesCoordinatorToRegistryWithAuction will export the nodesCoordinator data to the registry which contains auction list
 func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction() *NodesCoordinatorRegistryWithAuction {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 
 	registry := &NodesCoordinatorRegistryWithAuction{
-		CurrentEpoch: ihgs.currentEpoch,
-		EpochsConfig: make(map[string]*EpochValidatorsWithAuction),
+		CurrentEpoch:            ihgs.currentEpoch,
+		EpochsConfigWithAuction: make(map[string]*EpochValidatorsWithAuction),
 	}
 	// todo: extract this into a common func with NodesCoordinatorToRegistry
 	minEpoch := 0
@@ -68,7 +24,7 @@ func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction()
 			continue
 		}
 
-		registry.EpochsConfig[fmt.Sprint(epoch)] = epochNodesConfigToEpochValidatorsWithAuction(epochNodesData)
+		registry.EpochsConfigWithAuction[fmt.Sprint(epoch)] = epochNodesConfigToEpochValidatorsWithAuction(epochNodesData)
 	}
 
 	return registry
@@ -76,12 +32,26 @@ func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction()
 
 func epochNodesConfigToEpochValidatorsWithAuction(config *epochNodesConfig) *EpochValidatorsWithAuction {
 	result := &EpochValidatorsWithAuction{
-		EpochValidators:       epochNodesConfigToEpochValidators(config),
-		ShuffledOutValidators: make(map[string][]*SerializableValidator, len(config.shuffledOutMap)),
+		Eligible:    make(map[string]Validators, len(config.eligibleMap)),
+		Waiting:     make(map[string]Validators, len(config.waitingMap)),
+		Leaving:     make(map[string]Validators, len(config.leavingMap)),
+		ShuffledOut: make(map[string]Validators, len(config.shuffledOutMap)),
+	}
+
+	for k, v := range config.eligibleMap {
+		result.Eligible[fmt.Sprint(k)] = Validators{Data: ValidatorArrayToSerializableValidatorArray(v)}
+	}
+
+	for k, v := range config.waitingMap {
+		result.Waiting[fmt.Sprint(k)] = Validators{Data: ValidatorArrayToSerializableValidatorArray(v)}
 	}
 
 	for k, v := range config.leavingMap {
-		result.ShuffledOutValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
+		result.Leaving[fmt.Sprint(k)] = Validators{Data: ValidatorArrayToSerializableValidatorArray(v)}
+	}
+
+	for k, v := range config.shuffledOutMap {
+		result.ShuffledOut[fmt.Sprint(k)] = Validators{Data: ValidatorArrayToSerializableValidatorArray(v)}
 	}
 
 	return result

@@ -8,13 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
-type SerializableValidator struct {
-	PubKey  []byte `json:"pubKey"`
-	Chances uint32 `json:"chances"`
-	Index   uint32 `json:"index"`
-}
-
 // EpochValidators holds one epoch configuration for a nodes coordinator
 type EpochValidators struct {
 	EligibleValidators map[string][]*SerializableValidator `json:"eligibleValidators"`

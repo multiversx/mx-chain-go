@@ -86,6 +86,7 @@ func createArguments() ArgNodesCoordinator {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		StakingV4EnableEpoch: 444,
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -110,6 +111,7 @@ func createArguments() ArgNodesCoordinator {
 		IsFullArchive:              false,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+		StakingV4EnableEpoch:       444,
 	}
 	return arguments
 }
