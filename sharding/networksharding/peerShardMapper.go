@@ -287,12 +287,12 @@ func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID
 }
 
 func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {
-	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
+	psm.fallbackPkShardCache.Put(pk, shardId, uint32Size)
 }
 
 // UpdatePeerIdShardId adds the peer ID and shard ID into fallback cache in case it does not exists
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
-	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
+	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
 }
 
 // updatePeerIDPublicKey will update the pid <-> pk mapping, returning true if the pair is a new known pair
@@ -377,7 +377,7 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) []byte {
 
 // UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes
 func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
-	psm.peerIdSubTypeCache.HasOrAdd([]byte(pid), peerSubType, uint32Size)
+	psm.peerIdSubTypeCache.Put([]byte(pid), peerSubType, uint32Size)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

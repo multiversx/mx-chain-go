@@ -28,6 +28,8 @@ type crossShardStatusProcessor struct {
 	shardCoordinator     sharding.Coordinator
 	delayBetweenRequests time.Duration
 	cancel               func()
+	// todo remove this - tests only
+	LatestKnownPeers map[string][]core.PeerID
 }
 
 // NewCrossShardStatusProcessor creates a new instance of crossShardStatusProcessor
@@ -71,11 +73,15 @@ func checkArgsCrossShardStatusProcessor(args ArgCrossShardStatusProcessor) error
 }
 
 func (cssp *crossShardStatusProcessor) startProcessLoop(ctx context.Context) {
-	defer cssp.cancel()
+	timer := time.NewTimer(cssp.delayBetweenRequests)
+
+	defer func() {
+		cssp.cancel()
+		timer.Stop()
+	}()
 
 	requestedTopicsMap := cssp.computeTopicsMap()
 
-	timer := time.NewTimer(cssp.delayBetweenRequests)
 	for {
 		timer.Reset(cssp.delayBetweenRequests)
 
@@ -101,17 +107,49 @@ func (cssp *crossShardStatusProcessor) computeTopicsMap() map[uint32]string {
 	metaIdentifier := factory.TransactionTopic + cssp.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	requestedTopicsMap[core.MetachainShardId] = metaIdentifier
 
+	selfShard := cssp.shardCoordinator.SelfId()
+	delete(requestedTopicsMap, selfShard)
+
 	return requestedTopicsMap
 }
 
 func (cssp *crossShardStatusProcessor) updatePeersInfo(requestedTopicsMap map[uint32]string) {
+	cssp.LatestKnownPeers = make(map[string][]core.PeerID, 0)
+
+	intraShardPeersMap := cssp.getIntraShardConnectedPeers()
+
 	for shard, topic := range requestedTopicsMap {
 		connectedPids := cssp.messenger.ConnectedPeersOnTopic(topic)
-
 		for _, pid := range connectedPids {
+			_, fromSameShard := intraShardPeersMap[pid]
+			if fromSameShard {
+				continue
+			}
+
 			cssp.peerShardMapper.UpdatePeerIdShardId(pid, shard)
+
+			// todo remove this - tests only
+			cssp.LatestKnownPeers[topic] = append(cssp.LatestKnownPeers[topic], pid)
 		}
 	}
+}
+
+func (cssp *crossShardStatusProcessor) getIntraShardConnectedPeers() map[core.PeerID]struct{} {
+	selfShard := cssp.shardCoordinator.SelfId()
+	intraShardTopic := factory.TransactionTopic + cssp.shardCoordinator.CommunicationIdentifier(selfShard)
+	intraShardPeers := cssp.messenger.ConnectedPeersOnTopic(intraShardTopic)
+
+	intraShardPeersMap := make(map[core.PeerID]struct{}, 0)
+	for _, pid := range intraShardPeers {
+		intraShardPeersMap[pid] = struct{}{}
+	}
+
+	return intraShardPeersMap
+}
+
+// GetLatestKnownPeers - todo remove this - tests only
+func (cssp *crossShardStatusProcessor) GetLatestKnownPeers() map[string][]core.PeerID {
+	return cssp.LatestKnownPeers
 }
 
 // Close closes the internal goroutine

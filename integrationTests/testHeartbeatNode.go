@@ -48,14 +48,14 @@ import (
 
 const (
 	defaultNodeName           = "heartbeatNode"
-	timeBetweenPeerAuths      = 10 * time.Second
-	timeBetweenHeartbeats     = 2 * time.Second
+	timeBetweenPeerAuths      = 15 * time.Second
+	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
 	thresholdBetweenSends     = 0.2
 
 	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
-	delayBetweenRequests    = time.Second
+	delayBetweenRequests    = time.Second * 5
 	maxTimeout              = time.Minute
 	maxMissingKeysInRequest = 1
 )
@@ -567,7 +567,7 @@ func (thn *TestHeartbeatNode) initCrossShardStatusProcessor() {
 		Messenger:            thn.Messenger,
 		PeerShardMapper:      thn.PeerShardMapper,
 		ShardCoordinator:     thn.ShardCoordinator,
-		DelayBetweenRequests: time.Second * 3,
+		DelayBetweenRequests: delayBetweenRequests,
 	}
 
 	thn.CrossShardStatusProcessor, _ = processor.NewCrossShardStatusProcessor(args)
