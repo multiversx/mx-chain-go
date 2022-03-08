@@ -81,6 +81,11 @@ func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
+// RemoveFromCurrentEpoch -
+func (sm *StorerMock) RemoveFromCurrentEpoch(_ []byte) error {
+	return errors.New("not implemented")
+}
+
 // Remove -
 func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")

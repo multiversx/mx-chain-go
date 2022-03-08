@@ -167,10 +167,10 @@ type ArgsEpochStartBootstrap struct {
 }
 
 type dataToSync struct {
-	ownShardHdr        data.ShardHeaderHandler
-	rootHashToSync     []byte
-	withScheduled      bool
-	additionalHeaders  map[string]data.HeaderHandler
+	ownShardHdr       data.ShardHeaderHandler
+	rootHashToSync    []byte
+	withScheduled     bool
+	additionalHeaders map[string]data.HeaderHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -955,6 +955,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		&factoryDisabled.TxCoordinator{},
 		e.storerScheduledSCRs,
 		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
 		e.shardCoordinator,
 	)
 	if err != nil {
@@ -1098,6 +1099,9 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 	storageService := disabled.NewChainStorer()
 
+	// TODO - create a dedicated request handler to be used when fetching required data with the correct shard coordinator
+	//  this one should only be used before determining the correct shard where the node should reside
+	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:            e.shardCoordinator,
 		Messenger:                   e.messenger,

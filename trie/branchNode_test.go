@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -1374,10 +1375,10 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
-	assert.Equal(t, ErrContextClosing, err)
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
 	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
-	assert.Equal(t, ErrContextClosing, err)
+	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
 func TestBranchNode_getValueReturnsEmptyByteSlice(t *testing.T) {

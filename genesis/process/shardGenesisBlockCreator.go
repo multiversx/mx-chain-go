@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -113,6 +114,7 @@ func createGenesisConfig() config.EnableEpochs {
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 	}
 }
 
@@ -615,12 +617,13 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      arg.Economics,
-		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
-		BlockChain:        arg.Data.Blockchain(),
-		ArwenChangeLocker: genesisArwenLocker,
-		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
+		VmContainer:              vmContainer,
+		EconomicsFee:             arg.Economics,
+		BlockChainHook:           vmFactoryImpl.BlockChainHookImpl(),
+		BlockChain:               arg.Data.Blockchain(),
+		ArwenChangeLocker:        genesisArwenLocker,
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -793,7 +796,14 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		if check.IfNil(dh) {
 			continue
 		}
-		if arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes()) {
+		sameShard := arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes())
+		if len(dh.AddressBytes()) == 0 {
+			// backwards compatibility, do not make "" address be considered empty and thus, belonging to the same shard
+			if arg.ShardCoordinator.ComputeId(ia.AddressBytes()) != 0 {
+				sameShard = false
+			}
+		}
+		if sameShard {
 			continue
 		}
 

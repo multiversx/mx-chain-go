@@ -11,12 +11,7 @@ import (
 func TestDirectoryReaderListFilesAsString(t *testing.T) {
 	t.Parallel()
 
-	dirName := "./testDir1"
-	_ = os.Mkdir(dirName, os.ModePerm)
-	//remove created files
-	defer func() {
-		_ = os.RemoveAll(dirName)
-	}()
+	dirName := t.TempDir()
 
 	file1 := "file1"
 	file2 := "file2"
@@ -37,12 +32,7 @@ func TestDirectoryReaderListFilesAsString(t *testing.T) {
 func TestDirectoryReaderListDirectoriesAsString(t *testing.T) {
 	t.Parallel()
 
-	dirName := "./testDir2"
-	_ = os.Mkdir(dirName, os.ModePerm)
-	//remove created files
-	defer func() {
-		_ = os.RemoveAll(dirName)
-	}()
+	dirName := t.TempDir()
 
 	file1 := "file1"
 	file2 := "file2"
@@ -62,12 +52,7 @@ func TestDirectoryReaderListDirectoriesAsString(t *testing.T) {
 func TestDirectoryReaderListAllAsString(t *testing.T) {
 	t.Parallel()
 
-	dirName := "./testDir3"
-	_ = os.Mkdir(dirName, os.ModePerm)
-	//remove created files
-	defer func() {
-		_ = os.RemoveAll(dirName)
-	}()
+	dirName := t.TempDir()
 
 	file1 := "file1"
 	file2 := "file2"

@@ -19,6 +19,7 @@ type StorageManagerStub struct {
 	EnterPruningBufferingModeCalled func()
 	ExitPruningBufferingModeCalled  func()
 	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
+	RemoveFromCurrentEpochCalled    func([]byte) error
 	RemoveCalled                    func([]byte) error
 	IsInterfaceNilCalled            func() bool
 	SetEpochForPutOperationCalled   func(uint32)
@@ -113,6 +114,14 @@ func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes 
 	}
 
 	return false
+}
+
+// RemoveFromCurrentEpoch -
+func (sms *StorageManagerStub) RemoveFromCurrentEpoch(hash []byte) error {
+	if sms.RemoveFromCurrentEpochCalled != nil {
+		return sms.RemoveFromCurrentEpochCalled(hash)
+	}
+	return nil
 }
 
 // Remove -

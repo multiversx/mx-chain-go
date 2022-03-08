@@ -33,7 +33,7 @@
    VersionsByEpochs = [
        { StartEpoch = 0, Version = "*" },
        # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-       { StartEpoch = 1000000, Version = "2" },
+       { StartEpoch = 2, Version = "2" },
    ]
    [Versions.Cache]
         Name = "VersionsCache"
@@ -688,8 +688,8 @@
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
-    UserStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
-    PeerStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
+    UserStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
+    PeerStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
