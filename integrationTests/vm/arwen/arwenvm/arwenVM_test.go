@@ -903,8 +903,8 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	intermediateTxs := testContextParentSC.GetIntermediateTransactions(t)
 	require.NotEmpty(t, intermediateTxs)
 
-	_, err = testContextParentSC.Accounts.Commit()
-	_, err = testContextFunderSC.Accounts.Commit()
+	_, _ = testContextParentSC.Accounts.Commit()
+	_, _ = testContextFunderSC.Accounts.Commit()
 
 	utils.TestAccount(t, testContextParentSC.Accounts, parentAddress, 0, big.NewInt(0))
 
@@ -919,8 +919,8 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	intermediateTxs = testContextFunderSC.GetIntermediateTransactions(t)
 	require.NotEmpty(t, intermediateTxs)
 
-	_, err = testContextParentSC.Accounts.Commit()
-	_, err = testContextFunderSC.Accounts.Commit()
+	_, _ = testContextParentSC.Accounts.Commit()
+	_, _ = testContextFunderSC.Accounts.Commit()
 
 	// return to the ParentSC shard (shard 1)
 	scr = intermediateTxs[0]
