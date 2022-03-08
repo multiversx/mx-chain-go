@@ -101,12 +101,12 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
 	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
 	nc := nodesCoordinator.nodesConfig
 
-	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(ncr.EpochsConfig))
+	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
+	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(ncr.GetEpochsConfig()))
 
 	for epoch, config := range nc {
-		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncr.EpochsConfig[fmt.Sprint(epoch)].EligibleValidators))
-		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncr.EpochsConfig[fmt.Sprint(epoch)].WaitingValidators))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncr.GetEpochsConfig()[fmt.Sprint(epoch)].GetEligibleValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncr.GetEpochsConfig()[fmt.Sprint(epoch)].GetWaitingValidators()))
 	}
 }
 
@@ -150,14 +150,14 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
 	nc := nodesCoordinator.nodesConfig
 
-	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.EpochsConfig))
+	require.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
+	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.GetEpochsConfig()))
 
-	for epochStr := range ncr.EpochsConfig {
+	for epochStr := range ncr.GetEpochsConfig() {
 		epoch, err := strconv.Atoi(epochStr)
 		require.Nil(t, err)
-		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].eligibleMap, ncr.EpochsConfig[epochStr].EligibleValidators))
-		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].waitingMap, ncr.EpochsConfig[epochStr].WaitingValidators))
+		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].eligibleMap, ncr.GetEpochsConfig()[epochStr].GetEligibleValidators()))
+		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].waitingMap, ncr.GetEpochsConfig()[epochStr].GetWaitingValidators()))
 	}
 }
 

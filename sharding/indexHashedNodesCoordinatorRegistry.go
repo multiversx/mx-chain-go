@@ -110,18 +110,27 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 		return err
 	}
 
-	config := &NodesCoordinatorRegistry{}
-	err = json.Unmarshal(data, config)
-	if err != nil {
-		return err
+	var config NodesCoordinatorRegistryHandler
+	if ihgs.flagStakingV4.IsSet() {
+		config = &NodesCoordinatorRegistryWithAuction{}
+		err = json.Unmarshal(data, config)
+		if err != nil {
+			return err
+		}
+	} else {
+		config = &NodesCoordinatorRegistry{}
+		err = json.Unmarshal(data, config)
+		if err != nil {
+			return err
+		}
 	}
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = key
 	ihgs.mutSavedStateKey.Unlock()
 
-	ihgs.currentEpoch = config.CurrentEpoch
-	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
+	ihgs.currentEpoch = config.GetCurrentEpoch()
+	log.Debug("loaded nodes config", "current epoch", config.GetCurrentEpoch())
 
 	nodesConfig, err := ihgs.registryToNodesCoordinator(config)
 	if err != nil {
@@ -146,26 +155,29 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	var registry interface{}
-	if ihgs.flagStakingV4.IsSet() {
-		registry = ihgs.NodesCoordinatorToRegistryWithAuction()
-	} else {
-		registry = ihgs.NodesCoordinatorToRegistry()
-	}
-	data, err := json.Marshal(registry)
+	registry := ihgs.NodesCoordinatorToRegistry()
+	data, err := json.Marshal(registry) // TODO: Choose different marshaller depending on registry
 	if err != nil {
 		return err
 	}
 
-	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+	ncInternalKey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
-	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
+	log.Debug("saving nodes coordinator config", "key", ncInternalKey)
 
-	return ihgs.bootStorer.Put(ncInternalkey, data)
+	return ihgs.bootStorer.Put(ncInternalKey, data)
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
 func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() NodesCoordinatorRegistryHandler {
+	if ihgs.flagStakingV4.IsSet() {
+		return ihgs.nodesCoordinatorToRegistryWithAuction()
+	}
+
+	return ihgs.nodesCoordinatorToOldRegistry()
+}
+
+func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToOldRegistry() NodesCoordinatorRegistryHandler {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 
@@ -204,13 +216,13 @@ func (ihgs *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 }
 
 func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
-	config *NodesCoordinatorRegistry,
+	config NodesCoordinatorRegistryHandler,
 ) (map[uint32]*epochNodesConfig, error) {
 	var err error
 	var epoch int64
 	result := make(map[uint32]*epochNodesConfig)
 
-	for epochStr, epochValidators := range config.EpochsConfig {
+	for epochStr, epochValidators := range config.GetEpochsConfig() {
 		epoch, err = strconv.ParseInt(epochStr, 10, 64)
 		if err != nil {
 			return nil, err
@@ -264,23 +276,31 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	return result
 }
 
-func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConfig, error) {
+func epochValidatorsToEpochNodesConfig(config EpochValidatorsHandler) (*epochNodesConfig, error) {
 	result := &epochNodesConfig{}
 	var err error
 
-	result.eligibleMap, err = serializableValidatorsMapToValidatorsMap(config.EligibleValidators)
+	result.eligibleMap, err = serializableValidatorsMapToValidatorsMap(config.GetEligibleValidators())
 	if err != nil {
 		return nil, err
 	}
 
-	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.WaitingValidators)
+	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.GetWaitingValidators())
 	if err != nil {
 		return nil, err
 	}
 
-	result.leavingMap, err = serializableValidatorsMapToValidatorsMap(config.LeavingValidators)
+	result.leavingMap, err = serializableValidatorsMapToValidatorsMap(config.GetLeavingValidators())
 	if err != nil {
 		return nil, err
+	}
+
+	configWithAuction, castOk := config.(EpochValidatorsHandlerWithAuction)
+	if castOk {
+		result.shuffledOutMap, err = serializableValidatorsMapToValidatorsMap(configWithAuction.GetShuffledOutValidators())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return result, nil

@@ -1029,6 +1029,18 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId, true
 	}
 
+	if ihgs.flagStakingV4.IsSet() {
+		found, shardId = searchInMap(nodesConfig.shuffledOutMap, pubKey)
+		if found {
+			log.Trace("computeShardForSelfPublicKey found validator in shuffled out",
+				"epoch", ihgs.currentEpoch,
+				"shard", shardId,
+				"validator PK", pubKey,
+			)
+			return shardId, true
+		}
+	}
+
 	log.Trace("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)

@@ -14,8 +14,40 @@ type NodesCoordinatorRegistryWithAuction struct {
 	CurrentEpoch uint32                                 `json:"currentEpoch"`
 }
 
-// NodesCoordinatorToRegistryWithAuction will export the nodesCoordinator data to the registry which contains auction list
-func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistryWithAuction() *NodesCoordinatorRegistryWithAuction {
+func (ncr *NodesCoordinatorRegistryWithAuction) GetCurrentEpoch() uint32 {
+	return ncr.CurrentEpoch
+}
+
+func (ncr *NodesCoordinatorRegistryWithAuction) GetEpochsConfig() map[string]EpochValidatorsHandler {
+	ret := make(map[string]EpochValidatorsHandler)
+	for epoch, config := range ncr.EpochsConfig {
+		ret[epoch] = config
+	}
+
+	return ret
+}
+
+func (ncr *NodesCoordinatorRegistryWithAuction) SetCurrentEpoch(epoch uint32) {
+	ncr.CurrentEpoch = epoch
+}
+
+func (ncr *NodesCoordinatorRegistryWithAuction) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
+	ncr.EpochsConfig = make(map[string]*EpochValidatorsWithAuction)
+
+	for epoch, config := range epochsConfig {
+		ncr.EpochsConfig[epoch] = &EpochValidatorsWithAuction{
+			EpochValidators: &EpochValidators{
+				EligibleValidators: config.GetEligibleValidators(),
+				WaitingValidators:  config.GetWaitingValidators(),
+				LeavingValidators:  config.GetLeavingValidators(),
+			},
+			ShuffledOutValidators: nil,
+		}
+	}
+}
+
+// nodesCoordinatorToRegistryWithAuction will export the nodesCoordinator data to the registry which contains auction list
+func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction() *NodesCoordinatorRegistryWithAuction {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 
@@ -44,24 +76,8 @@ func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistryWithAuction()
 
 func epochNodesConfigToEpochValidatorsWithAuction(config *epochNodesConfig) *EpochValidatorsWithAuction {
 	result := &EpochValidatorsWithAuction{
-		EpochValidators: &EpochValidators{
-			EligibleValidators: make(map[string][]*SerializableValidator, len(config.eligibleMap)),
-			WaitingValidators:  make(map[string][]*SerializableValidator, len(config.waitingMap)),
-			LeavingValidators:  make(map[string][]*SerializableValidator, len(config.leavingMap)),
-		},
+		EpochValidators:       epochNodesConfigToEpochValidators(config),
 		ShuffledOutValidators: make(map[string][]*SerializableValidator, len(config.shuffledOutMap)),
-	}
-
-	for k, v := range config.eligibleMap {
-		result.EligibleValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
-	}
-
-	for k, v := range config.waitingMap {
-		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
-	}
-
-	for k, v := range config.leavingMap {
-		result.LeavingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	for k, v := range config.leavingMap {
