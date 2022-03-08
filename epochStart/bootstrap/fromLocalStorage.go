@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -263,8 +262,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	config := &sharding.NodesCoordinatorRegistry{}
-	err = json.Unmarshal(d, config)
+	config, err := sharding.CreateNodesCoordinatorRegistry(e.coreComponentsHolder.InternalMarshalizer(), d)
 	if err != nil {
 		return nil, nil, err
 	}
