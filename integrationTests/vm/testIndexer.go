@@ -16,6 +16,7 @@ import (
 	blockProc "github.com/ElrondNetwork/elastic-indexer-go/process/block"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/logsevents"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/miniblocks"
+	"github.com/ElrondNetwork/elastic-indexer-go/process/operations"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/statistics"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/transactions"
 	"github.com/ElrondNetwork/elastic-indexer-go/process/validators"
@@ -125,6 +126,7 @@ func (ti *testIndexer) createElasticProcessor(
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()
 	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
+	opp, _ := operations.NewOperationsProcessor(false, shardCoordinator)
 	args := &logsevents.ArgsLogsAndEventsProcessor{
 		ShardCoordinator: shardCoordinator,
 		PubKeyConverter:  pubkeyConv,
@@ -149,6 +151,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ValidatorsProc:    vp,
 		LogsAndEventsProc: lp,
 		DBClient:          databaseClient,
+		OperationsProc:    opp,
 	}
 
 	esProcessor, _ := elasticProcessor.NewElasticProcessor(esIndexerArgs)

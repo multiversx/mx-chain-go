@@ -14,6 +14,16 @@ type DatabaseWriterStub struct {
 	DoMultiGetCalled    func(ids []string, index string, withSource bool, res interface{}) error
 }
 
+// DoScrollRequest -
+func (dws *DatabaseWriterStub) DoScrollRequest(_ string, _ []byte, _ bool, _ func(responseBytes []byte) error) error {
+	return nil
+}
+
+// DoCountRequest -
+func (dws *DatabaseWriterStub) DoCountRequest(_ string, _ []byte) (uint64, error) {
+	return 0, nil
+}
+
 // DoRequest -
 func (dws *DatabaseWriterStub) DoRequest(req *esapi.IndexRequest) error {
 	if dws.DoRequestCalled != nil {
