@@ -11,14 +11,9 @@ func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction()
 		CurrentEpoch:            ihgs.currentEpoch,
 		EpochsConfigWithAuction: make(map[string]*EpochValidatorsWithAuction),
 	}
-	// todo: extract this into a common func with NodesCoordinatorToRegistry
-	minEpoch := 0
-	lastEpoch := ihgs.getLastEpochConfig()
-	if lastEpoch >= nodesCoordinatorStoredEpochs {
-		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
-	}
 
-	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
+	minEpoch, lastEpoch := ihgs.getMinAndLastEpoch()
+	for epoch := minEpoch; epoch <= lastEpoch; epoch++ {
 		epochNodesData, ok := ihgs.nodesConfig[epoch]
 		if !ok {
 			continue
