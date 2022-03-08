@@ -7,7 +7,7 @@ type BootstrapParamsHandlerMock struct {
 	EpochCalled       func() uint32
 	SelfShardIDCalled func() uint32
 	NumOfShardsCalled func() uint32
-	NodesConfigCalled func() *sharding.NodesCoordinatorRegistry
+	NodesConfigCalled func() sharding.NodesCoordinatorRegistryHandler
 }
 
 // Epoch -
@@ -36,7 +36,7 @@ func (bphm *BootstrapParamsHandlerMock) NumOfShards() uint32 {
 }
 
 // NodesConfig -
-func (bphm *BootstrapParamsHandlerMock) NodesConfig() *sharding.NodesCoordinatorRegistry {
+func (bphm *BootstrapParamsHandlerMock) NodesConfig() sharding.NodesCoordinatorRegistryHandler {
 	if bphm.NodesConfigCalled != nil {
 		return bphm.NodesConfigCalled()
 	}

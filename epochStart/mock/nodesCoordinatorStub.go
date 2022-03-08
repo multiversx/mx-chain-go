@@ -19,7 +19,7 @@ type NodesCoordinatorStub struct {
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *sharding.NodesCoordinatorRegistry {
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() sharding.NodesCoordinatorRegistryHandler {
 	return nil
 }
 
@@ -46,7 +46,7 @@ func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // SetConfig -
-func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
+func (ncm *NodesCoordinatorStub) SetConfig(_ sharding.NodesCoordinatorRegistryHandler) error {
 	return nil
 }
 

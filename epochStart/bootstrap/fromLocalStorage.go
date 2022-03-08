@@ -191,19 +191,19 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 func (e *epochStartBootstrap) checkIfShuffledOut(
 	pubKey []byte,
-	nodesConfig *sharding.NodesCoordinatorRegistry,
+	nodesConfig sharding.NodesCoordinatorRegistryHandler,
 ) (uint32, bool) {
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
-	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
+	epochConfig := nodesConfig.GetEpochsConfig()[epochIDasString]
 
-	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
+	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.GetWaitingValidators())
 	if isWaitingForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
 		e.nodeType = core.NodeTypeValidator
 		return newShardId, isShuffledOut
 	}
 
-	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.EligibleValidators)
+	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.GetEligibleValidators())
 	if isEligibleForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
 		e.nodeType = core.NodeTypeValidator
@@ -244,7 +244,7 @@ func checkIfValidatorIsInList(
 	return false
 }
 
-func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *sharding.NodesCoordinatorRegistry, error) {
+func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, sharding.NodesCoordinatorRegistryHandler, error) {
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
 		return nil, nil, err

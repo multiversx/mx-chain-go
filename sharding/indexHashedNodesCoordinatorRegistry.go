@@ -22,10 +22,72 @@ type EpochValidators struct {
 	LeavingValidators  map[string][]*SerializableValidator `json:"leavingValidators"`
 }
 
+func (ev *EpochValidators) GetEligibleValidators() map[string][]*SerializableValidator {
+	return ev.EligibleValidators
+}
+
+func (ev *EpochValidators) GetWaitingValidators() map[string][]*SerializableValidator {
+	return ev.WaitingValidators
+}
+
+func (ev *EpochValidators) GetLeavingValidators() map[string][]*SerializableValidator {
+	return ev.LeavingValidators
+}
+
 // NodesCoordinatorRegistry holds the data that can be used to initialize a nodes coordinator
 type NodesCoordinatorRegistry struct {
 	EpochsConfig map[string]*EpochValidators `json:"epochConfigs"`
 	CurrentEpoch uint32                      `json:"currentEpoch"`
+}
+
+func (ncr *NodesCoordinatorRegistry) GetCurrentEpoch() uint32 {
+	return ncr.CurrentEpoch
+}
+
+func (ncr *NodesCoordinatorRegistry) GetEpochsConfig() map[string]EpochValidatorsHandler {
+	ret := make(map[string]EpochValidatorsHandler)
+	for epoch, config := range ncr.EpochsConfig {
+		ret[epoch] = config
+	}
+
+	return ret
+}
+
+func (ncr *NodesCoordinatorRegistry) SetCurrentEpoch(epoch uint32) {
+	ncr.CurrentEpoch = epoch
+}
+
+func (ncr *NodesCoordinatorRegistry) SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler) {
+	ncr.EpochsConfig = make(map[string]*EpochValidators)
+
+	for epoch, config := range epochsConfig {
+		ncr.EpochsConfig[epoch] = &EpochValidators{
+			EligibleValidators: config.GetEligibleValidators(),
+			WaitingValidators:  config.GetWaitingValidators(),
+			LeavingValidators:  config.GetLeavingValidators(),
+		}
+	}
+}
+
+// EpochValidatorsHandler defines what one epoch configuration for a nodes coordinator should hold
+type EpochValidatorsHandler interface {
+	GetEligibleValidators() map[string][]*SerializableValidator
+	GetWaitingValidators() map[string][]*SerializableValidator
+	GetLeavingValidators() map[string][]*SerializableValidator
+}
+
+type EpochValidatorsHandlerWithAuction interface {
+	EpochValidatorsHandler
+	GetShuffledOutValidators() map[string][]*SerializableValidator
+}
+
+// NodesCoordinatorRegistryHandler defines that used to initialize nodes coordinator
+type NodesCoordinatorRegistryHandler interface {
+	GetEpochsConfig() map[string]EpochValidatorsHandler
+	GetCurrentEpoch() uint32
+
+	SetCurrentEpoch(epoch uint32)
+	SetEpochsConfig(epochsConfig map[string]EpochValidatorsHandler)
 }
 
 // TODO: add proto marshalizer for these package - replace all json marshalizers
@@ -103,7 +165,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
-func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
+func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() NodesCoordinatorRegistryHandler {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 

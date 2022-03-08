@@ -404,7 +404,7 @@ type BootstrapParamsHolder interface {
 	Epoch() uint32
 	SelfShardID() uint32
 	NumOfShards() uint32
-	NodesConfig() *sharding.NodesCoordinatorRegistry
+	NodesConfig() sharding.NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 

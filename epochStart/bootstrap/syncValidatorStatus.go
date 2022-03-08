@@ -130,7 +130,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	currMetaBlock data.HeaderHandler,
 	prevMetaBlock data.HeaderHandler,
-) (*sharding.NodesCoordinatorRegistry, uint32, error) {
+) (sharding.NodesCoordinatorRegistryHandler, uint32, error) {
 	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
@@ -154,7 +154,7 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	}
 
 	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry()
-	nodesConfig.CurrentEpoch = currMetaBlock.GetEpoch()
+	nodesConfig.SetCurrentEpoch(currMetaBlock.GetEpoch())
 	return nodesConfig, selfShardId, nil
 }
 
@@ -176,7 +176,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
 	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
-	for i, mbHeader := range  mbHeaderHandlers{
+	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}

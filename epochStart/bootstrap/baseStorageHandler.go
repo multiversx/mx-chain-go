@@ -45,7 +45,7 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock data.HeaderHandler,
-	nodesConfig *sharding.NodesCoordinatorRegistry,
+	nodesConfig sharding.NodesCoordinatorRegistryHandler,
 ) ([]byte, error) {
 	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
 

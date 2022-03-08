@@ -61,7 +61,7 @@ type Parameters struct {
 	Epoch       uint32
 	SelfShardId uint32
 	NumOfShards uint32
-	NodesConfig *sharding.NodesCoordinatorRegistry
+	NodesConfig sharding.NodesCoordinatorRegistryHandler
 }
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
@@ -69,7 +69,7 @@ type ComponentsNeededForBootstrap struct {
 	EpochStartMetaBlock data.MetaHeaderHandler
 	PreviousEpochStart  data.MetaHeaderHandler
 	ShardHeader         data.HeaderHandler
-	NodesConfig         *sharding.NodesCoordinatorRegistry
+	NodesConfig         sharding.NodesCoordinatorRegistryHandler
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
 	PendingMiniBlocks   map[string]*block.MiniBlock
@@ -125,7 +125,7 @@ type epochStartBootstrap struct {
 	epochStartMeta     data.MetaHeaderHandler
 	prevEpochStartMeta data.MetaHeaderHandler
 	syncedHeaders      map[string]data.HeaderHandler
-	nodesConfig        *sharding.NodesCoordinatorRegistry
+	nodesConfig        sharding.NodesCoordinatorRegistryHandler
 	baseData           baseDataInStorage
 	startRound         int64
 	nodeType           core.NodeType
