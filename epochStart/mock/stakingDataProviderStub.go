@@ -57,8 +57,8 @@ func (sdps *StakingDataProviderStub) GetNodeStakedTopUp(blsKey []byte) (*big.Int
 	return big.NewInt(0), nil
 }
 
-// PrepareStakingDataForRewards -
-func (sdps *StakingDataProviderStub) PrepareStakingDataForRewards(keys map[uint32][][]byte) error {
+// PrepareStakingData -
+func (sdps *StakingDataProviderStub) PrepareStakingData(keys map[uint32][][]byte) error {
 	if sdps.PrepareStakingDataCalled != nil {
 		return sdps.PrepareStakingDataCalled(keys)
 	}
@@ -70,6 +70,11 @@ func (sdps *StakingDataProviderStub) Clean() {
 	if sdps.CleanCalled != nil {
 		sdps.CleanCalled()
 	}
+}
+
+// GetBlsKeyOwner -
+func (sdps *StakingDataProviderStub) GetBlsKeyOwner(blsKey []byte) (string, error) {
+	return "", nil
 }
 
 // IsInterfaceNil -

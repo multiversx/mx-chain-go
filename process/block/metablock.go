@@ -418,7 +418,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	if mp.isRewardsV2Enabled(header) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 		if err != nil {
 			return err
 		}
@@ -433,7 +433,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 			return err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 		if err != nil {
 			return err
 		}
@@ -886,7 +886,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 
 	var rewardMiniBlocks block.MiniBlockSlice
 	if mp.isRewardsV2Enabled(metaBlock) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -901,7 +901,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 			return nil, err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
 		if err != nil {
 			return nil, err
 		}

@@ -13,7 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	vInfo "github.com/ElrondNetwork/elrond-go/common/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -73,6 +75,7 @@ type systemSCProcessor struct {
 	governanceEnableEpoch          uint32
 	builtInOnMetaEnableEpoch       uint32
 	stakingV4InitEnableEpoch       uint32
+	stakingV4EnableEpoch           uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -89,6 +92,7 @@ type systemSCProcessor struct {
 	flagBuiltInOnMetaEnabled       atomic.Flag
 	flagInitStakingV4Enabled       atomic.Flag
 	flagStakingQueueEnabled        atomic.Flag
+	flagStakingV4Enabled           atomic.Flag
 	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
@@ -186,6 +190,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		governanceEnableEpoch:       args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch:    args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		stakingV4InitEnableEpoch:    args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+		stakingV4EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
@@ -197,7 +202,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
 	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
-	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4InitEnableEpoch)
+	log.Debug("systemSC: enable epoch for initializing staking v4", "epoch", s.stakingV4InitEnableEpoch)
+	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4EnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -211,7 +217,19 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	header data.HeaderHandler,
+) error {
+	err := s.processWithOldFlags(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	return s.processWithNewFlags(validatorsInfoMap, header)
+}
+
+func (s *systemSCProcessor) processWithOldFlags(
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	nonce uint64,
 	epoch uint32,
 ) error {
@@ -230,7 +248,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagChangeMaxNodesEnabled.IsSet() {
-		err := s.updateMaxNodes(validatorInfos, nonce)
+		err := s.updateMaxNodes(validatorsInfoMap, nonce)
 		if err != nil {
 			return err
 		}
@@ -258,35 +276,30 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagSwitchJailedWaiting.IsSet() {
-		err := s.computeNumWaitingPerShard(validatorInfos)
+		err := s.computeNumWaitingPerShard(validatorsInfoMap)
 		if err != nil {
 			return err
 		}
 
-		err = s.swapJailedWithWaiting(validatorInfos)
+		err = s.swapJailedWithWaiting(validatorsInfoMap)
 		if err != nil {
 			return err
 		}
 	}
 
 	if s.flagStakingV2Enabled.IsSet() {
-		err := s.prepareRewardsData(validatorInfos)
+		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
 		}
 
-		err = s.fillStakingDataForNonEligible(validatorInfos)
-		if err != nil {
-			return err
-		}
-
-		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds(validatorInfos, epoch)
+		numUnStaked, err := s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
 		if err != nil {
 			return err
 		}
 
 		if s.flagStakingQueueEnabled.IsSet() {
-			err = s.stakeNodesFromQueue(validatorInfos, numUnStaked, nonce, common.NewList)
+			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
 			}
@@ -301,6 +314,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
+	return nil
+}
+
+func (s *systemSCProcessor) processWithNewFlags(
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	header data.HeaderHandler,
+) error {
 	if s.flagGovernanceEnabled.IsSet() {
 		err := s.updateToGovernanceV2()
 		if err != nil {
@@ -321,13 +341,163 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagInitStakingV4Enabled.IsSet() {
-		err := s.stakeNodesFromQueue(validatorInfos, math.MaxUint32, nonce, common.AuctionList)
+		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagStakingV4Enabled.IsSet() {
+		err := s.prepareStakingDataForAllNodes(validatorsInfoMap)
+		if err != nil {
+			return err
+		}
+
+		_, err = s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
+		if err != nil {
+			return err
+		}
+
+		err = s.selectNodesFromAuctionList(validatorsInfoMap, header.GetPrevRandSeed())
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uint32][]*state.ValidatorInfo, randomness []byte) error {
+	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
+	availableSlots := s.maxNodes - numOfValidators
+	if availableSlots <= 0 {
+		log.Info("not enough available slots for auction nodes; skip selecting nodes from auction list")
+		return nil
+	}
+
+	err := s.sortAuctionList(auctionList, randomness)
+	if err != nil {
+		return err
+	}
+
+	auctionListSize := uint32(len(auctionList))
+	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
+	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
+
+	// TODO: Think of a better way of handling these pointers; perhaps use an interface which handles validators
+	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
+		auctionList[i].List = string(common.SelectedFromAuctionList)
+	}
+
+	return nil
+}
+
+func getAuctionListAndNumOfValidators(validatorsInfoMap map[uint32][]*state.ValidatorInfo) ([]*state.ValidatorInfo, uint32) {
+	auctionList := make([]*state.ValidatorInfo, 0)
+	numOfValidators := uint32(0)
+
+	for _, validatorsInShard := range validatorsInfoMap {
+		for _, validator := range validatorsInShard {
+			if validator.List == string(common.AuctionList) {
+				auctionList = append(auctionList, validator)
+				continue
+			}
+			if isValidator(validator) {
+				numOfValidators++
+			}
+		}
+	}
+
+	return auctionList, numOfValidators
+}
+
+func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, randomness []byte) error {
+	validatorTopUpMap, err := s.getValidatorTopUpMap(auctionList)
+	if err != nil {
+		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
+	}
+
+	sort.SliceStable(auctionList, func(i, j int) bool {
+		pubKey1 := auctionList[i].PublicKey
+		pubKey2 := auctionList[j].PublicKey
+
+		nodeTopUpPubKey1 := validatorTopUpMap[string(pubKey1)]
+		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
+
+		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
+			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
+		}
+
+		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
+	})
+
+	return nil
+}
+
+func (s *systemSCProcessor) getValidatorTopUpMap(validators []*state.ValidatorInfo) (map[string]*big.Int, error) {
+	ret := make(map[string]*big.Int, len(validators))
+
+	for _, validator := range validators {
+		pubKey := validator.PublicKey
+		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("%w when trying to get top up per node for %s", err, hex.EncodeToString(pubKey))
+		}
+
+		ret[string(pubKey)] = topUp
+	}
+
+	return ret, nil
+}
+
+func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
+	minLen := core.MinInt(len(pubKey1), len(randomness))
+
+	key1Xor := make([]byte, minLen)
+	key2Xor := make([]byte, minLen)
+
+	for idx := 0; idx < minLen; idx++ {
+		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
+		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
+	}
+
+	return bytes.Compare(key1Xor, key2Xor) == 1
+}
+
+func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInfo, numOfSelectedNodes uint32) {
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
+
+	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
+	lines := make([]*display.LineData, 0, len(auctionList))
+	horizontalLine := false
+	for idx, validator := range auctionList {
+		pubKey := validator.GetPublicKey()
+
+		owner, err := s.stakingDataProvider.GetBlsKeyOwner(pubKey)
+		log.LogIfError(err)
+
+		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
+		log.LogIfError(err)
+
+		horizontalLine = uint32(idx) == numOfSelectedNodes-1
+		line := display.NewLineData(horizontalLine, []string{
+			hex.EncodeToString([]byte(owner)),
+			hex.EncodeToString(pubKey),
+			topUp.String(),
+		})
+		lines = append(lines, line)
+	}
+
+	table, err := display.CreateTableString(tableHeader, lines)
+	if err != nil {
+		log.Error("could not create table", "error", err)
+		return
+	}
+
+	message := fmt.Sprintf("Auction list\n%s", table)
+	log.Debug(message)
 }
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
@@ -368,10 +538,10 @@ func (s *systemSCProcessor) ToggleUnStakeUnBond(value bool) error {
 }
 
 func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	epoch uint32,
 ) (uint32, error) {
-	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorInfos)
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap)
 	if err != nil {
 		return 0, err
 	}
@@ -386,7 +556,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 			return 0, err
 		}
 
-		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
+		validatorInfo := getValidatorInfoWithBLSKey(validatorsInfoMap, blsKey)
 		if validatorInfo == nil {
 			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
@@ -498,8 +668,8 @@ func (s *systemSCProcessor) updateDelegationContracts(mapOwnerKeys map[string][]
 	return nil
 }
 
-func getValidatorInfoWithBLSKey(validatorInfos map[uint32][]*state.ValidatorInfo, blsKey []byte) *state.ValidatorInfo {
-	for _, validatorsInfoSlice := range validatorInfos {
+func getValidatorInfoWithBLSKey(validatorsInfoMap map[uint32][]*state.ValidatorInfo, blsKey []byte) *state.ValidatorInfo {
+	for _, validatorsInfoSlice := range validatorsInfoMap {
 		for _, validatorInfo := range validatorsInfoSlice {
 			if bytes.Equal(validatorInfo.PublicKey, blsKey) {
 				return validatorInfo
@@ -509,8 +679,8 @@ func getValidatorInfoWithBLSKey(validatorInfos map[uint32][]*state.ValidatorInfo
 	return nil
 }
 
-func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	for shId, validatorsInfoSlice := range validatorInfos {
+func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	for shId, validatorsInfoSlice := range validatorsInfoMap {
 		newList := make([]*state.ValidatorInfo, 0, len(validatorsInfoSlice))
 		deleteCalled := false
 
@@ -541,26 +711,33 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 		}
 
 		if deleteCalled {
-			validatorInfos[shId] = newList
+			validatorsInfoMap[shId] = newList
 		}
 	}
 
 	return nil
 }
 
-func (s *systemSCProcessor) prepareRewardsData(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
-) error {
-	eligibleNodesKeys := s.getEligibleNodesKeyMapOfType(validatorsInfo)
-	err := s.prepareStakingDataForRewards(eligibleNodesKeys)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (s *systemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	eligibleNodes := s.getEligibleNodeKeys(validatorsInfoMap)
+	return s.prepareStakingData(eligibleNodes)
 }
 
-func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[uint32][][]byte) error {
+func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	allNodes := s.getAllNodeKeys(validatorsInfoMap)
+	return s.prepareStakingData(allNodes)
+}
+
+func (s *systemSCProcessor) unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap map[uint32][]*state.ValidatorInfo, epoch uint32) (uint32, error) {
+	err := s.fillStakingDataForNonEligible(validatorsInfoMap)
+	if err != nil {
+		return 0, err
+	}
+
+	return s.unStakeNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
+}
+
+func (s *systemSCProcessor) prepareStakingData(nodeKeys map[uint32][][]byte) error {
 	sw := core.NewStopWatch()
 	sw.Start("prepareStakingDataForRewards")
 	defer func() {
@@ -568,14 +745,14 @@ func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[u
 		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements()...)
 	}()
 
-	return s.stakingDataProvider.PrepareStakingDataForRewards(eligibleNodesKeys)
+	return s.stakingDataProvider.PrepareStakingData(nodeKeys)
 }
 
-func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+func (s *systemSCProcessor) getEligibleNodeKeys(
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 ) map[uint32][][]byte {
 	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfo {
+	for shardID, validatorsInfoSlice := range validatorsInfoMap {
 		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
 			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
@@ -585,6 +762,20 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	}
 
 	return eligibleNodesKeys
+}
+
+func (s *systemSCProcessor) getAllNodeKeys(
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+) map[uint32][][]byte {
+	nodeKeys := make(map[uint32][][]byte)
+	for shardID, validatorsInfoSlice := range validatorsInfo {
+		nodeKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
+		for _, validatorInfo := range validatorsInfoSlice {
+			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.PublicKey)
+		}
+	}
+
+	return nodeKeys
 }
 
 func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
@@ -694,7 +885,7 @@ func (s *systemSCProcessor) resetLastUnJailed() error {
 }
 
 // updates the configuration of the system SC if the flags permit
-func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error {
+func (s *systemSCProcessor) updateMaxNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo, nonce uint64) error {
 	sw := core.NewStopWatch()
 	sw.Start("total")
 	defer func() {
@@ -716,7 +907,7 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 
 	if s.flagStakingQueueEnabled.IsSet() {
 		sw.Start("stakeNodesFromQueue")
-		err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
+		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
 		sw.Stop("stakeNodesFromQueue")
 		if err != nil {
 			return err
@@ -725,8 +916,8 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 	return nil
 }
 
-func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	for shardID, validatorInfoList := range validatorInfos {
+func (s *systemSCProcessor) computeNumWaitingPerShard(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	for shardID, validatorInfoList := range validatorsInfoMap {
 		totalInWaiting := uint32(0)
 		for _, validatorInfo := range validatorInfoList {
 			switch validatorInfo.List {
@@ -740,8 +931,8 @@ func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32]
 	return nil
 }
 
-func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	jailedValidators := s.getSortedJailedNodes(validatorInfos)
+func (s *systemSCProcessor) swapJailedWithWaiting(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	jailedValidators := s.getSortedJailedNodes(validatorsInfoMap)
 
 	log.Debug("number of jailed validators", "num", len(jailedValidators))
 
@@ -779,7 +970,7 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			continue
 		}
 
-		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
+		newValidator, err := s.stakingToValidatorStatistics(validatorsInfoMap, jailedValidator, vmOutput)
 		if err != nil {
 			return err
 		}
@@ -793,7 +984,7 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 }
 
 func (s *systemSCProcessor) stakingToValidatorStatistics(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
 ) ([]byte, error) {
@@ -855,7 +1046,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	} else {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
-		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
+		deleteNewValidatorIfExistsFromMap(validatorsInfoMap, blsPubKey, account.GetShardId())
 	}
 
 	account.SetListAndIndex(jailedValidator.ShardId, string(common.NewList), uint32(stakingData.StakedNonce))
@@ -884,7 +1075,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
+	switchJailedWithNewValidatorInMap(validatorsInfoMap, jailedValidator, newValidatorInfo)
 
 	return blsPubKey, nil
 }
@@ -894,29 +1085,29 @@ func isValidator(validator *state.ValidatorInfo) bool {
 }
 
 func deleteNewValidatorIfExistsFromMap(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	blsPubKey []byte,
 	shardID uint32,
 ) {
-	for index, validatorInfo := range validatorInfos[shardID] {
+	for index, validatorInfo := range validatorsInfoMap[shardID] {
 		if bytes.Equal(validatorInfo.PublicKey, blsPubKey) {
-			length := len(validatorInfos[shardID])
-			validatorInfos[shardID][index] = validatorInfos[shardID][length-1]
-			validatorInfos[shardID][length-1] = nil
-			validatorInfos[shardID] = validatorInfos[shardID][:length-1]
+			length := len(validatorsInfoMap[shardID])
+			validatorsInfoMap[shardID][index] = validatorsInfoMap[shardID][length-1]
+			validatorsInfoMap[shardID][length-1] = nil
+			validatorsInfoMap[shardID] = validatorsInfoMap[shardID][:length-1]
 			break
 		}
 	}
 }
 
 func switchJailedWithNewValidatorInMap(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	newValidator *state.ValidatorInfo,
 ) {
-	for index, validatorInfo := range validatorInfos[jailedValidator.ShardId] {
+	for index, validatorInfo := range validatorsInfoMap[jailedValidator.ShardId] {
 		if bytes.Equal(validatorInfo.PublicKey, jailedValidator.PublicKey) {
-			validatorInfos[jailedValidator.ShardId][index] = newValidator
+			validatorsInfoMap[jailedValidator.ShardId][index] = newValidator
 			break
 		}
 	}
@@ -972,12 +1163,12 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 	return nil
 }
 
-func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) []*state.ValidatorInfo {
+func (s *systemSCProcessor) getSortedJailedNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) []*state.ValidatorInfo {
 	newJailedValidators := make([]*state.ValidatorInfo, 0)
 	oldJailedValidators := make([]*state.ValidatorInfo, 0)
 
 	minChance := s.chanceComputer.GetChance(0)
-	for _, listValidators := range validatorInfos {
+	for _, listValidators := range validatorsInfoMap {
 		for _, validatorInfo := range listValidators {
 			if validatorInfo.List == string(common.JailedList) {
 				oldJailedValidators = append(oldJailedValidators, validatorInfo)
@@ -1392,7 +1583,7 @@ func (s *systemSCProcessor) cleanAdditionalQueue() error {
 }
 
 func (s *systemSCProcessor) stakeNodesFromQueue(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	nodesToStake uint32,
 	nonce uint64,
 	list common.PeerType,
@@ -1427,7 +1618,7 @@ func (s *systemSCProcessor) stakeNodesFromQueue(
 		return err
 	}
 
-	err = s.addNewlyStakedNodesToValidatorTrie(validatorInfos, vmOutput.ReturnData, nonce, list)
+	err = s.addNewlyStakedNodesToValidatorTrie(validatorsInfoMap, vmOutput.ReturnData, nonce, list)
 	if err != nil {
 		return err
 	}
@@ -1436,7 +1627,7 @@ func (s *systemSCProcessor) stakeNodesFromQueue(
 }
 
 func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	returnData [][]byte,
 	nonce uint64,
 	list common.PeerType,
@@ -1479,7 +1670,7 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			RewardAddress:   rewardAddress,
 			AccumulatedFees: big.NewInt(0),
 		}
-		validatorInfos[peerAcc.GetShardId()] = append(validatorInfos[peerAcc.GetShardId()], validatorInfo)
+		validatorsInfoMap[peerAcc.GetShardId()] = append(validatorsInfoMap[peerAcc.GetShardId()], validatorInfo)
 	}
 
 	return nil
@@ -1574,7 +1765,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
 	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
-	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch)
+	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
@@ -1605,4 +1796,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagStakingQueueEnabled.SetValue(epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("systemProcessor: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
+
+	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
+	log.Debug("systemProcessor: staking queue on meta", "enabled", s.flagStakingV4Enabled.IsSet())
 }

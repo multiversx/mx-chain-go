@@ -91,7 +91,7 @@ func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 
 // GetNodeStakedTopUp returns the owner of provided bls key staking stats for the current epoch
 func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
-	owner, err := sdp.getBlsKeyOwner(blsKey)
+	owner, err := sdp.GetBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -105,8 +105,8 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.topUpPerNode, nil
 }
 
-// PrepareStakingDataForRewards prepares the staking data for the given map of node keys per shard
-func (sdp *stakingDataProvider) PrepareStakingDataForRewards(keys map[uint32][][]byte) error {
+// PrepareStakingData prepares the staking data for the given map of node keys per shard
+func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
 	sdp.Clean()
 
 	for _, keysList := range keys {
@@ -163,7 +163,7 @@ func (sdp *stakingDataProvider) FillValidatorInfo(blsKey []byte) error {
 }
 
 func (sdp *stakingDataProvider) getAndFillOwnerStatsFromSC(blsKey []byte) (*ownerStats, error) {
-	owner, err := sdp.getBlsKeyOwner(blsKey)
+	owner, err := sdp.GetBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("error fill owner stats", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -195,7 +195,8 @@ func (sdp *stakingDataProvider) loadDataForBlsKey(blsKey []byte) error {
 	return nil
 }
 
-func (sdp *stakingDataProvider) getBlsKeyOwner(blsKey []byte) (string, error) {
+// GetBlsKeyOwner returns the owner's public key of the provided bls key
+func (sdp *stakingDataProvider) GetBlsKeyOwner(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.ValidatorSCAddress,

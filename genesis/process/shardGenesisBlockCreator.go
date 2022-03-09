@@ -116,6 +116,7 @@ func createGenesisConfig() config.EnableEpochs {
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 		StakeLimitsEnableEpoch:                            unreachableEpoch,
 		StakingV4InitEnableEpoch:                          unreachableEpoch,
+		StakingV4EnableEpoch:                              unreachableEpoch,
 	}
 }
 
