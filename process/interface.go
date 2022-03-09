@@ -174,8 +174,8 @@ type IntermediateTransactionHandler interface {
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
-	RemoveProcessedResults() [][]byte
-	InitProcessedResults()
+	RemoveProcessedResults(key []byte) [][]byte
+	InitProcessedResults(key []byte)
 	IsInterfaceNil() bool
 }
 
@@ -213,7 +213,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool, indexOfLastTxProcessed int32) ([][]byte, int, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, indexOfLastTxProcessed int, postProcessorInfoHandler PostProcessorInfoHandler) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -1198,4 +1198,11 @@ type TxsSenderHandler interface {
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// PostProcessorInfoHandler handles post processor info needed by the transactions preprocessors
+type PostProcessorInfoHandler interface {
+	GetNumOfCrossInterMbsAndTxs() (int, int)
+	InitProcessedTxsResults(key []byte)
+	RevertProcessedTxsResults(txHashes [][]byte, key []byte)
 }

@@ -448,19 +448,22 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 3})
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 4})
 
+	key := []byte("key")
+	irp.InitProcessedResults(key)
+
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.RemoveProcessedResults()
+	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
 	assert.Equal(t, len(irp.mapProcessedResult), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.InitProcessedResults()
+	irp.InitProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.mapProcessedResult), 0)
 	irp.mutInterResultsForBlock.Unlock()

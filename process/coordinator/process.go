@@ -594,10 +594,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	shouldSkipShard := make(map[uint32]bool)
 
-	key := hdr.GetPrevHash()
+	headerHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, hdr)
+	if err != nil {
+		return miniBlocks, numTxAdded, false, nil
+	}
+
 	if tc.shardCoordinator.SelfId() == core.MetachainShardId {
-		tc.initProcessedTxsResults()
-		tc.gasHandler.Reset(key)
+		tc.InitProcessedTxsResults(headerHash)
+		tc.gasHandler.Reset(headerHash)
 	}
 
 	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
@@ -768,7 +772,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	numTotalMiniBlocksProcessed := numAlreadyMiniBlocksProcessed + numNewMiniBlocksProcessed
 	allMBsProcessed := numTotalMiniBlocksProcessed == len(finalCrossMiniBlockInfos)
 	if !allMBsProcessed {
-		tc.revertIfNeeded(processedTxHashes, key)
+		tc.revertIfNeeded(processedTxHashes, headerHash)
 	}
 
 	return miniBlocks, numTxAdded, allMBsProcessed, nil
@@ -804,7 +808,7 @@ func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte, key [
 	}
 
 	tc.gasHandler.RestoreGasSinceLastReset(key)
-	tc.revertProcessedTxsResults(txsToBeReverted)
+	tc.RevertProcessedTxsResults(txsToBeReverted, key)
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
@@ -1103,11 +1107,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	processedMbInfo *processedMb.ProcessedMiniBlockInfo,
 ) error {
 
-	snapshot := tc.accounts.JournalLen()
-	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
-		tc.initProcessedTxsResults()
-		tc.gasHandler.Reset(miniBlockHash)
-	}
+	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash)
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: before processing",
 		"scheduled mode", scheduledMode,
@@ -1121,18 +1121,18 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 	)
 
-	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(
+	txsToBeReverted, indexOfLastTxProcessed, err := preproc.ProcessMiniBlock(
 		miniBlock,
 		haveTime,
 		haveAdditionalTime,
-		tc.getNumOfCrossInterMbsAndTxs,
 		scheduledMode,
-		processedMbInfo.IndexOfLastTxProcessed,
+		int(processedMbInfo.IndexOfLastTxProcessed),
+		tc,
 	)
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing",
-		"num all txs processed", numTxsProcessed,
-		"num current txs processed", (numTxsProcessed-1)-int(processedMbInfo.IndexOfLastTxProcessed),
+		"num all txs processed", indexOfLastTxProcessed+1,
+		"num current txs processed", indexOfLastTxProcessed-int(processedMbInfo.IndexOfLastTxProcessed),
 		"txs to be reverted", len(txsToBeReverted),
 		"total gas provided", tc.gasHandler.TotalGasProvided(),
 		"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
@@ -1149,54 +1149,54 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			"rcv shard", miniBlock.ReceiverShardID,
 			"num txs", len(miniBlock.TxHashes),
 			"txs to be reverted", len(txsToBeReverted),
-			"num all txs processed", numTxsProcessed,
-			"num current txs processed", (numTxsProcessed-1)-int(processedMbInfo.IndexOfLastTxProcessed),
+			"num all txs processed", indexOfLastTxProcessed+1,
+			"num current txs processed", indexOfLastTxProcessed-int(processedMbInfo.IndexOfLastTxProcessed),
 			"error", err.Error(),
 		)
 
-		allTxsProcessed := numTxsProcessed == len(miniBlock.TxHashes)
-		if tc.flagMiniBlockPartialExecution.IsSet() && !allTxsProcessed {
-			processedMbInfo.IndexOfLastTxProcessed = int32(numTxsProcessed - 1)
+		allTxsProcessed := indexOfLastTxProcessed+1 == len(miniBlock.TxHashes)
+		if allTxsProcessed {
+			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
+		} else {
+			processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 			processedMbInfo.IsFullyProcessed = false
-			return err
-		}
-
-		//TODO: What happens in meta chain situation?
-		tc.gasHandler.RestoreGasSinceLastReset(miniBlockHash)
-
-		errRevert := tc.accounts.RevertToSnapshot(snapshot)
-		if errRevert != nil {
-			// TODO: evaluate if reloading the trie from disk will might solve the problem
-			log.Debug("RevertToSnapshot", "error", errRevert.Error())
-		}
-
-		if len(txsToBeReverted) > 0 {
-			tc.revertProcessedTxsResults(txsToBeReverted)
 		}
 
 		return err
 	}
 
-	processedMbInfo.IndexOfLastTxProcessed = int32(len(miniBlock.TxHashes) - 1)
+	processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 	processedMbInfo.IsFullyProcessed = true
 
 	return nil
 }
 
-func (tc *transactionCoordinator) initProcessedTxsResults() {
-	tc.mutInterimProcessors.RLock()
-	defer tc.mutInterimProcessors.RUnlock()
+func (tc *transactionCoordinator) handleProcessMiniBlockInit(miniBlockHash []byte) int {
+	snapshot := tc.accounts.JournalLen()
+	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
+		tc.InitProcessedTxsResults(miniBlockHash)
+		tc.gasHandler.Reset(miniBlockHash)
+	}
 
-	for _, value := range tc.keysInterimProcs {
-		interProc, ok := tc.interimProcessors[value]
-		if !ok {
-			continue
-		}
-		interProc.InitProcessedResults()
+	return snapshot
+}
+
+func (tc *transactionCoordinator) handleProcessTransactionError(snapshot int, miniBlockHash []byte, txsToBeReverted [][]byte) {
+	tc.gasHandler.RestoreGasSinceLastReset(miniBlockHash)
+
+	err := tc.accounts.RevertToSnapshot(snapshot)
+	if err != nil {
+		// TODO: evaluate if reloading the trie from disk will might solve the problem
+		log.Debug("transactionCoordinator.handleProcessTransactionError: RevertToSnapshot", "error", err.Error())
+	}
+
+	if len(txsToBeReverted) > 0 {
+		tc.RevertProcessedTxsResults(txsToBeReverted, miniBlockHash)
 	}
 }
 
-func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
+// InitProcessedTxsResults inits processed txs results for the given key
+func (tc *transactionCoordinator) InitProcessedTxsResults(key []byte) {
 	tc.mutInterimProcessors.RLock()
 	defer tc.mutInterimProcessors.RUnlock()
 
@@ -1205,7 +1205,21 @@ func (tc *transactionCoordinator) revertProcessedTxsResults(txHashes [][]byte) {
 		if !ok {
 			continue
 		}
-		resultHashes := interProc.RemoveProcessedResults()
+		interProc.InitProcessedResults(key)
+	}
+}
+
+// RevertProcessedTxsResults reverts processed txs results for the given hashes and key
+func (tc *transactionCoordinator) RevertProcessedTxsResults(txHashes [][]byte, key []byte) {
+	tc.mutInterimProcessors.RLock()
+	defer tc.mutInterimProcessors.RUnlock()
+
+	for _, value := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[value]
+		if !ok {
+			continue
+		}
+		resultHashes := interProc.RemoveProcessedResults(key)
 		accFeesBeforeRevert := tc.feeHandler.GetAccumulatedFees()
 		tc.feeHandler.RevertFees(resultHashes)
 		accFeesAfterRevert := tc.feeHandler.GetAccumulatedFees()
@@ -1352,7 +1366,8 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	return tc.marshalizer.Marshal(receiptsBatch)
 }
 
-func (tc *transactionCoordinator) getNumOfCrossInterMbsAndTxs() (int, int) {
+// GetNumOfCrossInterMbsAndTxs gets the number of cross intermediate transactions and mini blocks
+func (tc *transactionCoordinator) GetNumOfCrossInterMbsAndTxs() (int, int) {
 	totalNumMbs := 0
 	totalNumTxs := 0
 

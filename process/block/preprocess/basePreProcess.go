@@ -470,6 +470,24 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
+func (bpp *basePreProcess) handleProcessTransactionInit(postProcessorInfoHandler process.PostProcessorInfoHandler, txHash []byte) int {
+	snapshot := bpp.accounts.JournalLen()
+	postProcessorInfoHandler.InitProcessedTxsResults(txHash)
+	bpp.gasHandler.Reset(txHash)
+	return snapshot
+}
+
+func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandler process.PostProcessorInfoHandler, snapshot int, txHash []byte) {
+	bpp.gasHandler.RestoreGasSinceLastReset(txHash)
+
+	errRevert := bpp.accounts.RevertToSnapshot(snapshot)
+	if errRevert != nil {
+		log.Debug("basePreProcess.handleProcessError: RevertToSnapshot", "error", errRevert.Error())
+	}
+
+	postProcessorInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+}
+
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
 	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)

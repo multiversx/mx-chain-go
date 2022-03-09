@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -95,7 +96,11 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		Type:            0,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -116,7 +121,11 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		Type:            block.PeerBlock,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 	assert.Nil(t, err)
 }
 
@@ -137,7 +146,11 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		Type:            block.PeerBlock,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 	assert.Equal(t, process.ErrValidatorInfoMiniBlockNotFromMeta, err)
 }
 

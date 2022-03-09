@@ -67,7 +67,7 @@ func NewIntermediateResultsProcessor(
 		shardCoordinator:   coordinator,
 		store:              store,
 		storageType:        dataRetriever.UnsignedTransactionUnit,
-		mapProcessedResult: make(map[string]struct{}),
+		mapProcessedResult: make(map[string][][]byte),
 		economicsFee:       economicsFee,
 	}
 
@@ -239,7 +239,9 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
-		irp.mapProcessedResult[string(scrHash)] = struct{}{}
+		for key := range irp.mapProcessedResult {
+			irp.mapProcessedResult[key] = append(irp.mapProcessedResult[key], scrHash)
+		}
 	}
 
 	return nil

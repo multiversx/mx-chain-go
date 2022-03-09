@@ -376,7 +376,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		Type:            0,
 	}
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -411,7 +415,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 	assert.Nil(t, err)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
@@ -451,7 +459,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
 	rtp.AddTxs(txHashes, txs)
 
-	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, getNumOfCrossInterMbsAndTxsZero, false)
+	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
