@@ -26,19 +26,9 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 		return err
 	}
 
-	var config NodesCoordinatorRegistryHandler
-	if ihgs.flagStakingV4.IsSet() {
-		config = &NodesCoordinatorRegistryWithAuction{}
-		err = ihgs.marshalizer.Unmarshal(config, data)
-		if err != nil {
-			return err
-		}
-	} else {
-		config = &NodesCoordinatorRegistry{}
-		err = json.Unmarshal(data, config)
-		if err != nil {
-			return err
-		}
+	config, err := CreateNodesCoordinatorRegistry(ihgs.marshalizer, data)
+	if err != nil {
+		return err
 	}
 
 	ihgs.mutSavedStateKey.Lock()
