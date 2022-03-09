@@ -185,7 +185,7 @@
     DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
 
     # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
-   AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
 
     # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
     SCRSizeInvariantOnBuiltInResultEnableEpoch = 2
