@@ -220,151 +220,225 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	header data.HeaderHandler,
 ) error {
-	err := s.processWithOldFlags(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	err := s.processUpdateSystemSCConfigMinNodes()
 	if err != nil {
 		return err
 	}
 
-	return s.processWithNewFlags(validatorsInfoMap, header)
+	err = s.processUpdateOwnersForBlsKeys()
+	if err != nil {
+		return err
+	}
+
+	err = s.processUpdateMaxNodes(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+
+	err = s.processResetLastUnJailed()
+	if err != nil {
+		return err
+	}
+
+	err = s.processInitDelegationSystemSC()
+	if err != nil {
+		return err
+	}
+
+	err = s.processCleanAdditionalQueue()
+	if err != nil {
+		return err
+	}
+
+	err = s.processSwitchJailedWaiting(validatorsInfoMap)
+	if err != nil {
+		return err
+	}
+
+	err = s.processStakingV2(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+
+	err = s.processInitESDT()
+	if err != nil {
+		return err
+	}
+
+	err = s.processUpdateToGovernanceV2()
+	if err != nil {
+		return err
+	}
+
+	err = s.processBuiltInOnMeta()
+	if err != nil {
+		return err
+	}
+
+	err = s.processInitStakingV4(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+
+	err = s.processStakingV4(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *systemSCProcessor) processWithOldFlags(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
-	nonce uint64,
-	epoch uint32,
-) error {
-	if s.flagHystNodesEnabled.IsSet() {
-		err := s.updateSystemSCConfigMinNodes()
-		if err != nil {
-			return err
-		}
+func (s *systemSCProcessor) processUpdateSystemSCConfigMinNodes() error {
+	if !s.flagHystNodesEnabled.IsSet() {
+		return nil
 	}
 
-	if s.flagSetOwnerEnabled.IsSet() {
-		err := s.updateOwnersForBlsKeys()
-		if err != nil {
-			return err
-		}
+	return s.updateSystemSCConfigMinNodes()
+}
+
+func (s *systemSCProcessor) processUpdateOwnersForBlsKeys() error {
+	if !s.flagSetOwnerEnabled.IsSet() {
+		return nil
 	}
 
-	if s.flagChangeMaxNodesEnabled.IsSet() {
-		err := s.updateMaxNodes(validatorsInfoMap, nonce)
-		if err != nil {
-			return err
-		}
+	return s.updateOwnersForBlsKeys()
+}
+
+func (s *systemSCProcessor) processUpdateMaxNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+	if !s.flagChangeMaxNodesEnabled.IsSet() {
+		return nil
 	}
 
-	if s.flagCorrectLastUnjailedEnabled.IsSet() {
-		err := s.resetLastUnJailed()
-		if err != nil {
-			return err
-		}
+	return s.updateMaxNodes(validatorsInfoMap, header.GetNonce())
+}
+
+func (s *systemSCProcessor) processResetLastUnJailed() error {
+	if !s.flagCorrectLastUnjailedEnabled.IsSet() {
+		return nil
 	}
 
-	if s.flagDelegationEnabled.IsSet() {
-		err := s.initDelegationSystemSC()
-		if err != nil {
-			return err
-		}
+	return s.resetLastUnJailed()
+}
+
+func (s *systemSCProcessor) processInitDelegationSystemSC() error {
+	if !s.flagDelegationEnabled.IsSet() {
+		return nil
 	}
 
-	if s.flagCorrectNumNodesToStake.IsSet() {
-		err := s.cleanAdditionalQueue()
-		if err != nil {
-			return err
-		}
+	return s.initDelegationSystemSC()
+}
+
+func (s *systemSCProcessor) processCleanAdditionalQueue() error {
+	if !s.flagCorrectNumNodesToStake.IsSet() {
+		return nil
 	}
 
-	if s.flagSwitchJailedWaiting.IsSet() {
-		err := s.computeNumWaitingPerShard(validatorsInfoMap)
-		if err != nil {
-			return err
-		}
+	return s.cleanAdditionalQueue()
+}
 
-		err = s.swapJailedWithWaiting(validatorsInfoMap)
-		if err != nil {
-			return err
-		}
+func (s *systemSCProcessor) processSwitchJailedWaiting(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+	if !s.flagSwitchJailedWaiting.IsSet() {
+		return nil
 	}
 
-	if s.flagStakingV2Enabled.IsSet() {
-		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
-		if err != nil {
-			return err
-		}
-
-		numUnStaked, err := s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
-		if err != nil {
-			return err
-		}
-
-		if s.flagStakingQueueEnabled.IsSet() {
-			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
-			if err != nil {
-				return err
-			}
-		}
+	err := s.computeNumWaitingPerShard(validatorsInfoMap)
+	if err != nil {
+		return err
 	}
 
-	if s.flagESDTEnabled.IsSet() {
-		err := s.initESDT()
+	return s.swapJailedWithWaiting(validatorsInfoMap)
+}
+
+func (s *systemSCProcessor) processStakingV2(validatorsInfoMap map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+	if !s.flagStakingV2Enabled.IsSet() {
+		return nil
+	}
+
+	err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
+	if err != nil {
+		return err
+	}
+
+	numUnStaked, err := s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	if s.flagStakingQueueEnabled.IsSet() {
+		err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, header.GetNonce(), common.NewList)
 		if err != nil {
-			//not a critical error
-			log.Error("error while initializing ESDT", "err", err)
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (s *systemSCProcessor) processWithNewFlags(
+func (s *systemSCProcessor) processInitESDT() error {
+	if !s.flagESDTEnabled.IsSet() {
+		return nil
+	}
+
+	err := s.initESDT()
+	if err != nil {
+		// not a critical error
+		log.Error("error while initializing ESDT", "err", err)
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) processUpdateToGovernanceV2() error {
+	if !s.flagGovernanceEnabled.IsSet() {
+		return nil
+	}
+
+	return s.updateToGovernanceV2()
+}
+
+func (s *systemSCProcessor) processBuiltInOnMeta() error {
+	if !s.flagBuiltInOnMetaEnabled.IsSet() {
+		return nil
+	}
+
+	tokenID, err := s.initTokenOnMeta()
+	if err != nil {
+		return err
+	}
+
+	return s.initLiquidStakingSC(tokenID)
+}
+
+func (s *systemSCProcessor) processInitStakingV4(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	header data.HeaderHandler,
 ) error {
-	if s.flagGovernanceEnabled.IsSet() {
-		err := s.updateToGovernanceV2()
-		if err != nil {
-			return err
-		}
+	if !s.flagInitStakingV4Enabled.IsSet() {
+		return nil
 	}
 
-	if s.flagBuiltInOnMetaEnabled.IsSet() {
-		tokenID, err := s.initTokenOnMeta()
-		if err != nil {
-			return err
-		}
+	return s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
+}
 
-		err = s.initLiquidStakingSC(tokenID)
-		if err != nil {
-			return err
-		}
+func (s *systemSCProcessor) processStakingV4(
+	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	header data.HeaderHandler,
+) error {
+	if !s.flagStakingV4Enabled.IsSet() {
+		return nil
 	}
 
-	if s.flagInitStakingV4Enabled.IsSet() {
-		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
-		if err != nil {
-			return err
-		}
+	err := s.prepareStakingDataForAllNodes(validatorsInfoMap)
+	if err != nil {
+		return err
 	}
 
-	if s.flagStakingV4Enabled.IsSet() {
-		err := s.prepareStakingDataForAllNodes(validatorsInfoMap)
-		if err != nil {
-			return err
-		}
-
-		_, err = s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
-		if err != nil {
-			return err
-		}
-
-		err = s.selectNodesFromAuctionList(validatorsInfoMap, header.GetPrevRandSeed())
-		if err != nil {
-			return err
-		}
+	_, err = s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return s.selectNodesFromAuctionList(validatorsInfoMap, header.GetPrevRandSeed())
 }
 
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uint32][]*state.ValidatorInfo, randomness []byte) error {
