@@ -202,6 +202,9 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
+// StakingV4Epoch defines the epoch for integration tests when stakingV4 is enabled
+const StakingV4Epoch = 4444
+
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
 const ScheduledMiniBlocksEnableEpoch = 1000
 
@@ -2207,8 +2210,10 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
 			EpochConfig: config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
-					StakingV2EnableEpoch: StakingV2Epoch,
-					ESDTEnableEpoch:      0,
+					StakingV2EnableEpoch:     StakingV2Epoch,
+					StakingV4InitEnableEpoch: StakingV4Epoch - 1,
+					StakingV4EnableEpoch:     StakingV4Epoch,
+					ESDTEnableEpoch:          0,
 				},
 			},
 		}
