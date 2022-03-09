@@ -2106,18 +2106,18 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		0: {
 			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1),
 			createValidatorInfo(owner1StakedKeys[1], common.WaitingList, owner1),
-			createValidatorInfo(owner1StakedKeys[2], common.NewList, owner1),
+			createValidatorInfo(owner1StakedKeys[2], common.SelectedFromAuctionList, owner1),
 		},
 		1: {
 			createValidatorInfo(owner2StakedKeys[0], common.EligibleList, owner2),
-			createValidatorInfo(owner2StakedKeys[1], common.NewList, owner2),
+			createValidatorInfo(owner2StakedKeys[1], common.SelectedFromAuctionList, owner2),
 			createValidatorInfo(owner2StakedKeys[2], common.AuctionList, owner2),
 
 			createValidatorInfo(owner3StakedKeys[0], common.LeavingList, owner3),
 			createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3),
 
 			createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4),
-			createValidatorInfo(owner4StakedKeys[1], common.NewList, owner4),
+			createValidatorInfo(owner4StakedKeys[1], common.SelectedFromAuctionList, owner4),
 		},
 	}
 	require.Equal(t, expectedValidatorsInfo, validatorsInfo)
@@ -2196,7 +2196,7 @@ func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, staked
 // This func sets rating and temp rating with the start rating value used in createFullArgumentsForSystemSCProcessing
 func createValidatorInfo(pubKey []byte, list common.PeerType, owner []byte) *state.ValidatorInfo {
 	rating := uint32(0)
-	if list == common.NewList || list == common.AuctionList {
+	if list == common.NewList || list == common.AuctionList || list == common.SelectedFromAuctionList {
 		rating = uint32(5)
 	}
 

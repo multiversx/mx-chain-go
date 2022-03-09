@@ -33,6 +33,10 @@ const NewList PeerType = "new"
 // based on their top up stake
 const AuctionList PeerType = "auction"
 
+// SelectedFromAuctionList represents the list of peers which have been selected from AuctionList based on
+// their top up to be distributed on the WaitingList in the next epoch
+const SelectedFromAuctionList PeerType = "selectedFromAuction"
+
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
 
