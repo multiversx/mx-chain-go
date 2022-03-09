@@ -202,7 +202,7 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
-// StakingV4Epoch defines the epoch for integration tests when stakingV4 is enabled
+// StakingV4Epoch defines the epoch for integration tests when stakingV4 is enabled; should be greater than StakingV2Epoch
 const StakingV4Epoch = 4444
 
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
@@ -433,6 +433,8 @@ func newBaseTestProcessorNode(
 	tpn.initDataPools()
 	tpn.EnableEpochs = config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		StakingV4InitEnableEpoch:                    StakingV4Epoch - 1,
+		StakingV4EnableEpoch:                        StakingV4Epoch,
 	}
 
 	return tpn
@@ -922,6 +924,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					StakingV2EnableEpoch:               0,
+					StakingV4EnableEpoch:               444,
 					StakeEnableEpoch:                   0,
 					DelegationSmartContractEnableEpoch: 0,
 					DelegationManagerEnableEpoch:       0,
@@ -1730,6 +1733,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		NodesCoordinator: tpn.NodesCoordinator,
 	}
+	argsVMContainerFactory.EpochConfig.EnableEpochs.StakingV4EnableEpoch = StakingV4Epoch
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
 	tpn.VMContainer, _ = vmFactory.Create()
