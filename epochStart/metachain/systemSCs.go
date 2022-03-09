@@ -384,7 +384,7 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uin
 
 	// TODO: Think of a better way of handling these pointers; perhaps use an interface which handles validators
 	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
-		auctionList[i].List = string(common.NewList)
+		auctionList[i].List = string(common.SelectedFromAuctionList)
 	}
 
 	return nil
