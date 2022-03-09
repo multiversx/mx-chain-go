@@ -293,14 +293,16 @@ func (s *systemSCProcessor) processWithOldFlags(
 			return err
 		}
 
-		numUnStaked, err := s.unStakeNonEligibleNodes(validatorsInfoMap, epoch)
+		numUnStaked, err := s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
 		if err != nil {
 			return err
 		}
 
-		err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
-		if err != nil {
-			return err
+		if s.flagStakingQueueEnabled.IsSet() {
+			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -351,7 +353,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 			return err
 		}
 
-		_, err = s.unStakeNonEligibleNodes(validatorsInfoMap, header.GetEpoch())
+		_, err = s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
 		if err != nil {
 			return err
 		}
@@ -384,7 +386,7 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uin
 
 	// TODO: Think of a better way of handling these pointers; perhaps use an interface which handles validators
 	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
-		auctionList[i].List = string(common.NewList)
+		auctionList[i].List = string(common.SelectedFromAuctionList)
 	}
 
 	return nil
@@ -726,7 +728,7 @@ func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap map[
 	return s.prepareStakingData(allNodes)
 }
 
-func (s *systemSCProcessor) unStakeNonEligibleNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo, epoch uint32) (uint32, error) {
+func (s *systemSCProcessor) unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap map[uint32][]*state.ValidatorInfo, epoch uint32) (uint32, error) {
 	err := s.fillStakingDataForNonEligible(validatorsInfoMap)
 	if err != nil {
 		return 0, err
