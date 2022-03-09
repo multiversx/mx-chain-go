@@ -29,7 +29,7 @@ const (
 	directStakedInfoPath   = "/direct-staked-info"
 	delegatedInfoPath      = "/delegated-info"
 	ratingsPath            = "/ratings"
-	genesisNodesConfigPath = "/genesisnodes"
+	genesisNodesConfigPath = "/genesis-nodes"
 )
 
 // networkFacadeHandler defines the methods to be implemented by a facade for handling network requests

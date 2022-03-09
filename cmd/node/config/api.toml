@@ -115,8 +115,8 @@
         # /network/ratings will return metrics related to ratings config
         { Name = "/ratings", Open = true },
 
-        # /network/genesisnodes will return the genesis nodes public keys
-        { Name = "/genesisnodes", Open = true }
+        # /network/genesis-nodes will return the genesis nodes public keys
+        { Name = "/genesis-nodes", Open = true }
     ]
 
 [APIPackages.log]
