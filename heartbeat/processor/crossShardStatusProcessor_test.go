@@ -109,7 +109,7 @@ func TestNewCrossShardStatusProcessor(t *testing.T) {
 		assert.Nil(t, err)
 
 		topicsMap := processor.computeTopicsMap()
-		assert.Equal(t, expectedNumberOfShards+1, uint32(len(topicsMap)))
+		assert.Equal(t, expectedNumberOfShards, uint32(len(topicsMap)))
 
 		metaTopic, ok := topicsMap[core.MetachainShardId]
 		assert.True(t, ok)
