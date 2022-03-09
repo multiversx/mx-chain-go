@@ -502,7 +502,7 @@ func TestGetGenesisNodes(t *testing.T) {
 
 		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
 
-		req, _ := http.NewRequest("GET", "/network/genesisnodes", nil)
+		req, _ := http.NewRequest("GET", "/network/genesis-nodes", nil)
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
@@ -539,7 +539,7 @@ func TestGetGenesisNodes(t *testing.T) {
 
 		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
 
-		req, _ := http.NewRequest("GET", "/network/genesisnodes", nil)
+		req, _ := http.NewRequest("GET", "/network/genesis-nodes", nil)
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
@@ -566,7 +566,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 					{Name: "/esdt/supply/:token", Open: true},
-					{Name: "/genesisnodes", Open: true},
+					{Name: "/genesis-nodes", Open: true},
 				},
 			},
 		},
