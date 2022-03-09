@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -11,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -42,6 +46,7 @@ type ApiResolverArgs struct {
 	ProcessComponents   ProcessComponentsHolder
 	GasScheduleNotifier core.GasScheduleNotifier
 	Bootstrapper        process.Bootstrapper
+	AllowVMQueriesChan  chan struct{}
 }
 
 type scQueryServiceArgs struct {
@@ -55,6 +60,7 @@ type scQueryServiceArgs struct {
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
 	bootstrapper        process.Bootstrapper
+	allowVMQueriesChan  chan struct{}
 	workingDir          string
 }
 
@@ -69,6 +75,7 @@ type scQueryElementArgs struct {
 	messageSigVerifier  vm.MessageSignVerifier
 	systemSCConfig      *config.SystemSmartContractsConfig
 	bootstrapper        process.Bootstrapper
+	allowVMQueriesChan  chan struct{}
 	workingDir          string
 	index               int
 }
@@ -88,6 +95,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
 		systemSCConfig:      args.Configs.SystemSCConfig,
 		bootstrapper:        args.Bootstrapper,
+		allowVMQueriesChan:  args.AllowVMQueriesChan,
 		workingDir:          apiWorkingDir,
 	}
 
@@ -99,7 +107,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	builtInFuncs, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
-		args.StateComponents.AccountsAdapter(),
+		args.StateComponents.AccountsAdapterAPI(),
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
 		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
@@ -135,7 +143,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
 		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.StateComponents.AccountsAdapter(),
+		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
 	)
 	if err != nil {
@@ -168,6 +176,27 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
+		GenesisTime:              args.CoreComponents.GenesisTime(),
+		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
+		AddressPubKeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:         args.ProcessComponents.ShardCoordinator(),
+		HistoryRepository:        args.ProcessComponents.HistoryRepository(),
+		StorageService:           args.DataComponents.StorageService(),
+		DataPool:                 args.DataComponents.Datapool(),
+		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+	}
+	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          scQueryService,
 		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
@@ -175,6 +204,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,
 		DelegatedListHandler:    delegatedListHandler,
+		APITransactionHandler:   apiTransactionProcessor,
+		APIBlockHandler:         apiBlockProcessor,
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -200,6 +231,7 @@ func createScQueryService(
 		systemSCConfig:      args.systemSCConfig,
 		workingDir:          args.workingDir,
 		bootstrapper:        args.bootstrapper,
+		allowVMQueriesChan:  args.allowVMQueriesChan,
 		index:               0,
 	}
 
@@ -234,7 +266,7 @@ func createScQueryElement(
 	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
-		args.stateComponents.AccountsAdapter(),
+		args.stateComponents.AccountsAdapterAPI(),
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
@@ -256,7 +288,7 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapter(),
+		Accounts:           args.stateComponents.AccountsAdapterAPI(),
 		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
 		StorageService:     args.dataComponents.StorageService(),
 		BlockChain:         args.dataComponents.Blockchain(),
@@ -275,8 +307,14 @@ func createScQueryElement(
 	}
 
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+		if errBlockChainHook != nil {
+			return nil, errBlockChainHook
+		}
+
 		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
-			ArgBlockChainHook:   argsHook,
+			BlockChainHook:      blockChainHookImpl,
+			PubkeyConv:          argsHook.PubkeyConv,
 			Economics:           args.coreComponents.EconomicsData(),
 			MessageSignVerifier: args.messageSigVerifier,
 			GasSchedule:         args.gasScheduleNotifier,
@@ -300,11 +338,18 @@ func createScQueryElement(
 		if errParser != nil {
 			return nil, err
 		}
+
+		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+		if errBlockChainHook != nil {
+			return nil, errBlockChainHook
+		}
+
 		argsNewVMFactory := shard.ArgVMContainerFactory{
+			BlockChainHook:     blockChainHookImpl,
+			BuiltInFunctions:   argsHook.BuiltInFunctions,
 			Config:             queryVirtualMachineConfig,
 			BlockGasLimit:      args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:        args.gasScheduleNotifier,
-			ArgBlockChainHook:  argsHook,
 			EpochNotifier:      args.coreComponents.EpochNotifier(),
 			EpochConfig:        args.epochConfig.EnableEpochs,
 			ArwenChangeLocker:  args.coreComponents.ArwenChangeLocker(),
@@ -332,16 +377,16 @@ func createScQueryElement(
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      args.coreComponents.EconomicsData(),
-		BlockChainHook:    vmFactory.BlockChainHookImpl(),
-		BlockChain:        args.dataComponents.Blockchain(),
-		ArwenChangeLocker: args.coreComponents.ArwenChangeLocker(),
-		Bootstrapper:      args.bootstrapper,
+		VmContainer:              vmContainer,
+		EconomicsFee:             args.coreComponents.EconomicsData(),
+		BlockChainHook:           vmFactory.BlockChainHookImpl(),
+		BlockChain:               args.dataComponents.Blockchain(),
+		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
+		Bootstrapper:             args.bootstrapper,
+		AllowExternalQueriesChan: args.allowVMQueriesChan,
 	}
-	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	return scQueryService, err
+	return smartContract.NewSCQueryService(argsNewSCQueryService)
 }
 
 func createBuiltinFuncs(
@@ -370,4 +415,29 @@ func createBuiltinFuncs(
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+}
+
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (external.APIBlockHandler, error) {
+	statusComputer, err := txstatus.NewStatusComputer(
+		args.ProcessComponents.ShardCoordinator().SelfId(),
+		args.CoreComponents.Uint64ByteSliceConverter(),
+		args.DataComponents.StorageService(),
+	)
+	if err != nil {
+		return nil, errors.New("error creating transaction status computer " + err.Error())
+	}
+
+	blockApiArgs := &blockAPI.ArgAPIBlockProcessor{
+		SelfShardID:              args.ProcessComponents.ShardCoordinator().SelfId(),
+		Store:                    args.DataComponents.StorageService(),
+		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		HistoryRepo:              args.ProcessComponents.HistoryRepository(),
+		TxUnmarshaller:           apiTransactionHandler,
+		StatusComputer:           statusComputer,
+		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
+		Hasher:                   args.CoreComponents.Hasher(),
+	}
+
+	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
 }

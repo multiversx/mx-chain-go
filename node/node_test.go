@@ -26,21 +26,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	nodeMockFactory "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	txsSenderMock "github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
@@ -3477,4 +3483,96 @@ func TestNode_SendBulkTransactions(t *testing.T) {
 	require.True(t, flag.IsSet())
 	require.Equal(t, expectedNoOfTxs, actualNoOfTxs)
 	require.Nil(t, err)
+}
+
+func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
+	return &nodeMockFactory.CoreComponentsMock{
+		IntMarsh:            &testscommon.MarshalizerMock{},
+		TxMarsh:             &testscommon.MarshalizerMock{},
+		VmMarsh:             &testscommon.MarshalizerMock{},
+		TxSignHasherField:   &testscommon.HasherStub{},
+		Hash:                &testscommon.HasherStub{},
+		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
+		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
+		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),
+		PathHdl:             &testscommon.PathManagerStub{},
+		ChainIdCalled: func() string {
+			return "chainID"
+		},
+		MinTransactionVersionCalled: func() uint32 {
+			return 1
+		},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		WDTimer:               &testscommon.WatchdogMock{},
+		Alarm:                 &testscommon.AlarmSchedulerStub{},
+		NtpTimer:              &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
+	}
+}
+
+func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
+	return &factoryMock.ProcessComponentsMock{
+		NodesCoord: &mock.NodesCoordinatorMock{},
+		ShardCoord: &testscommon.ShardsCoordinatorMock{
+			NoShards:     1,
+			CurrentShard: 0,
+		},
+		IntContainer:                   &testscommon.InterceptorsContainerStub{},
+		ResFinder:                      &mock.ResolversFinderStub{},
+		RoundHandlerField:              &testscommon.RoundHandlerMock{},
+		EpochTrigger:                   &testscommon.EpochStartTriggerStub{},
+		EpochNotifier:                  &mock.EpochStartNotifierStub{},
+		ForkDetect:                     &mock.ForkDetectorMock{},
+		BlockProcess:                   &mock.BlockProcessorStub{},
+		BlackListHdl:                   &testscommon.TimeCacheStub{},
+		BootSore:                       &mock.BootstrapStorerMock{},
+		HeaderSigVerif:                 &mock.HeaderSigVerifierStub{},
+		HeaderIntegrVerif:              &mock.HeaderIntegrityVerifierStub{},
+		ValidatorStatistics:            &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorProvider:              &mock.ValidatorsProviderStub{},
+		BlockTrack:                     &mock.BlockTrackerStub{},
+		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
+		ReqHandler:                     &testscommon.RequestHandlerStub{},
+		TxLogsProcess:                  &mock.TxLogProcessorMock{},
+		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
+		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
+		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
+	}
+}
+
+func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
+	return &nodeMockFactory.DataComponentsMock{
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
+		Store:      &mock.ChainStorerStub{},
+		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
+		MbProvider: &mock.MiniBlocksProviderStub{},
+	}
+}
+
+func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
+	return &mainFactoryMocks.BootstrapComponentsStub{
+		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
+			TrieHolder:      &mock.TriesHolderStub{},
+			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			BootstrapCalled: nil,
+		},
+		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:             "",
+		ShCoordinator:        &mock.ShardCoordinatorMock{},
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+	}
 }

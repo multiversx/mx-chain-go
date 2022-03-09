@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -24,7 +24,7 @@ import (
 )
 
 var marshalizer = &testscommon.MarshalizerMock{}
-var hasher = &hashingMocks.HasherMock{}
+var hasherMock = &hashingMocks.HasherMock{}
 
 func createMemUnit() storage.Storer {
 	capacity := uint32(10)
@@ -38,10 +38,9 @@ func createMemUnit() storage.Storer {
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
-func createTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	tempDir, _ := ioutil.TempDir("", "trie")
+func createTrieStorageManager(t *testing.T, store storage.Storer) (common.StorageManager, storage.Storer) {
 	cfg := config.DBConfig{
-		FilePath:          tempDir,
+		FilePath:          t.TempDir(),
 		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 4,
 		MaxBatchSize:      10000,
@@ -58,10 +57,10 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		MainStorer:             store,
 		CheckpointsStorer:      store,
 		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
+		Hasher:                 hasherMock,
 		SnapshotDbConfig:       cfg,
 		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasherMock.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	tsm, _ := NewTrieStorageManager(args)
@@ -69,30 +68,30 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	return tsm, store
 }
 
-func createInMemoryTrie() (common.Trie, storage.Storer) {
+func createInMemoryTrie(t *testing.T) (common.Trie, storage.Storer) {
 	memUnit := createMemUnit()
-	tsm, _ := createTrieStorageManager(memUnit)
-	tr, _ := NewTrie(tsm, marshalizer, hasher, 6)
+	tsm, _ := createTrieStorageManager(t, memUnit)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
 
 	return tr, memUnit
 }
 
-func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer) {
+func createInMemoryTrieFromDB(t *testing.T, db storage.Persister) (common.Trie, storage.Storer) {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	unit, _ := storageUnit.NewStorageUnit(cache, db)
 
-	tsm, _ := createTrieStorageManager(unit)
-	tr, _ := NewTrie(tsm, marshalizer, hasher, 6)
+	tsm, _ := createTrieStorageManager(t, unit)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
 
 	return tr, unit
 }
 
 func addDataToTrie(numKeysValues int, tr common.Trie) {
 	for i := 0; i < numKeysValues; i++ {
-		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
+		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 
 		_ = tr.Update(keyVal, keyVal)
 	}
@@ -112,7 +111,7 @@ func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.
 				}
 
 				var n *InterceptedTrieNode
-				n, err = NewInterceptedTrieNode(buff, marshalizer, hasher)
+				n, err = NewInterceptedTrieNode(buff, marshalizer, hasherMock)
 				if err != nil {
 					continue
 				}
@@ -184,7 +183,7 @@ func TestDoubleListTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	numKeysValues := 10
-	trSource, _ := createInMemoryTrie()
+	trSource, _ := createInMemoryTrie(t)
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -197,12 +196,12 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	defer cancelFunc()
 
 	err := d.StartSyncing(roothash, ctx)
-	require.Equal(t, ErrContextClosing, err)
+	require.Equal(t, errors.ErrContextClosing, err)
 }
 
 func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	numKeysValues := 10
-	trSource, _ := createInMemoryTrie()
+	trSource, _ := createInMemoryTrie(t)
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -218,7 +217,7 @@ func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
-	trSource, _ := createInMemoryTrie()
+	trSource, _ := createInMemoryTrie(t)
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -234,13 +233,13 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	trie, _ := createInMemoryTrieFromDB(arg.DB.(*testscommon.MemDbMock))
+	trie, _ := createInMemoryTrieFromDB(t, arg.DB.(*testscommon.MemDbMock))
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
-		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
+		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 		val, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
@@ -259,7 +258,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
-	trSource, memUnitSource := createInMemoryTrie()
+	trSource, memUnitSource := createInMemoryTrie(t)
 	addDataToTrie(numKeysValues, trSource)
 	_ = trSource.Commit()
 	roothash, _ := trSource.RootHash()
@@ -268,7 +267,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	arg := createMockArgument(time.Minute)
 
 	exceptionHashes := make([][]byte, 0)
-	//copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
+	// copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
 	numKeysCopied := 0
 	memUnitSource.RangeKeys(func(key []byte, val []byte) bool {
 		if numKeysCopied >= numKeysValues/2 {
@@ -291,13 +290,13 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	trie, _ := createInMemoryTrieFromDB(arg.DB.(*testscommon.MemDbMock))
+	trie, _ := createInMemoryTrieFromDB(t, arg.DB.(*testscommon.MemDbMock))
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
-		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
+		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
 		val, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)

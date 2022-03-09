@@ -190,7 +190,6 @@ func CreateNode(
 	nd, err = NewNode(
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
-		WithNetworkComponents(networkComponents),
 		WithBootstrapComponents(bootstrapComponents),
 		WithStateComponents(stateComponents),
 		WithDataComponents(dataComponents),
@@ -198,6 +197,7 @@ func CreateNode(
 		WithProcessComponents(processComponents),
 		WithHeartbeatComponents(heartbeatComponents),
 		WithConsensusComponents(consensusComponents),
+		WithNetworkComponents(networkComponents),
 		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
 		WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
 		WithConsensusGroupSize(consensusGroupSize),

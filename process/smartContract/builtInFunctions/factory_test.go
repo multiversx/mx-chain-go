@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -99,7 +100,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(container.Keys()), 28)
 
-	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
+	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)
 
 	assert.False(t, container.IsInterfaceNil())

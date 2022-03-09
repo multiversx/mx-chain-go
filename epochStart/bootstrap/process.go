@@ -955,6 +955,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		&factoryDisabled.TxCoordinator{},
 		e.storerScheduledSCRs,
 		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
 		e.shardCoordinator,
 	)
 	if err != nil {
