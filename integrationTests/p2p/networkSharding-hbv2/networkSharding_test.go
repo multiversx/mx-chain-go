@@ -245,7 +245,7 @@ func printDebugInfo(node *integrationTests.TestHeartbeatNode) {
 		for _, peer := range peers {
 			prettyPid = peer.Pretty()
 			info = node.PeerShardMapper.GetPeerInfo(peer)
-			data += fmt.Sprintf("   pid: %s, PSM info: shard %d, type %s\n", prettyPid[len(prettyPid)-6:], info.ShardID, info.PeerType)
+			data += fmt.Sprintf("\tpid: %s, PSM info: shard %d, type %s\n", prettyPid[len(prettyPid)-6:], info.ShardID, info.PeerType)
 		}
 	}
 

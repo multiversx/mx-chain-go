@@ -75,8 +75,8 @@ func (hip *heartbeatInterceptorProcessor) updatePeerInfo(message interface{}, fr
 		return process.ErrWrongTypeAssertion
 	}
 
-	hip.peerShardMapper.UpdatePeerIdShardId(fromConnectedPeer, hip.shardCoordinator.SelfId())
-	hip.peerShardMapper.UpdatePeerIdSubType(fromConnectedPeer, core.P2PPeerSubType(heartbeatData.GetPeerSubType()))
+	hip.peerShardMapper.PutPeerIdShardId(fromConnectedPeer, hip.shardCoordinator.SelfId())
+	hip.peerShardMapper.PutPeerIdSubType(fromConnectedPeer, core.P2PPeerSubType(heartbeatData.GetPeerSubType()))
 
 	return nil
 }

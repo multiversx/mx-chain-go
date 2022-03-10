@@ -84,16 +84,23 @@ func TestNewCrossShardStatusProcessor(t *testing.T) {
 			},
 		}
 
-		providedPid := core.PeerID("provided pid")
+		providedFirstPid := core.PeerID("first pid")
+		providedSecondPid := core.PeerID("second pid")
+		counter := 0
 		args.Messenger = &p2pmocks.MessengerStub{
 			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
-				return []core.PeerID{providedPid}
+				if counter == 0 {
+					counter++
+					return []core.PeerID{providedFirstPid}
+				}
+
+				return []core.PeerID{providedSecondPid}
 			},
 		}
 
 		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
-				assert.Equal(t, providedPid, pid)
+			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
+				assert.Equal(t, providedSecondPid, pid)
 			},
 		}
 

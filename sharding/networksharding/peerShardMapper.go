@@ -149,7 +149,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 
 	pkBuff, ok := pkObj.([]byte)
 	if !ok {
-		log.Warn("PeerShardMapper.getShardIDWithNodesCoordinator: the contained element should have been of type []byte")
+		log.Warn("PeerShardMapper.getPeerInfoWithNodesCoordinator: the contained element should have been of type []byte")
 
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
@@ -251,7 +251,7 @@ func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
 	}
 
 	if len(pq.data) == 0 {
-		log.Warn("PeerShardMapper.GetPeerID: empty pidQueue element")
+		log.Warn("PeerShardMapper.GetLastKnownPeerID: empty pidQueue element")
 		return nil, false
 	}
 
@@ -281,17 +281,17 @@ func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID
 	if shardID == core.AllShardId {
 		return
 	}
-	psm.updatePublicKeyShardId(pk, shardID)
-	psm.UpdatePeerIdShardId(pid, shardID)
+	psm.putPublicKeyShardId(pk, shardID)
+	psm.PutPeerIdShardId(pid, shardID)
 	psm.preferredPeersHolder.Put(pk, pid, shardID)
 }
 
-func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {
+func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
 	psm.fallbackPkShardCache.Put(pk, shardId, uint32Size)
 }
 
-// UpdatePeerIdShardId adds the peer ID and shard ID into fallback cache in case it does not exists
-func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
+// PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exists
+func (psm *PeerShardMapper) PutPeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
 }
 
@@ -375,8 +375,8 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) []byte {
 	return oldPkBuff
 }
 
-// UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes
-func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+// PutPeerIdSubType puts the peerIdSubType search map containing peer IDs and peer subtypes
+func (psm *PeerShardMapper) PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 	psm.peerIdSubTypeCache.Put([]byte(pid), peerSubType, uint32Size)
 }
 

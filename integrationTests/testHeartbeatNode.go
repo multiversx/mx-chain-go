@@ -591,7 +591,7 @@ func (thn *TestHeartbeatNode) GetConnectableAddress() string {
 	return GetConnectableAddress(thn.Messenger)
 }
 
-// MakeDisplayTableForHeartbeatNodes will output a string containing counters for received messages for all provided test nodes
+// MakeDisplayTableForHeartbeatNodes returns a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) string {
 	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/FullObs/Unk/Sed"}
 	dataLines := make([]*display.LineData, 0)
