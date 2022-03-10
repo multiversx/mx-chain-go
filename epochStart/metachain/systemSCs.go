@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -61,120 +60,27 @@ type systemSCProcessor struct {
 	flagStakingV4Enabled     atomic.Flag
 }
 
-type validatorList []*state.ValidatorInfo
-
-// Len will return the length of the validatorList
-func (v validatorList) Len() int { return len(v) }
-
-// Swap will interchange the objects on input indexes
-func (v validatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
-
-// Less will return true if object on index i should appear before object in index j
-// Sorting of validators should be by index and public key
-func (v validatorList) Less(i, j int) bool {
-	if v[i].TempRating == v[j].TempRating {
-		if v[i].Index == v[j].Index {
-			return bytes.Compare(v[i].PublicKey, v[j].PublicKey) < 0
-		}
-		return v[i].Index < v[j].Index
-	}
-	return v[i].TempRating < v[j].TempRating
-}
-
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
 func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCProcessor, error) {
-	if check.IfNilReflect(args.SystemVM) {
-		return nil, epochStart.ErrNilSystemVM
-	}
-	if check.IfNil(args.UserAccountsDB) {
-		return nil, epochStart.ErrNilAccountsDB
-	}
-	if check.IfNil(args.PeerAccountsDB) {
-		return nil, epochStart.ErrNilAccountsDB
-	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, epochStart.ErrNilMarshalizer
-	}
-	if check.IfNil(args.ValidatorInfoCreator) {
-		return nil, epochStart.ErrNilValidatorInfoProcessor
-	}
-	if len(args.EndOfEpochCallerAddress) == 0 {
-		return nil, epochStart.ErrNilEndOfEpochCallerAddress
-	}
-	if len(args.StakingSCAddress) == 0 {
-		return nil, epochStart.ErrNilStakingSCAddress
-	}
-	if check.IfNil(args.ChanceComputer) {
-		return nil, epochStart.ErrNilChanceComputer
-	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
-	if check.IfNil(args.GenesisNodesConfig) {
-		return nil, epochStart.ErrNilGenesisNodesConfig
-	}
-	if check.IfNil(args.NodesConfigProvider) {
-		return nil, epochStart.ErrNilNodesConfigProvider
-	}
-	if check.IfNil(args.StakingDataProvider) {
-		return nil, epochStart.ErrNilStakingDataProvider
-	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, epochStart.ErrNilShardCoordinator
-	}
-	if len(args.ESDTOwnerAddressBytes) == 0 {
-		return nil, epochStart.ErrEmptyESDTOwnerAddress
+
+	legacy, err := newLegacySystemSCProcessor(args)
+	if err != nil {
+		return nil, err
 	}
 
 	s := &systemSCProcessor{
-		legacySystemSCProcessor: &legacySystemSCProcessor{
-			systemVM:                    args.SystemVM,
-			userAccountsDB:              args.UserAccountsDB,
-			peerAccountsDB:              args.PeerAccountsDB,
-			marshalizer:                 args.Marshalizer,
-			startRating:                 args.StartRating,
-			validatorInfoCreator:        args.ValidatorInfoCreator,
-			genesisNodesConfig:          args.GenesisNodesConfig,
-			endOfEpochCallerAddress:     args.EndOfEpochCallerAddress,
-			stakingSCAddress:            args.StakingSCAddress,
-			chanceComputer:              args.ChanceComputer,
-			mapNumSwitchedPerShard:      make(map[uint32]uint32),
-			mapNumSwitchablePerShard:    make(map[uint32]uint32),
-			switchEnableEpoch:           args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
-			hystNodesEnableEpoch:        args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
-			delegationEnableEpoch:       args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
-			stakingV2EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-			esdtEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
-			stakingDataProvider:         args.StakingDataProvider,
-			nodesConfigProvider:         args.NodesConfigProvider,
-			shardCoordinator:            args.ShardCoordinator,
-			correctLastUnJailEpoch:      args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
-			esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
-			saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
-			stakingV4InitEnableEpoch:    args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
-		},
+		legacySystemSCProcessor:  legacy,
 		governanceEnableEpoch:    args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
-	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
-	log.Debug("systemSC: enable epoch for switch hysteresis for min nodes", "epoch", s.hystNodesEnableEpoch)
-	log.Debug("systemSC: enable epoch for delegation manager", "epoch", s.delegationEnableEpoch)
-	log.Debug("systemSC: enable epoch for staking v2", "epoch", s.stakingV2EnableEpoch)
-	log.Debug("systemSC: enable epoch for ESDT", "epoch", s.esdtEnableEpoch)
-	log.Debug("systemSC: enable epoch for correct last unjailed", "epoch", s.correctLastUnJailEpoch)
-	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
 	log.Debug("systemSC: enable epoch for create NFT on meta", "epoch", s.builtInOnMetaEnableEpoch)
-	log.Debug("systemSC: enable epoch for initializing staking v4", "epoch", s.stakingV4InitEnableEpoch)
 	log.Debug("systemSC: enable epoch for staking v4", "epoch", s.stakingV4EnableEpoch)
-
-	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
-	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
-	sort.Slice(s.maxNodesEnableConfig, func(i, j int) bool {
-		return s.maxNodesEnableConfig[i].EpochEnable < s.maxNodesEnableConfig[j].EpochEnable
-	})
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
 	return s, nil
@@ -393,19 +299,6 @@ func (s *systemSCProcessor) getAllNodeKeys(
 	}
 
 	return nodeKeys
-}
-
-func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
-	for _, miniBlock := range miniBlocks {
-		if miniBlock.Type != block.RewardsBlock {
-			continue
-		}
-		if miniBlock.ReceiverShardID != core.MetachainShardId {
-			continue
-		}
-		return miniBlock
-	}
-	return nil
 }
 
 func (s *systemSCProcessor) updateToGovernanceV2() error {

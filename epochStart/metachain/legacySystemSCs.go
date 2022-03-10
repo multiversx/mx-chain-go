@@ -69,6 +69,101 @@ type legacySystemSCProcessor struct {
 	flagInitStakingV4Enabled       atomic.Flag
 }
 
+func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*legacySystemSCProcessor, error) {
+	err := checkLegacyArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	legacy := &legacySystemSCProcessor{
+		systemVM:                    args.SystemVM,
+		userAccountsDB:              args.UserAccountsDB,
+		peerAccountsDB:              args.PeerAccountsDB,
+		marshalizer:                 args.Marshalizer,
+		startRating:                 args.StartRating,
+		validatorInfoCreator:        args.ValidatorInfoCreator,
+		genesisNodesConfig:          args.GenesisNodesConfig,
+		endOfEpochCallerAddress:     args.EndOfEpochCallerAddress,
+		stakingSCAddress:            args.StakingSCAddress,
+		chanceComputer:              args.ChanceComputer,
+		mapNumSwitchedPerShard:      make(map[uint32]uint32),
+		mapNumSwitchablePerShard:    make(map[uint32]uint32),
+		switchEnableEpoch:           args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		hystNodesEnableEpoch:        args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:       args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
+		stakingV2EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		esdtEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
+		stakingDataProvider:         args.StakingDataProvider,
+		nodesConfigProvider:         args.NodesConfigProvider,
+		shardCoordinator:            args.ShardCoordinator,
+		correctLastUnJailEpoch:      args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
+		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
+		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
+		stakingV4InitEnableEpoch:    args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+	}
+
+	log.Debug("legacySystemSC: enable epoch for switch jail waiting", "epoch", legacy.switchEnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for switch hysteresis for min nodes", "epoch", legacy.hystNodesEnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for delegation manager", "epoch", legacy.delegationEnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for staking v2", "epoch", legacy.stakingV2EnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for ESDT", "epoch", legacy.esdtEnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for correct last unjailed", "epoch", legacy.correctLastUnJailEpoch)
+	log.Debug("legacySystemSC: enable epoch for save jailed always", "epoch", legacy.saveJailedAlwaysEnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for initializing staking v4", "epoch", legacy.stakingV4InitEnableEpoch)
+
+	legacy.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
+	copy(legacy.maxNodesEnableConfig, args.MaxNodesEnableConfig)
+	sort.Slice(legacy.maxNodesEnableConfig, func(i, j int) bool {
+		return legacy.maxNodesEnableConfig[i].EpochEnable < legacy.maxNodesEnableConfig[j].EpochEnable
+	})
+
+	return legacy, nil
+}
+
+func checkLegacyArgs(args ArgsNewEpochStartSystemSCProcessing) error {
+	if check.IfNilReflect(args.SystemVM) {
+		return epochStart.ErrNilSystemVM
+	}
+	if check.IfNil(args.UserAccountsDB) {
+		return epochStart.ErrNilAccountsDB
+	}
+	if check.IfNil(args.PeerAccountsDB) {
+		return epochStart.ErrNilAccountsDB
+	}
+	if check.IfNil(args.Marshalizer) {
+		return epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(args.ValidatorInfoCreator) {
+		return epochStart.ErrNilValidatorInfoProcessor
+	}
+	if len(args.EndOfEpochCallerAddress) == 0 {
+		return epochStart.ErrNilEndOfEpochCallerAddress
+	}
+	if len(args.StakingSCAddress) == 0 {
+		return epochStart.ErrNilStakingSCAddress
+	}
+	if check.IfNil(args.ChanceComputer) {
+		return epochStart.ErrNilChanceComputer
+	}
+	if check.IfNil(args.GenesisNodesConfig) {
+		return epochStart.ErrNilGenesisNodesConfig
+	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return epochStart.ErrNilNodesConfigProvider
+	}
+	if check.IfNil(args.StakingDataProvider) {
+		return epochStart.ErrNilStakingDataProvider
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return epochStart.ErrNilShardCoordinator
+	}
+	if len(args.ESDTOwnerAddressBytes) == 0 {
+		return epochStart.ErrEmptyESDTOwnerAddress
+	}
+
+	return nil
+}
+
 func (s *legacySystemSCProcessor) processLegacy(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	nonce uint64,
@@ -1265,6 +1360,19 @@ func (s *legacySystemSCProcessor) changeESDTOwner(currentConfigValues [][]byte) 
 	}
 
 	return s.processSCOutputAccounts(output)
+}
+
+func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+		if miniBlock.ReceiverShardID != core.MetachainShardId {
+			continue
+		}
+		return miniBlock
+	}
+	return nil
 }
 
 func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
