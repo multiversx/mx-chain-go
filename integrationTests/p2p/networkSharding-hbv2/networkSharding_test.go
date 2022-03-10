@@ -220,6 +220,7 @@ func testUnknownSeederPeers(
 
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
+			// todo activate this after fix
 			//assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
 			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().Seeders))
 
@@ -274,6 +275,11 @@ func printDebugInfo(node *integrationTests.TestHeartbeatNode) {
 		data += "\n"
 	}
 
+	peerAuths := node.DataPool.PeerAuthentications()
+	hbs := node.DataPool.Heartbeats()
+
 	data += "----------\n"
 	println(data)
+	println(peerAuths.Len())
+	println(hbs.Len())
 }

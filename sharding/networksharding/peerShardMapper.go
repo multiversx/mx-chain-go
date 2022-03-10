@@ -201,7 +201,7 @@ func (psm *PeerShardMapper) getPeerSubType(pid core.PeerID) core.P2PPeerSubType 
 
 	subType, ok := subTypeObj.(core.P2PPeerSubType)
 	if !ok {
-		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type core.P2PPeerSubType")
+		log.Warn("PeerShardMapper.getPeerSubType: the contained element should have been of type core.P2PPeerSubType")
 		return core.RegularPeer
 	}
 
@@ -219,7 +219,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 
 	shard, ok := shardObj.(uint32)
 	if !ok {
-		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
+		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type uint32")
 
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
