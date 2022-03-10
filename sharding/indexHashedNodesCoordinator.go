@@ -751,7 +751,7 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
 		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
-		case string(common.AuctionList):
+		case string(common.SelectedFromAuctionList):
 			auctionList = append(auctionList, currentValidator)
 		}
 	}
