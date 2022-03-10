@@ -109,15 +109,15 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		t.Parallel()
 
 		providedData := createMockInterceptedPeerAuthentication() // unable to cast to intercepted heartbeat
-		wasUpdatePeerIdShardIdCalled := false
-		wasUpdatePeerIdSubTypeCalled := false
+		wasPutPeerIdShardIdCalled := false
+		wasPutPeerIdSubTypeCalled := false
 		args := createHeartbeatInterceptorProcessArg()
 		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
-				wasUpdatePeerIdShardIdCalled = true
+			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
+				wasPutPeerIdShardIdCalled = true
 			},
-			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
-				wasUpdatePeerIdSubTypeCalled = true
+			PutPeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+				wasPutPeerIdSubTypeCalled = true
 			},
 		}
 
@@ -125,8 +125,8 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
 		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(providedData, "", ""))
-		assert.False(t, wasUpdatePeerIdShardIdCalled)
-		assert.False(t, wasUpdatePeerIdSubTypeCalled)
+		assert.False(t, wasPutPeerIdShardIdCalled)
+		assert.False(t, wasPutPeerIdSubTypeCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -151,15 +151,15 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 				return false
 			},
 		}
-		wasUpdatePeerIdShardIdCalled := false
-		wasUpdatePeerIdSubTypeCalled := false
+		wasPutPeerIdShardIdCalled := false
+		wasPutPeerIdSubTypeCalled := false
 		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
-				wasUpdatePeerIdShardIdCalled = true
+			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
+				wasPutPeerIdShardIdCalled = true
 				assert.Equal(t, providedPid, pid)
 			},
-			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
-				wasUpdatePeerIdSubTypeCalled = true
+			PutPeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+				wasPutPeerIdSubTypeCalled = true
 				assert.Equal(t, providedPid, pid)
 			},
 		}
@@ -171,8 +171,8 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		err = hip.Save(providedHb, providedPid, "")
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
-		assert.True(t, wasUpdatePeerIdShardIdCalled)
-		assert.True(t, wasUpdatePeerIdSubTypeCalled)
+		assert.True(t, wasPutPeerIdShardIdCalled)
+		assert.True(t, wasPutPeerIdSubTypeCalled)
 	})
 }
 

@@ -6,8 +6,8 @@ import "github.com/ElrondNetwork/elrond-go-core/core"
 type PeerShardMapperStub struct {
 	GetLastKnownPeerIDCalled        func(pk []byte) (*core.PeerID, bool)
 	UpdatePeerIDPublicKeyPairCalled func(pid core.PeerID, pk []byte)
-	UpdatePeerIdShardIdCalled       func(pid core.PeerID, shardID uint32)
-	UpdatePeerIdSubTypeCalled       func(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	PutPeerIdShardIdCalled          func(pid core.PeerID, shardID uint32)
+	PutPeerIdSubTypeCalled          func(pid core.PeerID, peerSubType core.P2PPeerSubType)
 }
 
 // UpdatePeerIDPublicKeyPair -
@@ -17,17 +17,17 @@ func (psms *PeerShardMapperStub) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk [
 	}
 }
 
-// UpdatePeerIdShardId -
-func (psms *PeerShardMapperStub) UpdatePeerIdShardId(pid core.PeerID, shardID uint32) {
-	if psms.UpdatePeerIdShardIdCalled != nil {
-		psms.UpdatePeerIdShardIdCalled(pid, shardID)
+// PutPeerIdShardId -
+func (psms *PeerShardMapperStub) PutPeerIdShardId(pid core.PeerID, shardID uint32) {
+	if psms.PutPeerIdShardIdCalled != nil {
+		psms.PutPeerIdShardIdCalled(pid, shardID)
 	}
 }
 
-// UpdatePeerIdSubType -
-func (psms *PeerShardMapperStub) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
-	if psms.UpdatePeerIdSubTypeCalled != nil {
-		psms.UpdatePeerIdSubTypeCalled(pid, peerSubType)
+// PutPeerIdSubType -
+func (psms *PeerShardMapperStub) PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+	if psms.PutPeerIdSubTypeCalled != nil {
+		psms.PutPeerIdSubTypeCalled(pid, peerSubType)
 	}
 }
 

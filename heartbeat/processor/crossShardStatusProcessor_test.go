@@ -92,7 +92,7 @@ func TestNewCrossShardStatusProcessor(t *testing.T) {
 		}
 
 		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
+			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				assert.Equal(t, providedPid, pid)
 			},
 		}
