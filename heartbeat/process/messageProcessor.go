@@ -68,7 +68,7 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P
 	}
 
 	mp.networkShardingCollector.UpdatePeerIDInfo(message.Peer(), hbRecv.Pubkey, hbRecv.ShardID)
-	mp.networkShardingCollector.UpdatePeerIdSubType(message.Peer(), core.P2PPeerSubType(hbRecv.PeerSubType))
+	mp.networkShardingCollector.PutPeerIdSubType(message.Peer(), core.P2PPeerSubType(hbRecv.PeerSubType))
 
 	return hbRecv, nil
 }

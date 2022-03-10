@@ -237,7 +237,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 			UpdatePeerIDInfoCalled: func(pid core.PeerID, pk []byte, shardID uint32) {
 				updatePeerInfoWasCalled = true
 			},
-			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+			PutPeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 				updatePidSubTypeCalled = true
 			},
 		},

@@ -210,7 +210,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	return libP2PMes
 }
 
-// CreateP2PConfigWithNoDiscovery -
+// CreateP2PConfigWithNoDiscovery creates a new libp2p messenger with no peer discovery
 func CreateP2PConfigWithNoDiscovery() config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
