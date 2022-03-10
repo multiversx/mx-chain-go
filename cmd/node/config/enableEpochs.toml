@@ -175,7 +175,7 @@
     ESDTRegisterAndSetAllRolesEnableEpoch = 3
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 1000000
+    ScheduledMiniBlocksEnableEpoch = 2
 
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
     CorrectJailedNotUnstakedEmptyQueueEpoch = 2
@@ -183,6 +183,9 @@
     # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
     # disabled in the blockchain hook component
     DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
+
+    # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
+   AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -193,6 +196,6 @@
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV4.toml" },
-        { StartEpoch = 3, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV6.toml" },
     ]
