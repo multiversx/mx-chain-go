@@ -1897,3 +1897,114 @@ func TestLibp2pMessenger_SignVerifyPayloadShouldWork(t *testing.T) {
 	err = messenger1.Verify(payload, messenger1.ID(), sig)
 	assert.Nil(t, err)
 }
+
+func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil current bytes provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+		defer func() {
+			_ = messenger1.Close()
+		}()
+
+		err := messenger1.SetCurrentBytesProvider(nil)
+		assert.Equal(t, p2p.ErrNilCurrentPeerBytesProvider, err)
+	})
+	t.Run("set current bytes provider should work and send on connect", func(t *testing.T) {
+		t.Parallel()
+
+		buff := []byte("hello message")
+		mes1CurrentBytesProvider := &mock.CurrentBytesProviderStub{
+			BytesToSendToNewPeersCalled: func() ([]byte, bool) {
+				return buff, true
+			},
+		}
+
+		fmt.Println("Messenger 1:")
+		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		fmt.Println("Messenger 2:")
+		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		defer func() {
+			_ = messenger1.Close()
+			_ = messenger2.Close()
+		}()
+
+		err := messenger1.SetCurrentBytesProvider(mes1CurrentBytesProvider)
+		assert.Nil(t, err)
+
+		chDone := make(chan struct{})
+
+		msgProc := &mock.MessageProcessorStub{
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				assert.Equal(t, buff, message.Data())
+				assert.Equal(t, message.Peer(), fromConnectedPeer)
+
+				close(chDone)
+				return nil
+			},
+		}
+
+		err = messenger2.RegisterMessageProcessor(libp2p.ConnectionTopic, libp2p.ConnectionTopic, msgProc)
+		assert.Nil(t, err)
+
+		err = messenger1.ConnectToPeer(getConnectableAddress(messenger2))
+		assert.Nil(t, err)
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		defer cancel()
+
+		select {
+		case <-chDone:
+			return
+		case <-ctx.Done():
+			assert.Fail(t, "timeout while getting hello message")
+		}
+	})
+	t.Run("set current bytes provider should work and should not broadcast", func(t *testing.T) {
+		t.Parallel()
+
+		buff := []byte("hello message")
+		mes1CurrentBytesProvider := &mock.CurrentBytesProviderStub{
+			BytesToSendToNewPeersCalled: func() ([]byte, bool) {
+				return buff, true
+			},
+		}
+
+		fmt.Println("Messenger 1:")
+		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		fmt.Println("Messenger 2:")
+		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		defer func() {
+			_ = messenger1.Close()
+			_ = messenger2.Close()
+		}()
+
+		err := messenger1.SetCurrentBytesProvider(mes1CurrentBytesProvider)
+		assert.Nil(t, err)
+
+		err = messenger1.ConnectToPeer(getConnectableAddress(messenger2))
+		assert.Nil(t, err)
+
+		time.Sleep(time.Second) // allow to properly connect
+
+		msgProc := &mock.MessageProcessorStub{
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				assert.Fail(t, "should have not broadcast")
+				return nil
+			},
+		}
+
+		err = messenger2.RegisterMessageProcessor(libp2p.ConnectionTopic, libp2p.ConnectionTopic, msgProc)
+		assert.Nil(t, err)
+
+		messenger1.Broadcast(libp2p.ConnectionTopic, buff)
+
+		time.Sleep(time.Second)
+	})
+}

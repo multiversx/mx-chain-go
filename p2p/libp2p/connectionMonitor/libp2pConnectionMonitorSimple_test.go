@@ -25,6 +25,7 @@ func createMockArgsConnectionMonitorSimple() ArgsConnectionMonitorSimple {
 		Sharder:                    &mock.KadSharderStub{},
 		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
 		ConnectionsWatcher:         &mock.ConnectionsWatcherStub{},
+		ConnectionsNotifiee:        &mock.ConnectionsNotifieeStub{},
 	}
 }
 
@@ -69,6 +70,16 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
+		assert.True(t, check.IfNil(lcms))
+	})
+	t.Run("nil connections notifee should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsConnectionMonitorSimple()
+		args.ConnectionsNotifiee = nil
+		lcms, err := NewLibp2pConnectionMonitorSimple(args)
+
+		assert.Equal(t, p2p.ErrNilConnectionsNotifiee, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -132,6 +143,11 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 			knownConnectionCalled = true
 		},
 	}
+	args.ConnectionsNotifiee = &mock.ConnectionsNotifieeStub{
+		PeerConnectedCalled: func(pid core.PeerID) {
+			assert.Fail(t, "should have not called PeerConnectedCalled")
+		},
+	}
 	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
 
 	lcms.Connected(
@@ -146,13 +162,58 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 		},
 		&mock.ConnStub{
 			RemotePeerCalled: func() peer.ID {
-				return ""
+				return evictedPid[0]
 			},
 		},
 	)
 
 	assert.Equal(t, 1, numClosedWasCalled)
 	assert.Equal(t, 1, numComputeWasCalled)
+	assert.True(t, knownConnectionCalled)
+}
+
+func TestLibp2pConnectionMonitorSimple_ConnectedShouldNotify(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsConnectionMonitorSimple()
+	args.Sharder = &mock.KadSharderStub{
+		ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
+			return nil
+		},
+	}
+	knownConnectionCalled := false
+	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
+		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
+			knownConnectionCalled = true
+		},
+	}
+	peerID := peer.ID("random peer")
+	peerConnectedCalled := false
+	args.ConnectionsNotifiee = &mock.ConnectionsNotifieeStub{
+		PeerConnectedCalled: func(pid core.PeerID) {
+			peerConnectedCalled = true
+			assert.Equal(t, core.PeerID(peerID), pid)
+		},
+	}
+	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
+
+	lcms.Connected(
+		&mock.NetworkStub{
+			ClosePeerCall: func(id peer.ID) error {
+				return nil
+			},
+			PeersCall: func() []peer.ID {
+				return nil
+			},
+		},
+		&mock.ConnStub{
+			RemotePeerCalled: func() peer.ID {
+				return peerID
+			},
+		},
+	)
+
+	assert.True(t, peerConnectedCalled)
 	assert.True(t, knownConnectionCalled)
 }
 

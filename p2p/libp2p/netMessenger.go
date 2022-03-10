@@ -50,6 +50,9 @@ const (
 	// DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 	DirectSendID = protocol.ID("/erd/directsend/1.0.0")
 
+	// ConnectionTopic represents the topic used when sending the new connection message data
+	ConnectionTopic = "connection"
+
 	durationBetweenSends            = time.Microsecond * 10
 	durationCheckConnections        = time.Second
 	refreshPeersOnTopic             = time.Second * 3
@@ -108,26 +111,28 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor          ConnectionMonitor
-	connMonitorWrapper   p2p.ConnectionMonitorWrapper
-	peerDiscoverer       p2p.PeerDiscoverer
-	sharder              p2p.Sharder
-	peerShardResolver    p2p.PeerShardResolver
-	mutPeerResolver      sync.RWMutex
-	mutTopics            sync.RWMutex
-	processors           map[string]*topicProcessors
-	topics               map[string]*pubsub.Topic
-	subscriptions        map[string]*pubsub.Subscription
-	outgoingPLB          p2p.ChannelLoadBalancer
-	poc                  *peersOnChannel
-	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	ip                   *identityProvider
-	connectionsMetric    *metrics.Connections
-	debugger             p2p.Debugger
-	marshalizer          p2p.Marshalizer
-	syncTimer            p2p.SyncTimer
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	connectionsWatcher   p2p.ConnectionsWatcher
+	connMonitor             ConnectionMonitor
+	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	peerDiscoverer          p2p.PeerDiscoverer
+	sharder                 p2p.Sharder
+	peerShardResolver       p2p.PeerShardResolver
+	mutPeerResolver         sync.RWMutex
+	mutTopics               sync.RWMutex
+	processors              map[string]*topicProcessors
+	topics                  map[string]*pubsub.Topic
+	subscriptions           map[string]*pubsub.Subscription
+	outgoingPLB             p2p.ChannelLoadBalancer
+	poc                     *peersOnChannel
+	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
+	ip                      *identityProvider
+	connectionsMetric       *metrics.Connections
+	debugger                p2p.Debugger
+	marshalizer             p2p.Marshalizer
+	syncTimer               p2p.SyncTimer
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	connectionsWatcher      p2p.ConnectionsWatcher
+	mutCurrentBytesProvider sync.RWMutex
+	currentBytesProvider    p2p.CurrentPeerBytesProvider
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -299,6 +304,7 @@ func addComponentsToNode(
 	p2pNode.syncTimer = args.SyncTimer
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
+	p2pNode.currentBytesProvider = &disabled.CurrentBytesProvider{}
 
 	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
@@ -463,6 +469,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
 		ConnectionsWatcher:         netMes.connectionsWatcher,
+		ConnectionsNotifiee:        netMes,
 	}
 	var err error
 	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
@@ -473,7 +480,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	cmw := newConnectionMonitorWrapper(
 		netMes.p2pHost.Network(),
 		netMes.connMonitor,
-		&disabled.NilPeerDenialEvaluator{},
+		&disabled.PeerDenialEvaluator{},
 	)
 	netMes.p2pHost.Network().Notify(cmw)
 	netMes.connMonitorWrapper = cmw
@@ -491,6 +498,22 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	}()
 
 	return nil
+}
+
+// PeerConnected can be called whenever a new peer is connected to this host
+func (netMes *networkMessenger) PeerConnected(pid core.PeerID) {
+	netMes.mutCurrentBytesProvider.RLock()
+	message, validMessage := netMes.currentBytesProvider.BytesToSendToNewPeers()
+	netMes.mutCurrentBytesProvider.RUnlock()
+
+	if !validMessage {
+		return
+	}
+
+	errNotCritical := netMes.SendToConnectedPeer(ConnectionTopic, message, pid)
+	if errNotCritical != nil {
+		log.Trace("networkMessenger.PeerConnected", "pid", pid.Pretty(), "error", errNotCritical)
+	}
 }
 
 func (netMes *networkMessenger) createConnectionsMetric() {
@@ -961,7 +984,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 		topicProcs = newTopicProcessors()
 		netMes.processors[topic] = topicProcs
 
-		err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
+		err := netMes.registerOnPubSub(topic, topicProcs)
 		if err != nil {
 			return err
 		}
@@ -973,6 +996,15 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 	}
 
 	return nil
+}
+
+func (netMes *networkMessenger) registerOnPubSub(topic string, topicProcs *topicProcessors) error {
+	if topic == ConnectionTopic {
+		// do not allow broadcasts on this connection topic
+		return nil
+	}
+
+	return netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 }
 
 func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
@@ -1272,6 +1304,19 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	netMes.mutPeerResolver.Lock()
 	netMes.peerShardResolver = peerShardResolver
 	netMes.mutPeerResolver.Unlock()
+
+	return nil
+}
+
+// SetCurrentBytesProvider sets the current peer bytes provider that is able to prepare the bytes to be sent to a new peer
+func (netMes *networkMessenger) SetCurrentBytesProvider(currentBytesProvider p2p.CurrentPeerBytesProvider) error {
+	if check.IfNil(currentBytesProvider) {
+		return p2p.ErrNilCurrentPeerBytesProvider
+	}
+
+	netMes.mutCurrentBytesProvider.Lock()
+	netMes.currentBytesProvider = currentBytesProvider
+	netMes.mutCurrentBytesProvider.Unlock()
 
 	return nil
 }

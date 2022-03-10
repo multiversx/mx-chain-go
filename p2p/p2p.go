@@ -333,3 +333,15 @@ type ConnectionsWatcher interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// CurrentPeerBytesProvider represents an entity able to provide the bytes used to send to a new peer
+type CurrentPeerBytesProvider interface {
+	BytesToSendToNewPeers() ([]byte, bool)
+	IsInterfaceNil() bool
+}
+
+// ConnectionsNotifiee represents an entity able to be notified if a new peer is connected
+type ConnectionsNotifiee interface {
+	PeerConnected(pid core.PeerID)
+	IsInterfaceNil() bool
+}

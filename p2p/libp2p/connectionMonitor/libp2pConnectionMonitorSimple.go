@@ -25,6 +25,7 @@ type libp2pConnectionMonitorSimple struct {
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
 	connectionsWatcher         p2p.ConnectionsWatcher
+	connectionsNotifiee        p2p.ConnectionsNotifiee
 }
 
 // ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
@@ -34,6 +35,7 @@ type ArgsConnectionMonitorSimple struct {
 	Sharder                    Sharder
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
 	ConnectionsWatcher         p2p.ConnectionsWatcher
+	ConnectionsNotifiee        p2p.ConnectionsNotifiee
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
@@ -51,6 +53,9 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 	if check.IfNil(args.ConnectionsWatcher) {
 		return nil, p2p.ErrNilConnectionsWatcher
 	}
+	if check.IfNil(args.ConnectionsNotifiee) {
+		return nil, p2p.ErrNilConnectionsNotifiee
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -62,6 +67,7 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 		cancelFunc:                 cancelFunc,
 		preferredPeersHolder:       args.PreferredPeersHolder,
 		connectionsWatcher:         args.ConnectionsWatcher,
+		connectionsNotifiee:        args.ConnectionsNotifiee,
 	}
 
 	go cm.doReconnection(ctx)
@@ -87,10 +93,20 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn network.Conn) {
 	allPeers := netw.Peers()
 
-	lcms.connectionsWatcher.NewKnownConnection(core.PeerID(conn.RemotePeer()), conn.RemoteMultiaddr().String())
+	newPeer := core.PeerID(conn.RemotePeer())
+	lcms.connectionsWatcher.NewKnownConnection(newPeer, conn.RemoteMultiaddr().String())
 	evicted := lcms.sharder.ComputeEvictionList(allPeers)
+	shouldNotify := true
 	for _, pid := range evicted {
 		_ = netw.ClosePeer(pid)
+		if pid.String() == conn.RemotePeer().String() {
+			// we just closed the connection to the new peer, no need to notify
+			shouldNotify = false
+		}
+	}
+
+	if shouldNotify {
+		lcms.connectionsNotifiee.PeerConnected(newPeer)
 	}
 }
 

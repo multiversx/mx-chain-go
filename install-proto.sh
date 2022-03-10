@@ -42,7 +42,7 @@ cd "${GOPATH}"/src/github.com/ElrondNetwork
 if [ ! -d "protobuf" ]
 then
   echo "Cloning ElrondNetwork/protobuf..."
-  git clone https://github.com/ElrondNetwork/protobuf.git
+  git clone https://github.com/ElrondNetwork/protobuf/protobuf.git
 fi
 
 echo "Building protoc-gen-gogoslick binary..."
