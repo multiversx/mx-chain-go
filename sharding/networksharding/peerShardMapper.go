@@ -149,7 +149,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 
 	pkBuff, ok := pkObj.([]byte)
 	if !ok {
-		log.Warn("PeerShardMapper.getShardIDWithNodesCoordinator: the contained element should have been of type []byte")
+		log.Warn("PeerShardMapper.getPeerInfoWithNodesCoordinator: the contained element should have been of type []byte")
 
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
@@ -251,7 +251,7 @@ func (psm *PeerShardMapper) GetLastKnownPeerID(pk []byte) (*core.PeerID, bool) {
 	}
 
 	if len(pq.data) == 0 {
-		log.Warn("PeerShardMapper.GetPeerID: empty pidQueue element")
+		log.Warn("PeerShardMapper.GetLastKnownPeerID: empty pidQueue element")
 		return nil, false
 	}
 
