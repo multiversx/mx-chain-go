@@ -15,37 +15,37 @@ type ProcessedMiniBlockInfo struct {
 	IndexOfLastTxProcessed int32
 }
 
-// MiniBlockHashes will keep a list of miniblock hashes as keys in a map for easy access
-type MiniBlockHashes map[string]*ProcessedMiniBlockInfo
+// MiniBlocksInfo will keep a list of miniblocks hashes as keys, with miniblocks info as value
+type MiniBlocksInfo map[string]*ProcessedMiniBlockInfo
 
 // ProcessedMiniBlockTracker is used to store all processed mini blocks hashes grouped by a metahash
 type ProcessedMiniBlockTracker struct {
-	processedMiniBlocks    map[string]MiniBlockHashes
+	processedMiniBlocks    map[string]MiniBlocksInfo
 	mutProcessedMiniBlocks sync.RWMutex
 }
 
 // NewProcessedMiniBlocks will create a complex type of processedMb
 func NewProcessedMiniBlocks() *ProcessedMiniBlockTracker {
 	return &ProcessedMiniBlockTracker{
-		processedMiniBlocks: make(map[string]MiniBlockHashes),
+		processedMiniBlocks: make(map[string]MiniBlocksInfo),
 	}
 }
 
-// AddMiniBlockHash will add a miniblock hash
-func (pmb *ProcessedMiniBlockTracker) AddMiniBlockHash(metaBlockHash string, miniBlockHash string, processedMbInfo *ProcessedMiniBlockInfo) {
+// SetProcessedMiniBlockInfo will set a processed miniblock info for the given metablock hash and miniblock hash
+func (pmb *ProcessedMiniBlockTracker) SetProcessedMiniBlockInfo(metaBlockHash string, miniBlockHash string, processedMbInfo *ProcessedMiniBlockInfo) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	defer pmb.mutProcessedMiniBlocks.Unlock()
 
 	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
 	if !ok {
-		miniBlocksProcessed = make(MiniBlockHashes)
-		miniBlocksProcessed[miniBlockHash] = processedMbInfo
+		miniBlocksProcessed = make(MiniBlocksInfo)
 		pmb.processedMiniBlocks[metaBlockHash] = miniBlocksProcessed
-
-		return
 	}
 
-	miniBlocksProcessed[miniBlockHash] = processedMbInfo
+	miniBlocksProcessed[miniBlockHash] = &ProcessedMiniBlockInfo{
+		IsFullyProcessed:       processedMbInfo.IsFullyProcessed,
+		IndexOfLastTxProcessed: processedMbInfo.IndexOfLastTxProcessed,
+	}
 }
 
 // RemoveMetaBlockHash will remove a meta block hash
@@ -70,10 +70,14 @@ func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) 
 
 // GetProcessedMiniBlocksInfo will return all processed miniblocks info for a metablock
 func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksInfo(metaBlockHash string) map[string]*ProcessedMiniBlockInfo {
-	pmb.mutProcessedMiniBlocks.RLock()
 	processedMiniBlocksInfo := make(map[string]*ProcessedMiniBlockInfo)
-	for hash, value := range pmb.processedMiniBlocks[metaBlockHash] {
-		processedMiniBlocksInfo[hash] = value
+
+	pmb.mutProcessedMiniBlocks.RLock()
+	for miniBlockHash, processedMiniBlockInfo := range pmb.processedMiniBlocks[metaBlockHash] {
+		processedMiniBlocksInfo[miniBlockHash] = &ProcessedMiniBlockInfo{
+			IsFullyProcessed:       processedMiniBlockInfo.IsFullyProcessed,
+			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
+		}
 	}
 	pmb.mutProcessedMiniBlocks.RUnlock()
 
@@ -131,14 +135,14 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 	defer pmb.mutProcessedMiniBlocks.Unlock()
 
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		miniBlocksHashes := make(MiniBlockHashes)
+		miniBlocksInfo := make(MiniBlocksInfo)
 		for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
-			miniBlocksHashes[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
+			miniBlocksInfo[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
 				IsFullyProcessed:       miniBlocksInMeta.IsFullyProcessed[index],
 				IndexOfLastTxProcessed: miniBlocksInMeta.IndexOfLastTxProcessed[index],
 			}
 		}
-		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes
+		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksInfo
 	}
 }
 

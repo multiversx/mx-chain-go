@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"reflect"
 	"sort"
@@ -2468,7 +2469,7 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, []byte{}, &block.MiniBlockHeader{})
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, &block.MiniBlockHeader{Hash: []byte{}}, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 	})
 
@@ -2489,9 +2490,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		mbHandler := &block.MiniBlockHeader{}
+		mbHandler := &block.MiniBlockHeader{
+			Hash: miniBlockHash,
+		}
 
-		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Normal), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
@@ -2515,9 +2518,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 		bp.EpochConfirmed(4, 0)
 
-		mbHandler := &block.MiniBlockHeader{}
+		mbHandler := &block.MiniBlockHeader{
+			Hash: miniBlockHash,
+		}
 
-		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(&block.MiniBlock{}, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Processed), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
@@ -2548,10 +2553,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		}
 
 		mbHandler := &block.MiniBlockHeader{
+			Hash:          miniBlockHash,
 			SenderShardID: 2,
 		}
 
-		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(mb, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Final), mbHandler.GetConstructionState())
@@ -2584,10 +2590,11 @@ func TestBaseProcessor_setMiniBlockHeaderReservedField(t *testing.T) {
 		}
 
 		mbHandler := &block.MiniBlockHeader{
+			Hash:          miniBlockHash,
 			SenderShardID: shardId,
 		}
 
-		err := bp.SetMiniBlockHeaderReservedField(mb, miniBlockHash, mbHandler)
+		err := bp.SetMiniBlockHeaderReservedField(mb, mbHandler, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 		assert.Nil(t, err)
 		assert.Equal(t, int32(block.Scheduled), mbHandler.GetProcessingType())
 		assert.Equal(t, int32(block.Proposed), mbHandler.GetConstructionState())

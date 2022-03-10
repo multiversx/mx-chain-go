@@ -572,6 +572,14 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	return mbIndex, nil
 }
 
+type createMiniBlockDestMeExecutionInfo struct {
+	processedTxHashes             [][]byte
+	miniBlocks                    block.MiniBlockSlice
+	numTxAdded                    uint32
+	numNewMiniBlocksProcessed     int
+	numAlreadyMiniBlocksProcessed int
+}
+
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
 // with destination of current shard
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
@@ -582,27 +590,20 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	scheduledMode bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
-	miniBlocks := make(block.MiniBlockSlice, 0)
-	numTxAdded := uint32(0)
-	numAlreadyMiniBlocksProcessed := 0
-	numNewMiniBlocksProcessed := 0
-	processedTxHashes := make([][]byte, 0)
+	createMBDestMeExecutionInfo := initMiniBlockDestMeExecutionInfo()
 
 	if check.IfNil(hdr) {
-		return miniBlocks, numTxAdded, false, nil
+		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
 	}
 
 	shouldSkipShard := make(map[uint32]bool)
 
 	headerHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, hdr)
 	if err != nil {
-		return miniBlocks, numTxAdded, false, nil
+		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
 	}
 
-	if tc.shardCoordinator.SelfId() == core.MetachainShardId {
-		tc.InitProcessedTxsResults(headerHash)
-		tc.gasHandler.Reset(headerHash)
-	}
+	tc.handleCreateMiniBlocksDestMeInit(headerHash)
 
 	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
 
@@ -611,8 +612,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
-			"num already mini blocks processed", numAlreadyMiniBlocksProcessed,
-			"num new mini blocks processed", numNewMiniBlocksProcessed,
+			"num already mini blocks processed", createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed,
+			"num new mini blocks processed", createMBDestMeExecutionInfo.numNewMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -644,17 +645,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		processedMbInfo, ok := processedMiniBlocksInfo[string(miniBlockInfo.Hash)]
-		if !ok {
-			processedMbInfo = &processedMb.ProcessedMiniBlockInfo{
-				IndexOfLastTxProcessed: -1,
-				IsFullyProcessed:       false,
-			}
-			processedMiniBlocksInfo[string(miniBlockInfo.Hash)] = processedMbInfo
-		}
-
+		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
 		if processedMbInfo.IsFullyProcessed {
-			numAlreadyMiniBlocksProcessed++
+			createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
@@ -721,7 +714,10 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
+		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
+
 		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
+		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
@@ -731,7 +727,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"type", miniBlock.Type,
 				"round", miniBlockInfo.Round,
 				"num txs", len(miniBlock.TxHashes),
-				"num txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
+				"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
+				"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
 				"fully processed", processedMbInfo.IsFullyProcessed,
 				"total gas provided", tc.gasHandler.TotalGasProvided(),
 				"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
@@ -748,34 +745,86 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"type", miniBlock.Type,
 			"round", miniBlockInfo.Round,
 			"num txs", len(miniBlock.TxHashes),
-			"num txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
+			"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
+			"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
 			"fully processed", processedMbInfo.IsFullyProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 		)
-
-		processedTxHashes = append(processedTxHashes, miniBlock.TxHashes[:processedMbInfo.IndexOfLastTxProcessed+1]...)
-
-		// all txs processed, add to processed miniblocks
-		miniBlocks = append(miniBlocks, miniBlock)
-		numTxAdded = numTxAdded + uint32(len(miniBlock.TxHashes[:processedMbInfo.IndexOfLastTxProcessed+1]))
-		if processedMbInfo.IsFullyProcessed {
-			numNewMiniBlocksProcessed++
-		}
-		if processedMiniBlocksInfo != nil {
-			processedMiniBlocksInfo[string(miniBlockInfo.Hash)] = processedMbInfo
-		}
 	}
 
-	numTotalMiniBlocksProcessed := numAlreadyMiniBlocksProcessed + numNewMiniBlocksProcessed
+	numTotalMiniBlocksProcessed := createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed + createMBDestMeExecutionInfo.numNewMiniBlocksProcessed
 	allMBsProcessed := numTotalMiniBlocksProcessed == len(finalCrossMiniBlockInfos)
 	if !allMBsProcessed {
-		tc.revertIfNeeded(processedTxHashes, headerHash)
+		tc.revertIfNeeded(createMBDestMeExecutionInfo, headerHash)
 	}
 
-	return miniBlocks, numTxAdded, allMBsProcessed, nil
+	return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, allMBsProcessed, nil
+}
+
+func initMiniBlockDestMeExecutionInfo() *createMiniBlockDestMeExecutionInfo {
+	return &createMiniBlockDestMeExecutionInfo{
+		processedTxHashes:             make([][]byte, 0),
+		miniBlocks:                    make(block.MiniBlockSlice, 0),
+		numTxAdded:                    0,
+		numNewMiniBlocksProcessed:     0,
+		numAlreadyMiniBlocksProcessed: 0,
+	}
+}
+
+func (tc *transactionCoordinator) handleCreateMiniBlocksDestMeInit(headerHash []byte) {
+	if tc.shardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+
+	tc.InitProcessedTxsResults(headerHash)
+	tc.gasHandler.Reset(headerHash)
+}
+
+func (tc *transactionCoordinator) handleProcessMiniBlockExecution(
+	oldIndexOfLastTxProcessed int32,
+	miniBlock *block.MiniBlock,
+	processedMbInfo *processedMb.ProcessedMiniBlockInfo,
+	createMBDestMeExecutionInfo *createMiniBlockDestMeExecutionInfo,
+) {
+	if oldIndexOfLastTxProcessed >= processedMbInfo.IndexOfLastTxProcessed {
+		return
+	}
+
+	newProcessedTxHashes := miniBlock.TxHashes[oldIndexOfLastTxProcessed+1 : processedMbInfo.IndexOfLastTxProcessed+1]
+	createMBDestMeExecutionInfo.processedTxHashes = append(createMBDestMeExecutionInfo.processedTxHashes, newProcessedTxHashes...)
+	createMBDestMeExecutionInfo.miniBlocks = append(createMBDestMeExecutionInfo.miniBlocks, miniBlock)
+	createMBDestMeExecutionInfo.numTxAdded = createMBDestMeExecutionInfo.numTxAdded + uint32(len(newProcessedTxHashes))
+
+	if processedMbInfo.IsFullyProcessed {
+		createMBDestMeExecutionInfo.numNewMiniBlocksProcessed++
+	}
+}
+
+func getProcessedMiniBlockInfo(
+	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+	miniBlockHash []byte,
+) *processedMb.ProcessedMiniBlockInfo {
+
+	if processedMiniBlocksInfo == nil {
+		return &processedMb.ProcessedMiniBlockInfo{
+			IndexOfLastTxProcessed: -1,
+			IsFullyProcessed:       false,
+		}
+	}
+
+	processedMbInfo, ok := processedMiniBlocksInfo[string(miniBlockHash)]
+	if !ok {
+		processedMbInfo = &processedMb.ProcessedMiniBlockInfo{
+			IndexOfLastTxProcessed: -1,
+			IsFullyProcessed:       false,
+		}
+		processedMiniBlocksInfo[string(miniBlockHash)] = processedMbInfo
+	}
+
+	return processedMbInfo
 }
 
 func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
@@ -801,14 +850,17 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	return miniBlockInfos
 }
 
-func (tc *transactionCoordinator) revertIfNeeded(txsToBeReverted [][]byte, key []byte) {
-	shouldRevert := tc.shardCoordinator.SelfId() == core.MetachainShardId && len(txsToBeReverted) > 0
+func (tc *transactionCoordinator) revertIfNeeded(createMBDestMeExecutionInfo *createMiniBlockDestMeExecutionInfo, key []byte) {
+	shouldRevert := tc.shardCoordinator.SelfId() == core.MetachainShardId && len(createMBDestMeExecutionInfo.processedTxHashes) > 0
 	if !shouldRevert {
 		return
 	}
 
 	tc.gasHandler.RestoreGasSinceLastReset(key)
-	tc.RevertProcessedTxsResults(txsToBeReverted, key)
+	tc.RevertProcessedTxsResults(createMBDestMeExecutionInfo.processedTxHashes, key)
+
+	createMBDestMeExecutionInfo.miniBlocks = make(block.MiniBlockSlice, 0)
+	createMBDestMeExecutionInfo.numTxAdded = 0
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool

@@ -2435,7 +2435,7 @@ func TestTransactionCoordinator_GetNumOfCrossInterMbsAndTxsShouldWork(t *testing
 		},
 	}
 
-	numMbs, numTxs := tc.getNumOfCrossInterMbsAndTxs()
+	numMbs, numTxs := tc.GetNumOfCrossInterMbsAndTxs()
 
 	assert.Equal(t, 5, numMbs)
 	assert.Equal(t, 10, numTxs)
@@ -4054,7 +4054,10 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	}
 	tc, _ := NewTransactionCoordinator(txCoordinatorArgs)
 
-	tc.revertIfNeeded(txHashes, []byte("key"))
+	createMBDestMeExecutionInfo := &createMiniBlockDestMeExecutionInfo{
+		processedTxHashes: txHashes,
+	}
+	tc.revertIfNeeded(createMBDestMeExecutionInfo, []byte("key"))
 	assert.False(t, restoreGasSinceLastResetCalled)
 	assert.Equal(t, 0, numTxsFeesReverted)
 
@@ -4065,7 +4068,10 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	}
 	tc, _ = NewTransactionCoordinator(txCoordinatorArgs)
 
-	tc.revertIfNeeded(txHashes, []byte("key"))
+	createMBDestMeExecutionInfo = &createMiniBlockDestMeExecutionInfo{
+		processedTxHashes: txHashes,
+	}
+	tc.revertIfNeeded(createMBDestMeExecutionInfo, []byte("key"))
 	assert.False(t, restoreGasSinceLastResetCalled)
 	assert.Equal(t, 0, numTxsFeesReverted)
 
@@ -4074,7 +4080,10 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
 
-	tc.revertIfNeeded(txHashes, []byte("key"))
+	createMBDestMeExecutionInfo = &createMiniBlockDestMeExecutionInfo{
+		processedTxHashes: txHashes,
+	}
+	tc.revertIfNeeded(createMBDestMeExecutionInfo, []byte("key"))
 	assert.True(t, restoreGasSinceLastResetCalled)
 	assert.Equal(t, len(txHashes), numTxsFeesReverted)
 }
@@ -4244,4 +4253,27 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 
 	txs := tc.GetAllIntermediateTxs()
 	assert.Equal(t, expectedAllIntermediateTxs, txs)
+}
+
+func TestGetProcessedMiniBlockInfo_ShouldWork(t *testing.T) {
+	processedMiniBlocksInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+
+	processedMbInfo := getProcessedMiniBlockInfo(nil, []byte("hash1"))
+	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.Equal(t, int32(-1), processedMbInfo.IndexOfLastTxProcessed)
+
+	processedMbInfo = getProcessedMiniBlockInfo(processedMiniBlocksInfo, []byte("hash1"))
+	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.Equal(t, int32(-1), processedMbInfo.IndexOfLastTxProcessed)
+	assert.Equal(t, 1, len(processedMiniBlocksInfo))
+
+	processedMbInfo.IndexOfLastTxProcessed = 69
+	processedMbInfo.IsFullyProcessed = true
+
+	processedMbInfo = getProcessedMiniBlockInfo(processedMiniBlocksInfo, []byte("hash1"))
+	assert.True(t, processedMbInfo.IsFullyProcessed)
+	assert.Equal(t, int32(69), processedMbInfo.IndexOfLastTxProcessed)
+	assert.Equal(t, 1, len(processedMiniBlocksInfo))
+	assert.True(t, processedMiniBlocksInfo["hash1"].IsFullyProcessed)
+	assert.Equal(t, int32(69), processedMiniBlocksInfo["hash1"].IndexOfLastTxProcessed)
 }

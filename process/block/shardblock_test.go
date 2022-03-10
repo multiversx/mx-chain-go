@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"reflect"
 	"strings"
@@ -277,7 +278,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 
 	shardProcessor, _ := blproc.NewShardProcessor(arguments)
 	header := &block.Header{Round: round}
-	bodyHandler, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
+	bodyHandler, _, _ := shardProcessor.CreateBlockBody(header, func() bool { return true })
 
 	headerHandler, err := shardProcessor.CreateNewHeader(round, 1)
 	require.Nil(t, err)
@@ -2249,7 +2250,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
+	bl, _, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
 	assert.Nil(t, err)
 	assert.Equal(t, &block.Body{}, bl)
 }
@@ -2275,7 +2276,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *test
 	haveTimeTrue := func() bool {
 		return false
 	}
-	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
+	bl, _, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
 	assert.Nil(t, err)
 	assert.Equal(t, &block.Body{}, bl)
 }
@@ -2299,7 +2300,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
-	blk, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
+	blk, _, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
 	assert.NotNil(t, blk)
 	assert.Nil(t, err)
 }
@@ -2421,7 +2422,7 @@ func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, nil)
+	_, err := bp.ApplyBodyToHeader(hdr, nil, nil)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
@@ -2433,7 +2434,7 @@ func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, &block.Body{})
+	_, err := bp.ApplyBodyToHeader(hdr, &block.Body{}, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 }
@@ -2464,7 +2465,7 @@ func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testi
 		},
 	}
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, body)
+	_, err := bp.ApplyBodyToHeader(hdr, body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	assert.NotNil(t, err)
 }
 
@@ -2494,7 +2495,7 @@ func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 		},
 	}
 	hdr := &block.Header{}
-	_, err := bp.ApplyBodyToHeader(hdr, body)
+	_, err := bp.ApplyBodyToHeader(hdr, body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	assert.Nil(t, err)
 	assert.Equal(t, len(body.MiniBlocks), len(hdr.MiniBlockHeaders))
 }
@@ -3088,7 +3089,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	bp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
-	blockBody, err := bp.CreateMiniBlocks(func() bool { return true })
+	blockBody, _, err := bp.CreateMiniBlocks(func() bool { return true })
 
 	assert.Nil(t, err)
 	// testing execution

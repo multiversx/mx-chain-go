@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"sort"
 	"time"
@@ -586,7 +587,10 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlers(
+	body *block.Body,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
@@ -611,7 +615,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 			Type:            body.MiniBlocks[i].Type,
 		}
 
-		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHash, miniBlockHeaderHandlers[i])
+		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHeaderHandlers[i], processedMiniBlocksDestMeInfo)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -622,8 +626,8 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlock *block.MiniBlock,
-	miniBlockHash []byte,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
 	if !bp.flagScheduledMiniBlocks.IsSet() {
 		return nil
@@ -632,14 +636,15 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	notEmpty := len(miniBlock.TxHashes) > 0
 	isScheduledMiniBlock := notEmpty && bp.scheduledTxsExecutionHandler.IsScheduledTx(miniBlock.TxHashes[0])
 	if isScheduledMiniBlock {
-		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler)
+		return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 	}
 
-	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, miniBlockHash)
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 }
 
 func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
 	err := miniBlockHeaderHandler.SetProcessingType(int32(block.Scheduled))
 	if err != nil {
@@ -652,7 +657,13 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 			return err
 		}
 	} else {
-		err = miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+		constructionState := int32(block.Final)
+		processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+		if processedMiniBlockInfo != nil && !processedMiniBlockInfo.IsFullyProcessed {
+			constructionState = int32(block.PartialExecuted)
+		}
+
+		err = miniBlockHeaderHandler.SetConstructionState(constructionState)
 		if err != nil {
 			return err
 		}
@@ -662,9 +673,9 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 
 func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
-	miniBlockHash []byte,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHash) {
+	if bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHeaderHandler.GetHash()) {
 		err := miniBlockHeaderHandler.SetProcessingType(int32(block.Processed))
 		if err != nil {
 			return err
@@ -676,7 +687,13 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 		}
 	}
 
-	err := miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
+	constructionState := int32(block.Final)
+	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+	if processedMiniBlockInfo != nil && !processedMiniBlockInfo.IsFullyProcessed {
+		constructionState = int32(block.PartialExecuted)
+	}
+
+	err := miniBlockHeaderHandler.SetConstructionState(constructionState)
 	if err != nil {
 		return err
 	}

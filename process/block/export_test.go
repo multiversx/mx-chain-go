@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"sync"
 	"time"
 
@@ -55,7 +56,7 @@ func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlock
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, error) {
+func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	return sp.createMiniBlocks(haveTime, []byte("random"))
 }
 
@@ -308,7 +309,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessMiniBlocksDstMe(haveTime)
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, err
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
@@ -369,15 +371,15 @@ func (mp *metaProcessor) ApplyBodyToHeader(metaHdr data.MetaHeaderHandler, body 
 	return mp.applyBodyToHeader(metaHdr, body)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.ShardHeaderHandler, body *block.Body) (*block.Body, error) {
-	return sp.applyBodyToHeader(shardHdr, body)
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.ShardHeaderHandler, body *block.Body, processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo) (*block.Body, error) {
+	return sp.applyBodyToHeader(shardHdr, body, processedMiniBlocksDestMeInfo)
 }
 
 func (mp *metaProcessor) CreateBlockBody(metaBlock data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return mp.createBlockBody(metaBlock, haveTime)
 }
 
-func (sp *shardProcessor) CreateBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+func (sp *shardProcessor) CreateBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (data.BodyHandler, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	return sp.createBlockBody(shardHdr, haveTime)
 }
 
@@ -459,10 +461,10 @@ func (bp *baseProcessor) CheckScheduledMiniBlocksValidity(headerHandler data.Hea
 
 func (bp *baseProcessor) SetMiniBlockHeaderReservedField(
 	miniBlock *block.MiniBlock,
-	miniBlockHash []byte,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHash, miniBlockHeaderHandler)
+	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 }
 
 func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {

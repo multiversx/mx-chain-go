@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
+func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pmb := processedMb.NewProcessedMiniBlocks()
@@ -18,13 +18,13 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 	mtbHash1 := "meta1"
 	mtbHash2 := "meta2"
 
-	pmb.AddMiniBlockHash(mtbHash1, mbHash1, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, nil)
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
-	pmb.AddMiniBlockHash(mtbHash2, mbHash1, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash1, nil)
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 
-	pmb.AddMiniBlockHash(mtbHash1, mbHash2, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, nil)
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash2))
 
 	pmb.RemoveMiniBlockHash(mbHash1)
@@ -47,9 +47,9 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksInfo(t *testing.T) {
 	mtbHash1 := "meta1"
 	mtbHash2 := "meta2"
 
-	pmb.AddMiniBlockHash(mtbHash1, mbHash1, nil)
-	pmb.AddMiniBlockHash(mtbHash1, mbHash2, nil)
-	pmb.AddMiniBlockHash(mtbHash2, mbHash2, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash2, nil)
 
 	mapData := pmb.GetProcessedMiniBlocksInfo(mtbHash1)
 	assert.NotNil(t, mapData[mbHash1])
