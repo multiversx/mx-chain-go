@@ -66,7 +66,6 @@ type legacySystemSCProcessor struct {
 	flagESDTEnabled                atomic.Flag
 	flagSaveJailedAlwaysEnabled    atomic.Flag
 	flagStakingQueueEnabled        atomic.Flag
-	flagInitStakingV4Enabled       atomic.Flag
 }
 
 func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*legacySystemSCProcessor, error) {
@@ -1377,7 +1376,7 @@ func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBloc
 
 func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch)
-	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
+	log.Debug("legacySystemSC: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.SetValue(epoch == s.hystNodesEnableEpoch)
@@ -1391,7 +1390,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 		}
 	}
 
-	log.Debug("systemSCProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
+	log.Debug("legacySystemSC: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", epoch >= s.hystNodesEnableEpoch)
 
 	// only toggle on exact epoch as init should be called only once
@@ -1400,28 +1399,25 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 
 	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
 	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch < s.stakingV4InitEnableEpoch)
-	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
-	log.Debug("systemSCProcessor: change of maximum number of nodes and/or shuffling percentage",
+	log.Debug("legacySystemSC: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+	log.Debug("legacySystemSC: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,
 	)
 
 	s.flagCorrectLastUnjailedEnabled.SetValue(epoch == s.correctLastUnJailEpoch)
-	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
+	log.Debug("legacySystemSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
 
 	s.flagCorrectNumNodesToStake.SetValue(epoch >= s.correctLastUnJailEpoch)
-	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
+	log.Debug("legacySystemSC: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
 	s.flagESDTEnabled.SetValue(epoch == s.esdtEnableEpoch)
-	log.Debug("systemSCProcessor: ESDT initialization", "enabled", s.flagESDTEnabled.IsSet())
+	log.Debug("legacySystemSC: ESDT initialization", "enabled", s.flagESDTEnabled.IsSet())
 
 	s.flagSaveJailedAlwaysEnabled.SetValue(epoch >= s.saveJailedAlwaysEnableEpoch)
-	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
-
-	s.flagInitStakingV4Enabled.SetValue(epoch == s.stakingV4InitEnableEpoch)
-	log.Debug("systemProcessor: staking v4 on meta", "enabled", s.flagInitStakingV4Enabled.IsSet())
+	log.Debug("legacySystemSC: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
 
 	s.flagStakingQueueEnabled.SetValue(epoch < s.stakingV4InitEnableEpoch)
-	log.Debug("systemProcessor: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
+	log.Debug("legacySystemSC: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
 }

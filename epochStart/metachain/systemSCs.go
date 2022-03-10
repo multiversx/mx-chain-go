@@ -58,6 +58,7 @@ type systemSCProcessor struct {
 	flagGovernanceEnabled    atomic.Flag
 	flagBuiltInOnMetaEnabled atomic.Flag
 	flagStakingV4Enabled     atomic.Flag
+	flagInitStakingV4Enabled atomic.Flag
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -411,5 +412,8 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
 
 	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
-	log.Debug("systemProcessor: staking queue on meta", "enabled", s.flagStakingV4Enabled.IsSet())
+	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
+
+	s.flagInitStakingV4Enabled.SetValue(epoch == s.stakingV4InitEnableEpoch)
+	log.Debug("systemProcessor: init staking v4", "enabled", s.flagInitStakingV4Enabled.IsSet())
 }
