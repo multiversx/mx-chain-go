@@ -275,11 +275,6 @@ func printDebugInfo(node *integrationTests.TestHeartbeatNode) {
 		data += "\n"
 	}
 
-	peerAuths := node.DataPool.PeerAuthentications()
-	hbs := node.DataPool.Heartbeats()
-
 	data += "----------\n"
 	println(data)
-	println(peerAuths.Len())
-	println(hbs.Len())
 }
