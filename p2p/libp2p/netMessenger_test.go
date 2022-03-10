@@ -116,21 +116,21 @@ func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
 	_ = netw.LinkAll()
 
 	nscm1 := mock.NewNetworkShardingCollectorMock()
-	nscm1.UpdatePeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
-	nscm1.UpdatePeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
-	nscm1.UpdatePeerIdSubType(messenger3.ID(), core.RegularPeer)
+	nscm1.PutPeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
+	nscm1.PutPeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
+	nscm1.PutPeerIdSubType(messenger3.ID(), core.RegularPeer)
 	_ = messenger1.SetPeerShardResolver(nscm1)
 
 	nscm2 := mock.NewNetworkShardingCollectorMock()
-	nscm2.UpdatePeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
-	nscm2.UpdatePeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
-	nscm2.UpdatePeerIdSubType(messenger3.ID(), core.RegularPeer)
+	nscm2.PutPeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
+	nscm2.PutPeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
+	nscm2.PutPeerIdSubType(messenger3.ID(), core.RegularPeer)
 	_ = messenger2.SetPeerShardResolver(nscm2)
 
 	nscm3 := mock.NewNetworkShardingCollectorMock()
-	nscm3.UpdatePeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
-	nscm3.UpdatePeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
-	nscm3.UpdatePeerIdSubType(messenger3.ID(), core.RegularPeer)
+	nscm3.PutPeerIdSubType(messenger1.ID(), core.FullHistoryObserver)
+	nscm3.PutPeerIdSubType(messenger2.ID(), core.FullHistoryObserver)
+	nscm3.PutPeerIdSubType(messenger3.ID(), core.RegularPeer)
 	_ = messenger3.SetPeerShardResolver(nscm3)
 
 	return messenger1, messenger2, messenger3

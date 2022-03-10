@@ -74,11 +74,7 @@ func checkArgsCrossShardStatusProcessor(args ArgCrossShardStatusProcessor) error
 
 func (cssp *crossShardStatusProcessor) startProcessLoop(ctx context.Context) {
 	timer := time.NewTimer(cssp.delayBetweenRequests)
-
-	defer func() {
-		cssp.cancel()
-		timer.Stop()
-	}()
+	defer timer.Stop()
 
 	requestedTopicsMap := cssp.computeTopicsMap()
 
@@ -96,7 +92,7 @@ func (cssp *crossShardStatusProcessor) startProcessLoop(ctx context.Context) {
 }
 
 func (cssp *crossShardStatusProcessor) computeTopicsMap() map[uint32]string {
-	requestedTopicsMap := make(map[uint32]string, 0)
+	requestedTopicsMap := make(map[uint32]string)
 
 	numOfShards := cssp.shardCoordinator.NumberOfShards()
 	for shard := uint32(0); shard < numOfShards; shard++ {
@@ -114,7 +110,7 @@ func (cssp *crossShardStatusProcessor) computeTopicsMap() map[uint32]string {
 }
 
 func (cssp *crossShardStatusProcessor) updatePeersInfo(requestedTopicsMap map[uint32]string) {
-	cssp.LatestKnownPeers = make(map[string][]core.PeerID, 0)
+	cssp.LatestKnownPeers = make(map[string][]core.PeerID)
 
 	intraShardPeersMap := cssp.getIntraShardConnectedPeers()
 
@@ -126,7 +122,7 @@ func (cssp *crossShardStatusProcessor) updatePeersInfo(requestedTopicsMap map[ui
 				continue
 			}
 
-			cssp.peerShardMapper.UpdatePeerIdShardId(pid, shard)
+			cssp.peerShardMapper.PutPeerIdShardId(pid, shard)
 
 			// todo remove this - tests only
 			cssp.LatestKnownPeers[topic] = append(cssp.LatestKnownPeers[topic], pid)
@@ -139,7 +135,7 @@ func (cssp *crossShardStatusProcessor) getIntraShardConnectedPeers() map[core.Pe
 	intraShardTopic := factory.TransactionTopic + cssp.shardCoordinator.CommunicationIdentifier(selfShard)
 	intraShardPeers := cssp.messenger.ConnectedPeersOnTopic(intraShardTopic)
 
-	intraShardPeersMap := make(map[core.PeerID]struct{}, 0)
+	intraShardPeersMap := make(map[core.PeerID]struct{})
 	for _, pid := range intraShardPeers {
 		intraShardPeersMap[pid] = struct{}{}
 	}
@@ -152,7 +148,7 @@ func (cssp *crossShardStatusProcessor) GetLatestKnownPeers() map[string][]core.P
 	return cssp.LatestKnownPeers
 }
 
-// Close closes the internal goroutine
+// Close triggers the closing of the internal goroutine
 func (cssp *crossShardStatusProcessor) Close() error {
 	log.Debug("closing crossShardStatusProcessor...")
 	cssp.cancel()
@@ -160,7 +156,7 @@ func (cssp *crossShardStatusProcessor) Close() error {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (cssp *crossShardStatusProcessor) IsInterfaceNil() bool {
 	return cssp == nil
 }
