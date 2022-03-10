@@ -569,7 +569,7 @@ func TestESDTcallsSC(t *testing.T) {
 
 	scQuery1 := &process.SCQuery{
 		ScAddress: scAddress,
-		FuncName:  "currentFunds",
+		FuncName:  "getCurrentFunds",
 		Arguments: [][]byte{},
 	}
 	vmOutput1, _ := nodes[0].SCQueryService.ExecuteQuery(scQuery1)

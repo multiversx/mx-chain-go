@@ -76,6 +76,7 @@ type EnableEpochs struct {
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
+	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
