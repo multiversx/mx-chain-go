@@ -1105,6 +1105,18 @@ func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoc
 	return body
 }
 
+func createBlockBodyWithAuctionFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoch uint32) *block.Body {
+	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
+
+	mbs := createBlockBodyFromNodesCoordinator(ihgs, epoch).MiniBlocks
+	body.MiniBlocks = append(body.MiniBlocks, mbs...)
+
+	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].leavingMap, string(common.SelectedFromAuctionList), ihgs.marshalizer)
+	body.MiniBlocks = append(body.MiniBlocks, mbs...)
+
+	return body
+}
+
 func createMiniBlocksForNodesMap(nodesMap map[uint32][]Validator, list string, marshalizer marshal.Marshalizer) []*block.MiniBlock {
 	miniBlocks := make([]*block.MiniBlock, 0)
 	for shId, eligibleList := range nodesMap {
@@ -1270,6 +1282,42 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeObserver(
 	require.NoError(t, err)
 	require.True(t, setTypeWasCalled)
 	require.Equal(t, core.NodeTypeObserver, nodeTypeResult)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartPrepareWithAuction(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	ihgs.updateEpochFlags(arguments.StakingV4EnableEpoch)
+	epoch := uint32(2)
+
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyWithAuctionFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+
+	require.Equal(t, validatorShard, computedShardId)
+	require.True(t, isValidator)
 }
 
 func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
