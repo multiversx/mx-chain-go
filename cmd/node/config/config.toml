@@ -1,70 +1,70 @@
 # GeneralSettings section of the node
 [GeneralSettings]
-   # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
-   StatusPollingIntervalSec = 2
+    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
+    StatusPollingIntervalSec = 2
 
-   # MaxComputableRounds represents the max number of rounds computable in a round
-   # by the validator statistics processor
-   MaxComputableRounds = 100
+    # MaxComputableRounds represents the max number of rounds computable in a round
+    # by the validator statistics processor
+    MaxComputableRounds = 100
 
-   # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
-   # available in local disk
-   StartInEpochEnabled = true
+    # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
+    # available in local disk
+    StartInEpochEnabled = true
 
-   # ChainID identifies the blockChain
-   ChainID = "undefined"
+    # ChainID identifies the blockChain
+    ChainID = "undefined"
 
-   # MinTransactionVersion represents the minimum transaction version accepted
-   MinTransactionVersion = 1
+    # MinTransactionVersion represents the minimum transaction version accepted
+    MinTransactionVersion = 1
 
-   # GenesisString represents the encoded string for the genesis block
-   GenesisString = "67656E65736973"
+    # GenesisString represents the encoded string for the genesis block
+    GenesisString = "67656E65736973"
 
-   # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
-   GenesisMaxNumberOfShards  = 3
+    # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
+    GenesisMaxNumberOfShards  = 3
 
-   # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
-   # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
-   # than this value, then the validators rating decrease should stop so they won't get jailed
-   MaxConsecutiveRoundsOfRatingDecrease = 600
+    # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
+    # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
+    # than this value, then the validators rating decrease should stop so they won't get jailed
+    MaxConsecutiveRoundsOfRatingDecrease = 600
 
 [Versions]
-   DefaultVersion = "default"
-   VersionsByEpochs = [
-       { StartEpoch = 0, Version = "*" },
-       # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-       { StartEpoch = 2, Version = "2" },
-   ]
-   [Versions.Cache]
+    DefaultVersion = "default"
+    VersionsByEpochs = [
+        { StartEpoch = 0, Version = "*" },
+        # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
+        { StartEpoch = 2, Version = "2" },
+    ]
+    [Versions.Cache]
         Name = "VersionsCache"
         Capacity = 100
         Type = "LRU"
 
 [StoragePruning]
-   # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = true
+    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
+    Enabled = true
 
-   # If this flag is set to false, the node won't delete any database between epochs
-   # Applicable only for validators
-   ValidatorCleanOldEpochsData = true
+    # If this flag is set to false, the node won't delete any database between epochs
+    # Applicable only for validators
+    ValidatorCleanOldEpochsData = true
 
-   # If this flag is set to false, the node won't delete any database between epochs
-   # Applicable only for observers
-   ObserverCleanOldEpochsData = false
+    # If this flag is set to false, the node won't delete any database between epochs
+    # Applicable only for observers
+    ObserverCleanOldEpochsData = false
 
-   # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
-   # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
-   NumEpochsToKeep = 4
+    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
+    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
+    NumEpochsToKeep = 4
 
-   # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works even if
-   # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
-   # smaller or equal to the NumOfEpochsToKeep flag
-   NumActivePersisters = 3
+    # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works even if
+    # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
+    # smaller or equal to the NumOfEpochsToKeep flag
+    NumActivePersisters = 3
 
-   # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
-   # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
-   # it is a good idea to increase the maximum number of opened files allowed by the operating system
-   FullArchiveNumActivePersisters = 10
+    # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
+    # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
+    # it is a good idea to increase the maximum number of opened files allowed by the operating system
+    FullArchiveNumActivePersisters = 10
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -222,7 +222,6 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-
 [SmartContractsStorageForSCQuery]
     [SmartContractsStorageForSCQuery.Cache]
         Name = "SmartContractsStorageForSCQuery"
@@ -377,11 +376,11 @@
         MaxOpenFiles = 10
 
 [TrieSnapshotDB]
-     FilePath = "TrieSnapshot"
-     Type = "LvlDBSerial"
-     BatchDelaySeconds = 2
-     MaxBatchSize = 40000
-     MaxOpenFiles = 10
+    FilePath = "TrieSnapshot"
+    Type = "LvlDBSerial"
+    BatchDelaySeconds = 2
+    MaxBatchSize = 40000
+    MaxOpenFiles = 10
 
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
@@ -643,23 +642,23 @@
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
 # RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
 [ResourceStats]
-   Enabled = true
-   RefreshIntervalInSec = 30
+    Enabled = true
+    RefreshIntervalInSec = 30
 
 # Heartbeat, if enabled, will output a heartbeat signal once x seconds,
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
-   MinTimeToWaitBetweenBroadcastsInSec  = 20
-   MaxTimeToWaitBetweenBroadcastsInSec  = 25
-   HeartbeatRefreshIntervalInSec        = 60
-   HideInactiveValidatorIntervalInSec   = 3600
-   DurationToConsiderUnresponsiveInSec  = 60
-   [Heartbeat.HeartbeatStorage]
-       [Heartbeat.HeartbeatStorage.Cache]
+    MinTimeToWaitBetweenBroadcastsInSec  = 20
+    MaxTimeToWaitBetweenBroadcastsInSec  = 25
+    HeartbeatRefreshIntervalInSec        = 60
+    HideInactiveValidatorIntervalInSec   = 3600
+    DurationToConsiderUnresponsiveInSec  = 60
+    [Heartbeat.HeartbeatStorage]
+        [Heartbeat.HeartbeatStorage.Cache]
             Name = "HeartbeatStorage"
             Capacity = 1000
             Type = "LRU"
-       [Heartbeat.HeartbeatStorage.DB]
+        [Heartbeat.HeartbeatStorage.DB]
             FilePath = "HeartbeatStorage"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 5
@@ -672,14 +671,14 @@
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
-   Type = "bls"
+    Type = "bls"
 
 [NTPConfig]
-   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
-   Port = 123
-   TimeoutMilliseconds = 100
-   SyncPeriodSeconds = 3600
-   Version = 0  # Setting 0 means 'use default value'
+    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
+    Port = 123
+    TimeoutMilliseconds = 100
+    SyncPeriodSeconds = 3600
+    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
@@ -887,7 +886,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-
 
 [Logs]
     LogFileLifeSpanInSec = 86400
