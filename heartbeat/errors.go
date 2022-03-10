@@ -134,3 +134,6 @@ var ErrInvalidValue = errors.New("invalid value")
 
 // ErrNilRandomizer signals that a nil randomizer has been provided
 var ErrNilRandomizer = errors.New("nil randomizer")
+
+// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")

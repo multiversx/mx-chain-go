@@ -136,21 +136,23 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	}
 
 	argSender := heartbeatProcess.ArgHeartbeatSender{
-		PeerSubType:          peerSubType,
-		PeerMessenger:        hcf.networkComponents.NetworkMessenger(),
-		PeerSignatureHandler: hcf.cryptoComponents.PeerSignatureHandler(),
-		PrivKey:              hcf.cryptoComponents.PrivateKey(),
-		Marshalizer:          hcf.coreComponents.InternalMarshalizer(),
-		Topic:                common.HeartbeatTopic,
-		ShardCoordinator:     hcf.processComponents.ShardCoordinator(),
-		PeerTypeProvider:     peerTypeProvider,
-		StatusHandler:        hcf.coreComponents.StatusHandler(),
-		VersionNumber:        hcf.version,
-		NodeDisplayName:      hcf.prefs.Preferences.NodeDisplayName,
-		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
-		HardforkTrigger:      hcf.hardforkTrigger,
-		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
-		RedundancyHandler:    hcf.redundancyHandler,
+		PeerSubType:           peerSubType,
+		PeerMessenger:         hcf.networkComponents.NetworkMessenger(),
+		PeerSignatureHandler:  hcf.cryptoComponents.PeerSignatureHandler(),
+		PrivKey:               hcf.cryptoComponents.PrivateKey(),
+		Marshalizer:           hcf.coreComponents.InternalMarshalizer(),
+		Topic:                 common.HeartbeatTopic,
+		ShardCoordinator:      hcf.processComponents.ShardCoordinator(),
+		PeerTypeProvider:      peerTypeProvider,
+		StatusHandler:         hcf.coreComponents.StatusHandler(),
+		VersionNumber:         hcf.version,
+		NodeDisplayName:       hcf.prefs.Preferences.NodeDisplayName,
+		KeyBaseIdentity:       hcf.prefs.Preferences.Identity,
+		HardforkTrigger:       hcf.hardforkTrigger,
+		CurrentBlockProvider:  hcf.dataComponents.Blockchain(),
+		RedundancyHandler:     hcf.redundancyHandler,
+		EpochNotifier:         hcf.coreComponents.EpochNotifier(),
+		HeartbeatDisableEpoch: hcf.config.Heartbeat.HeartbeatDisableEpoch,
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)
@@ -206,6 +208,8 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		HeartbeatRefreshIntervalInSec:      hcf.config.Heartbeat.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: hcf.config.Heartbeat.HideInactiveValidatorIntervalInSec,
 		AppStatusHandler:                   hcf.coreComponents.StatusHandler(),
+		EpochNotifier:                      hcf.coreComponents.EpochNotifier(),
+		HeartbeatDisableEpoch:              hcf.config.Heartbeat.HeartbeatDisableEpoch,
 	}
 	hbc.monitor, err = heartbeatProcess.NewMonitor(argMonitor)
 	if err != nil {
