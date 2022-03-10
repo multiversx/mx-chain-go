@@ -269,7 +269,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 }
 
 func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() error {
-	identifierPeerAuth := factory.PeerAuthenticationTopic
+	identifierPeerAuth := common.PeerAuthenticationTopic
 	shardC := brcf.shardCoordinator
 	resolverSender, err := brcf.createOneResolverSender(identifierPeerAuth, EmptyExcludePeersOnTopic, shardC.SelfId())
 	if err != nil {

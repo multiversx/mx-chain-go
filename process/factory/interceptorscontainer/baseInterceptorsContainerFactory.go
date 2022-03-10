@@ -589,7 +589,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 //------- PeerAuthentication interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptor() error {
-	identifierPeerAuthentication := factory.PeerAuthenticationTopic
+	identifierPeerAuthentication := common.PeerAuthenticationTopic
 
 	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
@@ -635,10 +635,12 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 
 func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() error {
 	shardC := bicf.shardCoordinator
-	identifierHeartbeat := factory.HeartbeatTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierHeartbeat := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	argHeartbeatProcessor := processor.ArgHeartbeatInterceptorProcessor{
-		HeartbeatCacher: bicf.dataPool.Heartbeats(),
+		HeartbeatCacher:  bicf.dataPool.Heartbeats(),
+		ShardCoordinator: shardC,
+		PeerShardMapper:  bicf.peerShardMapper,
 	}
 	heartbeatProcessor, err := processor.NewHeartbeatInterceptorProcessor(argHeartbeatProcessor)
 	if err != nil {

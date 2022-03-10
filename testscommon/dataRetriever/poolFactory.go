@@ -117,8 +117,8 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	peerAuthPool, err := mapTimeCache.NewMapTimeCache(mapTimeCache.ArgMapTimeCacher{
-		DefaultSpan: 20 * time.Second,
-		CacheExpiry: 20 * time.Second,
+		DefaultSpan: 60 * time.Second,
+		CacheExpiry: 60 * time.Second,
 	})
 	panicIfError("CreatePoolsHolder", err)
 
