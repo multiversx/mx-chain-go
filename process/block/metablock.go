@@ -1757,7 +1757,8 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	for _, shardData := range metaHdr.ShardInfo {
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
-			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
+			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
 		}
 		actualHdr := headerInfo.hdr
 		shardHdr, ok := actualHdr.(data.ShardHeaderHandler)
