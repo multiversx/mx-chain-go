@@ -541,12 +541,13 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -739,12 +740,13 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -851,8 +853,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+
+		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 		argsNewVmFactory := metaProcess.ArgsNewVMContainerFactory{
-			ArgBlockChainHook:   argsHook,
+			BlockChainHook:      blockChainHookImpl,
+			PubkeyConv:          argsHook.PubkeyConv,
 			Economics:           tpn.EconomicsData,
 			MessageSignVerifier: sigVerifier,
 			GasSchedule:         gasSchedule,
@@ -920,15 +925,17 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
+		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config: config.VirtualMachineConfig{
 				ArwenVersions: []config.ArwenVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
+			BlockChainHook:     blockChainHookImpl,
+			BuiltInFunctions:   argsHook.BuiltInFunctions,
 			BlockGasLimit:      tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
 			GasSchedule:        gasSchedule,
-			ArgBlockChainHook:  argsHook,
 			EpochNotifier:      tpn.EpochNotifier,
 			EpochConfig:        tpn.EnableEpochs,
 			ArwenChangeLocker:  tpn.ArwenChangeLocker,
@@ -941,12 +948,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 
 	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    vmFactory.BlockChainHookImpl(),
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              vmContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           vmFactory.BlockChainHookImpl(),
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -957,12 +965,13 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap)
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -1434,6 +1443,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
 			ArwenVersions: []config.ArwenVersionByEpoch{
@@ -1442,7 +1452,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		},
 		BlockGasLimit:      maxGasLimitPerBlock,
 		GasSchedule:        gasSchedule,
-		ArgBlockChainHook:  argsHook,
+		BlockChainHook:     blockChainHookImpl,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 		EpochNotifier:      tpn.EpochNotifier,
 		EpochConfig:        tpn.EnableEpochs,
 		ArwenChangeLocker:  tpn.ArwenChangeLocker,
@@ -1530,6 +1541,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer,
+		TestHasher,
 		tpn.ShardCoordinator,
 	)
 
@@ -1580,6 +1592,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:                     tpn.EpochNotifier,
 		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    tpn.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1649,8 +1662,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	} else {
 		signVerifier, _ = disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 	}
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           tpn.EconomicsData,
 		MessageSignVerifier: signVerifier,
 		GasSchedule:         gasSchedule,
@@ -1768,6 +1783,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		&mock.TransactionCoordinatorMock{},
 		tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit),
 		TestMarshalizer,
+		TestHasher,
 		tpn.ShardCoordinator)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
@@ -1815,6 +1831,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:                     tpn.EpochNotifier,
 		ScheduledTxsExecutionHandler:      scheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    tpn.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        &testscommon.PanicDoubleTransactionsDetector{},
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)

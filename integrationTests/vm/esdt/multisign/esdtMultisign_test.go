@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package multisign
@@ -68,7 +69,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	//----- issue ESDT token
+	// ----- issue ESDT token
 	initalSupply := big.NewInt(10000000000)
 	ticker := "TCK"
 	proposeIssueTokenAndTransferFunds(nodes, multisignContractAddress, initalSupply, 0, ticker)
@@ -98,7 +99,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	checkCallBackWasSaved(t, nodes, multisignContractAddress)
 
-	//----- transfer ESDT token
+	// ----- transfer ESDT token
 	destinationAddress, _ := integrationTests.TestAddressPubkeyConverter.Decode("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5")
 	transferValue := big.NewInt(10)
 	proposeTransferToken(nodes, multisignContractAddress, transferValue, 0, destinationAddress, tokenIdentifier)

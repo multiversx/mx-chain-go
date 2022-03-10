@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -28,15 +29,15 @@ import (
 // 4. Execute SCR with the smart contract call on shard 1
 // 5. Execute SCR with refund on relayer shard (shard 2)
 func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
-	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{})
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextInnerSource.Close()
 
-	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextInnerDst.Close()
 
@@ -151,15 +152,15 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 }
 
 func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
-	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{})
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextInnerSource.Close()
 
-	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextInnerDst.Close()
 

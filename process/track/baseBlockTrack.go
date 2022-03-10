@@ -832,7 +832,7 @@ func getCrossShardMiniblockKeys(miniBlockHdrs []data.MiniBlockHeaderHandler, sel
 		senderIsCrossShard := miniBlockHdr.GetSenderShardID() != selfShardID
 		if receiverIsSelfShard && senderIsCrossShard {
 			keys = append(keys, miniBlockHdr.GetHash())
-			log.Debug(
+			log.Trace(
 				"getCrossShardMiniblockKeys",
 				"type", miniBlockHdr.GetTypeInt32(),
 				"sender", miniBlockHdr.GetSenderShardID(),

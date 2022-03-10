@@ -85,9 +85,6 @@ var ErrInvalidLevelValue = errors.New("invalid trie level in memory value")
 // ErrNilTrieSyncStatistics signals that a nil trie sync statistics handler was provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics handler")
 
-// ErrContextClosing signals that the parent context requested the closing of its children
-var ErrContextClosing = errors.New("context closing")
-
 // ErrNilTimeoutHandler signals that a nil timeout handler has been provided
 var ErrNilTimeoutHandler = errors.New("nil timeout handler")
 

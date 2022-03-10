@@ -105,6 +105,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	// placeholder for subroundBlock.doBlockJob script
+
 	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.RoundTimeStamp)
 
 	return true
