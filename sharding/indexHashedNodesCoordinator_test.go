@@ -2071,13 +2071,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 		TempRating: 2,
 		ShardId:    1,
 	}
-
-	validatorInfos :=
-		[]*state.ShardValidatorInfo{
-			shard0Eligible,
-			shard0Auction,
-			shard1Auction,
-		}
+	validatorInfos := []*state.ShardValidatorInfo{shard0Eligible, shard0Auction, shard1Auction}
 
 	previousConfig := &epochNodesConfig{
 		eligibleMap: map[uint32][]Validator{
