@@ -53,6 +53,9 @@ func (msc *multiShardCoordinator) ComputeId(address []byte) uint32 {
 
 // ComputeIdFromBytes calculates the shard for a given address
 func (msc *multiShardCoordinator) ComputeIdFromBytes(address []byte) uint32 {
+	if core.IsEmptyAddress(address) {
+		return msc.selfId
+	}
 
 	var bytesNeed int
 	if msc.numberOfShards <= 256 {
@@ -100,6 +103,10 @@ func (msc *multiShardCoordinator) SelfId() uint32 {
 
 // SameShard returns weather two addresses belong to the same shard
 func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress []byte) bool {
+	if core.IsEmptyAddress(firstAddress) || core.IsEmptyAddress(secondAddress) {
+		return true
+	}
+
 	if bytes.Equal(firstAddress, secondAddress) {
 		return true
 	}

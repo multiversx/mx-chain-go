@@ -18,10 +18,10 @@ var _ requestHandlers.HashSliceResolver = (*TxResolver)(nil)
 var _ dataRetriever.Resolver = (*TxResolver)(nil)
 
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes
-const maxBuffToSendBulkTransactions = 1 << 18 //256KB
+const maxBuffToSendBulkTransactions = 1 << 18 // 256KB
 
 // maxBuffToSendBulkMiniblocks represents max buffer size to send in bytes
-const maxBuffToSendBulkMiniblocks = 1 << 18 //256KB
+const maxBuffToSendBulkMiniblocks = 1 << 18 // 256KB
 
 // ArgTxResolver is the argument structure used to create new TxResolver instance
 type ArgTxResolver struct {
@@ -117,7 +117,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 }
 
 func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, epoch uint32) error {
-	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
+	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	tx, err := txRes.fetchTxAsByteSlice(hash, epoch)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 }
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32) error {
-	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
+	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	b := batch.Batch{}
 	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -172,7 +172,7 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 		tx, errTemp := txRes.fetchTxAsByteSlice(hash, epoch)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
-			//it might happen to error on a tx (maybe it is missing) but should continue
+			// it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can
 			log.Trace("fetchTxAsByteSlice missing",
 				"error", errFetch.Error(),
@@ -205,6 +205,8 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash
 func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
+	log.Trace("TxResolver.RequestDataFromHash", "hash", hash, "topic", txRes.RequestTopic())
+
 	return txRes.SendOnRequestTopic(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashType,
@@ -217,6 +219,8 @@ func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
 func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
+	txRes.printHashArray(hashes)
+
 	b := &batch.Batch{
 		Data: hashes,
 	}
@@ -233,6 +237,16 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32)
 		},
 		hashes,
 	)
+}
+
+func (txRes *TxResolver) printHashArray(hashes [][]byte) {
+	if log.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	for _, hash := range hashes {
+		log.Trace("TxResolver.RequestDataFromHashArray", "hash", hash, "topic", txRes.RequestTopic())
+	}
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query

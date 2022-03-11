@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -184,6 +185,21 @@ func TestMultiShardCoordinator_SameShardDifferentAddressMultipleShards(t *testin
 	addr2 := getAddressFromUint32(uint32(2))
 
 	assert.False(t, shard.SameShard(addr1, addr2))
+}
+
+func TestMultiShardCoordinator_ComputeIDContractDeploy(t *testing.T) {
+	shard, _ := NewMultiShardCoordinator(2, 1)
+
+	addr1 := bytes.Repeat([]byte{0}, 32)
+	assert.Equal(t, shard.ComputeId(addr1), shard.SelfId())
+}
+
+func TestMultiShardCoordinator_SameShardContractDeploy(t *testing.T) {
+	shard, _ := NewMultiShardCoordinator(2, 0)
+
+	addr1 := bytes.Repeat([]byte{0}, 32)
+	addr2 := bytes.Repeat([]byte{1}, 32)
+	assert.True(t, shard.SameShard(addr1, addr2))
 }
 
 func TestMultiShardCoordinator_CommunicationIdentifierSameShard(t *testing.T) {

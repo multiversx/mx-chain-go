@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	dataMock "github.com/ElrondNetwork/elrond-go-core/data/mock"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -100,7 +99,7 @@ func TestHistoryRepository_RecordBlockInvalidBlockRoundByHashStorerExpectError(t
 
 	errPut := errors.New("error put")
 	args := createMockHistoryRepoArgs(0)
-	args.BlockHashByRound = &dataMock.StorerStub{
+	args.BlockHashByRound = &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return errPut
 		},

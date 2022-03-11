@@ -51,8 +51,8 @@ func getDefaultTrieParameters(tb testing.TB) (common.StorageManager, marshal.Mar
 	}
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                     db,
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
+		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
+		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
 		SnapshotDbConfig:       cfg,

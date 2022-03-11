@@ -2,19 +2,20 @@ package storage
 
 // StorerStub -
 type StorerStub struct {
-	PutCalled              func(key, data []byte) error
-	PutInEpochCalled       func(key, data []byte, epoch uint32) error
-	GetCalled              func(key []byte) ([]byte, error)
-	HasCalled              func(key []byte) error
-	SearchFirstCalled      func(key []byte) ([]byte, error)
-	RemoveCalled           func(key []byte) error
-	ClearCacheCalled       func()
-	DestroyUnitCalled      func() error
-	GetFromEpochCalled     func(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpochCalled func(keys [][]byte, epoch uint32) (map[string][]byte, error)
-	GetOldestEpochCalled   func() (uint32, error)
-	RangeKeysCalled        func(handler func(key []byte, val []byte) bool)
-	CloseCalled            func() error
+	PutCalled                    func(key, data []byte) error
+	PutInEpochCalled             func(key, data []byte, epoch uint32) error
+	GetCalled                    func(key []byte) ([]byte, error)
+	HasCalled                    func(key []byte) error
+	SearchFirstCalled            func(key []byte) ([]byte, error)
+	RemoveFromCurrentEpochCalled func(key []byte) error
+	RemoveCalled                 func(key []byte) error
+	ClearCacheCalled             func()
+	DestroyUnitCalled            func() error
+	GetFromEpochCalled           func(key []byte, epoch uint32) ([]byte, error)
+	GetBulkFromEpochCalled       func(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	GetOldestEpochCalled         func() (uint32, error)
+	RangeKeysCalled              func(handler func(key []byte, val []byte) bool)
+	CloseCalled                  func() error
 }
 
 // Put -
@@ -55,6 +56,14 @@ func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 		return ss.SearchFirstCalled(key)
 	}
 	return nil, nil
+}
+
+// RemoveFromCurrentEpoch -
+func (ss *StorerStub) RemoveFromCurrentEpoch(key []byte) error {
+	if ss.RemoveFromCurrentEpochCalled != nil {
+		return ss.RemoveFromCurrentEpochCalled(key)
+	}
+	return nil
 }
 
 // Remove -
