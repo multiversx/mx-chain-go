@@ -1105,18 +1105,6 @@ func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoc
 	return body
 }
 
-func createBlockBodyWithAuctionFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoch uint32) *block.Body {
-	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
-
-	mbs := createBlockBodyFromNodesCoordinator(ihgs, epoch).MiniBlocks
-	body.MiniBlocks = append(body.MiniBlocks, mbs...)
-
-	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].leavingMap, string(common.SelectedFromAuctionList), ihgs.marshalizer)
-	body.MiniBlocks = append(body.MiniBlocks, mbs...)
-
-	return body
-}
-
 func createMiniBlocksForNodesMap(nodesMap map[uint32][]Validator, list string, marshalizer marshal.Marshalizer) []*block.MiniBlock {
 	miniBlocks := make([]*block.MiniBlock, 0)
 	for shId, eligibleList := range nodesMap {
@@ -1284,42 +1272,6 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeObserver(
 	require.Equal(t, core.NodeTypeObserver, nodeTypeResult)
 }
 
-func TestIndexHashedNodesCoordinator_EpochStartPrepareWithAuction(t *testing.T) {
-	t.Parallel()
-
-	arguments := createArguments()
-	pk := []byte("pk")
-	arguments.SelfPublicKey = pk
-	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-
-	ihgs.updateEpochFlags(arguments.StakingV4EnableEpoch)
-	epoch := uint32(2)
-
-	header := &block.MetaBlock{
-		PrevRandSeed: []byte("rand seed"),
-		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        epoch,
-	}
-
-	validatorShard := core.MetachainShardId
-	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
-		epoch: {
-			shardID: validatorShard,
-			eligibleMap: map[uint32][]Validator{
-				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
-			},
-		},
-	}
-	body := createBlockBodyWithAuctionFromNodesCoordinator(ihgs, epoch)
-	ihgs.EpochStartPrepare(header, body)
-	ihgs.EpochStartAction(header)
-
-	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
-
-	require.Equal(t, validatorShard, computedShardId)
-	require.True(t, isValidator)
-}
-
 func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 	t.Parallel()
 
@@ -1352,6 +1304,36 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 	computedShardId, isValidator := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
 
 	require.Equal(t, validatorShard, computedShardId)
+	require.True(t, isValidator)
+}
+
+func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	nc, _ := NewIndexHashedNodesCoordinator(arguments)
+	epoch := uint32(2)
+
+	metaShard := core.MetachainShardId
+	nc.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: metaShard,
+			shuffledOutMap: map[uint32][]Validator{
+				metaShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+
+	computedShardId, isValidator := nc.computeShardForSelfPublicKey(nc.nodesConfig[epoch])
+	require.Equal(t, nc.shardIDAsObserver, computedShardId)
+	require.False(t, isValidator)
+
+	nc.flagStakingV4.SetReturningPrevious()
+
+	computedShardId, isValidator = nc.computeShardForSelfPublicKey(nc.nodesConfig[epoch])
+	require.Equal(t, metaShard, computedShardId)
 	require.True(t, isValidator)
 }
 
@@ -2061,6 +2043,61 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPk(t *testing.
 	assert.Nil(t, newNodesConfig)
 	assert.NotNil(t, err)
 	assert.Equal(t, ErrNilPubKey, err)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *testing.T) {
+	t.Parallel()
+	arguments := createArguments()
+	nc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	shard0Eligible := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk0"),
+		List:       string(common.EligibleList),
+		Index:      1,
+		TempRating: 2,
+		ShardId:    0,
+	}
+	shard0Auction := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk1"),
+		List:       string(common.SelectedFromAuctionList),
+		Index:      3,
+		TempRating: 2,
+		ShardId:    0,
+	}
+	shard1Auction := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk2"),
+		List:       string(common.SelectedFromAuctionList),
+		Index:      2,
+		TempRating: 2,
+		ShardId:    1,
+	}
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			shard0Eligible,
+			shard0Auction,
+			shard1Auction,
+		}
+
+	previousConfig := &epochNodesConfig{
+		eligibleMap: map[uint32][]Validator{
+			0: {
+				mock.NewValidatorMock(shard0Eligible.PublicKey, 0, 0),
+			},
+		},
+	}
+
+	newNodesConfig, err := nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	require.Nil(t, err)
+	require.Empty(t, newNodesConfig.auctionList)
+
+	nc.flagStakingV4.SetReturningPrevious()
+
+	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	require.Nil(t, err)
+	v1, _ := NewValidator([]byte("pk2"), 1, 2)
+	v2, _ := NewValidator([]byte("pk1"), 1, 3)
+	require.Equal(t, []Validator{v1, v2}, newNodesConfig.auctionList)
 }
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix(t *testing.T) {

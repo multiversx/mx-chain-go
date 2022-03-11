@@ -76,11 +76,10 @@ func (ihgs *indexHashedNodesCoordinator) getRegistryData() ([]byte, error) {
 	var err error
 	var data []byte
 
+	registry := ihgs.NodesCoordinatorToRegistry()
 	if ihgs.flagStakingV4.IsSet() {
-		registry := ihgs.nodesCoordinatorToRegistryWithAuction()
 		data, err = ihgs.marshalizer.Marshal(registry)
 	} else {
-		registry := ihgs.nodesCoordinatorToOldRegistry()
 		data, err = json.Marshal(registry)
 	}
 

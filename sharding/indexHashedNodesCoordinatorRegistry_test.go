@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,6 +75,8 @@ func validatorsEqualSerializableValidators(validators []Validator, sValidators [
 }
 
 func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
+	t.Parallel()
+
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
@@ -94,7 +98,59 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 	assert.True(t, sameValidatorsMaps(expectedConfig.waitingMap, actualConfig.waitingMap))
 }
 
-func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
+func TestIndexHashedNodesCoordinator_LoadStateAfterSaveWithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	args := createArguments()
+	args.Marshalizer = &marshal.GogoProtoMarshalizer{}
+	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
+	nodesCoordinator.flagStakingV4.SetValue(true)
+
+	nodesCoordinator.nodesConfig[0].leavingMap = createDummyNodesMap(3, 0, string(common.LeavingList))
+	nodesCoordinator.nodesConfig[0].shuffledOutMap = createDummyNodesMap(3, 0, string(common.SelectedFromAuctionList))
+	expectedConfig := nodesCoordinator.nodesConfig[0]
+
+	key := []byte("config")
+	err := nodesCoordinator.saveState(key)
+	assert.Nil(t, err)
+
+	delete(nodesCoordinator.nodesConfig, 0)
+	err = nodesCoordinator.LoadState(key)
+	assert.Nil(t, err)
+
+	actualConfig := nodesCoordinator.nodesConfig[0]
+	assert.Equal(t, expectedConfig.shardID, actualConfig.shardID)
+	assert.Equal(t, expectedConfig.nbShards, actualConfig.nbShards)
+	assert.True(t, sameValidatorsMaps(expectedConfig.eligibleMap, actualConfig.eligibleMap))
+	assert.True(t, sameValidatorsMaps(expectedConfig.waitingMap, actualConfig.waitingMap))
+	assert.True(t, sameValidatorsMaps(expectedConfig.shuffledOutMap, actualConfig.shuffledOutMap))
+	assert.True(t, sameValidatorsMaps(expectedConfig.leavingMap, actualConfig.leavingMap))
+}
+
+func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistryWithStakingV4(t *testing.T) {
+	args := createArguments()
+	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
+
+	nodesCoordinator.flagStakingV4.SetValue(true)
+	nodesCoordinator.nodesConfig[0].leavingMap = createDummyNodesMap(3, 0, string(common.LeavingList))
+	nodesCoordinator.nodesConfig[0].shuffledOutMap = createDummyNodesMap(3, 0, string(common.SelectedFromAuctionList))
+
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	nc := nodesCoordinator.nodesConfig
+
+	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
+	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(ncr.GetEpochsConfig()))
+
+	for epoch, config := range nc {
+		ncrWithAuction := ncr.GetEpochsConfig()[fmt.Sprint(epoch)].(EpochValidatorsHandlerWithAuction)
+		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncrWithAuction.GetWaitingValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.leavingMap, ncrWithAuction.GetLeavingValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncrWithAuction.GetEligibleValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.shuffledOutMap, ncrWithAuction.GetShuffledOutValidators()))
+	}
+}
+
+func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistry(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 

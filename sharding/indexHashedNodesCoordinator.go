@@ -752,11 +752,14 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		case string(common.SelectedFromAuctionList):
-			auctionList = append(auctionList, currentValidator)
+			if ihgs.flagStakingV4.IsSet() {
+				auctionList = append(auctionList, currentValidator)
+			}
 		}
 	}
 
 	sort.Sort(validatorList(newNodesList))
+	sort.Sort(validatorList(auctionList))
 	for _, eligibleList := range eligibleMap {
 		sort.Sort(validatorList(eligibleList))
 	}
