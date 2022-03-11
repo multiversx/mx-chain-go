@@ -654,7 +654,6 @@
    HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
    DurationToConsiderUnresponsiveInSec  = 60
-   HeartbeatDisableEpoch                = 650
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
             Name = "HeartbeatStorage"

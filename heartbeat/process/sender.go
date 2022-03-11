@@ -224,7 +224,7 @@ func (s *Sender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.Pub
 // EpochConfirmed is called whenever an epoch is confirmed
 func (s *Sender) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagHeartbeatDisableEpoch.SetValue(epoch >= s.heartbeatDisableEpoch)
-	log.Debug("heartbeat v1 sender", "enabled", s.flagHeartbeatDisableEpoch.IsSet())
+	log.Debug("heartbeat v1 sender", "enabled", !s.flagHeartbeatDisableEpoch.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

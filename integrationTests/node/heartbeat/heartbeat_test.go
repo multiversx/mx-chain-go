@@ -186,12 +186,10 @@ func startSendingHeartbeats(t *testing.T, senders []*process.Sender, timer *time
 	for {
 		timer.Reset(durationBetweenHeartbeats)
 
-		select {
-		case <-timer.C:
-			for _, sender := range senders {
-				err := sender.SendHeartbeat()
-				assert.Nil(t, err)
-			}
+		<-timer.C
+		for _, sender := range senders {
+			err := sender.SendHeartbeat()
+			assert.Nil(t, err)
 		}
 	}
 }

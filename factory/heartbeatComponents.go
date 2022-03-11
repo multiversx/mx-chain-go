@@ -22,31 +22,33 @@ import (
 
 // HeartbeatComponentsFactoryArgs holds the arguments needed to create a heartbeat components factory
 type HeartbeatComponentsFactoryArgs struct {
-	Config            config.Config
-	Prefs             config.Preferences
-	AppVersion        string
-	GenesisTime       time.Time
-	HardforkTrigger   heartbeat.HardforkTrigger
-	RedundancyHandler heartbeat.NodeRedundancyHandler
-	CoreComponents    CoreComponentsHolder
-	DataComponents    DataComponentsHolder
-	NetworkComponents NetworkComponentsHolder
-	CryptoComponents  CryptoComponentsHolder
-	ProcessComponents ProcessComponentsHolder
+	Config                config.Config
+	Prefs                 config.Preferences
+	AppVersion            string
+	GenesisTime           time.Time
+	HardforkTrigger       heartbeat.HardforkTrigger
+	RedundancyHandler     heartbeat.NodeRedundancyHandler
+	CoreComponents        CoreComponentsHolder
+	DataComponents        DataComponentsHolder
+	NetworkComponents     NetworkComponentsHolder
+	CryptoComponents      CryptoComponentsHolder
+	ProcessComponents     ProcessComponentsHolder
+	HeartbeatDisableEpoch uint32
 }
 
 type heartbeatComponentsFactory struct {
-	config            config.Config
-	prefs             config.Preferences
-	version           string
-	GenesisTime       time.Time
-	hardforkTrigger   heartbeat.HardforkTrigger
-	redundancyHandler heartbeat.NodeRedundancyHandler
-	coreComponents    CoreComponentsHolder
-	dataComponents    DataComponentsHolder
-	networkComponents NetworkComponentsHolder
-	cryptoComponents  CryptoComponentsHolder
-	processComponents ProcessComponentsHolder
+	config                config.Config
+	prefs                 config.Preferences
+	version               string
+	GenesisTime           time.Time
+	hardforkTrigger       heartbeat.HardforkTrigger
+	redundancyHandler     heartbeat.NodeRedundancyHandler
+	coreComponents        CoreComponentsHolder
+	dataComponents        DataComponentsHolder
+	networkComponents     NetworkComponentsHolder
+	cryptoComponents      CryptoComponentsHolder
+	processComponents     ProcessComponentsHolder
+	heartbeatDisableEpoch uint32
 }
 
 type heartbeatComponents struct {
@@ -83,17 +85,18 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 	}
 
 	return &heartbeatComponentsFactory{
-		config:            args.Config,
-		prefs:             args.Prefs,
-		version:           args.AppVersion,
-		GenesisTime:       args.GenesisTime,
-		hardforkTrigger:   args.HardforkTrigger,
-		redundancyHandler: args.RedundancyHandler,
-		coreComponents:    args.CoreComponents,
-		dataComponents:    args.DataComponents,
-		networkComponents: args.NetworkComponents,
-		cryptoComponents:  args.CryptoComponents,
-		processComponents: args.ProcessComponents,
+		config:                args.Config,
+		prefs:                 args.Prefs,
+		version:               args.AppVersion,
+		GenesisTime:           args.GenesisTime,
+		hardforkTrigger:       args.HardforkTrigger,
+		redundancyHandler:     args.RedundancyHandler,
+		coreComponents:        args.CoreComponents,
+		dataComponents:        args.DataComponents,
+		networkComponents:     args.NetworkComponents,
+		cryptoComponents:      args.CryptoComponents,
+		processComponents:     args.ProcessComponents,
+		heartbeatDisableEpoch: args.HeartbeatDisableEpoch,
 	}, nil
 }
 
@@ -152,7 +155,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		CurrentBlockProvider:  hcf.dataComponents.Blockchain(),
 		RedundancyHandler:     hcf.redundancyHandler,
 		EpochNotifier:         hcf.coreComponents.EpochNotifier(),
-		HeartbeatDisableEpoch: hcf.config.Heartbeat.HeartbeatDisableEpoch,
+		HeartbeatDisableEpoch: hcf.heartbeatDisableEpoch,
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)
@@ -209,7 +212,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		HideInactiveValidatorIntervalInSec: hcf.config.Heartbeat.HideInactiveValidatorIntervalInSec,
 		AppStatusHandler:                   hcf.coreComponents.StatusHandler(),
 		EpochNotifier:                      hcf.coreComponents.EpochNotifier(),
-		HeartbeatDisableEpoch:              hcf.config.Heartbeat.HeartbeatDisableEpoch,
+		HeartbeatDisableEpoch:              hcf.heartbeatDisableEpoch,
 	}
 	hbc.monitor, err = heartbeatProcess.NewMonitor(argMonitor)
 	if err != nil {

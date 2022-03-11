@@ -190,6 +190,9 @@
         { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
     ]
 
+    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+    HeartbeatDisableEpoch = 1
+
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },

@@ -647,6 +647,9 @@ func TestEnableEpochConfig(t *testing.T) {
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
+    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+    HeartbeatDisableEpoch = 53
+
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
@@ -720,6 +723,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			StorageAPICostOptimizationEnableEpoch:       50,
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
+			HeartbeatDisableEpoch:                       53,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{
