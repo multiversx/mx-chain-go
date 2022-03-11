@@ -56,6 +56,11 @@ func (ns *NilStorer) Has(_ []byte) error {
 	return nil
 }
 
+// RemoveFromCurrentEpoch will do nothing
+func (ns *NilStorer) RemoveFromCurrentEpoch(_ []byte) error {
+	return nil
+}
+
 // Remove will do nothing
 func (ns *NilStorer) Remove(_ []byte) error {
 	return nil

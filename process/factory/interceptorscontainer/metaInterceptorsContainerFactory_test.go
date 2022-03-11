@@ -87,7 +87,7 @@ func createMetaStore() *mock.ChainStorerMock {
 	}
 }
 
-//------- NewInterceptorsContainerFactory
+// ------- NewInterceptorsContainerFactory
 
 func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -406,7 +406,7 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.
 	assert.False(t, icf.IsInterfaceNil())
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -536,7 +536,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsShardHeadersForMetachain := noOfShards
 	numInterceptorsTransactionsForMetachain := noOfShards + 1
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
-	numInterceptorsUnsignedTxsForMetachain := noOfShards
+	numInterceptorsUnsignedTxsForMetachain := noOfShards + 1
 	numInterceptorsRewardsTxsForMetachain := noOfShards
 	numInterceptorsTrieNodes := 2
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +

@@ -373,6 +373,7 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 		initialNodesSetup,
 		big.NewInt(47000),
 	)
+	arg.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 1)
 	gbc, err := NewGenesisBlockCreator(arg)
 	require.Nil(t, err)
 
@@ -380,6 +381,16 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
+
+	_, err = arg.Accounts.Commit()
+	require.Nil(t, err)
+
+	t.Run("backwards compatibility on nonces: for a shard != 0, all accounts not having a delegation value would "+
+		"have caused an artificial increase in their accounts nonce", func(t *testing.T) {
+		accnt, errGet := arg.Accounts.GetExistingAccount(stakedAddr)
+		require.Nil(t, errGet)
+		assert.Equal(t, uint64(2), accnt.GetNonce())
+	})
 }
 
 func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
