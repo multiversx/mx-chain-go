@@ -478,6 +478,9 @@ const (
 
 	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
 	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
+
+	// MetricHeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+	MetricHeartbeatDisableEpoch = "erd_heartbeat_disable_epoch"
 )
 
 const (

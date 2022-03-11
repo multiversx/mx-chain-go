@@ -253,6 +253,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricDelegationManagerEnableEpoch, 1)
 	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, 2)
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
+	sm.SetUInt64Value(common.MetricHeartbeatDisableEpoch, 5)
 
 	expectedMetrics := map[string]interface{}{
 		common.MetricScDeployEnableEpoch:                    uint64(4),
@@ -275,6 +276,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricGovernanceEnableEpoch:                  uint64(3),
 		common.MetricDelegationManagerEnableEpoch:           uint64(1),
 		common.MetricDelegationSmartContractEnableEpoch:     uint64(2),
+		common.MetricHeartbeatDisableEpoch:                  uint64(5),
 
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 	}
@@ -393,5 +395,5 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 	wg.Wait()
 
 	elapsedTime := time.Since(startTime)
-	require.True(t, elapsedTime < 10 * time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
+	require.True(t, elapsedTime < 10*time.Second, "if the test isn't finished within 10 seconds, there might be a deadlock somewhere")
 }
