@@ -3936,7 +3936,11 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		ReceiverShardID: 1,
 	}
 
-	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mb, nil)
+	mbh := &block.MiniBlockHeader{
+		TxCount: 1,
+	}
+
+	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, nil)
 	assert.Equal(t, process.ErrMissingTransaction, errGetMaxFees)
 	assert.Equal(t, big.NewInt(0), accumulatedFees)
 	assert.Equal(t, big.NewInt(0), developerFees)
@@ -4000,7 +4004,11 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		ReceiverShardID: 1,
 	}
 
-	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mb, mapAllTxs)
+	mbh := &block.MiniBlockHeader{
+		TxCount: 3,
+	}
+
+	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, mapAllTxs)
 	assert.Nil(t, errGetMaxFees)
 	assert.Equal(t, big.NewInt(600), accumulatedFees)
 	assert.Equal(t, big.NewInt(60), developerFees)

@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"bytes"
 	"math/big"
 	"sync"
 	"time"
@@ -486,6 +487,21 @@ func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandle
 	}
 
 	postProcessorInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+}
+
+func (bpp *basePreProcess) getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlock *block.MiniBlock) (data.MiniBlockHeaderHandler, error) {
+	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, miniBlockHeader := range headerHandler.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
+			return miniBlockHeader, nil
+		}
+	}
+
+	return nil, process.ErrMissingMiniBlockHeader
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

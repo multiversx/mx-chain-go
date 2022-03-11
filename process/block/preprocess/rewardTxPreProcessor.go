@@ -208,7 +208,7 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
-	_ data.HeaderHandler,
+	headerHandler data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {
@@ -222,9 +222,19 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			continue
 		}
 
+		miniBlockHeader, err := rtp.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlock)
+		if err != nil {
+			return err
+		}
+		indexOfLastTxProcessed := miniBlockHeader.GetIndexOfLastTxProcessed()
+
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
+			}
+
+			if j > int(indexOfLastTxProcessed) {
+				break
 			}
 
 			txHash := miniBlock.TxHashes[j]

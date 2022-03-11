@@ -9,7 +9,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.1.34
-	github.com/ElrondNetwork/elrond-go-core v1.1.15-0.20220307104335-c31a08db795b
+	github.com/ElrondNetwork/elrond-go-core v1.1.15-0.20220311081042-ec523f35a37a
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.6
 	github.com/ElrondNetwork/elrond-vm-common v1.3.2

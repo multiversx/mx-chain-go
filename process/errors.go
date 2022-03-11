@@ -1076,3 +1076,6 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
+
+// ErrMissingMiniBlockHeader signals that mini block header is missing
+var ErrMissingMiniBlockHeader = errors.New("missing mini block header")

@@ -685,7 +685,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	miniBlockHashes := header.MapMiniBlockHashesToShards()
-	err := sp.restoreMetaBlockIntoPool(miniBlockHashes, header.GetMetaBlockHashes())
+	err := sp.restoreMetaBlockIntoPool(headerHandler, miniBlockHashes, header.GetMetaBlockHashes())
 	if err != nil {
 		return err
 	}
@@ -697,7 +697,11 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	return nil
 }
 
-func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
+func (sp *shardProcessor) restoreMetaBlockIntoPool(
+	headerHandler data.HeaderHandler,
+	mapMiniBlockHashes map[string]uint32,
+	metaBlockHashes [][]byte,
+) error {
 	headersPool := sp.dataPool.Headers()
 
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte, len(metaBlockHashes))
@@ -739,7 +743,17 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 
 	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
 		for _, miniBlockHash := range miniBlockHashes {
-			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, string(miniBlockHash))
+			miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, miniBlockHash)
+			if miniBlockHeader == nil {
+				log.Warn("shardProcessor.restoreMetaBlockIntoPool: GetMiniBlockHeaderWithHash", "mb hash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
+				continue
+			}
+
+			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, string(miniBlockHash), &processedMb.ProcessedMiniBlockInfo{
+				IsFullyProcessed:       int32(miniBlockHeader.GetTxCount())-1 == miniBlockHeader.GetIndexOfLastTxProcessed(),
+				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
+			},
+			)
 		}
 	}
 
@@ -1443,18 +1457,18 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.He
 	return processedMetaBlocks, nil
 }
 
-func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.HeaderHandler) error {
-	if check.IfNil(header) {
+func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
 
-	shardHeader, ok := header.(data.ShardHeaderHandler)
+	shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
-	miniBlockHashes := make(map[int][]byte, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		miniBlockHashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
+	miniBlockHashes := make(map[int][]byte, len(headerHandler.GetMiniBlockHeaderHandlers()))
+	for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
+		miniBlockHashes[i] = headerHandler.GetMiniBlockHeaderHandlers()[i].GetHash()
 	}
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
@@ -1479,7 +1493,17 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.Head
 				continue
 			}
 
-			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(string(metaBlockHash), string(miniBlockHash))
+			miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, miniBlockHash)
+			if miniBlockHeader == nil {
+				log.Warn("shardProcessor.addProcessedCrossMiniBlocksFromHeader: GetMiniBlockHeaderWithHash", "mb hash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
+				continue
+			}
+
+			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(string(metaBlockHash), string(miniBlockHash), &processedMb.ProcessedMiniBlockInfo{
+				IsFullyProcessed:       int32(miniBlockHeader.GetTxCount())-1 == miniBlockHeader.GetIndexOfLastTxProcessed(),
+				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
+			},
+			)
 
 			delete(miniBlockHashes, key)
 		}

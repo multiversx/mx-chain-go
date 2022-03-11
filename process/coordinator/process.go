@@ -1650,6 +1650,7 @@ func (tc *transactionCoordinator) verifyFees(
 		}
 
 		maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, err := tc.getMaxAccumulatedAndDeveloperFees(
+			header.GetMiniBlockHeaderHandlers()[index],
 			miniBlock,
 			mapMiniBlockTypeAllTxs[miniBlock.Type],
 		)
@@ -1672,13 +1673,19 @@ func (tc *transactionCoordinator) verifyFees(
 }
 
 func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	miniBlock *block.MiniBlock,
 	mapHashTx map[string]data.TransactionHandler,
 ) (*big.Int, *big.Int, error) {
 	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
 	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
+	indexOfLastTxProcessed := miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
 
-	for _, txHash := range miniBlock.TxHashes {
+	for index, txHash := range miniBlock.TxHashes {
+		if index > int(indexOfLastTxProcessed) {
+			break
+		}
+
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
 			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees ", "type", miniBlock.Type, "txHash", txHash)

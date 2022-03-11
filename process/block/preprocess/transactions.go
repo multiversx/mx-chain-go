@@ -306,7 +306,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	return process.ErrInvalidBody
 }
 
-func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsToMe(headerHandler data.HeaderHandler, body *block.Body) ([]*txcache.WrappedTransaction, error) {
 	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
 	}
@@ -325,7 +325,12 @@ func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTra
 				miniBlock.ReceiverShardID)
 		}
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
+		miniBlockHeader, err := txs.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, miniBlockHeader.GetIndexOfLastTxProcessed())
 		if err != nil {
 			return nil, err
 		}
@@ -350,7 +355,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 			continue
 		}
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, int32(len(miniBlock.TxHashes))-1)
 		if err != nil {
 			return nil, err
 		}
@@ -375,7 +380,7 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 			continue
 		}
 
-		txsFromScheduledMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
+		txsFromScheduledMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, int32(len(miniBlock.TxHashes))-1)
 		if err != nil {
 			return nil, err
 		}
@@ -386,10 +391,14 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 	return allScheduledTxs, nil
 }
 
-func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock, indexOfLastTxProcessed int32) ([]*txcache.WrappedTransaction, error) {
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
 
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
+		if i > int(indexOfLastTxProcessed) {
+			break
+		}
+
 		txHash := miniBlock.TxHashes[i]
 		txs.txsForCurrBlock.mutTxsForBlock.RLock()
 		txInfoFromMap, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
@@ -458,7 +467,7 @@ func (txs *transactions) processTxsToMe(
 		}
 	}
 
-	txsToMe, err := txs.computeTxsToMe(body)
+	txsToMe, err := txs.computeTxsToMe(header, body)
 	if err != nil {
 		return err
 	}

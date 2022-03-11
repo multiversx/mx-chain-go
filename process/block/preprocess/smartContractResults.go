@@ -225,7 +225,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
 func (scr *smartContractResults) ProcessBlockTransactions(
-	_ data.HeaderHandler,
+	headerHandler data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 ) error {
@@ -273,9 +273,19 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			continue
 		}
 
+		miniBlockHeader, err := scr.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlock)
+		if err != nil {
+			return err
+		}
+		indexOfLastTxProcessed := miniBlockHeader.GetIndexOfLastTxProcessed()
+
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
+			}
+
+			if j > int(indexOfLastTxProcessed) {
+				break
 			}
 
 			txHash := miniBlock.TxHashes[j]
