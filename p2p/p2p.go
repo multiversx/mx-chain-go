@@ -330,6 +330,13 @@ type SyncTimer interface {
 // ConnectionsWatcher represent an entity able to watch new connections
 type ConnectionsWatcher interface {
 	NewKnownConnection(pid core.PeerID, connection string)
+	PeerConnected(pid core.PeerID)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// CurrentPayloadProvider represents an entity able to provide the payload used to send to a new peer
+type CurrentPayloadProvider interface {
+	BytesToSendToNewPeers() ([]byte, bool)
 	IsInterfaceNil() bool
 }

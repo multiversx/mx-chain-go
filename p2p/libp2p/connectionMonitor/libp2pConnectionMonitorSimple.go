@@ -2,6 +2,7 @@ package connectionMonitor
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -24,7 +25,7 @@ type libp2pConnectionMonitorSimple struct {
 	sharder                    Sharder
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
-	connectionsWatcher         p2p.ConnectionsWatcher
+	connectionsWatchers        []p2p.ConnectionsWatcher
 }
 
 // ArgsConnectionMonitorSimple is the DTO used in the NewLibp2pConnectionMonitorSimple constructor function
@@ -33,7 +34,7 @@ type ArgsConnectionMonitorSimple struct {
 	ThresholdMinConnectedPeers uint32
 	Sharder                    Sharder
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
-	ConnectionsWatcher         p2p.ConnectionsWatcher
+	ConnectionsWatchers        []p2p.ConnectionsWatcher
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
@@ -48,8 +49,10 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
-	if check.IfNil(args.ConnectionsWatcher) {
-		return nil, p2p.ErrNilConnectionsWatcher
+	for i, cw := range args.ConnectionsWatchers {
+		if check.IfNil(cw) {
+			return nil, fmt.Errorf("%w on index %d", p2p.ErrNilConnectionsWatcher, i)
+		}
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -61,7 +64,7 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 		sharder:                    args.Sharder,
 		cancelFunc:                 cancelFunc,
 		preferredPeersHolder:       args.PreferredPeersHolder,
-		connectionsWatcher:         args.ConnectionsWatcher,
+		connectionsWatchers:        args.ConnectionsWatchers,
 	}
 
 	go cm.doReconnection(ctx)
@@ -87,10 +90,32 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn network.Conn) {
 	allPeers := netw.Peers()
 
-	lcms.connectionsWatcher.NewKnownConnection(core.PeerID(conn.RemotePeer()), conn.RemoteMultiaddr().String())
+	newPeer := core.PeerID(conn.RemotePeer())
+	lcms.notifyNewKnownConnections(newPeer, conn.RemoteMultiaddr().String())
 	evicted := lcms.sharder.ComputeEvictionList(allPeers)
+	shouldNotify := true
 	for _, pid := range evicted {
 		_ = netw.ClosePeer(pid)
+		if pid.String() == conn.RemotePeer().String() {
+			// we just closed the connection to the new peer, no need to notify
+			shouldNotify = false
+		}
+	}
+
+	if shouldNotify {
+		lcms.notifyPeerConnected(newPeer)
+	}
+}
+
+func (lcms *libp2pConnectionMonitorSimple) notifyNewKnownConnections(pid core.PeerID, address string) {
+	for _, cw := range lcms.connectionsWatchers {
+		cw.NewKnownConnection(pid, address)
+	}
+}
+
+func (lcms *libp2pConnectionMonitorSimple) notifyPeerConnected(pid core.PeerID) {
+	for _, cw := range lcms.connectionsWatchers {
+		cw.PeerConnected(pid)
 	}
 }
 
