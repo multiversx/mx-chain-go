@@ -245,7 +245,7 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 	forBlock.mutTxsForBlock.RUnlock()
 
 	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-		log.Warn("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
+		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash,"error", process.ErrMissingTransaction.Error())
 		return
 	}
 

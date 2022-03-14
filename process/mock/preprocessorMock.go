@@ -141,7 +141,7 @@ func (ppm *PreProcessorMock) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlic
 }
 
 // AddTransactions -
-func (ppm *PreProcessorMock) AddTransactions (txHandlers []data.TransactionHandler) {
+func (ppm *PreProcessorMock) AddTransactions(txHandlers []data.TransactionHandler) {
 	if ppm.AddTransactionsCalled == nil {
 		return
 	}

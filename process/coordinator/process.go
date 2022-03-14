@@ -1676,7 +1676,7 @@ func (tc *transactionCoordinator) AddTxsFromMiniBlocks(miniBlocks block.MiniBloc
 func (tc *transactionCoordinator) AddTransactions(txs []data.TransactionHandler, blockType block.Type) {
 	preProc := tc.getPreProcessor(blockType)
 	if check.IfNil(preProc) {
-		log.Warn("transactionCoordinator.AddTransactions preProc is nil", "blockType", preProc)
+		log.Warn("transactionCoordinator.AddTransactions preProc is nil", "blockType", blockType)
 		return
 	}
 
