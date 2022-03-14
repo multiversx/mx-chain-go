@@ -51,7 +51,10 @@ func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*dbl
 
 // GetEpochByHash -
 func (hp *HistoryRepositoryStub) GetEpochByHash(hash []byte) (uint32, error) {
-	return hp.GetEpochByHashCalled(hash)
+	if hp.GetEpochByHashCalled != nil {
+		return hp.GetEpochByHashCalled(hash)
+	}
+	return 0, nil
 }
 
 // IsEnabled -

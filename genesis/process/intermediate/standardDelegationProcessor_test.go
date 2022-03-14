@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -276,8 +277,8 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 		},
 	}
 	arg.NodesListSplitter = &mock.NodesListSplitterStub{
-		GetDelegatedNodesCalled: func(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
-			return []sharding.GenesisNodeInfoHandler{
+		GetDelegatedNodesCalled: func(delegationScAddress []byte) []nodesCoordinator.GenesisNodeInfoHandler {
+			return []nodesCoordinator.GenesisNodeInfoHandler{
 				&mock.GenesisNodeInfoHandlerMock{
 					AddressBytesValue: delegationSc,
 					PubKeyBytesValue:  pubkey1,

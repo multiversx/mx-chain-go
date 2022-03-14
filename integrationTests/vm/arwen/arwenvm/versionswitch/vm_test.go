@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -44,7 +45,7 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		vmConfig,
 		gasSchedule,
 	)

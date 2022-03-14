@@ -1893,3 +1893,71 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
 
+func TestGetFinalCrossMiniBlockHashes(t *testing.T) {
+	t.Parallel()
+
+	hash1 := "hash1"
+	hash2 := "hash2"
+
+	mbh1 := block.MiniBlockHeader{
+		SenderShardID: 1,
+		Hash:          []byte(hash1),
+	}
+	mbhReserved1 := block.MiniBlockHeaderReserved{State: block.Proposed}
+	mbh1.Reserved, _ = mbhReserved1.Marshal()
+
+	mbh2 := block.MiniBlockHeader{
+		SenderShardID: 2,
+		Hash:          []byte(hash2),
+	}
+	mbhReserved2 := block.MiniBlockHeaderReserved{State: block.Final}
+	mbh2.Reserved, _ = mbhReserved2.Marshal()
+
+	header := &block.MetaBlock{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			mbh1,
+			mbh2,
+		},
+	}
+
+	expectedHashes := map[string]uint32{
+		hash2: 2,
+	}
+
+	hashes := process.GetFinalCrossMiniBlockHashes(header, 0)
+	assert.Equal(t, expectedHashes, hashes)
+}
+
+func TestGetMiniBlockHeaderWithHash(t *testing.T) {
+	t.Parallel()
+
+	hash1, hash2 := "hash1", "hash2"
+
+	t.Run("not equal hashes", func(t *testing.T) {
+		t.Parallel()
+
+		expectedMbh := &block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		header := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{*expectedMbh},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash2))
+		assert.Nil(t, mbh)
+	})
+
+	t.Run("hashes matches", func(t *testing.T) {
+		t.Parallel()
+
+		expectedMbh := &block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		header := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{*expectedMbh},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
+		assert.Equal(t, expectedMbh, mbh)
+	})
+}

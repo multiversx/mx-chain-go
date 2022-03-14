@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	nodesCoord "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -25,12 +25,12 @@ func (n *nodesCoordinator) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint
 }
 
 // ValidatorsWeights -
-func (n *nodesCoordinator) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+func (n *nodesCoordinator) ValidatorsWeights(validators []nodesCoord.Validator) ([]uint32, error) {
 	return make([]uint32, len(validators)), nil
 }
 
 // ComputeAdditionalLeaving -
-func (n *nodesCoordinator) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
+func (n *nodesCoordinator) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]nodesCoord.Validator, error) {
 	return nil, nil
 }
 
@@ -60,12 +60,12 @@ func (n *nodesCoordinator) GetOwnPublicKey() []byte {
 }
 
 // ComputeConsensusGroup -
-func (n *nodesCoordinator) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _ uint32) (validatorsGroup []sharding.Validator, err error) {
+func (n *nodesCoordinator) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _ uint32) (validatorsGroup []nodesCoord.Validator, err error) {
 	return nil, nil
 }
 
 // GetValidatorWithPublicKey -
-func (n *nodesCoordinator) GetValidatorWithPublicKey(_ []byte) (validator sharding.Validator, shardId uint32, err error) {
+func (n *nodesCoordinator) GetValidatorWithPublicKey(_ []byte) (validator nodesCoord.Validator, shardId uint32, err error) {
 	return nil, 0, nil
 }
 

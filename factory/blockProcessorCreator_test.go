@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -111,6 +111,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 					return state.NewEmptyPeerAccount(), nil
 				},
 			}
+		},
+		AccountsAdapterAPICalled: func() state.AccountsAdapter {
+			return accounts
 		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts

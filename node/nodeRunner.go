@@ -39,7 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -49,6 +49,10 @@ import (
 )
 
 const (
+	// TODO: remove this after better handling VM versions switching
+	// delayBeforeScQueriesStart represents the delay before the sc query processor should start to allow external queries
+	delayBeforeScQueriesStart = 2 * time.Minute
+
 	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
 	SoftRestartMessage = "Shuffled out - soft restart"
@@ -170,6 +174,9 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
+	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
+	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
+
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -436,13 +443,23 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		)
 	}
 
+	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
+	allowExternalVMQueriesChan := make(chan struct{})
+
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier)
+	ef, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
 	if err != nil {
 		return true, err
 	}
 
 	log.Info("application is now running")
+
+	// TODO: remove this and treat better the VM versions switching
+	go func() {
+		time.Sleep(delayBeforeScQueriesStart)
+		close(allowExternalVMQueriesChan)
+	}()
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -466,6 +483,7 @@ func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
 	gasScheduleNotifier core.GasScheduleNotifier,
+	allowVMQueriesChan chan struct{},
 ) (closing.Closer, error) {
 	configs := nr.configs
 
@@ -481,6 +499,7 @@ func (nr *nodeRunner) createApiFacade(
 		ProcessComponents:   currentNode.processComponents,
 		GasScheduleNotifier: gasScheduleNotifier,
 		Bootstrapper:        currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:  allowVMQueriesChan,
 	}
 
 	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
@@ -602,7 +621,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
@@ -823,7 +842,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
 	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
@@ -899,7 +918,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1397,7 +1416,7 @@ func copySingleFile(folder string, configFile string) {
 
 func indexValidatorsListIfNeeded(
 	outportHandler outport.OutportHandler,
-	coordinator sharding.NodesCoordinator,
+	coordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
 ) {
 	if !outportHandler.HasDrivers() {

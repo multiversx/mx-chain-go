@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -55,7 +56,7 @@ type ArgsExporter struct {
 	WhiteListHandler          process.WhiteListHandler
 	WhiteListerVerifiedTxs    process.WhiteListHandler
 	InterceptorsContainer     process.InterceptorsContainer
-	NodesCoordinator          sharding.NodesCoordinator
+	NodesCoordinator          nodesCoordinator.NodesCoordinator
 	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
 	ValidityAttester          process.ValidityAttester
@@ -90,7 +91,7 @@ type exportHandlerFactory struct {
 	existingResolvers         dataRetriever.ResolversContainer
 	epochStartTrigger         epochStart.TriggerHandler
 	accounts                  state.AccountsAdapter
-	nodesCoordinator          sharding.NodesCoordinator
+	nodesCoordinator          nodesCoordinator.NodesCoordinator
 	headerSigVerifier         process.InterceptedHeaderSigVerifier
 	headerIntegrityVerifier   process.HeaderIntegrityVerifier
 	validityAttester          process.ValidityAttester

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
@@ -112,7 +113,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		PreviousEpochStart: &block.MetaBlock{Epoch: 1},
 		ShardHeader:        &block.Header{Nonce: 1},
 		Headers:            headers,
-		NodesConfig:        &sharding.NodesCoordinatorRegistry{},
+		NodesConfig:        &nodesCoordinator.NodesCoordinatorRegistry{},
 	}
 
 	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
@@ -406,9 +407,10 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksErrorGettingEpochSt
 	}
 	headers := map[string]data.HeaderHandler{}
 
-	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
+	miniBlocksInMeta, pendingMiniBlocksInfoList, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, miniBlocksInMeta)
 	require.Nil(t, pendingMiniBlocksInfoList)
+	require.Nil(t, firstPendingMetaBlockHash)
 	require.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
 }
 
@@ -430,9 +432,10 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksMissingHeader(t *te
 	}
 	headers := map[string]data.HeaderHandler{}
 
-	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
+	miniBlocksInMeta, pendingMiniBlocksInfoList, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, miniBlocksInMeta)
 	require.Nil(t, pendingMiniBlocksInfoList)
+	require.Nil(t, firstPendingMetaBlockHash)
 	require.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
@@ -460,9 +463,10 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWrongHeader(t *test
 		firstPendingMeta:          &block.Header{},
 	}
 
-	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
+	miniBlocksInMeta, pendingMiniBlocksInfoList, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, miniBlocksInMeta)
 	require.Nil(t, pendingMiniBlocksInfoList)
+	require.Nil(t, firstPendingMetaBlockHash)
 	require.Equal(t, epochStart.ErrWrongTypeAssertion, err)
 }
 
@@ -492,9 +496,10 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNilMetaBlock(t *tes
 		firstPendingMeta:          nilMetaBlock,
 	}
 
-	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
+	miniBlocksInMeta, pendingMiniBlocksInfoList, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, miniBlocksInMeta)
 	require.Nil(t, pendingMiniBlocksInfoList)
+	require.Nil(t, firstPendingMetaBlockHash)
 	require.Equal(t, epochStart.ErrNilMetaBlock, err)
 }
 
@@ -526,10 +531,11 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNoProcessedNoPendin
 		firstPendingMeta:          neededMeta,
 	}
 
-	miniBlocksInMeta, pendingMiniBlocksInfoList, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
+	miniBlocksInMeta, pendingMiniBlocksInfoList, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(meta, headers)
 	require.Nil(t, err)
 	require.Len(t, pendingMiniBlocksInfoList, 0)
 	require.Len(t, miniBlocksInMeta, 0)
+	require.Equal(t, lastFinishedHeaders[0].FirstPendingMetaBlock, firstPendingMetaBlockHash)
 }
 
 func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithProcessedAndPendingMbs(t *testing.T) {
@@ -538,11 +544,12 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithProcessedAndPen
 	args := createDefaultShardStorageArgs()
 	shardStorage, _ := NewShardStorageHandler(args.generalConfig, args.prefsConfig, args.shardCoordinator, args.pathManagerHandler, args.marshalizer, args.hasher, 1, args.uint64Converter, args.nodeTypeProvider)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
-	processedMiniBlocks, pendingMiniBlocks, err := shardStorage.getProcessedAndPendingMiniBlocks(scenario.metaBlock, scenario.headers)
+	processedMiniBlocks, pendingMiniBlocks, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(scenario.metaBlock, scenario.headers)
 
 	require.Nil(t, err)
 	require.Equal(t, scenario.expectedPendingMbs, pendingMiniBlocks)
 	require.Equal(t, scenario.expectedProcessedMbs, processedMiniBlocks)
+	require.Equal(t, scenario.expectedProcessedMbs[0].MetaHash, firstPendingMetaBlockHash)
 }
 
 func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledGetShardHeaderErr(t *testing.T) {

@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -296,7 +297,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 
 	if tsm.closed {
 		log.Trace("trieStorageManager get context closing", "key", key)
-		return nil, ErrContextClosing
+		return nil, errors.ErrContextClosing
 	}
 
 	val, err := tsm.mainStorer.Get(key)
@@ -317,7 +318,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	if tsm.closed {
 		log.Trace("trieStorageManager get context closing", "key", key)
 		tsm.storageOperationMutex.Unlock()
-		return nil, ErrContextClosing
+		return nil, errors.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -368,10 +369,10 @@ func isClosingError(err error) bool {
 		return false
 	}
 
-	isClosingErr := err == ErrContextClosing ||
+	isClosingErr := err == errors.ErrContextClosing ||
 		err == storage.ErrDBIsClosed ||
 		strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) ||
-		strings.Contains(err.Error(), ErrContextClosing.Error())
+		strings.Contains(err.Error(), errors.ErrContextClosing.Error())
 	return isClosingErr
 }
 
@@ -383,7 +384,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 
 	if tsm.closed {
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	return tsm.mainStorer.Put(key, val)
@@ -397,7 +398,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 
 	if tsm.closed {
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val, "epoch", epoch)
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -661,7 +662,12 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.checkpointHashesHolder.Remove(hash)
-	return tsm.mainStorer.Remove(hash)
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("%w, storer type is %s", ErrWrongTypeAssertion, fmt.Sprintf("%T", tsm.mainStorer))
+	}
+
+	return storer.RemoveFromCurrentEpoch(hash)
 }
 
 func (tsm *trieStorageManager) isClosed() bool {

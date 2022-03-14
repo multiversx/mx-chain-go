@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
@@ -19,13 +20,13 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	metaConsensusGroupSize  int
 	shardId                 uint32
 	nbShards                int
-	validatorsMap           map[uint32][]sharding.Validator
-	waitingMap              map[uint32][]sharding.Validator
+	validatorsMap           map[uint32][]nodesCoordinator.Validator
+	waitingMap              map[uint32][]nodesCoordinator.Validator
 	keyIndex                int
 	cp                      *CryptoParams
-	epochStartSubscriber    sharding.EpochStartEventNotifier
+	epochStartSubscriber    nodesCoordinator.EpochStartEventNotifier
 	hasher                  hashing.Hasher
-	consensusGroupCache     sharding.Cacher
+	consensusGroupCache     nodesCoordinator.Cacher
 	bootStorer              storage.Storer
 }
 
@@ -34,12 +35,12 @@ type IndexHashedNodesCoordinatorFactory struct {
 }
 
 // CreateNodesCoordinator -
-func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator {
+func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) nodesCoordinator.NodesCoordinator {
 
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShufflerArgs := &sharding.NodesShufflerArgs{
+	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     uint32(arg.nodesPerShard),
 		NodesMeta:                      uint32(arg.nbMetaNodes),
 		Hysteresis:                     hysteresis,
@@ -49,8 +50,8 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		WaitingListFixEnableEpoch:      0,
 		BalanceWaitingListsEnableEpoch: 0,
 	}
-	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(nodeShufflerArgs)
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
+	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:    arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:     arg.metaConsensusGroupSize,
 		Marshalizer:                TestMarshalizer,
@@ -70,12 +71,12 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
 	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		fmt.Println("Error creating node coordinator")
 	}
 
-	return nodesCoordinator
+	return nodesCoord
 }
 
 // IndexHashedNodesCoordinatorWithRaterFactory -
@@ -87,11 +88,11 @@ type IndexHashedNodesCoordinatorWithRaterFactory struct {
 // based on the provided parameters
 func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinator(
 	arg ArgIndexHashedNodesCoordinatorFactory,
-) sharding.NodesCoordinator {
+) nodesCoordinator.NodesCoordinator {
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	shufflerArgs := &sharding.NodesShufflerArgs{
+	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     uint32(arg.nodesPerShard),
 		NodesMeta:                      uint32(arg.nbMetaNodes),
 		Hysteresis:                     hysteresis,
@@ -101,8 +102,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		BalanceWaitingListsEnableEpoch: 0,
 		WaitingListFixEnableEpoch:      0,
 	}
-	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
+	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:    arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:     arg.metaConsensusGroupSize,
 		Marshalizer:                TestMarshalizer,
@@ -123,25 +124,25 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		IsFullArchive:              false,
 	}
 
-	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		log.Debug("Error creating node coordinator")
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.PeerAccountListAndRatingHandler)
+	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.PeerAccountListAndRatingHandler)
 	if err != nil {
 		log.Debug("Error creating node coordinator")
 	}
 
 	return &NodesWithRater{
-		NodesCoordinator: nodesCoordinator,
+		NodesCoordinator: nodesCoord,
 		rater:            ihncrf.PeerAccountListAndRatingHandler,
 	}
 }
 
 // NodesWithRater -
 type NodesWithRater struct {
-	sharding.NodesCoordinator
+	nodesCoordinator.NodesCoordinator
 	rater sharding.PeerAccountListAndRatingHandler
 }
 

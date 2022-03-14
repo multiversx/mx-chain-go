@@ -52,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -67,7 +68,7 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
-	nodesCoordinator             sharding.NodesCoordinator
+	nodesCoordinator             nodesCoordinator.NodesCoordinator
 	shardCoordinator             sharding.Coordinator
 	interceptorsContainer        process.InterceptorsContainer
 	resolversFinder              dataRetriever.ResolversFinder
@@ -115,7 +116,7 @@ type ProcessComponentsFactoryArgs struct {
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
-	NodesCoordinator       sharding.NodesCoordinator
+	NodesCoordinator       nodesCoordinator.NodesCoordinator
 	RequestedItemsHandler  dataRetriever.RequestedItemsHandler
 	WhiteListHandler       process.WhiteListHandler
 	WhiteListerVerifiedTxs process.WhiteListHandler
@@ -143,7 +144,7 @@ type processComponentsFactory struct {
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
-	nodesCoordinator       sharding.NodesCoordinator
+	nodesCoordinator       nodesCoordinator.NodesCoordinator
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
 	whiteListHandler       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
@@ -477,6 +478,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		&disabled.TxCoordinator{},
 		pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit),
 		pcf.coreData.InternalMarshalizer(),
+		pcf.coreData.Hasher(),
 		pcf.bootstrapComponents.ShardCoordinator(),
 	)
 	if err != nil {
@@ -1364,7 +1366,7 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 
 func createNetworkShardingCollector(
 	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	preferredPeersHolder PreferredPeersHolderHandler,
 	epochStart uint32,

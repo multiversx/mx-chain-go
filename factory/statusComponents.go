@@ -20,6 +20,7 @@ import (
 	outportDriverFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
@@ -27,7 +28,7 @@ import (
 // TODO: move app status handler initialization here
 
 type statusComponents struct {
-	nodesCoordinator sharding.NodesCoordinator
+	nodesCoordinator nodesCoordinator.NodesCoordinator
 	statusHandler    core.AppStatusHandler
 	outportHandler   outport.OutportHandler
 	softwareVersion  statistics.SoftwareVersionChecker
@@ -41,7 +42,7 @@ type StatusComponentsFactoryArgs struct {
 	ExternalConfig     config.ExternalConfig
 	EconomicsConfig    config.EconomicsConfig
 	ShardCoordinator   sharding.Coordinator
-	NodesCoordinator   sharding.NodesCoordinator
+	NodesCoordinator   nodesCoordinator.NodesCoordinator
 	EpochStartNotifier EpochStartNotifier
 	CoreComponents     CoreComponentsHolder
 	DataComponents     DataComponentsHolder
@@ -55,7 +56,7 @@ type statusComponentsFactory struct {
 	externalConfig     config.ExternalConfig
 	economicsConfig    config.EconomicsConfig
 	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   sharding.NodesCoordinator
+	nodesCoordinator   nodesCoordinator.NodesCoordinator
 	epochStartNotifier EpochStartNotifier
 	forkDetector       process.ForkDetector
 	coreComponents     CoreComponentsHolder
