@@ -220,7 +220,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:          tpn.SCQueryService,
-		StatusMetricsHandler:    &mock.StatusMetricsStub{},
+		StatusMetricsHandler:    &testscommon.StatusMetricsStub{},
 		TxCostHandler:           txCostHandler,
 		TotalStakedValueHandler: totalStakedValueHandler,
 		DirectStakedListHandler: directStakedListHandler,

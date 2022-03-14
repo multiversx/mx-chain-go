@@ -82,6 +82,36 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				ConfigMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/config", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
 func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	expectedErr := errors.New("i am an error")
 

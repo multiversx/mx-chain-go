@@ -1,7 +1,5 @@
 package initial
 
-const responseValue = "node is starting"
-
 // disabledStatusMetricsHandler represents a disabled implementation of the StatusMetricsHandler interface
 type disabledStatusMetricsHandler struct {
 }
