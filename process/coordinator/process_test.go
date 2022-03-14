@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
@@ -4173,6 +4174,53 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 	assert.Equal(t, expectedAllIntermediateTxs, txs)
 }
 
-func TestTransactionCoordinator_AddTransactions(t *testing.T) {
+func TestTransactionCoordinator_AddTxsFromMiniBlocks(t *testing.T) {
 
+}
+
+func TestTransactionCoordinator_AddTransactions(t *testing.T) {
+	args := createMockTransactionCoordinatorArguments()
+
+	txGasLimit := uint64(50000)
+	tx1 := &transaction.Transaction{Nonce: 1, GasLimit: txGasLimit, GasPrice: 1}
+	tx2 := &transaction.Transaction{Nonce: 2, GasLimit: txGasLimit, GasPrice: 1}
+	tx3 := &transaction.Transaction{Nonce: 3, GasLimit: txGasLimit, GasPrice: 1}
+	txs := []data.TransactionHandler{tx1, tx2, tx3}
+
+	t.Run("missing preprocessor should not panic", func(t *testing.T) {
+		tc, _ := NewTransactionCoordinator(args)
+		tc.keysInterimProcs = append(tc.keysInterimProcs, block.InvalidBlock)
+		tc.interimProcessors[block.InvalidBlock] = nil
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, fmt.Sprintf("should have not paniced %v", r))
+			}
+		}()
+
+		tc.AddTransactions(txs, block.InvalidBlock)
+	})
+
+	t.Run("valid preprocessor should add", func(t *testing.T) {
+		tc, _ := NewTransactionCoordinator(args)
+		addTransactionsCalled := &atomic.Flag{}
+		tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
+		tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+			AddTransactionsCalled: func(txHandlers []data.TransactionHandler) {
+				require.Equal(t, txs, txHandlers)
+				addTransactionsCalled.SetValue(true)
+			},
+		}
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, fmt.Sprintf("should have not paniced %v", r))
+			}
+		}()
+
+		tc.AddTransactions(txs, block.TxBlock)
+		require.True(t, addTransactionsCalled.IsSet())
+	})
 }

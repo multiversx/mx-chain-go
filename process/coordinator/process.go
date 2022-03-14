@@ -1677,6 +1677,7 @@ func (tc *transactionCoordinator) AddTransactions(txs []data.TransactionHandler,
 	preProc := tc.getPreProcessor(blockType)
 	if check.IfNil(preProc) {
 		log.Warn("transactionCoordinator.AddTransactions preProc is nil", "blockType", preProc)
+		return
 	}
 
 	preProc.AddTransactions(txs)
