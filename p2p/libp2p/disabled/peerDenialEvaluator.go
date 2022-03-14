@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 )
 
-// PeerDenialEvaluator is a mock implementation of PeerDenialEvaluator that does not manage black listed keys
+// PeerDenialEvaluator is a disabled implementation of PeerDenialEvaluator that does not manage black listed keys
 // (all keys [peers] are whitelisted)
 type PeerDenialEvaluator struct {
 }

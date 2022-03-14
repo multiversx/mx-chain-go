@@ -1,12 +1,12 @@
 package mock
 
-// CurrentBytesProviderStub -
-type CurrentBytesProviderStub struct {
+// CurrentPayloadProviderStub -
+type CurrentPayloadProviderStub struct {
 	BytesToSendToNewPeersCalled func() ([]byte, bool)
 }
 
 // BytesToSendToNewPeers -
-func (stub *CurrentBytesProviderStub) BytesToSendToNewPeers() ([]byte, bool) {
+func (stub *CurrentPayloadProviderStub) BytesToSendToNewPeers() ([]byte, bool) {
 	if stub.BytesToSendToNewPeersCalled != nil {
 		return stub.BytesToSendToNewPeersCalled()
 	}
@@ -15,6 +15,6 @@ func (stub *CurrentBytesProviderStub) BytesToSendToNewPeers() ([]byte, bool) {
 }
 
 // IsInterfaceNil -
-func (stub *CurrentBytesProviderStub) IsInterfaceNil() bool {
+func (stub *CurrentPayloadProviderStub) IsInterfaceNil() bool {
 	return stub == nil
 }

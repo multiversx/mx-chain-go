@@ -69,6 +69,9 @@ const HeartbeatV2Topic = "heartbeatV2"
 // PeerAuthenticationTopic is the topic used for peer authentication signaling
 const PeerAuthenticationTopic = "peerAuthentication"
 
+// ConnectionTopic represents the topic used when sending the new connection message data
+const ConnectionTopic = "connection"
+
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
 

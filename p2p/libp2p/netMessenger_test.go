@@ -16,10 +16,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -1898,7 +1900,7 @@ func TestLibp2pMessenger_SignVerifyPayloadShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
+func TestNetworkMessenger_SetCurrentPayloadProvider(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil current bytes provider should error", func(t *testing.T) {
@@ -1909,14 +1911,14 @@ func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
 			_ = messenger1.Close()
 		}()
 
-		err := messenger1.SetCurrentBytesProvider(nil)
-		assert.Equal(t, p2p.ErrNilCurrentPeerBytesProvider, err)
+		err := messenger1.SetCurrentPayloadProvider(nil)
+		assert.Equal(t, p2p.ErrNilCurrentPayloadProvider, err)
 	})
 	t.Run("set current bytes provider should work and send on connect", func(t *testing.T) {
 		t.Parallel()
 
 		buff := []byte("hello message")
-		mes1CurrentBytesProvider := &mock.CurrentBytesProviderStub{
+		mes1CurrentPayloadProvider := &mock.CurrentPayloadProviderStub{
 			BytesToSendToNewPeersCalled: func() ([]byte, bool) {
 				return buff, true
 			},
@@ -1933,7 +1935,7 @@ func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
 			_ = messenger2.Close()
 		}()
 
-		err := messenger1.SetCurrentBytesProvider(mes1CurrentBytesProvider)
+		err := messenger1.SetCurrentPayloadProvider(mes1CurrentPayloadProvider)
 		assert.Nil(t, err)
 
 		chDone := make(chan struct{})
@@ -1948,7 +1950,7 @@ func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
 			},
 		}
 
-		err = messenger2.RegisterMessageProcessor(libp2p.ConnectionTopic, libp2p.ConnectionTopic, msgProc)
+		err = messenger2.RegisterMessageProcessor(common.ConnectionTopic, common.ConnectionTopic, msgProc)
 		assert.Nil(t, err)
 
 		err = messenger1.ConnectToPeer(getConnectableAddress(messenger2))
@@ -1968,7 +1970,7 @@ func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
 		t.Parallel()
 
 		buff := []byte("hello message")
-		mes1CurrentBytesProvider := &mock.CurrentBytesProviderStub{
+		mes1CurrentPayloadProvider := &mock.CurrentPayloadProviderStub{
 			BytesToSendToNewPeersCalled: func() ([]byte, bool) {
 				return buff, true
 			},
@@ -1985,7 +1987,7 @@ func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
 			_ = messenger2.Close()
 		}()
 
-		err := messenger1.SetCurrentBytesProvider(mes1CurrentBytesProvider)
+		err := messenger1.SetCurrentPayloadProvider(mes1CurrentPayloadProvider)
 		assert.Nil(t, err)
 
 		err = messenger1.ConnectToPeer(getConnectableAddress(messenger2))
@@ -2000,11 +2002,80 @@ func TestNetworkMessenger_SetCurrentBytesProvider(t *testing.T) {
 			},
 		}
 
-		err = messenger2.RegisterMessageProcessor(libp2p.ConnectionTopic, libp2p.ConnectionTopic, msgProc)
+		err = messenger2.RegisterMessageProcessor(common.ConnectionTopic, common.ConnectionTopic, msgProc)
 		assert.Nil(t, err)
 
-		messenger1.Broadcast(libp2p.ConnectionTopic, buff)
+		messenger1.Broadcast(common.ConnectionTopic, buff)
 
 		time.Sleep(time.Second)
 	})
+	t.Run("set current bytes provider should work and send on connect even to an already connected peer", func(t *testing.T) {
+		t.Parallel()
+
+		fmt.Println("Messenger 1:")
+		messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		fmt.Println("Messenger 2:")
+		messenger2, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		defer func() {
+			_ = messenger1.Close()
+			_ = messenger2.Close()
+		}()
+
+		numCalls := uint32(0)
+		msgProc := &mock.MessageProcessorStub{
+			ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+				assert.Equal(t, message.Peer(), fromConnectedPeer)
+				atomic.AddUint32(&numCalls, 1)
+
+				return nil
+			},
+		}
+
+		err := messenger2.RegisterMessageProcessor(common.ConnectionTopic, common.ConnectionTopic, msgProc)
+		assert.Nil(t, err)
+
+		err = messenger1.ConnectToPeer(getConnectableAddress(messenger2))
+		assert.Nil(t, err)
+
+		time.Sleep(time.Second)
+		// nothing should be broadcast yet
+		assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalls))
+
+		buff := []byte("hello message")
+		mes1CurrentPayloadProvider := &mock.CurrentPayloadProviderStub{
+			BytesToSendToNewPeersCalled: func() ([]byte, bool) {
+				return buff, true
+			},
+		}
+
+		err = messenger1.SetCurrentPayloadProvider(mes1CurrentPayloadProvider)
+		assert.Nil(t, err)
+
+		time.Sleep(time.Second)
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
+
+		err = messenger1.SetCurrentPayloadProvider(&disabled.CurrentPayloadProvider{})
+		assert.Nil(t, err)
+
+		time.Sleep(time.Second)
+		// should not send an invalid message
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
+	})
+}
+
+func TestNetworkMessenger_NewKnownConnectionShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	messenger1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+	defer func() {
+		_ = messenger1.Close()
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
+	messenger1.NewKnownConnection("", "")
 }

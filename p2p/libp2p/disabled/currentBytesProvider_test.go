@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCurrentBytesProvider_ShouldWork(t *testing.T) {
+func TestCurrentPayloadProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	provider := &CurrentBytesProvider{}
+	provider := &CurrentPayloadProvider{}
 	assert.False(t, check.IfNil(provider))
 	buff, isValid := provider.BytesToSendToNewPeers()
 	assert.Empty(t, buff)
