@@ -777,13 +777,11 @@ func (txs *transactions) AddTransactions(txHandlers []data.TransactionHandler) {
 		senderShardID := txs.getShardFromAddress(tx.GetSndAddr())
 		receiverShardID := txs.getShardFromAddress(tx.GetRcvAddr())
 		txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-		marshalledTx, err := txs.marshalizer.Marshal(tx)
+		txHash, err:= core.CalculateHash(txs.marshalizer, txs.hasher, tx)
 		if err != nil {
-			log.Warn("transactions.AddTransactions Marshal", "error", err.Error())
+			log.Warn("transactions.AddTransactions CalculateHash", "error", err.Error())
 			continue
 		}
-
-		txHash := txs.hasher.Compute(string(marshalledTx))
 		txs.txsForCurrBlock.mutTxsForBlock.Lock()
 		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: txHandlers[i], txShardInfo: txShardInfoToSet}
 		txs.txsForCurrBlock.mutTxsForBlock.Unlock()

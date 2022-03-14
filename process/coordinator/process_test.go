@@ -4175,7 +4175,7 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 }
 
 func TestTransactionCoordinator_AddTxsFromMiniBlocks(t *testing.T) {
-
+	// TODO: create test
 }
 
 func TestTransactionCoordinator_AddTransactions(t *testing.T) {
