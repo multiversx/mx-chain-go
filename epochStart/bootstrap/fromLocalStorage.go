@@ -195,6 +195,9 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 ) (uint32, bool) {
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
 	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
+	if epochConfig == nil {
+		return e.baseData.shardId, false
+	}
 
 	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
 	if isWaitingForShard {
