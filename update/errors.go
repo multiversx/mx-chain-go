@@ -283,3 +283,6 @@ var ErrNilTrieExporter = errors.New("nil trie exporter")
 
 // ErrInvalidOwnShardId signals that an invalid own shard id has been provided
 var ErrInvalidOwnShardId = errors.New("invalid own shard id")
+
+// ErrInvalidShardId signals that an invalid shard ID was provided
+var ErrInvalidShardId = errors.New("invalid shard ID")

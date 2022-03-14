@@ -155,7 +155,7 @@ func (te *trieExport) getExportLeavesParameters(
 	}
 
 	if shId > te.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
-		return nil, 0, 0, "", sharding.ErrInvalidShardId
+		return nil, 0, 0, "", update.ErrInvalidShardId
 	}
 
 	rootHashKey := createRootHashKey(key)

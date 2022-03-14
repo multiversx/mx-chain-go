@@ -298,7 +298,7 @@ func TestTrieExport_ExportMainTrieInvalidShardIdShouldErr(t *testing.T) {
 	}
 
 	rootHashes, err := trieExporter.ExportMainTrie("a@5@8", tr)
-	assert.Equal(t, sharding.ErrInvalidShardId, err)
+	assert.Equal(t, update.ErrInvalidShardId, err)
 	assert.Nil(t, rootHashes)
 }
 
@@ -483,7 +483,7 @@ func TestTrieExport_ExportDataTrieInvalidShardIdShouldErr(t *testing.T) {
 	}
 
 	err := trieExporter.ExportDataTrie("a@5@8", tr)
-	assert.Equal(t, sharding.ErrInvalidShardId, err)
+	assert.Equal(t, update.ErrInvalidShardId, err)
 }
 
 func TestTrieExport_ExportDataTrieHardforkStorerWriteErrShouldErr(t *testing.T) {
