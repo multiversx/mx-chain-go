@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -50,7 +51,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pkBytes, defaultChancesSelection, 1)
 			return []nodesCoordinator.Validator{v}, nil
@@ -72,7 +73,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoordinatorInstance,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -81,6 +82,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 	tpn.NodesSetup = nodesSetup
 

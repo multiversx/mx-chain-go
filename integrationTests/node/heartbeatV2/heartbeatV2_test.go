@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
@@ -99,7 +100,8 @@ func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, ma
 			assert.True(t, hbCache.Has(node.Messenger.ID().Bytes()))
 
 			// Also check message age
-			value, _ := paCache.Get(node.Messenger.ID().Bytes())
+			value, found := paCache.Get(node.Messenger.ID().Bytes())
+			require.True(t, found)
 			msg := value.(heartbeat.PeerAuthentication)
 
 			marshaller := integrationTests.TestMarshaller

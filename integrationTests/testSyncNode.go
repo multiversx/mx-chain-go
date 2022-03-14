@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -54,7 +55,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pkBytes, 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
@@ -77,7 +78,7 @@ func NewTestSyncNode(
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		NodesCoordinator: nodesCoordinatorInstance,
 		BootstrapStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -94,6 +95,7 @@ func NewTestSyncNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 
 	kg := &mock.KeyGenMock{}

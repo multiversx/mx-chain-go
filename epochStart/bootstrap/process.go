@@ -1122,6 +1122,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		ResolverConfig:                       e.generalConfig.Resolvers,
 		NodesCoordinator:                     disabled.NewNodesCoordinator(),
 		MaxNumOfPeerAuthenticationInResponse: e.generalConfig.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
+		PeerShardMapper:                      disabled.NewPeerShardMapper(),
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
