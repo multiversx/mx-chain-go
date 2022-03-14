@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -19,7 +19,7 @@ type vmContext struct {
 	validatorAccountsDB state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
-	chanceComputer      sharding.ChanceComputer
+	chanceComputer      nodesCoordinator.ChanceComputer
 	scAddress           []byte
 
 	storageUpdate  map[string]map[string][]byte
@@ -37,7 +37,7 @@ func NewVMContext(
 	cryptoHook vmcommon.CryptoHook,
 	inputParser vm.ArgumentsParser,
 	validatorAccountsDB state.AccountsAdapter,
-	chanceComputer sharding.ChanceComputer,
+	chanceComputer nodesCoordinator.ChanceComputer,
 ) (*vmContext, error) {
 	if check.IfNilReflect(blockChainHook) {
 		return nil, vm.ErrNilBlockchainHook

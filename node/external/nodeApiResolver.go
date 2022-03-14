@@ -2,35 +2,47 @@ package external
 
 import (
 	"encoding/hex"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
-	SCQueryService          SCQueryService
-	StatusMetricsHandler    StatusMetricsHandler
-	TxCostHandler           TransactionCostHandler
-	TotalStakedValueHandler TotalStakedValueHandler
-	DirectStakedListHandler DirectStakedListHandler
-	DelegatedListHandler    DelegatedListHandler
-	APITransactionHandler   APITransactionHandler
-	APIBlockHandler         APIBlockHandler
+	SCQueryService           SCQueryService
+	StatusMetricsHandler     StatusMetricsHandler
+	TxCostHandler            TransactionCostHandler
+	TotalStakedValueHandler  TotalStakedValueHandler
+	DirectStakedListHandler  DirectStakedListHandler
+	DelegatedListHandler     DelegatedListHandler
+	APITransactionHandler    APITransactionHandler
+	APIBlockHandler          blockAPI.APIBlockHandler
+	APIInternalBlockHandler  blockAPI.APIInternalBlockHandler
+	GenesisNodesSetupHandler sharding.GenesisNodesSetupHandler
+	ValidatorPubKeyConverter core.PubkeyConverter
 }
 
 // nodeApiResolver can resolve API requests
 type nodeApiResolver struct {
-	scQueryService          SCQueryService
-	statusMetricsHandler    StatusMetricsHandler
-	txCostHandler           TransactionCostHandler
-	totalStakedValueHandler TotalStakedValueHandler
-	directStakedListHandler DirectStakedListHandler
-	delegatedListHandler    DelegatedListHandler
-	apiTransactionHandler   APITransactionHandler
-	apiBlockHandler         APIBlockHandler
+	scQueryService           SCQueryService
+	statusMetricsHandler     StatusMetricsHandler
+	txCostHandler            TransactionCostHandler
+	totalStakedValueHandler  TotalStakedValueHandler
+	directStakedListHandler  DirectStakedListHandler
+	delegatedListHandler     DelegatedListHandler
+	apiTransactionHandler    APITransactionHandler
+	apiBlockHandler          blockAPI.APIBlockHandler
+	apiInternalBlockHandler  blockAPI.APIInternalBlockHandler
+	genesisNodesSetupHandler sharding.GenesisNodesSetupHandler
+	validatorPubKeyConverter core.PubkeyConverter
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -59,16 +71,28 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.APIBlockHandler) {
 		return nil, ErrNilAPIBlockHandler
 	}
+	if check.IfNil(arg.APIInternalBlockHandler) {
+		return nil, ErrNilAPIInternalBlockHandler
+	}
+	if check.IfNil(arg.GenesisNodesSetupHandler) {
+		return nil, ErrNilGenesisNodesSetupHandler
+	}
+	if check.IfNil(arg.ValidatorPubKeyConverter) {
+		return nil, ErrNilValidatorPubKeyConverter
+	}
 
 	return &nodeApiResolver{
-		scQueryService:          arg.SCQueryService,
-		statusMetricsHandler:    arg.StatusMetricsHandler,
-		txCostHandler:           arg.TxCostHandler,
-		totalStakedValueHandler: arg.TotalStakedValueHandler,
-		directStakedListHandler: arg.DirectStakedListHandler,
-		delegatedListHandler:    arg.DelegatedListHandler,
-		apiBlockHandler:         arg.APIBlockHandler,
-		apiTransactionHandler:   arg.APITransactionHandler,
+		scQueryService:           arg.SCQueryService,
+		statusMetricsHandler:     arg.StatusMetricsHandler,
+		txCostHandler:            arg.TxCostHandler,
+		totalStakedValueHandler:  arg.TotalStakedValueHandler,
+		directStakedListHandler:  arg.DirectStakedListHandler,
+		delegatedListHandler:     arg.DelegatedListHandler,
+		apiBlockHandler:          arg.APIBlockHandler,
+		apiTransactionHandler:    arg.APITransactionHandler,
+		apiInternalBlockHandler:  arg.APIInternalBlockHandler,
+		genesisNodesSetupHandler: arg.GenesisNodesSetupHandler,
+		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 	}, nil
 }
 
@@ -130,6 +154,80 @@ func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Bl
 // GetBlockByRound will return the block with the given round and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByRound(round uint64, withTxs bool) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByRound(round, withTxs)
+}
+
+// GetInternalMetaBlockByHash will return a meta block by hash
+func (nar *nodeApiResolver) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiInternalBlockHandler.GetInternalMetaBlockByHash(format, decodedHash)
+}
+
+// GetInternalMetaBlockByNonce will return a meta block by nonce
+func (nar *nodeApiResolver) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalMetaBlockByNonce(format, nonce)
+}
+
+// GetInternalMetaBlockByRound will return a meta block by round
+func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalMetaBlockByRound(format, round)
+}
+
+// GetInternalStartOfEpochMetaBlock will return the start of epoch meta block
+// for the specified epoch
+func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalShardBlockByHash will return a shard block by hash
+func (nar *nodeApiResolver) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiInternalBlockHandler.GetInternalShardBlockByHash(format, decodedHash)
+}
+
+// GetInternalShardBlockByNonce will return a shard block by nonce
+func (nar *nodeApiResolver) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalShardBlockByNonce(format, nonce)
+}
+
+// GetInternalShardBlockByRound will return a shard block by round
+func (nar *nodeApiResolver) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nar.apiInternalBlockHandler.GetInternalShardBlockByRound(format, round)
+}
+
+// GetInternalMiniBlock will return a shard block by round
+func (nar *nodeApiResolver) GetInternalMiniBlock(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
+	decodedHash, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.apiInternalBlockHandler.GetInternalMiniBlock(format, decodedHash, epoch)
+}
+
+// GetGenesisNodesPubKeys will return genesis nodes public keys by shard
+func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
+	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
+	return nar.getInitialNodesPubKeysBytes(eligibleNodesConfig), nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+}
+
+func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
+	nodesInfoPubkeys := make(map[uint32][]string)
+
+	for shardID, ni := range nodesInfo {
+		for i := 0; i < len(ni); i++ {
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes()))
+		}
+	}
+
+	return nodesInfoPubkeys
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

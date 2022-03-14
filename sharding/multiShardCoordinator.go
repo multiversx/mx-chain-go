@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ Coordinator = (*multiShardCoordinator)(nil)
@@ -22,10 +23,10 @@ type multiShardCoordinator struct {
 // NewMultiShardCoordinator returns a new multiShardCoordinator and initializes the masks
 func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordinator, error) {
 	if numberOfShards < 1 {
-		return nil, ErrInvalidNumberOfShards
+		return nil, nodesCoordinator.ErrInvalidNumberOfShards
 	}
 	if selfId >= numberOfShards && selfId != core.MetachainShardId {
-		return nil, ErrInvalidShardId
+		return nil, nodesCoordinator.ErrInvalidShardId
 	}
 
 	sr := &multiShardCoordinator{}

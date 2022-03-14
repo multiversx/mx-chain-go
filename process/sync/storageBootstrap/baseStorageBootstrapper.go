@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -32,7 +33,7 @@ type ArgsBaseStorageBootstrapper struct {
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
 	BootstrapRoundIndex          uint64
 	ShardCoordinator             sharding.Coordinator
-	NodesCoordinator             sharding.NodesCoordinator
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
 	EpochStartTrigger            process.EpochStartTriggerHandler
 	BlockTracker                 process.BlockTracker
 	ChainID                      string
@@ -60,7 +61,7 @@ type storageBootstrapper struct {
 	store                        dataRetriever.StorageService
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	shardCoordinator             sharding.Coordinator
-	nodesCoordinator             sharding.NodesCoordinator
+	nodesCoordinator             nodesCoordinator.NodesCoordinator
 	epochStartTrigger            process.EpochStartTriggerHandler
 	blockTracker                 process.BlockTracker
 	bootstrapRoundIndex          uint64
