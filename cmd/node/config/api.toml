@@ -15,19 +15,19 @@
     Routes = [
         # /node/status will return all metrics stored inside a node
         { Name = "/status", Open = true },
-    
+
         # /node/metrics will return all metrics stored inside a node in the format that Prometheus expects them
         { Name = "/metrics", Open = true },
-    
+
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
-    
+
         # /node/p2pstatus will return the metrics related to p2p
         { Name = "/p2pstatus", Open = true },
-    
+
         # /node/debug will return the debug information after the query has been interpreted
         { Name = "/debug", Open = true },
-    
+
         # /node/peerinfo will return the p2p peer info of the provided pid
         { Name = "/peerinfo", Open = true }
     ]
@@ -36,34 +36,34 @@
     Routes = [
         # /address/:address will return data about a given account
         { Name = "/:address", Open = true },
-    
+
         # /address/:address/balance will return the balance of a given account
         { Name = "/:address/balance", Open = true },
-    
+
         # /address/:address/username will return the username of a given account
         { Name = "/:address/username", Open = true },
-    
+
         # /address/:address/keys will return all the key-value pairs of a given account
         { Name = "/:address/keys", Open = true },
-    
+
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
-    
+
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
 
         # /:address/esdts/roles will return the list of esdt tokens and roles for a given account
         { Name = "/:address/esdts/roles", Open = true },
-    
+
         # /address/:address/esdt/:tokenIdentifier will return the balance for a given account and esdt tokenID
         { Name = "/:address/esdt/:tokenIdentifier", Open = true },
-    
+
         # /address/:address/nft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
         { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true },
-    
+
         # /address/:address/esdts-with-role/:role will return the token identifiers with the given role for an address
         { Name = "/:address/esdts-with-role/:role", Open = true },
-    
+
         # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
         { Name = "/:address/registered-nfts", Open = true }
     ]
@@ -158,7 +158,7 @@
         { Name = "/cost", Open = true },
 
         # /transaction/:txhash will return the transaction in JSON format based on its hash
-       { Name = "/:txhash", Open = true },
+        { Name = "/:txhash", Open = true },
     ]
 
 [APIPackages.block]

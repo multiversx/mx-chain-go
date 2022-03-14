@@ -714,7 +714,10 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	if tpn.EpochStartNotifier == nil {
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	}
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
@@ -1978,7 +1981,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:   stateCheckpointModulus,
-			UserStatePruningQueueSize: uint(10),
+			UserStatePruningQueueSize: uint(5),
 			PeerStatePruningQueueSize: uint(3),
 		},
 	}
