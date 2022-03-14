@@ -182,3 +182,32 @@ type StoragePruningManager interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+type ValidatorsInfoHandler interface {
+	GetAllValidatorsInfo() []ValidatorInfoHandler
+	GetValidatorsInfoInShard(shardID uint32) []ValidatorInfoHandler
+}
+type ValidatorInfoHandler interface {
+	IsInterfaceNil() bool
+
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	GetRatingModifier() float32
+	GetRewardAddress() []byte
+	GetLeaderSuccess() uint32
+	GetLeaderFailure() uint32
+	GetValidatorSuccess() uint32
+	GetValidatorFailure() uint32
+	GetValidatorIgnoredSignatures() uint32
+	GetNumSelectedInSuccessBlocks() uint32
+	GetAccumulatedFees() *big.Int
+	GetTotalLeaderSuccess() uint32
+	GetTotalLeaderFailure() uint32
+	GetTotalValidatorSuccess() uint32
+	GetTotalValidatorFailure() uint32
+	GetTotalValidatorIgnoredSignatures() uint32
+}
