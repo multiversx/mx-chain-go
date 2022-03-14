@@ -164,7 +164,7 @@ func checkLegacyArgs(args ArgsNewEpochStartSystemSCProcessing) error {
 }
 
 func (s *legacySystemSCProcessor) processLegacy(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
 	nonce uint64,
 	epoch uint32,
 ) error {
@@ -290,10 +290,10 @@ func (s *legacySystemSCProcessor) ToggleUnStakeUnBond(value bool) error {
 }
 
 func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
 	epoch uint32,
 ) (uint32, error) {
-	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap)
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap.GetMapPointer())
 	if err != nil {
 		return 0, err
 	}
@@ -315,7 +315,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 			continue
 		}
 
-		validatorInfo.List = string(common.LeavingList)
+		validatorInfo.SetList(string(common.LeavingList))
 	}
 
 	err = s.updateDelegationContracts(mapOwnersKeys)
@@ -420,10 +420,10 @@ func (s *legacySystemSCProcessor) updateDelegationContracts(mapOwnerKeys map[str
 	return nil
 }
 
-func getValidatorInfoWithBLSKey(validatorsInfoMap map[uint32][]*state.ValidatorInfo, blsKey []byte) *state.ValidatorInfo {
-	for _, validatorsInfoSlice := range validatorsInfoMap {
+func getValidatorInfoWithBLSKey(validatorsInfoMap state.ValidatorsInfoHandler, blsKey []byte) state.ValidatorInfoHandler {
+	for _, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfo() {
 		for _, validatorInfo := range validatorsInfoSlice {
-			if bytes.Equal(validatorInfo.PublicKey, blsKey) {
+			if bytes.Equal(validatorInfo.GetPublicKey(), blsKey) {
 				return validatorInfo
 			}
 		}
@@ -431,9 +431,9 @@ func getValidatorInfoWithBLSKey(validatorsInfoMap map[uint32][]*state.ValidatorI
 	return nil
 }
 
-func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
-	for shId, validatorsInfoSlice := range validatorsInfoMap {
-		newList := make([]*state.ValidatorInfo, 0, len(validatorsInfoSlice))
+func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMap state.ValidatorsInfoHandler) error {
+	for shId, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfo() {
+		newList := make([]state.ValidatorInfoHandler, 0, len(validatorsInfoSlice))
 		deleteCalled := false
 
 		for _, validatorInfo := range validatorsInfoSlice {
@@ -442,16 +442,16 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 				continue
 			}
 
-			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.PublicKey)
+			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.GetPublicKey())
 			if err != nil {
 				deleteCalled = true
 
 				log.Error("fillStakingDataForNonEligible", "error", err)
-				if len(validatorInfo.List) > 0 {
+				if len(validatorInfo.GetList()) > 0 {
 					return err
 				}
 
-				err = s.peerAccountsDB.RemoveAccount(validatorInfo.PublicKey)
+				err = s.peerAccountsDB.RemoveAccount(validatorInfo.GetPublicKey())
 				if err != nil {
 					log.Error("fillStakingDataForNonEligible removeAccount", "error", err)
 				}
@@ -463,19 +463,19 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 		}
 
 		if deleteCalled {
-			validatorsInfoMap[shId] = newList
+			validatorsInfoMap.SetValidatorsInShard(shId, newList)
 		}
 	}
 
 	return nil
 }
 
-func (s *legacySystemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+func (s *legacySystemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap state.ValidatorsInfoHandler) error {
 	eligibleNodes := s.getEligibleNodeKeys(validatorsInfoMap)
 	return s.prepareStakingData(eligibleNodes)
 }
 
-func (s *legacySystemSCProcessor) unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap map[uint32][]*state.ValidatorInfo, epoch uint32) (uint32, error) {
+func (s *legacySystemSCProcessor) unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap state.ValidatorsInfoHandler, epoch uint32) (uint32, error) {
 	err := s.fillStakingDataForNonEligible(validatorsInfoMap)
 	if err != nil {
 		return 0, err
@@ -496,14 +496,14 @@ func (s *legacySystemSCProcessor) prepareStakingData(nodeKeys map[uint32][][]byt
 }
 
 func (s *legacySystemSCProcessor) getEligibleNodeKeys(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
 ) map[uint32][][]byte {
 	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfoMap {
+	for shardID, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfo() {
 		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
 			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
-				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
+				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.GetPublicKey())
 			}
 		}
 	}
@@ -605,7 +605,7 @@ func (s *legacySystemSCProcessor) resetLastUnJailed() error {
 }
 
 // updates the configuration of the system SC if the flags permit
-func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo, nonce uint64) error {
+func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ValidatorsInfoHandler, nonce uint64) error {
 	sw := core.NewStopWatch()
 	sw.Start("total")
 	defer func() {
@@ -636,11 +636,11 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap map[uint32][]
 	return nil
 }
 
-func (s *legacySystemSCProcessor) computeNumWaitingPerShard(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
-	for shardID, validatorInfoList := range validatorsInfoMap {
+func (s *legacySystemSCProcessor) computeNumWaitingPerShard(validatorsInfoMap state.ValidatorsInfoHandler) error {
+	for shardID, validatorInfoList := range validatorsInfoMap.GetShardValidatorsInfo() {
 		totalInWaiting := uint32(0)
 		for _, validatorInfo := range validatorInfoList {
-			switch validatorInfo.List {
+			switch validatorInfo.GetList() {
 			case string(common.WaitingList):
 				totalInWaiting++
 			}
@@ -651,27 +651,27 @@ func (s *legacySystemSCProcessor) computeNumWaitingPerShard(validatorsInfoMap ma
 	return nil
 }
 
-func (s *legacySystemSCProcessor) swapJailedWithWaiting(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+func (s *legacySystemSCProcessor) swapJailedWithWaiting(validatorsInfoMap state.ValidatorsInfoHandler) error {
 	jailedValidators := s.getSortedJailedNodes(validatorsInfoMap)
 
 	log.Debug("number of jailed validators", "num", len(jailedValidators))
 
 	newValidators := make(map[string]struct{})
 	for _, jailedValidator := range jailedValidators {
-		if _, ok := newValidators[string(jailedValidator.PublicKey)]; ok {
+		if _, ok := newValidators[string(jailedValidator.GetPublicKey())]; ok {
 			continue
 		}
-		if isValidator(jailedValidator) && s.mapNumSwitchablePerShard[jailedValidator.ShardId] <= s.mapNumSwitchedPerShard[jailedValidator.ShardId] {
+		if isValidator(jailedValidator) && s.mapNumSwitchablePerShard[jailedValidator.GetShardId()] <= s.mapNumSwitchedPerShard[jailedValidator.GetShardId()] {
 			log.Debug("cannot switch in this epoch anymore for this shard as switched num waiting",
-				"shardID", jailedValidator.ShardId,
-				"numSwitched", s.mapNumSwitchedPerShard[jailedValidator.ShardId])
+				"shardID", jailedValidator.GetShardId(),
+				"numSwitched", s.mapNumSwitchedPerShard[jailedValidator.GetShardId()])
 			continue
 		}
 
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
 				CallerAddr: s.endOfEpochCallerAddress,
-				Arguments:  [][]byte{jailedValidator.PublicKey},
+				Arguments:  [][]byte{jailedValidator.GetPublicKey()},
 				CallValue:  big.NewInt(0),
 			},
 			RecipientAddr: s.stakingSCAddress,
@@ -684,7 +684,7 @@ func (s *legacySystemSCProcessor) swapJailedWithWaiting(validatorsInfoMap map[ui
 		}
 
 		log.Debug("switchJailedWithWaiting called for",
-			"key", jailedValidator.PublicKey,
+			"key", jailedValidator.GetPublicKey(),
 			"returnMessage", vmOutput.ReturnMessage)
 		if vmOutput.ReturnCode != vmcommon.Ok {
 			continue
@@ -704,8 +704,8 @@ func (s *legacySystemSCProcessor) swapJailedWithWaiting(validatorsInfoMap map[ui
 }
 
 func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
-	jailedValidator *state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
+	jailedValidator state.ValidatorInfoHandler,
 	vmOutput *vmcommon.VMOutput,
 ) ([]byte, error) {
 	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
@@ -715,8 +715,8 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 
 	var activeStorageUpdate *vmcommon.StorageUpdate
 	for _, storageUpdate := range stakingSCOutput.StorageUpdates {
-		isNewValidatorKey := len(storageUpdate.Offset) == len(jailedValidator.PublicKey) &&
-			!bytes.Equal(storageUpdate.Offset, jailedValidator.PublicKey)
+		isNewValidatorKey := len(storageUpdate.Offset) == len(jailedValidator.GetPublicKey()) &&
+			!bytes.Equal(storageUpdate.Offset, jailedValidator.GetPublicKey())
 		if isNewValidatorKey {
 			activeStorageUpdate = storageUpdate
 			break
@@ -769,7 +769,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		deleteNewValidatorIfExistsFromMap(validatorsInfoMap, blsPubKey, account.GetShardId())
 	}
 
-	account.SetListAndIndex(jailedValidator.ShardId, string(common.NewList), uint32(stakingData.StakedNonce))
+	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce))
 	account.SetTempRating(s.startRating)
 	account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 
@@ -778,12 +778,12 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	jailedAccount, err := s.getPeerAccount(jailedValidator.PublicKey)
+	jailedAccount, err := s.getPeerAccount(jailedValidator.GetPublicKey())
 	if err != nil {
 		return nil, err
 	}
 
-	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(common.JailedList), jailedValidator.Index)
+	jailedAccount.SetListAndIndex(jailedValidator.GetShardId(), string(common.JailedList), jailedValidator.GetIndex())
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
@@ -791,7 +791,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	if isValidator(jailedValidator) {
-		s.mapNumSwitchedPerShard[jailedValidator.ShardId]++
+		s.mapNumSwitchedPerShard[jailedValidator.GetShardId()]++
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
@@ -800,37 +800,34 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	return blsPubKey, nil
 }
 
-func isValidator(validator *state.ValidatorInfo) bool {
-	return validator.List == string(common.WaitingList) || validator.List == string(common.EligibleList)
+func isValidator(validator state.ValidatorInfoHandler) bool {
+	return validator.GetList() == string(common.WaitingList) || validator.GetList() == string(common.EligibleList)
 }
 
 func deleteNewValidatorIfExistsFromMap(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
 	blsPubKey []byte,
 	shardID uint32,
 ) {
-	for index, validatorInfo := range validatorsInfoMap[shardID] {
-		if bytes.Equal(validatorInfo.PublicKey, blsPubKey) {
-			length := len(validatorsInfoMap[shardID])
-			validatorsInfoMap[shardID][index] = validatorsInfoMap[shardID][length-1]
-			validatorsInfoMap[shardID][length-1] = nil
-			validatorsInfoMap[shardID] = validatorsInfoMap[shardID][:length-1]
-			break
-		}
-	}
+	validatorsInfoMap.Delete(shardID, blsPubKey)
 }
 
 func switchJailedWithNewValidatorInMap(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
-	jailedValidator *state.ValidatorInfo,
-	newValidator *state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
+	jailedValidator state.ValidatorInfoHandler,
+	newValidator state.ValidatorInfoHandler,
 ) {
-	for index, validatorInfo := range validatorsInfoMap[jailedValidator.ShardId] {
-		if bytes.Equal(validatorInfo.PublicKey, jailedValidator.PublicKey) {
-			validatorsInfoMap[jailedValidator.ShardId][index] = newValidator
-			break
+	validatorsInfoMap.Replace(jailedValidator, newValidator)
+	/*
+		for _, validatorInfo := range validatorsInfoMap.GetValidatorsInfoInShard(jailedValidator.GetShardId()) {
+			if bytes.Equal(validatorInfo.GetPublicKey(), jailedValidator.GetPublicKey()) {
+				validatorsInfoMap.SetValidator(newValidator)
+				//validatorsInfoMap[jailedValidator.ShardId][index] = newValidator
+				break
+			}
 		}
-	}
+
+	*/
 }
 
 func (s *legacySystemSCProcessor) getUserAccount(address []byte) (state.UserAccountHandler, error) {
@@ -883,16 +880,16 @@ func (s *legacySystemSCProcessor) processSCOutputAccounts(
 	return nil
 }
 
-func (s *legacySystemSCProcessor) getSortedJailedNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) []*state.ValidatorInfo {
-	newJailedValidators := make([]*state.ValidatorInfo, 0)
-	oldJailedValidators := make([]*state.ValidatorInfo, 0)
+func (s *legacySystemSCProcessor) getSortedJailedNodes(validatorsInfoMap state.ValidatorsInfoHandler) []state.ValidatorInfoHandler {
+	newJailedValidators := make([]state.ValidatorInfoHandler, 0)
+	oldJailedValidators := make([]state.ValidatorInfoHandler, 0)
 
 	minChance := s.chanceComputer.GetChance(0)
-	for _, listValidators := range validatorsInfoMap {
+	for _, listValidators := range validatorsInfoMap.GetShardValidatorsInfo() {
 		for _, validatorInfo := range listValidators {
-			if validatorInfo.List == string(common.JailedList) {
+			if validatorInfo.GetList() == string(common.JailedList) {
 				oldJailedValidators = append(oldJailedValidators, validatorInfo)
-			} else if s.chanceComputer.GetChance(validatorInfo.TempRating) < minChance {
+			} else if s.chanceComputer.GetChance(validatorInfo.GetTempRating()) < minChance {
 				newJailedValidators = append(newJailedValidators, validatorInfo)
 			}
 		}
@@ -1209,7 +1206,7 @@ func (s *legacySystemSCProcessor) cleanAdditionalQueue() error {
 }
 
 func (s *legacySystemSCProcessor) stakeNodesFromQueue(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
 	nodesToStake uint32,
 	nonce uint64,
 	list common.PeerType,
@@ -1253,7 +1250,7 @@ func (s *legacySystemSCProcessor) stakeNodesFromQueue(
 }
 
 func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ValidatorsInfoHandler,
 	returnData [][]byte,
 	nonce uint64,
 	list common.PeerType,
@@ -1296,7 +1293,8 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			RewardAddress:   rewardAddress,
 			AccumulatedFees: big.NewInt(0),
 		}
-		validatorsInfoMap[peerAcc.GetShardId()] = append(validatorsInfoMap[peerAcc.GetShardId()], validatorInfo)
+		validatorsInfoMap.Add(validatorInfo)
+		//validatorsInfoMap[peerAcc.GetShardId()] = append(validatorsInfoMap[peerAcc.GetShardId()], validatorInfo)
 	}
 
 	return nil

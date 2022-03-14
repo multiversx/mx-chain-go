@@ -186,6 +186,12 @@ type StoragePruningManager interface {
 type ValidatorsInfoHandler interface {
 	GetAllValidatorsInfo() []ValidatorInfoHandler
 	GetValidatorsInfoInShard(shardID uint32) []ValidatorInfoHandler
+	GetShardValidatorsInfo() map[uint32][]ValidatorInfoHandler
+	Add(validatorInfo ValidatorInfoHandler)
+	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler)
+	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler)
+	GetMapPointer() map[uint32][]*ValidatorInfo
+	Delete(shardID uint32, pubKey []byte)
 }
 type ValidatorInfoHandler interface {
 	IsInterfaceNil() bool
@@ -210,4 +216,6 @@ type ValidatorInfoHandler interface {
 	GetTotalValidatorSuccess() uint32
 	GetTotalValidatorFailure() uint32
 	GetTotalValidatorIgnoredSignatures() uint32
+
+	SetList(list string)
 }

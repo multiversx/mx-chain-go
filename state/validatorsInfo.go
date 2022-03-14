@@ -56,10 +56,29 @@ func (vi *validatorsInfo) Add(validatorInfo ValidatorInfoHandler) {
 	vi.valInfo[validatorInfo.GetShardId()] = append(vi.valInfo[validatorInfo.GetShardId()], validatorInfo)
 }
 
-func (vi *validatorsInfo) SetValidator(validatorInfo ValidatorInfoHandler) {
-	for idx, validator := range vi.GetAllValidatorsInfo() {
-		if bytes.Equal(validator.GetPublicKey(), validatorInfo.GetPublicKey()) {
-			vi.valInfo[validatorInfo.GetShardId()][idx] = validatorInfo
+func (vi *validatorsInfo) Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) {
+	for idx, validatorInfo := range vi.GetValidatorsInfoInShard(old.GetShardId()) {
+		if bytes.Equal(validatorInfo.GetPublicKey(), old.GetPublicKey()) {
+			//validatorsInfoMap.SetValidator(newValidator)
+			vi.valInfo[old.GetShardId()][idx] = new
+			//validatorsInfoMap[jailedValidator.ShardId][index] = newValidator
+			break
+		}
+	}
+}
+
+func (vi *validatorsInfo) SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) {
+	vi.valInfo[shardID] = validators
+}
+
+func (vi *validatorsInfo) Delete(shardID uint32, pubKey []byte) {
+	for index, validatorInfo := range vi.GetValidatorsInfoInShard(shardID) {
+		if bytes.Equal(validatorInfo.GetPublicKey(), pubKey) {
+			length := len(vi.GetValidatorsInfoInShard(shardID))
+			vi.valInfo[shardID][index] = vi.valInfo[shardID][length-1]
+			vi.valInfo[shardID][length-1] = nil
+			vi.valInfo[shardID] = vi.valInfo[shardID][:length-1]
+			break
 		}
 	}
 }

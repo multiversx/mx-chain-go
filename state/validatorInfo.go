@@ -7,6 +7,10 @@ func (vi *ValidatorInfo) IsInterfaceNil() bool {
 	return vi == nil
 }
 
+func (vi *ValidatorInfo) SetList(list string) {
+	vi.List = list
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (svi *ShardValidatorInfo) IsInterfaceNil() bool {
 	return svi == nil
