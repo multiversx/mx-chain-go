@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -9,29 +10,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockAgrs() external.ArgNodeApiResolver {
+func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
-		SCQueryService:          &mock.SCQueryServiceStub{},
-		StatusMetricsHandler:    &testscommon.StatusMetricsStub{},
-		TxCostHandler:           &mock.TransactionCostEstimatorMock{},
-		TotalStakedValueHandler: &mock.StakeValuesProcessorStub{},
-		DirectStakedListHandler: &mock.DirectStakedListProcessorStub{},
-		DelegatedListHandler:    &mock.DelegatedListProcessorStub{},
-		APIBlockHandler:         &mock.BlockAPIHandlerStub{},
-		APITransactionHandler:   &mock.TransactionAPIHandlerStub{},
+		SCQueryService:           &mock.SCQueryServiceStub{},
+		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		TxCostHandler:            &mock.TransactionCostEstimatorMock{},
+		TotalStakedValueHandler:  &mock.StakeValuesProcessorStub{},
+		DirectStakedListHandler:  &mock.DirectStakedListProcessorStub{},
+		DelegatedListHandler:     &mock.DelegatedListProcessorStub{},
+		APIBlockHandler:          &mock.BlockAPIHandlerStub{},
+		APITransactionHandler:    &mock.TransactionAPIHandlerStub{},
+		APIInternalBlockHandler:  &mock.InternalBlockApiHandlerStub{},
+		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 }
 
 func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.SCQueryService = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
@@ -42,7 +45,7 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.StatusMetricsHandler = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
@@ -53,7 +56,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.TxCostHandler = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
@@ -64,7 +67,7 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.TotalStakedValueHandler = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
@@ -75,7 +78,7 @@ func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
 func TestNewNodeApiResolver_NilDirectStakedListHandler(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.DirectStakedListHandler = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
@@ -86,7 +89,7 @@ func TestNewNodeApiResolver_NilDirectStakedListHandler(t *testing.T) {
 func TestNewNodeApiResolver_NilDelegatedListHandler(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.DelegatedListHandler = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
@@ -97,7 +100,7 @@ func TestNewNodeApiResolver_NilDelegatedListHandler(t *testing.T) {
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, err)
@@ -107,7 +110,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
-	args := createMockAgrs()
+	args := createMockArgs()
 	closeCalled := false
 	args.SCQueryService = &mock.SCQueryServiceStub{
 		CloseCalled: func() error {
@@ -126,7 +129,7 @@ func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	wasCalled := false
 	arg.SCQueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
@@ -147,7 +150,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	wasCalled := false
 	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
 		StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
@@ -164,7 +167,7 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	wasCalled := false
 	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
 		StatusP2pMetricsMapCalled: func() (map[string]interface{}, error) {
@@ -181,7 +184,7 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	wasCalled := false
 	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
 		NetworkMetricsCalled: func() (map[string]interface{}, error) {
@@ -199,7 +202,7 @@ func TestNodeApiResolver_GetTotalStakedValue(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	stakeValue := &api.StakeValues{}
 	arg.TotalStakedValueHandler = &mock.StakeValuesProcessorStub{
 		GetTotalStakedValueCalled: func() (*api.StakeValues, error) {
@@ -219,7 +222,7 @@ func TestNodeApiResolver_GetDelegatorsList(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	delegators := make([]*api.Delegator, 1)
 	arg.DelegatedListHandler = &mock.DelegatedListProcessorStub{
 		GetDelegatorsListCalled: func() ([]*api.Delegator, error) {
@@ -239,7 +242,7 @@ func TestNodeApiResolver_GetDirectStakedList(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	directStakedValueList := make([]*api.DirectStakedValue, 1)
 	arg.DirectStakedListHandler = &mock.DirectStakedListProcessorStub{
 		GetDirectStakedListCalled: func() ([]*api.DirectStakedValue, error) {
@@ -259,8 +262,10 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 	t.Parallel()
 
 	t.Run("GetBlockByNonce", func(t *testing.T) {
+		t.Parallel()
+
 		wasCalled := false
-		arg := createMockAgrs()
+		arg := createMockArgs()
 		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
 			GetBlockByNonceCalled: func(nonce uint64, withTxs bool) (*api.Block, error) {
 				wasCalled = true
@@ -275,8 +280,10 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 	})
 
 	t.Run("GetBlockByHash", func(t *testing.T) {
+		t.Parallel()
+
 		wasCalled := false
-		arg := createMockAgrs()
+		arg := createMockArgs()
 		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
 			GetBlockByHashCalled: func(hash []byte, withTxs bool) (*api.Block, error) {
 				wasCalled = true
@@ -291,8 +298,10 @@ func TestNodeApiResolver_APIBlockHandler(t *testing.T) {
 	})
 
 	t.Run("GetBlockByRound", func(t *testing.T) {
+		t.Parallel()
+
 		wasCalled := false
-		arg := createMockAgrs()
+		arg := createMockArgs()
 		arg.APIBlockHandler = &mock.BlockAPIHandlerStub{
 			GetBlockByRoundCalled: func(round uint64, withTxs bool) (*api.Block, error) {
 				wasCalled = true
@@ -311,7 +320,7 @@ func TestNodeApiResolver_APITransactionHandler(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	arg := createMockAgrs()
+	arg := createMockArgs()
 	arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 		GetTransactionCalled: func(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 			wasCalled = true
@@ -323,4 +332,41 @@ func TestNodeApiResolver_APITransactionHandler(t *testing.T) {
 
 	_, _ = nar.GetTransaction("0101", true)
 	require.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
+	t.Parallel()
+
+	pubKey1 := []byte("pubKey1")
+	expPubKey1 := hex.EncodeToString(pubKey1)
+	pubKey2 := []byte("pubKey2")
+	expPubKey2 := hex.EncodeToString(pubKey2)
+
+	eligible := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
+		1: {shardingMocks.NewNodeInfo([]byte("address1"), pubKey1, 1, 1)},
+	}
+	waiting := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
+		1: {shardingMocks.NewNodeInfo([]byte("address2"), pubKey2, 1, 1)},
+	}
+
+	arg := createMockArgs()
+	arg.GenesisNodesSetupHandler = &testscommon.NodesSetupStub{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			return eligible, waiting
+		},
+	}
+
+	nar, err := external.NewNodeApiResolver(arg)
+	require.Nil(t, err)
+
+	expectedEligible := map[uint32][]string{
+		1: {expPubKey1},
+	}
+	expectedWaiting := map[uint32][]string{
+		1: {expPubKey2},
+	}
+
+	el, wt := nar.GetGenesisNodesPubKeys()
+	assert.Equal(t, expectedEligible, el)
+	assert.Equal(t, expectedWaiting, wt)
 }

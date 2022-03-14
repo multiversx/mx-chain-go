@@ -44,6 +44,11 @@ func (d *disabledStatusMetricsHandler) NetworkMetrics() (map[string]interface{},
 	return getReturnValues()
 }
 
+// RatingsMetrics returns a default response map
+func (d *disabledStatusMetricsHandler) RatingsMetrics() map[string]interface{} {
+	return getReturnMap()
+}
+
 func getReturnValues() (map[string]interface{}, error) {
 	return map[string]interface{}{}, errNodeStarting
 }
