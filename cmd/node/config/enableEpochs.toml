@@ -191,7 +191,7 @@
     ]
 
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 1
+    HeartbeatDisableEpoch = 2
 
 [GasSchedule]
     GasScheduleByEpochs = [
