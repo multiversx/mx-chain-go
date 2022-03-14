@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -419,21 +420,23 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 }
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
-func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
-	leavesChannel := make(chan core.KeyValueHolder, 100)
-
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
+	leavesChannel chan core.KeyValueHolder,
+	ctx context.Context,
+	rootHash []byte,
+) error {
 	tr.mutOperation.RLock()
 	newTrie, err := tr.recreate(rootHash)
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
-		return nil, err
+		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
-		return leavesChannel, nil
+		return nil
 	}
 
 	tr.trieStorage.EnterPruningBufferingMode()
@@ -446,6 +449,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.chanClose,
+			ctx,
 		)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
@@ -458,7 +462,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.
 		close(leavesChannel)
 	}()
 
-	return leavesChannel, nil
+	return err
 }
 
 // GetAllHashes returns all the hashes from the trie

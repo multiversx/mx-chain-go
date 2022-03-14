@@ -1,6 +1,7 @@
 package trieIterators
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"sync"
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -93,7 +95,8 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.In
 	}
 
 	// TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
-	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, nil, err
 	}

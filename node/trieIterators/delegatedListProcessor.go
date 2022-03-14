@@ -1,6 +1,7 @@
 package trieIterators
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -124,7 +126,8 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]b
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
 	}
 
-	chLeaves, err := delegatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = delegatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}

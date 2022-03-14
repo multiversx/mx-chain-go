@@ -2,6 +2,7 @@ package node
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -199,7 +200,9 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	// TODO: add context with timeout (where the timeout is to be fetched from config)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +265,9 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	// TODO: add context with timeout (where the timeout is to be fetched from config)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +354,9 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	// TODO: add context with timeout (where the timeout is to be fetched from config)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +473,9 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	// TODO: add context with timeout (where the timeout is to be fetched from config)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}

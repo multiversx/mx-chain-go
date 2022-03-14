@@ -687,4 +687,8 @@ const (
 
 	// TrieSyncedVal is the value that will be saved at TrieSyncedKey
 	TrieSyncedVal = "yes"
+
+	// TrieLeavesChannelDefaultCapacity represents the default value to be used as capacity for getting all trie leaves on
+	// a channel
+	TrieLeavesChannelDefaultCapacity = 100
 )
