@@ -513,7 +513,7 @@ func (netMes *networkMessenger) PeerConnected(pid core.PeerID) {
 
 	errNotCritical := netMes.SendToConnectedPeer(common.ConnectionTopic, message, pid)
 	if errNotCritical != nil {
-		log.Trace("networkMessenger.PeerConnected", "pid", pid.Pretty(), "error", errNotCritical)
+		log.Trace("networkMessenger.SendToConnectedPeer", "pid", pid.Pretty(), "error", errNotCritical)
 	}
 }
 
@@ -1335,7 +1335,7 @@ func (netMes *networkMessenger) notifyExistingPeers(buff []byte, isValid bool) {
 		pid := pids[i]
 		errNotCritical := netMes.SendToConnectedPeer(common.ConnectionTopic, buff, pid)
 		if errNotCritical != nil {
-			log.Trace("networkMessenger.PeerConnected", "pid", pid.Pretty(), "error", errNotCritical)
+			log.Trace("networkMessenger.SendToConnectedPeer", "pid", pid.Pretty(), "error", errNotCritical)
 		}
 	}
 }
