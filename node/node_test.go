@@ -2,6 +2,7 @@ package node_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -289,9 +290,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
 					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
@@ -303,7 +302,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -470,16 +469,14 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -554,9 +551,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder, 2)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
@@ -571,7 +566,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 				wg.Wait()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -635,9 +630,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -650,7 +643,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -722,16 +715,14 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -797,16 +788,14 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -857,16 +846,14 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil

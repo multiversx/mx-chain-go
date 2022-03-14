@@ -2,6 +2,7 @@ package trieIterators
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -122,9 +123,7 @@ func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte) 
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(hash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			go func() {
 				for _, leafBuff := range leaves {
 					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
@@ -134,7 +133,7 @@ func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte) 
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	})
 

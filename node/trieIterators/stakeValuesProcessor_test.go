@@ -1,6 +1,7 @@
 package trieIterators
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"sync"
@@ -191,8 +192,8 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-			return nil, expectedErr
+		GetAllLeavesOnChannelCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+			return expectedErr
 		},
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
@@ -239,9 +240,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(hash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			go func() {
 				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
 				ch <- leaf1
@@ -264,7 +263,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	})
 

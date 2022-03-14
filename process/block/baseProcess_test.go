@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -1678,10 +1679,9 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
-			GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-				channel := make(chan core.KeyValueHolder)
+			GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				close(channel)
-				return channel, nil
+				return nil
 			},
 		},
 	}
@@ -1734,12 +1734,11 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
-				GetAllLeavesCalled: func(rh []byte) (chan core.KeyValueHolder, error) {
-					channel := make(chan core.KeyValueHolder)
+				GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rh []byte) error {
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
 						close(channel)
-						return channel, nil
+						return nil
 					}
 
 					go func() {
@@ -1747,7 +1746,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 						close(channel)
 					}()
 
-					return channel, nil
+					return nil
 				},
 			},
 		}
