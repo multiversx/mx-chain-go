@@ -365,7 +365,19 @@ func (ng *networkGroup) getESDTTokenSupply(c *gin.Context) {
 
 // getRatingsConfig returns metrics related to ratings configuration
 func (ng *networkGroup) getRatingsConfig(c *gin.Context) {
-	ratingsConfig := ng.getFacade().StatusMetrics().RatingsMetrics()
+	ratingsConfig, err := ng.getFacade().StatusMetrics().RatingsMetrics()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

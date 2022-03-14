@@ -321,7 +321,7 @@ func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
 }
 
 // RatingsMetrics will return metrics related to current configuration
-func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
+func (sm *statusMetrics) RatingsMetrics() (map[string]interface{}, error) {
 	ratingsMetrics := make(map[string]interface{})
 
 	sm.mutUint64Operations.RLock()
@@ -363,5 +363,5 @@ func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
 	ratingsMetrics[common.MetricRatingsPeerHonestyUnitValue] = sm.stringMetrics[common.MetricRatingsPeerHonestyUnitValue]
 	sm.mutStringOperations.RUnlock()
 
-	return ratingsMetrics
+	return ratingsMetrics, nil
 }

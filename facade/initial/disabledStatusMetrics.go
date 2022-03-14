@@ -9,51 +9,51 @@ func NewDisabledStatusMetricsHandler() *disabledStatusMetricsHandler {
 	return &disabledStatusMetricsHandler{}
 }
 
-// StatusMetricsMapWithoutP2P returns a default response map
+// StatusMetricsMapWithoutP2P returns an empty map and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
 	return getReturnValues()
 }
 
-// StatusP2pMetricsMap returns a default response map
+// StatusP2pMetricsMap returns an empty map and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) StatusP2pMetricsMap() (map[string]interface{}, error) {
 	return getReturnValues()
 }
 
-// StatusMetricsWithoutP2PPrometheusString returns the message that signals that the node is starting
+// StatusMetricsWithoutP2PPrometheusString returns an empty string and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) StatusMetricsWithoutP2PPrometheusString() (string, error) {
 	return "", errNodeStarting
 }
 
-// EconomicsMetrics returns a default response map
+// EconomicsMetrics returns an empty map and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) EconomicsMetrics() (map[string]interface{}, error) {
 	return getReturnValues()
 }
 
-// ConfigMetrics returns a default response map
+// ConfigMetrics returns an empty map and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) ConfigMetrics() (map[string]interface{}, error) {
 	return getReturnValues()
 }
 
-//EnableEpochsMetrics returns a default response map
+//EnableEpochsMetrics returns an empty map and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) EnableEpochsMetrics() (map[string]interface{}, error) {
 	return getReturnValues()
 }
 
-// NetworkMetrics returns a default response map
+// NetworkMetrics returns an empty map and the error which specifies that the node is starting
 func (d *disabledStatusMetricsHandler) NetworkMetrics() (map[string]interface{}, error) {
 	return getReturnValues()
 }
 
-// RatingsMetrics returns a default response map
-func (d *disabledStatusMetricsHandler) RatingsMetrics() map[string]interface{} {
-	return getReturnMap()
+// RatingsMetrics returns an empty map and the error which specifies that the node is starting
+func (d *disabledStatusMetricsHandler) RatingsMetrics() (map[string]interface{}, error) {
+	return getReturnValues()
 }
 
 func getReturnValues() (map[string]interface{}, error) {
 	return map[string]interface{}{}, errNodeStarting
 }
 
-// IsInterfaceNil returns true if there is nu value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (d *disabledStatusMetricsHandler) IsInterfaceNil() bool {
 	return d == nil
 }

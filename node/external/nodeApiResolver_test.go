@@ -10,6 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +21,7 @@ import (
 func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
 		SCQueryService:           &mock.SCQueryServiceStub{},
-		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
 		TxCostHandler:            &mock.TransactionCostEstimatorMock{},
 		TotalStakedValueHandler:  &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler:  &mock.DirectStakedListProcessorStub{},

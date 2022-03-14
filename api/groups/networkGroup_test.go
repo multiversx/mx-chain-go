@@ -62,6 +62,14 @@ type genesisNodesConfigData struct {
 	Nodes groups.GenesisNodesConfig `json:"nodes"`
 }
 
+type ratingsConfigResponse struct {
+	Data struct {
+		Config map[string]interface{} `json:"config"`
+	} `json:"data"`
+	Error string `json:"error"`
+	Code  string `json:"code"`
+}
+
 func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -569,6 +577,68 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	require.True(t, keyAndValueInResponse)
 }
 
+func TestGetNetworkRatings_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				RatingsMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/ratings", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestGetNetworkRatings_ShouldWork(t *testing.T) {
+	expectedMap := map[string]interface{}{
+		"key0": "val0",
+	}
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				RatingsMetricsCalled: func() (map[string]interface{}, error) {
+					return expectedMap, nil
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/ratings", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	response := &ratingsConfigResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedMap, response.Data.Config)
+}
+
 func TestGetESDTTotalSupply(t *testing.T) {
 	t.Parallel()
 
@@ -692,6 +762,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/delegated-info", Open: true},
 					{Name: "/esdt/supply/:token", Open: true},
 					{Name: "/genesis-nodes", Open: true},
+					{Name: "/ratings", Open: true},
 				},
 			},
 		},
