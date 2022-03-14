@@ -699,10 +699,7 @@ func (txs *transactions) SaveTxsToStorage(body *block.Body) error {
 			continue
 		}
 
-		err := txs.saveTxsToStorage(miniBlock.TxHashes, &txs.txsForCurrBlock, txs.storage, dataRetriever.TransactionUnit)
-		if err != nil {
-			return err
-		}
+		txs.saveTxsToStorage(miniBlock.TxHashes, &txs.txsForCurrBlock, txs.storage, dataRetriever.TransactionUnit)
 	}
 
 	return nil
@@ -778,6 +775,34 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
 			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 		}
+	}
+}
+
+// AddTransactions adds the given transactions to the current block transactions
+func (txs *transactions) AddTransactions(txHandlers []data.TransactionHandler) {
+	for i, tx := range txHandlers {
+		senderShardID, err := txs.getShardFromAddress(tx.GetSndAddr())
+		if err != nil {
+			log.Warn("transactions.AddTransactions getShardFromAddress", "error", err.Error())
+			continue
+		}
+
+		receiverShardID, err := txs.getShardFromAddress(tx.GetRcvAddr())
+		if err != nil {
+			log.Warn("transactions.AddTransactions getShardFromAddress", "error", err.Error())
+			continue
+		}
+
+		txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+		txHash, err := txs.marshalizer.Marshal(tx)
+		if err != nil {
+			log.Warn("transactions.AddTransactions Unmarshal", "error", err.Error())
+			continue
+		}
+
+		txs.txsForCurrBlock.mutTxsForBlock.Lock()
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: txHandlers[i], txShardInfo: txShardInfoToSet}
+		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 	}
 }
 

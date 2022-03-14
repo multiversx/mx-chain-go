@@ -340,10 +340,7 @@ func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 			continue
 		}
 
-		err := scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
-		if err != nil {
-			return err
-		}
+		scr.saveTxsToStorage(miniBlock.TxHashes, &scr.scrForBlock, scr.storage, dataRetriever.UnsignedTransactionUnit)
 	}
 
 	return nil
@@ -633,6 +630,10 @@ func (scr *smartContractResults) GetAllCurrentUsedTxs() map[string]data.Transact
 
 // AddTxsFromMiniBlocks does nothing
 func (scr *smartContractResults) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
+// AddTransactions does nothing
+func (scr *smartContractResults) AddTransactions(_ []data.TransactionHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4213,3 +4213,7 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 	txs := tc.GetAllIntermediateTxs()
 	assert.Equal(t, expectedAllIntermediateTxs, txs)
 }
+
+func TestTransactionCoordinator_AddTransactions(t *testing.T) {
+
+}

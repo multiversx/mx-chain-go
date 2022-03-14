@@ -1912,6 +1912,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	if sp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+
+		scheduledTxs := sp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs()
+		invalidTxs := scheduledTxs[block.InvalidBlock]
+		if len(invalidTxs) > 0 {
+			sp.txCoordinator.AddTransactions(invalidTxs, block.TxBlock)
+		}
 	}
 
 	// placeholder for shardProcessor.createMiniBlocks script
