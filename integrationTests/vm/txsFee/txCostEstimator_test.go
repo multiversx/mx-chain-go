@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -28,7 +29,7 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -54,7 +55,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -74,7 +75,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -107,7 +108,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
-		vm.ArgEnableEpoch{
+		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
 	require.Nil(t, err)
@@ -132,7 +133,7 @@ func TestESDTTransfer(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -155,7 +156,7 @@ func TestAsyncESDTTransfer(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Arwen fix")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -191,5 +192,5 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(34157), res.GasUnits)
+	require.Equal(t, uint64(34156), res.GasUnits)
 }

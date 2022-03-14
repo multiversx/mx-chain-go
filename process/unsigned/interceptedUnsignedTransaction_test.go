@@ -2,6 +2,7 @@ package unsigned_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -53,7 +54,7 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
-//------- NewInterceptedUnsignedTransaction
+// ------- NewInterceptedUnsignedTransaction
 
 func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
 	t.Parallel()
@@ -168,7 +169,7 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CheckValidity
+// ------- CheckValidity
 
 func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testing.T) {
 	t.Parallel()
@@ -296,7 +297,7 @@ func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
@@ -326,7 +327,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, senderAddress, txi.SenderAddress())
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
@@ -370,8 +371,8 @@ func TestInterceptedUnsignedTransaction_String(t *testing.T) {
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
 	expectedFormat := fmt.Sprintf(
-		"sender=%s, nonce=%d, value=%s, recv=%s",
-		logger.DisplayByteSlice(senderAddress), nonce, value, logger.DisplayByteSlice(recvAddress),
+		"sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
+		logger.DisplayByteSlice(senderAddress), nonce, value, logger.DisplayByteSlice(recvAddress), hex.EncodeToString(tx.Data),
 	)
 
 	assert.Equal(t, expectedFormat, txi.String())

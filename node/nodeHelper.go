@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
@@ -29,7 +30,7 @@ func CreateHardForkTrigger(
 	config *config.Config,
 	epochConfig *config.EpochConfig,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	nodesShuffledOut update.Closer,
 	coreData factory.CoreComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
@@ -191,7 +192,6 @@ func CreateNode(
 	nd, err = NewNode(
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
-		WithNetworkComponents(networkComponents),
 		WithBootstrapComponents(bootstrapComponents),
 		WithStateComponents(stateComponents),
 		WithDataComponents(dataComponents),
@@ -200,6 +200,7 @@ func CreateNode(
 		WithHeartbeatComponents(heartbeatComponents),
 		WithHeartbeatV2Components(heartbeatV2Components),
 		WithConsensusComponents(consensusComponents),
+		WithNetworkComponents(networkComponents),
 		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
 		WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
 		WithConsensusGroupSize(consensusGroupSize),

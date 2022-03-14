@@ -172,7 +172,7 @@ func TestP2pPeerHonesty_Close(t *testing.T) {
 		handler,
 	)
 
-	time.Sleep(time.Second*2 + time.Millisecond*100) //this will call the handler 3 times
+	time.Sleep(time.Second*2 + time.Millisecond*100) // this will call the handler 3 times
 
 	err := pph.Close()
 	assert.Nil(t, err)
@@ -430,7 +430,7 @@ func TestP2pPeerHonesty_ApplyDecayWillEventuallyGoTheScoreToZero(t *testing.T) {
 	topic := "topic"
 	pph.Put(pk, topic, cfg.MaxScore)
 
-	expectedDecaysToBeZero := 722 //(at 10 seconds decay interval this will be ~2h)
+	expectedDecaysToBeZero := 722 // (at 10 seconds decay interval this will be ~2h)
 	for i := 0; i < expectedDecaysToBeZero; i++ {
 		pph.applyDecay()
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -606,7 +607,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
 		ShardId:            1,
 		ShardConsensusSize: 1,
 		MetaConsensusSize:  1,
@@ -688,7 +689,7 @@ func getArgumentsShard(
 		CryptoComponents:             cryptoComp,
 		Accounts:                     &stateMock.AccountsStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:             mock.NewNodesCoordinatorMock(),
+		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
 		Messenger:                    &mock.TopicHandlerStub{},
 		Store:                        createShardStore(),
 		DataPool:                     createShardDataPools(),

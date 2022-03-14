@@ -97,16 +97,17 @@ func (ts *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.Min
 		ts.syncedAll = false
 		ts.stopSync = false
 
-		requestedTxs := 0
+		numRequestedTxs := 0
 		for _, miniBlock := range miniBlocks {
 			for _, txHash := range miniBlock.TxHashes {
 				ts.mapHashes[string(txHash)] = miniBlock
+				log.Debug("transactionsSync.SyncTransactionsFor", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash needed", txHash)
 			}
-			requestedTxs += ts.requestTransactionsFor(miniBlock)
+			numRequestedTxs += ts.requestTransactionsFor(miniBlock)
 		}
 		ts.mutPendingTx.Unlock()
 
-		if requestedTxs == 0 {
+		if numRequestedTxs == 0 {
 			ts.mutPendingTx.Lock()
 			ts.stopSync = true
 			ts.syncedAll = true
@@ -122,6 +123,9 @@ func (ts *transactionsSync) SyncTransactionsFor(miniBlocks map[string]*block.Min
 			ts.mutPendingTx.Unlock()
 			return nil
 		case <-time.After(ts.waitTimeBetweenRequests):
+			ts.mutPendingTx.Lock()
+			log.Debug("transactionsSync.SyncTransactionsFor", "num txs needed", len(ts.mapHashes), "num txs got", len(ts.mapTransactions))
+			ts.mutPendingTx.Unlock()
 			continue
 		case <-ctx.Done():
 			ts.mutPendingTx.Lock()
@@ -150,6 +154,7 @@ func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) i
 
 	for _, txHash := range missingTxs {
 		ts.mapHashes[string(txHash)] = miniBlock
+		log.Debug("transactionsSync.requestTransactionsFor", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash missing", txHash)
 	}
 
 	mbType := miniBlock.Type
@@ -160,10 +165,13 @@ func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) i
 	switch mbType {
 	case block.TxBlock:
 		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestTransaction(miniBlock.ReceiverShardID, missingTxs)
 	case block.SmartContractResultBlock:
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestUnsignedTransactions(miniBlock.ReceiverShardID, missingTxs)
 	case block.RewardsBlock:
 		ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestRewardTransactions(miniBlock.ReceiverShardID, missingTxs)
 	}
 
 	return len(missingTxs)
@@ -176,11 +184,13 @@ func (ts *transactionsSync) receivedTransaction(txHash []byte, val interface{}) 
 		return
 	}
 
-	if _, ok := ts.mapHashes[string(txHash)]; !ok {
+	miniBlock, ok := ts.mapHashes[string(txHash)]
+	if !ok {
 		ts.mutPendingTx.Unlock()
 		return
 	}
-	if _, ok := ts.mapTransactions[string(txHash)]; ok {
+	_, ok = ts.mapTransactions[string(txHash)]
+	if ok {
 		ts.mutPendingTx.Unlock()
 		return
 	}
@@ -190,6 +200,8 @@ func (ts *transactionsSync) receivedTransaction(txHash []byte, val interface{}) 
 		ts.mutPendingTx.Unlock()
 		return
 	}
+
+	log.Debug("transactionsSync.receivedTransaction", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash got", txHash)
 
 	ts.mapTransactions[string(txHash)] = tx
 	receivedAllMissing := len(ts.mapHashes) == len(ts.mapTransactions)
@@ -241,6 +253,23 @@ func (ts *transactionsSync) getTransactionFromPool(txHash []byte) (data.Transact
 	return tx, true
 }
 
+func (ts *transactionsSync) getTransactionFromPoolWithSearchFirst(
+	txHash []byte,
+	cacher dataRetriever.ShardedDataCacherNotifier,
+) (data.TransactionHandler, bool) {
+	val, ok := cacher.SearchFirstData(txHash)
+	if !ok {
+		return nil, false
+	}
+
+	tx, ok := val.(data.TransactionHandler)
+	if !ok {
+		return nil, false
+	}
+
+	return tx, true
+}
+
 func (ts *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.TransactionHandler, bool) {
 	txFromPool, ok := ts.getTransactionFromPool(hash)
 	if ok {
@@ -255,6 +284,12 @@ func (ts *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.T
 	mbType := miniBlock.Type
 	if mbType == block.InvalidBlock {
 		mbType = block.TxBlock
+	}
+
+	txFromPoolWithSearchFirst, ok := ts.getTransactionFromPoolWithSearchFirst(hash, ts.txPools[mbType])
+	if ok {
+		log.Debug("transactionsSync.getTransactionFromPoolWithSearchFirst: found transaction using search first", "mb type", miniBlock.Type, "mb sender", miniBlock.SenderShardID, "mb receiver", miniBlock.ReceiverShardID, "tx hash", hash)
+		return txFromPoolWithSearchFirst, true
 	}
 
 	txData, err := GetDataFromStorage(hash, ts.storage[mbType])

@@ -54,7 +54,7 @@ func (pb *pruningBuffer) RemoveAll() [][]byte {
 
 	buffer := make([][]byte, len(pb.buffer))
 	copy(buffer, pb.buffer)
-	pb.buffer = pb.buffer[:0]
+	pb.buffer = make([][]byte, 0)
 
 	return buffer
 }

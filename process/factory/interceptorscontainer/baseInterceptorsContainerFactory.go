@@ -15,6 +15,7 @@ import (
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -29,7 +30,7 @@ type baseInterceptorsContainerFactory struct {
 	store                  dataRetriever.StorageService
 	dataPool               dataRetriever.PoolsHolder
 	messenger              process.TopicHandler
-	nodesCoordinator       sharding.NodesCoordinator
+	nodesCoordinator       nodesCoordinator.NodesCoordinator
 	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
@@ -51,7 +52,7 @@ func checkBaseParams(
 	store dataRetriever.StorageService,
 	dataPool dataRetriever.PoolsHolder,
 	messenger process.TopicHandler,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	blackList process.TimeCacher,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
@@ -162,7 +163,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, interceptor)
 }
 
-//------- Tx interceptors
+// ------- Tx interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	shardC := bicf.shardCoordinator
@@ -184,7 +185,7 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	//tx interceptor for metachain topic
+	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := bicf.createOneTxInterceptor(identifierTx)
@@ -340,7 +341,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-//------- Hdr interceptor
+// ------- Hdr interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error {
 	shardC := bicf.shardCoordinator
@@ -362,7 +363,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	// compose header shard topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	//only one intrashard header topic
+	// only one intrashard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHdr,
@@ -387,7 +388,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	return bicf.container.Add(identifierHdr, interceptor)
 }
 
-//------- MiniBlocks interceptors
+// ------- MiniBlocks interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
 	shardC := bicf.shardCoordinator
@@ -470,7 +471,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
-//------- MetachainHeader interceptors
+// ------- MetachainHeader interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptors() error {
 	identifierHdr := factory.MetachainBlocksTopic
@@ -489,7 +490,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		return err
 	}
 
-	//only one metachain header topic
+	// only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHdr,
@@ -569,8 +570,8 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 	noOfShards := shardC.NumberOfShards()
 
-	keys := make([]string, noOfShards)
-	interceptorsSlice := make([]process.Interceptor, noOfShards)
+	keys := make([]string, noOfShards, noOfShards+1)
+	interceptorsSlice := make([]process.Interceptor, noOfShards, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
@@ -582,6 +583,15 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 		keys[int(idx)] = identifierScr
 		interceptorsSlice[int(idx)] = interceptor
 	}
+
+	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	interceptor, err := bicf.createOneUnsignedTxInterceptor(identifierScr)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierScr)
+	interceptorsSlice = append(interceptorsSlice, interceptor)
 
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }

@@ -3,6 +3,7 @@ package stateTrie
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -41,6 +43,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const denomination = "000000000000000000"
 
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
@@ -1125,21 +1129,7 @@ func BenchmarkTxExecution(b *testing.B) {
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
-		SnapshotsGoroutineNum: 1,
-	}
-	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	args := getNewTrieStorageManagerArgs()
-	args.GeneralConfig = generalCfg
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal)
+	adb := createAccountsDBTestSetup()
 
 	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	address1, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1171,21 +1161,7 @@ func newDefaultAccount(adb *state.AccountsDB, address []byte) vmcommon.AccountHa
 }
 
 func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
-		SnapshotsGoroutineNum: 1,
-	}
-	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	args := getNewTrieStorageManagerArgs()
-	args.GeneralConfig = generalCfg
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal)
+	adb := createAccountsDBTestSetup()
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1229,21 +1205,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
-		SnapshotsGoroutineNum: 1,
-	}
-	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	args := getNewTrieStorageManagerArgs()
-	args.GeneralConfig = generalCfg
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal)
+	adb := createAccountsDBTestSetup()
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1640,7 +1602,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		stateCheckpointModulus,
 	)
 
-	roundsPerEpoch := uint64(5)
+	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
@@ -1677,7 +1639,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	prunedRootHashes := make(map[int][][]byte)
 
 	numShardNodes := numOfShards * nodesPerShard
-	numRounds := uint32(9)
+	numRounds := uint32(20)
 	for i := uint64(0); i < uint64(numRounds); i++ {
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -1694,6 +1656,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 			snapshotsRootHashes,
 			prunedRootHashes,
 			uint64(stateCheckpointModulus),
+			roundsPerEpoch,
 		)
 		time.Sleep(time.Second)
 	}
@@ -1721,7 +1684,11 @@ func collectSnapshotAndCheckpointHashes(
 	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
 	stateCheckpointModulus uint64,
+	roundsPerEpoch uint64,
 ) {
+	pruningQueueSize := uint64(5)
+	finality := uint64(2)
+
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
 		if currentBlockHeader.IsStartOfEpochBlock() {
@@ -1731,6 +1698,10 @@ func collectSnapshotAndCheckpointHashes(
 		checkpointRound := currentBlockHeader.GetNonce()%stateCheckpointModulus == 0
 		if checkpointRound {
 			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
+			continue
+		}
+
+		if currentBlockHeader.GetNonce() > roundsPerEpoch-pruningQueueSize-finality {
 			continue
 		}
 
@@ -1764,7 +1735,7 @@ func testNodeStateCheckpointSnapshotAndPruning(
 ) {
 
 	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-	require.Equal(t, 3, len(checkpointsRootHashes))
+	require.Equal(t, 6, len(checkpointsRootHashes))
 	for i := range checkpointsRootHashes {
 		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
 		require.Nil(t, err)
@@ -1778,12 +1749,10 @@ func testNodeStateCheckpointSnapshotAndPruning(
 		require.NotNil(t, tr)
 	}
 
-	require.Equal(t, 5, len(prunedRootHashes))
+	require.Equal(t, 2, len(prunedRootHashes))
+	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
-		if err == nil {
-			fmt.Println(hex.EncodeToString(prunedRootHashes[i]))
-		}
 		require.Nil(t, tr)
 		require.NotNil(t, err)
 	}
@@ -2165,4 +2134,240 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 		assert.True(t, response)
 		assert.Equal(t, value, dataTrieProof.Value)
 	}
+}
+
+func TestTrieDBPruning_PruningOldData(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	adb := createAccountsDBTestSetup()
+	numAccounts := uint32(10000)
+	numIncreaseDecreaseIterations := 100
+
+	rootHashes := make([][]byte, 0)
+	rootHash, err := createDummyAccountsWith100EGLD(numAccounts, adb)
+	require.Nil(t, err)
+	rootHashes = append(rootHashes, rootHash)
+
+	for i := 0; i < numIncreaseDecreaseIterations; i++ {
+		// change some accounts
+		rootHash, err = increaseBalanceForAccountsStartingWithIndex(100, 1000, 10, adb)
+		require.Nil(t, err)
+		rootHashes = append(rootHashes, rootHash)
+		checkAccountsBalances(t, 100, 1000, 110, adb)
+
+		// change same accounts state back
+		rootHash, err = decreaseBalanceForAccountsStartingWithIndex(100, 1000, 10, adb)
+		require.Nil(t, err)
+		rootHashes = append(rootHashes, rootHash)
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
+		checkAccountsBalances(t, 100, 1000, 100, adb)
+	}
+}
+
+func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	adb := createAccountsDBTestSetup()
+	numAccounts := uint32(100)
+	numIncreaseDecreaseIterations := 100
+	numAccountsChances := uint32(10)
+
+	rootHashes := make([][]byte, 0)
+	rootHash, err := createDummyAccountsWith100EGLD(numAccounts, adb)
+	require.Nil(t, err)
+	rootHashes = append(rootHashes, rootHash)
+	rootHash, err = addDataTriesForAccountsStartingWithIndex(10, numAccountsChances, 100, adb)
+	require.Nil(t, err)
+	rootHashes = append(rootHashes, rootHash)
+
+	for i := 0; i < numIncreaseDecreaseIterations; i++ {
+		// change some accounts
+		rootHash, err = addDataTriesForAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
+		require.Nil(t, err)
+		rootHashes = append(rootHashes, rootHash)
+		checkAccountsDataTries(t, 10, numAccountsChances, 0, adb)
+
+		// change same accounts state back
+		rootHash, err = removeKeysFromAccountsStartingWithIndex(10, numAccountsChances, 10, adb)
+		require.Nil(t, err)
+		rootHashes = append(rootHashes, rootHash)
+		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot)
+		checkAccountsDataTries(t, 10, numAccountsChances, 10, adb)
+	}
+}
+
+func addDataTriesForAccountsStartingWithIndex(
+	startIndex uint32,
+	nbAccounts uint32,
+	numKeys uint32,
+	adb *state.AccountsDB,
+) ([]byte, error) {
+	for i := startIndex; i < startIndex+nbAccounts; i++ {
+		addValuesInAccountDataTrie(i, numKeys, adb)
+	}
+	return adb.Commit()
+}
+
+func removeKeysFromAccountsStartingWithIndex(startIndex uint32,
+	nbAccounts uint32,
+	numKeys uint32,
+	adb *state.AccountsDB,
+) ([]byte, error) {
+	for i := startIndex; i < startIndex+nbAccounts; i++ {
+		removeValuesFromAccountDataTrie(i, numKeys, adb)
+	}
+	return adb.Commit()
+}
+
+func increaseBalanceForAccountsStartingWithIndex(
+	startIndex uint32,
+	nbAccounts uint32,
+	egldValue uint32,
+	adb *state.AccountsDB,
+) ([]byte, error) {
+	for i := startIndex; i < startIndex+nbAccounts; i++ {
+		increaseBalanceForAccountWithIndex(i, egldValue, adb)
+	}
+	return adb.Commit()
+}
+
+func decreaseBalanceForAccountsStartingWithIndex(
+	startIndex uint32,
+	nbAccounts uint32,
+	egldValue uint32,
+	adb *state.AccountsDB,
+) ([]byte, error) {
+	for i := startIndex; i < startIndex+nbAccounts; i++ {
+		decreaseBalanceForAccountWithIndex(i, egldValue, adb)
+	}
+	return adb.Commit()
+}
+
+func checkAccountsBalances(t *testing.T, startIndex uint32, nbAccounts uint32, expectedEGLDValue uint32, adb *state.AccountsDB) {
+	for i := startIndex; i < startIndex+nbAccounts; i++ {
+		checkAccountBalance(t, i, expectedEGLDValue, adb)
+	}
+}
+
+func checkAccountBalance(t *testing.T, index uint32, expectedEGLDValue uint32, adb *state.AccountsDB) {
+	expectedEGLDValueDenominated, _ := big.NewInt(0).SetString(fmt.Sprintf("%d", expectedEGLDValue)+denomination, 10)
+
+	acc, err := adb.LoadAccount(getDummyAccountAddressFromIndex(index))
+	require.Nil(t, err)
+
+	accState := acc.(state.UserAccountHandler)
+	actualValue := accState.GetBalance()
+	require.Equal(t, expectedEGLDValueDenominated, actualValue)
+}
+
+func decreaseBalanceForAccountWithIndex(index uint32, egldValue uint32, adb *state.AccountsDB) {
+	egldValueDenominated, _ := big.NewInt(0).SetString(fmt.Sprintf("%d", egldValue)+denomination, 10)
+
+	acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(index))
+	accState := acc.(state.UserAccountHandler)
+	_ = accState.SubFromBalance(egldValueDenominated)
+	_ = adb.SaveAccount(accState)
+}
+
+func increaseBalanceForAccountWithIndex(index uint32, egldValue uint32, adb *state.AccountsDB) {
+	egldValueDenominated, _ := big.NewInt(0).SetString(fmt.Sprintf("%d", egldValue)+denomination, 10)
+
+	acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(index))
+	accState := acc.(state.UserAccountHandler)
+	_ = accState.AddToBalance(egldValueDenominated)
+	_ = adb.SaveAccount(accState)
+}
+
+func getDummyAccountAddressFromIndex(index uint32) []byte {
+	addrLen := 32
+	indexLen := 4
+	address := make([]byte, addrLen)
+	lastBytes := address[addrLen-indexLen:]
+	binary.LittleEndian.PutUint32(lastBytes, index)
+
+	return address
+}
+
+func addValuesInAccountDataTrie(index uint32, numKeys uint32, adb *state.AccountsDB) {
+	acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(index))
+	accState := acc.(state.UserAccountHandler)
+	for i := 0; i < int(numKeys); i++ {
+		k, v := createDummyKeyValue(i)
+		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
+	}
+	_ = adb.SaveAccount(accState)
+}
+
+func removeValuesFromAccountDataTrie(index uint32, numKeys uint32, adb *state.AccountsDB) {
+	acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(index))
+	accState := acc.(state.UserAccountHandler)
+	for i := 0; i < int(numKeys); i++ {
+		k, _ := createDummyKeyValue(i)
+		_ = accState.DataTrieTracker().SaveKeyValue(k, nil)
+	}
+	_ = adb.SaveAccount(accState)
+}
+
+func checkAccountsDataTries(t *testing.T, startIndex uint32, nbAccounts uint32, startingKey uint32, adb *state.AccountsDB) {
+	for i := startIndex; i < startIndex+nbAccounts; i++ {
+		checkAccountsDataTrie(t, i, startingKey, adb)
+	}
+}
+
+func checkAccountsDataTrie(t *testing.T, index uint32, startingKey uint32, adb *state.AccountsDB) {
+	acc, err := adb.LoadAccount(getDummyAccountAddressFromIndex(index))
+	require.Nil(t, err)
+
+	numKeys := 100
+	accState := acc.(state.UserAccountHandler)
+	for i := int(startingKey); i < numKeys; i++ {
+		k, v := createDummyKeyValue(i)
+		actualValue, errKey := accState.RetrieveValueFromDataTrieTracker(k)
+		require.Nil(t, errKey)
+		require.Equal(t, v, actualValue)
+	}
+}
+
+func createDummyKeyValue(index int) ([]byte, []byte) {
+	hasher := sha256.NewSha256()
+	key := hasher.Compute(fmt.Sprintf("%d", index))
+	value := hasher.Compute(string(key))
+	return key, value
+}
+
+func createDummyAccountsWith100EGLD(numAccounts uint32, adb *state.AccountsDB) ([]byte, error) {
+	val100Denominated, _ := big.NewInt(0).SetString("100"+denomination, 10)
+
+	for i := 0; i < int(numAccounts); i++ {
+		addr := getDummyAccountAddressFromIndex(uint32(i))
+		acc, _ := adb.LoadAccount(addr)
+		accState := acc.(state.UserAccountHandler)
+		_ = accState.AddToBalance(val100Denominated)
+		_ = adb.SaveAccount(accState)
+	}
+
+	return adb.Commit()
+}
+
+func createAccountsDBTestSetup() *state.AccountsDB {
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		MaxSnapshots:          2,
+		SnapshotsGoroutineNum: 1,
+	}
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	args := getNewTrieStorageManagerArgs()
+	args.GeneralConfig = generalCfg
+	trieStorage, _ := trie.NewTrieStorageManager(args)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal)
+
+	return adb
 }
