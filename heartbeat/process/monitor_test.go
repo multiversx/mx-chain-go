@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -77,6 +78,8 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
+		HeartbeatDisableEpoch:              1,
 	}
 }
 
@@ -201,6 +204,17 @@ func TestNewMonitor_ZeroHideInactiveVlidatorIntervalInHoursShouldErr(t *testing.
 
 	assert.Nil(t, mon)
 	assert.True(t, errors.Is(err, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec))
+}
+
+func TestNewMonitor_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.EpochNotifier = nil
+	mon, err := process.NewMonitor(arg)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilEpochNotifier, err)
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
@@ -533,6 +547,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
+		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
 	}
 	mon, _ := process.NewMonitor(arg)
 	mon.SendHeartbeatMessage(&data.Heartbeat{Pubkey: []byte(pkValidator)})
@@ -617,6 +632,40 @@ func sendHbMessageFromPubKey(pubKey string, mon *process.Monitor) error {
 	buffToSend, _ := json.Marshal(hb)
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	return err
+}
+
+func TestMonitor_ProcessReceivedMessageShouldNotProcessAfterEpoch(t *testing.T) {
+	t.Parallel()
+
+	providedEpoch := uint32(210)
+	args := createMockArgHeartbeatMonitor()
+	args.HeartbeatDisableEpoch = providedEpoch
+
+	wasCanProcessMessageCalled := false
+	args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			wasCanProcessMessageCalled = true
+			return nil
+		},
+	}
+
+	mon, err := process.NewMonitor(args)
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(mon))
+
+	message := &mock.P2PMessageStub{DataField: []byte("data field")}
+
+	mon.EpochConfirmed(providedEpoch-1, 0)
+	err = mon.ProcessReceivedMessage(message, "pid")
+	assert.Nil(t, err)
+	assert.True(t, wasCanProcessMessageCalled)
+
+	wasCanProcessMessageCalled = false
+	mon.EpochConfirmed(providedEpoch, 0)
+	err = mon.ProcessReceivedMessage(message, "pid")
+	assert.Nil(t, err)
+	assert.False(t, wasCanProcessMessageCalled)
+
 }
 
 func TestMonitor_AddAndGetDoubleSignerPeersShouldWork(t *testing.T) {

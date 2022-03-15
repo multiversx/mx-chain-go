@@ -125,6 +125,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			GlobalMintBurnDisableEpoch:                  32,
 			ESDTTransferRoleEnableEpoch:                 33,
 			BuiltInFunctionOnMetaEnableEpoch:            34,
+			HeartbeatDisableEpoch:                       35,
 		},
 	}
 
@@ -163,6 +164,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_global_mint_burn_disable_epoch":                     uint32(32),
 		"erd_esdt_transfer_role_enable_epoch":                    uint32(33),
 		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
+		"erd_heartbeat_disable_epoch":                            uint32(35),
 		"erd_total_supply":                                       "12345",
 	}
 

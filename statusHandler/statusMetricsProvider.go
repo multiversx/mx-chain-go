@@ -255,6 +255,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[common.MetricDelegationManagerEnableEpoch] = sm.uint64Metrics[common.MetricDelegationManagerEnableEpoch]
 	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.uint64Metrics[common.MetricDelegationSmartContractEnableEpoch]
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
+	enableEpochsMetrics[common.MetricHeartbeatDisableEpoch] = sm.uint64Metrics[common.MetricHeartbeatDisableEpoch]
 	sm.mutUint64Operations.RUnlock()
 
 	return enableEpochsMetrics
