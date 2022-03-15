@@ -3,13 +3,13 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // GenesisNodesSetupHandlerStub -
 type GenesisNodesSetupHandlerStub struct {
-	InitialNodesInfoForShardCalled   func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled           func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	InitialNodesInfoForShardCalled   func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled           func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	GetStartTimeCalled               func() int64
 	GetRoundDurationCalled           func() uint64
 	GetChainIdCalled                 func() string
@@ -25,7 +25,7 @@ type GenesisNodesSetupHandlerStub struct {
 }
 
 // InitialNodesInfoForShard -
-func (g *GenesisNodesSetupHandlerStub) InitialNodesInfoForShard(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error) {
+func (g *GenesisNodesSetupHandlerStub) InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error) {
 	if g.InitialNodesInfoForShardCalled != nil {
 		return g.InitialNodesInfoForShardCalled(shardId)
 	}
@@ -34,7 +34,7 @@ func (g *GenesisNodesSetupHandlerStub) InitialNodesInfoForShard(shardId uint32) 
 }
 
 // InitialNodesInfo -
-func (g *GenesisNodesSetupHandlerStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+func (g *GenesisNodesSetupHandlerStub) InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 	if g.InitialNodesInfoCalled != nil {
 		return g.InitialNodesInfoCalled()
 	}

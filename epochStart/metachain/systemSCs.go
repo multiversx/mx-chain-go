@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -35,7 +36,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	Marshalizer          marshal.Marshalizer
 	StartRating          uint32
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
-	ChanceComputer       sharding.ChanceComputer
+	ChanceComputer       nodesCoordinator.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
 	EpochConfig          config.EpochConfig
 
@@ -55,7 +56,7 @@ type systemSCProcessor struct {
 	userAccountsDB                 state.AccountsAdapter
 	marshalizer                    marshal.Marshalizer
 	peerAccountsDB                 state.AccountsAdapter
-	chanceComputer                 sharding.ChanceComputer
+	chanceComputer                 nodesCoordinator.ChanceComputer
 	shardCoordinator               sharding.Coordinator
 	startRating                    uint32
 	validatorInfoCreator           epochStart.ValidatorInfoCreator

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		BootstrapRoundIndex:          1,
 		ShardCoordinator:             &mock.ShardCoordinatorStub{},
-		NodesCoordinator:             &mock.NodesCoordinatorMock{},
+		NodesCoordinator:             &shardingMocks.NodesCoordinatorMock{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		BlockTracker:                 &mock.BlockTrackerMock{},
 		ChainID:                      "1",

@@ -7,12 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
 type StartOfEpochNodesConfigHandler interface {
-	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (*sharding.NodesCoordinatorRegistry, uint32, error)
+	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, error)
 	IsInterfaceNil() bool
 }
 
@@ -25,7 +25,7 @@ type EpochStartMetaBlockInterceptorProcessor interface {
 // StartInEpochNodesCoordinator defines the methods to process and save nodesCoordinator information to storage
 type StartInEpochNodesCoordinator interface {
 	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
-	NodesCoordinatorToRegistry() *sharding.NodesCoordinatorRegistry
+	NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool
 }
