@@ -40,7 +40,7 @@ func (vi *validatorsInfo) GetValidatorsInfoInShard(shardID uint32) []ValidatorIn
 	return validatorsInShard
 }
 
-func (vi *validatorsInfo) GetShardValidatorsInfo() map[uint32][]ValidatorInfoHandler {
+func (vi *validatorsInfo) GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler {
 	ret := make(map[uint32][]ValidatorInfoHandler, 0)
 
 	for shardID, valInShard := range vi.valInfo {
@@ -59,9 +59,7 @@ func (vi *validatorsInfo) Add(validatorInfo ValidatorInfoHandler) {
 func (vi *validatorsInfo) Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) {
 	for idx, validatorInfo := range vi.GetValidatorsInfoInShard(old.GetShardId()) {
 		if bytes.Equal(validatorInfo.GetPublicKey(), old.GetPublicKey()) {
-			//validatorsInfoMap.SetValidator(newValidator)
 			vi.valInfo[old.GetShardId()][idx] = new
-			//validatorsInfoMap[jailedValidator.ShardId][index] = newValidator
 			break
 		}
 	}

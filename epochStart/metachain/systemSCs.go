@@ -110,7 +110,6 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		validatorsInfoMap[shardID] = validators
 	}
 
-	//validatorsInfoMap = validatorsInfoHandler.GetMapPointer()
 	return nil
 }
 
@@ -193,7 +192,7 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ValidatorsInfoHand
 	auctionList := make([]state.ValidatorInfoHandler, 0)
 	numOfValidators := uint32(0)
 
-	for _, validatorsInShard := range validatorsInfoMap.GetShardValidatorsInfo() {
+	for _, validatorsInShard := range validatorsInfoMap.GetShardValidatorsInfoMap() {
 		for _, validator := range validatorsInShard {
 			if validator.GetList() == string(common.AuctionList) {
 				auctionList = append(auctionList, validator)
@@ -306,7 +305,7 @@ func (s *systemSCProcessor) getAllNodeKeys(
 	validatorsInfo state.ValidatorsInfoHandler,
 ) map[uint32][][]byte {
 	nodeKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfo() {
+	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfoMap() {
 		nodeKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
 			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.GetPublicKey())

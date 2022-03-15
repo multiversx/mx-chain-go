@@ -421,18 +421,16 @@ func (s *legacySystemSCProcessor) updateDelegationContracts(mapOwnerKeys map[str
 }
 
 func getValidatorInfoWithBLSKey(validatorsInfoMap state.ValidatorsInfoHandler, blsKey []byte) state.ValidatorInfoHandler {
-	for _, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfo() {
-		for _, validatorInfo := range validatorsInfoSlice {
-			if bytes.Equal(validatorInfo.GetPublicKey(), blsKey) {
-				return validatorInfo
-			}
+	for _, validatorInfo := range validatorsInfoMap.GetAllValidatorsInfo() {
+		if bytes.Equal(validatorInfo.GetPublicKey(), blsKey) {
+			return validatorInfo
 		}
 	}
 	return nil
 }
 
 func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMap state.ValidatorsInfoHandler) error {
-	for shId, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfo() {
+	for shId, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfoMap() {
 		newList := make([]state.ValidatorInfoHandler, 0, len(validatorsInfoSlice))
 		deleteCalled := false
 
@@ -499,7 +497,7 @@ func (s *legacySystemSCProcessor) getEligibleNodeKeys(
 	validatorsInfoMap state.ValidatorsInfoHandler,
 ) map[uint32][][]byte {
 	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfo() {
+	for shardID, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfoMap() {
 		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
 			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
@@ -637,7 +635,7 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.Validat
 }
 
 func (s *legacySystemSCProcessor) computeNumWaitingPerShard(validatorsInfoMap state.ValidatorsInfoHandler) error {
-	for shardID, validatorInfoList := range validatorsInfoMap.GetShardValidatorsInfo() {
+	for shardID, validatorInfoList := range validatorsInfoMap.GetShardValidatorsInfoMap() {
 		totalInWaiting := uint32(0)
 		for _, validatorInfo := range validatorInfoList {
 			switch validatorInfo.GetList() {
@@ -766,7 +764,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		}
 	} else {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
-		deleteNewValidatorIfExistsFromMap(validatorsInfoMap, blsPubKey, account.GetShardId())
+		validatorsInfoMap.Delete(account.GetShardId(), blsPubKey)
 	}
 
 	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce))
@@ -795,39 +793,13 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	switchJailedWithNewValidatorInMap(validatorsInfoMap, jailedValidator, newValidatorInfo)
+	validatorsInfoMap.Replace(jailedValidator, newValidatorInfo)
 
 	return blsPubKey, nil
 }
 
 func isValidator(validator state.ValidatorInfoHandler) bool {
 	return validator.GetList() == string(common.WaitingList) || validator.GetList() == string(common.EligibleList)
-}
-
-func deleteNewValidatorIfExistsFromMap(
-	validatorsInfoMap state.ValidatorsInfoHandler,
-	blsPubKey []byte,
-	shardID uint32,
-) {
-	validatorsInfoMap.Delete(shardID, blsPubKey)
-}
-
-func switchJailedWithNewValidatorInMap(
-	validatorsInfoMap state.ValidatorsInfoHandler,
-	jailedValidator state.ValidatorInfoHandler,
-	newValidator state.ValidatorInfoHandler,
-) {
-	validatorsInfoMap.Replace(jailedValidator, newValidator)
-	/*
-		for _, validatorInfo := range validatorsInfoMap.GetValidatorsInfoInShard(jailedValidator.GetShardId()) {
-			if bytes.Equal(validatorInfo.GetPublicKey(), jailedValidator.GetPublicKey()) {
-				validatorsInfoMap.SetValidator(newValidator)
-				//validatorsInfoMap[jailedValidator.ShardId][index] = newValidator
-				break
-			}
-		}
-
-	*/
 }
 
 func (s *legacySystemSCProcessor) getUserAccount(address []byte) (state.UserAccountHandler, error) {
@@ -885,7 +857,7 @@ func (s *legacySystemSCProcessor) getSortedJailedNodes(validatorsInfoMap state.V
 	oldJailedValidators := make([]state.ValidatorInfoHandler, 0)
 
 	minChance := s.chanceComputer.GetChance(0)
-	for _, listValidators := range validatorsInfoMap.GetShardValidatorsInfo() {
+	for _, listValidators := range validatorsInfoMap.GetShardValidatorsInfoMap() {
 		for _, validatorInfo := range listValidators {
 			if validatorInfo.GetList() == string(common.JailedList) {
 				oldJailedValidators = append(oldJailedValidators, validatorInfo)
@@ -1294,7 +1266,6 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			AccumulatedFees: big.NewInt(0),
 		}
 		validatorsInfoMap.Add(validatorInfo)
-		//validatorsInfoMap[peerAcc.GetShardId()] = append(validatorsInfoMap[peerAcc.GetShardId()], validatorInfo)
 	}
 
 	return nil
