@@ -190,8 +190,8 @@ type ValidatorsInfoHandler interface {
 	Add(validatorInfo ValidatorInfoHandler)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler)
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler)
-	GetMapPointer() map[uint32][]*ValidatorInfo
 	Delete(shardID uint32, pubKey []byte)
+	GetMapPointer() map[uint32][]*ValidatorInfo
 }
 type ValidatorInfoHandler interface {
 	IsInterfaceNil() bool
@@ -217,5 +217,24 @@ type ValidatorInfoHandler interface {
 	GetTotalValidatorFailure() uint32
 	GetTotalValidatorIgnoredSignatures() uint32
 
+	SetPublicKey(publicKey []byte)
+	SetShardId(shardID uint32)
 	SetList(list string)
+	SetIndex(index uint32)
+	SetTempRating(tempRating uint32)
+	SetRating(rating uint32)
+	SetRatingModifier(ratingModifier float32)
+	SetRewardAddress(rewardAddress []byte)
+	SetLeaderSuccess(leaderSuccess uint32)
+	SetLeaderFailure(leaderFailure uint32)
+	SetValidatorSuccess(validatorSuccess uint32)
+	SetValidatorFailure(validatorFailure uint32)
+	SetValidatorIgnoredSignatures(validatorIgnoredSignatures uint32)
+	SetNumSelectedInSuccessBlocks(numSelectedInSuccessBlock uint32)
+	SetAccumulatedFees(accumulatedFees *big.Int)
+	SetTotalLeaderSuccess(totalLeaderSuccess uint32)
+	SetTotalLeaderFailure(totalLeaderFailure uint32)
+	SetTotalValidatorSuccess(totalValidatorSuccess uint32)
+	SetTotalValidatorFailure(totalValidatorFailure uint32)
+	SetTotalValidatorIgnoredSignatures(totalValidatorIgnoredSignatures uint32)
 }
