@@ -973,7 +973,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 	}
 }
 
-func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testing.T) {
+func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldNotErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -1013,7 +1013,7 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testin
 
 	err := txs.SaveTxsToStorage(body)
 
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	assert.Nil(t, err)
 }
 
 func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
