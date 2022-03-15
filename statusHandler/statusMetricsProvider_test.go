@@ -412,7 +412,8 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 		common.MetricRatingsPeerHonestyUnitValue:                    "1.0",
 	}
 
-	configMetrics := sm.RatingsMetrics()
+	configMetrics, err := sm.RatingsMetrics()
+	assert.NoError(t, err)
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
