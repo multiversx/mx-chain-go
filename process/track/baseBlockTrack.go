@@ -607,9 +607,9 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 	return headers, headersHashes
 }
 
-// ShouldNotCreateMiniBlocksFromSelf returns true if there are many pending miniBlocks and all shards
+// ShouldSkipMiniBlocksCreationFromSelf returns true if there are many pending miniBlocks and all shards
 // should stop producing miniBlocks so that the chain gets the chance to recover
-func (bbt *baseBlockTrack) ShouldNotCreateMiniBlocksFromSelf() bool {
+func (bbt *baseBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
 	if bbt.shardCoordinator.SelfId() == core.MetachainShardId {
 		return false
 	}

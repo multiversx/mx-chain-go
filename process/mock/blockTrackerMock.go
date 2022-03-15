@@ -40,7 +40,7 @@ type BlockTrackerMock struct {
 	GetTrackedHeadersCalled                            func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled                func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                   func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
-	ShouldNotCreateMiniBlocksFromSelfCalled            func() bool
+	ShouldSkipMiniBlocksCreationFromSelfCalled         func() bool
 	IsShardStuckCalled                                 func(shardId uint32) bool
 	RegisterCrossNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -453,10 +453,10 @@ func (btm *BlockTrackerMock) IsShardStuck(shardId uint32) bool {
 	return false
 }
 
-// ShouldNotCreateMiniBlocksFromSelf -
-func (btm *BlockTrackerMock) ShouldNotCreateMiniBlocksFromSelf() bool {
-	if btm.ShouldNotCreateMiniBlocksFromSelfCalled != nil {
-		return btm.ShouldNotCreateMiniBlocksFromSelfCalled()
+// ShouldSkipMiniBlocksCreationFromSelf -
+func (btm *BlockTrackerMock) ShouldSkipMiniBlocksCreationFromSelf() bool {
+	if btm.ShouldSkipMiniBlocksCreationFromSelfCalled != nil {
+		return btm.ShouldSkipMiniBlocksCreationFromSelfCalled()
 	}
 
 	return false

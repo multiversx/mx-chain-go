@@ -163,6 +163,6 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 			"pending miniblocks", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID),
 			"last meta nonce processed", sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID),
 			"shard is stuck", sbt.IsShardStuck(shardID),
-			"global chain stuck", sbt.ShouldNotCreateMiniBlocksFromSelf())
+			"global chain stuck", sbt.ShouldSkipMiniBlocksCreationFromSelf())
 	}
 }
