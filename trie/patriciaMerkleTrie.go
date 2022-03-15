@@ -462,7 +462,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		close(leavesChannel)
 	}()
 
-	return err
+	return nil
 }
 
 // GetAllHashes returns all the hashes from the trie
