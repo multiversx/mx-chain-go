@@ -227,35 +227,41 @@ func (bpp *basePreProcess) saveTxsToStorage(
 	forBlock *txsForBlock,
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
-) error {
-
+) {
 	for i := 0; i < len(txHashes); i++ {
 		txHash := txHashes[i]
+		bpp.saveTransactionToStorage(txHash, forBlock, store, dataUnit)
+	}
+}
 
-		forBlock.mutTxsForBlock.RLock()
-		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
-		forBlock.mutTxsForBlock.RUnlock()
+func (bpp *basePreProcess) saveTransactionToStorage(
+	txHash []byte,
+	forBlock *txsForBlock,
+	store dataRetriever.StorageService,
+	dataUnit dataRetriever.UnitType,
+) {
+	forBlock.mutTxsForBlock.RLock()
+	txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
+	forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
-			return process.ErrMissingTransaction
-		}
-
-		buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
-		if err != nil {
-			return err
-		}
-
-		errNotCritical := store.Put(dataUnit, txHash, buff)
-		if errNotCritical != nil {
-			log.Debug("store.Put",
-				"error", errNotCritical.Error(),
-				"dataUnit", dataUnit,
-			)
-		}
+	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash,"error", process.ErrMissingTransaction.Error())
+		return
 	}
 
-	return nil
+	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
+	if err != nil {
+		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "error", err.Error())
+		return
+	}
+
+	errNotCritical := store.Put(dataUnit, txHash, buff)
+	if errNotCritical != nil {
+		log.Debug("store.Put",
+			"error", errNotCritical.Error(),
+			"dataUnit", dataUnit,
+		)
+	}
 }
 
 func (bpp *basePreProcess) baseReceivedTransaction(

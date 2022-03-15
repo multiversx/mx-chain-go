@@ -405,15 +405,8 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		calculatedSenderShardId, err := txs.getShardFromAddress(tx.GetSndAddr())
-		if err != nil {
-			return nil, err
-		}
-
-		calculatedReceiverShardId, err := txs.getShardFromAddress(tx.GetRcvAddr())
-		if err != nil {
-			return nil, err
-		}
+		calculatedSenderShardId := txs.getShardFromAddress(tx.GetSndAddr())
+		calculatedReceiverShardId := txs.getShardFromAddress(tx.GetRcvAddr())
 
 		wrappedTx := &txcache.WrappedTransaction{
 			Tx:              tx,
@@ -428,13 +421,13 @@ func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock) ([]
 	return txsFromMiniBlock, nil
 }
 
-func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
+func (txs *transactions) getShardFromAddress(address []byte) uint32 {
 	isEmptyAddress := bytes.Equal(address, txs.emptyAddress)
 	if isEmptyAddress {
-		return txs.shardCoordinator.SelfId(), nil
+		return txs.shardCoordinator.SelfId()
 	}
 
-	return txs.shardCoordinator.ComputeId(address), nil
+	return txs.shardCoordinator.ComputeId(address)
 }
 
 func (txs *transactions) processTxsToMe(
@@ -699,10 +692,7 @@ func (txs *transactions) SaveTxsToStorage(body *block.Body) error {
 			continue
 		}
 
-		err := txs.saveTxsToStorage(miniBlock.TxHashes, &txs.txsForCurrBlock, txs.storage, dataRetriever.TransactionUnit)
-		if err != nil {
-			return err
-		}
+		txs.saveTxsToStorage(miniBlock.TxHashes, &txs.txsForCurrBlock, txs.storage, dataRetriever.TransactionUnit)
 	}
 
 	return nil
@@ -778,6 +768,23 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
 			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 		}
+	}
+}
+
+// AddTransactions adds the given transactions to the current block transactions
+func (txs *transactions) AddTransactions(txHandlers []data.TransactionHandler) {
+	for i, tx := range txHandlers {
+		senderShardID := txs.getShardFromAddress(tx.GetSndAddr())
+		receiverShardID := txs.getShardFromAddress(tx.GetRcvAddr())
+		txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+		txHash, err:= core.CalculateHash(txs.marshalizer, txs.hasher, tx)
+		if err != nil {
+			log.Warn("transactions.AddTransactions CalculateHash", "error", err.Error())
+			continue
+		}
+		txs.txsForCurrBlock.mutTxsForBlock.Lock()
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: txHandlers[i], txShardInfo: txShardInfoToSet}
+		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 	}
 }
 
