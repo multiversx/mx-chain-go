@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,15 +32,17 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 				return nil, nil
 			},
 		},
-		Topic:                "",
-		ShardCoordinator:     &mock.ShardCoordinatorMock{},
-		PeerTypeProvider:     &mock.PeerTypeProviderStub{},
-		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
-		VersionNumber:        "v0.1",
-		NodeDisplayName:      "undefined",
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
-		CurrentBlockProvider: &mock.CurrentBlockProviderStub{},
-		RedundancyHandler:    &mock.RedundancyHandlerStub{},
+		Topic:                 "",
+		ShardCoordinator:      &mock.ShardCoordinatorMock{},
+		PeerTypeProvider:      &mock.PeerTypeProviderStub{},
+		StatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
+		VersionNumber:         "v0.1",
+		NodeDisplayName:       "undefined",
+		HardforkTrigger:       &mock.HardforkTriggerStub{},
+		CurrentBlockProvider:  &mock.CurrentBlockProviderStub{},
+		RedundancyHandler:     &mock.RedundancyHandlerStub{},
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		HeartbeatDisableEpoch: 1,
 	}
 }
 
@@ -177,6 +180,17 @@ func TestNewSender_RedundancyHandlerReturnsANilObserverPrivateKeyShouldErr(t *te
 
 	assert.Nil(t, sender)
 	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
+}
+
+func TestNewSender_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.EpochNotifier = nil
+	sender, err := process.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.Equal(t, heartbeat.ErrNilEpochNotifier, err)
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {
@@ -676,4 +690,32 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 	assert.True(t, signCalled)
 	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
+}
+
+func TestSender_SendHeartbeatShouldNotSendAfterEpoch(t *testing.T) {
+	t.Parallel()
+
+	providedEpoch := uint32(210)
+	arg := createMockArgHeartbeatSender()
+	arg.HeartbeatDisableEpoch = providedEpoch
+
+	wasBroadcastCalled := false
+	arg.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			wasBroadcastCalled = true
+		},
+	}
+
+	sender, _ := process.NewSender(arg)
+
+	sender.EpochConfirmed(providedEpoch-1, 0)
+	err := sender.SendHeartbeat()
+	assert.Nil(t, err)
+	assert.True(t, wasBroadcastCalled)
+
+	wasBroadcastCalled = false
+	sender.EpochConfirmed(providedEpoch, 0)
+	err = sender.SendHeartbeat()
+	assert.Nil(t, err)
+	assert.False(t, wasBroadcastCalled)
 }

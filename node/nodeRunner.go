@@ -176,6 +176,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
+	log.Debug(readEpochFor("disable heartbeat v1"), "epoch", enableEpochs.HeartbeatDisableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -714,17 +715,18 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
-		Config:            *nr.configs.GeneralConfig,
-		Prefs:             *nr.configs.PreferencesConfig,
-		AppVersion:        nr.configs.FlagsConfig.Version,
-		GenesisTime:       genesisTime,
-		HardforkTrigger:   hardforkTrigger,
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
+		Config:                *nr.configs.GeneralConfig,
+		Prefs:                 *nr.configs.PreferencesConfig,
+		AppVersion:            nr.configs.FlagsConfig.Version,
+		GenesisTime:           genesisTime,
+		HardforkTrigger:       hardforkTrigger,
+		RedundancyHandler:     redundancyHandler,
+		CoreComponents:        coreComponents,
+		DataComponents:        dataComponents,
+		NetworkComponents:     networkComponents,
+		CryptoComponents:      cryptoComponents,
+		ProcessComponents:     processComponents,
+		HeartbeatDisableEpoch: nr.configs.EpochConfig.EnableEpochs.HeartbeatDisableEpoch,
 	}
 
 	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)

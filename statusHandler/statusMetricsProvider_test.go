@@ -259,6 +259,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
 	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
+	sm.SetUInt64Value(common.MetricHeartbeatDisableEpoch, 5)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -321,6 +322,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 				common.MetricNodesToShufflePerShard: uint64(5),
 			},
 		},
+		common.MetricHeartbeatDisableEpoch:                       uint64(5),
 	}
 
 	epochsMetrics := sm.EnableEpochsMetrics()

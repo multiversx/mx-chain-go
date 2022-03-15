@@ -116,6 +116,7 @@ func createGenesisConfig() config.EnableEpochs {
 		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
+		HeartbeatDisableEpoch:                             unreachableEpoch,
 	}
 }
 
