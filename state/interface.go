@@ -183,16 +183,16 @@ type StoragePruningManager interface {
 	IsInterfaceNil() bool
 }
 
-type ValidatorsInfoHandler interface {
-	GetAllValidatorsInfo() []ValidatorInfoHandler
-	GetValidatorsInfoInShard(shardID uint32) []ValidatorInfoHandler
+type ShardValidatorsInfoMapHandler interface {
 	GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler
-	Add(validatorInfo ValidatorInfoHandler)
+	GetAllValidatorsInfo() []ValidatorInfoHandler
+	Add(validator ValidatorInfoHandler)
+	Delete(validator ValidatorInfoHandler)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler)
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler)
-	Delete(shardID uint32, pubKey []byte)
 	GetMapPointer() map[uint32][]*ValidatorInfo
 }
+
 type ValidatorInfoHandler interface {
 	IsInterfaceNil() bool
 

@@ -114,7 +114,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 }
 
 func (s *systemSCProcessor) processWithNewFlags(
-	validatorsInfoMap state.ValidatorsInfoHandler,
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
 	if s.flagGovernanceEnabled.IsSet() {
@@ -163,7 +163,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	return nil
 }
 
-func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ValidatorsInfoHandler, randomness []byte) error {
+func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
 	availableSlots := s.maxNodes - numOfValidators
 	if availableSlots <= 0 {
@@ -180,15 +180,16 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.V
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 
-	// TODO: Think of a better way of handling these pointers; perhaps use an interface which handles validators
 	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
-		auctionList[i].SetList(string(common.SelectedFromAuctionList))
+		newNode := auctionList[i]
+		newNode.SetList(string(common.SelectedFromAuctionList))
+		validatorsInfoMap.Replace(auctionList[i], newNode)
 	}
 
 	return nil
 }
 
-func getAuctionListAndNumOfValidators(validatorsInfoMap state.ValidatorsInfoHandler) ([]state.ValidatorInfoHandler, uint32) {
+func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, uint32) {
 	auctionList := make([]state.ValidatorInfoHandler, 0)
 	numOfValidators := uint32(0)
 
@@ -296,13 +297,13 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 	log.Debug(message)
 }
 
-func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ValidatorsInfoHandler) error {
+func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
 	allNodes := s.getAllNodeKeys(validatorsInfoMap)
 	return s.prepareStakingData(allNodes)
 }
 
 func (s *systemSCProcessor) getAllNodeKeys(
-	validatorsInfo state.ValidatorsInfoHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 ) map[uint32][][]byte {
 	nodeKeys := make(map[uint32][][]byte)
 	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfoMap() {
