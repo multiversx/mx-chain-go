@@ -764,7 +764,6 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		}
 	} else {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
-		//validatorsInfoMap.Delete(account.GetShardId(), blsPubKey)
 		validatorsInfoMap.Delete(jailedValidator)
 	}
 
@@ -858,14 +857,13 @@ func (s *legacySystemSCProcessor) getSortedJailedNodes(validatorsInfoMap state.S
 	oldJailedValidators := make([]state.ValidatorInfoHandler, 0)
 
 	minChance := s.chanceComputer.GetChance(0)
-	for _, listValidators := range validatorsInfoMap.GetShardValidatorsInfoMap() {
-		for _, validatorInfo := range listValidators {
-			if validatorInfo.GetList() == string(common.JailedList) {
-				oldJailedValidators = append(oldJailedValidators, validatorInfo)
-			} else if s.chanceComputer.GetChance(validatorInfo.GetTempRating()) < minChance {
-				newJailedValidators = append(newJailedValidators, validatorInfo)
-			}
+	for _, validatorInfo := range validatorsInfoMap.GetAllValidatorsInfo() {
+		if validatorInfo.GetList() == string(common.JailedList) {
+			oldJailedValidators = append(oldJailedValidators, validatorInfo)
+		} else if s.chanceComputer.GetChance(validatorInfo.GetTempRating()) < minChance {
+			newJailedValidators = append(newJailedValidators, validatorInfo)
 		}
+
 	}
 
 	sort.Sort(validatorList(oldJailedValidators))

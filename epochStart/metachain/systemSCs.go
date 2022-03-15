@@ -193,15 +193,13 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInf
 	auctionList := make([]state.ValidatorInfoHandler, 0)
 	numOfValidators := uint32(0)
 
-	for _, validatorsInShard := range validatorsInfoMap.GetShardValidatorsInfoMap() {
-		for _, validator := range validatorsInShard {
-			if validator.GetList() == string(common.AuctionList) {
-				auctionList = append(auctionList, validator)
-				continue
-			}
-			if isValidator(validator) {
-				numOfValidators++
-			}
+	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
+		if validator.GetList() == string(common.AuctionList) {
+			auctionList = append(auctionList, validator)
+			continue
+		}
+		if isValidator(validator) {
+			numOfValidators++
 		}
 	}
 
