@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -112,6 +113,9 @@ func createGenesisConfig() config.EnableEpochs {
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
+		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		HeartbeatDisableEpoch:                             unreachableEpoch,
 	}
 }
@@ -385,15 +389,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             arg.VirtualMachineConfig,
 		BlockGasLimit:      math.MaxUint64,
 		GasSchedule:        arg.GasSchedule,
-		ArgBlockChainHook:  argsHook,
+		BlockChainHook:     blockChainHookImpl,
 		EpochNotifier:      epochNotifier,
 		EpochConfig:        arg.EpochConfig.EnableEpochs,
 		ArwenChangeLocker:  genesisArwenLocker,
 		ESDTTransferParser: esdtTransferParser,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -509,25 +519,26 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                       arg.Accounts,
-		Hasher:                         arg.Core.Hasher(),
-		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
-		Marshalizer:                    arg.Core.InternalMarshalizer(),
-		SignMarshalizer:                arg.Core.TxMarshalizer(),
-		ShardCoordinator:               arg.ShardCoordinator,
-		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   genesisFeeHandler,
-		TxTypeHandler:                  txTypeHandler,
-		EconomicsFee:                   genesisFeeHandler,
-		ReceiptForwarder:               receiptTxInterim,
-		BadTxForwarder:                 badTxInterim,
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		ScrForwarder:                   scForwarder,
-		EpochNotifier:                  epochNotifier,
-		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
-		RelayedTxV2EnableEpoch:         enableEpochs.RelayedTransactionsV2EnableEpoch,
+		Accounts:                              arg.Accounts,
+		Hasher:                                arg.Core.Hasher(),
+		PubkeyConv:                            arg.Core.AddressPubKeyConverter(),
+		Marshalizer:                           arg.Core.InternalMarshalizer(),
+		SignMarshalizer:                       arg.Core.TxMarshalizer(),
+		ShardCoordinator:                      arg.ShardCoordinator,
+		ScProcessor:                           scProcessor,
+		TxFeeHandler:                          genesisFeeHandler,
+		TxTypeHandler:                         txTypeHandler,
+		EconomicsFee:                          genesisFeeHandler,
+		ReceiptForwarder:                      receiptTxInterim,
+		BadTxForwarder:                        badTxInterim,
+		ArgsParser:                            smartContract.NewArgumentParser(),
+		ScrForwarder:                          scForwarder,
+		EpochNotifier:                         epochNotifier,
+		RelayedTxEnableEpoch:                  enableEpochs.RelayedTransactionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:        enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
+		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
+		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -574,6 +585,18 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+		Marshaller:    arg.Core.InternalMarshalizer(),
+		Hasher:        arg.Core.Hasher(),
+		EpochNotifier: epochNotifier,
+
+		AddFailedRelayedTxToInvalidMBsDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+	}
+	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                            arg.Core.Hasher(),
 		Marshalizer:                       arg.Core.InternalMarshalizer(),
@@ -594,6 +617,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:                     epochNotifier,
 		ScheduledTxsExecutionHandler:      disabledScheduledTxsExecutionHandler,
 		ScheduledMiniBlocksEnableEpoch:    enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		DoubleTransactionsDetector:        doubleTransactionsDetector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -601,12 +625,13 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       vmContainer,
-		EconomicsFee:      arg.Economics,
-		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
-		BlockChain:        arg.Data.Blockchain(),
-		ArwenChangeLocker: genesisArwenLocker,
-		Bootstrapper:      syncDisabled.NewDisabledBootstrapper(),
+		VmContainer:              vmContainer,
+		EconomicsFee:             arg.Economics,
+		BlockChainHook:           vmFactoryImpl.BlockChainHookImpl(),
+		BlockChain:               arg.Data.Blockchain(),
+		ArwenChangeLocker:        genesisArwenLocker,
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -642,10 +667,10 @@ func deployInitialSmartContracts(
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
 		var scResulted [][]byte
-		scResulted, scTxs, err := deployInitialSmartContract(processors, sc, arg, deployMetrics)
-		if err != nil {
+		scResulted, scTxs, errDeploy := deployInitialSmartContract(processors, sc, arg, deployMetrics)
+		if errDeploy != nil {
 			return nil, nil, fmt.Errorf("%w for owner %s and filename %s",
-				err, sc.GetOwner(), sc.GetFilename())
+				errDeploy, sc.GetOwner(), sc.GetFilename())
 		}
 
 		scAddresses = append(scAddresses, scResulted...)
@@ -779,7 +804,14 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		if check.IfNil(dh) {
 			continue
 		}
-		if arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes()) {
+		sameShard := arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes())
+		if len(dh.AddressBytes()) == 0 {
+			// backwards compatibility, do not make "" address be considered empty and thus, belonging to the same shard
+			if arg.ShardCoordinator.ComputeId(ia.AddressBytes()) != 0 {
+				sameShard = false
+			}
+		}
+		if sameShard {
 			continue
 		}
 

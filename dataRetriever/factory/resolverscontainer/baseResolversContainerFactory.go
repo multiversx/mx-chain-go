@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -20,6 +21,8 @@ import (
 const EmptyExcludePeersOnTopic = ""
 
 const minNumOfPeerAuthentication = 5
+
+var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
 	container                            dataRetriever.ResolversContainer
@@ -327,6 +330,9 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.TopicResolverSender, error) {
 
+	log.Trace("baseResolversContainerFactory.createOneResolverSenderWithSpecifiedNumRequests",
+		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic)
+
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
 		return nil, err
@@ -347,7 +353,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		PreferredPeersHolder:        brcf.preferredPeersHolder,
 		SelfShardIdProvider:         brcf.shardCoordinator,
 	}
-	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {

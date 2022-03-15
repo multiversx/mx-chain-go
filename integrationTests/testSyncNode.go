@@ -6,11 +6,14 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -18,9 +21,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 // NewTestSyncNode returns a new TestProcessorNode instance with sync capabilities
@@ -35,13 +40,13 @@ func NewTestSyncNode(
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return oneMap, nil
 		},
-		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
-			list := make([]sharding.GenesisNodeInfoHandler, 0)
+		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []nodesCoordinator.GenesisNodeInfoHandler, handlers2 []nodesCoordinator.GenesisNodeInfoHandler, err error) {
+			list := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 			list = append(list, mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return list, nil, nil
 		},
@@ -50,10 +55,10 @@ func NewTestSyncNode(
 		},
 	}
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkBytes, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
@@ -61,8 +66,8 @@ func NewTestSyncNode(
 			keys[0] = append(keys[0], pkBytes)
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -73,7 +78,7 @@ func NewTestSyncNode(
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
-		NodesCoordinator: nodesCoordinator,
+		NodesCoordinator: nodesCoordinatorInstance,
 		BootstrapStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -90,6 +95,7 @@ func NewTestSyncNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -113,7 +119,8 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
@@ -138,12 +145,13 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.setGenesisBlock()
 	tpn.initNode()
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.addHandlersForCounters()
@@ -204,7 +212,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		NodesCoordinator:    tpn.NodesCoordinator,
 		FeeHandler:          tpn.FeeAccumulator,
 		RequestHandler:      tpn.RequestHandler,
-		BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		HeaderValidator:     tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
@@ -216,7 +224,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler:             TestBlockSizeThrottler,
 		HistoryRepository:              tpn.HistoryRepository,
 		EpochNotifier:                  tpn.EpochNotifier,
-		RoundNotifier:      coreComponents.RoundNotifier(),
+		RoundNotifier:                  coreComponents.RoundNotifier(),
 		GasHandler:                     tpn.GasHandler,
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: ScheduledMiniBlocksEnableEpoch,

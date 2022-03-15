@@ -36,6 +36,7 @@ import (
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -43,6 +44,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 )
 
@@ -74,7 +76,7 @@ var TestThrottler = &processMock.InterceptorThrottlerStub{
 // with all its fields exported
 type TestHeartbeatNode struct {
 	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          sharding.NodesCoordinator
+	NodesCoordinator          nodesCoordinator.NodesCoordinator
 	PeerShardMapper           process.NetworkShardingCollector
 	Messenger                 p2p.Messenger
 	NodeKeys                  TestKeyPair
@@ -107,7 +109,7 @@ func NewTestHeartbeatNode(
 	pksBytes := make(map[uint32][]byte, maxShards)
 	pksBytes[nodeShardId], _ = pk.ToByteArray()
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			for shardID := uint32(0); shardID < maxShards; shardID++ {
@@ -119,8 +121,8 @@ func NewTestHeartbeatNode(
 
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -150,7 +152,7 @@ func NewTestHeartbeatNode(
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
-		NodesCoordinator:      nodesCoordinator,
+		NodesCoordinator:      nodesCoordinatorInstance,
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		StartEpoch:            startInEpoch,
 	}
@@ -165,7 +167,7 @@ func NewTestHeartbeatNode(
 
 	thn := &TestHeartbeatNode{
 		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: nodesCoordinator,
+		NodesCoordinator: nodesCoordinatorInstance,
 		Messenger:        messenger,
 		PeerSigHandler:   peerSigHandler,
 		PeerShardMapper:  peerShardMapper,
@@ -191,7 +193,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
 	p2pConfig config.P2PConfig,
-	coordinator sharding.NodesCoordinator,
+	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
@@ -266,12 +268,12 @@ func CreateNodesWithTestHeartbeatNode(
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
-	validatorsForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
+	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestHeartbeatNode)
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:    shardConsensusGroupSize,
 			MetaConsensusGroupSize:     metaConsensusGroupSize,
 			Marshalizer:                TestMarshalizer,
@@ -281,9 +283,9 @@ func CreateNodesWithTestHeartbeatNode(
 			EligibleNodes:              validatorsForNodesCoordinator,
 			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:        cache,
-			Shuffler:                   &mock.NodeShufflerMock{},
+			Shuffler:                   &shardingMocks.NodeShufflerMock{},
 			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 			Epoch:                      0,
 			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
@@ -292,7 +294,7 @@ func CreateNodesWithTestHeartbeatNode(
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
 		}
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
 
 		nodesList := make([]*TestHeartbeatNode, len(validatorList))
@@ -302,7 +304,7 @@ func CreateNodesWithTestHeartbeatNode(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
-				nodesCoordinator,
+				nodesCoordinatorInstance,
 				*kp,
 			)
 		}
@@ -316,7 +318,7 @@ func CreateNodesWithTestHeartbeatNode(
 				shardId = core.MetachainShardId
 			}
 
-			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ShardConsensusGroupSize:    shardConsensusGroupSize,
 				MetaConsensusGroupSize:     metaConsensusGroupSize,
 				Marshalizer:                TestMarshalizer,
@@ -326,9 +328,9 @@ func CreateNodesWithTestHeartbeatNode(
 				EligibleNodes:              validatorsForNodesCoordinator,
 				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
 				ConsensusGroupCache:        cache,
-				Shuffler:                   &mock.NodeShufflerMock{},
+				Shuffler:                   &shardingMocks.NodeShufflerMock{},
 				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]sharding.Validator),
+				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
 				Epoch:                      0,
 				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
@@ -337,14 +339,14 @@ func CreateNodesWithTestHeartbeatNode(
 				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:              false,
 			}
-			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
 
 			n := NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
-				nodesCoordinator,
+				nodesCoordinatorInstance,
 				createCryptoPair(),
 			)
 

@@ -2,7 +2,6 @@ package storageUnit_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -286,10 +285,9 @@ func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
 }
 
 func TestCreateDBFromConfLvlDBOk(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	arg := storageUnit.ArgDB{
 		DBType:            storageUnit.LvlDB,
-		Path:              dir,
+		Path:              t.TempDir(),
 		BatchDelaySeconds: 10,
 		MaxBatchSize:      10,
 		MaxOpenFiles:      10,

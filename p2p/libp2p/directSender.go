@@ -75,7 +75,7 @@ func NewDirectSender(
 }
 
 func (ds *directSender) directStreamHandler(s network.Stream) {
-	reader := ggio.NewDelimitedReader(s, 1<<20)
+	reader := ggio.NewDelimitedReader(s, maxSendBuffSize)
 
 	go func(r ggio.ReadCloser) {
 		for {

@@ -641,15 +641,17 @@ func TestEnableEpochConfig(t *testing.T) {
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 52
 
+	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+	FailExecutionOnEveryAPIErrorEnableEpoch = 53
+
     # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
-    HeartbeatDisableEpoch = 53
+    HeartbeatDisableEpoch = 54
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
-
 
 [GasSchedule]
     GasScheduleByEpochs = [
@@ -724,7 +726,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			StorageAPICostOptimizationEnableEpoch:       50,
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
-			HeartbeatDisableEpoch:                       53,
+			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
+			HeartbeatDisableEpoch:                       54,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

@@ -242,8 +242,6 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	receivedHbmi := m.convertFromExportedStruct(*heartbeatDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
 	crtTime := m.timer.Now()
-	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
-	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
 		receivedHbmi.timeStamp = crtTime
 	}

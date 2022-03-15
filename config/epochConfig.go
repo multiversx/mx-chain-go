@@ -74,6 +74,9 @@ type EnableEpochs struct {
 	TransformToMultiShardCreateEnableEpoch            uint32
 	ESDTRegisterAndSetAllRolesEnableEpoch             uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
+	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
+	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
+	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 	HeartbeatDisableEpoch                             uint32
 }
 

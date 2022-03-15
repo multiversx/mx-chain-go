@@ -224,6 +224,8 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[common.MetricLatestTagSoftwareVersion] = sm.stringMetrics[common.MetricLatestTagSoftwareVersion]
 	configMetrics[common.MetricTopUpFactor] = sm.stringMetrics[common.MetricTopUpFactor]
 	configMetrics[common.MetricGasPriceModifier] = sm.stringMetrics[common.MetricGasPriceModifier]
+	configMetrics[common.MetricAdaptivity] = sm.stringMetrics[common.MetricAdaptivity]
+	configMetrics[common.MetricHysteresis] = sm.stringMetrics[common.MetricHysteresis]
 	sm.mutStringOperations.RUnlock()
 
 	return configMetrics
@@ -255,7 +257,28 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[common.MetricDelegationManagerEnableEpoch] = sm.uint64Metrics[common.MetricDelegationManagerEnableEpoch]
 	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.uint64Metrics[common.MetricDelegationSmartContractEnableEpoch]
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
+	enableEpochsMetrics[common.MetricBalanceWaitingListsEnableEpoch] = sm.uint64Metrics[common.MetricBalanceWaitingListsEnableEpoch]
+	enableEpochsMetrics[common.MetricWaitingListFixEnableEpoch] = sm.uint64Metrics[common.MetricWaitingListFixEnableEpoch]
 	enableEpochsMetrics[common.MetricHeartbeatDisableEpoch] = sm.uint64Metrics[common.MetricHeartbeatDisableEpoch]
+
+	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
+
+	nodesChangeConfig := make([]map[string]interface{}, 0)
+	for i := uint64(0); i < numNodesChangeConfig; i++ {
+		maxNodesChangeConfig := make(map[string]interface{})
+
+		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
+		maxNodesChangeConfig[common.MetricEpochEnable] = sm.uint64Metrics[epochEnable]
+
+		maxNumNodes := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.MaxNumNodesSuffix)
+		maxNodesChangeConfig[common.MetricMaxNumNodes] = sm.uint64Metrics[maxNumNodes]
+
+		nodesToShufflePerShard := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.NodesToShufflePerShardSuffix)
+		maxNodesChangeConfig[common.MetricNodesToShufflePerShard] = sm.uint64Metrics[nodesToShufflePerShard]
+
+		nodesChangeConfig = append(nodesChangeConfig, maxNodesChangeConfig)
+	}
+	enableEpochsMetrics[common.MetricMaxNodesChangeEnableEpoch] = nodesChangeConfig
 	sm.mutUint64Operations.RUnlock()
 
 	return enableEpochsMetrics
@@ -293,4 +316,50 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
 
 	return networkMetrics
+}
+
+// RatingsMetrics will return metrics related to current configuration
+func (sm *statusMetrics) RatingsMetrics() map[string]interface{} {
+	ratingsMetrics := make(map[string]interface{})
+
+	sm.mutUint64Operations.RLock()
+	ratingsMetrics[common.MetricRatingsGeneralStartRating] = sm.uint64Metrics[common.MetricRatingsGeneralStartRating]
+	ratingsMetrics[common.MetricRatingsGeneralMaxRating] = sm.uint64Metrics[common.MetricRatingsGeneralMaxRating]
+	ratingsMetrics[common.MetricRatingsGeneralMinRating] = sm.uint64Metrics[common.MetricRatingsGeneralMinRating]
+
+	numSelectionChances := sm.uint64Metrics[common.MetricRatingsGeneralSelectionChances+"_count"]
+	selectionChances := make([]map[string]uint64, 0)
+	for i := uint64(0); i < numSelectionChances; i++ {
+		selectionChance := make(map[string]uint64)
+		maxThresholdStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesMaxThresholdSuffix)
+		selectionChance[common.MetricSelectionChancesMaxThreshold] = sm.uint64Metrics[maxThresholdStr]
+		chancePercentStr := fmt.Sprintf("%s%d%s", common.MetricRatingsGeneralSelectionChances, i, common.SelectionChancesChancePercentSuffix)
+		selectionChance[common.MetricSelectionChancesChancePercent] = sm.uint64Metrics[chancePercentStr]
+		selectionChances = append(selectionChances, selectionChance)
+	}
+	ratingsMetrics[common.MetricRatingsGeneralSelectionChances] = selectionChances
+
+	ratingsMetrics[common.MetricRatingsShardChainHoursToMaxRatingFromStartRating] = sm.uint64Metrics[common.MetricRatingsShardChainHoursToMaxRatingFromStartRating]
+	ratingsMetrics[common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating] = sm.uint64Metrics[common.MetricRatingsMetaChainHoursToMaxRatingFromStartRating]
+	ratingsMetrics[common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds] = sm.uint64Metrics[common.MetricRatingsPeerHonestyDecayUpdateIntervalInSeconds]
+	sm.mutUint64Operations.RUnlock()
+
+	sm.mutStringOperations.RLock()
+	ratingsMetrics[common.MetricRatingsGeneralSignedBlocksThreshold] = sm.stringMetrics[common.MetricRatingsGeneralSignedBlocksThreshold]
+	ratingsMetrics[common.MetricRatingsShardChainProposerValidatorImportance] = sm.stringMetrics[common.MetricRatingsShardChainProposerValidatorImportance]
+	ratingsMetrics[common.MetricRatingsShardChainProposerDecreaseFactor] = sm.stringMetrics[common.MetricRatingsShardChainProposerDecreaseFactor]
+	ratingsMetrics[common.MetricRatingsShardChainValidatorDecreaseFactor] = sm.stringMetrics[common.MetricRatingsShardChainValidatorDecreaseFactor]
+	ratingsMetrics[common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty] = sm.stringMetrics[common.MetricRatingsShardChainConsecutiveMissedBlocksPenalty]
+	ratingsMetrics[common.MetricRatingsMetaChainProposerValidatorImportance] = sm.stringMetrics[common.MetricRatingsMetaChainProposerValidatorImportance]
+	ratingsMetrics[common.MetricRatingsMetaChainProposerDecreaseFactor] = sm.stringMetrics[common.MetricRatingsMetaChainProposerDecreaseFactor]
+	ratingsMetrics[common.MetricRatingsMetaChainValidatorDecreaseFactor] = sm.stringMetrics[common.MetricRatingsMetaChainValidatorDecreaseFactor]
+	ratingsMetrics[common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty] = sm.stringMetrics[common.MetricRatingsMetaChainConsecutiveMissedBlocksPenalty]
+	ratingsMetrics[common.MetricRatingsPeerHonestyDecayCoefficient] = sm.stringMetrics[common.MetricRatingsPeerHonestyDecayCoefficient]
+	ratingsMetrics[common.MetricRatingsPeerHonestyMaxScore] = sm.stringMetrics[common.MetricRatingsPeerHonestyMaxScore]
+	ratingsMetrics[common.MetricRatingsPeerHonestyMinScore] = sm.stringMetrics[common.MetricRatingsPeerHonestyMinScore]
+	ratingsMetrics[common.MetricRatingsPeerHonestyBadPeerThreshold] = sm.stringMetrics[common.MetricRatingsPeerHonestyBadPeerThreshold]
+	ratingsMetrics[common.MetricRatingsPeerHonestyUnitValue] = sm.stringMetrics[common.MetricRatingsPeerHonestyUnitValue]
+	sm.mutStringOperations.RUnlock()
+
+	return ratingsMetrics
 }
