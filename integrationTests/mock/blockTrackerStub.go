@@ -28,6 +28,7 @@ type BlockTrackerStub struct {
 	GetTrackedHeadersForAllShardsCalled                func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                   func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuckCalled                                 func(shardId uint32) bool
+	ShouldNotCreateMiniBlocksFromSelfCalled            func() bool
 	RegisterCrossNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandlerCalled          func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -207,6 +208,14 @@ func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
 		return bts.IsShardStuckCalled(shardId)
 	}
 
+	return false
+}
+
+// ShouldNotCreateMiniBlocksFromSelf -
+func (bts *BlockTrackerStub) ShouldNotCreateMiniBlocksFromSelf() bool {
+	if bts.ShouldNotCreateMiniBlocksFromSelfCalled != nil {
+		return bts.ShouldNotCreateMiniBlocksFromSelfCalled()
+	}
 	return false
 }
 
