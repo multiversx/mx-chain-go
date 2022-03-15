@@ -653,6 +653,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		return nil
 	case <-ctx.Done():
 		log.Trace("extensionNode.getAllLeavesOnChannel: context done")
+		return nil
 	default:
 		err = resolveIfCollapsed(en, 0, db)
 		if err != nil {

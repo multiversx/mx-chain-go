@@ -788,6 +788,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			return nil
 		case <-ctx.Done():
 			log.Trace("branchNode.getAllLeavesOnChannel context done")
+			return nil
 		default:
 			err = resolveIfCollapsed(bn, byte(i), db)
 			if err != nil {

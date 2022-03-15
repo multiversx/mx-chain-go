@@ -573,6 +573,9 @@
         SameSourceRequests = 10000
         # SameSourceResetIntervalInSec time frame between counter reset, in seconds
         SameSourceResetIntervalInSec = 1
+        # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
+        # can take.
+        TrieOperationsDeadlineMilliseconds = 10000
         # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
         EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                                { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
