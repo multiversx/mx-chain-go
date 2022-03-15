@@ -106,3 +106,18 @@ func TestLogPrintHandler_shouldNotPanic(t *testing.T) {
 
 	logPrintHandler("pid", "connection")
 }
+
+func TestPrintConnectionsWatcher_PeerConnectedShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	pcw, _ := NewPrintConnectionsWatcher(time.Hour)
+	defer func() {
+		_ = pcw.Close()
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
+	pcw.PeerConnected("")
+}
