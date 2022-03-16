@@ -418,12 +418,14 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	if mp.isRewardsV2Enabled(header) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+		validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(validatorsInfoMap, header)
 		if err != nil {
 			return err
 		}
+		state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
 
-		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, validatorsInfoMap.GetValInfoPointerMap(), computedEconomics)
 		if err != nil {
 			return err
 		}
@@ -433,10 +435,12 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 			return err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+		validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(validatorsInfoMap, header)
 		if err != nil {
 			return err
 		}
+		state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
 	}
 
 	err = mp.epochSystemSCProcessor.ProcessDelegationRewards(body.MiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
@@ -886,10 +890,12 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 
 	var rewardMiniBlocks block.MiniBlockSlice
 	if mp.isRewardsV2Enabled(metaBlock) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
+		validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(validatorsInfoMap, metaBlock)
 		if err != nil {
 			return nil, err
 		}
+		state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
 
 		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
 		if err != nil {
@@ -901,10 +907,12 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 			return nil, err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
+		validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(validatorsInfoMap, metaBlock)
 		if err != nil {
 			return nil, err
 		}
+		state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
 	}
 
 	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())

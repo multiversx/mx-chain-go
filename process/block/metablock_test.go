@@ -3091,7 +3091,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		}
 
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+			ProcessSystemSmartContractCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
 				assert.Equal(t, headerMeta, header)
 				wasCalled = true
 				return nil
@@ -3122,7 +3122,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		}
 
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+			ProcessSystemSmartContractCalled: func(validatorInfos state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
 				assert.Equal(t, headerMeta, header)
 				assert.True(t, wasCalled)
 				return nil
@@ -3332,7 +3332,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		wasCalled := false
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+			ProcessSystemSmartContractCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
 				wasCalled = true
 				assert.Equal(t, mb, header)
 				return nil
@@ -3424,7 +3424,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+			ProcessSystemSmartContractCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
 				assert.True(t, wasCalled)
 				assert.Equal(t, mb, header)
 				return nil

@@ -89,28 +89,14 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	validatorsInfoHandler := state.CreateShardValidatorsMap(validatorsInfoMap)
-
-	err := s.processLegacy(validatorsInfoHandler, header.GetNonce(), header.GetEpoch())
+	err := s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
 	if err != nil {
 		return err
 	}
-	err = s.processWithNewFlags(validatorsInfoHandler, header)
-	if err != nil {
-		return err
-	}
-
-	for shardID := range validatorsInfoMap {
-		delete(validatorsInfoMap, shardID)
-	}
-	for shardID, validators := range validatorsInfoHandler.GetValInfoPointerMap() {
-		validatorsInfoMap[shardID] = validators
-	}
-
-	return nil
+	return s.processWithNewFlags(validatorsInfoMap, header)
 }
 
 func (s *systemSCProcessor) processWithNewFlags(
