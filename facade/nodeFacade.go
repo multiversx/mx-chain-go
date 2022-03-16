@@ -240,9 +240,8 @@ func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 
 func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, context.CancelFunc) {
 	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 
-	return ctx, cancel
+	return context.WithTimeout(context.Background(), timeout)
 }
 
 // CreateTransaction creates a transaction from all needed fields
