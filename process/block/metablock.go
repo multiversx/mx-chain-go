@@ -968,6 +968,7 @@ func (mp *metaProcessor) createMiniBlocks(
 	if mp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
 	}
 
 	if !haveTime() {

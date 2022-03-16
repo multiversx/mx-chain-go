@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 )
@@ -191,7 +192,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 func (e *epochStartBootstrap) checkIfShuffledOut(
 	pubKey []byte,
-	nodesConfig *sharding.NodesCoordinatorRegistry,
+	nodesConfig *nodesCoordinator.NodesCoordinatorRegistry,
 ) (uint32, bool) {
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
 	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
@@ -218,7 +219,7 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 
 func checkIfPubkeyIsInMap(
 	pubKey []byte,
-	allShardList map[string][]*sharding.SerializableValidator,
+	allShardList map[string][]*nodesCoordinator.SerializableValidator,
 ) (uint32, bool) {
 	for shardIdStr, validatorList := range allShardList {
 		isValidatorInList := checkIfValidatorIsInList(pubKey, validatorList)
@@ -237,7 +238,7 @@ func checkIfPubkeyIsInMap(
 
 func checkIfValidatorIsInList(
 	pubKey []byte,
-	validatorList []*sharding.SerializableValidator,
+	validatorList []*nodesCoordinator.SerializableValidator,
 ) bool {
 	for _, validator := range validatorList {
 		if bytes.Equal(pubKey, validator.PubKey) {
@@ -247,7 +248,7 @@ func checkIfValidatorIsInList(
 	return false
 }
 
-func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *sharding.NodesCoordinatorRegistry, error) {
+func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *nodesCoordinator.NodesCoordinatorRegistry, error) {
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
 		return nil, nil, err
@@ -266,7 +267,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	config := &sharding.NodesCoordinatorRegistry{}
+	config := &nodesCoordinator.NodesCoordinatorRegistry{}
 	err = json.Unmarshal(d, config)
 	if err != nil {
 		return nil, nil, err

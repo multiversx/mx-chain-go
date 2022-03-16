@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -51,7 +52,7 @@ type hdrInfo struct {
 
 type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
-	nodesCoordinator        sharding.NodesCoordinator
+	nodesCoordinator        nodesCoordinator.NodesCoordinator
 	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
 	forkDetector            process.ForkDetector
 	hasher                  hashing.Hasher
@@ -1163,12 +1164,10 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
-	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
-	if errNotCritical != nil {
-		log.Warn("saveBody.SaveTxsToStorage", "error", errNotCritical.Error())
-	}
+	bp.txCoordinator.SaveTxsToStorage(body)
 	log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
 
+	var errNotCritical error
 	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		marshalizedMiniBlock, errNotCritical = bp.marshalizer.Marshal(body.MiniBlocks[i])
