@@ -770,12 +770,28 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		return err
 	}
 
+	allPendingMiniblocksHandlers := e.computeAllPendingMiniblocks()
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(allPendingMiniblocksHandlers, ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	pendingMiniBlocks, err := e.miniBlocksSyncer.GetMiniBlocks()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
+
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: e.epochStartMeta,
 		PreviousEpochStart:  e.prevEpochStartMeta,
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
+		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components)
@@ -784,6 +800,17 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	}
 
 	return nil
+}
+
+func (e *epochStartBootstrap) computeAllPendingMiniblocks() []data.MiniBlockHeaderHandler {
+	allPendingMiniblocks := make([]data.MiniBlockHeaderHandler, 0)
+	lastFinalizedHeaderHandlers := e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
+
+	for _, hdr := range lastFinalizedHeaderHandlers {
+		allPendingMiniblocks = append(allPendingMiniblocks, hdr.GetPendingMiniBlockHeaderHandlers()...)
+	}
+
+	return allPendingMiniblocks
 }
 
 func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShardDataHandler, error) {
@@ -814,7 +841,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: GetMiniBlocks")
+	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
 
 	shardIds := []uint32{
 		core.MetachainShardId,
