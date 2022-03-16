@@ -92,16 +92,29 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	header data.HeaderHandler,
 ) error {
-	err := s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	validatorsInfoHandler := state.CreateShardValidatorsMap(validatorsInfoMap)
+
+	err := s.processLegacy(validatorsInfoHandler, header.GetNonce(), header.GetEpoch())
+	if err != nil {
+		return err
+	}
+	err = s.processWithNewFlags(validatorsInfoHandler, header)
 	if err != nil {
 		return err
 	}
 
-	return s.processWithNewFlags(validatorsInfoMap, header)
+	for shardID := range validatorsInfoMap {
+		delete(validatorsInfoMap, shardID)
+	}
+	for shardID, validators := range validatorsInfoHandler.GetValInfoPointerMap() {
+		validatorsInfoMap[shardID] = validators
+	}
+
+	return nil
 }
 
 func (s *systemSCProcessor) processWithNewFlags(
-	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
 	if s.flagGovernanceEnabled.IsSet() {
@@ -150,7 +163,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	return nil
 }
 
-func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uint32][]*state.ValidatorInfo, randomness []byte) error {
+func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
 	availableSlots := s.maxNodes - numOfValidators
 	if availableSlots <= 0 {
@@ -167,42 +180,41 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap map[uin
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 
-	// TODO: Think of a better way of handling these pointers; perhaps use an interface which handles validators
 	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
-		auctionList[i].List = string(common.SelectedFromAuctionList)
+		newNode := auctionList[i]
+		newNode.SetList(string(common.SelectedFromAuctionList))
+		validatorsInfoMap.Replace(auctionList[i], newNode)
 	}
 
 	return nil
 }
 
-func getAuctionListAndNumOfValidators(validatorsInfoMap map[uint32][]*state.ValidatorInfo) ([]*state.ValidatorInfo, uint32) {
-	auctionList := make([]*state.ValidatorInfo, 0)
+func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, uint32) {
+	auctionList := make([]state.ValidatorInfoHandler, 0)
 	numOfValidators := uint32(0)
 
-	for _, validatorsInShard := range validatorsInfoMap {
-		for _, validator := range validatorsInShard {
-			if validator.List == string(common.AuctionList) {
-				auctionList = append(auctionList, validator)
-				continue
-			}
-			if isValidator(validator) {
-				numOfValidators++
-			}
+	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
+		if validator.GetList() == string(common.AuctionList) {
+			auctionList = append(auctionList, validator)
+			continue
+		}
+		if isValidator(validator) {
+			numOfValidators++
 		}
 	}
 
 	return auctionList, numOfValidators
 }
 
-func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, randomness []byte) error {
+func (s *systemSCProcessor) sortAuctionList(auctionList []state.ValidatorInfoHandler, randomness []byte) error {
 	validatorTopUpMap, err := s.getValidatorTopUpMap(auctionList)
 	if err != nil {
 		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
 	}
 
 	sort.SliceStable(auctionList, func(i, j int) bool {
-		pubKey1 := auctionList[i].PublicKey
-		pubKey2 := auctionList[j].PublicKey
+		pubKey1 := auctionList[i].GetPublicKey()
+		pubKey2 := auctionList[j].GetPublicKey()
 
 		nodeTopUpPubKey1 := validatorTopUpMap[string(pubKey1)]
 		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
@@ -217,11 +229,11 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []*state.ValidatorInfo, 
 	return nil
 }
 
-func (s *systemSCProcessor) getValidatorTopUpMap(validators []*state.ValidatorInfo) (map[string]*big.Int, error) {
+func (s *systemSCProcessor) getValidatorTopUpMap(validators []state.ValidatorInfoHandler) (map[string]*big.Int, error) {
 	ret := make(map[string]*big.Int, len(validators))
 
 	for _, validator := range validators {
-		pubKey := validator.PublicKey
+		pubKey := validator.GetPublicKey()
 		topUp, err := s.stakingDataProvider.GetNodeStakedTopUp(pubKey)
 		if err != nil {
 			return nil, fmt.Errorf("%w when trying to get top up per node for %s", err, hex.EncodeToString(pubKey))
@@ -247,7 +259,7 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 	return bytes.Compare(key1Xor, key2Xor) == 1
 }
 
-func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInfo, numOfSelectedNodes uint32) {
+func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfoHandler, numOfSelectedNodes uint32) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
@@ -283,19 +295,19 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []*state.ValidatorInf
 	log.Debug(message)
 }
 
-func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap map[uint32][]*state.ValidatorInfo) error {
+func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
 	allNodes := s.getAllNodeKeys(validatorsInfoMap)
 	return s.prepareStakingData(allNodes)
 }
 
 func (s *systemSCProcessor) getAllNodeKeys(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 ) map[uint32][][]byte {
 	nodeKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfo {
+	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfoMap() {
 		nodeKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
-			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.PublicKey)
+			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.GetPublicKey())
 		}
 	}
 
