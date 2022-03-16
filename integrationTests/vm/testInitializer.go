@@ -673,7 +673,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(enableEpochs),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
-		NodesCoordinator:    &mock.NodesCoordinatorMock{},
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
 	if err != nil {
