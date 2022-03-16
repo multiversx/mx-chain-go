@@ -21,7 +21,7 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 		return
 	}
 
-	interceptedNode, err := trieNode(val, marshalizer, hasher)
+	interceptedNode, err := trieNode(val, marshalizer, hasherMock)
 	if err != nil {
 		return
 	}

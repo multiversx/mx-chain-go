@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
@@ -95,7 +96,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
@@ -128,7 +129,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	//equal with requirement
+	// equal with requirement
 	gasLimit := vmOpGas + 100
 	transferOnCalls := big.NewInt(50)
 
@@ -150,7 +151,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
@@ -185,7 +186,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	//slightly less than requirement
+	// slightly less than requirement
 	gasLimit := vmOpGas - 1
 	transferOnCalls := big.NewInt(50)
 
@@ -207,7 +208,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
@@ -223,7 +224,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		accnts,
 		senderAddressBytes,
 		senderNonce+1,
-		//the transfer should get back to the sender as the tx failed
+		// the transfer should get back to the sender as the tx failed
 		vm.ComputeExpectedBalance(senderBalance, big.NewInt(0), gasLimit, gasPrice))
 	destinationAddressBytes, _ := hex.DecodeString("0000000000000000ffff1a2983b179a480a60c4308da48f13b4480dbb4d33132")
 

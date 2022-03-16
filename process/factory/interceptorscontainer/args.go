@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -13,7 +14,7 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	CryptoComponents          process.CryptoComponentsHolder
 	Accounts                  state.AccountsAdapter
 	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          sharding.NodesCoordinator
+	NodesCoordinator          nodesCoordinator.NodesCoordinator
 	Messenger                 process.TopicHandler
 	Store                     dataRetriever.StorageService
 	DataPool                  dataRetriever.PoolsHolder

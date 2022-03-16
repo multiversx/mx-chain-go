@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
@@ -129,7 +130,7 @@ type TransactionCoordinator interface {
 	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
-	SaveTxsToStorage(body *block.Body) error
+	SaveTxsToStorage(body *block.Body)
 	RestoreBlockDataFromStorage(body *block.Body) (int, error)
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
@@ -150,6 +151,8 @@ type TransactionCoordinator interface {
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
+	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
+	AddTransactions (txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 }
 
@@ -169,7 +172,7 @@ type IntermediateTransactionHandler interface {
 	GetNumOfCrossInterMbsAndTxs() (int, int)
 	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
-	SaveCurrentIntermediateTxToStorage() error
+	SaveCurrentIntermediateTxToStorage()
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
@@ -216,6 +219,8 @@ type PreProcessor interface {
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
+	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
+	AddTransactions (txHandlers []data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -235,6 +240,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
+	RestoreBlockBodyIntoPools(body data.BodyHandler) error
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -465,12 +471,42 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
-	SetCurrentHeader(hdr data.HeaderHandler)
+	GetCode(account vmcommon.UserAccountHandler) []byte
+	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	GetBlockhash(nonce uint64) ([]byte, error)
+	LastNonce() uint64
+	LastRound() uint64
+	LastTimeStamp() uint64
+	LastRandomSeed() []byte
+	LastEpoch() uint32
+	GetStateRootHash() []byte
+	CurrentNonce() uint64
+	CurrentRound() uint64
+	CurrentTimeStamp() uint64
+	CurrentRandomSeed() []byte
+	CurrentEpoch() uint32
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	DeleteCompiledCode(codeHash []byte)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
+	GetShardOfAddress(address []byte) uint32
+	IsSmartContract(address []byte) bool
+	GetBuiltinFunctionNames() vmcommon.FunctionNames
+	GetBuiltinFunctionsContainer() vmcommon.BuiltInFunctionContainer
+	GetAllState(_ []byte) (map[string][]byte, error)
+	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	NumberOfShards() uint32
+	SetCurrentHeader(hdr data.HeaderHandler)
+	SaveCompiledCode(codeHash []byte, code []byte)
+	GetCompiledCode(codeHash []byte) (bool, []byte)
+	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
+	DeleteCompiledCode(codeHash []byte)
+	ClearCompiledCodes()
+	GetSnapshot() int
+	RevertToSnapshot(snapshot int) error
+	Close() error
+	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
+	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
 }
 
@@ -899,6 +935,7 @@ type ValidityAttester interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromStorer(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -1137,21 +1174,37 @@ type CurrentNetworkEpochProviderHandler interface {
 // ScheduledTxsExecutionHandler defines the functionality for execution of scheduled transactions
 type ScheduledTxsExecutionHandler interface {
 	Init()
-	Add(txHash []byte, tx data.TransactionHandler) bool
+	AddScheduledTx(txHash []byte, tx data.TransactionHandler) bool
+	AddScheduledMiniBlocks(miniBlocks block.MiniBlockSlice)
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
-	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
+	GetScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler
+	GetScheduledMiniBlocks() block.MiniBlockSlice
 	GetScheduledGasAndFees() scheduled.GasAndFees
-	SetScheduledRootHashSCRsGasAndFees(rootHash []byte, mapSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	SetScheduledInfo(scheduledInfo *ScheduledInfo)
 	GetScheduledRootHashForHeader(headerHash []byte) ([]byte, error)
 	RollBackToBlock(headerHash []byte) error
 	SaveStateIfNeeded(headerHash []byte)
-	SaveState(headerHash []byte, scheduledRootHash []byte, mapScheduledSCRs map[block.Type][]data.TransactionHandler, gasAndFees scheduled.GasAndFees)
+	SaveState(headerHash []byte, scheduledInfo *ScheduledInfo)
 	GetScheduledRootHash() []byte
 	SetScheduledRootHash(rootHash []byte)
 	SetScheduledGasAndFees(gasAndFees scheduled.GasAndFees)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
+	IsMiniBlockExecuted(mbHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
+type DoubleTransactionDetector interface {
+	ProcessBlockBody(body *block.Body)
+	IsInterfaceNil() bool
+}
+
+// TxsSenderHandler handles transactions sending
+type TxsSenderHandler interface {
+	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }

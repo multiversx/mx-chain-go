@@ -23,6 +23,8 @@ type PreProcessorMock struct {
 	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int), scheduledMode bool) ([][]byte, int, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
+	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
+	AddTransactionsCalled                 func(txHandlers []data.TransactionHandler)
 }
 
 // CreateBlockStarted -
@@ -128,6 +130,22 @@ func (ppm *PreProcessorMock) GetAllCurrentUsedTxs() map[string]data.TransactionH
 		return nil
 	}
 	return ppm.GetAllCurrentUsedTxsCalled()
+}
+
+// AddTxsFromMiniBlocks -
+func (ppm *PreProcessorMock) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	if ppm.AddTxsFromMiniBlocksCalled == nil {
+		return
+	}
+	ppm.AddTxsFromMiniBlocksCalled(miniBlocks)
+}
+
+// AddTransactions -
+func (ppm *PreProcessorMock) AddTransactions(txHandlers []data.TransactionHandler) {
+	if ppm.AddTransactionsCalled == nil {
+		return
+	}
+	ppm.AddTransactionsCalled(txHandlers)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

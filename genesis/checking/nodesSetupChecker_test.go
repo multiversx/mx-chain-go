@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -138,7 +138,7 @@ func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("staked address"),
@@ -168,7 +168,7 @@ func TestNewNodeSetupChecker_CheckNotStakedShouldErr(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("not-staked-address"),
@@ -200,7 +200,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughStakedShouldErr(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("staked address"),
@@ -232,7 +232,7 @@ func TestNewNodeSetupChecker_CheckTooMuchStakedShouldErr(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("staked address"),
@@ -264,7 +264,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughDelegatedShouldErr(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("delegated address"),
@@ -296,7 +296,7 @@ func TestNewNodeSetupChecker_CheckTooMuchDelegatedShouldErr(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("delegated address"),
@@ -332,7 +332,7 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 	)
 
 	err := nsc.Check(
-		[]sharding.GenesisNodeInfoHandler{
+		[]nodesCoordinator.GenesisNodeInfoHandler{
 			&mock.GenesisNodeInfoHandlerMock{
 				AssignedShardValue: 0,
 				AddressBytesValue:  []byte("delegated address"),

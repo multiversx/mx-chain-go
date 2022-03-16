@@ -263,7 +263,7 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash, withResults)
+	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -369,17 +369,58 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 
 // GetBlockByHash return the block for a given hash
 func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByHash(hash, withTxs)
+	return nf.apiResolver.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
 func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByNonce(nonce, withTxs)
+	return nf.apiResolver.GetBlockByNonce(nonce, withTxs)
 }
 
 // GetBlockByRound returns the block for a given round
 func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByRound(round, withTxs)
+	return nf.apiResolver.GetBlockByRound(round, withTxs)
+}
+
+// GetInternalMetaBlockByHash return the meta block for a given hash
+func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)
+}
+
+// GetInternalMetaBlockByNonce returns the meta block for a given nonce
+func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByNonce(format, nonce)
+}
+
+// GetInternalMetaBlockByRound returns the meta block for a given round
+func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
+}
+
+// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// for a specified epoch
+func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalShardBlockByHash return the shard block for a given hash
+func (nf *nodeFacade) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByHash(format, hash)
+}
+
+// GetInternalShardBlockByNonce returns the shard block for a given nonce
+func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByNonce(format, nonce)
+}
+
+// GetInternalShardBlockByRound returns the shard block for a given round
+func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByRound(format, round)
+}
+
+// GetInternalMiniBlock return the miniblock for a given hash
+func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
 
 // Close will cleanup started go routines
@@ -509,6 +550,16 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		TouchedAccounts: input.TouchedAccounts,
 		Logs:            logs,
 	}
+}
+
+// GetGenesisNodesPubKeys will return genesis nodes public keys by shard
+func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
+	eligible, waiting := nf.apiResolver.GetGenesisNodesPubKeys()
+	if eligible == nil && waiting == nil {
+		return nil, nil, ErrNilGenesiNodes
+	}
+
+	return eligible, waiting, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

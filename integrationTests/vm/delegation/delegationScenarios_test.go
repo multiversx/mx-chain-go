@@ -73,7 +73,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "staked")
 
-	//unStake 3 nodes
+	// unStake 3 nodes
 	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -81,13 +81,13 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "unStaked")
 
-	//remove nodes should fail because they are not unBonded
+	// remove nodes should fail because they are not unBonded
 	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake])
 	returnedCode, _ = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.UserError, returnedCode)
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 10000000})
-	//unBond nodes
+	// unBond nodes
 	txData = txDataForFunc("unBondNodes", blsKeys[:numNodesToStake])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -98,7 +98,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	//remove unBonded nodes should work
+	// remove unBonded nodes should work
 	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -147,7 +147,7 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "staked")
 
-	//unStake 3 nodes
+	// unStake 3 nodes
 	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -156,7 +156,7 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-3], "unStaked")
 
 	processMultipleTransactions(t, tpn, delegators[:1], delegationScAddress, "unDelegate@"+hex.EncodeToString(big.NewInt(delegationVal).Bytes()), big.NewInt(0))
-	//remove nodes should fail because they are not unBonded
+	// remove nodes should fail because they are not unBonded
 	txData = txDataForFunc("reStakeUnStakedNodes", blsKeys[:numNodesToStake-4])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -193,7 +193,7 @@ func TestDelegationChangeConfig(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	//check that the min delegation amount has the correct value
+	// check that the min delegation amount has the correct value
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.DelegationManagerSCAddress,
 		FuncName:   "getContractConfig",
@@ -205,13 +205,13 @@ func TestDelegationChangeConfig(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(t, newMinDelegationAmount.Bytes(), vmOutput.ReturnData[5])
 
-	//try delegate with initialDelegationValue, should fail
+	// try delegate with initialDelegationValue, should fail
 	newDelegator := getAddresses(1)[0]
 	retCode, err = processTransaction(tpn, newDelegator, delegationScAddress, "delegate", big.NewInt(initialDelegationValue))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, retCode)
 
-	//try delegate with the new value
+	// try delegate with the new value
 	delegators = getAddresses(numDelegators)
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", newMinDelegationAmount)
 }
@@ -251,14 +251,14 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	//unDelegate all from 2 delegators
+	// unDelegate all from 2 delegators
 	txData = "unDelegate" + "@" + intToString(uint32(delegationVal))
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, txData, big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 	verifyUserUndelegatedList(t, tpn, delegationScAddress, delegators[0], []*big.Int{big.NewInt(delegationVal)})
-	//withdraw unDelegated delegators should not withdraw because of unBond period
+	// withdraw unDelegated delegators should not withdraw because of unBond period
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
@@ -266,7 +266,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
-	//withdraw unDelegated delegators should withdraw after unBond period has passed
+	// withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorIsDeleted(t, tpn, delegators[:numDelegators-2], delegationScAddress)
@@ -307,14 +307,14 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	//unDelegate half from delegators
+	// unDelegate half from delegators
 	txData = "unDelegate" + "@" + intToString(uint32(delegationVal/2))
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, txData, big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 
-	//withdraw unDelegated delegators should not withdraw because of unBond period
+	// withdraw unDelegated delegators should not withdraw because of unBond period
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
@@ -322,7 +322,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
-	//withdraw unDelegated delegators should withdraw after unBond period has passed
+	// withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
@@ -674,7 +674,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
-	serviceFee := big.NewInt(10000) //10%
+	serviceFee := big.NewInt(10000) // 10%
 	numContracts := 2
 	totalNumNodes := 5
 	numDelegators := 4
@@ -822,7 +822,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
-	serviceFee := big.NewInt(10000) //10%
+	serviceFee := big.NewInt(10000) // 10%
 	totalNumNodes := 2
 	numDelegators := 2
 	delegationVal := int64(1000)
@@ -861,7 +861,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 36)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 128)
 
-	//unDelegate all from delegators
+	// unDelegate all from delegators
 	txData = "unDelegate" + "@" + intToString(uint32(delegationVal))
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, txData, big.NewInt(0))
 
@@ -879,7 +879,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 2, Nonce: 50})
 
-	//withdraw unDelegated delegators
+	// withdraw unDelegated delegators
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(0))
@@ -898,7 +898,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 528)
 
-	//unStake 2 nodes
+	// unStake 2 nodes
 	txData = txDataForFunc("unStakeNodes", blsKeys)
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -906,7 +906,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 3, Nonce: 100})
 
-	//unBond 2 nodes
+	// unBond 2 nodes
 	txData = txDataForFunc("unBondNodes", blsKeys)
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -918,7 +918,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	verifyDelegatorIsDeleted(t, tpn, delegators, delegationScAddress)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 928)
 
-	//unDelegate all from owner
+	// unDelegate all from owner
 	txData = "unDelegate" + "@" + intToString(uint32(3000))
 	processMultipleTransactions(t, tpn, [][]byte{tpn.OwnAccount.Address}, delegationScAddress, txData, big.NewInt(0))
 
@@ -933,7 +933,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 5, Nonce: 150})
 
-	//withdraw unDelegated owner
+	// withdraw unDelegated owner
 	processMultipleTransactions(t, tpn, [][]byte{tpn.OwnAccount.Address}, delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(0))
@@ -994,7 +994,7 @@ func TestDelegationSystemCleanUpContract(t *testing.T) {
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "staked")
 
-	//unStake 3 nodes
+	// unStake 3 nodes
 	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -1002,19 +1002,19 @@ func TestDelegationSystemCleanUpContract(t *testing.T) {
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-3], "unStaked")
 
-	//remove nodes should fail because they are not unBonded
+	// remove nodes should fail because they are not unBonded
 	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, _ = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.UserError, returnedCode)
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 10000000})
-	//unBond nodes
+	// unBond nodes
 	txData = txDataForFunc("unBondNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	//remove unBonded nodes should work
+	// remove unBonded nodes should work
 	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
