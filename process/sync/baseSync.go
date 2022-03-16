@@ -745,7 +745,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 
 		allowRollBack := boot.shouldAllowRollback(currHeader)
-		if !revertUsingForkNonce && allowRollBack {
+		if !revertUsingForkNonce && !allowRollBack {
 			return ErrRollBackBehindFinalHeader
 		}
 
