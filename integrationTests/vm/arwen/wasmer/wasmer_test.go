@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -105,7 +106,7 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		vm.ArgEnableEpoch{},
+		config.EnableEpochs{},
 	)
 	require.Nil(t, err)
 

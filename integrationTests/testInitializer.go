@@ -16,7 +16,6 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -50,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
@@ -89,6 +89,9 @@ var InitialRating = uint32(50)
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
+// GasSchedulePath --
+const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
+
 var log = logger.GetOrCreate("integrationtests")
 
 // shuffler constants
@@ -127,7 +130,8 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
+			Port:                  "0",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -214,8 +218,9 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: "0",
-			Seed: "",
+			Port:                  "0",
+			Seed:                  "",
+			ConnectionWatcherType: "print",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -2102,8 +2107,6 @@ func generateValidTx(
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 
-	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond, log)
-
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -2127,7 +2130,6 @@ func generateValidTx(
 		node.WithCoreComponents(coreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithStateComponents(stateComponents),
-		node.WithTxAccumulator(txAccumulator),
 	)
 
 	tx, err := mockNode.GenerateTransaction(
@@ -2196,11 +2198,11 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
-func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]sharding.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		var shardValidators []sharding.GenesisNodeInfoHandler
+		var shardValidators []nodesCoordinator.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
 			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)
@@ -2215,11 +2217,11 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 func GenValidatorsFromPubKeysAndTxPubKeys(
 	blsPubKeysMap map[uint32][]string,
 	txPubKeysMap map[uint32][]string,
-) map[uint32][]sharding.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range blsPubKeysMap {
-		var shardValidators []sharding.GenesisNodeInfoHandler
+		var shardValidators []nodesCoordinator.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
 			v := mock.NewNodeInfo([]byte(txPubKeysMap[shardId][i]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)
@@ -2284,7 +2286,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
 func CloseProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		_ = n.Messenger.Close()
+		n.Close()
 	}
 }
 

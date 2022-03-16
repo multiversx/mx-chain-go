@@ -10,7 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -92,7 +94,7 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 		Config:             testscommon.GetGeneralConfig(),
 		ExternalConfig:     config.ExternalConfig{},
 		ShardCoordinator:   shardCoordinator,
-		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+		NodesCoordinator:   &shardingMocks.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,
@@ -151,7 +153,7 @@ func getStatusComponents(
 	dataComponents factory.DataComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) factory.StatusComponentsHandler {
 	indexerURL := "url"
 	elasticUsername := "user"
@@ -223,7 +225,7 @@ func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		},
 		EconomicsConfig:    config.EconomicsConfig{},
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+		NodesCoordinator:   &shardingMocks.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -83,10 +82,11 @@ func getDefaultStateComponents(
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := &hashingMocks.HasherMock{}
+
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                testscommon.NewMemDbMock(),
 		MainStorer:        testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer: testscommon.CreateMemUnit(),
+		CheckpointsStorer: testscommon.NewSnapshotPruningStorerMock(),
 		Marshalizer:       marshalizer,
 		Hasher:            hsh,
 		SnapshotDbConfig: config.DBConfig{
@@ -236,71 +236,6 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 	)
 
 	assert.Equal(t, numCheckpoints, adb.GetNumCheckpoints())
-}
-
-func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
-	t.Parallel()
-
-	numCheckpointsKey := []byte("state checkpoint")
-	numCheckpoints := 50
-	wg := sync.WaitGroup{}
-	wg.Add(numCheckpoints)
-	db := testscommon.NewMemDbMock()
-	numExitPruningBufferingModeCalled := uint32(0)
-
-	adb, _ := state.NewAccountsDB(
-		&trieMock.TrieStub{
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return db.Get(key)
-					},
-					PutCalled: func(key []byte, val []byte) error {
-						_ = db.Put(key, val)
-						wg.Done()
-
-						return nil
-					},
-					SetCheckpointCalled: func(_ []byte, _ []byte, leavesChan chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler) {
-						close(leavesChan)
-					},
-					ExitPruningBufferingModeCalled: func() {
-						atomic.AddUint32(&numExitPruningBufferingModeCalled, 1)
-					},
-				}
-			},
-			RecreateCalled: func(root []byte) (common.Trie, error) {
-				return &trieMock.TrieStub{
-					GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-						ch := make(chan core.KeyValueHolder)
-						close(ch)
-
-						return ch, nil
-					},
-				}, nil
-			},
-		},
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&stateMock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-		common.Normal,
-	)
-
-	for i := 0; i < numCheckpoints; i++ {
-		adb.SetStateCheckpoint([]byte("rootHash"))
-	}
-
-	wg.Wait()
-	time.Sleep(time.Second)
-
-	val, err := db.Get(numCheckpointsKey)
-	require.Nil(t, err)
-
-	numCheckpointsRecovered := binary.BigEndian.Uint32(val)
-	assert.Equal(t, uint32(numCheckpoints), numCheckpointsRecovered)
-	assert.Equal(t, uint32(numCheckpoints), adb.GetNumCheckpoints())
-	assert.Equal(t, uint32(numCheckpoints), atomic.LoadUint32(&numExitPruningBufferingModeCalled))
 }
 
 //------- SaveAccount
@@ -1988,6 +1923,7 @@ func TestAccountsDB_SnapshotStateCleansCheckpointHashesHolder(t *testing.T) {
 		},
 	}
 	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
+	_ = trieStorage.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes := modifyDataTries(t, accountsAddresses, adb)
@@ -2367,8 +2303,11 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				GetCalled: func(_ []byte) ([]byte, error) {
-					return nil, fmt.Errorf("key not found")
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, []byte(common.ActiveDBKey)) {
+						return nil, fmt.Errorf("key not found")
+					}
+					return []byte("rootHash"), nil
 				},
 				ShouldTakeSnapshotCalled: func() bool {
 					return true

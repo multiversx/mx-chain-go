@@ -47,7 +47,7 @@ func TestListForSender_AddTx_SortsCorrectlyWhenSameNonceSamePrice(t *testing.T) 
 	list.AddTx(createTxWithParams([]byte("g"), ".", 3, 128, 42, 99), txGasHandler, txFeeHelper)
 
 	// In case of same-nonce, same-price transactions, the newer one has priority
-	require.Equal(t, []string{"a", "f", "e", "c", "b", "g", "d"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"a", "f", "e", "b", "c", "g", "d"}, list.getTxHashesAsStrings())
 }
 
 func TestListForSender_AddTx_IgnoresDuplicates(t *testing.T) {

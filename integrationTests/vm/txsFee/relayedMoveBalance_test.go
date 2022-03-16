@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestRelayedMoveBalanceShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -43,7 +44,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	//check relayer balance
+	// check relayer balance
 	// 3000 - value(100) - gasLimit(275)*gasPrice(10) = 2850
 	expectedBalanceRelayer := big.NewInt(150)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
@@ -68,7 +69,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -108,7 +109,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -148,7 +149,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 

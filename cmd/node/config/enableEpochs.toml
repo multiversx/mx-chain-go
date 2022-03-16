@@ -184,6 +184,15 @@
     # disabled in the blockchain hook component
     DoNotReturnOldBlockInBlockchainHookEnableEpoch = 2
 
+    # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 2
+
+    # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 2
+
+   	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+   	FailExecutionOnEveryAPIErrorEnableEpoch = 3
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
@@ -193,6 +202,6 @@
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV4.toml" },
-        { StartEpoch = 3, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV6.toml" },
     ]

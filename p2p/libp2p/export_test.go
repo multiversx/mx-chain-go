@@ -18,6 +18,7 @@ var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
 const CurrentTopicMessageVersion = currentTopicMessageVersion
+const PollWaitForConnectionsInterval = pollWaitForConnectionsInterval
 
 // SetHost -
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {

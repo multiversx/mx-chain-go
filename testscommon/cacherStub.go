@@ -15,6 +15,7 @@ type CacherStub struct {
 	MaxSizeCalled           func() int
 	RegisterHandlerCalled   func(func(key []byte, value interface{}))
 	UnRegisterHandlerCalled func(id string)
+	CloseCalled             func() error
 }
 
 // NewCacherStub -
@@ -134,5 +135,8 @@ func (cacher *CacherStub) IsInterfaceNil() bool {
 
 // Close -
 func (cacher *CacherStub) Close() error {
+	if cacher.CloseCalled != nil {
+		return cacher.CloseCalled()
+	}
 	return nil
 }
