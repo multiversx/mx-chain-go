@@ -372,7 +372,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	alteredAccountsProvider, err := pcf.createAlteredAccountsProvider()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
@@ -773,7 +773,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	alteredAccountsProvider, err := pcf.createAlteredAccountsProvider()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
