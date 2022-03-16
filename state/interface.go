@@ -183,6 +183,8 @@ type StoragePruningManager interface {
 	IsInterfaceNil() bool
 }
 
+// ShardValidatorsInfoMapHandler shall be used to manage operations inside
+// a <shardID, []ValidatorInfoHandler> map in a concurrent-safe way.
 type ShardValidatorsInfoMapHandler interface {
 	GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler
 	GetAllValidatorsInfo() []ValidatorInfoHandler
@@ -196,6 +198,7 @@ type ShardValidatorsInfoMapHandler interface {
 	GetValInfoPointerMap() map[uint32][]*ValidatorInfo
 }
 
+//ValidatorInfoHandler defines which data shall a validator info hold.
 type ValidatorInfoHandler interface {
 	IsInterfaceNil() bool
 

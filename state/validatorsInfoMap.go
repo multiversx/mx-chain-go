@@ -10,6 +10,8 @@ type shardValidatorsInfoMap struct {
 	valInfoMap map[uint32][]ValidatorInfoHandler
 }
 
+// NewShardValidatorsInfoMap creates an instance of shardValidatorsInfoMap which manages a
+// <shardID, validatorsInfo> map internally
 func NewShardValidatorsInfoMap(numOfShards uint32) *shardValidatorsInfoMap {
 	return &shardValidatorsInfoMap{
 		mutex:      sync.RWMutex{},
@@ -17,7 +19,11 @@ func NewShardValidatorsInfoMap(numOfShards uint32) *shardValidatorsInfoMap {
 	}
 }
 
-func NewValidatorsInfo(input map[uint32][]*ValidatorInfo) *shardValidatorsInfoMap {
+// TODO: Delete this once map[uint32][]*ValidatorInfo is completely replaced with new interface
+
+// CreateShardValidatorsMap creates an instance of shardValidatorsInfoMap which manages a shard validator
+// info map internally.
+func CreateShardValidatorsMap(input map[uint32][]*ValidatorInfo) *shardValidatorsInfoMap {
 	ret := &shardValidatorsInfoMap{valInfoMap: make(map[uint32][]ValidatorInfoHandler, len(input))}
 
 	for shardID, valInShard := range input {
@@ -29,6 +35,7 @@ func NewValidatorsInfo(input map[uint32][]*ValidatorInfo) *shardValidatorsInfoMa
 	return ret
 }
 
+// GetAllValidatorsInfo returns a ValidatorInfoHandler copy slice with validators from all shards.
 func (vi *shardValidatorsInfoMap) GetAllValidatorsInfo() []ValidatorInfoHandler {
 	ret := make([]ValidatorInfoHandler, 0)
 
@@ -45,6 +52,7 @@ func (vi *shardValidatorsInfoMap) GetAllValidatorsInfo() []ValidatorInfoHandler 
 	return ret
 }
 
+// GetShardValidatorsInfoMap returns a <shard, ValidatorInfoHandler> copy map of internally stored data
 func (vi *shardValidatorsInfoMap) GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler {
 	ret := make(map[uint32][]ValidatorInfoHandler, 0)
 
@@ -61,6 +69,7 @@ func (vi *shardValidatorsInfoMap) GetShardValidatorsInfoMap() map[uint32][]Valid
 	return ret
 }
 
+// Add adds a new ValidatorInfoHandler in its corresponding shardID, if it doesn't already exists
 func (vi *shardValidatorsInfoMap) Add(validator ValidatorInfoHandler) {
 	if vi.GetValidator(validator.GetPublicKey()) != nil {
 		return
@@ -73,6 +82,7 @@ func (vi *shardValidatorsInfoMap) Add(validator ValidatorInfoHandler) {
 	vi.mutex.Unlock()
 }
 
+// GetValidator returns a ValidatorInfoHandler with the provided blsKey, if it is present in the map
 func (vi *shardValidatorsInfoMap) GetValidator(blsKey []byte) ValidatorInfoHandler {
 	for _, validator := range vi.GetAllValidatorsInfo() {
 		if bytes.Equal(validator.GetPublicKey(), blsKey) {
@@ -83,6 +93,8 @@ func (vi *shardValidatorsInfoMap) GetValidator(blsKey []byte) ValidatorInfoHandl
 	return nil
 }
 
+// Replace will replace an existing ValidatorInfoHandler with a new one. The old and new validator
+// shall be in the same shard and have the same public key.
 func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) {
 	if old.GetShardId() != new.GetShardId() {
 		return
@@ -101,6 +113,8 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 	}
 }
 
+// SetValidatorsInShard resets all validators saved in a specific shard with the provided []ValidatorInfoHandler.
+// Before setting them, it checks that provided validators have the same shardID as the one provided.
 func (vi *shardValidatorsInfoMap) SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) {
 	sameShardValidators := make([]ValidatorInfoHandler, 0, len(validators))
 	for _, validator := range validators {
@@ -114,6 +128,8 @@ func (vi *shardValidatorsInfoMap) SetValidatorsInShard(shardID uint32, validator
 	vi.mutex.Unlock()
 }
 
+// Delete will delete the provided validator from the internally stored map. The validators slice at the
+// corresponding shardID key will be re-sliced, without reordering
 func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) {
 	shardID := validator.GetShardId()
 
@@ -131,6 +147,9 @@ func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) {
 	}
 }
 
+// TODO: Delete this once map[uint32][]*ValidatorInfo is completely replaced with new interface
+
+// GetValInfoPointerMap returns a <shardID, []validators> from internally stored data
 func (vi *shardValidatorsInfoMap) GetValInfoPointerMap() map[uint32][]*ValidatorInfo {
 	ret := make(map[uint32][]*ValidatorInfo, 0)
 

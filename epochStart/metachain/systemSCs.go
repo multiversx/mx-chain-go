@@ -92,7 +92,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap map[uint32][]*state.ValidatorInfo,
 	header data.HeaderHandler,
 ) error {
-	validatorsInfoHandler := state.NewValidatorsInfo(validatorsInfoMap)
+	validatorsInfoHandler := state.CreateShardValidatorsMap(validatorsInfoMap)
 
 	err := s.processLegacy(validatorsInfoHandler, header.GetNonce(), header.GetEpoch())
 	if err != nil {
