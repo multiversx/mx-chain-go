@@ -11,7 +11,7 @@ var ignorable = []string{
 	"/usr/local/go/src/runtime/proc.go",
 	"internal/race/race.go",
 	"net._C2func_getaddrinfo",
-	"net.cgoLookupIPCNAME",
+	"net.cgoLookupIP", //  for net.cgoLookupIP and net.cgoLookupIPCNAME
 }
 
 // AllPassFilter returns true for all provided strings

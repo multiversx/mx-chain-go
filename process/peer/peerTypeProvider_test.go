@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,8 +51,8 @@ func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 		},
 	}
 
-	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 			atomic.AddInt32(&numPopulateCacheCalled, 1)
 			return nil, nil
 		},
@@ -71,8 +72,8 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 		[]byte(pk),
 	}
 	arg := createDefaultArgPeerTypeProvider()
-	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 			return eligibleMap, nil
 		},
 	}
@@ -108,8 +109,8 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 	}
 
 	arg := createDefaultArgPeerTypeProvider()
-	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 			return eligibleMap, nil
 		},
 		GetAllWaitingValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -142,8 +143,8 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	epochStartNotifier := &mock.EpochStartNotifierStub{}
 	arg.EpochStartEventNotifier = epochStartNotifier
 	pkEligibleInTrie := "pk1"
-	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 			callNumber++
 			// first call comes from the constructor
 			if callNumber == 1 {
@@ -171,8 +172,8 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	initialShardId := uint32(1)
 	popMutex := sync.RWMutex{}
 	populateCacheCalled := false
-	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 			populateCacheCalled = true
 			return map[uint32][][]byte{
 				initialShardId: {pk},
@@ -198,8 +199,8 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserver(t *testing.T) {
 	arg := createDefaultArgPeerTypeProvider()
 	pk := []byte("pk1")
-	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
-		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 			return map[uint32][][]byte{}, nil
 		},
 	}
@@ -222,7 +223,7 @@ func TestNewPeerTypeProvider_IsInterfaceNil(t *testing.T) {
 
 func createDefaultArgPeerTypeProvider() ArgPeerTypeProvider {
 	return ArgPeerTypeProvider{
-		NodesCoordinator:        &mock.NodesCoordinatorMock{},
+		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
 		StartEpoch:              0,
 		EpochStartEventNotifier: &mock.EpochStartNotifierStub{},
 	}

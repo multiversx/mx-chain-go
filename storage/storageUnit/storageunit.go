@@ -220,6 +220,11 @@ func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
 	return u.Get(key)
 }
 
+// RemoveFromCurrentEpoch removes the data associated to the given key from both cache and persistence medium
+func (u *Unit) RemoveFromCurrentEpoch(key []byte) error {
+	return u.Remove(key)
+}
+
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (u *Unit) Remove(key []byte) error {
 	u.lock.Lock()

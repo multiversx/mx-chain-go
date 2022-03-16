@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -86,7 +86,7 @@ func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
 	return peerTypeInfos
 }
 
-func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
+func (ptp *PeerTypeProvider) epochStartEventHandler() nodesCoordinator.EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(
 		func(hdr data.HeaderHandler) {
 			log.Trace("epochStartEventHandler - refreshCache forced",

@@ -662,7 +662,12 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.checkpointHashesHolder.Remove(hash)
-	return tsm.mainStorer.Remove(hash)
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("%w, storer type is %s", ErrWrongTypeAssertion, fmt.Sprintf("%T", tsm.mainStorer))
+	}
+
+	return storer.RemoveFromCurrentEpoch(hash)
 }
 
 func (tsm *trieStorageManager) isClosed() bool {

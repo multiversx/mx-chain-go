@@ -6,10 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
-var _ GenesisNodeInfoHandler = (*nodeInfo)(nil)
+var _ nodesCoordinator.GenesisNodeInfoHandler = (*nodeInfo)(nil)
 
 const defaultInitialRating = uint32(5000001)
 
@@ -73,8 +74,8 @@ type NodesSetup struct {
 	nrOfShards               uint32
 	nrOfNodes                uint32
 	nrOfMetaChainNodes       uint32
-	eligible                 map[uint32][]GenesisNodeInfoHandler
-	waiting                  map[uint32][]GenesisNodeInfoHandler
+	eligible                 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
+	waiting                  map[uint32][]nodesCoordinator.GenesisNodeInfoHandler
 	validatorPubkeyConverter core.PubkeyConverter
 	addressPubkeyConverter   core.PubkeyConverter
 }
@@ -237,8 +238,8 @@ func (ns *NodesSetup) processShardAssignment() {
 func (ns *NodesSetup) createInitialNodesInfo() {
 	nrOfShardAndMeta := ns.nrOfShards + 1
 
-	ns.eligible = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
-	ns.waiting = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
+	ns.eligible = make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, nrOfShardAndMeta)
+	ns.waiting = make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
 			ni := &nodeInfo{
@@ -273,13 +274,13 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 }
 
 // InitialNodesInfo - gets initial nodes info
-func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler) {
+func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 	return ns.eligible, ns.waiting
 }
 
 // AllInitialNodes returns all initial nodes loaded
-func (ns *NodesSetup) AllInitialNodes() []GenesisNodeInfoHandler {
-	list := make([]GenesisNodeInfoHandler, len(ns.InitialNodes))
+func (ns *NodesSetup) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler {
+	list := make([]nodesCoordinator.GenesisNodeInfoHandler, len(ns.InitialNodes))
 	for idx, initialNode := range ns.InitialNodes {
 		list[idx] = initialNode
 	}
@@ -306,7 +307,7 @@ func (ns *NodesSetup) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]str
 }
 
 // InitialNodesInfoForShard - gets initial nodes info for shard
-func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error) {
+func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error) {
 	if ns.eligible[shardId] == nil {
 		return nil, nil, ErrShardIdOutOfRange
 	}
