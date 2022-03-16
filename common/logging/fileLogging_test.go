@@ -3,7 +3,6 @@ package logging
 import (
 	"errors"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,11 +17,7 @@ const logsDirectory = "logs"
 func TestNewFileLogging_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := ioutil.TempDir("", "file_logging")
-	defer func() {
-		err := os.RemoveAll(dir)
-		log.LogIfError(err)
-	}()
+	dir := t.TempDir()
 
 	fl, err := NewFileLogging(dir, logsDirectory, "elrond-go")
 
@@ -33,11 +28,7 @@ func TestNewFileLogging_ShouldWork(t *testing.T) {
 func TestNewFileLogging_CloseShouldStopCreatingLogFiles(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := ioutil.TempDir("", "file_logging")
-	defer func() {
-		err := os.RemoveAll(dir)
-		log.LogIfError(err)
-	}()
+	dir := t.TempDir()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 	_ = fl.ChangeFileLifeSpan(time.Second)
@@ -58,11 +49,7 @@ func TestNewFileLogging_CloseShouldStopCreatingLogFiles(t *testing.T) {
 func TestNewFileLogging_CloseCallTwiceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := ioutil.TempDir("", "file_logging")
-	defer func() {
-		err := os.RemoveAll(dir)
-		log.LogIfError(err)
-	}()
+	dir := t.TempDir()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 
@@ -76,11 +63,7 @@ func TestNewFileLogging_CloseCallTwiceShouldWork(t *testing.T) {
 func TestFileLogging_ChangeFileLifeSpanInvalidValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := ioutil.TempDir("", "file_logging")
-	defer func() {
-		err := os.RemoveAll(dir)
-		log.LogIfError(err)
-	}()
+	dir := t.TempDir()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 	err := fl.ChangeFileLifeSpan(time.Millisecond)
@@ -91,11 +74,7 @@ func TestFileLogging_ChangeFileLifeSpanInvalidValueShouldErr(t *testing.T) {
 func TestFileLogging_ChangeFileLifeSpanAfterCloseShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := ioutil.TempDir("", "file_logging")
-	defer func() {
-		err := os.RemoveAll(dir)
-		log.LogIfError(err)
-	}()
+	dir := t.TempDir()
 
 	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 	err := fl.ChangeFileLifeSpan(time.Second)

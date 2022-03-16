@@ -8,13 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
-	NodesCoord                           sharding.NodesCoordinator
+	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	ResFinder                            dataRetriever.ResolversFinder
@@ -45,6 +46,7 @@ type ProcessComponentsStub struct {
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
+	TxsSenderHandlerField                process.TxsSenderHandler
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
@@ -64,7 +66,7 @@ func (pcs *ProcessComponentsStub) CheckSubcomponents() error {
 }
 
 // NodesCoordinator -
-func (pcs *ProcessComponentsStub) NodesCoordinator() sharding.NodesCoordinator {
+func (pcs *ProcessComponentsStub) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return pcs.NodesCoord
 }
 
@@ -221,6 +223,11 @@ func (pcs *ProcessComponentsStub) String() string {
 // ScheduledTxsExecutionHandler -
 func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
 	return pcs.ScheduledTxsExecutionHandlerInternal
+}
+
+// TxsSenderHandler -
+func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
+	return pcs.TxsSenderHandlerField
 }
 
 // ESDTDataStorageHandlerForAPI -

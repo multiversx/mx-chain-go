@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,31 +20,37 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	nodeMockFactory "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	txsSenderMock "github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -2221,35 +2226,6 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
 }
 
-func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mes := &p2pmocks.MessengerStub{}
-	marshalizer := &mock.MarshalizerFake{}
-	hasher := &mock.HasherFake{}
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizer
-	coreComponents.VmMarsh = marshalizer
-	coreComponents.TxMarsh = getMarshalizer()
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	coreComponents.Hash = hasher
-	processComponents := getDefaultProcessComponents()
-	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
-	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = mes
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithProcessComponents(processComponents),
-		node.WithNetworkComponents(networkComponents),
-	)
-	txs := make([]*transaction.Transaction, 0)
-
-	numOfTxsProcessed, err := n.SendBulkTransactions(txs)
-	assert.Equal(t, uint64(0), numOfTxsProcessed)
-	assert.Equal(t, node.ErrNoTxToProcess, err)
-}
-
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
 	dataPool := dataRetrieverMock.NewPoolsHolderStub()
@@ -2832,177 +2808,6 @@ func TestNode_DecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
 
 	assert.True(t, errors.Is(err, node.ErrNilPubkeyConverter))
 	assert.Nil(t, recoveredBytes)
-}
-
-func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &mock.MarshalizerFake{}
-
-	mutRecoveredTransactions := &sync.RWMutex{}
-	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
-	signer := &mock.SinglesignStub{
-		VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			return nil
-		},
-	}
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		items := strings.Split(string(address), "Shard")
-		sId, _ := strconv.ParseUint(items[1], 2, 32)
-		return uint32(sId)
-	}
-
-	var txsToSend []*transaction.Transaction
-	txsToSend = append(txsToSend, &transaction.Transaction{
-		Nonce:     10,
-		Value:     big.NewInt(15),
-		RcvAddr:   []byte("receiverShard1"),
-		SndAddr:   []byte("senderShard0"),
-		GasPrice:  5,
-		GasLimit:  11,
-		Data:      []byte(""),
-		Signature: []byte("sig0"),
-	})
-
-	txsToSend = append(txsToSend, &transaction.Transaction{
-		Nonce:     11,
-		Value:     big.NewInt(25),
-		RcvAddr:   []byte("receiverShard1"),
-		SndAddr:   []byte("senderShard0"),
-		GasPrice:  6,
-		GasLimit:  12,
-		Data:      []byte(""),
-		Signature: []byte("sig1"),
-	})
-
-	txsToSend = append(txsToSend, &transaction.Transaction{
-		Nonce:     12,
-		Value:     big.NewInt(35),
-		RcvAddr:   []byte("receiverShard0"),
-		SndAddr:   []byte("senderShard1"),
-		GasPrice:  7,
-		GasLimit:  13,
-		Data:      []byte(""),
-		Signature: []byte("sig2"),
-	})
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(txsToSend))
-
-	chDone := make(chan struct{})
-	go func() {
-		wg.Wait()
-		chDone <- struct{}{}
-	}()
-
-	mes := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
-
-			b := &batch.Batch{}
-			err := marshalizer.Unmarshal(b, buff)
-			if err != nil {
-				assert.Fail(t, err.Error())
-			}
-			for _, txBuff := range b.Data {
-				tx := transaction.Transaction{}
-				errMarshal := marshalizer.Unmarshal(&tx, txBuff)
-				require.Nil(t, errMarshal)
-
-				mutRecoveredTransactions.Lock()
-				sId := shardCoordinator.ComputeId(tx.SndAddr)
-				recoveredTransactions[sId] = append(recoveredTransactions[sId], &tx)
-				mutRecoveredTransactions.Unlock()
-
-				wg.Done()
-			}
-			return nil
-		},
-	}
-
-	dataPool := &dataRetrieverMock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &testscommon.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
-		},
-	}
-	accAdapter := getAccAdapter(big.NewInt(100))
-	keyGen := &mock.KeyGenMock{
-		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
-			return nil, nil
-		},
-	}
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
-		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
-			return 100
-		},
-		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
-			return big.NewInt(100)
-		},
-		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
-			return nil
-		},
-	}
-	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizer
-	coreComponents.VmMarsh = marshalizer
-	coreComponents.TxMarsh = marshalizer
-	coreComponents.Hash = &mock.HasherMock{}
-	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
-	coreComponents.EconomicsHandler = feeHandler
-	processComponents := getDefaultProcessComponents()
-	processComponents.ShardCoord = shardCoordinator
-	stateComponents := getDefaultStateComponents()
-	stateComponents.AccountsAPI = accAdapter
-	dataComponents := getDefaultDataComponents()
-	dataComponents.DataPool = dataPool
-	cryptoComponents := getDefaultCryptoComponents()
-	cryptoComponents.TxSig = signer
-	cryptoComponents.TxKeyGen = keyGen
-	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = mes
-
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithProcessComponents(processComponents),
-		node.WithStateComponents(stateComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithCryptoComponents(cryptoComponents),
-		node.WithNetworkComponents(networkComponents),
-		node.WithTxAccumulator(mock.NewAccumulatorMock()),
-	)
-
-	numTxs, err := n.SendBulkTransactions(txsToSend)
-	assert.Equal(t, len(txsToSend), int(numTxs))
-	assert.Nil(t, err)
-
-	// we need to wait a little bit as the node.printTxSentCounter should iterate and avoid different code coverage computation
-	time.Sleep(time.Second + time.Millisecond*500)
-
-	select {
-	case <-chDone:
-	case <-time.After(timeoutWait):
-		assert.Fail(t, "timout while waiting the broadcast of the generated transactions")
-		return
-	}
-
-	mutRecoveredTransactions.RLock()
-	// check if all txs were recovered and are assigned to correct shards
-	recTxsSize := 0
-	for sId, txsSlice := range recoveredTransactions {
-		for _, tx := range txsSlice {
-			if !strings.Contains(string(tx.SndAddr), fmt.Sprint(sId)) {
-				assert.Fail(t, "txs were not distributed correctly to shards")
-			}
-			recTxsSize++
-		}
-	}
-
-	assert.Equal(t, len(txsToSend), recTxsSize)
-	mutRecoveredTransactions.RUnlock()
 }
 
 func TestNode_DirectTrigger(t *testing.T) {
@@ -3652,4 +3457,123 @@ func TestGetESDTSupply(t *testing.T) {
 		Burned: "0",
 		Minted: "15",
 	}, supply)
+}
+
+func TestNode_SendBulkTransactions(t *testing.T) {
+	t.Parallel()
+
+	flag := atomicCore.Flag{}
+	expectedNoOfTxs := uint64(444)
+	tx1 := &transaction.Transaction{Nonce: 123}
+	tx2 := &transaction.Transaction{Nonce: 321}
+	expectedTxs := []*transaction.Transaction{tx1, tx2}
+	txsSender := &txsSenderMock.TxsSenderHandlerMock{
+		SendBulkTransactionsCalled: func(txs []*transaction.Transaction) (uint64, error) {
+			flag.SetValue(true)
+			require.Equal(t, expectedTxs, txs)
+			return expectedNoOfTxs, nil
+		},
+	}
+
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.TxsSenderHandlerField = txsSender
+	n, err := node.NewNode(node.WithProcessComponents(processComponentsMock))
+	require.Nil(t, err)
+
+	actualNoOfTxs, err := n.SendBulkTransactions(expectedTxs)
+	require.True(t, flag.IsSet())
+	require.Equal(t, expectedNoOfTxs, actualNoOfTxs)
+	require.Nil(t, err)
+}
+
+func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
+	return &nodeMockFactory.CoreComponentsMock{
+		IntMarsh:            &testscommon.MarshalizerMock{},
+		TxMarsh:             &testscommon.MarshalizerMock{},
+		VmMarsh:             &testscommon.MarshalizerMock{},
+		TxSignHasherField:   &testscommon.HasherStub{},
+		Hash:                &testscommon.HasherStub{},
+		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
+		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
+		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),
+		PathHdl:             &testscommon.PathManagerStub{},
+		ChainIdCalled: func() string {
+			return "chainID"
+		},
+		MinTransactionVersionCalled: func() uint32 {
+			return 1
+		},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		WDTimer:               &testscommon.WatchdogMock{},
+		Alarm:                 &testscommon.AlarmSchedulerStub{},
+		NtpTimer:              &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
+	}
+}
+
+func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
+	return &factoryMock.ProcessComponentsMock{
+		NodesCoord: &shardingMocks.NodesCoordinatorMock{},
+		ShardCoord: &testscommon.ShardsCoordinatorMock{
+			NoShards:     1,
+			CurrentShard: 0,
+		},
+		IntContainer:                   &testscommon.InterceptorsContainerStub{},
+		ResFinder:                      &mock.ResolversFinderStub{},
+		RoundHandlerField:              &testscommon.RoundHandlerMock{},
+		EpochTrigger:                   &testscommon.EpochStartTriggerStub{},
+		EpochNotifier:                  &mock.EpochStartNotifierStub{},
+		ForkDetect:                     &mock.ForkDetectorMock{},
+		BlockProcess:                   &mock.BlockProcessorStub{},
+		BlackListHdl:                   &testscommon.TimeCacheStub{},
+		BootSore:                       &mock.BootstrapStorerMock{},
+		HeaderSigVerif:                 &mock.HeaderSigVerifierStub{},
+		HeaderIntegrVerif:              &mock.HeaderIntegrityVerifierStub{},
+		ValidatorStatistics:            &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorProvider:              &mock.ValidatorsProviderStub{},
+		BlockTrack:                     &mock.BlockTrackerStub{},
+		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
+		ReqHandler:                     &testscommon.RequestHandlerStub{},
+		TxLogsProcess:                  &mock.TxLogProcessorMock{},
+		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
+		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
+		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
+	}
+}
+
+func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
+	return &nodeMockFactory.DataComponentsMock{
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
+		Store:      &mock.ChainStorerStub{},
+		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
+		MbProvider: &mock.MiniBlocksProviderStub{},
+	}
+}
+
+func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
+	return &mainFactoryMocks.BootstrapComponentsStub{
+		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
+			TrieHolder:      &mock.TriesHolderStub{},
+			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			BootstrapCalled: nil,
+		},
+		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:             "",
+		ShCoordinator:        &mock.ShardCoordinatorMock{},
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+	}
 }

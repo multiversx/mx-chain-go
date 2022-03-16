@@ -68,14 +68,14 @@ func NewDirectSender(
 		mutexForPeer:   mutexForPeer,
 	}
 
-	//wire-up a handler for direct messages
+	// wire-up a handler for direct messages
 	h.SetStreamHandler(DirectSendID, ds.directStreamHandler)
 
 	return ds, nil
 }
 
 func (ds *directSender) directStreamHandler(s network.Stream) {
-	reader := ggio.NewDelimitedReader(s, 1<<20)
+	reader := ggio.NewDelimitedReader(s, maxSendBuffSize)
 
 	go func(r ggio.ReadCloser) {
 		for {
@@ -83,7 +83,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 			err := reader.ReadMsg(msg)
 			if err != nil {
-				//stream has encountered an error, close this go routine
+				// stream has encountered an error, close this go routine
 
 				if err != io.EOF {
 					_ = s.Reset()
@@ -198,7 +198,7 @@ func (ds *directSender) getConnection(p core.PeerID) (network.Conn, error) {
 		return nil, p2p.ErrPeerNotDirectlyConnected
 	}
 
-	//return the connection that has the highest number of streams
+	// return the connection that has the highest number of streams
 	lStreams := 0
 	var conn network.Conn
 	for _, c := range conns {

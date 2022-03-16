@@ -199,6 +199,16 @@ func (net *TestNetwork) DeployNonpayableSC(owner *TestWalletAccount, fileName st
 
 // DeploySC deploys a contract with the bytecode specified by fileName.
 func (net *TestNetwork) DeploySC(owner *TestWalletAccount, fileName string, payable bool) []byte {
+	return net.DeploySCWithInitArgs(owner, fileName, payable)
+}
+
+// DeploySCWithInitArgs deploy a contract with initial arguments.
+func (net *TestNetwork) DeploySCWithInitArgs(
+	owner *TestWalletAccount,
+	fileName string,
+	payable bool,
+	args ...[]byte,
+) []byte {
 	scAddress := net.NewAddress(owner)
 	code, err := ioutil.ReadFile(filepath.Clean(fileName))
 	require.Nil(net.T, err)
@@ -213,6 +223,9 @@ func (net *TestNetwork) DeploySC(owner *TestWalletAccount, fileName string, paya
 	deploymentData.Bytes(code)
 	deploymentData.Bytes(net.DefaultVM)
 	deploymentData.Bytes(codeMetadata.ToBytes())
+	for _, arg := range args {
+		deploymentData.Bytes(arg)
+	}
 
 	tx := net.CreateTxUint64(
 		owner,
@@ -421,6 +434,7 @@ func (net *TestNetwork) closeNodes() {
 	for _, node := range net.Nodes {
 		err := node.Messenger.Close()
 		net.handleOrBypassError(err)
+		_ = node.VMContainer.Close()
 	}
 }
 

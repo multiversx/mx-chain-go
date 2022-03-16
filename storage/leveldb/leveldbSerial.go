@@ -260,15 +260,7 @@ func (s *SerialDB) Close() error {
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer s.closer.Close()
 
-	_ = s.putBatch()
-	s.cancel()
-
-	db := s.makeDbPointerNilReturningLast()
-	if db != nil {
-		return db.Close()
-	}
-
-	return nil
+	return s.doClose()
 }
 
 // Remove removes the data associated to the given key
@@ -292,22 +284,12 @@ func (s *SerialDB) Destroy() error {
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer s.closer.Close()
 
-	s.mutBatch.Lock()
-	s.batch.Reset()
-	s.sizeBatch = 0
-	s.mutBatch.Unlock()
-
-	s.cancel()
-
-	db := s.makeDbPointerNilReturningLast()
-	if db != nil {
-		err := db.Close()
-		if err != nil {
-			return err
-		}
+	err := s.doClose()
+	if err == nil {
+		return os.RemoveAll(s.path)
 	}
 
-	return os.RemoveAll(s.path)
+	return err
 }
 
 // DestroyClosed removes the already closed storage medium stored data
@@ -317,6 +299,21 @@ func (s *SerialDB) DestroyClosed() error {
 		log.Error("error destroy closed", "error", err, "path", s.path)
 	}
 	return err
+}
+
+// doClose will handle the closing of the internal components
+// must be called under mutex protection
+// TODO: re-use this function in leveldb.go as well
+func (s *SerialDB) doClose() error {
+	_ = s.putBatch()
+	s.cancel()
+
+	db := s.makeDbPointerNilReturningLast()
+	if db != nil {
+		return db.Close()
+	}
+
+	return nil
 }
 
 func (s *SerialDB) processLoop(ctx context.Context) {

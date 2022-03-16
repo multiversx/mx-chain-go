@@ -286,12 +286,7 @@ func TestExportAll(t *testing.T) {
 func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	t.Parallel()
 
-	testFolderName := "testFilesExportNodes"
-	_ = os.Mkdir(testFolderName, 0777)
-
-	defer func() {
-		_ = os.RemoveAll(testFolderName)
-	}()
+	testFolderName := t.TempDir()
 
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
@@ -349,12 +344,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *testing.T) {
 	t.Parallel()
 
-	testFolderName := "testFilesExportNodes2"
-	_ = os.Mkdir(testFolderName, 0777)
-
-	defer func() {
-		_ = os.RemoveAll(testFolderName)
-	}()
+	testFolderName := t.TempDir()
 
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {

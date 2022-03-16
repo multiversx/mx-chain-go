@@ -3,6 +3,7 @@ package preprocess
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -1712,4 +1713,60 @@ func createWrappedTxsWithData(nb int, srcShard uint32, rcvShard uint32, sender [
 	}
 
 	return txs
+}
+
+func TestTxsPreprocessor_AddTxsFromMiniBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	txs, _ := NewTransactionPreprocessor(args)
+
+	mbs := []*block.MiniBlock{
+		{
+			Type: block.SmartContractResultBlock,
+		},
+		{
+			Type: block.TxBlock,
+			TxHashes: [][]byte{
+				[]byte("tx1_hash"),
+				[]byte("tx2_hash"),
+				[]byte("tx3_hash"),
+			},
+		},
+	}
+
+	txs.AddTxsFromMiniBlocks(mbs)
+	assert.Equal(t, 2, len(txs.txsForCurrBlock.txHashAndInfo))
+}
+
+func TestTransactions_AddTransactions(t *testing.T) {
+	tx1 := &transaction.Transaction{Nonce: uint64(1), SndAddr: []byte("sender"), RcvAddr: []byte("receiver")}
+	tx2 := &transaction.Transaction{Nonce: uint64(2), SndAddr: []byte("sender"), RcvAddr: []byte("receiver")}
+
+	t.Run("marshaling error should not add tx", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		txs := []data.TransactionHandler{tx1}
+		expectedErr := errors.New("expected error")
+		args.Marshalizer = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		txPreproc, _ := NewTransactionPreprocessor(args)
+		txPreproc.AddTransactions(txs)
+		require.Empty(t, &txPreproc.txsForCurrBlock.txHashAndInfo)
+	})
+
+	t.Run("should add txs", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		txs := []data.TransactionHandler{tx1, tx2}
+		txPreproc, _ := NewTransactionPreprocessor(args)
+		txPreproc.AddTransactions(txs)
+		numTxsSaved := len(txPreproc.txsForCurrBlock.txHashAndInfo)
+		require.Equal(t, 2, numTxsSaved)
+	})
 }

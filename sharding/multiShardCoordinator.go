@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ Coordinator = (*multiShardCoordinator)(nil)
@@ -22,10 +23,10 @@ type multiShardCoordinator struct {
 // NewMultiShardCoordinator returns a new multiShardCoordinator and initializes the masks
 func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordinator, error) {
 	if numberOfShards < 1 {
-		return nil, ErrInvalidNumberOfShards
+		return nil, nodesCoordinator.ErrInvalidNumberOfShards
 	}
 	if selfId >= numberOfShards && selfId != core.MetachainShardId {
-		return nil, ErrInvalidShardId
+		return nil, nodesCoordinator.ErrInvalidShardId
 	}
 
 	sr := &multiShardCoordinator{}
@@ -52,6 +53,9 @@ func (msc *multiShardCoordinator) ComputeId(address []byte) uint32 {
 
 // ComputeIdFromBytes calculates the shard for a given address
 func (msc *multiShardCoordinator) ComputeIdFromBytes(address []byte) uint32 {
+	if core.IsEmptyAddress(address) {
+		return msc.selfId
+	}
 
 	var bytesNeed int
 	if msc.numberOfShards <= 256 {
@@ -99,6 +103,10 @@ func (msc *multiShardCoordinator) SelfId() uint32 {
 
 // SameShard returns weather two addresses belong to the same shard
 func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress []byte) bool {
+	if core.IsEmptyAddress(firstAddress) || core.IsEmptyAddress(secondAddress) {
+		return true
+	}
+
 	if bytes.Equal(firstAddress, secondAddress) {
 		return true
 	}

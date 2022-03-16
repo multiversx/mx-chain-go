@@ -181,6 +181,14 @@ func (vip *validatorInfoPreprocessor) GetAllCurrentUsedTxs() map[string]data.Tra
 	return validatorInfoTxPool
 }
 
+// AddTxsFromMiniBlocks does nothing
+func (vip *validatorInfoPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
+// AddTransactions does nothing
+func (vip *validatorInfoPreprocessor) AddTransactions(_ []data.TransactionHandler) {
+}
+
 // IsInterfaceNil does nothing
 func (vip *validatorInfoPreprocessor) IsInterfaceNil() bool {
 	return vip == nil

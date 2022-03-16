@@ -51,7 +51,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -111,7 +111,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

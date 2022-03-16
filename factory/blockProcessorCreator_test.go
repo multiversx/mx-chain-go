@@ -112,6 +112,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 				},
 			}
 		},
+		AccountsAdapterAPICalled: func() state.AccountsAdapter {
+			return accounts
+		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
 			return accounts
 		},
