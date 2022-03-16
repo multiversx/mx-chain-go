@@ -968,6 +968,7 @@ func (mp *metaProcessor) createMiniBlocks(
 	if mp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
 	}
 
 	if !haveTime() {
@@ -1757,7 +1758,8 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	for _, shardData := range metaHdr.ShardInfo {
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
-			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
+			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
 		}
 		actualHdr := headerInfo.hdr
 		shardHdr, ok := actualHdr.(data.ShardHeaderHandler)

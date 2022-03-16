@@ -4,12 +4,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
@@ -27,7 +28,7 @@ type ConsensusCore struct {
 	multiSigner                   crypto.MultiSigner
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
-	nodesCoordinator              sharding.NodesCoordinator
+	nodesCoordinator              nodesCoordinator.NodesCoordinator
 	syncTimer                     ntp.SyncTimer
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	antifloodHandler              consensus.P2PAntifloodHandler
@@ -52,7 +53,7 @@ type ConsensusCoreArgs struct {
 	MultiSigner                   crypto.MultiSigner
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
-	NodesCoordinator              sharding.NodesCoordinator
+	NodesCoordinator              nodesCoordinator.NodesCoordinator
 	SyncTimer                     ntp.SyncTimer
 	EpochStartRegistrationHandler epochStart.RegistrationHandler
 	AntifloodHandler              consensus.P2PAntifloodHandler
@@ -160,7 +161,7 @@ func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 }
 
 // NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
-func (cc *ConsensusCore) NodesCoordinator() sharding.NodesCoordinator {
+func (cc *ConsensusCore) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	return cc.nodesCoordinator
 }
 

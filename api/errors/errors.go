@@ -67,6 +67,9 @@ var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 // ErrInvalidBlockRound signals that an invalid block round was provided
 var ErrInvalidBlockRound = errors.New("invalid block round")
 
+// ErrInvalidEpoch signals that an invalid epoch parameter was provided
+var ErrInvalidEpoch = errors.New("invalid epoch parameter")
+
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
 var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 
@@ -117,3 +120,6 @@ var ErrNilFacadeHandler = errors.New("nil facade handler")
 
 // ErrFacadeWrongTypeAssertion signals that a type conversion to a facade type failed
 var ErrFacadeWrongTypeAssertion = errors.New("facade - wrong type assertion")
+
+// ErrGetGenesisNodes signals that an error happened when trying to feth genesis nodes config
+var ErrGetGenesisNodes = errors.New("getting genesis nodes failed")

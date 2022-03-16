@@ -113,7 +113,9 @@ func createGenesisConfig() config.EnableEpochs {
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		StakeLimitsEnableEpoch:                            unreachableEpoch,
 		StakingV4InitEnableEpoch:                          unreachableEpoch,
 		StakingV4EnableEpoch:                              unreachableEpoch,
@@ -804,7 +806,14 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		if check.IfNil(dh) {
 			continue
 		}
-		if arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes()) {
+		sameShard := arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes())
+		if len(dh.AddressBytes()) == 0 {
+			// backwards compatibility, do not make "" address be considered empty and thus, belonging to the same shard
+			if arg.ShardCoordinator.ComputeId(ia.AddressBytes()) != 0 {
+				sameShard = false
+			}
+		}
+		if sameShard {
 			continue
 		}
 

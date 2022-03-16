@@ -159,6 +159,11 @@ func (sm *StorerMock) Has(key []byte) error {
 	return sm.hasInEpoch(key, sm.currentEpoch.Get())
 }
 
+// RemoveFromCurrentEpoch -
+func (sm *StorerMock) RemoveFromCurrentEpoch(_ []byte) error {
+	return errors.New("not implemented")
+}
+
 // Remove -
 func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")

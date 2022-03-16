@@ -7,9 +7,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 const minimumAcceptedNodePrice = 0
@@ -63,7 +63,7 @@ func NewNodesSetupChecker(
 // Check will check that each and every initial node has a backed staking address
 // also, it checks that the amount staked (either directly or delegated) matches exactly the total
 // staked value defined in the genesis file
-func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandler) error {
+func (nsc *nodeSetupChecker) Check(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
 	err := nsc.ckeckGenesisNodes(initialNodes)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandle
 	return nsc.checkRemainderInitialAccounts(initialAccounts, delegated)
 }
 
-func (nsc *nodeSetupChecker) ckeckGenesisNodes(initialNodes []sharding.GenesisNodeInfoHandler) error {
+func (nsc *nodeSetupChecker) ckeckGenesisNodes(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
 	for _, node := range initialNodes {
 		err := nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
 		if err != nil {
@@ -107,7 +107,7 @@ func (nsc *nodeSetupChecker) getClonedInitialAccounts() []genesis.InitialAccount
 
 func (nsc *nodeSetupChecker) traverseInitialNodesSubtractingStakedValue(
 	initialAccounts []genesis.InitialAccountHandler,
-	initialNodes []sharding.GenesisNodeInfoHandler,
+	initialNodes []nodesCoordinator.GenesisNodeInfoHandler,
 	delegated map[string]*delegationAddress,
 ) error {
 	for _, initialNode := range initialNodes {

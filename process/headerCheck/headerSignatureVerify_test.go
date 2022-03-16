@@ -7,13 +7,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +24,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	return &ArgsHeaderSigVerifier{
 		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &hashingMocks.HasherMock{},
-		NodesCoordinator:        &mock.NodesCoordinatorMock{},
+		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
 		MultiSigVerifier:        cryptoMocks.NewMultiSigner(21),
 		SingleSigVerifier:       &mock.SignerMock{},
 		KeyGen:                  &mock.SingleSignKeyGenMock{},
@@ -125,7 +126,7 @@ func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T)
 	header := &dataBlock.Header{}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
-	require.Equal(t, sharding.ErrNilRandomness, err)
+	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
@@ -147,10 +148,10 @@ func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -182,10 +183,10 @@ func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testi
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -205,7 +206,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureNilRandomnessShouldEr
 	header := &dataBlock.Header{}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
-	require.Equal(t, sharding.ErrNilRandomness, err)
+	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
@@ -228,10 +229,10 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenVa
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -267,10 +268,10 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShould
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -303,10 +304,10 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureOk(t *testing.T) {
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -326,7 +327,7 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureNilRandomnessShouldErr(t *testin
 	header := &dataBlock.Header{}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
-	require.Equal(t, sharding.ErrNilRandomness, err)
+	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
 }
 
 func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
@@ -349,10 +350,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFai
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -388,10 +389,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyLeaderSigShouldErr(t *test
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -424,10 +425,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
 	}
 
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -473,7 +474,7 @@ func TestHeaderSigVerifier_VerifySignatureNilRandomnessShouldErr(t *testing.T) {
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
-	require.Equal(t, sharding.ErrNilRandomness, err)
+	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
 }
 
 func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T) {
@@ -481,10 +482,10 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -503,10 +504,10 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v, v, v, v, v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v, v, v, v, v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -526,10 +527,10 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	wasCalled := false
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 	}
 	args.NodesCoordinator = nodesCoordinator
@@ -560,10 +561,10 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 	wasCalled := false
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v, v, v, v, v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v, v, v, v, v}, nil
 		},
 	}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{
@@ -601,10 +602,10 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 	wasCalled := false
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
-			return []sharding.Validator{v, v, v, v, v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v, v, v, v, v}, nil
 		},
 	}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{

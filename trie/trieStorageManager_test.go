@@ -255,6 +255,8 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	t.Parallel()
 
 	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = testscommon.NewSnapshotPruningStorerMock()
+	args.CheckpointsStorer = testscommon.NewSnapshotPruningStorerMock()
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	key := []byte("key")

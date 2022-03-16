@@ -24,6 +24,7 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/gin-contrib/cors"
@@ -164,6 +165,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		},
 		tpn.AccntState,
 		tpn.ShardCoordinator,
+		tpn.EpochNotifier,
+		0,
 	)
 	log.LogIfError(err)
 
@@ -216,15 +219,21 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
 
+	apiInternalBlockProcessor, err := blockAPI.CreateAPIInternalBlockProcessor(argsBlockAPI)
+	log.LogIfError(err)
+
 	argsApiResolver := external.ArgNodeApiResolver{
-		SCQueryService:          tpn.SCQueryService,
-		StatusMetricsHandler:    &mock.StatusMetricsStub{},
-		TxCostHandler:           txCostHandler,
-		TotalStakedValueHandler: totalStakedValueHandler,
-		DirectStakedListHandler: directStakedListHandler,
-		DelegatedListHandler:    delegatedListHandler,
-		APITransactionHandler:   apiTransactionHandler,
-		APIBlockHandler:         blockAPIHandler,
+		SCQueryService:           tpn.SCQueryService,
+		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		TxCostHandler:            txCostHandler,
+		TotalStakedValueHandler:  totalStakedValueHandler,
+		DirectStakedListHandler:  directStakedListHandler,
+		DelegatedListHandler:     delegatedListHandler,
+		APITransactionHandler:    apiTransactionHandler,
+		APIBlockHandler:          blockAPIHandler,
+		APIInternalBlockHandler:  apiInternalBlockProcessor,
+		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
