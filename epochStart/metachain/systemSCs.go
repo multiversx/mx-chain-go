@@ -106,7 +106,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	for shardID := range validatorsInfoMap {
 		delete(validatorsInfoMap, shardID)
 	}
-	for shardID, validators := range validatorsInfoHandler.GetMapPointer() {
+	for shardID, validators := range validatorsInfoHandler.GetValInfoPointerMap() {
 		validatorsInfoMap[shardID] = validators
 	}
 

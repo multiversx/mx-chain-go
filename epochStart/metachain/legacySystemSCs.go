@@ -293,7 +293,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	epoch uint32,
 ) (uint32, error) {
-	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap.GetMapPointer())
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap.GetValInfoPointerMap())
 	if err != nil {
 		return 0, err
 	}
@@ -308,7 +308,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 			return 0, err
 		}
 
-		validatorInfo := getValidatorInfoWithBLSKey(validatorsInfoMap, blsKey)
+		validatorInfo := validatorsInfoMap.GetValidator(blsKey)
 		if validatorInfo == nil {
 			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
@@ -417,15 +417,6 @@ func (s *legacySystemSCProcessor) updateDelegationContracts(mapOwnerKeys map[str
 		}
 	}
 
-	return nil
-}
-
-func getValidatorInfoWithBLSKey(validatorsInfoMap state.ShardValidatorsInfoMapHandler, blsKey []byte) state.ValidatorInfoHandler {
-	for _, validatorInfo := range validatorsInfoMap.GetAllValidatorsInfo() {
-		if bytes.Equal(validatorInfo.GetPublicKey(), blsKey) {
-			return validatorInfo
-		}
-	}
 	return nil
 }
 
