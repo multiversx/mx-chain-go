@@ -40,10 +40,9 @@ func (vi *shardValidatorsInfoMap) GetAllValidatorsInfo() []ValidatorInfoHandler 
 	ret := make([]ValidatorInfoHandler, 0)
 
 	vi.mutex.RLock()
-	validatorsMapCopy := vi.valInfoMap
-	vi.mutex.RUnlock()
+	defer vi.mutex.RUnlock()
 
-	for _, validatorsInShard := range validatorsMapCopy {
+	for _, validatorsInShard := range vi.valInfoMap {
 		validatorsCopy := make([]ValidatorInfoHandler, len(validatorsInShard))
 		copy(validatorsCopy, validatorsInShard)
 		ret = append(ret, validatorsCopy...)
@@ -54,15 +53,14 @@ func (vi *shardValidatorsInfoMap) GetAllValidatorsInfo() []ValidatorInfoHandler 
 
 // GetShardValidatorsInfoMap returns a <shard, ValidatorInfoHandler> copy map of internally stored data
 func (vi *shardValidatorsInfoMap) GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler {
-	ret := make(map[uint32][]ValidatorInfoHandler, 0)
+	ret := make(map[uint32][]ValidatorInfoHandler, len(vi.valInfoMap))
 
 	vi.mutex.RLock()
-	validatorsMapCopy := vi.valInfoMap
-	vi.mutex.RUnlock()
+	defer vi.mutex.RUnlock()
 
-	for shardID, valInShard := range validatorsMapCopy {
-		validatorsCopy := make([]ValidatorInfoHandler, len(valInShard))
-		copy(validatorsCopy, valInShard)
+	for shardID, validatorsInShard := range vi.valInfoMap {
+		validatorsCopy := make([]ValidatorInfoHandler, len(validatorsInShard))
+		copy(validatorsCopy, validatorsInShard)
 		ret[shardID] = validatorsCopy
 	}
 
