@@ -831,7 +831,7 @@ func TestNodeFacade_GetTotalStakedValue(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+		GetTotalStakedValueHandler: func(ctx context.Context) (*api.StakeValues, error) {
 			called = true
 			return nil, nil
 		},
@@ -849,7 +849,7 @@ func TestNodeFacade_GetDelegatorsList(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
+		GetDelegatorsListHandler: func(ctx context.Context) ([]*api.Delegator, error) {
 			called = true
 			return nil, nil
 		},
@@ -867,7 +867,7 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
+		GetDirectStakedListHandler: func(ctx context.Context) ([]*api.DirectStakedValue, error) {
 			called = true
 			return nil, nil
 		},

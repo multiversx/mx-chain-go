@@ -104,9 +104,9 @@ type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetTotalStakedValue() (*api.StakeValues, error)
-	GetDirectStakedList() ([]*api.DirectStakedValue, error)
-	GetDelegatorsList() ([]*api.Delegator, error)
+	GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error)
+	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
+	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)

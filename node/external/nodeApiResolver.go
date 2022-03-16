@@ -1,6 +1,7 @@
 package external
 
 import (
+	"context"
 	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -117,18 +118,18 @@ func (nar *nodeApiResolver) Close() error {
 }
 
 // GetTotalStakedValue will return total staked value
-func (nar *nodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
-	return nar.totalStakedValueHandler.GetTotalStakedValue()
+func (nar *nodeApiResolver) GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error) {
+	return nar.totalStakedValueHandler.GetTotalStakedValue(ctx)
 }
 
 // GetDirectStakedList will return the list for the direct staked addresses
-func (nar *nodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
-	return nar.directStakedListHandler.GetDirectStakedList()
+func (nar *nodeApiResolver) GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error) {
+	return nar.directStakedListHandler.GetDirectStakedList(ctx)
 }
 
 // GetDelegatorsList will return the delegators list
-func (nar *nodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
-	return nar.delegatedListHandler.GetDelegatorsList()
+func (nar *nodeApiResolver) GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error) {
+	return nar.delegatedListHandler.GetDelegatorsList(ctx)
 }
 
 // GetTransaction will return the transaction with the given hash and optionally with results

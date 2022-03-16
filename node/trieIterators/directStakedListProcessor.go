@@ -35,7 +35,7 @@ func NewDirectStakedListProcessor(arg ArgTrieIteratorProcessor) (*directStakedLi
 }
 
 // GetDirectStakedList will return the list for the direct staked addresses
-func (dslp *directStakedListProcessor) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+func (dslp *directStakedListProcessor) GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error) {
 	dslp.accounts.Lock()
 	defer dslp.accounts.Unlock()
 
@@ -44,17 +44,17 @@ func (dslp *directStakedListProcessor) GetDirectStakedList() ([]*api.DirectStake
 		return nil, err
 	}
 
-	return dslp.getAllStakedAccounts(validatorAccount)
+	return dslp.getAllStakedAccounts(validatorAccount, ctx)
 }
 
-func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount state.UserAccountHandler) ([]*api.DirectStakedValue, error) {
+func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount state.UserAccountHandler, ctx context.Context) ([]*api.DirectStakedValue, error) {
 	rootHash, err := validatorAccount.DataTrie().RootHash()
 	if err != nil {
 		return nil, err
 	}
 
 	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
+	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +84,10 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		}
 
 		stakedAccounts = append(stakedAccounts, val)
+	}
+
+	if common.IsContextDone(ctx) {
+		return nil, ErrTrieOperationsTimeout
 	}
 
 	return stakedAccounts, nil

@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"context"
 	"encoding/hex"
 	"testing"
 
@@ -209,14 +210,14 @@ func TestNodeApiResolver_GetTotalStakedValue(t *testing.T) {
 	arg := createMockArgs()
 	stakeValue := &api.StakeValues{}
 	arg.TotalStakedValueHandler = &mock.StakeValuesProcessorStub{
-		GetTotalStakedValueCalled: func() (*api.StakeValues, error) {
+		GetTotalStakedValueCalled: func(_ context.Context) (*api.StakeValues, error) {
 			wasCalled = true
 			return stakeValue, nil
 		},
 	}
 
 	nar, _ := external.NewNodeApiResolver(arg)
-	recoveredStakeValue, err := nar.GetTotalStakedValue()
+	recoveredStakeValue, err := nar.GetTotalStakedValue(context.Background())
 	assert.Nil(t, err)
 	assert.True(t, recoveredStakeValue == stakeValue) //pointer testing
 	assert.True(t, wasCalled)
@@ -229,14 +230,14 @@ func TestNodeApiResolver_GetDelegatorsList(t *testing.T) {
 	arg := createMockArgs()
 	delegators := make([]*api.Delegator, 1)
 	arg.DelegatedListHandler = &mock.DelegatedListProcessorStub{
-		GetDelegatorsListCalled: func() ([]*api.Delegator, error) {
+		GetDelegatorsListCalled: func(_ context.Context) ([]*api.Delegator, error) {
 			wasCalled = true
 			return delegators, nil
 		},
 	}
 
 	nar, _ := external.NewNodeApiResolver(arg)
-	recoveredDelegatorsList, err := nar.GetDelegatorsList()
+	recoveredDelegatorsList, err := nar.GetDelegatorsList(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, recoveredDelegatorsList, delegators)
 	assert.True(t, wasCalled)
@@ -249,14 +250,14 @@ func TestNodeApiResolver_GetDirectStakedList(t *testing.T) {
 	arg := createMockArgs()
 	directStakedValueList := make([]*api.DirectStakedValue, 1)
 	arg.DirectStakedListHandler = &mock.DirectStakedListProcessorStub{
-		GetDirectStakedListCalled: func() ([]*api.DirectStakedValue, error) {
+		GetDirectStakedListCalled: func(ctx context.Context) ([]*api.DirectStakedValue, error) {
 			wasCalled = true
 			return directStakedValueList, nil
 		},
 	}
 
 	nar, _ := external.NewNodeApiResolver(arg)
-	recoveredDirectStakedValueList, err := nar.GetDirectStakedList()
+	recoveredDirectStakedValueList, err := nar.GetDirectStakedList(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, recoveredDirectStakedValueList, directStakedValueList)
 	assert.True(t, wasCalled)

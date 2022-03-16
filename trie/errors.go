@@ -105,6 +105,3 @@ var ErrKeyNotFound = errors.New("key not found")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
-
-// ErrContextDeadlineExceeded signals that a context has exceeded it's deadline
-var ErrContextDeadlineExceeded = errors.New("context deadline exceeded")

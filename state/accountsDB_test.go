@@ -1306,10 +1306,10 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	getAllLeavesCalled := false
 	trieStub := &trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
-				getAllLeavesCalled = true
-				close(ch)
+			getAllLeavesCalled = true
+			close(ch)
 
-				return nil
+			return nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{}
