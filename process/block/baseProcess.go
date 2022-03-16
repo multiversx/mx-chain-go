@@ -1165,12 +1165,10 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
-	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
-	if errNotCritical != nil {
-		log.Warn("saveBody.SaveTxsToStorage", "error", errNotCritical.Error())
-	}
+	bp.txCoordinator.SaveTxsToStorage(body)
 	log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
 
+	var errNotCritical error
 	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		marshalizedMiniBlock, errNotCritical = bp.marshalizer.Marshal(body.MiniBlocks[i])
