@@ -36,13 +36,13 @@ func CreateShardValidatorsMap(input map[uint32][]*ValidatorInfo) *shardValidator
 }
 
 // Replace will replace src with dst map
-func Replace(src, dest map[uint32][]*ValidatorInfo) {
-	for shardID := range src {
-		delete(src, shardID)
+func Replace(oldMap, newMap map[uint32][]*ValidatorInfo) {
+	for shardID := range oldMap {
+		delete(oldMap, shardID)
 	}
 
-	for shardID, validatorsInShard := range src {
-		dest[shardID] = validatorsInShard
+	for shardID, validatorsInShard := range newMap {
+		oldMap[shardID] = validatorsInShard
 	}
 
 }
