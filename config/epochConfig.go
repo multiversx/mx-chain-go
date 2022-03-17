@@ -75,6 +75,8 @@ type EnableEpochs struct {
 	ESDTRegisterAndSetAllRolesEnableEpoch             uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch    uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch        uint32
+	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
+	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 	StakeLimitsEnableEpoch                            uint32
 	StakingV4InitEnableEpoch                          uint32
 	StakingV4EnableEpoch                              uint32

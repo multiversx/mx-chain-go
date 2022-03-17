@@ -98,6 +98,7 @@ type snapshotPruningStorer interface {
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpoch() (uint32, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	RemoveFromCurrentEpoch(key []byte) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch

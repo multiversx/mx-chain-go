@@ -1,11 +1,13 @@
 package sharding
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,12 +32,12 @@ func TestMultiShardCoordinator_NewMultiShardCoordinator(t *testing.T) {
 func TestMultiShardCoordinator_NewMultiShardCoordinatorInvalidNumberOfShards(t *testing.T) {
 	sr, err := NewMultiShardCoordinator(0, 0)
 	assert.Nil(t, sr)
-	assert.Equal(t, ErrInvalidNumberOfShards, err)
+	assert.Equal(t, nodesCoordinator.ErrInvalidNumberOfShards, err)
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinatorSelfIdGraterThanNrOfShardsShouldError(t *testing.T) {
 	_, err := NewMultiShardCoordinator(1, 2)
-	assert.Equal(t, ErrInvalidShardId, err)
+	assert.Equal(t, nodesCoordinator.ErrInvalidShardId, err)
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinatorCorrectSelfId(t *testing.T) {
@@ -183,6 +185,21 @@ func TestMultiShardCoordinator_SameShardDifferentAddressMultipleShards(t *testin
 	addr2 := getAddressFromUint32(uint32(2))
 
 	assert.False(t, shard.SameShard(addr1, addr2))
+}
+
+func TestMultiShardCoordinator_ComputeIDContractDeploy(t *testing.T) {
+	shard, _ := NewMultiShardCoordinator(2, 1)
+
+	addr1 := bytes.Repeat([]byte{0}, 32)
+	assert.Equal(t, shard.ComputeId(addr1), shard.SelfId())
+}
+
+func TestMultiShardCoordinator_SameShardContractDeploy(t *testing.T) {
+	shard, _ := NewMultiShardCoordinator(2, 0)
+
+	addr1 := bytes.Repeat([]byte{0}, 32)
+	addr2 := bytes.Repeat([]byte{1}, 32)
+	assert.True(t, shard.SameShard(addr1, addr2))
 }
 
 func TestMultiShardCoordinator_CommunicationIdentifierSameShard(t *testing.T) {

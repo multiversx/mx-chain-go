@@ -165,10 +165,13 @@ func (ts *transactionsSync) requestTransactionsFor(miniBlock *block.MiniBlock) i
 	switch mbType {
 	case block.TxBlock:
 		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestTransaction(miniBlock.ReceiverShardID, missingTxs)
 	case block.SmartContractResultBlock:
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestUnsignedTransactions(miniBlock.ReceiverShardID, missingTxs)
 	case block.RewardsBlock:
 		ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestRewardTransactions(miniBlock.ReceiverShardID, missingTxs)
 	}
 
 	return len(missingTxs)
@@ -186,7 +189,8 @@ func (ts *transactionsSync) receivedTransaction(txHash []byte, val interface{}) 
 		ts.mutPendingTx.Unlock()
 		return
 	}
-	if _, ok := ts.mapTransactions[string(txHash)]; ok {
+	_, ok = ts.mapTransactions[string(txHash)]
+	if ok {
 		ts.mutPendingTx.Unlock()
 		return
 	}

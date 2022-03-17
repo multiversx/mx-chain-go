@@ -3350,7 +3350,6 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Arguments = [][]byte{}
 	arguments.Function = "getQueueIndex"
 	retCode := stakingSmartContract.Execute(arguments)
 	require.Equal(t, vmcommon.UserError, retCode)
