@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"fmt"
+	atomicFlag "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"math/big"
 	"strconv"
 	"strings"
@@ -19,6 +20,8 @@ import (
 )
 
 const dummySignature = "01010101"
+const gasRemainedSplitString = "gas remained = "
+const gasUsedSlitString = "gas used = "
 
 type transactionCostEstimator struct {
 	accounts         state.AccountsAdapter
@@ -27,6 +30,9 @@ type transactionCostEstimator struct {
 	feeHandler       process.FeeHandler
 	txSimulator      facade.TransactionSimulatorProcessor
 	mutExecution     sync.RWMutex
+
+	flagTooMuchGasV2Msg        atomicFlag.Flag
+	tooMuchGasV2MsgEnableEpoch uint32
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
@@ -36,6 +42,8 @@ func NewTransactionCostEstimator(
 	txSimulator facade.TransactionSimulatorProcessor,
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	epochNotifier process.EpochNotifier,
+	tooMuchGasMessageV2EnableEpoch uint32,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -52,14 +60,23 @@ func NewTransactionCostEstimator(
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
-	return &transactionCostEstimator{
-		txTypeHandler:    txTypeHandler,
-		feeHandler:       feeHandler,
-		txSimulator:      txSimulator,
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-	}, nil
+	tce := &transactionCostEstimator{
+		txTypeHandler:              txTypeHandler,
+		feeHandler:                 feeHandler,
+		txSimulator:                txSimulator,
+		accounts:                   accounts,
+		shardCoordinator:           shardCoordinator,
+		tooMuchGasV2MsgEnableEpoch: tooMuchGasMessageV2EnableEpoch,
+		flagTooMuchGasV2Msg:        atomicFlag.Flag{},
+	}
+
+	epochNotifier.RegisterNotifyHandler(tce)
+
+	return tce, nil
 }
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
@@ -138,7 +155,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
 		return &transaction.CostResponse{
-			GasUnits:             computeGasUnitsBasedOnVMOutput(tx, res.VMOutput),
+			GasUnits:             tce.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput),
 			ReturnMessage:        "",
 			SmartContractResults: res.ScResults,
 		}, nil
@@ -151,17 +168,22 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	}, nil
 }
 
-func computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
+func (tce *transactionCostEstimator) computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
 	isTooMuchGasProvided := strings.Contains(vmOutput.ReturnMessage, smartContract.TooMuchGasProvidedMessage)
 	if !isTooMuchGasProvided {
 		return tx.GasLimit - vmOutput.GasRemaining
 	}
 
-	return tx.GasLimit - extractGasRemainedFromMessage(vmOutput.ReturnMessage)
+	if tce.flagTooMuchGasV2Msg.IsSet() {
+		gasNeededForProcessing := extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasUsedSlitString)
+		return tce.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing
+	}
+
+	return tx.GasLimit - extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasRemainedSplitString)
 }
 
-func extractGasRemainedFromMessage(message string) uint64 {
-	splitMessage := strings.Split(message, "gas remained = ")
+func extractGasRemainedFromMessage(message string, splitString string) uint64 {
+	splitMessage := strings.Split(message, splitString)
 	if len(splitMessage) < 2 {
 		log.Warn("extractGasRemainedFromMessage", "error", "cannot split message", "message", message)
 		return 0
@@ -224,6 +246,12 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 	}
 
 	return maxGasLimitPerBlock, nil
+}
+
+// EpochConfirmed  is called whenever a new epoch is confirmed
+func (tce *transactionCostEstimator) EpochConfirmed(epoch uint32, timestamp uint64) {
+	tce.flagTooMuchGasV2Msg.SetValue(epoch >= tce.tooMuchGasV2MsgEnableEpoch)
+	log.Debug("transactionCostEstimator: too much gas V2 message", "enabled", tce.flagTooMuchGasV2Msg.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -82,10 +82,11 @@ func getDefaultStateComponents(
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := &hashingMocks.HasherMock{}
+
 	args := trie.NewTrieStorageManagerArgs{
 		DB:                testscommon.NewMemDbMock(),
 		MainStorer:        testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer: testscommon.CreateMemUnit(),
+		CheckpointsStorer: testscommon.NewSnapshotPruningStorerMock(),
 		Marshalizer:       marshalizer,
 		Hasher:            hsh,
 		SnapshotDbConfig: config.DBConfig{
