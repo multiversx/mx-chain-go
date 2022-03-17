@@ -2,7 +2,11 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 )
 
 type shardValidatorsInfoMap struct {
@@ -68,16 +72,17 @@ func (vi *shardValidatorsInfoMap) GetShardValidatorsInfoMap() map[uint32][]Valid
 }
 
 // Add adds a new ValidatorInfoHandler in its corresponding shardID, if it doesn't already exists
-func (vi *shardValidatorsInfoMap) Add(validator ValidatorInfoHandler) {
-	if vi.GetValidator(validator.GetPublicKey()) != nil {
-		return
+func (vi *shardValidatorsInfoMap) Add(validator ValidatorInfoHandler) error {
+	if check.IfNil(validator) {
+		return ErrNilValidatorInfo
 	}
 
 	shardID := validator.GetShardId()
-
 	vi.mutex.Lock()
 	vi.valInfoMap[shardID] = append(vi.valInfoMap[shardID], validator)
 	vi.mutex.Unlock()
+
+	return nil
 }
 
 // GetValidator returns a ValidatorInfoHandler with the provided blsKey, if it is present in the map
@@ -93,9 +98,21 @@ func (vi *shardValidatorsInfoMap) GetValidator(blsKey []byte) ValidatorInfoHandl
 
 // Replace will replace an existing ValidatorInfoHandler with a new one. The old and new validator
 // shall be in the same shard and have the same public key.
-func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) {
+func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error {
+	if check.IfNil(old) {
+		return fmt.Errorf("%w for old validator in shardValidatorsInfoMap.Replace", ErrNilValidatorInfo)
+	}
+	if check.IfNil(new) {
+		return fmt.Errorf("%w for new validator in shardValidatorsInfoMap.Replace", ErrNilValidatorInfo)
+	}
 	if old.GetShardId() != new.GetShardId() {
-		return
+		return fmt.Errorf("%w when trying to replace %s from shard %v with %s from shard %v",
+			ErrValidatorsDifferentShards,
+			hex.EncodeToString(old.GetPublicKey()),
+			old.GetShardId(),
+			hex.EncodeToString(new.GetPublicKey()),
+			new.GetShardId(),
+		)
 	}
 
 	shardID := old.GetShardId()
@@ -109,28 +126,47 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 			break
 		}
 	}
+
+	return nil
 }
 
 // SetValidatorsInShard resets all validators saved in a specific shard with the provided []ValidatorInfoHandler.
 // Before setting them, it checks that provided validators have the same shardID as the one provided.
-func (vi *shardValidatorsInfoMap) SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) {
+func (vi *shardValidatorsInfoMap) SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error {
 	sameShardValidators := make([]ValidatorInfoHandler, 0, len(validators))
-	for _, validator := range validators {
-		if validator.GetShardId() == shardID {
-			sameShardValidators = append(sameShardValidators, validator)
+	for idx, validator := range validators {
+		if check.IfNil(validator) {
+			return fmt.Errorf("%w in shardValidatorsInfoMap.SetValidatorsInShard at index %d",
+				ErrNilValidatorInfo,
+				idx,
+			)
 		}
+		if validator.GetShardId() != shardID {
+			return fmt.Errorf("%w, %s is in shard %d, but should be set in shard %d in shardValidatorsInfoMap.SetValidatorsInShard",
+				ErrValidatorsDifferentShards,
+				hex.EncodeToString(validator.GetPublicKey()),
+				validator.GetShardId(),
+				shardID,
+			)
+		}
+		sameShardValidators = append(sameShardValidators, validator)
 	}
 
 	vi.mutex.Lock()
 	vi.valInfoMap[shardID] = sameShardValidators
 	vi.mutex.Unlock()
+
+	return nil
 }
 
-// Delete will delete the provided validator from the internally stored map. The validators slice at the
-// corresponding shardID key will be re-sliced, without reordering
-func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) {
-	shardID := validator.GetShardId()
+// Delete will delete the provided validator from the internally stored map, if found.
+// The validators slice at the corresponding shardID key will be re-sliced, without reordering
+func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) error {
+	if check.IfNil(validator) {
+		return ErrNilValidatorInfo
+	}
 
+	shardID := validator.GetShardId()
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()
 
@@ -143,6 +179,8 @@ func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) {
 			break
 		}
 	}
+
+	return nil
 }
 
 // TODO: Delete this once map[uint32][]*ValidatorInfo is completely replaced with new interface

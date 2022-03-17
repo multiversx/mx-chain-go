@@ -1,7 +1,9 @@
 package state
 
 import (
+	"encoding/hex"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -9,7 +11,55 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestShardValidatorsInfoMap_Add_GetShardValidatorsInfoMap_GetAllValidatorsInfo(t *testing.T) {
+func TestShardValidatorsInfoMap_Add_Delete_Replace_SetValidatorsInShard_NilValidators(t *testing.T) {
+	t.Parallel()
+
+	vi := NewShardValidatorsInfoMap(1)
+
+	err := vi.Add(nil)
+	require.Equal(t, ErrNilValidatorInfo, err)
+
+	err = vi.Delete(nil)
+	require.Equal(t, ErrNilValidatorInfo, err)
+
+	err = vi.Replace(nil, &ValidatorInfo{})
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrNilValidatorInfo.Error()))
+	require.True(t, strings.Contains(err.Error(), "old"))
+
+	err = vi.Replace(&ValidatorInfo{}, nil)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrNilValidatorInfo.Error()))
+	require.True(t, strings.Contains(err.Error(), "new"))
+
+	v := &ValidatorInfo{ShardId: 3, PublicKey: []byte("pk")}
+	err = vi.SetValidatorsInShard(3, []ValidatorInfoHandler{v, nil})
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrNilValidatorInfo.Error()))
+	require.True(t, strings.Contains(err.Error(), "index 1"))
+}
+
+func TestCreateShardValidatorsMap(t *testing.T) {
+	t.Parallel()
+
+	v0 := &ValidatorInfo{ShardId: core.MetachainShardId, PublicKey: []byte("pk0")}
+	v1 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk1")}
+	v2 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk2")}
+
+	input := map[uint32][]*ValidatorInfo{
+		core.MetachainShardId: {v0},
+		1:                     {v1, v2},
+	}
+	expectedValidatorsMap := map[uint32][]ValidatorInfoHandler{
+		core.MetachainShardId: {v0},
+		1:                     {v1, v2},
+	}
+
+	vi := CreateShardValidatorsMap(input)
+	require.Equal(t, expectedValidatorsMap, vi.GetShardValidatorsInfoMap())
+}
+
+func TestShardValidatorsInfoMap_Add_GetShardValidatorsInfoMap_GetAllValidatorsInfo_GetValInfoPointerMap(t *testing.T) {
 	t.Parallel()
 
 	vi := NewShardValidatorsInfoMap(3)
@@ -19,11 +69,10 @@ func TestShardValidatorsInfoMap_Add_GetShardValidatorsInfoMap_GetAllValidatorsIn
 	v2 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk2")}
 	v3 := &ValidatorInfo{ShardId: core.MetachainShardId, PublicKey: []byte("pk3")}
 
-	vi.Add(v0)
-	vi.Add(v1)
-	vi.Add(v2)
-	vi.Add(v3)
-	vi.Add(v3)
+	_ = vi.Add(v0)
+	_ = vi.Add(v1)
+	_ = vi.Add(v2)
+	_ = vi.Add(v3)
 
 	allValidators := vi.GetAllValidatorsInfo()
 	require.Len(t, allValidators, 4)
@@ -49,7 +98,7 @@ func TestShardValidatorsInfoMap_Add_GetShardValidatorsInfoMap_GetAllValidatorsIn
 	require.Equal(t, expectedValidatorPointersMap, validatorPointersMap)
 }
 
-func TestShardValidatorsInfoMap_GetValidatorWithBLSKey(t *testing.T) {
+func TestShardValidatorsInfoMap_GetValidator(t *testing.T) {
 	t.Parallel()
 
 	vi := NewShardValidatorsInfoMap(1)
@@ -59,8 +108,8 @@ func TestShardValidatorsInfoMap_GetValidatorWithBLSKey(t *testing.T) {
 	v0 := &ValidatorInfo{ShardId: 0, PublicKey: pubKey0}
 	v1 := &ValidatorInfo{ShardId: 1, PublicKey: pubKey1}
 
-	vi.Add(v0)
-	vi.Add(v1)
+	_ = vi.Add(v0)
+	_ = vi.Add(v1)
 
 	require.Equal(t, v0, vi.GetValidator(pubKey0))
 	require.Equal(t, v1, vi.GetValidator(pubKey1))
@@ -77,17 +126,22 @@ func TestShardValidatorsInfoMap_Delete(t *testing.T) {
 	v2 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk2")}
 	v3 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk3")}
 
-	vi.Add(v0)
-	vi.Add(v1)
-	vi.Add(v2)
-	vi.Add(v3)
+	_ = vi.Add(v0)
+	_ = vi.Add(v1)
+	_ = vi.Add(v2)
+	_ = vi.Add(v3)
 
-	vi.Delete(&ValidatorInfo{ShardId: 0, PublicKey: []byte("pk3")})
-	vi.Delete(&ValidatorInfo{ShardId: 1, PublicKey: []byte("pk0")})
+	_ = vi.Delete(&ValidatorInfo{ShardId: 0, PublicKey: []byte("pk3")})
+	_ = vi.Delete(&ValidatorInfo{ShardId: 1, PublicKey: []byte("pk0")})
 	require.Len(t, vi.GetAllValidatorsInfo(), 4)
 
-	vi.Delete(&ValidatorInfo{ShardId: 0, PublicKey: []byte("pk1")})
+	_ = vi.Delete(v1)
 	require.Len(t, vi.GetAllValidatorsInfo(), 3)
+	require.Equal(t, []ValidatorInfoHandler{v0, v2}, vi.GetShardValidatorsInfoMap()[0])
+	require.Equal(t, []ValidatorInfoHandler{v3}, vi.GetShardValidatorsInfoMap()[1])
+
+	_ = vi.Delete(v3)
+	require.Len(t, vi.GetAllValidatorsInfo(), 2)
 	require.Equal(t, []ValidatorInfoHandler{v0, v2}, vi.GetShardValidatorsInfoMap()[0])
 }
 
@@ -99,14 +153,17 @@ func TestShardValidatorsInfoMap_Replace(t *testing.T) {
 	v0 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk0")}
 	v1 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk1")}
 
-	vi.Add(v0)
-	vi.Add(v1)
+	_ = vi.Add(v0)
+	_ = vi.Add(v1)
 
-	vi.Replace(v0, &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk2")})
+	err := vi.Replace(v0, &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk2")})
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrValidatorsDifferentShards.Error()))
 	require.Equal(t, []ValidatorInfoHandler{v0, v1}, vi.GetShardValidatorsInfoMap()[0])
 
 	v2 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk2")}
-	vi.Replace(v0, v2)
+	err = vi.Replace(v0, v2)
+	require.Nil(t, err)
 	require.Equal(t, []ValidatorInfoHandler{v2, v1}, vi.GetShardValidatorsInfoMap()[0])
 }
 
@@ -116,7 +173,7 @@ func TestShardValidatorsInfoMap_SetValidatorsInShard(t *testing.T) {
 	vi := NewShardValidatorsInfoMap(2)
 
 	v0 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk0")}
-	vi.Add(v0)
+	_ = vi.Add(v0)
 
 	v1 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk1")}
 	v2 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk2")}
@@ -124,14 +181,26 @@ func TestShardValidatorsInfoMap_SetValidatorsInShard(t *testing.T) {
 	shard0Validators := []ValidatorInfoHandler{v1, v2}
 	shard1Validators := []ValidatorInfoHandler{v3}
 
-	vi.SetValidatorsInShard(1, shard0Validators)
+	err := vi.SetValidatorsInShard(1, shard0Validators)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrValidatorsDifferentShards.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(v1.PublicKey)))
 	require.Equal(t, []ValidatorInfoHandler{v0}, vi.GetShardValidatorsInfoMap()[0])
+	require.Empty(t, vi.GetShardValidatorsInfoMap()[1])
 
-	vi.SetValidatorsInShard(0, []ValidatorInfoHandler{v1, v2, v3})
+	err = vi.SetValidatorsInShard(0, []ValidatorInfoHandler{v1, v2, v3})
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrValidatorsDifferentShards.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(v3.PublicKey)))
+	require.Equal(t, []ValidatorInfoHandler{v0}, vi.GetShardValidatorsInfoMap()[0])
+	require.Empty(t, vi.GetShardValidatorsInfoMap()[1])
+
+	err = vi.SetValidatorsInShard(0, shard0Validators)
+	require.Nil(t, err)
 	require.Equal(t, shard0Validators, vi.GetShardValidatorsInfoMap()[0])
 
-	vi.SetValidatorsInShard(1, shard1Validators)
-	require.Equal(t, shard0Validators, vi.GetShardValidatorsInfoMap()[0])
+	err = vi.SetValidatorsInShard(1, shard1Validators)
+	require.Nil(t, err)
 	require.Equal(t, shard1Validators, vi.GetShardValidatorsInfoMap()[1])
 }
 
@@ -141,26 +210,27 @@ func TestShardValidatorsInfoMap_GettersShouldReturnCopiesOfInternalData(t *testi
 	vi := NewShardValidatorsInfoMap(2)
 
 	v0 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk0")}
-	v1 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk1")}
-	v2 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk2")}
+	v1 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk1")}
 
-	vi.Add(v0)
-	vi.Add(v1)
-	vi.Add(v2)
+	_ = vi.Add(v0)
+	_ = vi.Add(v1)
 
 	validatorsMap := vi.GetShardValidatorsInfoMap()
 	delete(validatorsMap, 0)
+	validatorsMap[1][0].SetPublicKey([]byte("rnd"))
 
 	validatorPointersMap := vi.GetValInfoPointerMap()
 	delete(validatorPointersMap, 0)
+	validatorsMap[1][0].SetPublicKey([]byte("rnd"))
 
 	validators := vi.GetAllValidatorsInfo()
 	validators = append(validators, &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk3")})
 
 	validator := vi.GetValidator([]byte("pk0"))
-	validator.SetShardId(1)
+	validator.SetShardId(2)
 
-	require.Equal(t, []ValidatorInfoHandler{v0, v1, v2}, vi.GetAllValidatorsInfo())
+	require.Equal(t, []ValidatorInfoHandler{v0}, vi.GetShardValidatorsInfoMap()[0])
+	require.Equal(t, []ValidatorInfoHandler{v1}, vi.GetShardValidatorsInfoMap()[1])
 }
 
 func TestShardValidatorsInfoMap_Concurrency(t *testing.T) {
@@ -206,11 +276,11 @@ func TestShardValidatorsInfoMap_Concurrency(t *testing.T) {
 
 	wg.Add(2)
 	go func() {
-		vi.SetValidatorsInShard(0, shard0Validators)
+		_ = vi.SetValidatorsInShard(0, shard0Validators)
 		wg.Done()
 	}()
 	go func() {
-		vi.SetValidatorsInShard(1, shard1Validators)
+		_ = vi.SetValidatorsInShard(1, shard1Validators)
 		wg.Done()
 	}()
 	wg.Wait()
@@ -246,7 +316,7 @@ func addValidatorsInShardConcurrently(
 ) {
 	for _, validator := range validators {
 		go func(val ValidatorInfoHandler) {
-			vi.Add(val)
+			_ = vi.Add(val)
 			wg.Done()
 		}(validator)
 	}
@@ -259,7 +329,7 @@ func deleteValidatorsConcurrently(
 ) {
 	for _, validator := range validators {
 		go func(val ValidatorInfoHandler) {
-			vi.Delete(val)
+			_ = vi.Delete(val)
 			wg.Done()
 		}(validator)
 	}
@@ -273,7 +343,7 @@ func replaceValidatorsConcurrently(
 ) {
 	for idx := range oldValidators {
 		go func(old ValidatorInfoHandler, new ValidatorInfoHandler) {
-			vi.Replace(old, new)
+			_ = vi.Replace(old, new)
 			wg.Done()
 		}(oldValidators[idx], newValidators[idx])
 	}

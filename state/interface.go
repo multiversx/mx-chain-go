@@ -190,10 +190,10 @@ type ShardValidatorsInfoMapHandler interface {
 	GetAllValidatorsInfo() []ValidatorInfoHandler
 	GetValidator(blsKey []byte) ValidatorInfoHandler
 
-	Add(validator ValidatorInfoHandler)
-	Delete(validator ValidatorInfoHandler)
-	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler)
-	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler)
+	Add(validator ValidatorInfoHandler) error
+	Delete(validator ValidatorInfoHandler) error
+	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
+	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
 
 	GetValInfoPointerMap() map[uint32][]*ValidatorInfo
 }
