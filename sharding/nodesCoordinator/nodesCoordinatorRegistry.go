@@ -1,4 +1,4 @@
-package sharding
+package nodesCoordinator
 
 // EpochValidators holds one epoch configuration for a nodes coordinator
 type EpochValidators struct {

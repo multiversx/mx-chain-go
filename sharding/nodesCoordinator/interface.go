@@ -130,3 +130,23 @@ type EpochsConfigUpdateHandler interface {
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
 }
+
+// EpochValidatorsHandler defines what one epoch configuration for a nodes coordinator should hold
+type EpochValidatorsHandler interface {
+	GetEligibleValidators() map[string][]*SerializableValidator
+	GetWaitingValidators() map[string][]*SerializableValidator
+	GetLeavingValidators() map[string][]*SerializableValidator
+}
+
+// EpochValidatorsHandlerWithAuction defines what one epoch configuration for a nodes coordinator should hold + shuffled out validators
+type EpochValidatorsHandlerWithAuction interface {
+	EpochValidatorsHandler
+	GetShuffledOutValidators() map[string][]*SerializableValidator
+}
+
+// NodesCoordinatorRegistryHandler defines what is used to initialize nodes coordinator
+type NodesCoordinatorRegistryHandler interface {
+	GetEpochsConfig() map[string]EpochValidatorsHandler
+	GetCurrentEpoch() uint32
+	SetCurrentEpoch(epoch uint32)
+}

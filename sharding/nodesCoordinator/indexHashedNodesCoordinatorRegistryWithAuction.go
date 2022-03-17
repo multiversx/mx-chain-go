@@ -1,20 +1,22 @@
-package sharding
+package nodesCoordinator
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // nodesCoordinatorToRegistryWithAuction will export the nodesCoordinator data to the registry which contains auction list
-func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction() *NodesCoordinatorRegistryWithAuction {
-	ihgs.mutNodesConfig.RLock()
-	defer ihgs.mutNodesConfig.RUnlock()
+func (ihnc *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction() *NodesCoordinatorRegistryWithAuction {
+	ihnc.mutNodesConfig.RLock()
+	defer ihnc.mutNodesConfig.RUnlock()
 
 	registry := &NodesCoordinatorRegistryWithAuction{
-		CurrentEpoch:            ihgs.currentEpoch,
+		CurrentEpoch:            ihnc.currentEpoch,
 		EpochsConfigWithAuction: make(map[string]*EpochValidatorsWithAuction),
 	}
 
-	minEpoch, lastEpoch := ihgs.getMinAndLastEpoch()
+	minEpoch, lastEpoch := ihnc.getMinAndLastEpoch()
 	for epoch := minEpoch; epoch <= lastEpoch; epoch++ {
-		epochNodesData, ok := ihgs.nodesConfig[epoch]
+		epochNodesData, ok := ihnc.nodesConfig[epoch]
 		if !ok {
 			continue
 		}

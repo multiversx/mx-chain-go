@@ -26,7 +26,7 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 		return err
 	}
 
-	config, err := CreateNodesCoordinatorRegistry(ihgs.marshalizer, data)
+	config, err := CreateNodesCoordinatorRegistry(ihnc.marshalizer, data)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,6 @@ func (ihnc *indexHashedNodesCoordinator) getRegistryData() ([]byte, error) {
 	var err error
 	var data []byte
 
-	return ihnc.bootStorer.Put(ncInternalkey, data)
 	registry := ihnc.NodesCoordinatorToRegistry()
 	if ihnc.flagStakingV4.IsSet() {
 		data, err = ihnc.marshalizer.Marshal(registry)

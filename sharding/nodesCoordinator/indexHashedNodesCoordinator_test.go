@@ -1321,7 +1321,7 @@ func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t
 		epoch: {
 			shardID: metaShard,
 			shuffledOutMap: map[uint32][]Validator{
-				metaShard: {mock.NewValidatorMock(pk, 1, 1)},
+				metaShard: {newValidatorMock(pk, 1, 1)},
 			},
 		},
 	}
@@ -2076,7 +2076,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	previousConfig := &epochNodesConfig{
 		eligibleMap: map[uint32][]Validator{
 			0: {
-				mock.NewValidatorMock(shard0Eligible.PublicKey, 0, 0),
+				newValidatorMock(shard0Eligible.PublicKey, 0, 0),
 			},
 		},
 	}

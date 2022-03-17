@@ -752,7 +752,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		case string(common.SelectedFromAuctionList):
-			if ihgs.flagStakingV4.IsSet() {
+			if ihnc.flagStakingV4.IsSet() {
 				auctionList = append(auctionList, currentValidator)
 			}
 		}
@@ -1032,11 +1032,11 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId, true
 	}
 
-	if ihgs.flagStakingV4.IsSet() {
+	if ihnc.flagStakingV4.IsSet() {
 		found, shardId = searchInMap(nodesConfig.shuffledOutMap, pubKey)
 		if found {
 			log.Trace("computeShardForSelfPublicKey found validator in shuffled out",
-				"epoch", ihgs.currentEpoch,
+				"epoch", ihnc.currentEpoch,
 				"shard", shardId,
 				"validator PK", pubKey,
 			)
