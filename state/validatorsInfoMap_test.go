@@ -165,6 +165,14 @@ func TestShardValidatorsInfoMap_Replace(t *testing.T) {
 	err = vi.Replace(v0, v2)
 	require.Nil(t, err)
 	require.Equal(t, []ValidatorInfoHandler{v2, v1}, vi.GetShardValidatorsInfoMap()[0])
+
+	v3 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk3")}
+	v4 := &ValidatorInfo{ShardId: 0, PublicKey: []byte("pk4")}
+	err = vi.Replace(v3, v4)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), ErrValidatorNotFound.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(v3.PublicKey)))
+	require.Equal(t, []ValidatorInfoHandler{v2, v1}, vi.GetShardValidatorsInfoMap()[0])
 }
 
 func TestShardValidatorsInfoMap_SetValidatorsInShard(t *testing.T) {
