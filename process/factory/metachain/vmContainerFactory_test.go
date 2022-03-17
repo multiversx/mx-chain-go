@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
@@ -72,7 +73,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		NodesCoordinator: &mock.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
+		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},
 	}
@@ -355,7 +356,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
-		NodesCoordinator: &mock.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
+		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},
 	}

@@ -145,6 +145,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.ProcessComponents.TransactionSimulatorProcessor(),
 		args.StateComponents.AccountsAdapterAPI(),
 		args.ProcessComponents.ShardCoordinator(),
+		args.CoreComponents.EpochNotifier(),
+		args.Configs.EpochConfig.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -197,15 +199,23 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsApiResolver := external.ArgNodeApiResolver{
-		SCQueryService:          scQueryService,
-		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
-		TxCostHandler:           txCostHandler,
-		TotalStakedValueHandler: totalStakedValueHandler,
-		DirectStakedListHandler: directStakedListHandler,
-		DelegatedListHandler:    delegatedListHandler,
-		APITransactionHandler:   apiTransactionProcessor,
-		APIBlockHandler:         apiBlockProcessor,
+		SCQueryService:           scQueryService,
+		StatusMetricsHandler:     args.CoreComponents.StatusHandlerUtils().Metrics(),
+		TxCostHandler:            txCostHandler,
+		TotalStakedValueHandler:  totalStakedValueHandler,
+		DirectStakedListHandler:  directStakedListHandler,
+		DelegatedListHandler:     delegatedListHandler,
+		APITransactionHandler:    apiTransactionProcessor,
+		APIBlockHandler:          apiBlockProcessor,
+		APIInternalBlockHandler:  apiInternalBlockProcessor,
+		GenesisNodesSetupHandler: args.CoreComponents.GenesisNodesSetup(),
+		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -418,7 +428,25 @@ func createBuiltinFuncs(
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
 
-func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (external.APIBlockHandler, error) {
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+}
+
+func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIInternalBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockAPI.CreateAPIInternalBlockProcessor(blockApiArgs)
+}
+
+func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
 	statusComputer, err := txstatus.NewStatusComputer(
 		args.ProcessComponents.ShardCoordinator().SelfId(),
 		args.CoreComponents.Uint64ByteSliceConverter(),
@@ -440,5 +468,5 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 		Hasher:                   args.CoreComponents.Hasher(),
 	}
 
-	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
+	return blockApiArgs, nil
 }

@@ -6,10 +6,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -146,18 +146,18 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoord := &shardingMocks.NodesCoordinatorMock{}
 	err := errors.New("error")
-	nodesCoordinator.ComputeValidatorsGroupCalled = func(
+	nodesCoord.ComputeValidatorsGroupCalled = func(
 		randomness []byte,
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]sharding.Validator, error) {
+	) ([]nodesCoordinator.Validator, error) {
 		return nil, err
 	}
 
-	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator, 0)
+	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoord, 0)
 	assert.Equal(t, err, err2)
 }
 
@@ -166,9 +166,24 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoord := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
+			defaultSelectionChances := uint32(1)
+			return []nodesCoordinator.Validator{
+				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("E"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("F"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("G"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("H"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("I"), 1, defaultSelectionChances),
+			}, nil
+		},
+	}
 
-	nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator, 0)
+	nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoord, 0)
 	assert.Nil(t, err)
 	assert.NotNil(t, nextConsensusGroup)
 }

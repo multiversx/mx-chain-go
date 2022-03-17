@@ -1,13 +1,13 @@
 package bootstrapMocks
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 
 // BootstrapParamsHandlerMock -
 type BootstrapParamsHandlerMock struct {
 	EpochCalled       func() uint32
 	SelfShardIDCalled func() uint32
 	NumOfShardsCalled func() uint32
-	NodesConfigCalled func() *sharding.NodesCoordinatorRegistry
+	NodesConfigCalled func() *nodesCoordinator.NodesCoordinatorRegistry
 }
 
 // Epoch -
@@ -36,7 +36,7 @@ func (bphm *BootstrapParamsHandlerMock) NumOfShards() uint32 {
 }
 
 // NodesConfig -
-func (bphm *BootstrapParamsHandlerMock) NodesConfig() *sharding.NodesCoordinatorRegistry {
+func (bphm *BootstrapParamsHandlerMock) NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry {
 	if bphm.NodesConfigCalled != nil {
 		return bphm.NodesConfigCalled()
 	}

@@ -1038,3 +1038,161 @@ func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
 }
+
+// ---- MetaBlock
+
+func TestNodeFacade_GetInternalMetaBlockByNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalMetaBlockByNonce(common.ApiOutputFormatProto, 0)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
+
+func TestNodeFacade_GetInternalMetaBlockByRoundShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalMetaBlockByRound(common.ApiOutputFormatProto, 0)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
+
+func TestNodeFacade_GetInternalMetaBlockByHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalMetaBlockByHash(common.ApiOutputFormatProto, "dummyhash")
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
+
+// ---- ShardBlock
+
+func TestNodeFacade_GetInternalShardBlockByNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.Header{
+		Round: 0,
+		Nonce: 0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalShardBlockByNonce(common.ApiOutputFormatProto, 0)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
+
+func TestNodeFacade_GetInternalShardBlockByRoundShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.Header{
+		Round: 0,
+		Nonce: 0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalShardBlockByRound(common.ApiOutputFormatProto, 0)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
+
+func TestNodeFacade_GetInternalShardBlockByHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.Header{
+		Round: 0,
+		Nonce: 0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalShardBlockByHash(common.ApiOutputFormatProto, "dummyhash")
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
+
+func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	blk := &block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+	}
+
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetInternalMiniBlockCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
+			return blk, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	ret, err := nf.GetInternalMiniBlockByHash(common.ApiOutputFormatProto, "dummyhash", 1)
+
+	assert.Nil(t, err)
+	assert.Equal(t, ret, blk)
+}
