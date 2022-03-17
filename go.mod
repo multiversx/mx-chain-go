@@ -57,6 +57,6 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.39 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.39 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.39
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.44 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.44
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.44 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.45-0.20220317104253-9919c14d121e
 
 replace github.com/libp2p/go-libp2p-pubsub v0.5.5 => github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-gamma
