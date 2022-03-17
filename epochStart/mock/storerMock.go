@@ -76,6 +76,12 @@ func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 	return sm.Get(key)
 }
 
+// RemoveFromCurrentEpoch -
+func (sm *StorerMock) RemoveFromCurrentEpoch(key []byte) error {
+	delete(sm.data, string(key))
+	return nil
+}
+
 // Remove -
 func (sm *StorerMock) Remove(key []byte) error {
 	delete(sm.data, string(key))

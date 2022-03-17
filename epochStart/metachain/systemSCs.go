@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -33,7 +34,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	Marshalizer          marshal.Marshalizer
 	StartRating          uint32
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
-	ChanceComputer       sharding.ChanceComputer
+	ChanceComputer       nodesCoordinator.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
 	EpochConfig          config.EpochConfig
 

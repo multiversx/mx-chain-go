@@ -48,6 +48,8 @@ const (
 
 	generalSCRIdentifier = "writeLog"
 	signalError          = "signalError"
+	completedTxEvent     = "completedTxEvent"
+	returnOkData         = "@6f6b"
 )
 
 var zero = big.NewInt(0)
@@ -81,6 +83,7 @@ type scProcessor struct {
 	cleanUpInformativeSCRsEnableEpoch           uint32
 	isPayableBySCEnableEpoch                    uint32
 	fixCodeMetadataOnUpgradeContract            uint32
+	scrSizeInvariantOnBuiltInResultEnableEpoch  uint32
 	flagStakingV2                               atomic.Flag
 	flagDeploy                                  atomic.Flag
 	flagBuiltin                                 atomic.Flag
@@ -100,6 +103,7 @@ type scProcessor struct {
 	flagCleanUpInformativeSCRs                  atomic.Flag
 	flagIsPayableBySC                           atomic.Flag
 	flagFixCodeMetadataOnUpgradeContract        atomic.Flag
+	flagSCRSizeInvariantOnBuiltInResult         atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -249,6 +253,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		cleanUpInformativeSCRsEnableEpoch:           args.EnableEpochs.CleanUpInformativeSCRsEnableEpoch,
 		isPayableBySCEnableEpoch:                    args.EnableEpochs.IsPayableBySCEnableEpoch,
 		fixCodeMetadataOnUpgradeContract:            args.EnableEpochs.IsPayableBySCEnableEpoch,
+		scrSizeInvariantOnBuiltInResultEnableEpoch:  args.EnableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch,
 	}
 
 	var err error
@@ -272,6 +277,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for cleaning up created scrs that are informative only", "epoch", sc.cleanUpInformativeSCRsEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for payable by SC", "epoch", sc.isPayableBySCEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for fix code metadata on upgrade contract", "epoch", sc.fixCodeMetadataOnUpgradeContract)
+	log.Debug("smartContract/process: enable epoch for scr size invariant on built in", "epoch", sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -465,7 +471,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	return vmOutput, nil
 }
 
-func (sc *scProcessor) isInformativeSCR(txHandler data.TransactionHandler) bool {
+func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler) bool {
 	if txHandler.GetValue().Cmp(zero) > 0 {
 		return false
 	}
@@ -493,7 +499,7 @@ func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) 
 	logsFromSCRs := make([]*vmcommon.LogEntry, 0)
 
 	for _, scr := range scrs {
-		if sc.isInformativeSCR(scr) {
+		if sc.isInformativeTxHandler(scr) {
 			logsFromSCRs = append(logsFromSCRs, createNewLogFromSCR(scr))
 			continue
 		}
@@ -531,6 +537,11 @@ func (sc *scProcessor) finishSCExecution(
 	}
 
 	vmOutput.Logs = append(vmOutput.Logs, logsFromSCRs...)
+	completedTxLog := sc.createCompleteEventLogIfNoMoreAction(tx, txHash, finalResults)
+	if completedTxLog != nil {
+		vmOutput.Logs = append(vmOutput.Logs, completedTxLog)
+	}
+
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
 		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
@@ -646,7 +657,12 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 }
 
 func (sc *scProcessor) isSelfShard(address []byte) bool {
-	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
+	addressShardID := sc.shardCoordinator.ComputeId(address)
+	if !sc.flagCleanUpInformativeSCRs.IsSet() && core.IsEmptyAddress(address) {
+		addressShardID = 0
+	}
+
+	return addressShardID == sc.shardCoordinator.SelfId()
 }
 
 func (sc *scProcessor) gasConsumedChecks(
@@ -1021,6 +1037,13 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		}
 	}
 
+	if sc.flagSCRSizeInvariantOnBuiltInResult.IsSet() {
+		err := sc.checkSCRSizeInvariant(scrResults)
+		if err != nil {
+			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
+		}
+	}
+
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
@@ -1360,7 +1383,7 @@ func (sc *scProcessor) ProcessIfError(
 
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.flagCleanUpInformativeSCRs.IsSet() || !sc.isInformativeSCR(scrIfError) {
+	if !sc.flagCleanUpInformativeSCRs.IsSet() || !sc.isInformativeTxHandler(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
@@ -1903,7 +1926,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	tx data.TransactionHandler,
 	txHash []byte,
 	callType vmData.CallType,
-	gasProvided uint64,
+	gasProvidedForProcessing uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	if !sc.flagPenalizedTooMuchGas.IsSet() {
@@ -1913,12 +1936,12 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	isTooMuchProvided := isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	isTooMuchProvided := isTooMuchGasProvided(gasProvidedForProcessing, vmOutput.GasRemaining)
 	if !isTooMuchProvided {
 		return
 	}
 
-	gasUsed := gasProvided - vmOutput.GasRemaining
+	gasUsed := gasProvidedForProcessing - vmOutput.GasRemaining
 	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas provided",
 		"hash", txHash,
 		"nonce", tx.GetNonce(),
@@ -1927,7 +1950,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"receiver", tx.GetRcvAddr(),
 		"gas limit", tx.GetGasLimit(),
 		"gas price", tx.GetGasPrice(),
-		"gas provided", gasProvided,
+		"gas provided", gasProvidedForProcessing,
 		"gas remained", vmOutput.GasRemaining,
 		"gas used", gasUsed,
 		"return code", vmOutput.ReturnCode.String(),
@@ -1945,8 +1968,14 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 	}
 
-	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
-		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
+	if !sc.flagCleanUpInformativeSCRs.IsSet() {
+		vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+			TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
+	} else {
+		vmOutput.ReturnMessage += fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
+			TooMuchGasProvidedMessage, gasProvidedForProcessing, gasProvidedForProcessing-vmOutput.GasRemaining)
+	}
+
 	vmOutput.GasRemaining = 0
 }
 
@@ -2662,7 +2691,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.MoveBalance:
-		err = sc.processSimpleSCR(scr, dstAcc)
+		err = sc.processSimpleSCR(scr, txHash, dstAcc)
 		if err != nil {
 			return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
 		}
@@ -2701,6 +2730,7 @@ func (sc *scProcessor) getGasLockedFromSCR(scr *smartContractResult.SmartContrac
 
 func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
+	txHash []byte,
 	dstAcc state.UserAccountHandler,
 ) error {
 	if scResult.Value.Cmp(zero) <= 0 {
@@ -2721,7 +2751,20 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	return sc.accounts.SaveAccount(dstAcc)
+	err = sc.accounts.SaveAccount(dstAcc)
+	if err != nil {
+		return err
+	}
+
+	if isReturnOKTxHandler(scResult) {
+		completedTxLog := createCompleteEventLog(scResult, txHash)
+		ignorableError := sc.txLogsProcessor.SaveLog(txHash, scResult, []*vmcommon.LogEntry{completedTxLog})
+		if ignorableError != nil {
+			log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+		}
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
@@ -2744,6 +2787,52 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 	}
 
 	return process.ErrUpgradeNotAllowed
+}
+
+func (sc *scProcessor) createCompleteEventLogIfNoMoreAction(
+	tx data.TransactionHandler,
+	txHash []byte,
+	results []data.TransactionHandler,
+) *vmcommon.LogEntry {
+	sndShardID := sc.shardCoordinator.ComputeId(tx.GetSndAddr())
+	dstShardID := sc.shardCoordinator.ComputeId(tx.GetRcvAddr())
+	isCrossShardTxWithExecAtSender := sc.shardCoordinator.SelfId() == sndShardID && sndShardID != dstShardID
+	if isCrossShardTxWithExecAtSender && !sc.isInformativeTxHandler(tx) {
+		return nil
+	}
+
+	for _, scr := range results {
+		sndShardID = sc.shardCoordinator.ComputeId(scr.GetSndAddr())
+		dstShardID = sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
+		isCrossShard := sndShardID != dstShardID
+		if isCrossShard && !sc.isInformativeTxHandler(scr) {
+			return nil
+		}
+	}
+
+	return createCompleteEventLog(tx, txHash)
+}
+
+func createCompleteEventLog(tx data.TransactionHandler, txHash []byte) *vmcommon.LogEntry {
+	prevTxHash := txHash
+	originalSCR, ok := tx.(*smartContractResult.SmartContractResult)
+	if ok {
+		prevTxHash = originalSCR.PrevTxHash
+	}
+
+	newLog := &vmcommon.LogEntry{
+		Identifier: []byte(completedTxEvent),
+		Address:    tx.GetRcvAddr(),
+		Topics:     [][]byte{prevTxHash},
+	}
+
+	return newLog
+}
+
+func isReturnOKTxHandler(
+	resultTx data.TransactionHandler,
+) bool {
+	return bytes.HasPrefix(resultTx.GetData(), []byte(returnOkData))
 }
 
 // IsPayable returns if address is payable, smart contract ca set to false
@@ -2806,6 +2895,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagIsPayableBySC.SetValue(epoch >= sc.isPayableBySCEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for payable by SC", "enabled", sc.flagIsPayableBySC.IsSet())
+
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(epoch >= sc.scrSizeInvariantOnBuiltInResultEnableEpoch)
+	log.Debug("scProcessor: scr size invariant check on build in result", "enabled", sc.flagSCRSizeInvariantOnBuiltInResult.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
