@@ -5,12 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 // InitChronologyHandlerMock -
@@ -178,7 +180,22 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
-	validatorGroupSelector := &NodesCoordinatorMock{}
+	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
+			defaultSelectionChances := uint32(1)
+			return []nodesCoordinator.Validator{
+				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("E"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("F"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("G"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("H"), 1, defaultSelectionChances),
+				shardingMocks.NewValidatorMock([]byte("I"), 1, defaultSelectionChances),
+			}, nil
+		},
+	}
 	epochStartSubscriber := &EpochStartNotifierStub{}
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &HeadersCacherStub{}

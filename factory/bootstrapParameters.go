@@ -2,7 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 type bootstrapParams struct {
@@ -25,7 +25,7 @@ func (bph *bootstrapParams) NumOfShards() uint32 {
 }
 
 // NodesConfig returns the nodes coordinator config after bootstrap
-func (bph *bootstrapParams) NodesConfig() *sharding.NodesCoordinatorRegistry {
+func (bph *bootstrapParams) NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry {
 	return bph.bootstrapParams.NodesConfig
 }
 

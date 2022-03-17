@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 func getMetricsFromMetaHeader(
@@ -83,7 +83,7 @@ func getMetricsFromHeader(
 }
 
 func saveMetricsForCommittedShardBlock(
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
 	currentBlockHash string,
 	highestFinalBlockNonce uint64,
@@ -98,7 +98,7 @@ func saveMetricsForCommittedShardBlock(
 }
 
 func incrementCountAcceptedBlocks(
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
 	header data.HeaderHandler,
 ) {
@@ -147,7 +147,7 @@ func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
 	header *block.MetaBlock,
 	headerHash []byte,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
@@ -200,7 +200,7 @@ func countMetaAcceptedSignedBlocks(
 
 func indexRoundInfo(
 	outportHandler outport.OutportHandler,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	shardId uint32,
 	header data.HeaderHandler,
 	lastHeader data.HeaderHandler,
