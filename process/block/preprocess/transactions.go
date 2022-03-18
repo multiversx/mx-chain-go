@@ -777,7 +777,7 @@ func (txs *transactions) AddTransactions(txHandlers []data.TransactionHandler) {
 		senderShardID := txs.getShardFromAddress(tx.GetSndAddr())
 		receiverShardID := txs.getShardFromAddress(tx.GetRcvAddr())
 		txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-		txHash, err:= core.CalculateHash(txs.marshalizer, txs.hasher, tx)
+		txHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, tx)
 		if err != nil {
 			log.Warn("transactions.AddTransactions CalculateHash", "error", err.Error())
 			continue
@@ -1009,6 +1009,11 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)
+
+	if txs.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
+		log.Debug("CreateAndProcessMiniBlocks global stuck")
+		return make(block.MiniBlockSlice, 0), nil
+	}
 
 	startTime = time.Now()
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
