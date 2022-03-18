@@ -170,7 +170,10 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
 		newNode := auctionList[i]
 		newNode.SetList(string(common.SelectedFromAuctionList))
-		validatorsInfoMap.Replace(auctionList[i], newNode)
+		err = validatorsInfoMap.Replace(auctionList[i], newNode)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

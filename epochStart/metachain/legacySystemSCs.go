@@ -453,7 +453,10 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 		}
 
 		if deleteCalled {
-			validatorsInfoMap.SetValidatorsInShard(shId, newList)
+			err := validatorsInfoMap.SetValidatorsInShard(shId, newList)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -756,7 +759,10 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		}
 	} else {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
-		validatorsInfoMap.Delete(jailedValidator)
+		err = validatorsInfoMap.Delete(jailedValidator)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce))
@@ -785,7 +791,10 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	validatorsInfoMap.Replace(jailedValidator, newValidatorInfo)
+	err = validatorsInfoMap.Replace(jailedValidator, newValidatorInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	return blsPubKey, nil
 }
@@ -1260,7 +1269,10 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			RewardAddress:   rewardAddress,
 			AccumulatedFees: big.NewInt(0),
 		}
-		validatorsInfoMap.Add(validatorInfo)
+		err = validatorsInfoMap.Add(validatorInfo)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
