@@ -159,7 +159,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		return fmt.Errorf("%w for address %s", errCannotCastToVmCommonUserAccountHandler, encodedAddress)
 	}
 
-	esdtToken, _,  err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)
+	esdtToken, _, err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)
 	if err != nil {
 		return err
 	}
