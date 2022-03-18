@@ -311,13 +311,15 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 
 func (vmf *vmContainerFactory) createInProcessArwenVMV14() (vmcommon.VMExecutionHandler, error) {
 	hostParameters := &arwen14.VMHostParameters{
-		VMType:                   factory.ArwenVirtualMachine,
-		BlockGasLimit:            vmf.blockGasLimit,
-		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		BuiltInFuncContainer:     vmf.builtinFunctions,
-		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-		ESDTTransferParser:       vmf.esdtTransferParser,
-		EpochNotifier:            vmf.epochNotifier,
+		VMType:                              factory.ArwenVirtualMachine,
+		BlockGasLimit:                       vmf.blockGasLimit,
+		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
+		BuiltInFuncContainer:                vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix:            []byte(core.ElrondProtectedKeyPrefix),
+		ESDTTransferParser:                  vmf.esdtTransferParser,
+		EpochNotifier:                       vmf.epochNotifier,
+		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
+		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
 		MultiESDTTransferAsyncCallBackEnableEpoch:       vmf.epochConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch,
 		FixOOGReturnCodeEnableEpoch:                     vmf.epochConfig.FixOOGReturnCodeEnableEpoch,
 		RemoveNonUpdatedStorageEnableEpoch:              vmf.epochConfig.RemoveNonUpdatedStorageEnableEpoch,
