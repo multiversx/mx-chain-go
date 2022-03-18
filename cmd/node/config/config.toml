@@ -402,7 +402,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 1000
+    Capacity = 100000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
