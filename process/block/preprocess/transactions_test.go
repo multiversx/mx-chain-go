@@ -1793,14 +1793,10 @@ func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(
 		"erd13l5pgsz32u2t7mpanr9hyalahn2newj6ew85s8pgaln5kglm5s3s7w657h",
 	}
 	bch32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
-	addressessBytes := make([][]byte, 0, len(addresses))
-
 	txs := make([]*txcache.WrappedTransaction, 0)
 
 	for idx, addr := range addresses {
 		addrBytes, _ := bch32.Decode(addr)
-		addressessBytes = append(addressessBytes, addrBytes)
-
 		txs = append(txs, &txcache.WrappedTransaction{
 			Tx: &transaction.Transaction{Nonce: 2, SndAddr: addrBytes}, TxHash: []byte(fmt.Sprintf("hash%d", idx)),
 		})
