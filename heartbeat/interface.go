@@ -100,13 +100,6 @@ type PeerBlackListHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorStatisticsProcessor is the interface for consensus participation statistics
-type ValidatorStatisticsProcessor interface {
-	RootHash() ([]byte, error)
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	IsInterfaceNil() bool
-}
-
 // CurrentBlockProvider can provide the current block that the node was able to commit
 type CurrentBlockProvider interface {
 	GetCurrentBlockHeader() data.HeaderHandler
