@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,12 +13,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -480,7 +483,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 
 	txs := createGoodPreprocessor(dataPool)
 
-	//add 3 tx hashes on requested list
+	// add 3 tx hashes on requested list
 	txHash1 := []byte("tx hash 1")
 	txHash2 := []byte("tx hash 2")
 	txHash3 := []byte("tx hash 3")
@@ -491,7 +494,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 
 	txs.SetMissingTxs(3)
 
-	//received txHash2
+	// received txHash2
 	txs.ReceivedTransaction(txHash2, &txcache.WrappedTransaction{Tx: &transaction.Transaction{}})
 
 	assert.True(t, txs.IsTxHashRequested(txHash1))
@@ -499,7 +502,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 	assert.True(t, txs.IsTxHashRequested(txHash3))
 }
 
-//------- GetAllTxsFromMiniBlock
+// ------- GetAllTxsFromMiniBlock
 
 func computeHash(data interface{}, marshalizer marshal.Marshalizer, hasher hashing.Hasher) []byte {
 	buff, _ := marshalizer.Marshal(data)
@@ -522,7 +525,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	}
 	transactionsHashes := make([][]byte, len(txsSlice))
 
-	//add defined transactions to sender-destination cacher
+	// add defined transactions to sender-destination cacher
 	for idx, tx := range txsSlice {
 		transactionsHashes[idx] = computeHash(tx, marshalizer, hasher)
 
@@ -534,7 +537,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		)
 	}
 
-	//add some random data
+	// add some random data
 	txRandom := &transaction.Transaction{Nonce: 4}
 	dataPool.Transactions().AddData(
 		computeHash(txRandom, marshalizer, hasher),
@@ -557,9 +560,9 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	assert.Equal(t, len(txsSlice), len(txsRetrieved))
 	assert.Equal(t, len(txsSlice), len(txHashesRetrieved))
 	for idx, tx := range txsSlice {
-		//txReceived should be all txs in the same order
+		// txReceived should be all txs in the same order
 		assert.Equal(t, txsRetrieved[idx], tx)
-		//verify corresponding transaction hashes
+		// verify corresponding transaction hashes
 		assert.Equal(t, txHashesRetrieved[idx], computeHash(tx, marshalizer, hasher))
 	}
 }
@@ -1769,4 +1772,102 @@ func TestTransactions_AddTransactions(t *testing.T) {
 		numTxsSaved := len(txPreproc.txsForCurrBlock.txHashAndInfo)
 		require.Equal(t, 2, numTxsSaved)
 	})
+}
+
+func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(t *testing.T) {
+	txPreproc := transactions{
+		basePreProcess: &basePreProcess{
+			hasher: blake2b.NewBlake2b(),
+		},
+	}
+
+	addresses := []string{
+		"erd1lr7k9z8l6lgud6709pr3lnm84mfnqqrj40rq66n4rtassfyvcl8starqtf",
+		"erd1pvr8n50q9tqvng03c450d3ac4pz5dt0gxedvvf80rj9r77s3ds0swj33ea",
+		"erd1xls5cejdna07m3jptt43trhhcw39hz5xe673d6lmfnapmcxz9a3s88ycvk",
+		"erd18ljvzsj74ehku7ej80lm35jsxdcxxrwc9t5swkgkyzayep52qe2sujv9xj",
+		"erd1qrzudpvn7xmqvx8w0sc726arp4rpuxxw5zk87rjh9yy3v09knjas9w9077",
+		"erd18dp32dj2gm626uhtd3mezkd24phzev2gmef06y9fs4f94uyy4swsllu24j",
+		"erd19rywmefgq6m0ddmwv9uc23ns7q8s236hag2qp9h8aps0cnxf9qnsnyavkx",
+		"erd1hshz86ke95z58920xl59jnakv5ppmsfarwtump6scjjcyfr9zxwsd0cy8y",
+		"erd13l5pgsz32u2t7mpanr9hyalahn2newj6ew85s8pgaln5kglm5s3s7w657h",
+	}
+	bch32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	addressessBytes := make([][]byte, 0, len(addresses))
+
+	txs := make([]*txcache.WrappedTransaction, 0)
+
+	for idx, addr := range addresses {
+		addrBytes, _ := bch32.Decode(addr)
+		addressessBytes = append(addressessBytes, addrBytes)
+
+		txs = append(txs, &txcache.WrappedTransaction{
+			Tx: &transaction.Transaction{Nonce: 2, SndAddr: addrBytes}, TxHash: []byte(fmt.Sprintf("hash%d", idx)),
+		})
+	}
+
+	numWinsForAddresses := make(map[string]int)
+	numCalls := 10000
+	for i := 0; i < numCalls; i++ {
+		randomness := make([]byte, 32)
+		_, _ = rand.Read(randomness)
+		txPreproc.sortTransactionsBySenderAndNonceWithFrontRunningProtection(txs, randomness)
+		winner := bch32.Encode(txs[0].Tx.GetSndAddr())
+		numWinsForAddresses[winner]++
+	}
+
+	expectedWinsPerSender := numCalls / len(addresses)
+	allowedDifferencePercent := 10
+	allowedDelta := allowedDifferencePercent * expectedWinsPerSender / 100
+	minWins := expectedWinsPerSender - allowedDelta
+	maxWins := expectedWinsPerSender + allowedDelta
+
+	log.Info("test parameters",
+		"num calls", numCalls,
+		"expected wins per sender", expectedWinsPerSender,
+		"delta", allowedDelta,
+		"min wins", minWins,
+		"max wins", maxWins)
+
+	for addr, wins := range numWinsForAddresses {
+		log.Info("address wins", "address", addr, "num wins", wins)
+		assert.True(t, minWins <= wins && wins <= maxWins)
+	}
+}
+
+func TestTransactions_EpochConfirmed(t *testing.T) {
+	t.Parallel()
+
+	txs := transactions{
+		basePreProcess: &basePreProcess{
+			frontRunningProtectionEnableEpoch:           1,
+			optimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
+		},
+		scheduledMiniBlocksEnableEpoch: 3,
+	}
+
+	txs.EpochConfirmed(0, 0)
+	assert.False(t, txs.flagFrontRunningProtection.IsSet())
+	assert.False(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	assert.False(t, txs.flagScheduledMiniBlocks.IsSet())
+
+	txs.EpochConfirmed(1, 0)
+	assert.True(t, txs.flagFrontRunningProtection.IsSet())
+	assert.False(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	assert.False(t, txs.flagScheduledMiniBlocks.IsSet())
+
+	txs.EpochConfirmed(2, 0)
+	assert.True(t, txs.flagFrontRunningProtection.IsSet())
+	assert.True(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	assert.False(t, txs.flagScheduledMiniBlocks.IsSet())
+
+	txs.EpochConfirmed(3, 0)
+	assert.True(t, txs.flagFrontRunningProtection.IsSet())
+	assert.True(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	assert.True(t, txs.flagScheduledMiniBlocks.IsSet())
+
+	txs.EpochConfirmed(4, 0)
+	assert.True(t, txs.flagFrontRunningProtection.IsSet())
+	assert.True(t, txs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+	assert.True(t, txs.flagScheduledMiniBlocks.IsSet())
 }
