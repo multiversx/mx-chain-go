@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +21,7 @@ import (
 func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
 		SCQueryService:           &mock.SCQueryServiceStub{},
-		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
 		TxCostHandler:            &mock.TransactionCostEstimatorMock{},
 		TotalStakedValueHandler:  &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler:  &mock.DirectStakedListProcessorStub{},
@@ -156,14 +155,14 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 
 	arg := createMockArgs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
-		StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
+	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
+		StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
 			wasCalled = true
-			return nil
+			return nil, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
-	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
+	_, _ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
 
 	assert.True(t, wasCalled)
 }
@@ -173,14 +172,14 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 
 	arg := createMockArgs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
-		StatusP2pMetricsMapCalled: func() map[string]interface{} {
+	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
+		StatusP2pMetricsMapCalled: func() (map[string]interface{}, error) {
 			wasCalled = true
-			return nil
+			return nil, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
-	_ = nar.StatusMetrics().StatusP2pMetricsMap()
+	_, _ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
 }
@@ -190,14 +189,14 @@ func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 
 	arg := createMockArgs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
-		NetworkMetricsCalled: func() map[string]interface{} {
+	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
+		NetworkMetricsCalled: func() (map[string]interface{}, error) {
 			wasCalled = true
-			return nil
+			return nil, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
-	_ = nar.StatusMetrics().NetworkMetrics()
+	_, _ = nar.StatusMetrics().NetworkMetrics()
 
 	assert.True(t, wasCalled)
 }
