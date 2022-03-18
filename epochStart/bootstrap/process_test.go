@@ -2254,9 +2254,9 @@ func TestEpochStartBootstrap_ComputeAllPendingMiniblocks(t *testing.T) {
 		epochStartMeta: metablock,
 	}
 
-	allPendingMiniblocks := e.computeAllPendingMiniblocks()
-	require.Equal(t, len(pendingMiniblocksHashes), len(allPendingMiniblocks))
+	allPendingMiniblocksHeaders := e.computeAllPendingMiniblocksHeaders()
+	require.Equal(t, len(pendingMiniblocksHashes), len(allPendingMiniblocksHeaders))
 	for i := 0; i < len(pendingMiniblocksHashes); i++ {
-		assert.Equal(t, pendingMiniblocksHashes[i], allPendingMiniblocks[i].GetHash())
+		assert.Equal(t, pendingMiniblocksHashes[i], allPendingMiniblocksHeaders[i].GetHash())
 	}
 }

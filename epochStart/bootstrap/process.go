@@ -770,15 +770,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		return err
 	}
 
-	allPendingMiniblocksHandlers := e.computeAllPendingMiniblocks()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(allPendingMiniblocksHandlers, ctx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	pendingMiniBlocks, err := e.miniBlocksSyncer.GetMiniBlocks()
+	pendingMiniBlocks, err := e.getPendingMiniblocks()
 	if err != nil {
 		return err
 	}
@@ -802,15 +794,27 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	return nil
 }
 
-func (e *epochStartBootstrap) computeAllPendingMiniblocks() []data.MiniBlockHeaderHandler {
-	allPendingMiniblocks := make([]data.MiniBlockHeaderHandler, 0)
+func (e *epochStartBootstrap) getPendingMiniblocks() (map[string]*block.MiniBlock, error) {
+	allPendingMiniblocksHeaders := e.computeAllPendingMiniblocksHeaders()
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err := e.miniBlocksSyncer.SyncPendingMiniBlocks(allPendingMiniblocksHeaders, ctx)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+
+	return e.miniBlocksSyncer.GetMiniBlocks()
+}
+
+func (e *epochStartBootstrap) computeAllPendingMiniblocksHeaders() []data.MiniBlockHeaderHandler {
+	allPendingMiniblocksHeaders := make([]data.MiniBlockHeaderHandler, 0)
 	lastFinalizedHeaderHandlers := e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
 
 	for _, hdr := range lastFinalizedHeaderHandlers {
-		allPendingMiniblocks = append(allPendingMiniblocks, hdr.GetPendingMiniBlockHeaderHandlers()...)
+		allPendingMiniblocksHeaders = append(allPendingMiniblocksHeaders, hdr.GetPendingMiniBlockHeaderHandlers()...)
 	}
 
-	return allPendingMiniblocks
+	return allPendingMiniblocksHeaders
 }
 
 func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShardDataHandler, error) {

@@ -162,12 +162,12 @@ func (p *pendingMiniBlocks) recreateMap(metaHandler data.MetaHeaderHandler) erro
 	lastFinalizedHeaders := epochStartHandler.GetLastFinalizedHeaderHandlers()
 	for _, hdr := range lastFinalizedHeaders {
 		pendingMiniblocks := hdr.GetPendingMiniBlockHeaderHandlers()
-		for _, mb := range pendingMiniblocks {
-			if !shouldConsiderCrossShardMiniBlock(mb.GetSenderShardID(), mb.GetReceiverShardID()) {
+		for _, mbh := range pendingMiniblocks {
+			if !shouldConsiderCrossShardMiniBlock(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
 				continue
 			}
 
-			p.mapPendingMbShard[string(mb.GetHash())] = mb.GetReceiverShardID()
+			p.mapPendingMbShard[string(mbh.GetHash())] = mbh.GetReceiverShardID()
 		}
 	}
 
