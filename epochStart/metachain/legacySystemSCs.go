@@ -1380,7 +1380,7 @@ func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBloc
 }
 
 func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
-	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch)
+	s.flagSwitchJailedWaiting.SetValue(epoch >= s.switchEnableEpoch && epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("legacySystemSC: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
