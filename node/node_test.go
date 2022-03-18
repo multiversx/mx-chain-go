@@ -50,7 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	txsSenderMock "github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -2443,7 +2443,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		}
 	}
 
-	vsp := &mock.ValidatorStatisticsProcessorStub{
+	vsp := &testscommon.ValidatorStatisticsProcessorStub{
 		RootHashCalled: func() (i []byte, err error) {
 			return []byte("hash"), nil
 		},
@@ -3537,7 +3537,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		BootSore:                       &mock.BootstrapStorerMock{},
 		HeaderSigVerif:                 &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:              &mock.HeaderIntegrityVerifierStub{},
-		ValidatorStatistics:            &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorStatistics:            &testscommon.ValidatorStatisticsProcessorStub{},
 		ValidatorProvider:              &mock.ValidatorsProviderStub{},
 		BlockTrack:                     &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},

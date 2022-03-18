@@ -170,7 +170,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	processComponents.ShardCoord = tP2pNode.ShardCoordinator
 	processComponents.NodesCoord = tP2pNode.NodesCoordinator
 	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
-	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
+	processComponents.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
 		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
 			return map[uint32][]*state.ValidatorInfo{
 				0: {{PublicKey: []byte("pk0")}},

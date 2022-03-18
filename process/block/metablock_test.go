@@ -140,7 +140,7 @@ func createMockMetaArguments(
 		EpochEconomics:               &mock.EpochEconomicsStub{},
 		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
 		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
 	}
 	return arguments
@@ -1130,7 +1130,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			return expectedErr
 		},
@@ -1159,7 +1159,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
@@ -2934,7 +2934,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	dataComponents.DataPool = dPool
 	dataComponents.BlockChain = blkc
 	calledSaveNodesCoordinator := false
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
 			calledSaveNodesCoordinator = true
 			return true, nil
@@ -3110,7 +3110,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.RewardsV2EnableEpoch = 10
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{}
 
 		wasCalled := false
 		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
@@ -3221,7 +3221,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -3239,7 +3239,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 				return nil, expectedErr
 			},
@@ -3257,7 +3257,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			ProcessRatingsEndOfEpochCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, epoch uint32) error {
 				return expectedErr
 			},
@@ -3320,7 +3320,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		expectedRootHash := []byte("root hash")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
@@ -3391,7 +3391,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		expectedRootHash := []byte("root hash")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},

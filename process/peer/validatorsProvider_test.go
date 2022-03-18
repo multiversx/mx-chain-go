@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -88,7 +89,7 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 
 	gotOk := false
 	gotNil := false
-	vs := &mock.ValidatorStatisticsProcessorStub{
+	vs := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() (bytes []byte) {
 			mut.Lock()
 			defer mut.Unlock()
@@ -165,7 +166,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 		},
 	}
 
-	arg.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
+	arg.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
 		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 			atomic.AddInt32(&numPopulateCacheCalled, 1)
 			return nil, nil
@@ -187,7 +188,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 	expectedErr := errors.New("expectedError")
 	arg := createDefaultValidatorsProviderArg()
 
-	validatorProc := &mock.ValidatorStatisticsProcessorStub{
+	validatorProc := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
@@ -271,7 +272,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		},
 	}
 	arg := createDefaultValidatorsProviderArg()
-	validatorProc := &mock.ValidatorStatisticsProcessorStub{
+	validatorProc := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
@@ -507,7 +508,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 
 	arg := createDefaultValidatorsProviderArg()
 	arg.CacheRefreshIntervalDurationInSec = time.Millisecond * 10
-	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{
+	validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
@@ -548,7 +549,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
 	pkEligibleInTrie := []byte("pk1")
 
-	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{
+	validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
@@ -587,7 +588,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
 	pkEligibleInTrie := []byte("pk1")
 
-	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{
+	validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
@@ -651,7 +652,7 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 		StartEpoch:                        1,
 		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
 		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,
-		ValidatorStatistics: &mock.ValidatorStatisticsProcessorStub{
+		ValidatorStatistics: &testscommon.ValidatorStatisticsProcessorStub{
 			LastFinalizedRootHashCalled: func() []byte {
 				return []byte("rootHash")
 			},
