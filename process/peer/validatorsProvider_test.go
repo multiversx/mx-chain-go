@@ -83,9 +83,8 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	e := errors.Errorf("not ok")
 	initialInfo := createMockValidatorInfo()
 
-	validatorInfos := map[uint32][]*state.ValidatorInfo{
-		0: {initialInfo},
-	}
+	validatorInfos := state.NewShardValidatorsInfoMap(1)
+	_ = validatorInfos.Add(initialInfo)
 
 	gotOk := false
 	gotNil := false
@@ -95,7 +94,7 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 			defer mut.Unlock()
 			return root
 		},
-		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
+		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m state.ShardValidatorsInfoMapHandler, err error) {
 			mut.Lock()
 			defer mut.Unlock()
 			if bytes.Equal([]byte("rootHash"), rootHash) {
@@ -167,7 +166,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 	}
 
 	arg.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
-		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 			atomic.AddInt32(&numPopulateCacheCalled, 1)
 			return nil, nil
 		},
@@ -193,7 +192,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 			return []byte("rootHash")
 		},
 	}
-	validatorProc.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorProc.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 		return nil, expectedErr
 	}
 
@@ -263,21 +262,20 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
 	initialList := string(common.EligibleList)
-	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
-	validatorsMap[initialShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pk,
-			List:      initialList,
-			ShardId:   initialShardId,
-		},
-	}
+	validatorsMap := state.NewShardValidatorsInfoMap(1)
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+		PublicKey: pk,
+		List:      initialList,
+		ShardId:   initialShardId,
+	})
+
 	arg := createDefaultValidatorsProviderArg()
 	validatorProc := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
 	}
-	validatorProc.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorProc.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 		return validatorsMap, nil
 	}
 
@@ -294,7 +292,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 	vsp.updateCache()
 
 	assert.NotNil(t, vsp.cache)
-	assert.Equal(t, len(validatorsMap[initialShardId]), len(vsp.cache))
+	assert.Equal(t, len(validatorsMap.GetShardValidatorsInfoMap()[initialShardId]), len(vsp.cache))
 	encodedKey := arg.PubKeyConverter.Encode(pk)
 	assert.NotNil(t, vsp.cache[encodedKey])
 	assert.Equal(t, initialList, vsp.cache[encodedKey].ValidatorStatus)
@@ -358,47 +356,41 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 	pkNew := []byte("pk5")
 	newList := string(common.NewList)
 
-	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
+	validatorsMap := state.NewShardValidatorsInfoMap(4)
 	eligibleShardId := uint32(0)
 	waitingShardId := uint32(1)
 	leavingShardId := uint32(2)
 	inactiveShardId := uint32(3)
 	newShardId := core.MetachainShardId
-	validatorsMap[eligibleShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkEligible,
-			ShardId:   eligibleShardId,
-			List:      eligibleList,
-		},
-	}
-	validatorsMap[waitingShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkWaiting,
-			ShardId:   waitingShardId,
-			List:      waitingList,
-		},
-	}
-	validatorsMap[leavingShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkLeaving,
-			ShardId:   leavingShardId,
-			List:      leavingList,
-		},
-	}
-	validatorsMap[inactiveShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkInactive,
-			ShardId:   inactiveShardId,
-			List:      inactiveList,
-		},
-	}
-	validatorsMap[newShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkNew,
-			ShardId:   newShardId,
-			List:      newList,
-		},
-	}
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+		PublicKey: pkEligible,
+		ShardId:   eligibleShardId,
+		List:      eligibleList,
+	})
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+
+		PublicKey: pkWaiting,
+		ShardId:   waitingShardId,
+		List:      waitingList,
+	})
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+
+		PublicKey: pkLeaving,
+		ShardId:   leavingShardId,
+		List:      leavingList,
+	})
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+
+		PublicKey: pkInactive,
+		ShardId:   inactiveShardId,
+		List:      inactiveList,
+	})
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+
+		PublicKey: pkNew,
+		ShardId:   newShardId,
+		List:      newList,
+	})
 	arg := createDefaultValidatorsProviderArg()
 	pubKeyConverter := mock.NewPubkeyConverterMock(32)
 	vsp := validatorsProvider{
@@ -443,31 +435,25 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	pkLeavingInTrie := []byte("pk3")
 	leavingList := string(common.LeavingList)
 
-	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
+	validatorsMap := state.NewShardValidatorsInfoMap(3)
 	eligibleShardId := uint32(0)
 	inactiveShardId := uint32(1)
 	leavingShardId := uint32(2)
-	validatorsMap[eligibleShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkEligibleInTrie,
-			ShardId:   eligibleShardId,
-			List:      eligibleList,
-		},
-	}
-	validatorsMap[inactiveShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkInactive,
-			ShardId:   inactiveShardId,
-			List:      inactiveList,
-		},
-	}
-	validatorsMap[leavingShardId] = []*state.ValidatorInfo{
-		{
-			PublicKey: pkLeavingInTrie,
-			ShardId:   leavingShardId,
-			List:      leavingList,
-		},
-	}
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+		PublicKey: pkEligibleInTrie,
+		ShardId:   eligibleShardId,
+		List:      eligibleList,
+	})
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+		PublicKey: pkInactive,
+		ShardId:   inactiveShardId,
+		List:      inactiveList,
+	})
+	_ = validatorsMap.Add(&state.ValidatorInfo{
+		PublicKey: pkLeavingInTrie,
+		ShardId:   leavingShardId,
+		List:      leavingList,
+	})
 	arg := createDefaultValidatorsProviderArg()
 	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 	nodesCoordinatorEligibleShardId := uint32(5)
@@ -513,7 +499,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 			return []byte("rootHash")
 		},
 	}
-	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 		atomic.AddInt32(populateCacheCalled, 1)
 		return nil, nil
 	}
@@ -554,20 +540,19 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 			return []byte("rootHash")
 		},
 	}
-	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 		callNumber++
 		// first call comes from the constructor
 		if callNumber == 1 {
 			return nil, nil
 		}
-		return map[uint32][]*state.ValidatorInfo{
-			0: {
-				{
-					PublicKey: pkEligibleInTrie,
-					List:      string(common.EligibleList),
-				},
-			},
-		}, nil
+		validatorsMap := state.NewShardValidatorsInfoMap(1)
+		_ = validatorsMap.Add(&state.ValidatorInfo{
+			ShardId:   0,
+			PublicKey: pkEligibleInTrie,
+			List:      string(common.EligibleList),
+		})
+		return validatorsMap, nil
 	}
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
@@ -593,20 +578,19 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 			return []byte("rootHash")
 		},
 	}
-	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 		callNumber++
 		// first call comes from the constructor
 		if callNumber == 1 {
 			return nil, nil
 		}
-		return map[uint32][]*state.ValidatorInfo{
-			0: {
-				{
-					PublicKey: pkEligibleInTrie,
-					List:      string(common.EligibleList),
-				},
-			},
-		}, nil
+		validatorsMap := state.NewShardValidatorsInfoMap(1)
+		_ = validatorsMap.Add(&state.ValidatorInfo{
+			ShardId:   0,
+			PublicKey: pkEligibleInTrie,
+			List:      string(common.EligibleList),
+		})
+		return validatorsMap, nil
 	}
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 

@@ -3240,7 +3240,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				return nil, expectedErr
 			},
 		}
@@ -3258,7 +3258,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
-			ProcessRatingsEndOfEpochCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+			ProcessRatingsEndOfEpochCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, epoch uint32) error {
 				return expectedErr
 			},
 		}
@@ -3276,15 +3276,13 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 
-	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
-		0: {
-			&state.ValidatorInfo{
-				ShardId:         1,
-				RewardAddress:   []byte("rewardAddr1"),
-				AccumulatedFees: big.NewInt(10),
-			},
-		},
-	}
+	expectedValidatorsInfo := state.NewShardValidatorsInfoMap(1)
+	_ = expectedValidatorsInfo.Add(
+		&state.ValidatorInfo{
+			ShardId:         1,
+			RewardAddress:   []byte("rewardAddr1"),
+			AccumulatedFees: big.NewInt(10),
+		})
 
 	rewardMiniBlocks := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -3324,7 +3322,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
 
 				return expectedValidatorsInfo, nil
@@ -3345,7 +3343,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			CreateRewardsMiniBlocksCalled: func(
 				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
@@ -3357,7 +3355,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
 			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}
@@ -3395,7 +3393,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
 				return expectedValidatorsInfo, nil
 			},
@@ -3408,7 +3406,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
 				wasCalled = true
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},
@@ -3419,7 +3417,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
 			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}

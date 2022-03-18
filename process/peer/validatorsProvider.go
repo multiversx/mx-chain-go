@@ -180,7 +180,8 @@ func (vp *validatorsProvider) updateCache() {
 		return
 	}
 	allNodes, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
-	if err != nil {
+	if err != nil || allNodes == nil {
+		allNodes = state.NewShardValidatorsInfoMap(0)
 		log.Trace("validatorsProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
@@ -198,7 +199,7 @@ func (vp *validatorsProvider) updateCache() {
 
 func (vp *validatorsProvider) createNewCache(
 	epoch uint32,
-	allNodes map[uint32][]*state.ValidatorInfo,
+	allNodes state.ShardValidatorsInfoMapHandler,
 ) map[string]*state.ValidatorApiResponse {
 	newCache := vp.createValidatorApiResponseMapFromValidatorInfoMap(allNodes)
 
@@ -217,29 +218,29 @@ func (vp *validatorsProvider) createNewCache(
 	return newCache
 }
 
-func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*state.ValidatorApiResponse {
+func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes state.ShardValidatorsInfoMapHandler) map[string]*state.ValidatorApiResponse {
 	newCache := make(map[string]*state.ValidatorApiResponse)
-	for _, validatorInfosInShard := range allNodes {
-		for _, validatorInfo := range validatorInfosInShard {
-			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
-			newCache[strKey] = &state.ValidatorApiResponse{
-				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,
-				NumLeaderFailure:                   validatorInfo.LeaderFailure,
-				NumValidatorSuccess:                validatorInfo.ValidatorSuccess,
-				NumValidatorFailure:                validatorInfo.ValidatorFailure,
-				NumValidatorIgnoredSignatures:      validatorInfo.ValidatorIgnoredSignatures,
-				TotalNumLeaderSuccess:              validatorInfo.TotalLeaderSuccess,
-				TotalNumLeaderFailure:              validatorInfo.TotalLeaderFailure,
-				TotalNumValidatorSuccess:           validatorInfo.TotalValidatorSuccess,
-				TotalNumValidatorFailure:           validatorInfo.TotalValidatorFailure,
-				TotalNumValidatorIgnoredSignatures: validatorInfo.TotalValidatorIgnoredSignatures,
-				RatingModifier:                     validatorInfo.RatingModifier,
-				Rating:                             float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
-				TempRating:                         float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
-				ShardId:                            validatorInfo.ShardId,
-				ValidatorStatus:                    validatorInfo.List,
-			}
+
+	for _, validatorInfo := range allNodes.GetAllValidatorsInfo() {
+		strKey := vp.pubkeyConverter.Encode(validatorInfo.GetPublicKey())
+		newCache[strKey] = &state.ValidatorApiResponse{
+			NumLeaderSuccess:                   validatorInfo.GetLeaderSuccess(),
+			NumLeaderFailure:                   validatorInfo.GetLeaderFailure(),
+			NumValidatorSuccess:                validatorInfo.GetValidatorSuccess(),
+			NumValidatorFailure:                validatorInfo.GetValidatorFailure(),
+			NumValidatorIgnoredSignatures:      validatorInfo.GetValidatorIgnoredSignatures(),
+			TotalNumLeaderSuccess:              validatorInfo.GetTotalLeaderSuccess(),
+			TotalNumLeaderFailure:              validatorInfo.GetTotalLeaderFailure(),
+			TotalNumValidatorSuccess:           validatorInfo.GetTotalValidatorSuccess(),
+			TotalNumValidatorFailure:           validatorInfo.GetTotalValidatorFailure(),
+			TotalNumValidatorIgnoredSignatures: validatorInfo.GetTotalValidatorIgnoredSignatures(),
+			RatingModifier:                     validatorInfo.GetRatingModifier(),
+			Rating:                             float32(validatorInfo.GetRating()) * 100 / float32(vp.maxRating),
+			TempRating:                         float32(validatorInfo.GetTempRating()) * 100 / float32(vp.maxRating),
+			ShardId:                            validatorInfo.GetShardId(),
+			ValidatorStatus:                    validatorInfo.GetList(),
 		}
+
 	}
 
 	return newCache

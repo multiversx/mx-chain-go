@@ -184,9 +184,9 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 
 	allValidators, _, _ := hcf.getLatestValidators()
 	pubKeysMap := make(map[uint32][]string)
-	for shardID, valsInShard := range allValidators {
+	for shardID, valsInShard := range allValidators.GetShardValidatorsInfoMap() {
 		for _, val := range valsInShard {
-			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.PublicKey))
+			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.GetPublicKey()))
 		}
 	}
 
@@ -228,7 +228,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	return hbc, nil
 }
 
-func (hcf *heartbeatComponentsFactory) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
+func (hcf *heartbeatComponentsFactory) getLatestValidators() (state.ShardValidatorsInfoMapHandler, map[string]*state.ValidatorApiResponse, error) {
 	latestHash, err := hcf.processComponents.ValidatorsStatistics().RootHash()
 	if err != nil {
 		return nil, nil, err

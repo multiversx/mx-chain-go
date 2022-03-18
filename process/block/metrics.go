@@ -269,12 +269,12 @@ func indexValidatorsRating(
 	}
 
 	shardValidatorsRating := make(map[string][]*indexer.ValidatorRatingInfo)
-	for shardID, validatorInfosInShard := range validators {
+	for shardID, validatorInfosInShard := range validators.GetShardValidatorsInfoMap() {
 		validatorsInfos := make([]*indexer.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
 			validatorsInfos = append(validatorsInfos, &indexer.ValidatorRatingInfo{
-				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
-				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
+				PublicKey: hex.EncodeToString(validatorInfo.GetPublicKey()),
+				Rating:    float32(validatorInfo.GetRating()) * 100 / 10000000,
 			})
 		}
 

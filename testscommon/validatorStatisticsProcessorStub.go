@@ -12,9 +12,9 @@ type ValidatorStatisticsProcessorStub struct {
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	LastFinalizedRootHashCalled              func() []byte
-	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
-	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
+	ResetValidatorStatisticsAtNewEpochCalled func(vInfos state.ShardValidatorsInfoMapHandler) error
+	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error)
+	ProcessRatingsEndOfEpochCalled           func(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
@@ -48,7 +48,7 @@ func (vsp *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
 }
 
 // ResetValidatorStatisticsAtNewEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
+func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error {
 	if vsp.ResetValidatorStatisticsAtNewEpochCalled != nil {
 		return vsp.ResetValidatorStatisticsAtNewEpochCalled(vInfos)
 	}
@@ -56,11 +56,11 @@ func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(
 }
 
 // GetValidatorInfoForRootHash -
-func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 	if vsp.GetValidatorInfoForRootHashCalled != nil {
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}
-	return nil, nil
+	return state.NewShardValidatorsInfoMap(0), nil
 }
 
 // UpdatePeerState -
@@ -72,7 +72,7 @@ func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.MetaHea
 }
 
 // ProcessRatingsEndOfEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error {
 	if vsp.ProcessRatingsEndOfEpochCalled != nil {
 		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos, epoch)
 	}

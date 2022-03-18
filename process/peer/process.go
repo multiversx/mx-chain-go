@@ -445,13 +445,8 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	leavesChannel chan core.KeyValueHolder,
-) (map[uint32][]*state.ValidatorInfo, error) {
-
-	validators := make(map[uint32][]*state.ValidatorInfo, vs.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < vs.shardCoordinator.NumberOfShards(); i++ {
-		validators[i] = make([]*state.ValidatorInfo, 0)
-	}
-	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
+) (state.ShardValidatorsInfoMapHandler, error) {
+	validators := state.NewShardValidatorsInfoMap(vs.shardCoordinator.NumberOfShards() + 1)
 
 	for pa := range leavesChannel {
 		peerAccount, err := vs.unmarshalPeer(pa.Value())
@@ -459,9 +454,11 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 			return nil, err
 		}
 
-		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := vs.PeerAccountToValidatorInfo(peerAccount)
-		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+		err = validators.Add(validatorInfoData)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return validators, nil
@@ -564,7 +561,7 @@ func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandle
 }
 
 // GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash
-func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 	sw := core.NewStopWatch()
 	sw.Start("GetValidatorInfoForRootHash")
 	defer func() {
@@ -587,10 +584,10 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 // ProcessRatingsEndOfEpoch makes end of epoch process on the rating
 func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorInfos state.ShardValidatorsInfoMapHandler,
 	epoch uint32,
 ) error {
-	if len(validatorInfos) == 0 {
+	if validatorInfos == nil || len(validatorInfos.GetAllValidatorsInfo()) == 0 {
 		return process.ErrNilValidatorInfos
 	}
 
@@ -599,14 +596,14 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 	}
 
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
-	for shardId, validators := range validatorInfos {
+	for shardId, validators := range validatorInfos.GetShardValidatorsInfoMap() {
 		for _, validator := range validators {
 			if !vs.flagStakingV2Enabled.IsSet() {
-				if validator.List != string(common.EligibleList) {
+				if validator.GetList() != string(common.EligibleList) {
 					continue
 				}
 			} else {
-				if validator.List != string(common.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
+				if validator.GetList() != string(common.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
 					continue
 				}
 			}
@@ -622,7 +619,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 }
 
 func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
-	validator *state.ValidatorInfo,
+	validator state.ValidatorInfoHandler,
 	signedThreshold float32,
 	shardId uint32,
 	epoch uint32,
@@ -631,19 +628,19 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	validatorOccurrences := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
-	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorOccurrences)
+	validatorOccurrences := core.MaxUint32(1, validator.GetValidatorSuccess()+validator.GetValidatorFailure()+validator.GetValidatorIgnoredSignatures())
+	computedThreshold := float32(validator.GetValidatorSuccess()) / float32(validatorOccurrences)
 
 	if computedThreshold <= signedThreshold {
 		increasedRatingTimes := uint32(0)
 		if epoch < vs.belowSignedThresholdEnableEpoch {
-			increasedRatingTimes = validator.ValidatorFailure
+			increasedRatingTimes = validator.GetValidatorFailure()
 		} else {
-			increasedRatingTimes = validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
+			increasedRatingTimes = validator.GetValidatorSuccess() + validator.GetValidatorIgnoredSignatures()
 		}
 
-		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, increasedRatingTimes)
-		pa, err := vs.loadPeerAccount(validator.PublicKey)
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.GetTempRating(), increasedRatingTimes)
+		pa, err := vs.loadPeerAccount(validator.GetPublicKey())
 		if err != nil {
 			return err
 		}
@@ -656,23 +653,23 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		}
 
 		log.Debug("below signed blocks threshold",
-			"pk", validator.PublicKey,
+			"pk", validator.GetPublicKey(),
 			"signed %", computedThreshold,
-			"validatorSuccess", validator.ValidatorSuccess,
-			"validatorFailure", validator.ValidatorFailure,
-			"validatorIgnored", validator.ValidatorIgnoredSignatures,
+			"validatorSuccess", validator.GetValidatorSuccess(),
+			"validatorFailure", validator.GetValidatorFailure(),
+			"validatorIgnored", validator.GetValidatorIgnoredSignatures(),
 			"new tempRating", newTempRating,
-			"old tempRating", validator.TempRating,
+			"old tempRating", validator.GetTempRating(),
 		)
 
-		validator.TempRating = newTempRating
+		validator.SetTempRating(newTempRating)
 	}
 
 	return nil
 }
 
 // ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
-func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
+func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error {
 	sw := core.NewStopWatch()
 	sw.Start("ResetValidatorStatisticsAtNewEpoch")
 	defer func() {
@@ -680,24 +677,22 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 		log.Debug("ResetValidatorStatisticsAtNewEpoch", sw.GetMeasurements()...)
 	}()
 
-	for _, validators := range vInfos {
-		for _, validator := range validators {
-			account, err := vs.peerAdapter.LoadAccount(validator.GetPublicKey())
-			if err != nil {
-				return err
-			}
+	for _, validator := range vInfos.GetAllValidatorsInfo() {
+		account, err := vs.peerAdapter.LoadAccount(validator.GetPublicKey())
+		if err != nil {
+			return err
+		}
 
-			peerAccount, ok := account.(state.PeerAccountHandler)
-			if !ok {
-				return process.ErrWrongTypeAssertion
-			}
-			peerAccount.ResetAtNewEpoch()
-			vs.setToJailedIfNeeded(peerAccount, validator)
+		peerAccount, ok := account.(state.PeerAccountHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		peerAccount.ResetAtNewEpoch()
+		vs.setToJailedIfNeeded(peerAccount, validator)
 
-			err = vs.peerAdapter.SaveAccount(peerAccount)
-			if err != nil {
-				return err
-			}
+		err = vs.peerAdapter.SaveAccount(peerAccount)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -706,23 +701,23 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 
 func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
-	validator *state.ValidatorInfo,
+	validator state.ValidatorInfoHandler,
 ) {
 	if !vs.flagJailedEnabled.IsSet() {
 		return
 	}
 
-	if validator.List == string(common.WaitingList) || validator.List == string(common.EligibleList) {
+	if validator.GetList() == string(common.WaitingList) || validator.GetList() == string(common.EligibleList) {
 		return
 	}
 
-	if validator.List == string(common.JailedList) && peerAccount.GetList() != string(common.JailedList) {
-		peerAccount.SetListAndIndex(validator.ShardId, string(common.JailedList), validator.Index)
+	if validator.GetList() == string(common.JailedList) && peerAccount.GetList() != string(common.JailedList) {
+		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex())
 		return
 	}
 
 	if vs.isValidatorWithLowRating(peerAccount) {
-		peerAccount.SetListAndIndex(validator.ShardId, string(common.JailedList), validator.Index)
+		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex())
 	}
 }
 
