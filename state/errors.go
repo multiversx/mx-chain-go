@@ -121,3 +121,12 @@ var ErrNilRootHash = errors.New("nil root hash")
 
 // ErrNilChainHandler signals that a nil chain handler was provided
 var ErrNilChainHandler = errors.New("nil chain handler")
+
+// ErrNilValidatorInfo signals that a nil value for the validator info has been provided
+var ErrNilValidatorInfo = errors.New("validator info is nil")
+
+// ErrValidatorsDifferentShards signals that validators are not in the same shard
+var ErrValidatorsDifferentShards = errors.New("validators are not in the same shard")
+
+// ErrValidatorNotFound signals that a validator was not found
+var ErrValidatorNotFound = errors.New("validator not found")
