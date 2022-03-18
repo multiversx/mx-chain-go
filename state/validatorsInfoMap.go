@@ -48,7 +48,6 @@ func Replace(oldMap, newMap map[uint32][]*ValidatorInfo) {
 	for shardID, validatorsInShard := range newMap {
 		oldMap[shardID] = validatorsInShard
 	}
-
 }
 
 // GetAllValidatorsInfo returns a []ValidatorInfoHandler copy with validators from all shards.
