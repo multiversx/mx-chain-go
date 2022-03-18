@@ -1,6 +1,7 @@
 package trie_test
 
 import (
+	"context"
 	cryptoRand "crypto/rand"
 	"fmt"
 	"math/rand"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -506,7 +508,8 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie(t)
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{})
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{})
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -526,7 +529,8 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
