@@ -75,7 +75,7 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, 10 * time.Millisecond), nil
+			return createValidatorScAccount(addressContainer, validators, addressContainer, time.Second), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil

@@ -193,7 +193,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	acc.SetDataTrie(&trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(chLeaves chan core.KeyValueHolder, _ context.Context, _ []byte) error {
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(time.Second)
 			close(chLeaves)
 			return nil
 		},

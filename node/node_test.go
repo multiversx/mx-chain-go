@@ -352,7 +352,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
-					time.Sleep(10 * time.Millisecond)
+					time.Sleep(time.Second)
 					close(ch)
 				}()
 
@@ -575,7 +575,7 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
-					time.Sleep(10 * time.Millisecond)
+					time.Sleep(time.Second)
 					close(ch)
 				}()
 
@@ -1003,7 +1003,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
-					time.Sleep(10 * time.Millisecond)
+					time.Sleep(time.Second)
 					close(ch)
 				}()
 
