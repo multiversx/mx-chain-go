@@ -139,7 +139,7 @@ func createMockMetaArguments(
 		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
 		EpochEconomics:               &mock.EpochEconomicsStub{},
 		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
-		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
+		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 	}
@@ -3353,7 +3353,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			},
 		}
 
-		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+		arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
 			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				return validatorInfoMiniBlocks, nil
@@ -3415,7 +3415,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			},
 		}
 
-		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+		arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
 			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				return validatorInfoMiniBlocks, nil
