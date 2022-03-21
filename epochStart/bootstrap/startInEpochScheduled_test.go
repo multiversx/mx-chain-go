@@ -792,27 +792,19 @@ func Test_isScheduledIntermediateTx(t *testing.T) {
 	mbHash := "miniBlockHash"
 	tx1Hash := "tx1Hash"
 	scrHash := "scrHash"
-	scr := &smartContractResult.SmartContractResult{Nonce: 0,
-		PrevTxHash: []byte(tx1Hash),
-	}
-
-	miniBlockValid := &block.MiniBlock{
-		TxHashes:        [][]byte{[]byte(scrHash)},
-		ReceiverShardID: selfShardID,
-		SenderShardID:   selfShardID,
-		Type:            block.SmartContractResultBlock,
-	}
-
-	miniBlockInvalid := &block.MiniBlock{
-		TxHashes:        [][]byte{[]byte(tx1Hash)},
-		ReceiverShardID: destinationAsInvalid,
-		SenderShardID:   selfShardID,
-		Type:            block.InvalidBlock,
-	}
 
 	t.Run("executed in self shard - scheduled", func(t *testing.T) {
-		miniBlocks := map[string]*block.MiniBlock {
-			mbHash: miniBlockValid,
+		scr := &smartContractResult.SmartContractResult{Nonce: 0,
+			PrevTxHash: []byte(tx1Hash),
+		}
+		miniBlockScr := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte(scrHash)},
+			ReceiverShardID: selfShardID,
+			SenderShardID:   selfShardID,
+			Type:            block.SmartContractResultBlock,
+		}
+		miniBlocks := map[string]*block.MiniBlock{
+			mbHash: miniBlockScr,
 		}
 		scheduledTxHashes := map[string]uint32{
 			tx1Hash: selfShardID,
@@ -821,7 +813,14 @@ func Test_isScheduledIntermediateTx(t *testing.T) {
 		require.True(t, isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(scrHash), scr, selfShardID))
 	})
 	t.Run("invalid scheduled", func(t *testing.T) {
-		miniBlocks := map[string]*block.MiniBlock {
+		miniBlockInvalid := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte(tx1Hash)},
+			ReceiverShardID: destinationAsInvalid,
+			SenderShardID:   selfShardID,
+			Type:            block.InvalidBlock,
+		}
+
+		miniBlocks := map[string]*block.MiniBlock{
 			mbHash: miniBlockInvalid,
 		}
 		scheduledTxHashes := map[string]uint32{
@@ -836,7 +835,7 @@ func Test_isScheduledIntermediateTx(t *testing.T) {
 		tx2Hash := "tx2Hash"
 		tx2 := &transaction.Transaction{Nonce: 1}
 
-		miniBlocks := map[string]*block.MiniBlock {
+		miniBlocks := map[string]*block.MiniBlock{
 			mbHash: {
 				TxHashes:        [][]byte{[]byte(tx2Hash)},
 				ReceiverShardID: 1,
