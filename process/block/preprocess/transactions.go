@@ -299,7 +299,7 @@ func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *tr
 		return miniBlockStrCache
 	}
 
-	// scheduled miniblocks features require to properly restore the transaction in the correct cache, not the one
+	// scheduled miniblocks feature requires that the transactions are properly restored in the correct cache, not the one
 	// provided by the containing miniblock (think of how invalid transactions are executed and stored)
 
 	senderShardID := txs.getShardFromAddress(tx.GetSndAddr())
