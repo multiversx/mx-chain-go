@@ -446,8 +446,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	leavesChannel chan core.KeyValueHolder,
 ) (state.ShardValidatorsInfoMapHandler, error) {
-	validators := state.NewShardValidatorsInfoMap(vs.shardCoordinator.NumberOfShards() + 1)
-
+	validators := state.NewShardValidatorsInfoMap()
 	for pa := range leavesChannel {
 		peerAccount, err := vs.unmarshalPeer(pa.Value())
 		if err != nil {

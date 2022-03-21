@@ -2091,7 +2091,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNilMapShouldErr(
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(nil, 1)
 	assert.Equal(t, process.ErrNilValidatorInfos, err)
 
-	vi := state.NewShardValidatorsInfoMap(1)
+	vi := state.NewShardValidatorsInfoMap()
 	err = validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Equal(t, process.ErrNilValidatorInfos, err)
 }
@@ -2109,7 +2109,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNoValidatorFailu
 	tempRating1 := uint32(75)
 	tempRating2 := uint32(80)
 
-	vi := state.NewShardValidatorsInfoMap(2)
+	vi := state.NewShardValidatorsInfoMap()
 	_ = vi.Add(&state.ValidatorInfo{
 		PublicKey:                  nil,
 		ShardId:                    core.MetachainShardId,
@@ -2171,7 +2171,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 	validatorIgnored2 := uint32(90)
 	validatorFailure2 := uint32(9)
 
-	vi := state.NewShardValidatorsInfoMap(2)
+	vi := state.NewShardValidatorsInfoMap()
 	_ = vi.Add(createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1))
 	_ = vi.Add(createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2))
 
@@ -2208,7 +2208,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 	validatorIgnored2 := uint32(90)
 	validatorFailure2 := uint32(9)
 
-	vi := state.NewShardValidatorsInfoMap(2)
+	vi := state.NewShardValidatorsInfoMap()
 	_ = vi.Add(createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1))
 
 	validatorWaiting := createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
@@ -2249,7 +2249,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	validatorIgnored2 := uint32(90)
 	validatorFailure2 := uint32(9)
 
-	vi := state.NewShardValidatorsInfoMap(2)
+	vi := state.NewShardValidatorsInfoMap()
 	validatorLeaving := createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 	validatorLeaving.SetList(string(common.LeavingList))
 	_ = vi.Add(validatorLeaving)
@@ -2289,7 +2289,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	validatorIgnored2 := uint32(90)
 	validatorFailure2 := uint32(9)
 
-	vi := state.NewShardValidatorsInfoMap(2)
+	vi := state.NewShardValidatorsInfoMap()
 	_ = vi.Add(createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1))
 	_ = vi.Add(createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2))
 

@@ -181,7 +181,7 @@ func (vp *validatorsProvider) updateCache() {
 	}
 	allNodes, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil || allNodes == nil {
-		allNodes = state.NewShardValidatorsInfoMap(0)
+		allNodes = state.NewShardValidatorsInfoMap()
 		log.Trace("validatorsProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 

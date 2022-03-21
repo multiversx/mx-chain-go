@@ -3276,7 +3276,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 
-	expectedValidatorsInfo := state.NewShardValidatorsInfoMap(1)
+	expectedValidatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = expectedValidatorsInfo.Add(
 		&state.ValidatorInfo{
 			ShardId:         1,

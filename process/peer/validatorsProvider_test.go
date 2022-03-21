@@ -83,7 +83,7 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	e := errors.Errorf("not ok")
 	initialInfo := createMockValidatorInfo()
 
-	validatorInfos := state.NewShardValidatorsInfoMap(1)
+	validatorInfos := state.NewShardValidatorsInfoMap()
 	_ = validatorInfos.Add(initialInfo)
 
 	gotOk := false
@@ -262,7 +262,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
 	initialList := string(common.EligibleList)
-	validatorsMap := state.NewShardValidatorsInfoMap(1)
+	validatorsMap := state.NewShardValidatorsInfoMap()
 	_ = validatorsMap.Add(&state.ValidatorInfo{
 		PublicKey: pk,
 		List:      initialList,
@@ -356,7 +356,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 	pkNew := []byte("pk5")
 	newList := string(common.NewList)
 
-	validatorsMap := state.NewShardValidatorsInfoMap(4)
+	validatorsMap := state.NewShardValidatorsInfoMap()
 	eligibleShardId := uint32(0)
 	waitingShardId := uint32(1)
 	leavingShardId := uint32(2)
@@ -435,7 +435,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	pkLeavingInTrie := []byte("pk3")
 	leavingList := string(common.LeavingList)
 
-	validatorsMap := state.NewShardValidatorsInfoMap(3)
+	validatorsMap := state.NewShardValidatorsInfoMap()
 	eligibleShardId := uint32(0)
 	inactiveShardId := uint32(1)
 	leavingShardId := uint32(2)
@@ -546,7 +546,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 		if callNumber == 1 {
 			return nil, nil
 		}
-		validatorsMap := state.NewShardValidatorsInfoMap(1)
+		validatorsMap := state.NewShardValidatorsInfoMap()
 		_ = validatorsMap.Add(&state.ValidatorInfo{
 			ShardId:   0,
 			PublicKey: pkEligibleInTrie,
@@ -584,7 +584,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 		if callNumber == 1 {
 			return nil, nil
 		}
-		validatorsMap := state.NewShardValidatorsInfoMap(1)
+		validatorsMap := state.NewShardValidatorsInfoMap()
 		_ = validatorsMap.Add(&state.ValidatorInfo{
 			ShardId:   0,
 			PublicKey: pkEligibleInTrie,

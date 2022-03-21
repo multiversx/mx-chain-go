@@ -60,7 +60,7 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 	if vsp.GetValidatorInfoForRootHashCalled != nil {
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}
-	return state.NewShardValidatorsInfoMap(0), nil
+	return state.NewShardValidatorsInfoMap(), nil
 }
 
 // UpdatePeerState -
