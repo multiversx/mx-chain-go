@@ -125,7 +125,7 @@ func (ti *testIndexer) createElasticProcessor(
 	bp, _ := blockProc.NewBlockProcessor(testHasher, testMarshalizer)
 	mp, _ := miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer, false)
 	sp := statistics.NewStatisticsProcessor()
-	vp, _ := validators.NewValidatorsProcessor(pubkeyConv)
+	vp, _ := validators.NewValidatorsProcessor(pubkeyConv, 0)
 	opp, _ := operations.NewOperationsProcessor(false, shardCoordinator)
 	args := &logsevents.ArgsLogsAndEventsProcessor{
 		ShardCoordinator: shardCoordinator,
