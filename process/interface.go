@@ -897,8 +897,8 @@ type RewardsCreator interface {
 
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
-	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateValidatorInfoMiniBlocks(validatorInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error
 	SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body)
 	DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler)
 	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)

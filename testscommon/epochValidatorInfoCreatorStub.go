@@ -8,8 +8,8 @@ import (
 
 // EpochValidatorInfoCreatorStub -
 type EpochValidatorInfoCreatorStub struct {
-	CreateValidatorInfoMiniBlocksCalled func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocksCalled func(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateValidatorInfoMiniBlocksCalled func(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocksCalled func(miniblocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error
 	CreateMarshalizedDataCalled         func(body block.Body) map[string][][]byte
 	SaveTxBlockToStorageCalled          func(metaBlock data.HeaderHandler, body *block.Body)
 	DeleteTxsFromStorageCalled          func(metaBlock data.HeaderHandler)
@@ -17,7 +17,7 @@ type EpochValidatorInfoCreatorStub struct {
 }
 
 // CreateValidatorInfoMiniBlocks -
-func (e *EpochValidatorInfoCreatorStub) CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+func (e *EpochValidatorInfoCreatorStub) CreateValidatorInfoMiniBlocks(validatorInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
 	if e.CreateValidatorInfoMiniBlocksCalled != nil {
 		return e.CreateValidatorInfoMiniBlocksCalled(validatorInfo)
 	}
@@ -25,7 +25,7 @@ func (e *EpochValidatorInfoCreatorStub) CreateValidatorInfoMiniBlocks(validatorI
 }
 
 // VerifyValidatorInfoMiniBlocks -
-func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error {
 	if e.VerifyValidatorInfoMiniBlocksCalled != nil {
 		return e.VerifyValidatorInfoMiniBlocksCalled(miniblocks, validatorsInfo)
 	}

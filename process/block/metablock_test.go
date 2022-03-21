@@ -3354,8 +3354,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
-			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
+			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}
@@ -3416,8 +3416,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
-			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
+			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}

@@ -21,90 +21,90 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockValidatorInfo() map[uint32][]*state.ValidatorInfo {
-	validatorInfo := map[uint32][]*state.ValidatorInfo{
-		0: {
-			&state.ValidatorInfo{
-				PublicKey:                  []byte("a1"),
-				ShardId:                    0,
-				List:                       "eligible",
-				Index:                      1,
-				TempRating:                 100,
-				Rating:                     1000,
-				RewardAddress:              []byte("rewardA1"),
-				LeaderSuccess:              1,
-				LeaderFailure:              2,
-				ValidatorSuccess:           3,
-				ValidatorFailure:           4,
-				TotalLeaderSuccess:         10,
-				TotalLeaderFailure:         20,
-				TotalValidatorSuccess:      30,
-				TotalValidatorFailure:      40,
-				NumSelectedInSuccessBlocks: 5,
-				AccumulatedFees:            big.NewInt(100),
-			},
-			&state.ValidatorInfo{
-				PublicKey:                  []byte("a2"),
-				ShardId:                    0,
-				List:                       "waiting",
-				Index:                      2,
-				TempRating:                 101,
-				Rating:                     1001,
-				RewardAddress:              []byte("rewardA2"),
-				LeaderSuccess:              6,
-				LeaderFailure:              7,
-				ValidatorSuccess:           8,
-				ValidatorFailure:           9,
-				TotalLeaderSuccess:         60,
-				TotalLeaderFailure:         70,
-				TotalValidatorSuccess:      80,
-				TotalValidatorFailure:      90,
-				NumSelectedInSuccessBlocks: 10,
-				AccumulatedFees:            big.NewInt(101),
-			},
-		},
-		core.MetachainShardId: {
-			&state.ValidatorInfo{
-				PublicKey:                  []byte("m1"),
-				ShardId:                    core.MetachainShardId,
-				List:                       "eligible",
-				Index:                      1,
-				TempRating:                 100,
-				Rating:                     1000,
-				RewardAddress:              []byte("rewardM1"),
-				LeaderSuccess:              1,
-				LeaderFailure:              2,
-				ValidatorSuccess:           3,
-				ValidatorFailure:           4,
-				TotalLeaderSuccess:         10,
-				TotalLeaderFailure:         20,
-				TotalValidatorSuccess:      30,
-				TotalValidatorFailure:      40,
-				NumSelectedInSuccessBlocks: 5,
-				AccumulatedFees:            big.NewInt(100),
-			},
-			&state.ValidatorInfo{
-				PublicKey:                  []byte("m0"),
-				ShardId:                    core.MetachainShardId,
-				List:                       "waiting",
-				Index:                      2,
-				TempRating:                 101,
-				Rating:                     1001,
-				RewardAddress:              []byte("rewardM2"),
-				LeaderSuccess:              6,
-				LeaderFailure:              7,
-				ValidatorSuccess:           8,
-				ValidatorFailure:           9,
-				TotalLeaderSuccess:         60,
-				TotalLeaderFailure:         70,
-				TotalValidatorSuccess:      80,
-				TotalValidatorFailure:      90,
-				NumSelectedInSuccessBlocks: 10,
-				AccumulatedFees:            big.NewInt(101),
-			},
-		},
-	}
-	return validatorInfo
+func createMockValidatorInfo() state.ShardValidatorsInfoMapHandler {
+	validatorsInfo := state.NewShardValidatorsInfoMap()
+
+	_ = validatorsInfo.Add(&state.ValidatorInfo{
+		PublicKey:                  []byte("a1"),
+		ShardId:                    0,
+		List:                       "eligible",
+		Index:                      1,
+		TempRating:                 100,
+		Rating:                     1000,
+		RewardAddress:              []byte("rewardA1"),
+		LeaderSuccess:              1,
+		LeaderFailure:              2,
+		ValidatorSuccess:           3,
+		ValidatorFailure:           4,
+		TotalLeaderSuccess:         10,
+		TotalLeaderFailure:         20,
+		TotalValidatorSuccess:      30,
+		TotalValidatorFailure:      40,
+		NumSelectedInSuccessBlocks: 5,
+		AccumulatedFees:            big.NewInt(100),
+	})
+
+	_ = validatorsInfo.Add(&state.ValidatorInfo{
+		PublicKey:                  []byte("a2"),
+		ShardId:                    0,
+		List:                       "waiting",
+		Index:                      2,
+		TempRating:                 101,
+		Rating:                     1001,
+		RewardAddress:              []byte("rewardA2"),
+		LeaderSuccess:              6,
+		LeaderFailure:              7,
+		ValidatorSuccess:           8,
+		ValidatorFailure:           9,
+		TotalLeaderSuccess:         60,
+		TotalLeaderFailure:         70,
+		TotalValidatorSuccess:      80,
+		TotalValidatorFailure:      90,
+		NumSelectedInSuccessBlocks: 10,
+		AccumulatedFees:            big.NewInt(101),
+	})
+
+	_ = validatorsInfo.Add(&state.ValidatorInfo{
+		PublicKey:                  []byte("m1"),
+		ShardId:                    core.MetachainShardId,
+		List:                       "eligible",
+		Index:                      1,
+		TempRating:                 100,
+		Rating:                     1000,
+		RewardAddress:              []byte("rewardM1"),
+		LeaderSuccess:              1,
+		LeaderFailure:              2,
+		ValidatorSuccess:           3,
+		ValidatorFailure:           4,
+		TotalLeaderSuccess:         10,
+		TotalLeaderFailure:         20,
+		TotalValidatorSuccess:      30,
+		TotalValidatorFailure:      40,
+		NumSelectedInSuccessBlocks: 5,
+		AccumulatedFees:            big.NewInt(100),
+	})
+
+	_ = validatorsInfo.Add(&state.ValidatorInfo{
+		PublicKey:                  []byte("m0"),
+		ShardId:                    core.MetachainShardId,
+		List:                       "waiting",
+		Index:                      2,
+		TempRating:                 101,
+		Rating:                     1001,
+		RewardAddress:              []byte("rewardM2"),
+		LeaderSuccess:              6,
+		LeaderFailure:              7,
+		ValidatorSuccess:           8,
+		ValidatorFailure:           9,
+		TotalLeaderSuccess:         60,
+		TotalLeaderFailure:         70,
+		TotalValidatorSuccess:      80,
+		TotalValidatorFailure:      90,
+		NumSelectedInSuccessBlocks: 10,
+		AccumulatedFees:            big.NewInt(101),
+	})
+
+	return validatorsInfo
 }
 
 func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator {
@@ -127,7 +127,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 	return argsNewEpochEconomics
 }
 
-func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshalizer marshal.Marshalizer) bool {
+func verifyMiniBlocks(bl *block.MiniBlock, infos []state.ValidatorInfoHandler, marshalizer marshal.Marshalizer) bool {
 	if bl.SenderShardID != core.MetachainShardId ||
 		bl.ReceiverShardID != core.AllShardId ||
 		len(bl.TxHashes) == 0 ||
@@ -135,10 +135,10 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 		return false
 	}
 
-	validatorCopy := make([]*state.ValidatorInfo, len(infos))
+	validatorCopy := make([]state.ValidatorInfoHandler, len(infos))
 	copy(validatorCopy, infos)
 	sort.Slice(validatorCopy, func(a, b int) bool {
-		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
+		return bytes.Compare(validatorCopy[a].GetPublicKey(), validatorCopy[b].GetPublicKey()) < 0
 	})
 
 	for i, txHash := range bl.TxHashes {
@@ -264,9 +264,9 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldBeCorrect(
 	vic, _ := NewValidatorInfoCreator(arguments)
 	mbs, _ := vic.CreateValidatorInfoMiniBlocks(validatorInfo)
 
-	correctMB0 := verifyMiniBlocks(mbs[0], validatorInfo[0], arguments.Marshalizer)
+	correctMB0 := verifyMiniBlocks(mbs[0], validatorInfo.GetShardValidatorsInfoMap()[0], arguments.Marshalizer)
 	require.True(t, correctMB0)
-	correctMbMeta := verifyMiniBlocks(mbs[1], validatorInfo[core.MetachainShardId], arguments.Marshalizer)
+	correctMbMeta := verifyMiniBlocks(mbs[1], validatorInfo.GetShardValidatorsInfoMap()[core.MetachainShardId], arguments.Marshalizer)
 	require.True(t, correctMbMeta)
 }
 
@@ -345,11 +345,11 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilOneMiniblock(
 }
 
 func createValidatorInfoMiniBlocks(
-	validatorInfo map[uint32][]*state.ValidatorInfo,
+	validatorInfo state.ShardValidatorsInfoMapHandler,
 	arguments ArgsNewValidatorInfoCreator,
 ) []*block.MiniBlock {
 	miniblocks := make([]*block.MiniBlock, 0)
-	for _, validators := range validatorInfo {
+	for _, validators := range validatorInfo.GetShardValidatorsInfoMap() {
 		if len(validators) == 0 {
 			continue
 		}
@@ -360,10 +360,10 @@ func createValidatorInfoMiniBlocks(
 		miniBlock.TxHashes = make([][]byte, len(validators))
 		miniBlock.Type = block.PeerBlock
 
-		validatorCopy := make([]*state.ValidatorInfo, len(validators))
+		validatorCopy := make([]state.ValidatorInfoHandler, len(validators))
 		copy(validatorCopy, validators)
 		sort.Slice(validatorCopy, func(a, b int) bool {
-			return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
+			return bytes.Compare(validatorCopy[a].GetPublicKey(), validatorCopy[b].GetPublicKey()) < 0
 		})
 
 		for index, validator := range validatorCopy {
