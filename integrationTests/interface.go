@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
@@ -40,7 +40,7 @@ type TestEpochStartTrigger interface {
 
 // NodesCoordinatorFactory is used for creating a nodesCoordinator in the integration tests
 type NodesCoordinatorFactory interface {
-	CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator
+	CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) nodesCoordinator.NodesCoordinator
 }
 
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
@@ -48,8 +48,9 @@ type NetworkShardingUpdater interface {
 	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }
 
@@ -98,5 +99,6 @@ type Facade interface {
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
+	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
 	IsInterfaceNil() bool
 }

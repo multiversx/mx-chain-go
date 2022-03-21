@@ -88,6 +88,7 @@ type Storer interface {
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) error
 	SearchFirst(key []byte) ([]byte, error)
+	RemoveFromCurrentEpoch(key []byte) error
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error

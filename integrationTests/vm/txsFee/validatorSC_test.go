@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -48,7 +49,7 @@ func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
 }
 
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, vm.ArgEnableEpoch{})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -105,7 +106,7 @@ func checkReturnLog(t *testing.T, testContextMeta *vm.VMTestContext, subStr stri
 }
 
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, vm.ArgEnableEpoch{})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -136,19 +137,19 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 }
 
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
-	argUnbondTokensV1 := vm.ArgEnableEpoch{
+	argUnbondTokensV1 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 20000,
 	}
-	testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV1)
+	testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV1)
 
-	argUnbondTokensV2 := vm.ArgEnableEpoch{
+	argUnbondTokensV2 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 0,
 	}
-	testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV2)
+	testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV2)
 }
 
-func testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T, arg vm.ArgEnableEpoch) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, arg)
+func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T, enableEpochs config.EnableEpochs) {
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, enableEpochs)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -176,7 +177,7 @@ func testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, vm.ArgEnableEpoch{})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -223,7 +224,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, vm.ArgEnableEpoch{})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()

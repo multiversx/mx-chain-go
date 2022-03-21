@@ -2,7 +2,6 @@ package leveldb_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -13,8 +12,7 @@ import (
 )
 
 func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
-	dir, _ := ioutil.TempDir("", "leveldb_temp")
-	lvdb, err := leveldb.NewSerialDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	lvdb, err := leveldb.NewSerialDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb

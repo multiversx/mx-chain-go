@@ -20,6 +20,14 @@ func (p *peerShardMapper) GetLastKnownPeerID(_ []byte) (*core.PeerID, bool) {
 func (p *peerShardMapper) UpdatePeerIDPublicKeyPair(_ core.PeerID, _ []byte) {
 }
 
+// PutPeerIdShardId does nothing
+func (p *peerShardMapper) PutPeerIdShardId(_ core.PeerID, _ uint32) {
+}
+
+// PutPeerIdSubType does nothing
+func (p *peerShardMapper) PutPeerIdSubType(_ core.PeerID, _ core.P2PPeerSubType) {
+}
+
 // GetPeerInfo returns default instance
 func (p *peerShardMapper) GetPeerInfo(_ core.PeerID) core.P2PPeerInfo {
 	return core.P2PPeerInfo{}

@@ -4,14 +4,19 @@ import (
 	"sync"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
 
 // NewTestProcessorNodeWithStateCheckpointModulus creates a new testNodeProcessor with custom state checkpoint modulus
@@ -31,13 +36,13 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return oneMap, nil
 		},
-		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
-			list := make([]sharding.GenesisNodeInfoHandler, 0)
+		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []nodesCoordinator.GenesisNodeInfoHandler, handlers2 []nodesCoordinator.GenesisNodeInfoHandler, err error) {
+			list := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 			list = append(list, mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return list, nil, nil
 		},
@@ -46,10 +51,10 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, defaultChancesSelection, 1)
-			return []sharding.Validator{v}, nil
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pkBytes, defaultChancesSelection, 1)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
@@ -57,8 +62,8 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			keys[0] = append(keys[0], pkBytes)
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -68,7 +73,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoordinatorInstance,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -77,6 +82,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeerShardMapper:         disabled.NewPeerShardMapper(),
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -91,7 +97,10 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	if tpn.EpochStartNotifier == nil {
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	}
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	tpn.initChainHandler()
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
@@ -117,12 +126,13 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:       tpn.VMContainer,
-		EconomicsFee:      tpn.EconomicsData,
-		BlockChainHook:    tpn.BlockchainHook,
-		BlockChain:        tpn.BlockChain,
-		ArwenChangeLocker: tpn.ArwenChangeLocker,
-		Bootstrapper:      tpn.Bootstrapper,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		BlockChain:               tpn.BlockChain,
+		ArwenChangeLocker:        tpn.ArwenChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)

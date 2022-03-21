@@ -16,7 +16,7 @@ import (
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
 func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	numOfShards := 2
-	nodesPerShard := 1
+	nodesPerShard := 2
 	numMetachainNodes := 1
 
 	nodes := integrationTests.CreateNodes(

@@ -102,7 +102,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	if err != nil {
 		mdi.throttler.EndProcessing()
 
-		//this situation is so severe that we need to black list de peers
+		// this situation is so severe that we need to black list de peers
 		reason := "unmarshalable data got on topic " + mdi.topic
 		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -197,7 +197,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff)
 	if err != nil {
-		//this situation is so severe that we need to black list de peers
+		// this situation is so severe that we need to black list de peers
 		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()
 		mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
 		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -213,7 +213,7 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
 		if isWrongVersion {
-			//this situation is so severe that we need to black list de peers
+			// this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()
 			mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
 			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)

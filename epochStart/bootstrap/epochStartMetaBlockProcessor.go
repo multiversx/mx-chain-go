@@ -137,7 +137,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	}
 
 	if !metaBlock.IsStartOfEpochBlock() {
-		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
+		log.Debug("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 		return nil
 	}
 

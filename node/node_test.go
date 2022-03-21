@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,9 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
-	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	integrationTestsMock "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -3719,5 +3715,97 @@ func createHeartbeatMessage(prefix string, idx int, isActive bool) heartbeatData
 		NumInstances:    1,
 		PeerSubType:     1,
 		PidString:       fmt.Sprintf("%d%spid", idx, prefix),
+	}
+}
+
+func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
+	return &nodeMockFactory.CoreComponentsMock{
+		IntMarsh:            &testscommon.MarshalizerMock{},
+		TxMarsh:             &testscommon.MarshalizerMock{},
+		VmMarsh:             &testscommon.MarshalizerMock{},
+		TxSignHasherField:   &testscommon.HasherStub{},
+		Hash:                &testscommon.HasherStub{},
+		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
+		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
+		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),
+		PathHdl:             &testscommon.PathManagerStub{},
+		ChainIdCalled: func() string {
+			return "chainID"
+		},
+		MinTransactionVersionCalled: func() uint32 {
+			return 1
+		},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		WDTimer:               &testscommon.WatchdogMock{},
+		Alarm:                 &testscommon.AlarmSchedulerStub{},
+		NtpTimer:              &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
+	}
+}
+
+func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
+	return &factoryMock.ProcessComponentsMock{
+		NodesCoord: &shardingMocks.NodesCoordinatorMock{},
+		ShardCoord: &testscommon.ShardsCoordinatorMock{
+			NoShards:     1,
+			CurrentShard: 0,
+		},
+		IntContainer:                   &testscommon.InterceptorsContainerStub{},
+		ResFinder:                      &mock.ResolversFinderStub{},
+		RoundHandlerField:              &testscommon.RoundHandlerMock{},
+		EpochTrigger:                   &testscommon.EpochStartTriggerStub{},
+		EpochNotifier:                  &mock.EpochStartNotifierStub{},
+		ForkDetect:                     &mock.ForkDetectorMock{},
+		BlockProcess:                   &mock.BlockProcessorStub{},
+		BlackListHdl:                   &testscommon.TimeCacheStub{},
+		BootSore:                       &mock.BootstrapStorerMock{},
+		HeaderSigVerif:                 &mock.HeaderSigVerifierStub{},
+		HeaderIntegrVerif:              &mock.HeaderIntegrityVerifierStub{},
+		ValidatorStatistics:            &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorProvider:              &mock.ValidatorsProviderStub{},
+		BlockTrack:                     &mock.BlockTrackerStub{},
+		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
+		ReqHandler:                     &testscommon.RequestHandlerStub{},
+		TxLogsProcess:                  &mock.TxLogProcessorMock{},
+		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
+		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
+		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
+		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
+	}
+}
+
+func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
+	return &nodeMockFactory.DataComponentsMock{
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("root hash")
+			},
+		},
+		Store:      &mock.ChainStorerStub{},
+		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
+		MbProvider: &mock.MiniBlocksProviderStub{},
+	}
+}
+
+func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
+	return &mainFactoryMocks.BootstrapComponentsStub{
+		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
+			TrieHolder:      &mock.TriesHolderStub{},
+			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			BootstrapCalled: nil,
+		},
+		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:             "",
+		ShCoordinator:        &mock.ShardCoordinatorMock{},
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 )
@@ -81,7 +82,7 @@ func NewShardProcessorEmptyWith3shards(
 	blockChain data.ChainHandler,
 ) (*shardProcessor, error) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
 		Hasher:      &hashingMocks.HasherMock{},
@@ -124,7 +125,7 @@ func NewShardProcessorEmptyWith3shards(
 			NodesCoordinator:    nodesCoordinator,
 			FeeHandler:          &mock.FeeAccumulatorStub{},
 			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+			BlockChainHook:      &testscommon.BlockChainHookStub{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			HeaderValidator:     hdrValidator,
@@ -422,10 +423,53 @@ func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 }
 
-func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
-	return checkProcessorNilParameters(arguments)
-}
-
 func (sp *shardProcessor) RequestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	return sp.requestEpochStartInfo(header, haveTime)
+}
+
+func (mp *metaProcessor) ProcessEpochStartMetaBlock(
+	header *block.MetaBlock,
+	body *block.Body,
+) error {
+	return mp.processEpochStartMetaBlock(header, body)
+}
+
+func (mp *metaProcessor) UpdateEpochStartHeader(metaHdr *block.MetaBlock) error {
+	return mp.updateEpochStartHeader(metaHdr)
+}
+
+func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.BodyHandler, error) {
+	return mp.createEpochStartBody(metaBlock)
+}
+
+func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
+}
+
+func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	return bp.getFinalMiniBlocks(header, body)
+}
+
+func GetScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
+	return getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
+}
+
+func (bp *baseProcessor) CheckScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
+	return bp.checkScheduledMiniBlocksValidity(headerHandler)
+}
+
+func (bp *baseProcessor) SetMiniBlockHeaderReservedField(
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+	return bp.setMiniBlockHeaderReservedField(miniBlock, miniBlockHash, miniBlockHeaderHandler)
+}
+
+func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
+	return mp.getFinalMiniBlockHeaders(miniBlockHeaderHandlers)
+}
+
+func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
+	return checkProcessorNilParameters(arguments)
 }

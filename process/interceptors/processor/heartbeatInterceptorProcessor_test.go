@@ -12,12 +12,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createHeartbeatInterceptorProcessArg() processor.ArgHeartbeatInterceptorProcessor {
 	return processor.ArgHeartbeatInterceptorProcessor{
-		HeartbeatCacher: testscommon.NewCacherStub(),
+		HeartbeatCacher:  testscommon.NewCacherStub(),
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
+		PeerShardMapper:  &p2pmocks.NetworkShardingCollectorStub{},
 	}
 }
 
@@ -64,6 +67,24 @@ func TestNewHeartbeatInterceptorProcessor(t *testing.T) {
 		assert.Equal(t, process.ErrNilHeartbeatCacher, err)
 		assert.Nil(t, hip)
 	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createHeartbeatInterceptorProcessArg()
+		arg.ShardCoordinator = nil
+		hip, err := processor.NewHeartbeatInterceptorProcessor(arg)
+		assert.Equal(t, process.ErrNilShardCoordinator, err)
+		assert.Nil(t, hip)
+	})
+	t.Run("nil peer shard mapper should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createHeartbeatInterceptorProcessArg()
+		arg.PeerShardMapper = nil
+		hip, err := processor.NewHeartbeatInterceptorProcessor(arg)
+		assert.Equal(t, process.ErrNilPeerShardMapper, err)
+		assert.Nil(t, hip)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -83,6 +104,29 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, hip.IsInterfaceNil())
 		assert.Equal(t, process.ErrWrongTypeAssertion, hip.Save(nil, "", ""))
+	})
+	t.Run("invalid heartbeat data should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedData := createMockInterceptedPeerAuthentication() // unable to cast to intercepted heartbeat
+		wasPutPeerIdShardIdCalled := false
+		wasPutPeerIdSubTypeCalled := false
+		args := createHeartbeatInterceptorProcessArg()
+		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
+			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
+				wasPutPeerIdShardIdCalled = true
+			},
+			PutPeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+				wasPutPeerIdSubTypeCalled = true
+			},
+		}
+
+		paip, err := processor.NewHeartbeatInterceptorProcessor(args)
+		assert.Nil(t, err)
+		assert.False(t, paip.IsInterfaceNil())
+		assert.Equal(t, process.ErrWrongTypeAssertion, paip.Save(providedData, "", ""))
+		assert.False(t, wasPutPeerIdShardIdCalled)
+		assert.False(t, wasPutPeerIdSubTypeCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -107,6 +151,19 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 				return false
 			},
 		}
+		wasPutPeerIdShardIdCalled := false
+		wasPutPeerIdSubTypeCalled := false
+		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
+			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
+				wasPutPeerIdShardIdCalled = true
+				assert.Equal(t, providedPid, pid)
+			},
+			PutPeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+				wasPutPeerIdSubTypeCalled = true
+				assert.Equal(t, providedPid, pid)
+			},
+		}
+
 		hip, err := processor.NewHeartbeatInterceptorProcessor(arg)
 		assert.Nil(t, err)
 		assert.False(t, hip.IsInterfaceNil())
@@ -114,6 +171,8 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		err = hip.Save(providedHb, providedPid, "")
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
+		assert.True(t, wasPutPeerIdShardIdCalled)
+		assert.True(t, wasPutPeerIdSubTypeCalled)
 	})
 }
 

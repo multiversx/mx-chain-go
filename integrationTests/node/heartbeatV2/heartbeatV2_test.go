@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
@@ -16,8 +17,9 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 
 	interactingNodes := 3
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes)
+		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes, p2pConfig)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -42,26 +44,27 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 
 	interactingNodes := 3
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes)
+		nodes[i] = integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes, p2pConfig)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
 	connectNodes(nodes, interactingNodes)
 
 	// Wait for messages to broadcast
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 	// Check sent messages
 	maxMessageAgeAllowed := time.Second * 5
 	checkMessages(t, nodes, maxMessageAgeAllowed)
 
 	// Add new delayed node which requests messages
-	delayedNode := integrationTests.NewTestHeartbeatNode(3, 0, interactingNodes+1)
+	delayedNode := integrationTests.NewTestHeartbeatNode(3, 0, 0, p2pConfig)
 	nodes = append(nodes, delayedNode)
 	connectNodes(nodes, len(nodes))
 	// Wait for messages to broadcast and requests to finish
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 	for i := 0; i < len(nodes); i++ {
 		nodes[i].Close()
@@ -97,7 +100,8 @@ func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, ma
 			assert.True(t, hbCache.Has(node.Messenger.ID().Bytes()))
 
 			// Also check message age
-			value, _ := paCache.Get(node.Messenger.ID().Bytes())
+			value, found := paCache.Get(node.Messenger.ID().Bytes())
+			require.True(t, found)
 			msg := value.(heartbeat.PeerAuthentication)
 
 			marshaller := integrationTests.TestMarshaller

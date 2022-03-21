@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +87,7 @@ func createMetaStore() *mock.ChainStorerMock {
 	}
 }
 
-//------- NewInterceptorsContainerFactory
+// ------- NewInterceptorsContainerFactory
 
 func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -453,7 +454,7 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.
 	assert.False(t, icf.IsInterfaceNil())
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -555,7 +556,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	nodesCoordinator := &mock.NodesCoordinatorMock{
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
 		ShardConsensusSize: 1,
 		MetaConsensusSize:  1,
 		NbShards:           uint32(noOfShards),
@@ -583,7 +584,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsShardHeadersForMetachain := noOfShards
 	numInterceptorsTransactionsForMetachain := noOfShards + 1
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
-	numInterceptorsUnsignedTxsForMetachain := noOfShards
+	numInterceptorsUnsignedTxsForMetachain := noOfShards + 1
 	numInterceptorsRewardsTxsForMetachain := noOfShards
 	numInterceptorsTrieNodes := 2
 	numInterceptorsPeerAuthForMetachain := 1
@@ -609,7 +610,7 @@ func getArgumentsMeta(
 		CryptoComponents:             cryptoComp,
 		Accounts:                     &stateMock.AccountsStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:             mock.NewNodesCoordinatorMock(),
+		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
 		Messenger:                    &mock.TopicHandlerStub{},
 		Store:                        createMetaStore(),
 		DataPool:                     createMetaDataPools(),
