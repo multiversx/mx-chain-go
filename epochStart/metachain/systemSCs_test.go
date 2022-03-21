@@ -175,7 +175,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
 	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	vInfo := &state.ValidatorInfo{
 		PublicKey:       []byte("jailedPubKey0"),
 		ShardId:         0,
@@ -228,7 +228,7 @@ func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, s
 
 	addValidatorData(args.UserAccountsDB, []byte("ownerForAll"), [][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")}, big.NewInt(900000), args.Marshalizer)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.SetValidatorsInShard(0, jailed)
 
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
@@ -291,7 +291,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	_ = s.initDelegationSystemSC()
 	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys...)
 	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys[:3]...)
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	jailed := &state.ValidatorInfo{
 		PublicKey:       blsKeys[0],
 		ShardId:         0,
@@ -1054,7 +1054,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 	s, _ := NewSystemSCProcessor(args)
 
 	_ = s.flagDelegationEnabled.SetReturningPrevious()
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
 
@@ -1197,7 +1197,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 		[]byte("rewardAddress"),
 	)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
 
@@ -1249,7 +1249,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 10,
 	})
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{Epoch: 10})
 	assert.Nil(t, err)
 
@@ -1313,7 +1313,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 		args.Marshalizer,
 	)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            string(common.EligibleList),
@@ -1381,7 +1381,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWor
 	addValidatorDataWithUnStakedKey(args.UserAccountsDB, []byte("ownerKey"), [][]byte{[]byte("stakedPubKey1")}, big.NewInt(1000), args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            string(common.EligibleList),
@@ -1458,7 +1458,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	addDelegationData(args.UserAccountsDB, delegationAddr, allKeys, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            string(common.EligibleList),
@@ -1547,7 +1547,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	addDelegationData(args.UserAccountsDB, delegationAddr, allStakedKeys, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            string(common.EligibleList),
@@ -1645,7 +1645,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	addDelegationData(args.UserAccountsDB, delegationAddr2, listOfKeysInWaiting, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            string(common.EligibleList),
@@ -1717,7 +1717,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 		[]byte("oneAddress1"),
 	)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            "",
@@ -1815,7 +1815,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	addValidatorData(args.UserAccountsDB, []byte("ownerKey"), [][]byte{[]byte("stakedPubKey0"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3"), []byte("waitingPubKey")}, big.NewInt(0), args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
 		List:            string(common.EligibleList),
@@ -1905,7 +1905,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 	addKeysToWaitingList(args.UserAccountsDB, owner3ListPubKeysWaiting, args.Marshalizer, owner3, owner3)
 	addValidatorData(args.UserAccountsDB, owner3, owner3ListPubKeysWaiting, big.NewInt(2000), args.Marshalizer)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(2)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, owner2, 1))
@@ -1951,7 +1951,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
 	registerValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner, 0))
 
@@ -1985,7 +1985,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
 	registerValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner, 0))
 
@@ -2013,7 +2013,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4NotEnoughSlotsForA
 	registerValidatorKeys(args.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(2000), args.Marshalizer)
 	registerValidatorKeys(args.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(2000), args.Marshalizer)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(1)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
@@ -2053,7 +2053,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	registerValidatorKeys(args.UserAccountsDB, owner3, owner3, owner3StakedKeys, big.NewInt(2000), args.Marshalizer)
 	registerValidatorKeys(args.UserAccountsDB, owner4, owner4, owner4StakedKeys, big.NewInt(3000), args.Marshalizer)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap(2)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[1], common.WaitingList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[2], common.AuctionList, owner1, 0))
