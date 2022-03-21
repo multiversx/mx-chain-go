@@ -16,10 +16,10 @@ type shardValidatorsInfoMap struct {
 
 // NewShardValidatorsInfoMap creates an instance of shardValidatorsInfoMap which manages a
 // <shardID, validatorsInfo> map internally
-func NewShardValidatorsInfoMap(numOfShards uint32) *shardValidatorsInfoMap {
+func NewShardValidatorsInfoMap() *shardValidatorsInfoMap {
 	return &shardValidatorsInfoMap{
 		mutex:      sync.RWMutex{},
-		valInfoMap: make(map[uint32][]ValidatorInfoHandler, numOfShards),
+		valInfoMap: make(map[uint32][]ValidatorInfoHandler),
 	}
 }
 
