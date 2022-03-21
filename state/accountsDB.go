@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -987,7 +988,8 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
-	leavesChannel, err := adb.mainTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+	err := adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -1226,11 +1228,11 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (adb *AccountsDB) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	return adb.mainTrie.GetAllLeavesOnChannel(rootHash)
+	return adb.mainTrie.GetAllLeavesOnChannel(leavesChannel, ctx, rootHash)
 }
 
 // GetNumCheckpoints returns the total number of state checkpoints

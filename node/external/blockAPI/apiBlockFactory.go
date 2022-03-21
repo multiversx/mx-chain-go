@@ -26,6 +26,21 @@ func CreateAPIBlockProcessor(arg *ArgAPIBlockProcessor) (APIBlockHandler, error)
 	return newMetaApiBlockProcessor(arg, emptyReceiptsHash), nil
 }
 
+// CreateAPIInternalBlockProcessor will create a new instance of APIInternalBlockHandler
+func CreateAPIInternalBlockProcessor(arg *ArgAPIBlockProcessor) (APIInternalBlockHandler, error) {
+	err := checkNilArg(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	emptyReceiptsHash, err := computeEmptyReceiptsHash(arg.Marshalizer, arg.Hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	return newInternalBlockProcessor(arg, emptyReceiptsHash), nil
+}
+
 func computeEmptyReceiptsHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
 	allReceiptsHashes := make([][]byte, 0)
 

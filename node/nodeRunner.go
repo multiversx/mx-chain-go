@@ -39,7 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -174,6 +174,9 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug(readEpochFor("do not return old block in blockchain hook"), "epoch", enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
+	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
+	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
+
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -618,7 +621,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
@@ -839,7 +842,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
 	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
@@ -915,7 +918,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
-	nodesCoordinator sharding.NodesCoordinator,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1413,7 +1416,7 @@ func copySingleFile(folder string, configFile string) {
 
 func indexValidatorsListIfNeeded(
 	outportHandler outport.OutportHandler,
-	coordinator sharding.NodesCoordinator,
+	coordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
 ) {
 	if !outportHandler.HasDrivers() {

@@ -19,7 +19,6 @@ import (
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createTransactionPreprocessor() *transactions {
@@ -79,28 +78,6 @@ func createTransactionPreprocessor() *transactions {
 	preprocessor, _ := NewTransactionPreprocessor(txPreProcArgs)
 
 	return preprocessor
-}
-
-func TestTransactionPreprocessor_SplitMiniBlockBasedOnTxTypeIfNeededShouldWork(t *testing.T) {
-	t.Parallel()
-
-	mb := block.MiniBlock{
-		TxHashes: make([][]byte, 0),
-	}
-
-	mapSCTxs := make(map[string]struct{})
-	txHash1 := []byte("txHash1")
-	txHash2 := []byte("txHash2")
-	mb.TxHashes = append(mb.TxHashes, txHash1)
-	mb.TxHashes = append(mb.TxHashes, txHash2)
-	mapSCTxs[string(txHash1)] = struct{}{}
-
-	mbs := splitMiniBlockBasedOnTxTypeIfNeeded(&mb, mapSCTxs)
-	require.Equal(t, 2, len(mbs))
-	require.Equal(t, 1, len(mbs[0].TxHashes))
-	require.Equal(t, 1, len(mbs[1].TxHashes))
-	assert.Equal(t, txHash2, mbs[0].TxHashes[0])
-	assert.Equal(t, txHash1, mbs[1].TxHashes[0])
 }
 
 func TestTransactions_ApplyVerifiedTransactionShouldWork(t *testing.T) {
@@ -291,57 +268,6 @@ func TestTransactions_ShouldContinueProcessingScheduledTxShouldWork(t *testing.T
 	assert.Equal(t, wrappedTx.Tx.GetSndAddr(), mbInfo.senderAddressToSkip)
 }
 
-func TestTransactions_IsFirstMiniBlockSplitForReceiverShardFoundShouldWork(t *testing.T) {
-	t.Parallel()
-
-	preprocessor := createTransactionPreprocessor()
-
-	receiverShardID := uint32(1)
-	txMbInfo := &txAndMbInfo{}
-	mbInfo := &createAndProcessMiniBlocksInfo{
-		mapTxsForShard: make(map[uint32]int),
-		mapScsForShard: make(map[uint32]int),
-	}
-
-	// should return false when both num txs and num scs for shard are zero
-	value := preprocessor.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	assert.False(t, value)
-
-	// should return false when both num txs and num scs for shard are NOT zero
-	mbInfo.mapTxsForShard[receiverShardID] = 1
-	mbInfo.mapScsForShard[receiverShardID] = 1
-	value = preprocessor.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	assert.False(t, value)
-
-	// should return false when receiver is a smart contract address and num scs is NOT zero
-	mbInfo.mapTxsForShard[receiverShardID] = 0
-	mbInfo.mapScsForShard[receiverShardID] = 1
-	txMbInfo.isReceiverSmartContractAddress = true
-	value = preprocessor.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	assert.False(t, value)
-
-	// should return true when receiver is a smart contract address and num scs is zero
-	mbInfo.mapTxsForShard[receiverShardID] = 1
-	mbInfo.mapScsForShard[receiverShardID] = 0
-	txMbInfo.isReceiverSmartContractAddress = true
-	value = preprocessor.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	assert.True(t, value)
-
-	// should return false when receiver is NOT a smart contract address and num txs is NOT zero
-	mbInfo.mapTxsForShard[receiverShardID] = 1
-	mbInfo.mapScsForShard[receiverShardID] = 0
-	txMbInfo.isReceiverSmartContractAddress = false
-	value = preprocessor.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	assert.False(t, value)
-
-	// should return true when receiver is NOT a smart contract address and num txs is zero
-	mbInfo.mapTxsForShard[receiverShardID] = 0
-	mbInfo.mapScsForShard[receiverShardID] = 1
-	txMbInfo.isReceiverSmartContractAddress = false
-	value = preprocessor.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
-	assert.True(t, value)
-}
-
 func TestTransactions_ApplyExecutedTransactionShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -443,7 +369,6 @@ func TestTransactions_GetTxAndMbInfoShouldWork(t *testing.T) {
 	assert.Equal(t, 4, txMbInfo.numNewTxs)
 	assert.True(t, txMbInfo.isReceiverSmartContractAddress)
 	assert.True(t, txMbInfo.isCrossShardScCallOrSpecialTx)
-	assert.Equal(t, scTx, txMbInfo.txType)
 }
 
 func TestTransactions_ShouldContinueProcessingTxShouldWork(t *testing.T) {
@@ -571,29 +496,29 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	// should err when computeGasProvided method returns err
 	mbInfo := &createScheduledMiniBlocksInfo{}
 	gasProvidedByTx = MaxGasLimitPerBlock + 1
-	err := preprocessor.verifyTransaction(tx, scTx, txHash, senderShardID, receiverShardID, mbInfo)
+	err := preprocessor.verifyTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
 	assert.Equal(t, 1, mbInfo.schedulingInfo.numCrossShardTxsWithTooMuchGas)
 
 	// should err when VerifyTransaction method returns err
 	mbInfo = &createScheduledMiniBlocksInfo{
-		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
+		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]uint64),
 	}
 	gasProvidedByTx = MaxGasLimitPerBlock - 1
 	verifyTransactionErr = process.ErrLowerNonceInTransaction
-	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
-	err = preprocessor.verifyTransaction(tx, scTx, txHash, senderShardID, receiverShardID, mbInfo)
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
+	err = preprocessor.verifyTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 	assert.Equal(t, 1, mbInfo.schedulingInfo.numScheduledBadTxs)
 
 	// should work
 	mbInfo = &createScheduledMiniBlocksInfo{
-		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
+		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]uint64),
 	}
 	gasProvidedByTx = MaxGasLimitPerBlock - 1
 	verifyTransactionErr = nil
-	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
-	err = preprocessor.verifyTransaction(tx, scTx, txHash, senderShardID, receiverShardID, mbInfo)
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
+	err = preprocessor.verifyTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
 	_, ok := preprocessor.txsForCurrBlock.txHashAndInfo[string(txHash)]
 	assert.True(t, ok)
@@ -710,7 +635,6 @@ func TestTransactions_GetMiniBlockSliceFromMapV2ShouldWork(t *testing.T) {
 	preprocessor := createTransactionPreprocessor()
 
 	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
-	mapSCTxs := make(map[string]struct{})
 
 	mapMiniBlocks[0] = &block.MiniBlock{
 		TxHashes:        [][]byte{[]byte("txHash1")},
@@ -724,7 +648,7 @@ func TestTransactions_GetMiniBlockSliceFromMapV2ShouldWork(t *testing.T) {
 	mapMiniBlocks[core.MetachainShardId] = &block.MiniBlock{
 		TxHashes:        [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")},
 		ReceiverShardID: core.MetachainShardId}
-	mbs := preprocessor.getMiniBlockSliceFromMapV2(mapMiniBlocks, mapSCTxs)
+	mbs := preprocessor.getMiniBlockSliceFromMapV2(mapMiniBlocks)
 	assert.Equal(t, 4, len(mbs))
 }
 
@@ -850,38 +774,38 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 
 	// should not process transaction when computeGasProvided method returns error
 	mbInfo := &createAndProcessMiniBlocksInfo{
-		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
+		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]uint64),
 	}
-	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
 	gasProvidedByTx = MaxGasLimitPerBlock + 1
-	_, err := preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err := preprocessor.processTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
 
 	// should not process transaction when processAndRemoveBadTransaction method returns error
 	mbInfo = &createAndProcessMiniBlocksInfo{
-		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
+		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]uint64),
 	}
-	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
 	gasProvidedByTx = MaxGasLimitPerBlock - 1
 	processTransactionErr = process.ErrHigherNonceInTransaction
-	_, err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err = preprocessor.processTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	// should process transaction bat should return ErrFailedTransaction
 	mbInfo = &createAndProcessMiniBlocksInfo{
-		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
+		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]uint64),
 	}
-	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
 	processTransactionErr = process.ErrFailedTransaction
-	_, err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err = preprocessor.processTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Equal(t, process.ErrFailedTransaction, err)
 
 	// should process transaction
 	mbInfo = &createAndProcessMiniBlocksInfo{
-		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]map[txType]uint64),
+		mapGasConsumedByMiniBlockInReceiverShard: make(map[uint32]uint64),
 	}
-	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = make(map[txType]uint64)
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
 	processTransactionErr = nil
-	_, err = preprocessor.processTransaction(tx, nonScTx, txHash, senderShardID, receiverShardID, mbInfo)
+	_, err = preprocessor.processTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
 }

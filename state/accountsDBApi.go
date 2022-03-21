@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 
@@ -186,13 +187,13 @@ func (accountsDB *accountsDBApi) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the inner accountsAdapter method after trying to recreate the trie
-func (accountsDB *accountsDBApi) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 	err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return accountsDB.innerAccountsAdapter.GetAllLeaves(rootHash)
+	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannel, ctx, rootHash)
 }
 
 // RecreateAllTries is a not permitted operation in this implementation and thus, will return an error
