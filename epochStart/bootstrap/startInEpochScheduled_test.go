@@ -782,3 +782,72 @@ func TestNumScheduledIntermediateTxs(t *testing.T) {
 	num := getNumScheduledIntermediateTxs(mapTxs)
 	assert.Equal(t, 3, num)
 }
+
+func Test_isScheduledIntermediateTx(t *testing.T) {
+	t.Parallel()
+
+	selfShardID := uint32(0)
+	destinationAsInvalid := selfShardID
+
+	mbHash := "miniBlockHash"
+	tx1Hash := "tx1Hash"
+	scrHash := "scrHash"
+	scr := &smartContractResult.SmartContractResult{Nonce: 0,
+		PrevTxHash: []byte(tx1Hash),
+	}
+
+	miniBlockValid := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte(scrHash)},
+		ReceiverShardID: selfShardID,
+		SenderShardID:   selfShardID,
+		Type:            block.SmartContractResultBlock,
+	}
+
+	miniBlockInvalid := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte(tx1Hash)},
+		ReceiverShardID: destinationAsInvalid,
+		SenderShardID:   selfShardID,
+		Type:            block.InvalidBlock,
+	}
+
+	t.Run("executed in self shard - scheduled", func(t *testing.T) {
+		miniBlocks := map[string]*block.MiniBlock {
+			mbHash: miniBlockValid,
+		}
+		scheduledTxHashes := map[string]uint32{
+			tx1Hash: selfShardID,
+		}
+
+		require.True(t, isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(scrHash), scr, selfShardID))
+	})
+	t.Run("invalid scheduled", func(t *testing.T) {
+		miniBlocks := map[string]*block.MiniBlock {
+			mbHash: miniBlockInvalid,
+		}
+		scheduledTxHashes := map[string]uint32{
+			tx1Hash: destinationAsInvalid,
+		}
+		tx1 := &transaction.Transaction{
+			Nonce: 1,
+		}
+		require.True(t, isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(tx1Hash), tx1, selfShardID))
+	})
+	t.Run("normal tx", func(t *testing.T) {
+		tx2Hash := "tx2Hash"
+		tx2 := &transaction.Transaction{Nonce: 1}
+
+		miniBlocks := map[string]*block.MiniBlock {
+			mbHash: {
+				TxHashes:        [][]byte{[]byte(tx2Hash)},
+				ReceiverShardID: 1,
+				SenderShardID:   0,
+				Type:            block.TxBlock,
+			},
+		}
+		scheduledTxHashes := map[string]uint32{
+			tx1Hash: selfShardID,
+		}
+
+		require.False(t, isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(tx2Hash), tx2, selfShardID))
+	})
+}
