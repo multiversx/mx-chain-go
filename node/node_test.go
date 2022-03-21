@@ -2416,12 +2416,11 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	initialPubKeys[1] = keys[1]
 	initialPubKeys[2] = keys[2]
 
-	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 
 	for shardId, pubkeysPerShard := range initialPubKeys {
-		validatorsInfo[shardId] = make([]*state.ValidatorInfo, 0)
 		for _, pubKey := range pubkeysPerShard {
-			validatorsInfo[shardId] = append(validatorsInfo[shardId], &state.ValidatorInfo{
+			_ = validatorsInfo.Add(&state.ValidatorInfo{
 				PublicKey:                  []byte(pubKey),
 				ShardId:                    shardId,
 				List:                       "",
@@ -2447,7 +2446,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		RootHashCalled: func() (i []byte, err error) {
 			return []byte("hash"), nil
 		},
-		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
+		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m state.ShardValidatorsInfoMapHandler, err error) {
 			return validatorsInfo, nil
 		},
 	}
@@ -2455,10 +2454,8 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
 		apiResponses := make(map[string]*state.ValidatorApiResponse)
 
-		for _, vis := range validatorsInfo {
-			for _, vi := range vis {
-				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
-			}
+		for _, vi := range validatorsInfo.GetAllValidatorsInfo() {
+			apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
 		}
 
 		return apiResponses
