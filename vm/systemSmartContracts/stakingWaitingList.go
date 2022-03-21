@@ -41,13 +41,12 @@ func (s *stakingSC) processStakeV1(blsKey []byte, registrationData *StakedDataV2
 		return nil
 	}
 
-	if !s.flagStakingV4.IsSet() {
-		err := s.removeFromWaitingList(blsKey)
-		if err != nil {
-			s.eei.AddReturnMessage("error while removing from waiting")
-			return err
-		}
+	err := s.removeFromWaitingList(blsKey)
+	if err != nil {
+		s.eei.AddReturnMessage("error while removing from waiting")
+		return err
 	}
+
 	s.addToStakedNodes(1)
 	s.activeStakingFor(registrationData)
 
