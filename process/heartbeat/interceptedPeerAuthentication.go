@@ -26,7 +26,6 @@ type ArgInterceptedPeerAuthentication struct {
 type interceptedPeerAuthentication struct {
 	peerAuthentication   heartbeat.PeerAuthentication
 	payload              heartbeat.Payload
-	marshalizer          marshal.Marshalizer
 	peerId               core.PeerID
 	nodesCoordinator     NodesCoordinator
 	signaturesHandler    SignaturesHandler
@@ -49,7 +48,6 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 	intercepted := &interceptedPeerAuthentication{
 		peerAuthentication:   *peerAuthentication,
 		payload:              *payload,
-		marshalizer:          arg.Marshalizer,
 		nodesCoordinator:     arg.NodesCoordinator,
 		signaturesHandler:    arg.SignaturesHandler,
 		peerSignatureHandler: arg.PeerSignatureHandler,
@@ -95,7 +93,7 @@ func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*he
 	return peerAuthentication, payload, nil
 }
 
-// CheckValidity will check the validity of the received peer authentication. This call won't trigger the signature validation.
+// CheckValidity checks the validity of the received peer authentication. This call won't trigger the signature validation.
 func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	// Verify properties len
 	err := verifyPropertyLen(publicKeyProperty, ipa.peerAuthentication.Pubkey)

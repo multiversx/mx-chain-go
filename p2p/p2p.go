@@ -150,6 +150,7 @@ type Messenger interface {
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
+	SetCurrentPayloadProvider(currentPayloadProvider CurrentPayloadProvider) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
