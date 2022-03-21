@@ -105,6 +105,7 @@ func NewSmartContractResultPreprocessor(
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
 		pubkeyConverter:      pubkeyConverter,
+
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
 	}
 
@@ -646,7 +647,6 @@ func (scr *smartContractResults) isMiniBlockCorrect(mbType block.Type) bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (scr *smartContractResults) EpochConfirmed(epoch uint32, _ uint64) {
-	scr.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= scr.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	log.Debug("smartContractResults: optimize gas used in cross mini blocks", "enabled", scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+func (scr *smartContractResults) EpochConfirmed(epoch uint32, timestamp uint64) {
+	scr.epochConfirmed(epoch, timestamp)
 }
