@@ -64,6 +64,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
 	)
