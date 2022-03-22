@@ -309,7 +309,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 		assert.Equal(t, string(common.JailedList), vInfo.GetList())
 	}
 
-	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo.GetValInfoPointerMap())
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(nodesToUnStake))
 	assert.Equal(t, 0, len(mapOwnersKeys))

@@ -294,7 +294,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	epoch uint32,
 ) (uint32, error) {
-	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap.GetValInfoPointerMap())
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap)
 	if err != nil {
 		return 0, err
 	}

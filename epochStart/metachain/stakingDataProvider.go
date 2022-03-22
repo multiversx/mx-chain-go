@@ -289,7 +289,7 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
-func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error) {
+func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error) {
 	sdp.mutStakingData.Lock()
 	defer sdp.mutStakingData.Unlock()
 
@@ -319,12 +319,11 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 	return keysToUnStake, mapOwnersKeys, nil
 }
 
-func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]string {
+func createMapBLSKeyStatus(validatorInfos state.ShardValidatorsInfoMapHandler) map[string]string {
 	mapBLSKeyStatus := make(map[string]string)
-	for _, validatorsInfoSlice := range validatorInfos {
-		for _, validatorInfo := range validatorsInfoSlice {
-			mapBLSKeyStatus[string(validatorInfo.PublicKey)] = validatorInfo.List
-		}
+	for _, validatorInfo := range validatorInfos.GetAllValidatorsInfo() {
+		mapBLSKeyStatus[string(validatorInfo.GetPublicKey())] = validatorInfo.GetList()
+
 	}
 
 	return mapBLSKeyStatus

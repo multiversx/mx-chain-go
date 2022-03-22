@@ -23,33 +23,6 @@ func NewShardValidatorsInfoMap() *shardValidatorsInfoMap {
 	}
 }
 
-// TODO: Delete these 2 functions once map[uint32][]*ValidatorInfo is completely replaced with new interface
-
-// CreateShardValidatorsMap creates an instance of shardValidatorsInfoMap which manages a shard validator
-// info map internally.
-func CreateShardValidatorsMap(input map[uint32][]*ValidatorInfo) *shardValidatorsInfoMap {
-	ret := &shardValidatorsInfoMap{valInfoMap: make(map[uint32][]ValidatorInfoHandler, len(input))}
-
-	for shardID, valInShard := range input {
-		for _, val := range valInShard {
-			ret.valInfoMap[shardID] = append(ret.valInfoMap[shardID], val)
-		}
-	}
-
-	return ret
-}
-
-// Replace will replace src with dst map
-func Replace(oldMap, newMap map[uint32][]*ValidatorInfo) {
-	for shardID := range oldMap {
-		delete(oldMap, shardID)
-	}
-
-	for shardID, validatorsInShard := range newMap {
-		oldMap[shardID] = validatorsInShard
-	}
-}
-
 // GetAllValidatorsInfo returns a []ValidatorInfoHandler copy with validators from all shards.
 func (vi *shardValidatorsInfoMap) GetAllValidatorsInfo() []ValidatorInfoHandler {
 	ret := make([]ValidatorInfoHandler, 0)
@@ -197,39 +170,4 @@ func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) error {
 	}
 
 	return nil
-}
-
-// TODO: Delete this once map[uint32][]*ValidatorInfo is completely replaced with new interface
-
-// GetValInfoPointerMap returns a <shardID, []*ValidatorInfo> from internally stored data
-func (vi *shardValidatorsInfoMap) GetValInfoPointerMap() map[uint32][]*ValidatorInfo {
-	ret := make(map[uint32][]*ValidatorInfo, 0)
-
-	for shardID, valInShard := range vi.valInfoMap {
-		for _, val := range valInShard {
-			ret[shardID] = append(ret[shardID], &ValidatorInfo{
-				PublicKey:                       val.GetPublicKey(),
-				ShardId:                         val.GetShardId(),
-				List:                            val.GetList(),
-				Index:                           val.GetIndex(),
-				TempRating:                      val.GetTempRating(),
-				Rating:                          val.GetRating(),
-				RatingModifier:                  val.GetRatingModifier(),
-				RewardAddress:                   val.GetRewardAddress(),
-				LeaderSuccess:                   val.GetLeaderSuccess(),
-				LeaderFailure:                   val.GetLeaderFailure(),
-				ValidatorSuccess:                val.GetValidatorSuccess(),
-				ValidatorFailure:                val.GetValidatorFailure(),
-				ValidatorIgnoredSignatures:      val.GetValidatorIgnoredSignatures(),
-				NumSelectedInSuccessBlocks:      val.GetNumSelectedInSuccessBlocks(),
-				AccumulatedFees:                 val.GetAccumulatedFees(),
-				TotalLeaderSuccess:              val.GetTotalLeaderSuccess(),
-				TotalLeaderFailure:              val.GetTotalLeaderFailure(),
-				TotalValidatorSuccess:           val.GetValidatorSuccess(),
-				TotalValidatorFailure:           val.GetValidatorFailure(),
-				TotalValidatorIgnoredSignatures: val.GetValidatorIgnoredSignatures(),
-			})
-		}
-	}
-	return ret
 }
