@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
@@ -103,25 +104,27 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		WaitingListFixEnableEpoch:      0,
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
+	ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, StakingV4Epoch)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    arg.shardConsensusGroupSize,
-		MetaConsensusGroupSize:     arg.metaConsensusGroupSize,
-		Marshalizer:                TestMarshalizer,
-		Hasher:                     arg.hasher,
-		Shuffler:                   nodeShuffler,
-		EpochStartNotifier:         arg.epochStartSubscriber,
-		ShardIDAsObserver:          arg.shardId,
-		NbShards:                   uint32(arg.nbShards),
-		EligibleNodes:              arg.validatorsMap,
-		WaitingNodes:               arg.waitingMap,
-		SelfPublicKey:              pubKeyBytes,
-		ConsensusGroupCache:        arg.consensusGroupCache,
-		BootStorer:                 arg.bootStorer,
-		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-		WaitingListFixEnabledEpoch: 0,
-		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:              false,
+		ShardConsensusGroupSize:         arg.shardConsensusGroupSize,
+		MetaConsensusGroupSize:          arg.metaConsensusGroupSize,
+		Marshalizer:                     TestMarshalizer,
+		Hasher:                          arg.hasher,
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              arg.epochStartSubscriber,
+		ShardIDAsObserver:               arg.shardId,
+		NbShards:                        uint32(arg.nbShards),
+		EligibleNodes:                   arg.validatorsMap,
+		WaitingNodes:                    arg.waitingMap,
+		SelfPublicKey:                   pubKeyBytes,
+		ConsensusGroupCache:             arg.consensusGroupCache,
+		BootStorer:                      arg.bootStorer,
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch:      0,
+		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		NodesCoordinatorRegistryFactory: ncf,
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

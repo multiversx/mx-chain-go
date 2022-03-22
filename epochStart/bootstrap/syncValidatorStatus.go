@@ -44,6 +44,7 @@ type ArgsNewSyncValidatorStatus struct {
 	PubKey                    []byte
 	ShardIdAsObserver         uint32
 	WaitingListFixEnableEpoch uint32
+	StakingV4EnableEpoch      uint32
 	ChanNodeStop              chan endProcess.ArgEndProcess
 	NodeTypeProvider          NodeTypeProviderHandler
 	IsFullArchive             bool
@@ -92,25 +93,32 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	s.memDB = disabled.CreateMemUnit()
 
+	ncf, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(args.Marshalizer, args.StakingV4EnableEpoch)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:     int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:                args.Marshalizer,
-		Hasher:                     args.Hasher,
-		Shuffler:                   args.NodeShuffler,
-		EpochStartNotifier:         &disabled.EpochStartNotifier{},
-		BootStorer:                 s.memDB,
-		ShardIDAsObserver:          args.ShardIdAsObserver,
-		NbShards:                   args.GenesisNodesConfig.NumberOfShards(),
-		EligibleNodes:              eligibleValidators,
-		WaitingNodes:               waitingValidators,
-		SelfPublicKey:              args.PubKey,
-		ConsensusGroupCache:        consensusGroupCache,
-		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
-		WaitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
-		ChanStopNode:               args.ChanNodeStop,
-		NodeTypeProvider:           args.NodeTypeProvider,
-		IsFullArchive:              args.IsFullArchive,
+		ShardConsensusGroupSize:         int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
+		MetaConsensusGroupSize:          int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
+		Marshalizer:                     args.Marshalizer,
+		Hasher:                          args.Hasher,
+		Shuffler:                        args.NodeShuffler,
+		EpochStartNotifier:              &disabled.EpochStartNotifier{},
+		BootStorer:                      s.memDB,
+		ShardIDAsObserver:               args.ShardIdAsObserver,
+		NbShards:                        args.GenesisNodesConfig.NumberOfShards(),
+		EligibleNodes:                   eligibleValidators,
+		WaitingNodes:                    waitingValidators,
+		SelfPublicKey:                   args.PubKey,
+		ConsensusGroupCache:             consensusGroupCache,
+		ShuffledOutHandler:              disabled.NewShuffledOutHandler(),
+		WaitingListFixEnabledEpoch:      args.WaitingListFixEnableEpoch,
+		ChanStopNode:                    args.ChanNodeStop,
+		NodeTypeProvider:                args.NodeTypeProvider,
+		IsFullArchive:                   args.IsFullArchive,
+		StakingV4EnableEpoch:            args.StakingV4EnableEpoch,
+		NodesCoordinatorRegistryFactory: ncf,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

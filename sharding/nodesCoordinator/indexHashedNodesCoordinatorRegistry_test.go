@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -102,9 +101,8 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSaveWithStakingV4(t *testing.
 	t.Parallel()
 
 	args := createArguments()
-	args.Marshalizer = &marshal.GogoProtoMarshalizer{}
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
-	nodesCoordinator.flagStakingV4.SetValue(true)
+	nodesCoordinator.updateEpochFlags(stakingV4Epoch)
 
 	nodesCoordinator.nodesConfig[0].leavingMap = createDummyNodesMap(3, 0, string(common.LeavingList))
 	nodesCoordinator.nodesConfig[0].shuffledOutMap = createDummyNodesMap(3, 0, string(common.SelectedFromAuctionList))

@@ -103,6 +103,7 @@ func CreateNodesCoordinator(
 	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,
 	waitingListFixEnabledEpoch uint32,
+	stakingV4EnableEpoch uint32,
 	chanNodeStop chan endProcess.ArgEndProcess,
 	nodeTypeProvider core.NodeTypeProviderHandler,
 ) (nodesCoordinator.NodesCoordinator, error) {
@@ -173,27 +174,33 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 
+	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(marshalizer, stakingV4EnableEpoch)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:    shardConsensusGroupSize,
-		MetaConsensusGroupSize:     metaConsensusGroupSize,
-		Marshalizer:                marshalizer,
-		Hasher:                     hasher,
-		Shuffler:                   nodeShuffler,
-		EpochStartNotifier:         epochStartNotifier,
-		BootStorer:                 bootStorer,
-		ShardIDAsObserver:          shardIDAsObserver,
-		NbShards:                   nbShards,
-		EligibleNodes:              eligibleValidators,
-		WaitingNodes:               waitingValidators,
-		SelfPublicKey:              pubKeyBytes,
-		ConsensusGroupCache:        consensusGroupCache,
-		ShuffledOutHandler:         shuffledOutHandler,
-		Epoch:                      currentEpoch,
-		StartEpoch:                 startEpoch,
-		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
-		ChanStopNode:               chanNodeStop,
-		NodeTypeProvider:           nodeTypeProvider,
-		IsFullArchive:              prefsConfig.FullArchive,
+		ShardConsensusGroupSize:         shardConsensusGroupSize,
+		MetaConsensusGroupSize:          metaConsensusGroupSize,
+		Marshalizer:                     marshalizer,
+		Hasher:                          hasher,
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartNotifier,
+		BootStorer:                      bootStorer,
+		ShardIDAsObserver:               shardIDAsObserver,
+		NbShards:                        nbShards,
+		EligibleNodes:                   eligibleValidators,
+		WaitingNodes:                    waitingValidators,
+		SelfPublicKey:                   pubKeyBytes,
+		ConsensusGroupCache:             consensusGroupCache,
+		ShuffledOutHandler:              shuffledOutHandler,
+		Epoch:                           currentEpoch,
+		StartEpoch:                      startEpoch,
+		WaitingListFixEnabledEpoch:      waitingListFixEnabledEpoch,
+		ChanStopNode:                    chanNodeStop,
+		NodeTypeProvider:                nodeTypeProvider,
+		IsFullArchive:                   prefsConfig.FullArchive,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

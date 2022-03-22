@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
@@ -160,27 +161,37 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
+	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		bcf.coreComponents.InternalMarshalizer(),
+		bcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+	bcf.coreComponents.EpochNotifier().RegisterNotifyHandler(nodesCoordinatorRegistryFactory)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:       bcf.coreComponents,
-		CryptoComponentsHolder:     bcf.cryptoComponents,
-		Messenger:                  bcf.networkComponents.NetworkMessenger(),
-		GeneralConfig:              bcf.config,
-		PrefsConfig:                bcf.prefConfig.Preferences,
-		EnableEpochs:               bcf.epochConfig.EnableEpochs,
-		EconomicsData:              bcf.coreComponents.EconomicsData(),
-		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
-		GenesisShardCoordinator:    genesisShardCoordinator,
-		StorageUnitOpener:          unitOpener,
-		Rater:                      bcf.coreComponents.Rater(),
-		DestinationShardAsObserver: destShardIdAsObserver,
-		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
-		RoundHandler:               bcf.coreComponents.RoundHandler(),
-		LatestStorageDataProvider:  latestStorageDataProvider,
-		ArgumentsParser:            smartContract.NewArgumentParser(),
-		StatusHandler:              bcf.coreComponents.StatusHandler(),
-		HeaderIntegrityVerifier:    headerIntegrityVerifier,
-		DataSyncerCreator:          dataSyncerFactory,
-		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		CoreComponentsHolder:            bcf.coreComponents,
+		CryptoComponentsHolder:          bcf.cryptoComponents,
+		Messenger:                       bcf.networkComponents.NetworkMessenger(),
+		GeneralConfig:                   bcf.config,
+		PrefsConfig:                     bcf.prefConfig.Preferences,
+		EnableEpochs:                    bcf.epochConfig.EnableEpochs,
+		EconomicsData:                   bcf.coreComponents.EconomicsData(),
+		GenesisNodesConfig:              bcf.coreComponents.GenesisNodesSetup(),
+		GenesisShardCoordinator:         genesisShardCoordinator,
+		StorageUnitOpener:               unitOpener,
+		Rater:                           bcf.coreComponents.Rater(),
+		DestinationShardAsObserver:      destShardIdAsObserver,
+		NodeShuffler:                    bcf.coreComponents.NodesShuffler(),
+		RoundHandler:                    bcf.coreComponents.RoundHandler(),
+		LatestStorageDataProvider:       latestStorageDataProvider,
+		ArgumentsParser:                 smartContract.NewArgumentParser(),
+		StatusHandler:                   bcf.coreComponents.StatusHandler(),
+		HeaderIntegrityVerifier:         headerIntegrityVerifier,
+		DataSyncerCreator:               dataSyncerFactory,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		ScheduledSCRsStorer:             nil, // will be updated after sync from network
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper

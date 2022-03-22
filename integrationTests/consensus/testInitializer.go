@@ -520,24 +520,26 @@ func createNodes(
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
 
+		ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, integrationTests.StakingV4Epoch)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    consensusSize,
-			MetaConsensusGroupSize:     1,
-			Marshalizer:                integrationTests.TestMarshalizer,
-			Hasher:                     createHasher(consensusType),
-			Shuffler:                   nodeShuffler,
-			EpochStartNotifier:         epochStartRegistrationHandler,
-			BootStorer:                 bootStorer,
-			NbShards:                   1,
-			EligibleNodes:              eligibleMap,
-			WaitingNodes:               waitingMap,
-			SelfPublicKey:              []byte(strconv.Itoa(i)),
-			ConsensusGroupCache:        consensusCache,
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize:         consensusSize,
+			MetaConsensusGroupSize:          1,
+			Marshalizer:                     integrationTests.TestMarshalizer,
+			Hasher:                          createHasher(consensusType),
+			Shuffler:                        nodeShuffler,
+			EpochStartNotifier:              epochStartRegistrationHandler,
+			BootStorer:                      bootStorer,
+			NbShards:                        1,
+			EligibleNodes:                   eligibleMap,
+			WaitingNodes:                    waitingMap,
+			SelfPublicKey:                   []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:             consensusCache,
+			ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch:      0,
+			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:                   false,
+			NodesCoordinatorRegistryFactory: ncf,
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

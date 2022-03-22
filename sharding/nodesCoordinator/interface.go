@@ -150,3 +150,11 @@ type NodesCoordinatorRegistryHandler interface {
 	GetCurrentEpoch() uint32
 	SetCurrentEpoch(epoch uint32)
 }
+
+// NodesCoordinatorRegistryFactory defines a NodesCoordinatorRegistryHandler factory
+// from the provided buffer
+type NodesCoordinatorRegistryFactory interface {
+	CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error)
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	IsInterfaceNil() bool
+}
