@@ -687,3 +687,46 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 
 	return bicf.container.Add(identifierHeartbeat, interceptor)
 }
+
+// ------- ShardValidatorInfo interceptor
+
+func (bicf *baseInterceptorsContainerFactory) generateShardValidatorInfoInterceptor() error {
+	identifier := common.ConnectionTopic
+
+	shardValidatorInfoFactory, err := interceptorFactory.NewInterceptedShardValidatorInfoFactory(*bicf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+
+	argProcessor := &processor.ArgHdrInterceptorProcessor{
+		Headers:        bicf.dataPool.Headers(),
+		BlockBlackList: bicf.blockBlackList,
+	}
+	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
+	if err != nil {
+		return err
+	}
+
+	interceptor, err := interceptors.NewSingleDataInterceptor(
+		interceptors.ArgSingleDataInterceptor{
+			Topic:                identifier,
+			DataFactory:          shardValidatorInfoFactory,
+			Processor:            hdrProcessor,
+			Throttler:            bicf.globalThrottler,
+			AntifloodHandler:     bicf.antifloodHandler,
+			WhiteListRequest:     bicf.whiteListHandler,
+			CurrentPeerId:        bicf.messenger.ID(),
+			PreferredPeersHolder: bicf.preferredPeersHolder,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = bicf.createTopicAndAssignHandler(identifier, interceptor, true)
+	if err != nil {
+		return err
+	}
+
+	return bicf.container.Add(identifier, interceptor)
+}

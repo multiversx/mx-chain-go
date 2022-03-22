@@ -36,7 +36,6 @@ type MessengerStub struct {
 	SetThresholdMinConnectedPeersCalled    func(minConnectedPeers int) error
 	SetPeerShardResolverCalled             func(peerShardResolver p2p.PeerShardResolver) error
 	SetPeerDenialEvaluatorCalled           func(handler p2p.PeerDenialEvaluator) error
-	SetCurrentPayloadProviderCalled        func(currentPayloadProvider p2p.CurrentPayloadProvider) error
 	GetConnectedPeersInfoCalled            func() *p2p.ConnectedPeersInfo
 	UnjoinAllTopicsCalled                  func() error
 	PortCalled                             func() int
@@ -279,15 +278,6 @@ func (ms *MessengerStub) SetPeerShardResolver(peerShardResolver p2p.PeerShardRes
 func (ms *MessengerStub) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
 	if ms.SetPeerDenialEvaluatorCalled != nil {
 		return ms.SetPeerDenialEvaluatorCalled(handler)
-	}
-
-	return nil
-}
-
-// SetCurrentPayloadProvider -
-func (ms *MessengerStub) SetCurrentPayloadProvider(currentPayloadProvider p2p.CurrentPayloadProvider) error {
-	if ms.SetCurrentPayloadProviderCalled != nil {
-		return ms.SetCurrentPayloadProviderCalled(currentPayloadProvider)
 	}
 
 	return nil

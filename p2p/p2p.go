@@ -150,7 +150,6 @@ type Messenger interface {
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
-	SetCurrentPayloadProvider(currentPayloadProvider CurrentPayloadProvider) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
@@ -331,13 +330,6 @@ type SyncTimer interface {
 // ConnectionsWatcher represent an entity able to watch new connections
 type ConnectionsWatcher interface {
 	NewKnownConnection(pid core.PeerID, connection string)
-	PeerConnected(pid core.PeerID)
 	Close() error
-	IsInterfaceNil() bool
-}
-
-// CurrentPayloadProvider represents an entity able to provide the payload used to send to a new peer
-type CurrentPayloadProvider interface {
-	BytesToSendToNewPeers() ([]byte, bool)
 	IsInterfaceNil() bool
 }

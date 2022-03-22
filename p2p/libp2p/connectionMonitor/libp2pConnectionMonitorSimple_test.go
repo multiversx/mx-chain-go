@@ -2,7 +2,6 @@ package connectionMonitor
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -25,6 +24,7 @@ func createMockArgsConnectionMonitorSimple() ArgsConnectionMonitorSimple {
 		ThresholdMinConnectedPeers: 3,
 		Sharder:                    &mock.KadSharderStub{},
 		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		ConnectionsWatcher:         &mock.ConnectionsWatcherStub{},
 	}
 }
 
@@ -65,26 +65,16 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsConnectionMonitorSimple()
-		args.ConnectionsWatchers = []p2p.ConnectionsWatcher{nil}
+		args.ConnectionsWatcher = nil
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
-		assert.True(t, errors.Is(err, p2p.ErrNilConnectionsWatcher))
+		assert.Equal(t, p2p.ErrNilConnectionsWatcher, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsConnectionMonitorSimple()
-		lcms, err := NewLibp2pConnectionMonitorSimple(args)
-
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(lcms))
-	})
-	t.Run("should work with connections watchers", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsConnectionMonitorSimple()
-		args.ConnectionsWatchers = []p2p.ConnectionsWatcher{&mock.ConnectionsWatcherStub{}}
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Nil(t, err)
@@ -136,16 +126,12 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 			return evictedPid
 		},
 	}
-	numKnownConnectionCalled := 0
-	cw := &mock.ConnectionsWatcherStub{
+	knownConnectionCalled := false
+	args.ConnectionsWatcher = &mock.ConnectionsWatcherStub{
 		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
-			numKnownConnectionCalled++
-		},
-		PeerConnectedCalled: func(pid core.PeerID) {
-			assert.Fail(t, "should have not called PeerConnectedCalled")
+			knownConnectionCalled = true
 		},
 	}
-	args.ConnectionsWatchers = []p2p.ConnectionsWatcher{cw, cw}
 	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
 
 	lcms.Connected(
@@ -167,51 +153,7 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 
 	assert.Equal(t, 1, numClosedWasCalled)
 	assert.Equal(t, 1, numComputeWasCalled)
-	assert.Equal(t, 2, numKnownConnectionCalled)
-}
-
-func TestLibp2pConnectionMonitorSimple_ConnectedShouldNotify(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgsConnectionMonitorSimple()
-	args.Sharder = &mock.KadSharderStub{
-		ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
-			return nil
-		},
-	}
-	numKnownConnectionCalled := 0
-	numPeerConnectedCalled := 0
-	peerID := peer.ID("random peer")
-	cw := &mock.ConnectionsWatcherStub{
-		NewKnownConnectionCalled: func(pid core.PeerID, connection string) {
-			numKnownConnectionCalled++
-		},
-		PeerConnectedCalled: func(pid core.PeerID) {
-			numPeerConnectedCalled++
-			assert.Equal(t, core.PeerID(peerID), pid)
-		},
-	}
-	args.ConnectionsWatchers = []p2p.ConnectionsWatcher{cw, cw}
-	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
-
-	lcms.Connected(
-		&mock.NetworkStub{
-			ClosePeerCall: func(id peer.ID) error {
-				return nil
-			},
-			PeersCall: func() []peer.ID {
-				return nil
-			},
-		},
-		&mock.ConnStub{
-			RemotePeerCalled: func() peer.ID {
-				return peerID
-			},
-		},
-	)
-
-	assert.Equal(t, 2, numPeerConnectedCalled)
-	assert.Equal(t, 2, numKnownConnectionCalled)
+	assert.True(t, knownConnectionCalled)
 }
 
 func TestNewLibp2pConnectionMonitorSimple_DisconnectedShouldRemovePeerFromPreferredPeers(t *testing.T) {

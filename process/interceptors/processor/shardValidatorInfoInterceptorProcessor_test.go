@@ -17,9 +17,8 @@ import (
 
 func createMockArgShardValidatorInfoInterceptorProcessor() ArgShardValidatorInfoInterceptorProcessor {
 	return ArgShardValidatorInfoInterceptorProcessor{
-		Marshaller:       testscommon.MarshalizerMock{},
-		PeerShardMapper:  &mock.PeerShardMapperStub{},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		Marshaller:      testscommon.MarshalizerMock{},
+		PeerShardMapper: &mock.PeerShardMapperStub{},
 	}
 }
 
@@ -46,65 +45,12 @@ func TestNewShardValidatorInfoInterceptorProcessor(t *testing.T) {
 		assert.Equal(t, process.ErrNilPeerShardMapper, err)
 		assert.True(t, check.IfNil(processor))
 	})
-	t.Run("nil shard coordinator should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
-		args.ShardCoordinator = nil
-
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
-		assert.Equal(t, process.ErrNilShardCoordinator, err)
-		assert.True(t, check.IfNil(processor))
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		processor, err := NewShardValidatorInfoInterceptorProcessor(createMockArgShardValidatorInfoInterceptorProcessor())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
-	})
-}
-
-func Test_shardValidatorInfoInterceptorProcessor_BytesToSendToNewPeers(t *testing.T) {
-	t.Parallel()
-
-	t.Run("marshal returns error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
-		args.Marshaller = &testscommon.MarshalizerMock{
-			Fail: true,
-		}
-
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(processor))
-
-		buff, isValid := processor.BytesToSendToNewPeers()
-		assert.False(t, isValid)
-		assert.Nil(t, buff)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedShardId := uint32(15)
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
-		args.ShardCoordinator = &mock.ShardCoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return providedShardId
-			},
-		}
-
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(processor))
-
-		buff, isValid := processor.BytesToSendToNewPeers()
-		assert.True(t, isValid)
-		shardValidatorInfo := &message.ShardValidatorInfo{}
-		err = args.Marshaller.Unmarshal(shardValidatorInfo, buff)
-		assert.Nil(t, err)
-		assert.Equal(t, providedShardId, shardValidatorInfo.ShardId)
 	})
 }
 

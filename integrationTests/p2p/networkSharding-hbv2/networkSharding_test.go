@@ -5,17 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
-
-// todo remove this - tests only
-type LatestKnownPeersHolder interface {
-	GetLatestKnownPeers() map[string][]core.PeerID
-}
 
 var p2pBootstrapStepDelay = 2 * time.Second
 
@@ -220,61 +214,8 @@ func testUnknownSeederPeers(
 
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			// todo activate this after fix
-			//assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
+			assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
 			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().Seeders))
-
-			// todo remove this - tests only
-			printDebugInfo(n)
 		}
 	}
-}
-
-func printDebugInfo(node *integrationTests.TestHeartbeatNode) {
-	latestKnownPeers := node.CrossShardStatusProcessor.(LatestKnownPeersHolder).GetLatestKnownPeers()
-
-	selfShard := node.ShardCoordinator.SelfId()
-	selfPid := node.Messenger.ID()
-	prettyPid := selfPid.Pretty()
-	data := "----------\n"
-	info := node.PeerShardMapper.GetPeerInfo(selfPid)
-	data += fmt.Sprintf("PID: %s, shard: %d, PSM info: shard %d, type %s\n", prettyPid[len(prettyPid)-6:], node.ShardCoordinator.SelfId(), info.ShardID, info.PeerType)
-
-	for topic, peers := range latestKnownPeers {
-		data += fmt.Sprintf("topic: %s, connected crossshard pids:\n", topic)
-		for _, peer := range peers {
-			prettyPid = peer.Pretty()
-			info = node.PeerShardMapper.GetPeerInfo(peer)
-			data += fmt.Sprintf("\tpid: %s, PSM info: shard %d, type %s\n", prettyPid[len(prettyPid)-6:], info.ShardID, info.PeerType)
-		}
-	}
-
-	connectedPeersInfo := node.Messenger.GetConnectedPeersInfo()
-	data += "connected peers from messenger...\n"
-	if len(connectedPeersInfo.IntraShardValidators[selfShard]) > 0 {
-		data += fmt.Sprintf("intraval %d:", len(connectedPeersInfo.IntraShardValidators[selfShard]))
-		for _, val := range connectedPeersInfo.IntraShardValidators[selfShard] {
-			data += fmt.Sprintf(" %s,", val[len(val)-6:])
-		}
-		data += "\n"
-	}
-
-	if len(connectedPeersInfo.IntraShardObservers[selfShard]) > 0 {
-		data += fmt.Sprintf("intraobs %d:", len(connectedPeersInfo.IntraShardObservers[selfShard]))
-		for _, obs := range connectedPeersInfo.IntraShardObservers[selfShard] {
-			data += fmt.Sprintf(" %s,", obs[len(obs)-6:])
-		}
-		data += "\n"
-	}
-
-	if len(connectedPeersInfo.UnknownPeers) > 0 {
-		data += fmt.Sprintf("unknown %d:", len(connectedPeersInfo.UnknownPeers))
-		for _, unknown := range connectedPeersInfo.UnknownPeers {
-			data += fmt.Sprintf(" %s,", unknown[len(unknown)-6:])
-		}
-		data += "\n"
-	}
-
-	data += "----------\n"
-	println(data)
 }

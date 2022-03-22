@@ -4,9 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type shardProvider interface {
@@ -15,15 +13,13 @@ type shardProvider interface {
 
 // ArgShardValidatorInfoInterceptorProcessor is the argument for the interceptor processor used for shard validator info
 type ArgShardValidatorInfoInterceptorProcessor struct {
-	Marshaller       marshal.Marshalizer
-	PeerShardMapper  process.PeerShardMapper
-	ShardCoordinator sharding.Coordinator
+	Marshaller      marshal.Marshalizer
+	PeerShardMapper process.PeerShardMapper
 }
 
 type shardValidatorInfoInterceptorProcessor struct {
-	marshaller       marshal.Marshalizer
-	peerShardMapper  process.PeerShardMapper
-	shardCoordinator sharding.Coordinator
+	marshaller      marshal.Marshalizer
+	peerShardMapper process.PeerShardMapper
 }
 
 // NewShardValidatorInfoInterceptorProcessor creates an instance of shardValidatorInfoInterceptorProcessor
@@ -34,14 +30,10 @@ func NewShardValidatorInfoInterceptorProcessor(args ArgShardValidatorInfoInterce
 	if check.IfNil(args.PeerShardMapper) {
 		return nil, process.ErrNilPeerShardMapper
 	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
 
 	return &shardValidatorInfoInterceptorProcessor{
-		marshaller:       args.Marshaller,
-		peerShardMapper:  args.PeerShardMapper,
-		shardCoordinator: args.ShardCoordinator,
+		marshaller:      args.Marshaller,
+		peerShardMapper: args.PeerShardMapper,
 	}, nil
 }
 
@@ -61,20 +53,6 @@ func (processor *shardValidatorInfoInterceptorProcessor) Save(data process.Inter
 	processor.peerShardMapper.PutPeerIdShardId(fromConnectedPeer, shardValidatorInfo.ShardID())
 
 	return nil
-}
-
-// BytesToSendToNewPeers returns a shard validator info as bytes and true
-func (processor *shardValidatorInfoInterceptorProcessor) BytesToSendToNewPeers() ([]byte, bool) {
-	shardValidatorInfo := message.ShardValidatorInfo{
-		ShardId: processor.shardCoordinator.SelfId(),
-	}
-
-	buff, err := processor.marshaller.Marshal(shardValidatorInfo)
-	if err != nil {
-		return nil, false
-	}
-
-	return buff, true
 }
 
 // RegisterHandler registers a callback function to be notified of incoming shard validator info

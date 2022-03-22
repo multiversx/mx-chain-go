@@ -128,8 +128,6 @@ type networkMessenger struct {
 	syncTimer               p2p.SyncTimer
 	preferredPeersHolder    p2p.PreferredPeersHolderHandler
 	printConnectionsWatcher p2p.ConnectionsWatcher
-	mutCurrentBytesProvider sync.RWMutex
-	currentPayloadProvider  p2p.CurrentPayloadProvider
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -301,7 +299,6 @@ func addComponentsToNode(
 	p2pNode.syncTimer = args.SyncTimer
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
-	p2pNode.currentPayloadProvider = &disabled.CurrentPayloadProvider{}
 
 	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
@@ -460,13 +457,12 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		return fmt.Errorf("%w in networkMessenger.createConnectionMonitor", p2p.ErrWrongTypeAssertions)
 	}
 
-	connectionsWatchers := []p2p.ConnectionsWatcher{netMes, netMes.printConnectionsWatcher}
 	args := connectionMonitor.ArgsConnectionMonitorSimple{
 		Reconnecter:                reconnecter,
 		Sharder:                    sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		PreferredPeersHolder:       netMes.preferredPeersHolder,
-		ConnectionsWatchers:        connectionsWatchers,
+		ConnectionsWatcher:         netMes.printConnectionsWatcher,
 	}
 	var err error
 	netMes.connMonitor, err = connectionMonitor.NewLibp2pConnectionMonitorSimple(args)
@@ -495,26 +491,6 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	}()
 
 	return nil
-}
-
-// NewKnownConnection does nothing
-func (netMes *networkMessenger) NewKnownConnection(_ core.PeerID, _ string) {
-}
-
-// PeerConnected can be called whenever a new peer is connected to this host
-func (netMes *networkMessenger) PeerConnected(pid core.PeerID) {
-	netMes.mutCurrentBytesProvider.RLock()
-	message, validMessage := netMes.currentPayloadProvider.BytesToSendToNewPeers()
-	netMes.mutCurrentBytesProvider.RUnlock()
-
-	if !validMessage {
-		return
-	}
-
-	errNotCritical := netMes.SendToConnectedPeer(common.ConnectionTopic, message, pid)
-	if errNotCritical != nil {
-		log.Trace("networkMessenger.SendToConnectedPeer", "pid", pid.Pretty(), "error", errNotCritical)
-	}
 }
 
 func (netMes *networkMessenger) createConnectionsMetric() {
@@ -1307,37 +1283,6 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	netMes.mutPeerResolver.Unlock()
 
 	return nil
-}
-
-// SetCurrentPayloadProvider sets the current payload provider that is able to prepare the bytes to be sent to a new peer
-func (netMes *networkMessenger) SetCurrentPayloadProvider(currentPayloadProvider p2p.CurrentPayloadProvider) error {
-	if check.IfNil(currentPayloadProvider) {
-		return p2p.ErrNilCurrentPayloadProvider
-	}
-
-	netMes.mutCurrentBytesProvider.Lock()
-	netMes.currentPayloadProvider = currentPayloadProvider
-	buff, isValid := currentPayloadProvider.BytesToSendToNewPeers()
-	netMes.mutCurrentBytesProvider.Unlock()
-
-	netMes.notifyExistingPeers(buff, isValid)
-
-	return nil
-}
-
-func (netMes *networkMessenger) notifyExistingPeers(buff []byte, isValid bool) {
-	if !isValid {
-		return
-	}
-
-	pids := netMes.ConnectedPeers()
-	for i := 0; i < len(pids); i++ {
-		pid := pids[i]
-		errNotCritical := netMes.SendToConnectedPeer(common.ConnectionTopic, buff, pid)
-		if errNotCritical != nil {
-			log.Trace("networkMessenger.SendToConnectedPeer", "pid", pid.Pretty(), "error", errNotCritical)
-		}
-	}
 }
 
 // SetPeerDenialEvaluator sets the peer black list handler
