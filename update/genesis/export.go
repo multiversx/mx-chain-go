@@ -275,8 +275,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	if accType == ValidatorAccount {
-		var validatorData map[uint32][]*state.ValidatorInfo
-		validatorData, err = getValidatorDataFromLeaves(leavesChannel, se.shardCoordinator, se.marshalizer)
+		validatorData, err := getValidatorDataFromLeaves(leavesChannel, se.marshalizer)
 		if err != nil {
 			return err
 		}
@@ -391,19 +390,17 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	return nil
 }
 
-func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
+func (se *stateExport) exportNodesSetupJson(validators state.ShardValidatorsInfoMapHandler) error {
 	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
 	initialNodes := make([]*sharding.InitialNode, 0)
 
-	for _, validatorsInShard := range validators {
-		for _, validator := range validatorsInShard {
-			if shouldExportValidator(validator, acceptedListsForExport) {
-				initialNodes = append(initialNodes, &sharding.InitialNode{
-					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
-					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
-					InitialRating: validator.GetRating(),
-				})
-			}
+	for _, validator := range validators.GetAllValidatorsInfo() {
+		if shouldExportValidator(validator, acceptedListsForExport) {
+			initialNodes = append(initialNodes, &sharding.InitialNode{
+				PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
+				Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
+				InitialRating: validator.GetRating(),
+			})
 		}
 	}
 
