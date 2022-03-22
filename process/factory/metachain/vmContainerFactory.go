@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -25,7 +26,7 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer         sharding.ChanceComputer
+	chanceComputer         nodesCoordinator.ChanceComputer
 	validatorAccountsDB    state.AccountsAdapter
 	blockChainHook         process.BlockChainHookHandler
 	cryptoHook             vmcommon.CryptoHook
@@ -54,7 +55,7 @@ type ArgsNewVMContainerFactory struct {
 	Marshalizer         marshal.Marshalizer
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
-	ChanceComputer      sharding.ChanceComputer
+	ChanceComputer      nodesCoordinator.ChanceComputer
 	EpochNotifier       process.EpochNotifier
 	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator

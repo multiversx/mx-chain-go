@@ -1473,15 +1473,15 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
+		headerInfo, found := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !found {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
 		}
 
-		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
-		if !ok {
+		metaBlock, isMetaBlock := headerInfo.hdr.(*block.MetaBlock)
+		if !isMetaBlock {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
@@ -1948,6 +1948,9 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	if sp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+
+		scheduledIntermediateTxs := sp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs()
+		sp.txCoordinator.AddTransactions(scheduledIntermediateTxs[block.InvalidBlock], block.TxBlock)
 	}
 
 	// placeholder for shardProcessor.createMiniBlocks script

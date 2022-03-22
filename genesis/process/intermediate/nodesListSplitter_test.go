@@ -9,14 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockNodesHandler() *mock.InitialNodesHandlerStub {
 	initRating := uint32(50)
-	eligible := map[uint32][]sharding.GenesisNodeInfoHandler{
+	eligible := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 		0: {
 			mock.NewNodeInfo([]byte("addr1"), []byte("pubkey1"), 0, initRating),
 			mock.NewNodeInfo([]byte("addr2"), []byte("pubkey2"), 0, initRating),
@@ -31,7 +31,7 @@ func createMockNodesHandler() *mock.InitialNodesHandlerStub {
 		},
 	}
 
-	waiting := map[uint32][]sharding.GenesisNodeInfoHandler{
+	waiting := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 		0: {
 			mock.NewNodeInfo([]byte("addr7"), []byte("pubkey7"), 0, initRating),
 		},
@@ -44,7 +44,7 @@ func createMockNodesHandler() *mock.InitialNodesHandlerStub {
 	}
 
 	return &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return eligible, waiting
 		},
 	}

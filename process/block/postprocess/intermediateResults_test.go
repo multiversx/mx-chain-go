@@ -872,8 +872,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	err = irp.SaveCurrentIntermediateTxToStorage()
-	assert.Nil(t, err)
+	irp.SaveCurrentIntermediateTxToStorage()
 	assert.Equal(t, len(txs), putCounter)
 }
 

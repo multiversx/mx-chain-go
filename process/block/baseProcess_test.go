@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -42,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -59,7 +61,7 @@ func createArgBaseProcessor(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgBaseProcessor {
-	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
@@ -1680,10 +1682,9 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
-			GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-				channel := make(chan core.KeyValueHolder)
+			GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				close(channel)
-				return channel, nil
+				return nil
 			},
 		},
 	}
@@ -1736,12 +1737,11 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 			state.UserAccountsState: &stateMock.AccountsStub{
-				GetAllLeavesCalled: func(rh []byte) (chan core.KeyValueHolder, error) {
-					channel := make(chan core.KeyValueHolder)
+				GetAllLeavesCalled: func(channel chan core.KeyValueHolder, ctx context.Context, rh []byte) error {
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
 						close(channel)
-						return channel, nil
+						return nil
 					}
 
 					go func() {
@@ -1749,7 +1749,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 						close(channel)
 					}()
 
-					return channel, nil
+					return nil
 				},
 			},
 		}

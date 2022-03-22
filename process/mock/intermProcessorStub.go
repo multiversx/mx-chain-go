@@ -11,7 +11,7 @@ type IntermediateTransactionHandlerStub struct {
 	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
-	SaveCurrentIntermediateTxToStorageCalled func() error
+	SaveCurrentIntermediateTxToStorageCalled func()
 	CreateBlockStartedCalled                 func()
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
@@ -82,11 +82,11 @@ func (ith *IntermediateTransactionHandlerStub) VerifyInterMiniBlocks(body *block
 }
 
 // SaveCurrentIntermediateTxToStorage -
-func (ith *IntermediateTransactionHandlerStub) SaveCurrentIntermediateTxToStorage() error {
+func (ith *IntermediateTransactionHandlerStub) SaveCurrentIntermediateTxToStorage() {
 	if ith.SaveCurrentIntermediateTxToStorageCalled == nil {
-		return nil
+		return
 	}
-	return ith.SaveCurrentIntermediateTxToStorageCalled()
+	ith.SaveCurrentIntermediateTxToStorageCalled()
 }
 
 // CreateBlockStarted -

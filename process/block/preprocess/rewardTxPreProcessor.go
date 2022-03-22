@@ -274,15 +274,12 @@ func (rtp *rewardTxPreprocessor) SaveTxsToStorage(body *block.Body) error {
 			continue
 		}
 
-		err := rtp.saveTxsToStorage(
+		rtp.saveTxsToStorage(
 			miniBlock.TxHashes,
 			&rtp.rewardTxsForBlock,
 			rtp.storage,
 			dataRetriever.RewardTransactionUnit,
 		)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -521,6 +518,10 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 
 // AddTxsFromMiniBlocks does nothing
 func (rtp *rewardTxPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
+}
+
+// AddTransactions does nothing
+func (rtp *rewardTxPreprocessor) AddTransactions(_ []data.TransactionHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

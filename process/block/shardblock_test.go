@@ -5005,3 +5005,42 @@ func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, headerV2.GetDeveloperFees())
 	assert.Equal(t, zeroInt, headerV2.GetAccumulatedFees())
 }
+
+func TestShardProcessor_createMiniBlocks(t *testing.T) {
+	t.Parallel()
+	coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+	tx1 := &transaction.Transaction{Nonce: 0}
+	tx2 := &transaction.Transaction{Nonce: 1}
+	txs := []data.TransactionHandler{tx1, tx2}
+
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{}
+		},
+		GetScheduledIntermediateTxsCalled: func() map[block.Type][]data.TransactionHandler {
+			return map[block.Type][]data.TransactionHandler{
+				block.InvalidBlock: txs,
+			}
+		},
+	}
+
+	var called = &atomicCore.Flag{}
+	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
+			require.Equal(t, block.TxBlock, blockType)
+			require.Equal(t, txs, txHandlers)
+			called.SetValue(true)
+		},
+	}
+	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
+	arguments.ScheduledMiniBlocksEnableEpoch = 0
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	sp.EpochConfirmed(1, 0)
+	_, err = sp.CreateMiniBlocks(func() bool { return false })
+	require.Nil(t, err)
+	require.True(t, called.IsSet())
+}

@@ -81,6 +81,11 @@ func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
+// RemoveFromCurrentEpoch -
+func (sm *StorerMock) RemoveFromCurrentEpoch(key []byte) error {
+	return sm.Remove(key)
+}
+
 // Remove -
 func (sm *StorerMock) Remove(key []byte) error {
 	sm.mut.Lock()

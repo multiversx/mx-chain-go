@@ -259,58 +259,40 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 }
 
 // SaveTxsToStorage saves transactions from block body into storage units
-func (tc *transactionCoordinator) SaveTxsToStorage(body *block.Body) error {
+func (tc *transactionCoordinator) SaveTxsToStorage(body *block.Body) {
 	if check.IfNil(body) {
-		return nil
+		return
 	}
 
 	separatedBodies := tc.separateBodyByType(body)
 	for key, value := range separatedBodies {
-		err := tc.saveTxsToStorage(key, value)
-		if err != nil {
-			return err
-		}
+		tc.saveTxsToStorage(key, value)
 	}
 
 	for _, blockType := range tc.keysInterimProcs {
-		err := tc.saveCurrentIntermediateTxToStorage(blockType)
-		if err != nil {
-			return err
-		}
+		tc.saveCurrentIntermediateTxToStorage(blockType)
 	}
-
-	return nil
 }
 
-func (tc *transactionCoordinator) saveTxsToStorage(blockType block.Type, blockBody *block.Body) error {
+func (tc *transactionCoordinator) saveTxsToStorage(blockType block.Type, blockBody *block.Body) {
 	preproc := tc.getPreProcessor(blockType)
 	if check.IfNil(preproc) {
-		return nil
+		return
 	}
 
 	err := preproc.SaveTxsToStorage(blockBody)
 	if err != nil {
 		log.Trace("SaveTxsToStorage", "error", err.Error())
-
-		return err
 	}
-
-	return nil
 }
 
-func (tc *transactionCoordinator) saveCurrentIntermediateTxToStorage(blockType block.Type) error {
+func (tc *transactionCoordinator) saveCurrentIntermediateTxToStorage(blockType block.Type) {
 	intermediateProc := tc.getInterimProcessor(blockType)
 	if check.IfNil(intermediateProc) {
-		return nil
+		return
 	}
 
-	err := intermediateProc.SaveCurrentIntermediateTxToStorage()
-	if err != nil {
-		log.Trace("SaveCurrentIntermediateTxToStorage", "error", err.Error())
-		return err
-	}
-
-	return nil
+	intermediateProc.SaveCurrentIntermediateTxToStorage()
 }
 
 // RestoreBlockDataFromStorage restores block data from storage to pool
@@ -682,13 +664,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		// TODO: Should be removed this condition, just to allow processing of any kind of mbs as scheduled in destination shard?
-		// If this will be removed avoid to process mini blocks of type SmartContractResults or implement scheduled support there
-		if scheduledMode && !miniBlock.IsScheduledMiniBlock() {
+		if scheduledMode && miniBlock.Type != block.TxBlock {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			// TODO: Change this to log.Trace
-			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block was not scheduled in sender shard",
+			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block can not be processed in scheduled mode",
 				"scheduled mode", scheduledMode,
+				"type", miniBlock.Type,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
 				"round", miniBlockInfo.Round,
@@ -1813,6 +1793,17 @@ func (tc *transactionCoordinator) AddTxsFromMiniBlocks(miniBlocks block.MiniBloc
 
 		preProc.AddTxsFromMiniBlocks(miniBlocks)
 	}
+}
+
+// AddTransactions adds the given transactions to the preprocessor
+func (tc *transactionCoordinator) AddTransactions(txs []data.TransactionHandler, blockType block.Type) {
+	preProc := tc.getPreProcessor(blockType)
+	if check.IfNil(preProc) {
+		log.Warn("transactionCoordinator.AddTransactions preProc is nil", "blockType", blockType)
+		return
+	}
+
+	preProc.AddTransactions(txs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

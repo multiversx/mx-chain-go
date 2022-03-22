@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
@@ -1562,24 +1563,27 @@ func TestTransactionCoordinator_SaveTxsToStorage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	err = tc.SaveTxsToStorage(nil)
-	assert.Nil(t, err)
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have panic")
+		}
+	}()
+
+	tc.SaveTxsToStorage(nil)
 
 	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-
-	err = tc.SaveTxsToStorage(body)
-	assert.Nil(t, err)
+	tc.SaveTxsToStorage(body)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
-	err = tc.SaveTxsToStorage(body)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	tc.SaveTxsToStorage(body)
 }
 
 func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
@@ -1604,8 +1608,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.SaveTxsToStorage(body)
-	assert.Nil(t, err)
+	tc.SaveTxsToStorage(body)
 	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
 	assert.Equal(t, 1, nrTxs)
 	assert.Nil(t, err)
@@ -1614,8 +1617,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
-	err = tc.SaveTxsToStorage(body)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	tc.SaveTxsToStorage(body)
 
 	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
 	assert.Equal(t, 1, nrTxs)
@@ -2274,45 +2276,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
 
-func TestTransactionCoordinator_SaveTxsToStorageSaveIntermediateTxsErrors(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool(txHash)
-	retError := errors.New("save error")
-	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
-	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
-	argsTransactionCoordinator.Accounts = initAccountsMock()
-	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
-	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
-	argsTransactionCoordinator.InterProcessors = &mock.InterimProcessorContainerMock{
-		KeysCalled: func() []block.Type {
-			return []block.Type{block.SmartContractResultBlock}
-		},
-		GetCalled: func(key block.Type) (handler process.IntermediateTransactionHandler, e error) {
-			if key == block.SmartContractResultBlock {
-				return &mock.IntermediateTransactionHandlerMock{
-					SaveCurrentIntermediateTxToStorageCalled: func() error {
-						return retError
-					},
-				}, nil
-			}
-			return nil, errors.New("invalid handler type")
-		},
-	}
-	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
-
-	body := &block.Body{}
-	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-
-	tc.RequestBlockTransactions(body)
-
-	err = tc.SaveTxsToStorage(body)
-	assert.Equal(t, retError, err)
-}
-
 func TestTransactionCoordinator_SaveTxsToStorageCallsSaveIntermediate(t *testing.T) {
 	t.Parallel()
 
@@ -2330,9 +2293,8 @@ func TestTransactionCoordinator_SaveTxsToStorageCallsSaveIntermediate(t *testing
 		GetCalled: func(key block.Type) (handler process.IntermediateTransactionHandler, e error) {
 			if key == block.SmartContractResultBlock {
 				return &mock.IntermediateTransactionHandlerMock{
-					SaveCurrentIntermediateTxToStorageCalled: func() error {
+					SaveCurrentIntermediateTxToStorageCalled: func() {
 						intermediateTxWereSaved = true
-						return nil
 					},
 				}, nil
 			}
@@ -2349,9 +2311,7 @@ func TestTransactionCoordinator_SaveTxsToStorageCallsSaveIntermediate(t *testing
 
 	tc.RequestBlockTransactions(body)
 
-	err = tc.SaveTxsToStorage(body)
-	assert.Nil(t, err)
-
+	tc.SaveTxsToStorage(body)
 	assert.True(t, intermediateTxWereSaved)
 }
 
@@ -4261,6 +4221,57 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 
 	txs := tc.GetAllIntermediateTxs()
 	assert.Equal(t, expectedAllIntermediateTxs, txs)
+}
+
+func TestTransactionCoordinator_AddTxsFromMiniBlocks(t *testing.T) {
+	// TODO: create test
+}
+
+func TestTransactionCoordinator_AddTransactions(t *testing.T) {
+	args := createMockTransactionCoordinatorArguments()
+
+	txGasLimit := uint64(50000)
+	tx1 := &transaction.Transaction{Nonce: 1, GasLimit: txGasLimit, GasPrice: 1}
+	tx2 := &transaction.Transaction{Nonce: 2, GasLimit: txGasLimit, GasPrice: 1}
+	tx3 := &transaction.Transaction{Nonce: 3, GasLimit: txGasLimit, GasPrice: 1}
+	txs := []data.TransactionHandler{tx1, tx2, tx3}
+
+	t.Run("missing preprocessor should not panic", func(t *testing.T) {
+		tc, _ := NewTransactionCoordinator(args)
+		tc.keysInterimProcs = append(tc.keysInterimProcs, block.InvalidBlock)
+		tc.interimProcessors[block.InvalidBlock] = nil
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, fmt.Sprintf("should have not paniced %v", r))
+			}
+		}()
+
+		tc.AddTransactions(txs, block.InvalidBlock)
+	})
+
+	t.Run("valid preprocessor should add", func(t *testing.T) {
+		tc, _ := NewTransactionCoordinator(args)
+		addTransactionsCalled := &atomic.Flag{}
+		tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
+		tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+			AddTransactionsCalled: func(txHandlers []data.TransactionHandler) {
+				require.Equal(t, txs, txHandlers)
+				addTransactionsCalled.SetValue(true)
+			},
+		}
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, fmt.Sprintf("should have not paniced %v", r))
+			}
+		}()
+
+		tc.AddTransactions(txs, block.TxBlock)
+		require.True(t, addTransactionsCalled.IsSet())
+	})
 }
 
 func TestGetProcessedMiniBlockInfo_ShouldWork(t *testing.T) {

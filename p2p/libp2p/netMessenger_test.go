@@ -575,7 +575,7 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *testing.T) {
-	msg := make([]byte, libp2p.MaxSendBuffSize)
+	msg := bytes.Repeat([]byte{'A'}, libp2p.MaxSendBuffSize)
 
 	_, mes1, mes2 := createMockNetworkOf2()
 

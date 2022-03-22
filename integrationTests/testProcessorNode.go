@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -24,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -80,6 +81,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/process/txsSender"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -94,6 +96,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -231,7 +234,7 @@ type Connectable interface {
 // with all its fields exported
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
-	NodesCoordinator sharding.NodesCoordinator
+	NodesCoordinator nodesCoordinator.NodesCoordinator
 	NodesSetup       sharding.GenesisNodesSetupHandler
 	Messenger        p2p.Messenger
 
@@ -359,8 +362,8 @@ func newBaseTestProcessorNode(
 	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < maxShards; i++ {
 				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, InitialRating))
 			}
@@ -368,8 +371,8 @@ func newBaseTestProcessorNode(
 				mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId, InitialRating))
 			return oneMap, nil
 		},
-		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
-			list := make([]sharding.GenesisNodeInfoHandler, 0)
+		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []nodesCoordinator.GenesisNodeInfoHandler, handlers2 []nodesCoordinator.GenesisNodeInfoHandler, err error) {
+			list := make([]nodesCoordinator.GenesisNodeInfoHandler, 0)
 			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId, InitialRating))
 			return list, nil, nil
 		},
@@ -377,10 +380,10 @@ func newBaseTestProcessorNode(
 			return numNodes
 		},
 	}
-	nodesCoordinator := &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
-			return []sharding.Validator{v}, nil
+	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
+			return []nodesCoordinator.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
@@ -393,8 +396,8 @@ func newBaseTestProcessorNode(
 
 			return keys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
+			validator, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -579,7 +582,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 	messenger := CreateMessengerWithNoDiscovery()
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
@@ -716,7 +719,10 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs(CreateMemUnit())
+	if tpn.EpochStartNotifier == nil {
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
+	}
+	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
@@ -1446,6 +1452,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
+	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
 			ArwenVersions: []config.ArwenVersionByEpoch{
@@ -1981,7 +1988,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:   stateCheckpointModulus,
-			UserStatePruningQueueSize: uint(10),
+			UserStatePruningQueueSize: uint(5),
 			PeerStatePruningQueueSize: uint(3),
 		},
 	}
@@ -2935,7 +2942,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 // GetDefaultProcessComponents -
 func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 	return &mock.ProcessComponentsStub{
-		NodesCoord: &mock.NodesCoordinatorMock{},
+		NodesCoord: &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord: &testscommon.ShardsCoordinatorMock{
 			NoShards:     1,
 			CurrentShard: 0,
@@ -3078,7 +3085,8 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash)
+		chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash)
 		for leaf := range chLeaves {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue

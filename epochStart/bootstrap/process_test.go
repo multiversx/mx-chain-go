@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -36,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
@@ -195,7 +197,7 @@ func createMockEpochStartBootstrapArgs(
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
-		NodeShuffler:               &mock.NodeShufflerMock{},
+		NodeShuffler:               &shardingMocks.NodeShufflerMock{},
 		RoundHandler:               &mock.RoundHandlerStub{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &storageMocks.UnitOpenerStub{},
@@ -609,7 +611,7 @@ func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 		params, err := epochStartProvider.Bootstrap()
-		assert.Equal(t, sharding.ErrInvalidNumberOfShards, err)
+		assert.Equal(t, nodesCoordinator.ErrInvalidNumberOfShards, err)
 		assert.Equal(t, Parameters{}, params)
 	})
 	t.Run("boostrap from local storage, fail to get boostrap data", func(t *testing.T) {
@@ -681,25 +683,25 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
-	nodesCoord := &sharding.NodesCoordinatorRegistry{
-		EpochsConfig: map[string]*sharding.EpochValidators{
+	nodesCoord := &nodesCoordinator.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			strconv.Itoa(int(epoch)): {
-				EligibleValidators: map[string][]*sharding.SerializableValidator{
+				EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 					"0": {
-						&sharding.SerializableValidator{
+						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[0],
 							Chances: 1,
 						},
 					},
 					"4294967295": {
-						&sharding.SerializableValidator{
+						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
 						},
 					},
 				},
-				WaitingValidators: map[string][]*sharding.SerializableValidator{},
-				LeavingValidators: map[string][]*sharding.SerializableValidator{},
+				WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+				LeavingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
 			},
 		},
 	}
@@ -829,8 +831,8 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 
 	args.DestinationShardAsObserver = uint32(7)
 	args.GenesisNodesConfig = &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			eligibleMap := map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
 			}
 			return eligibleMap, nil
@@ -864,8 +866,8 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 	}
 	args.DestinationShardAsObserver = desiredShardAsObserver
 	args.GenesisNodesConfig = &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
-			eligibleMap := map[uint32][]sharding.GenesisNodeInfoHandler{
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
 			}
 			return eligibleMap, nil
@@ -1274,7 +1276,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
-		epochStartProvider.nodesConfig = &sharding.NodesCoordinatorRegistry{}
+		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
 		err := epochStartProvider.requestAndProcessForShard()
 		assert.Equal(t, expectedErr, err)
@@ -1410,7 +1412,7 @@ func TestPrepareComponentsToSyncFromNetwork(t *testing.T) {
 
 	epochStartProvider.shardCoordinator = shardCoordinator
 	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
-	epochStartProvider.nodesConfig = &sharding.NodesCoordinatorRegistry{}
+	epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
 	assert.Nil(t, epochStartProvider.requestHandler)
 	assert.Nil(t, epochStartProvider.epochStartMetaBlockSyncer)
@@ -1430,8 +1432,8 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 	epochDurationMillis := 50 * int64(roundDurationMillis)
 
 	nodesConfig := &mock.NodesSetupStub{
-		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < numOfShards; i++ {
 				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, initRating))
 			}
@@ -1642,7 +1644,7 @@ func TestRequestAndProcessing(t *testing.T) {
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
 		assert.Error(t, err)
-		assert.True(t, strings.Contains(err.Error(), sharding.ErrInvalidNumberOfShards.Error()))
+		assert.True(t, strings.Contains(err.Error(), nodesCoordinator.ErrInvalidNumberOfShards.Error()))
 	})
 	t.Run("failed to create messenger topic", func(t *testing.T) {
 		t.Parallel()
@@ -1921,25 +1923,25 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 	requiredParameters := Parameters{
 		SelfShardId: shardId,
 		NumOfShards: args.GenesisNodesConfig.NumberOfShards(),
-		NodesConfig: &sharding.NodesCoordinatorRegistry{
-			EpochsConfig: map[string]*sharding.EpochValidators{
+		NodesConfig: &nodesCoordinator.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 				"0": {
-					EligibleValidators: map[string][]*sharding.SerializableValidator{
+					EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
 						"0": {
-							&sharding.SerializableValidator{
+							&nodesCoordinator.SerializableValidator{
 								PubKey:  pksBytes[0],
 								Chances: 1,
 							},
 						},
 						"4294967295": {
-							&sharding.SerializableValidator{
+							&nodesCoordinator.SerializableValidator{
 								PubKey:  pksBytes[core.MetachainShardId],
 								Chances: 1,
 							},
 						},
 					},
-					WaitingValidators: map[string][]*sharding.SerializableValidator{},
-					LeavingValidators: map[string][]*sharding.SerializableValidator{},
+					WaitingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
+					LeavingValidators: map[string][]*nodesCoordinator.SerializableValidator{},
 				},
 			},
 		},

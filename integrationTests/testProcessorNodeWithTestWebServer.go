@@ -82,10 +82,11 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 		TxSimulatorProcessor:   txSimulator,
 		RestAPIServerDebugMode: false,
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
-			SimultaneousRequests:         1000,
-			SameSourceRequests:           1000,
-			SameSourceResetIntervalInSec: 1,
-			EndpointsThrottlers:          []config.EndpointsThrottlersConfig{},
+			SimultaneousRequests:               1000,
+			SameSourceRequests:                 1000,
+			SameSourceResetIntervalInSec:       1,
+			TrieOperationsDeadlineMilliseconds: 1,
+			EndpointsThrottlers:                []config.EndpointsThrottlersConfig{},
 		},
 		FacadeConfig:    config.FacadeConfig{},
 		ApiRoutesConfig: createTestApiConfig(),
@@ -164,6 +165,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		},
 		tpn.AccntState,
 		tpn.ShardCoordinator,
+		tpn.EpochNotifier,
+		0,
 	)
 	log.LogIfError(err)
 
@@ -216,15 +219,21 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
 
+	apiInternalBlockProcessor, err := blockAPI.CreateAPIInternalBlockProcessor(argsBlockAPI)
+	log.LogIfError(err)
+
 	argsApiResolver := external.ArgNodeApiResolver{
-		SCQueryService:          tpn.SCQueryService,
-		StatusMetricsHandler:    &mock.StatusMetricsStub{},
-		TxCostHandler:           txCostHandler,
-		TotalStakedValueHandler: totalStakedValueHandler,
-		DirectStakedListHandler: directStakedListHandler,
-		DelegatedListHandler:    delegatedListHandler,
-		APITransactionHandler:   apiTransactionHandler,
-		APIBlockHandler:         blockAPIHandler,
+		SCQueryService:           tpn.SCQueryService,
+		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
+		TxCostHandler:            txCostHandler,
+		TotalStakedValueHandler:  totalStakedValueHandler,
+		DirectStakedListHandler:  directStakedListHandler,
+		DelegatedListHandler:     delegatedListHandler,
+		APITransactionHandler:    apiTransactionHandler,
+		APIBlockHandler:          blockAPIHandler,
+		APIInternalBlockHandler:  apiInternalBlockProcessor,
+		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
