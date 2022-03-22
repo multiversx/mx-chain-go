@@ -12,10 +12,10 @@ import (
 // RewardsCreatorStub -
 type RewardsCreatorStub struct {
 	CreateRewardsMiniBlocksCalled func(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocksCalled func(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewardsCalled func() *big.Int
 	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
@@ -29,7 +29,7 @@ type RewardsCreatorStub struct {
 // CreateRewardsMiniBlocks -
 func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	if rcs.CreateRewardsMiniBlocksCalled != nil {
@@ -42,7 +42,7 @@ func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocks(
 // VerifyRewardsMiniBlocks -
 func (rcs *RewardsCreatorStub) VerifyRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) error {
 	if rcs.VerifyRewardsMiniBlocksCalled != nil {

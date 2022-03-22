@@ -3084,7 +3084,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		wasCalled := false
 		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			VerifyRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) error {
 				assert.True(t, wasCalled)
 				return nil
@@ -3115,7 +3115,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		wasCalled := false
 		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			VerifyRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) error {
 				wasCalled = true
 				return nil
@@ -3341,9 +3341,9 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		expectedRewardsForProtocolSustain := big.NewInt(11)
 		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			CreateRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
@@ -3403,10 +3403,10 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		expectedRewardsForProtocolSustain := big.NewInt(11)
 		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			CreateRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
 				wasCalled = true
-				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},

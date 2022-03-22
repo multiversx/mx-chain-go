@@ -136,14 +136,12 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+	})
 	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Nil(t, err)
 	assert.NotNil(t, bdy)
@@ -178,14 +176,12 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 		},
 		DevFeesInEpoch: big.NewInt(0),
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+	})
 
 	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Equal(t, epochStart.ErrRewardMiniBlockHashDoesNotMatch, err)
@@ -236,15 +232,13 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	mbh.Hash = mbHash
 
 	mb.MiniBlockHeaders = []block.MiniBlockHeader{mbh, mbh}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-			LeaderSuccess:   1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+		LeaderSuccess:   1,
+	})
 
 	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Equal(t, epochStart.ErrRewardMiniBlocksNumDoesNotMatch, err)
@@ -393,15 +387,13 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
 	mb.EpochStart.Economics.TotalToDistribute.Set(big.NewInt(0).Add(rwdTx.Value, protocolSustainabilityRewardTx.Value))
 
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-			LeaderSuccess:   1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+		LeaderSuccess:   1,
+	})
 
 	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Nil(t, err)
@@ -463,15 +455,13 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
 	mb.EpochStart.Economics.TotalToDistribute.Set(big.NewInt(0).Add(rwdTx.Value, protocolSustainabilityRewardTx.Value))
 
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         receivedShardID,
-			AccumulatedFees: big.NewInt(100),
-			LeaderSuccess:   1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         receivedShardID,
+		AccumulatedFees: big.NewInt(100),
+		LeaderSuccess:   1,
+	})
 
 	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Nil(t, err)
@@ -487,14 +477,12 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+	})
 	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 
 	rwdTx := rewardTx.RewardTx{
@@ -544,15 +532,13 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-			LeaderSuccess:   1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+		LeaderSuccess:   1,
+	})
 	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 
 	mb2 := block.MetaBlock{
@@ -613,15 +599,13 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, expectedRwdTx)
 	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
 
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-			LeaderSuccess:   1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		PublicKey:       []byte("pubkey"),
+		ShardId:         0,
+		AccumulatedFees: big.NewInt(100),
+		LeaderSuccess:   1,
+	})
 
 	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks, &rewardTx.RewardTx{})
@@ -648,25 +632,21 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	}
 
 	pubkey := "pubkey"
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			RewardAddress:              []byte(pubkey),
-			ShardId:                    0,
-			AccumulatedFees:            big.NewInt(100),
-			NumSelectedInSuccessBlocks: 100,
-			LeaderSuccess:              1,
-		},
-	}
-	valInfo[core.MetachainShardId] = []*state.ValidatorInfo{
-		{
-			RewardAddress:              []byte(pubkey),
-			ShardId:                    core.MetachainShardId,
-			AccumulatedFees:            big.NewInt(100),
-			NumSelectedInSuccessBlocks: 200,
-			LeaderSuccess:              1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		RewardAddress:              []byte(pubkey),
+		ShardId:                    0,
+		AccumulatedFees:            big.NewInt(100),
+		NumSelectedInSuccessBlocks: 100,
+		LeaderSuccess:              1,
+	})
+	_ = valInfo.Add(&state.ValidatorInfo{
+		RewardAddress:              []byte(pubkey),
+		ShardId:                    core.MetachainShardId,
+		AccumulatedFees:            big.NewInt(100),
+		NumSelectedInSuccessBlocks: 200,
+		LeaderSuccess:              1,
+	})
 
 	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{}, 0)
@@ -675,8 +655,8 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	assert.Equal(t, rwdInfo.address, pubkey)
 
 	assert.Equal(t, rwdInfo.accumulatedFees.Cmp(big.NewInt(200)), 0)
-	protocolRewards := uint64(valInfo[0][0].NumSelectedInSuccessBlocks) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(0)))
-	protocolRewards += uint64(valInfo[core.MetachainShardId][0].NumSelectedInSuccessBlocks) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	protocolRewards := uint64(valInfo.GetShardValidatorsInfoMap()[0][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(0)))
+	protocolRewards += uint64(valInfo.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
 	assert.Equal(t, rwdInfo.rewardsFromProtocol.Uint64(), protocolRewards)
 }
 
@@ -730,7 +710,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	metaBlk.EpochStart.Economics.RewardsForProtocolSustainability.Set(expectedRewardTx.Value)
 	metaBlk.EpochStart.Economics.TotalToDistribute.Set(expectedRewardTx.Value)
 
-	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, make(map[uint32][]*state.ValidatorInfo), &metaBlk.EpochStart.Economics)
+	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, state.NewShardValidatorsInfoMap(), &metaBlk.EpochStart.Economics)
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
 }
@@ -747,23 +727,21 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 		DevFeesInEpoch: big.NewInt(0),
 	}
 	metaBlk.EpochStart.Economics.TotalToDistribute = big.NewInt(20250)
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			RewardAddress:              vm.StakingSCAddress,
-			ShardId:                    0,
-			AccumulatedFees:            big.NewInt(100),
-			NumSelectedInSuccessBlocks: 1,
-			LeaderSuccess:              1,
-		},
-		{
-			RewardAddress:              vm.FirstDelegationSCAddress,
-			ShardId:                    0,
-			AccumulatedFees:            big.NewInt(100),
-			NumSelectedInSuccessBlocks: 1,
-			LeaderSuccess:              1,
-		},
-	}
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(&state.ValidatorInfo{
+		RewardAddress:              vm.StakingSCAddress,
+		ShardId:                    0,
+		AccumulatedFees:            big.NewInt(100),
+		NumSelectedInSuccessBlocks: 1,
+		LeaderSuccess:              1,
+	})
+	_ = valInfo.Add(&state.ValidatorInfo{
+		RewardAddress:              vm.FirstDelegationSCAddress,
+		ShardId:                    0,
+		AccumulatedFees:            big.NewInt(100),
+		NumSelectedInSuccessBlocks: 1,
+		LeaderSuccess:              1,
+	})
 
 	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
 	userAcc, _ := acc.(state.UserAccountHandler)
