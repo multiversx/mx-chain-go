@@ -253,7 +253,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		miniblockStrCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		miniBlockStrCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
 			log.Debug("tx from mini block was not found in TransactionUnit",
@@ -272,7 +272,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 				return txsRestored, err
 			}
 
-			strCache := txs.computeCacheIdentifier(miniblockStrCache, &tx, miniBlock.Type)
+			strCache := txs.computeCacheIdentifier(miniBlockStrCache, &tx, miniBlock.Type)
 			txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
