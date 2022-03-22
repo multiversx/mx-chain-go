@@ -108,3 +108,6 @@ var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 
 // ErrNilNodesCoordinatorRegistryFactory signals that a nil nodes coordinator registry factory has been given
 var ErrNilNodesCoordinatorRegistryFactory = errors.New("nil nodes coordinator registry factory has been given")
+
+// ErrReceivedAuctionValidatorsBeforeStakingV4 signals that auction nodes have been received from peer mini blocks before enabling staking v4
+var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("should no have received selected nodes from auction in peer mini blocks, since staking v4 is not enabled yet")

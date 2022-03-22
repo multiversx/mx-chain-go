@@ -148,7 +148,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: staking v4", "epoch", ihnc.stakingV4EnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: enable epoch for staking v4", "epoch", ihnc.stakingV4EnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -759,6 +759,8 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.SelectedFromAuctionList):
 			if ihnc.flagStakingV4.IsSet() {
 				auctionList = append(auctionList, currentValidator)
+			} else {
+				return nil, ErrReceivedAuctionValidatorsBeforeStakingV4
 			}
 		}
 	}

@@ -2099,8 +2099,8 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	}
 
 	newNodesConfig, err := nc.computeNodesConfigFromList(previousConfig, validatorInfos)
-	require.Nil(t, err)
-	require.Empty(t, newNodesConfig.auctionList)
+	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
+	require.Nil(t, newNodesConfig)
 
 	nc.flagStakingV4.SetReturningPrevious()
 
