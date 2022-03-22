@@ -307,6 +307,7 @@ func isScheduledIntermediateTx(
 ) bool {
 	blockType := getBlockTypeOfTx(txHash, miniBlocks)
 	if blockType != block.SmartContractResultBlock && blockType != block.InvalidBlock {
+		log.Debug("isScheduledIntermediateTx", "blockType", blockType, "txHash", txHash, "ret", false)
 		return false
 	}
 
@@ -323,8 +324,15 @@ func isScheduledIntermediateTx(
 		scheduledTxHash = txHash
 	}
 
-	receiverShardID, isScheduledIntermediateTx := scheduledTxHashes[string(scheduledTxHash)]
-	return isScheduledIntermediateTx && receiverShardID == selfShardID
+	receiverShardID, isScheduledIntermediateTransaction := scheduledTxHashes[string(scheduledTxHash)]
+	isTxExecutedInSelfShard := receiverShardID == selfShardID || blockType == block.InvalidBlock
+	log.Debug("isScheduledIntermediateTx",
+		"blockType", blockType,
+		"txHash", txHash,
+		"isScheduledIntermediateTransaction", isScheduledIntermediateTransaction,
+		"isTxExecutedInSelfShard", isTxExecutedInSelfShard)
+
+	return isScheduledIntermediateTransaction && isTxExecutedInSelfShard
 }
 
 func getScheduledIntermediateTxsMap(
