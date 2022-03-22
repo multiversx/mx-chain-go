@@ -1916,7 +1916,7 @@ func addNonEligibleValidatorInfo(
 ) state.ShardValidatorsInfoMapHandler {
 	resultedValidatorsInfo := state.NewShardValidatorsInfoMap()
 	for shardID, valInfoList := range validatorsInfo.GetShardValidatorsInfoMap() {
-		resultedValidatorsInfo.SetValidatorsInShard(shardID, valInfoList)
+		_ = resultedValidatorsInfo.SetValidatorsInShard(shardID, valInfoList)
 		for i := uint32(0); i < nonEligiblePerShard; i++ {
 			_ = resultedValidatorsInfo.Add(&state.ValidatorInfo{
 				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLSExtra%d", i)),
