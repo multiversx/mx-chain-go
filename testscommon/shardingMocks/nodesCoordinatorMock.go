@@ -11,21 +11,22 @@ import (
 
 // NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
-	Validators                               map[uint32][]nodesCoordinator.Validator
-	ShardConsensusSize                       uint32
-	MetaConsensusSize                        uint32
-	ShardId                                  uint32
-	NbShards                                 uint32
-	GetSelectedPublicKeysCalled              func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
-	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	SetNodesPerShardsCalled                  func(nodes map[uint32][]nodesCoordinator.Validator, epoch uint32) error
-	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
-	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
-	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
-	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
-	ConsensusGroupSizeCalled                 func(uint32) int
-	GetNumTotalEligibleCalled                func() uint64
+	Validators                                  map[uint32][]nodesCoordinator.Validator
+	ShardConsensusSize                          uint32
+	MetaConsensusSize                           uint32
+	ShardId                                     uint32
+	NbShards                                    uint32
+	GetSelectedPublicKeysCalled                 func(selection []byte, shardId uint32, epoch uint32) (publicKeys []string, err error)
+	GetValidatorsPublicKeysCalled               func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorsRewardsAddressesCalled         func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	SetNodesPerShardsCalled                     func(nodes map[uint32][]nodesCoordinator.Validator, epoch uint32) error
+	ComputeValidatorsGroupCalled                func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
+	GetValidatorWithPublicKeyCalled             func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetAllEligibleValidatorsPublicKeysCalled    func(epoch uint32) (map[uint32][][]byte, error)
+	GetAllShuffledOutValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeysCalled     func() (map[uint32][][]byte, error)
+	ConsensusGroupSizeCalled                    func(uint32) int
+	GetNumTotalEligibleCalled                   func() uint64
 }
 
 // NewNodesCoordinatorMock -
@@ -101,7 +102,10 @@ func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // GetAllShuffledOutValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllShuffledOutValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllShuffledOutValidatorsPublicKeysCalled(epoch)
+	}
 	return nil, nil
 }
 

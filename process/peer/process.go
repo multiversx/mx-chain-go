@@ -57,6 +57,7 @@ type ArgValidatorStatisticsProcessor struct {
 	BelowSignedThresholdEnableEpoch                   uint32
 	StakingV2EnableEpoch                              uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
+	StakingV4EnableEpoch                              uint32
 	EpochNotifier                                     process.EpochNotifier
 }
 
@@ -81,9 +82,11 @@ type validatorStatistics struct {
 	belowSignedThresholdEnableEpoch                   uint32
 	stakingV2EnableEpoch                              uint32
 	stopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
+	stakingV4EnableEpoch                              uint32
 	flagJailedEnabled                                 atomic.Flag
 	flagStakingV2Enabled                              atomic.Flag
 	flagStopDecreasingValidatorRatingEnabled          atomic.Flag
+	flagStakingV4                                     atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -148,11 +151,13 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		belowSignedThresholdEnableEpoch:      arguments.BelowSignedThresholdEnableEpoch,
 		stakingV2EnableEpoch:                 arguments.StakingV2EnableEpoch,
 		stopDecreasingValidatorRatingWhenStuckEnableEpoch: arguments.StopDecreasingValidatorRatingWhenStuckEnableEpoch,
+		stakingV4EnableEpoch:                              arguments.StakingV4EnableEpoch,
 	}
 	log.Debug("peer/process: enable epoch for switch jail waiting", "epoch", vs.jailedEnableEpoch)
 	log.Debug("peer/process: enable epoch for below signed threshold", "epoch", vs.belowSignedThresholdEnableEpoch)
 	log.Debug("peer/process: enable epoch for staking v2", "epoch", vs.stakingV2EnableEpoch)
 	log.Debug("peer/process: enable epoch for stop decreasing validator rating when stuck", "epoch", vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
+	log.Debug("peer/process: enable epoch for staking v4", "epoch", vs.stakingV4EnableEpoch)
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
@@ -202,6 +207,18 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 		return false, err
 	}
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
+
+	if vs.flagStakingV4.IsSet() {
+		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
+		if err != nil {
+			return false, err
+		}
+
+		_, err = vs.saveUpdatesForNodesMap(nodesMap, common.AuctionList)
+		if err != nil {
+			return false, err
+		}
+	}
 
 	return nodeForcedToRemain, nil
 }
@@ -1243,10 +1260,15 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
 	vs.flagJailedEnabled.SetValue(epoch >= vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
+
 	vs.flagStakingV2Enabled.SetValue(epoch > vs.stakingV2EnableEpoch)
 	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
+
 	vs.flagStopDecreasingValidatorRatingEnabled.SetValue(epoch >= vs.stopDecreasingValidatorRatingWhenStuckEnableEpoch)
 	log.Debug("validatorStatistics: stop decreasing validator rating",
 		"is enabled", vs.flagStopDecreasingValidatorRatingEnabled.IsSet(),
 		"max consecutive rounds of rating decrease", vs.maxConsecutiveRoundsOfRatingDecrease)
+
+	vs.flagStakingV4.SetValue(epoch >= vs.stakingV4EnableEpoch)
+	log.Debug("validatorStatistics: staking v4", "enabled", vs.flagStakingV4.IsSet())
 }
