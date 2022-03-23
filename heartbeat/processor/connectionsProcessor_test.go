@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -82,19 +83,23 @@ func TestNewConnectionsProcessor(t *testing.T) {
 		t.Parallel()
 
 		providedConnectedPeers := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5", "pid6"}
+		notifiedPeers := make([]core.PeerID, 0)
+		var mutNotifiedPeers sync.RWMutex
 		args := createMockArgConnectionsProcessor()
 		expectedShard := args.ShardCoordinator.SelfId()
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				mutNotifiedPeers.Lock()
+				defer mutNotifiedPeers.Unlock()
+
 				shardValidatorInfo := message.ShardValidatorInfo{}
 				err := args.Marshaller.Unmarshal(shardValidatorInfo, buff)
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardValidatorInfo.ShardId)
 
+				notifiedPeers = append(notifiedPeers, peerID)
 				return nil
 			},
-		}
-		args.Messenger = &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return providedConnectedPeers
 			},
@@ -107,15 +112,13 @@ func TestNewConnectionsProcessor(t *testing.T) {
 		time.Sleep(3 * time.Second)
 		_ = cp.Close()
 
-		notifiedPeersSlice := make([]core.PeerID, 0)
-		for peerInMap := range cp.notifiedPeersMap {
-			notifiedPeersSlice = append(notifiedPeersSlice, peerInMap)
-		}
+		mutNotifiedPeers.Lock()
+		defer mutNotifiedPeers.Unlock()
 
-		sort.Slice(notifiedPeersSlice, func(i, j int) bool {
-			return notifiedPeersSlice[i] < notifiedPeersSlice[j]
+		sort.Slice(notifiedPeers, func(i, j int) bool {
+			return notifiedPeers[i] < notifiedPeers[j]
 		})
-		assert.Equal(t, providedConnectedPeers, notifiedPeersSlice)
+		assert.Equal(t, providedConnectedPeers, notifiedPeers)
 	})
 }
 
@@ -127,7 +130,7 @@ func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(createMockArgConnectionsProcessor())
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid concurrency issues on notifiedPeersMap
+		_ = cp.Close() // avoid data races
 
 		providedNotifiedPeersMap := make(map[core.PeerID]struct{})
 		providedNotifiedPeersMap["pid1"] = struct{}{}
@@ -143,7 +146,7 @@ func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(createMockArgConnectionsProcessor())
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid concurrency issues on notifiedPeersMap
+		_ = cp.Close() // avoid data races
 
 		providedNotifiedPeersMap := make(map[core.PeerID]struct{})
 		providedNotifiedPeersMap["pid1"] = struct{}{}
@@ -161,6 +164,7 @@ func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(createMockArgConnectionsProcessor())
 		assert.False(t, check.IfNil(cp))
+		_ = cp.Close() // avoid data races
 
 		connectedPeers := []core.PeerID{"pid3", "pid4"}
 		newPeers := cp.computeNewPeers(connectedPeers)
@@ -191,6 +195,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(args)
 		assert.False(t, check.IfNil(cp))
+		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers(nil)
 		assert.False(t, wasCalled)
@@ -209,6 +214,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(args)
 		assert.False(t, check.IfNil(cp))
+		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers(nil)
 		assert.False(t, wasCalled)
@@ -228,7 +234,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(args)
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid concurrency issues on notifiedPeersMap
+		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers([]core.PeerID{providedPeer})
 		assert.Equal(t, 0, len(cp.notifiedPeersMap))
@@ -258,7 +264,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 
 		cp, _ := NewConnectionsProcessor(args)
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid concurrency issues on notifiedPeersMap
+		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers(providedConnectedPeers)
 		assert.Equal(t, 4, len(cp.notifiedPeersMap))

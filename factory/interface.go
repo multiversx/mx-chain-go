@@ -343,18 +343,6 @@ type HeartbeatComponentsHandler interface {
 	HeartbeatComponentsHolder
 }
 
-// PeerAuthenticationRequestsProcessor sends peer atuhentication requests
-type PeerAuthenticationRequestsProcessor interface {
-	Close() error
-	IsInterfaceNil() bool
-}
-
-// HeartbeatV2Sender sends heartbeatV2 messages
-type HeartbeatV2Sender interface {
-	Close() error
-	IsInterfaceNil() bool
-}
-
 // HeartbeatV2ComponentsHolder holds the heartbeatV2 components
 type HeartbeatV2ComponentsHolder interface {
 	IsInterfaceNil() bool

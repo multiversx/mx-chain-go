@@ -178,6 +178,11 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
+	err = sicf.generateShardValidatorInfoInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
 	return sicf.container, nil
 }
 

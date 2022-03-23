@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ArgHeartbeatV2ComponentsFactory represents the argument for the heartbeat v2 components factory
@@ -39,8 +40,9 @@ type heartbeatV2ComponentsFactory struct {
 }
 
 type heartbeatV2Components struct {
-	sender    HeartbeatV2Sender
-	processor PeerAuthenticationRequestsProcessor
+	sender                    update.Closer
+	peerAuthRequestsProcessor update.Closer
+	connectionsProcessor      update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -152,9 +154,21 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+	argsConnectionsProcessor := processor.ArgConnectionsProcessor{
+		Messenger:                 hcf.networkComponents.NetworkMessenger(),
+		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:          hcf.boostrapComponents.ShardCoordinator(),
+		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
+	}
+	connectionsProcessor, err := processor.NewConnectionsProcessor(argsConnectionsProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	return &heartbeatV2Components{
-		sender:    heartbeatV2Sender,
-		processor: paRequestsProcessor,
+		sender:                    heartbeatV2Sender,
+		peerAuthRequestsProcessor: paRequestsProcessor,
+		connectionsProcessor:      connectionsProcessor,
 	}, nil
 }
 
@@ -166,8 +180,12 @@ func (hc *heartbeatV2Components) Close() error {
 		log.LogIfError(hc.sender.Close())
 	}
 
-	if !check.IfNil(hc.processor) {
-		log.LogIfError(hc.processor.Close())
+	if !check.IfNil(hc.peerAuthRequestsProcessor) {
+		log.LogIfError(hc.peerAuthRequestsProcessor.Close())
+	}
+
+	if !check.IfNil(hc.connectionsProcessor) {
+		log.LogIfError(hc.connectionsProcessor.Close())
 	}
 
 	return nil

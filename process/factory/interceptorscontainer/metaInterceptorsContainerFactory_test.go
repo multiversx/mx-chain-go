@@ -589,9 +589,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsTrieNodes := 2
 	numInterceptorsPeerAuthForMetachain := 1
 	numInterceptorsHeartbeatForMetachain := 1
+	numInterceptorsShardValidatorInfoForMetachain := 1
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
-		numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain
+		numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
+		numInterceptorsShardValidatorInfoForMetachain
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

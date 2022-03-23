@@ -179,6 +179,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
+	err = micf.generateShardValidatorInfoInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
 	return micf.container, nil
 }
 

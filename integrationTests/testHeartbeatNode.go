@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -45,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 const (
@@ -80,7 +80,7 @@ type TestHeartbeatNode struct {
 	Messenger                     p2p.Messenger
 	NodeKeys                      TestKeyPair
 	DataPool                      dataRetriever.PoolsHolder
-	Sender                        factory.HeartbeatV2Sender
+	Sender                        update.Closer
 	PeerAuthInterceptor           *interceptors.MultiDataInterceptor
 	HeartbeatInterceptor          *interceptors.MultiDataInterceptor
 	ShardValidatorInfoInterceptor *interceptors.SingleDataInterceptor
@@ -91,8 +91,8 @@ type TestHeartbeatNode struct {
 	ResolverFinder                dataRetriever.ResolversFinder
 	RequestHandler                process.RequestHandler
 	RequestedItemsHandler         dataRetriever.RequestedItemsHandler
-	RequestsProcessor             factory.PeerAuthenticationRequestsProcessor
-	ConnectionsProcessor          factory.Closer
+	RequestsProcessor             update.Closer
+	ConnectionsProcessor          update.Closer
 	Interceptor                   *CountInterceptor
 }
 
