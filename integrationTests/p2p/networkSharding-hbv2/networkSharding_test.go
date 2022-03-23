@@ -148,7 +148,6 @@ func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.Te
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
 			n.CreateTestInterceptors()
-			n.CreateTxInterceptors()
 		}
 	}
 }
@@ -214,7 +213,6 @@ func testUnknownSeederPeers(
 
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
 			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().Seeders))
 		}
 	}

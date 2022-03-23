@@ -60,6 +60,9 @@ func checkArgConnectionsProcessor(args ArgConnectionsProcessor) error {
 	if check.IfNil(args.Messenger) {
 		return process.ErrNilMessenger
 	}
+	if check.IfNil(args.Marshaller) {
+		return process.ErrNilMarshalizer
+	}
 	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
@@ -122,8 +125,7 @@ func (cp *connectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 	for _, newPeer := range newPeers {
 		errNotCritical := cp.messenger.SendToConnectedPeer(common.ConnectionTopic, shardValidatorInfoBuff, newPeer)
 		if errNotCritical != nil {
-			// todo replace with log.trace
-			log.Info("connectionsProcessor.notifyNewPeers", "pid", newPeer.Pretty(), "error", errNotCritical)
+			log.Trace("connectionsProcessor.notifyNewPeers", "pid", newPeer.Pretty(), "error", errNotCritical)
 			continue
 		}
 

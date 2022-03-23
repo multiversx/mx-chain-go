@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
@@ -681,17 +680,6 @@ func (thn *TestHeartbeatNode) registerTopicValidator(topic string, processor p2p
 	if err != nil {
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return
-	}
-}
-
-// CreateTxInterceptors creates test interceptors that count the number of received messages on transaction topic
-func (thn *TestHeartbeatNode) CreateTxInterceptors() {
-	metaIdentifier := processFactory.TransactionTopic + thn.ShardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	thn.registerTopicValidator(metaIdentifier, thn.Interceptor)
-
-	for i := uint32(0); i < thn.ShardCoordinator.NumberOfShards(); i++ {
-		identifier := processFactory.TransactionTopic + thn.ShardCoordinator.CommunicationIdentifier(i)
-		thn.registerTopicValidator(identifier, thn.Interceptor)
 	}
 }
 
