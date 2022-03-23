@@ -693,7 +693,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 func (bicf *baseInterceptorsContainerFactory) generateShardValidatorInfoInterceptor() error {
 	identifier := common.ConnectionTopic
 
-	shardValidatorInfoFactory, err := interceptorFactory.NewInterceptedShardValidatorInfoFactory(*bicf.argInterceptorFactory)
+	shardValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoFactory(*bicf.argInterceptorFactory)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewInterceptedShardValidatorInfoFactory(t *testing.T) {
+func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil core comp should error", func(t *testing.T) {
@@ -20,7 +20,7 @@ func TestNewInterceptedShardValidatorInfoFactory(t *testing.T) {
 		_, cryptoComp := createMockComponentHolders()
 		arg := createMockArgument(nil, cryptoComp)
 
-		isvif, err := NewInterceptedShardValidatorInfoFactory(*arg)
+		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
 		assert.Equal(t, process.ErrNilCoreComponentsHolder, err)
 		assert.True(t, check.IfNil(isvif))
 	})
@@ -31,7 +31,7 @@ func TestNewInterceptedShardValidatorInfoFactory(t *testing.T) {
 		coreComp.IntMarsh = nil
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		isvif, err := NewInterceptedShardValidatorInfoFactory(*arg)
+		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 		assert.True(t, check.IfNil(isvif))
 	})
@@ -42,7 +42,7 @@ func TestNewInterceptedShardValidatorInfoFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.ShardCoordinator = nil
 
-		isvif, err := NewInterceptedShardValidatorInfoFactory(*arg)
+		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
 		assert.Equal(t, process.ErrNilShardCoordinator, err)
 		assert.True(t, check.IfNil(isvif))
 	})
@@ -52,7 +52,7 @@ func TestNewInterceptedShardValidatorInfoFactory(t *testing.T) {
 		coreComp, cryptoComp := createMockComponentHolders()
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		isvif, err := NewInterceptedShardValidatorInfoFactory(*arg)
+		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(isvif))
 

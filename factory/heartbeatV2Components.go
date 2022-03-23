@@ -40,9 +40,9 @@ type heartbeatV2ComponentsFactory struct {
 }
 
 type heartbeatV2Components struct {
-	sender                    update.Closer
-	peerAuthRequestsProcessor update.Closer
-	connectionsProcessor      update.Closer
+	sender                     update.Closer
+	peerAuthRequestsProcessor  update.Closer
+	directConnectionsProcessor update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -154,21 +154,21 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	argsConnectionsProcessor := processor.ArgConnectionsProcessor{
+	argsDirectConnectionsProcessor := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:          hcf.boostrapComponents.ShardCoordinator(),
 		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
 	}
-	connectionsProcessor, err := processor.NewConnectionsProcessor(argsConnectionsProcessor)
+	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
 	if err != nil {
 		return nil, err
 	}
 
 	return &heartbeatV2Components{
-		sender:                    heartbeatV2Sender,
-		peerAuthRequestsProcessor: paRequestsProcessor,
-		connectionsProcessor:      connectionsProcessor,
+		sender:                     heartbeatV2Sender,
+		peerAuthRequestsProcessor:  paRequestsProcessor,
+		directConnectionsProcessor: directConnectionsProcessor,
 	}, nil
 }
 
@@ -184,8 +184,8 @@ func (hc *heartbeatV2Components) Close() error {
 		log.LogIfError(hc.peerAuthRequestsProcessor.Close())
 	}
 
-	if !check.IfNil(hc.connectionsProcessor) {
-		log.LogIfError(hc.connectionsProcessor.Close())
+	if !check.IfNil(hc.directConnectionsProcessor) {
+		log.LogIfError(hc.directConnectionsProcessor.Close())
 	}
 
 	return nil

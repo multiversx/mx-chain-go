@@ -92,7 +92,7 @@ type TestHeartbeatNode struct {
 	RequestHandler                process.RequestHandler
 	RequestedItemsHandler         dataRetriever.RequestedItemsHandler
 	RequestsProcessor             update.Closer
-	ConnectionsProcessor          update.Closer
+	DirectConnectionsProcessor    update.Closer
 	Interceptor                   *CountInterceptor
 }
 
@@ -364,7 +364,7 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(minPeersWaiting int) {
 	thn.initRequestedItemsHandler()
 	thn.initResolvers()
 	thn.initInterceptors()
-	thn.initConnectionsProcessor()
+	thn.initDirectConnectionsProcessor()
 
 	for len(thn.Messenger.Peers()) < minPeersWaiting {
 		time.Sleep(time.Second)
@@ -503,33 +503,40 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		PeerID:                       thn.Messenger.ID(),
 	}
 
-	// PeerAuthentication interceptor
-	argPAProcessor := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
+	thn.createPeerAuthInterceptor(argsFactory)
+	thn.createHeartbeatInterceptor(argsFactory)
+	thn.createShardValidatorInfoInterceptor(argsFactory)
+}
+
+func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
+	args := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
 		PeerShardMapper:          thn.PeerShardMapper,
 	}
-	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(argPAProcessor)
+	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(args)
 	paFactory, _ := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(argsFactory)
 	thn.PeerAuthInterceptor = thn.initMultiDataInterceptor(common.PeerAuthenticationTopic, paFactory, paProcessor)
+}
 
-	// Heartbeat interceptor
-	argHBProcessor := interceptorsProcessor.ArgHeartbeatInterceptorProcessor{
+func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
+	args := interceptorsProcessor.ArgHeartbeatInterceptorProcessor{
 		HeartbeatCacher:  thn.DataPool.Heartbeats(),
 		ShardCoordinator: thn.ShardCoordinator,
 		PeerShardMapper:  thn.PeerShardMapper,
 	}
-	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(argHBProcessor)
+	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(args)
 	hbFactory, _ := interceptorFactory.NewInterceptedHeartbeatDataFactory(argsFactory)
 	identifierHeartbeat := common.HeartbeatV2Topic + thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId())
 	thn.HeartbeatInterceptor = thn.initMultiDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
+}
 
-	// ShardValidatorInfo interceptor
-	argSVIProcessor := interceptorsProcessor.ArgShardValidatorInfoInterceptorProcessor{
+func (thn *TestHeartbeatNode) createShardValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
+	args := interceptorsProcessor.ArgShardValidatorInfoInterceptorProcessor{
 		Marshaller:      &testscommon.MarshalizerMock{},
 		PeerShardMapper: thn.PeerShardMapper,
 	}
-	sviProcessor, _ := interceptorsProcessor.NewShardValidatorInfoInterceptorProcessor(argSVIProcessor)
-	sviFactory, _ := interceptorFactory.NewInterceptedShardValidatorInfoFactory(argsFactory)
+	sviProcessor, _ := interceptorsProcessor.NewShardValidatorInfoInterceptorProcessor(args)
+	sviFactory, _ := interceptorFactory.NewInterceptedValidatorInfoFactory(argsFactory)
 	thn.ShardValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
 }
 
@@ -597,15 +604,15 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 	thn.RequestsProcessor, _ = processor.NewPeerAuthenticationRequestsProcessor(args)
 }
 
-func (thn *TestHeartbeatNode) initConnectionsProcessor() {
-	args := processor.ArgConnectionsProcessor{
+func (thn *TestHeartbeatNode) initDirectConnectionsProcessor() {
+	args := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 thn.Messenger,
 		Marshaller:                testscommon.MarshalizerMock{},
 		ShardCoordinator:          thn.ShardCoordinator,
 		DelayBetweenNotifications: 5 * time.Second,
 	}
 
-	thn.ConnectionsProcessor, _ = processor.NewConnectionsProcessor(args)
+	thn.DirectConnectionsProcessor, _ = processor.NewDirectConnectionsProcessor(args)
 }
 
 // ConnectTo will try to initiate a connection to the provided parameter
@@ -734,7 +741,7 @@ func (thn *TestHeartbeatNode) Close() {
 	_ = thn.PeerAuthInterceptor.Close()
 	_ = thn.RequestsProcessor.Close()
 	_ = thn.ResolversContainer.Close()
-	_ = thn.ConnectionsProcessor.Close()
+	_ = thn.DirectConnectionsProcessor.Close()
 	_ = thn.Messenger.Close()
 }
 

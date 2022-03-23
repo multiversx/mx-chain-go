@@ -16,15 +16,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgConnectionsProcessor represents the arguments for the connections processor
-type ArgConnectionsProcessor struct {
+// ArgDirectConnectionsProcessor represents the arguments for the direct connections processor
+type ArgDirectConnectionsProcessor struct {
 	Messenger                 p2p.Messenger
 	Marshaller                marshal.Marshalizer
 	ShardCoordinator          sharding.Coordinator
 	DelayBetweenNotifications time.Duration
 }
 
-type connectionsProcessor struct {
+type directConnectionsProcessor struct {
 	messenger                 p2p.Messenger
 	marshaller                marshal.Marshalizer
 	shardCoordinator          sharding.Coordinator
@@ -33,14 +33,14 @@ type connectionsProcessor struct {
 	cancel                    func()
 }
 
-// NewConnectionsProcessor creates a new instance of connectionsProcessor
-func NewConnectionsProcessor(args ArgConnectionsProcessor) (*connectionsProcessor, error) {
-	err := checkArgConnectionsProcessor(args)
+// NewDirectConnectionsProcessor creates a new instance of directConnectionsProcessor
+func NewDirectConnectionsProcessor(args ArgDirectConnectionsProcessor) (*directConnectionsProcessor, error) {
+	err := checkArgDirectConnectionsProcessor(args)
 	if err != nil {
 		return nil, err
 	}
 
-	cp := &connectionsProcessor{
+	dcp := &directConnectionsProcessor{
 		messenger:                 args.Messenger,
 		marshaller:                args.Marshaller,
 		shardCoordinator:          args.ShardCoordinator,
@@ -49,14 +49,14 @@ func NewConnectionsProcessor(args ArgConnectionsProcessor) (*connectionsProcesso
 	}
 
 	var ctx context.Context
-	ctx, cp.cancel = context.WithCancel(context.Background())
+	ctx, dcp.cancel = context.WithCancel(context.Background())
 
-	go cp.startProcessLoop(ctx)
+	go dcp.startProcessLoop(ctx)
 
-	return cp, nil
+	return dcp, nil
 }
 
-func checkArgConnectionsProcessor(args ArgConnectionsProcessor) error {
+func checkArgDirectConnectionsProcessor(args ArgDirectConnectionsProcessor) error {
 	if check.IfNil(args.Messenger) {
 		return process.ErrNilMessenger
 	}
@@ -74,34 +74,34 @@ func checkArgConnectionsProcessor(args ArgConnectionsProcessor) error {
 	return nil
 }
 
-func (cp *connectionsProcessor) startProcessLoop(ctx context.Context) {
-	timer := time.NewTimer(cp.delayBetweenNotifications)
+func (dcp *directConnectionsProcessor) startProcessLoop(ctx context.Context) {
+	timer := time.NewTimer(dcp.delayBetweenNotifications)
 	defer timer.Stop()
 
 	for {
-		timer.Reset(cp.delayBetweenNotifications)
+		timer.Reset(dcp.delayBetweenNotifications)
 
 		select {
 		case <-timer.C:
-			cp.sendMessageToNewConnections()
+			dcp.sendMessageToNewConnections()
 		case <-ctx.Done():
-			log.Debug("closing connectionsProcessor go routine")
+			log.Debug("closing directConnectionsProcessor go routine")
 			return
 		}
 	}
 }
 
-func (cp *connectionsProcessor) sendMessageToNewConnections() {
-	connectedPeers := cp.messenger.ConnectedPeers()
-	newPeers := cp.computeNewPeers(connectedPeers)
-	cp.notifyNewPeers(newPeers)
+func (dcp *directConnectionsProcessor) sendMessageToNewConnections() {
+	connectedPeers := dcp.messenger.ConnectedPeers()
+	newPeers := dcp.computeNewPeers(connectedPeers)
+	dcp.notifyNewPeers(newPeers)
 }
 
-func (cp *connectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []core.PeerID {
+func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []core.PeerID {
 	newPeers := make([]core.PeerID, 0)
 
 	for _, connectedPeer := range connectedPeers {
-		_, wasNotified := cp.notifiedPeersMap[connectedPeer]
+		_, wasNotified := dcp.notifiedPeersMap[connectedPeer]
 		if !wasNotified {
 			newPeers = append(newPeers, connectedPeer)
 		}
@@ -110,38 +110,38 @@ func (cp *connectionsProcessor) computeNewPeers(connectedPeers []core.PeerID) []
 	return newPeers
 }
 
-func (cp *connectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
-	cp.notifiedPeersMap = make(map[core.PeerID]struct{})
+func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
+	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
 
 	shardValidatorInfo := message.ShardValidatorInfo{
-		ShardId: cp.shardCoordinator.SelfId(),
+		ShardId: dcp.shardCoordinator.SelfId(),
 	}
 
-	shardValidatorInfoBuff, err := cp.marshaller.Marshal(shardValidatorInfo)
+	shardValidatorInfoBuff, err := dcp.marshaller.Marshal(shardValidatorInfo)
 	if err != nil {
 		return
 	}
 
 	for _, newPeer := range newPeers {
-		errNotCritical := cp.messenger.SendToConnectedPeer(common.ConnectionTopic, shardValidatorInfoBuff, newPeer)
+		errNotCritical := dcp.messenger.SendToConnectedPeer(common.ConnectionTopic, shardValidatorInfoBuff, newPeer)
 		if errNotCritical != nil {
-			log.Trace("connectionsProcessor.notifyNewPeers", "pid", newPeer.Pretty(), "error", errNotCritical)
+			log.Trace("directConnectionsProcessor.notifyNewPeers", "pid", newPeer.Pretty(), "error", errNotCritical)
 			continue
 		}
 
-		cp.notifiedPeersMap[newPeer] = struct{}{}
+		dcp.notifiedPeersMap[newPeer] = struct{}{}
 	}
 }
 
 // Close triggers the closing of the internal goroutine
-func (cp *connectionsProcessor) Close() error {
-	log.Debug("closing connectionsProcessor...")
-	cp.cancel()
+func (dcp *directConnectionsProcessor) Close() error {
+	log.Debug("closing directConnectionsProcessor...")
+	dcp.cancel()
 
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cp *connectionsProcessor) IsInterfaceNil() bool {
-	return cp == nil
+func (dcp *directConnectionsProcessor) IsInterfaceNil() bool {
+	return dcp == nil
 }

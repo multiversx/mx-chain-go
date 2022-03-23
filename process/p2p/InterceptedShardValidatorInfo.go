@@ -94,7 +94,7 @@ func (isvi *interceptedShardValidatorInfo) Type() string {
 
 // Identifiers always returns an array with an empty string
 func (isvi *interceptedShardValidatorInfo) Identifiers() [][]byte {
-	return [][]byte{[]byte("")}
+	return [][]byte{make([]byte, 0)}
 }
 
 // String returns the most important fields as string

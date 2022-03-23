@@ -271,7 +271,6 @@ func TestPeerAuthenticationRequestsProcessor_requestKeysChunks(t *testing.T) {
 	processor, err := NewPeerAuthenticationRequestsProcessor(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
-	_ = processor.Close() // avoid data races
 
 	processor.requestKeysChunks(providedKeys)
 }
@@ -285,7 +284,6 @@ func TestPeerAuthenticationRequestsProcessor_getMaxChunks(t *testing.T) {
 	processor, err := NewPeerAuthenticationRequestsProcessor(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
-	_ = processor.Close() // avoid data races
 
 	maxChunks := processor.getMaxChunks(nil)
 	assert.Equal(t, uint32(0), maxChunks)
@@ -332,7 +330,6 @@ func TestPeerAuthenticationRequestsProcessor_isThresholdReached(t *testing.T) {
 	processor, err := NewPeerAuthenticationRequestsProcessor(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
-	_ = processor.Close() // avoid data races
 
 	assert.False(t, processor.isThresholdReached(providedPks)) // counter 0
 	assert.False(t, processor.isThresholdReached(providedPks)) // counter 1
@@ -357,7 +354,6 @@ func TestPeerAuthenticationRequestsProcessor_requestMissingKeys(t *testing.T) {
 		processor, err := NewPeerAuthenticationRequestsProcessor(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
-		_ = processor.Close() // avoid data races
 
 		processor.requestMissingKeys(nil)
 		assert.False(t, wasCalled)
@@ -375,7 +371,6 @@ func TestPeerAuthenticationRequestsProcessor_getRandMaxMissingKeys(t *testing.T)
 	processor, err := NewPeerAuthenticationRequestsProcessor(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
-	_ = processor.Close() // avoid data races
 
 	for i := 0; i < 100; i++ {
 		randMissingKeys := processor.getRandMaxMissingKeys(providedPks)

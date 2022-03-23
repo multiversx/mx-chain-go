@@ -13,8 +13,8 @@ type interceptedShardValidatorInfoFactory struct {
 	shardCoordinator sharding.Coordinator
 }
 
-// NewInterceptedShardValidatorInfoFactory creates an instance of interceptedShardValidatorInfoFactory
-func NewInterceptedShardValidatorInfoFactory(args ArgInterceptedDataFactory) (*interceptedShardValidatorInfoFactory, error) {
+// NewInterceptedValidatorInfoFactory creates an instance of interceptedShardValidatorInfoFactory
+func NewInterceptedValidatorInfoFactory(args ArgInterceptedDataFactory) (*interceptedShardValidatorInfoFactory, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err

@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArgConnectionsProcessor() ArgConnectionsProcessor {
-	return ArgConnectionsProcessor{
+func createMockArgDirectConnectionsProcessor() ArgDirectConnectionsProcessor {
+	return ArgDirectConnectionsProcessor{
 		Messenger:                 &p2pmocks.MessengerStub{},
 		Marshaller:                &mock.MarshallerStub{},
 		ShardCoordinator:          &mock.ShardCoordinatorMock{},
@@ -28,46 +28,46 @@ func createMockArgConnectionsProcessor() ArgConnectionsProcessor {
 	}
 }
 
-func TestNewConnectionsProcessor(t *testing.T) {
+func TestNewDirectConnectionsProcessor(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil messenger should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.Messenger = nil
 
-		cp, err := NewConnectionsProcessor(args)
+		cp, err := NewDirectConnectionsProcessor(args)
 		assert.Equal(t, process.ErrNilMessenger, err)
 		assert.True(t, check.IfNil(cp))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.Marshaller = nil
 
-		cp, err := NewConnectionsProcessor(args)
+		cp, err := NewDirectConnectionsProcessor(args)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 		assert.True(t, check.IfNil(cp))
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.ShardCoordinator = nil
 
-		cp, err := NewConnectionsProcessor(args)
+		cp, err := NewDirectConnectionsProcessor(args)
 		assert.Equal(t, process.ErrNilShardCoordinator, err)
 		assert.True(t, check.IfNil(cp))
 	})
 	t.Run("invalid delay should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.DelayBetweenNotifications = time.Second - time.Nanosecond
 
-		cp, err := NewConnectionsProcessor(args)
+		cp, err := NewDirectConnectionsProcessor(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "DelayBetweenNotifications"))
 		assert.True(t, check.IfNil(cp))
@@ -75,7 +75,7 @@ func TestNewConnectionsProcessor(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		cp, err := NewConnectionsProcessor(createMockArgConnectionsProcessor())
+		cp, err := NewDirectConnectionsProcessor(createMockArgDirectConnectionsProcessor())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(cp))
 	})
@@ -85,7 +85,7 @@ func TestNewConnectionsProcessor(t *testing.T) {
 		providedConnectedPeers := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5", "pid6"}
 		notifiedPeers := make([]core.PeerID, 0)
 		var mutNotifiedPeers sync.RWMutex
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		expectedShard := args.ShardCoordinator.SelfId()
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
@@ -106,7 +106,7 @@ func TestNewConnectionsProcessor(t *testing.T) {
 		}
 		args.DelayBetweenNotifications = 2 * time.Second
 
-		cp, _ := NewConnectionsProcessor(args)
+		cp, _ := NewDirectConnectionsProcessor(args)
 		assert.False(t, check.IfNil(cp))
 
 		time.Sleep(3 * time.Second)
@@ -122,15 +122,14 @@ func TestNewConnectionsProcessor(t *testing.T) {
 	})
 }
 
-func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
+func Test_directConnectionsProcessor_computeNewPeers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no peers connected", func(t *testing.T) {
 		t.Parallel()
 
-		cp, _ := NewConnectionsProcessor(createMockArgConnectionsProcessor())
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(createMockArgDirectConnectionsProcessor())
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		providedNotifiedPeersMap := make(map[core.PeerID]struct{})
 		providedNotifiedPeersMap["pid1"] = struct{}{}
@@ -144,9 +143,8 @@ func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
 	t.Run("some connected peers are new", func(t *testing.T) {
 		t.Parallel()
 
-		cp, _ := NewConnectionsProcessor(createMockArgConnectionsProcessor())
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(createMockArgDirectConnectionsProcessor())
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		providedNotifiedPeersMap := make(map[core.PeerID]struct{})
 		providedNotifiedPeersMap["pid1"] = struct{}{}
@@ -162,9 +160,8 @@ func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
 	t.Run("all connected peers are new", func(t *testing.T) {
 		t.Parallel()
 
-		cp, _ := NewConnectionsProcessor(createMockArgConnectionsProcessor())
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(createMockArgDirectConnectionsProcessor())
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		connectedPeers := []core.PeerID{"pid3", "pid4"}
 		newPeers := cp.computeNewPeers(connectedPeers)
@@ -173,14 +170,14 @@ func Test_connectionsProcessor_computeNewPeers(t *testing.T) {
 	})
 }
 
-func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
+func Test_directConnectionsProcessor_notifyNewPeers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("marshal returns error", func(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				wasCalled = true
@@ -193,9 +190,8 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 			},
 		}
 
-		cp, _ := NewConnectionsProcessor(args)
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers(nil)
 		assert.False(t, wasCalled)
@@ -204,7 +200,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				wasCalled = true
@@ -212,9 +208,8 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 			},
 		}
 
-		cp, _ := NewConnectionsProcessor(args)
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers(nil)
 		assert.False(t, wasCalled)
@@ -223,7 +218,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 		t.Parallel()
 
 		providedPeer := core.PeerID("pid")
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				assert.Equal(t, common.ConnectionTopic, topic)
@@ -232,9 +227,8 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 			},
 		}
 
-		cp, _ := NewConnectionsProcessor(args)
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers([]core.PeerID{providedPeer})
 		assert.Equal(t, 0, len(cp.notifiedPeersMap))
@@ -244,7 +238,7 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 
 		providedConnectedPeers := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5", "pid6"}
 		counter := 0
-		args := createMockArgConnectionsProcessor()
+		args := createMockArgDirectConnectionsProcessor()
 		expectedShard := args.ShardCoordinator.SelfId()
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
@@ -262,9 +256,8 @@ func Test_connectionsProcessor_notifyNewPeers(t *testing.T) {
 			},
 		}
 
-		cp, _ := NewConnectionsProcessor(args)
+		cp, _ := NewDirectConnectionsProcessorNoGoRoutine(args)
 		assert.False(t, check.IfNil(cp))
-		_ = cp.Close() // avoid data races
 
 		cp.notifyNewPeers(providedConnectedPeers)
 		assert.Equal(t, 4, len(cp.notifiedPeersMap))
