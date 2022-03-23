@@ -497,6 +497,30 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	return validatorsPubKeys, nil
 }
 
+// GetAllShuffledOutValidatorsPublicKeys -
+func (ihnc *indexHashedNodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	validatorsPubKeys := make(map[uint32][][]byte)
+
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	for shardID, shuffledOutList := range nodesConfig.shuffledOutMap {
+		for _, shuffledOutValidator := range shuffledOutList {
+			validatorsPubKeys[shardID] = append(validatorsPubKeys[shardID], shuffledOutValidator.PubKey())
+		}
+	}
+
+	return validatorsPubKeys, nil
+}
+
 // GetValidatorsIndexes will return validators indexes for a block
 func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	publicKeys []string,

@@ -3,7 +3,7 @@ package shardingMocks
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	state "github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // NodesCoordinatorStub -
@@ -63,6 +63,11 @@ func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 
 // GetAllWaitingValidatorsPublicKeys -
 func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// GetAllShuffledOutValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
