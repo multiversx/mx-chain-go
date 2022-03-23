@@ -208,11 +208,13 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, 444)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		CryptoComponentsHolder: cryptoComponents,
-		CoreComponentsHolder:   coreComponents,
-		Messenger:              nodeToJoinLate.Messenger,
-		GeneralConfig:          generalConfig,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		CryptoComponentsHolder:          cryptoComponents,
+		CoreComponentsHolder:            coreComponents,
+		Messenger:                       nodeToJoinLate.Messenger,
+		GeneralConfig:                   generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},
