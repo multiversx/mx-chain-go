@@ -47,7 +47,7 @@ type ArgsNewSyncValidatorStatus struct {
 	ChanNodeStop                    chan endProcess.ArgEndProcess
 	NodeTypeProvider                NodeTypeProviderHandler
 	IsFullArchive                   bool
-	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -112,7 +112,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ChanStopNode:                    args.ChanNodeStop,
 		NodeTypeProvider:                args.NodeTypeProvider,
 		IsFullArchive:                   args.IsFullArchive,
-		NodesCoordinatorRegistryFactory: args.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

@@ -713,7 +713,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                   e.prefsConfig.FullArchive,
-		nodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
