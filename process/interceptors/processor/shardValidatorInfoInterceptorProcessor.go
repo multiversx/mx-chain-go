@@ -11,19 +11,19 @@ type shardProvider interface {
 	ShardID() uint32
 }
 
-// ArgShardValidatorInfoInterceptorProcessor is the argument for the interceptor processor used for shard validator info
-type ArgShardValidatorInfoInterceptorProcessor struct {
+// ArgValidatorInfoInterceptorProcessor is the argument for the interceptor processor used for validator info
+type ArgValidatorInfoInterceptorProcessor struct {
 	Marshaller      marshal.Marshalizer
 	PeerShardMapper process.PeerShardMapper
 }
 
-type shardValidatorInfoInterceptorProcessor struct {
+type validatorInfoInterceptorProcessor struct {
 	marshaller      marshal.Marshalizer
 	peerShardMapper process.PeerShardMapper
 }
 
-// NewShardValidatorInfoInterceptorProcessor creates an instance of shardValidatorInfoInterceptorProcessor
-func NewShardValidatorInfoInterceptorProcessor(args ArgShardValidatorInfoInterceptorProcessor) (*shardValidatorInfoInterceptorProcessor, error) {
+// NewValidatorInfoInterceptorProcessor creates an instance of validatorInfoInterceptorProcessor
+func NewValidatorInfoInterceptorProcessor(args ArgValidatorInfoInterceptorProcessor) (*validatorInfoInterceptorProcessor, error) {
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -31,7 +31,7 @@ func NewShardValidatorInfoInterceptorProcessor(args ArgShardValidatorInfoInterce
 		return nil, process.ErrNilPeerShardMapper
 	}
 
-	return &shardValidatorInfoInterceptorProcessor{
+	return &validatorInfoInterceptorProcessor{
 		marshaller:      args.Marshaller,
 		peerShardMapper: args.PeerShardMapper,
 	}, nil
@@ -39,12 +39,12 @@ func NewShardValidatorInfoInterceptorProcessor(args ArgShardValidatorInfoInterce
 
 // Validate checks if the intercepted data can be processed
 // returns nil as proper validity checks are done at intercepted data level
-func (processor *shardValidatorInfoInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
+func (processor *validatorInfoInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
 	return nil
 }
 
-// Save will save the intercepted shard validator info into peer shard mapper
-func (processor *shardValidatorInfoInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
+// Save will save the intercepted validator info into peer shard mapper
+func (processor *validatorInfoInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
 	shardValidatorInfo, ok := data.(shardProvider)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -56,11 +56,11 @@ func (processor *shardValidatorInfoInterceptorProcessor) Save(data process.Inter
 }
 
 // RegisterHandler registers a callback function to be notified of incoming shard validator info
-func (processor *shardValidatorInfoInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
-	log.Error("shardValidatorInfoInterceptorProcessor.RegisterHandler", "error", "not implemented")
+func (processor *validatorInfoInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+	log.Error("validatorInfoInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (processor *shardValidatorInfoInterceptorProcessor) IsInterfaceNil() bool {
+func (processor *validatorInfoInterceptorProcessor) IsInterfaceNil() bool {
 	return processor == nil
 }

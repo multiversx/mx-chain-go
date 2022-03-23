@@ -531,11 +531,11 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 }
 
 func (thn *TestHeartbeatNode) createShardValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
-	args := interceptorsProcessor.ArgShardValidatorInfoInterceptorProcessor{
+	args := interceptorsProcessor.ArgValidatorInfoInterceptorProcessor{
 		Marshaller:      &testscommon.MarshalizerMock{},
 		PeerShardMapper: thn.PeerShardMapper,
 	}
-	sviProcessor, _ := interceptorsProcessor.NewShardValidatorInfoInterceptorProcessor(args)
+	sviProcessor, _ := interceptorsProcessor.NewValidatorInfoInterceptorProcessor(args)
 	sviFactory, _ := interceptorFactory.NewInterceptedValidatorInfoFactory(argsFactory)
 	thn.ShardValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
 }

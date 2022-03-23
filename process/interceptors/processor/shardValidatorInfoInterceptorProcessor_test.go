@@ -15,60 +15,60 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArgShardValidatorInfoInterceptorProcessor() ArgShardValidatorInfoInterceptorProcessor {
-	return ArgShardValidatorInfoInterceptorProcessor{
+func createMockArgValidatorInfoInterceptorProcessor() ArgValidatorInfoInterceptorProcessor {
+	return ArgValidatorInfoInterceptorProcessor{
 		Marshaller:      testscommon.MarshalizerMock{},
 		PeerShardMapper: &mock.PeerShardMapperStub{},
 	}
 }
 
-func TestNewShardValidatorInfoInterceptorProcessor(t *testing.T) {
+func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
+		args := createMockArgValidatorInfoInterceptorProcessor()
 		args.Marshaller = nil
 
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
+		processor, err := NewValidatorInfoInterceptorProcessor(args)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("nil peer shard mapper should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
+		args := createMockArgValidatorInfoInterceptorProcessor()
 		args.PeerShardMapper = nil
 
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
+		processor, err := NewValidatorInfoInterceptorProcessor(args)
 		assert.Equal(t, process.ErrNilPeerShardMapper, err)
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		processor, err := NewShardValidatorInfoInterceptorProcessor(createMockArgShardValidatorInfoInterceptorProcessor())
+		processor, err := NewValidatorInfoInterceptorProcessor(createMockArgValidatorInfoInterceptorProcessor())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 	})
 }
 
-func Test_shardValidatorInfoInterceptorProcessor_Save(t *testing.T) {
+func Test_validatorInfoInterceptorProcessor_Save(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid message should error", func(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
+		args := createMockArgValidatorInfoInterceptorProcessor()
 		args.PeerShardMapper = &mock.PeerShardMapperStub{
 			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				wasCalled = true
 			},
 		}
 
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
+		processor, err := NewValidatorInfoInterceptorProcessor(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
@@ -90,14 +90,14 @@ func Test_shardValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		args := createMockArgShardValidatorInfoInterceptorProcessor()
+		args := createMockArgValidatorInfoInterceptorProcessor()
 		args.PeerShardMapper = &mock.PeerShardMapperStub{
 			PutPeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				wasCalled = true
 			},
 		}
 
-		processor, err := NewShardValidatorInfoInterceptorProcessor(args)
+		processor, err := NewValidatorInfoInterceptorProcessor(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
@@ -118,7 +118,7 @@ func Test_shardValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 	})
 }
 
-func Test_shardValidatorInfoInterceptorProcessor_DisabledMethods(t *testing.T) {
+func Test_validatorInfoInterceptorProcessor_DisabledMethods(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -128,7 +128,7 @@ func Test_shardValidatorInfoInterceptorProcessor_DisabledMethods(t *testing.T) {
 		}
 	}()
 
-	processor, err := NewShardValidatorInfoInterceptorProcessor(createMockArgShardValidatorInfoInterceptorProcessor())
+	processor, err := NewValidatorInfoInterceptorProcessor(createMockArgValidatorInfoInterceptorProcessor())
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
 

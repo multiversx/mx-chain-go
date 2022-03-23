@@ -690,19 +690,19 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 
 // ------- ShardValidatorInfo interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateShardValidatorInfoInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
 	identifier := common.ConnectionTopic
 
-	shardValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoFactory(*bicf.argInterceptorFactory)
+	interceptedValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoFactory(*bicf.argInterceptorFactory)
 	if err != nil {
 		return err
 	}
 
-	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
+	argProcessor := processor.ArgValidatorInfoInterceptorProcessor{
+		Marshaller:      bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+		PeerShardMapper: bicf.peerShardMapper,
 	}
-	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
+	hdrProcessor, err := processor.NewValidatorInfoInterceptorProcessor(argProcessor)
 	if err != nil {
 		return err
 	}
@@ -710,7 +710,7 @@ func (bicf *baseInterceptorsContainerFactory) generateShardValidatorInfoIntercep
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifier,
-			DataFactory:          shardValidatorInfoFactory,
+			DataFactory:          interceptedValidatorInfoFactory,
 			Processor:            hdrProcessor,
 			Throttler:            bicf.globalThrottler,
 			AntifloodHandler:     bicf.antifloodHandler,
