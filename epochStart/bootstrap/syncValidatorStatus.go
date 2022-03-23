@@ -34,20 +34,20 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool                  dataRetriever.PoolsHolder
-	Marshalizer               marshal.Marshalizer
-	Hasher                    hashing.Hasher
-	RequestHandler            process.RequestHandler
-	ChanceComputer            nodesCoordinator.ChanceComputer
-	GenesisNodesConfig        sharding.GenesisNodesSetupHandler
-	NodeShuffler              nodesCoordinator.NodesShuffler
-	PubKey                    []byte
-	ShardIdAsObserver         uint32
-	WaitingListFixEnableEpoch uint32
-	StakingV4EnableEpoch      uint32
-	ChanNodeStop              chan endProcess.ArgEndProcess
-	NodeTypeProvider          NodeTypeProviderHandler
-	IsFullArchive             bool
+	DataPool                        dataRetriever.PoolsHolder
+	Marshalizer                     marshal.Marshalizer
+	Hasher                          hashing.Hasher
+	RequestHandler                  process.RequestHandler
+	ChanceComputer                  nodesCoordinator.ChanceComputer
+	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
+	NodeShuffler                    nodesCoordinator.NodesShuffler
+	PubKey                          []byte
+	ShardIdAsObserver               uint32
+	WaitingListFixEnableEpoch       uint32
+	ChanNodeStop                    chan endProcess.ArgEndProcess
+	NodeTypeProvider                NodeTypeProviderHandler
+	IsFullArchive                   bool
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -93,11 +93,6 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	s.memDB = disabled.CreateMemUnit()
 
-	ncf, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(args.Marshalizer, args.StakingV4EnableEpoch)
-	if err != nil {
-		return nil, err
-	}
-
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
 		MetaConsensusGroupSize:          int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
@@ -117,8 +112,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ChanStopNode:                    args.ChanNodeStop,
 		NodeTypeProvider:                args.NodeTypeProvider,
 		IsFullArchive:                   args.IsFullArchive,
-		StakingV4EnableEpoch:            args.StakingV4EnableEpoch,
-		NodesCoordinatorRegistryFactory: ncf,
+		NodesCoordinatorRegistryFactory: args.nodesCoordinatorRegistryFactory,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

@@ -18,17 +18,24 @@ type nodesCoordinatorRegistryFactory struct {
 // NodesCoordinatorRegistryHandler from a buffer depending on the epoch
 func NewNodesCoordinatorRegistryFactory(
 	marshaller marshal.Marshalizer,
+	notifier EpochNotifier,
 	stakingV4EnableEpoch uint32,
 ) (*nodesCoordinatorRegistryFactory, error) {
 	if check.IfNil(marshaller) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(notifier) {
+		return nil, ErrNilEpochNotifier
+	}
 
 	log.Debug("nodesCoordinatorRegistryFactory: staking v4 enable epoch", "epoch", stakingV4EnableEpoch)
-	return &nodesCoordinatorRegistryFactory{
+
+	ncf := &nodesCoordinatorRegistryFactory{
 		marshaller:           marshaller,
 		stakingV4EnableEpoch: stakingV4EnableEpoch,
-	}, nil
+	}
+	notifier.RegisterNotifyHandler(ncf)
+	return ncf, nil
 }
 
 // CreateNodesCoordinatorRegistry creates a NodesCoordinatorRegistryHandler depending on the buffer. Old version uses

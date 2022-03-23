@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
@@ -208,7 +209,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 
-	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, 444)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&testscommon.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		444,
+	)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,

@@ -520,7 +520,11 @@ func createNodes(
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
 
-		ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, integrationTests.StakingV4Epoch)
+		nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+			&testscommon.MarshalizerMock{},
+			&epochNotifier.EpochNotifierStub{},
+			integrationTests.StakingV4Epoch,
+		)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:         consensusSize,
 			MetaConsensusGroupSize:          1,
@@ -539,7 +543,7 @@ func createNodes(
 			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
-			NodesCoordinatorRegistryFactory: ncf,
+			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

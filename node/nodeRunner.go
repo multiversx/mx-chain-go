@@ -328,9 +328,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
-		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 	)
 	if err != nil {
 		return true, err

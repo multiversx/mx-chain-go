@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -78,7 +79,11 @@ func isStringSubgroup(a []string, b []string) bool {
 }
 
 func createNodesCoordinatorRegistryFactory() NodesCoordinatorRegistryFactory {
-	ncf, _ := NewNodesCoordinatorRegistryFactory(&mock.MarshalizerMock{}, stakingV4Epoch)
+	ncf, _ := NewNodesCoordinatorRegistryFactory(
+		&mock.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		stakingV4Epoch,
+	)
 	return ncf
 }
 

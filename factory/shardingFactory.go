@@ -103,9 +103,9 @@ func CreateNodesCoordinator(
 	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,
 	waitingListFixEnabledEpoch uint32,
-	stakingV4EnableEpoch uint32,
 	chanNodeStop chan endProcess.ArgEndProcess,
 	nodeTypeProvider core.NodeTypeProviderHandler,
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
@@ -170,11 +170,6 @@ func CreateNodesCoordinator(
 	}
 
 	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, nodeShufflerOut.EndOfProcessingHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(marshalizer, stakingV4EnableEpoch)
 	if err != nil {
 		return nil, err
 	}

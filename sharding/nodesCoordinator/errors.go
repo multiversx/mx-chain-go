@@ -111,3 +111,6 @@ var ErrNilNodesCoordinatorRegistryFactory = errors.New("nil nodes coordinator re
 
 // ErrReceivedAuctionValidatorsBeforeStakingV4 signals that auction nodes have been received from peer mini blocks before enabling staking v4
 var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("should no have received selected nodes from auction in peer mini blocks, since staking v4 is not enabled yet")
+
+// ErrNilEpochNotifier signals that a nil EpochNotifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")

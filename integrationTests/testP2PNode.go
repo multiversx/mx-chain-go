@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -329,8 +330,12 @@ func CreateNodesWithTestP2PNodes(
 	nodesMap := make(map[uint32][]*TestP2PNode)
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&testscommon.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		StakingV4Epoch,
+	)
 	for shardId, validatorList := range validatorsMap {
-		ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, StakingV4Epoch)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:         shardConsensusGroupSize,
 			MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -351,7 +356,7 @@ func CreateNodesWithTestP2PNodes(
 			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
-			NodesCoordinatorRegistryFactory: ncf,
+			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -377,7 +382,6 @@ func CreateNodesWithTestP2PNodes(
 				shardId = core.MetachainShardId
 			}
 
-			ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, StakingV4Epoch)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 				ShardConsensusGroupSize:         shardConsensusGroupSize,
 				MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -399,7 +403,7 @@ func CreateNodesWithTestP2PNodes(
 				NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:                   false,
 				StakingV4EnableEpoch:            StakingV4Epoch,
-				NodesCoordinatorRegistryFactory: ncf,
+				NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 			}
 			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

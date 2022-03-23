@@ -51,14 +51,15 @@ type bootstrapComponentsFactory struct {
 }
 
 type bootstrapComponents struct {
-	epochStartBootstrapper  EpochStartBootstrapper
-	bootstrapParamsHolder   BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	headerVersionHandler    factory.HeaderVersionHandler
-	versionedHeaderFactory  factory.VersionedHeaderFactory
-	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
-	roundActivationHandler  process.RoundActivationHandler
+	epochStartBootstrapper          EpochStartBootstrapper
+	bootstrapParamsHolder           BootstrapParamsHolder
+	nodeType                        core.NodeType
+	shardCoordinator                sharding.Coordinator
+	headerVersionHandler            factory.HeaderVersionHandler
+	versionedHeaderFactory          factory.VersionedHeaderFactory
+	headerIntegrityVerifier         factory.HeaderIntegrityVerifierHandler
+	roundActivationHandler          process.RoundActivationHandler
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -163,12 +164,12 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		bcf.coreComponents.InternalMarshalizer(),
+		bcf.coreComponents.EpochNotifier(),
 		bcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
 	)
 	if err != nil {
 		return nil, err
 	}
-	bcf.coreComponents.EpochNotifier().RegisterNotifyHandler(nodesCoordinatorRegistryFactory)
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:            bcf.coreComponents,
@@ -250,12 +251,13 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
-		nodeType:                nodeType,
-		shardCoordinator:        shardCoordinator,
-		headerVersionHandler:    headerVersionHandler,
-		headerIntegrityVerifier: headerIntegrityVerifier,
-		versionedHeaderFactory:  versionedHeaderFactory,
-		roundActivationHandler:  roundActivationHandler,
+		nodeType:                        nodeType,
+		shardCoordinator:                shardCoordinator,
+		headerVersionHandler:            headerVersionHandler,
+		headerIntegrityVerifier:         headerIntegrityVerifier,
+		versionedHeaderFactory:          versionedHeaderFactory,
+		roundActivationHandler:          roundActivationHandler,
+		nodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}, nil
 }
 

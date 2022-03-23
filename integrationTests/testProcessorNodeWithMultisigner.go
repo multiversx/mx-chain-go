@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
@@ -493,10 +494,14 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		return validatorsMap, nil
 	}}
 
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&testscommon.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		StakingV4Epoch,
+	)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := lrucache.NewCache(10000)
-		ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, StakingV4Epoch)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:         shardConsensusGroupSize,
 			MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -517,7 +522,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
 			StakingV4EnableEpoch:            StakingV4Epoch,
-			NodesCoordinatorRegistryFactory: ncf,
+			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -594,11 +599,15 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		},
 	}
 
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&testscommon.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		StakingV4Epoch,
+	)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
 		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
-		ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, StakingV4Epoch)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:         shardConsensusGroupSize,
 			MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -618,7 +627,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
-			NodesCoordinatorRegistryFactory: ncf,
+			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 			StakingV4EnableEpoch:            StakingV4Epoch,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

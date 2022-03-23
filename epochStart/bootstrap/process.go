@@ -700,20 +700,20 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                  e.dataPool,
-		Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:            e.requestHandler,
-		ChanceComputer:            e.rater,
-		GenesisNodesConfig:        e.genesisNodesConfig,
-		NodeShuffler:              e.nodeShuffler,
-		Hasher:                    e.coreComponentsHolder.Hasher(),
-		PubKey:                    pubKey,
-		ShardIdAsObserver:         shardId,
-		WaitingListFixEnableEpoch: e.enableEpochs.WaitingListFixEnableEpoch,
-		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:             e.prefsConfig.FullArchive,
-		StakingV4EnableEpoch:      e.enableEpochs.StakingV4EnableEpoch,
+		DataPool:                        e.dataPool,
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                  e.requestHandler,
+		ChanceComputer:                  e.rater,
+		GenesisNodesConfig:              e.genesisNodesConfig,
+		NodeShuffler:                    e.nodeShuffler,
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		PubKey:                          pubKey,
+		ShardIdAsObserver:               shardId,
+		WaitingListFixEnableEpoch:       e.enableEpochs.WaitingListFixEnableEpoch,
+		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                   e.prefsConfig.FullArchive,
+		nodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

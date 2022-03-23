@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
@@ -51,8 +51,13 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		WaitingListFixEnableEpoch:      0,
 		BalanceWaitingListsEnableEpoch: 0,
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
-	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(TestMarshalizer, StakingV4Epoch)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		TestMarshalizer,
+		&epochNotifier.EpochNotifierStub{},
+		StakingV4Epoch,
+	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:          arg.metaConsensusGroupSize,
@@ -106,8 +111,13 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		BalanceWaitingListsEnableEpoch: 0,
 		WaitingListFixEnableEpoch:      0,
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
-	ncf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(&testscommon.MarshalizerMock{}, StakingV4Epoch)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		TestMarshalizer,
+		&epochNotifier.EpochNotifierStub{},
+		StakingV4Epoch,
+	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:          arg.metaConsensusGroupSize,
@@ -127,7 +137,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:                   false,
-		NodesCoordinatorRegistryFactory: ncf,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
