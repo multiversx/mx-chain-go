@@ -101,6 +101,7 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSaveWithStakingV4(t *testing.
 	t.Parallel()
 
 	args := createArguments()
+	args.NodesCoordinatorRegistryFactory.EpochConfirmed(stakingV4Epoch, 0)
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 	nodesCoordinator.updateEpochFlags(stakingV4Epoch)
 

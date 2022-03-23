@@ -1235,6 +1235,4 @@ func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 
 	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4.IsSet())
-
-	ihnc.nodesCoordinatorRegistryFactory.EpochConfirmed(epoch, 0)
 }

@@ -11,6 +11,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
+	nodesCoord "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
@@ -49,6 +50,12 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
+	nodesCoordinatorRegistryFactory, err := nodesCoord.NewNodesCoordinatorRegistryFactory(
+		managedCoreComponents.InternalMarshalizer(),
+		managedCoreComponents.EpochNotifier(),
+		444,
+	)
+	require.Nil(t, err)
 	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
@@ -64,9 +71,9 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
-		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		nodesCoordinatorRegistryFactory,
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(

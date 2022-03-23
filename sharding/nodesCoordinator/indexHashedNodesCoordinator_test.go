@@ -1351,7 +1351,7 @@ func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t
 	require.Equal(t, nc.shardIDAsObserver, computedShardId)
 	require.False(t, isValidator)
 
-	nc.flagStakingV4.SetReturningPrevious()
+	nc.flagStakingV4.SetValue(true)
 
 	computedShardId, isValidator = nc.computeShardForSelfPublicKey(nc.nodesConfig[epoch])
 	require.Equal(t, metaShard, computedShardId)
@@ -2107,7 +2107,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
 	require.Nil(t, newNodesConfig)
 
-	nc.flagStakingV4.SetReturningPrevious()
+	nc.flagStakingV4.SetValue(true)
 
 	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
 	require.Nil(t, err)
