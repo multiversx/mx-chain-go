@@ -2,11 +2,9 @@ package nodesCoordinator
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
@@ -114,36 +112,4 @@ func SerializableShardValidatorListToValidatorList(shardValidators []*Serializab
 		newValidators[i] = v
 	}
 	return newValidators, nil
-}
-
-// CreateNodesCoordinatorRegistry creates a NodesCoordinatorRegistryHandler depending on the buffer. Old version uses
-// NodesCoordinatorRegistry with a json marshaller; while the new version(from staking v4) uses NodesCoordinatorRegistryWithAuction
-// with proto marshaller
-func CreateNodesCoordinatorRegistry(marshaller marshal.Marshalizer, buff []byte) (NodesCoordinatorRegistryHandler, error) {
-	registry, err := createOldRegistry(buff)
-	if err == nil {
-		return registry, nil
-	}
-
-	return createRegistryWithAuction(marshaller, buff)
-}
-
-func createOldRegistry(buff []byte) (*NodesCoordinatorRegistry, error) {
-	registry := &NodesCoordinatorRegistry{}
-	err := json.Unmarshal(buff, registry)
-	if err != nil {
-		return nil, err
-	}
-
-	return registry, nil
-}
-
-func createRegistryWithAuction(marshaller marshal.Marshalizer, buff []byte) (*NodesCoordinatorRegistryWithAuction, error) {
-	registry := &NodesCoordinatorRegistryWithAuction{}
-	err := marshaller.Unmarshal(registry, buff)
-	if err != nil {
-		return nil, err
-	}
-
-	return registry, nil
 }

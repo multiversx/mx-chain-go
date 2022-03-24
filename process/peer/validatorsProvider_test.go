@@ -168,7 +168,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 	arg.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
 		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 			atomic.AddInt32(&numPopulateCacheCalled, 1)
-			return nil, nil
+			return state.NewShardValidatorsInfoMap(), nil
 		},
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
@@ -501,7 +501,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	}
 	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 		atomic.AddInt32(populateCacheCalled, 1)
-		return nil, nil
+		return state.NewShardValidatorsInfoMap(), nil
 	}
 
 	arg.ValidatorStatistics = validatorStatisticsProcessor
@@ -544,7 +544,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 		callNumber++
 		// first call comes from the constructor
 		if callNumber == 1 {
-			return nil, nil
+			return state.NewShardValidatorsInfoMap(), nil
 		}
 		validatorsMap := state.NewShardValidatorsInfoMap()
 		_ = validatorsMap.Add(&state.ValidatorInfo{
@@ -582,7 +582,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 		callNumber++
 		// first call comes from the constructor
 		if callNumber == 1 {
-			return nil, nil
+			return state.NewShardValidatorsInfoMap(), nil
 		}
 		validatorsMap := state.NewShardValidatorsInfoMap()
 		_ = validatorsMap.Add(&state.ValidatorInfo{

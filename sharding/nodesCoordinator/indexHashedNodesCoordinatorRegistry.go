@@ -26,7 +26,7 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 		return err
 	}
 
-	config, err := CreateNodesCoordinatorRegistry(ihnc.marshalizer, data)
+	config, err := ihnc.nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry(data)
 	if err != nil {
 		return err
 	}

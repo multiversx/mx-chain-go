@@ -104,23 +104,24 @@ type epochStartBootstrap struct {
 	trieSyncerVersion          int
 
 	// created components
-	requestHandler            process.RequestHandler
-	interceptorContainer      process.InterceptorsContainer
-	dataPool                  dataRetriever.PoolsHolder
-	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer             epochStart.HeadersByHashSyncer
-	txSyncerForScheduled      update.TransactionsSyncHandler
-	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler        StartOfEpochNodesConfigHandler
-	whiteListHandler          update.WhiteListHandler
-	whiteListerVerifiedTxs    update.WhiteListHandler
-	storageOpenerHandler      storage.UnitOpenerHandler
-	latestStorageDataProvider storage.LatestStorageDataProviderHandler
-	argumentsParser           process.ArgumentsParser
-	enableEpochs              config.EnableEpochs
-	dataSyncerFactory         types.ScheduledDataSyncerCreator
-	dataSyncerWithScheduled   types.ScheduledDataSyncer
-	storageService            dataRetriever.StorageService
+	requestHandler                  process.RequestHandler
+	interceptorContainer            process.InterceptorsContainer
+	dataPool                        dataRetriever.PoolsHolder
+	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer                   epochStart.HeadersByHashSyncer
+	txSyncerForScheduled            update.TransactionsSyncHandler
+	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler              StartOfEpochNodesConfigHandler
+	whiteListHandler                update.WhiteListHandler
+	whiteListerVerifiedTxs          update.WhiteListHandler
+	storageOpenerHandler            storage.UnitOpenerHandler
+	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
+	argumentsParser                 process.ArgumentsParser
+	enableEpochs                    config.EnableEpochs
+	dataSyncerFactory               types.ScheduledDataSyncerCreator
+	dataSyncerWithScheduled         types.ScheduledDataSyncer
+	storageService                  dataRetriever.StorageService
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -145,26 +146,27 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
-	CoreComponentsHolder       process.CoreComponentsHolder
-	CryptoComponentsHolder     process.CryptoComponentsHolder
-	DestinationShardAsObserver uint32
-	Messenger                  Messenger
-	GeneralConfig              config.Config
-	PrefsConfig                config.PreferencesConfig
-	EnableEpochs               config.EnableEpochs
-	EconomicsData              process.EconomicsDataHandler
-	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
-	GenesisShardCoordinator    sharding.Coordinator
-	StorageUnitOpener          storage.UnitOpenerHandler
-	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
-	Rater                      nodesCoordinator.ChanceComputer
-	NodeShuffler               nodesCoordinator.NodesShuffler
-	RoundHandler               epochStart.RoundHandler
-	ArgumentsParser            process.ArgumentsParser
-	StatusHandler              core.AppStatusHandler
-	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
-	DataSyncerCreator          types.ScheduledDataSyncerCreator
-	ScheduledSCRsStorer        storage.Storer
+	CoreComponentsHolder            process.CoreComponentsHolder
+	CryptoComponentsHolder          process.CryptoComponentsHolder
+	DestinationShardAsObserver      uint32
+	Messenger                       Messenger
+	GeneralConfig                   config.Config
+	PrefsConfig                     config.PreferencesConfig
+	EnableEpochs                    config.EnableEpochs
+	EconomicsData                   process.EconomicsDataHandler
+	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
+	GenesisShardCoordinator         sharding.Coordinator
+	StorageUnitOpener               storage.UnitOpenerHandler
+	LatestStorageDataProvider       storage.LatestStorageDataProviderHandler
+	Rater                           nodesCoordinator.ChanceComputer
+	NodeShuffler                    nodesCoordinator.NodesShuffler
+	RoundHandler                    epochStart.RoundHandler
+	ArgumentsParser                 process.ArgumentsParser
+	StatusHandler                   core.AppStatusHandler
+	HeaderIntegrityVerifier         process.HeaderIntegrityVerifier
+	DataSyncerCreator               types.ScheduledDataSyncerCreator
+	ScheduledSCRsStorer             storage.Storer
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 type dataToSync struct {
@@ -182,33 +184,34 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	}
 
 	epochStartProvider := &epochStartBootstrap{
-		coreComponentsHolder:       args.CoreComponentsHolder,
-		cryptoComponentsHolder:     args.CryptoComponentsHolder,
-		messenger:                  args.Messenger,
-		generalConfig:              args.GeneralConfig,
-		prefsConfig:                args.PrefsConfig,
-		economicsData:              args.EconomicsData,
-		genesisNodesConfig:         args.GenesisNodesConfig,
-		genesisShardCoordinator:    args.GenesisShardCoordinator,
-		rater:                      args.Rater,
-		destinationShardAsObserver: args.DestinationShardAsObserver,
-		nodeShuffler:               args.NodeShuffler,
-		roundHandler:               args.RoundHandler,
-		storageOpenerHandler:       args.StorageUnitOpener,
-		latestStorageDataProvider:  args.LatestStorageDataProvider,
-		shuffledOut:                false,
-		statusHandler:              args.StatusHandler,
-		nodeType:                   core.NodeTypeObserver,
-		argumentsParser:            args.ArgumentsParser,
-		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
-		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
-		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
-		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
-		enableEpochs:               args.EnableEpochs,
-		dataSyncerFactory:          args.DataSyncerCreator,
-		storerScheduledSCRs:        args.ScheduledSCRsStorer,
-		shardCoordinator:           args.GenesisShardCoordinator,
+		coreComponentsHolder:            args.CoreComponentsHolder,
+		cryptoComponentsHolder:          args.CryptoComponentsHolder,
+		messenger:                       args.Messenger,
+		generalConfig:                   args.GeneralConfig,
+		prefsConfig:                     args.PrefsConfig,
+		economicsData:                   args.EconomicsData,
+		genesisNodesConfig:              args.GenesisNodesConfig,
+		genesisShardCoordinator:         args.GenesisShardCoordinator,
+		rater:                           args.Rater,
+		destinationShardAsObserver:      args.DestinationShardAsObserver,
+		nodeShuffler:                    args.NodeShuffler,
+		roundHandler:                    args.RoundHandler,
+		storageOpenerHandler:            args.StorageUnitOpener,
+		latestStorageDataProvider:       args.LatestStorageDataProvider,
+		shuffledOut:                     false,
+		statusHandler:                   args.StatusHandler,
+		nodeType:                        core.NodeTypeObserver,
+		argumentsParser:                 args.ArgumentsParser,
+		headerIntegrityVerifier:         args.HeaderIntegrityVerifier,
+		epochNotifier:                   args.CoreComponentsHolder.EpochNotifier(),
+		numConcurrentTrieSyncers:        args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes:       args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
+		trieSyncerVersion:               args.GeneralConfig.TrieSync.TrieSyncerVersion,
+		enableEpochs:                    args.EnableEpochs,
+		dataSyncerFactory:               args.DataSyncerCreator,
+		storerScheduledSCRs:             args.ScheduledSCRsStorer,
+		shardCoordinator:                args.GenesisShardCoordinator,
+		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableEpochs.TransactionSignedWithTxHashEnableEpoch)
@@ -697,19 +700,20 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                  e.dataPool,
-		Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:            e.requestHandler,
-		ChanceComputer:            e.rater,
-		GenesisNodesConfig:        e.genesisNodesConfig,
-		NodeShuffler:              e.nodeShuffler,
-		Hasher:                    e.coreComponentsHolder.Hasher(),
-		PubKey:                    pubKey,
-		ShardIdAsObserver:         shardId,
-		WaitingListFixEnableEpoch: e.enableEpochs.WaitingListFixEnableEpoch,
-		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:             e.prefsConfig.FullArchive,
+		DataPool:                        e.dataPool,
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                  e.requestHandler,
+		ChanceComputer:                  e.rater,
+		GenesisNodesConfig:              e.genesisNodesConfig,
+		NodeShuffler:                    e.nodeShuffler,
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		PubKey:                          pubKey,
+		ShardIdAsObserver:               shardId,
+		WaitingListFixEnableEpoch:       e.enableEpochs.WaitingListFixEnableEpoch,
+		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                   e.prefsConfig.FullArchive,
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

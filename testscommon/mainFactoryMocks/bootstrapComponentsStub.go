@@ -6,18 +6,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper                factory.EpochStartBootstrapper
-	BootstrapParams             factory.BootstrapParamsHolder
-	NodeRole                    core.NodeType
-	ShCoordinator               sharding.Coordinator
-	HdrVersionHandler           nodeFactory.HeaderVersionHandler
-	VersionedHdrFactory         nodeFactory.VersionedHeaderFactory
-	HdrIntegrityVerifier        nodeFactory.HeaderIntegrityVerifierHandler
-	RoundActivationHandlerField process.RoundActivationHandler
+	Bootstrapper                         factory.EpochStartBootstrapper
+	BootstrapParams                      factory.BootstrapParamsHolder
+	NodeRole                             core.NodeType
+	ShCoordinator                        sharding.Coordinator
+	HdrVersionHandler                    nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory                  nodeFactory.VersionedHeaderFactory
+	HdrIntegrityVerifier                 nodeFactory.HeaderIntegrityVerifierHandler
+	RoundActivationHandlerField          process.RoundActivationHandler
+	NodesCoordinatorRegistryFactoryField nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // Create -
@@ -73,6 +75,11 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 // RoundActivationHandler -
 func (bcs *BootstrapComponentsStub) RoundActivationHandler() process.RoundActivationHandler {
 	return bcs.RoundActivationHandlerField
+}
+
+// NodesCoordinatorRegistryFactory -
+func (bcs *BootstrapComponentsStub) NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory {
+	return bcs.NodesCoordinatorRegistryFactoryField
 }
 
 // String -
