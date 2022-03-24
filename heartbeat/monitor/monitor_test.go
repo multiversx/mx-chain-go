@@ -165,7 +165,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 
 		message := createHeartbeatMessage(false)
 		_, err := monitor.parseMessage("pid", message, nil)
-		assert.True(t, strings.Contains(err.Error(), "validator should be skipped"))
+		assert.Equal(t, heartbeat.ErrShouldSkipValidator, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

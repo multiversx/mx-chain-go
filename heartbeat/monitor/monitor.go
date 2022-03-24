@@ -94,12 +94,12 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	heartbeatsV2 := make([]data.PubKeyHeartbeat, 0)
 	for idx := 0; idx < len(pids); idx++ {
 		pid := pids[idx]
-		peerId := core.PeerID(pid)
 		hb, ok := monitor.cache.Get(pid)
 		if !ok {
 			continue
 		}
 
+		peerId := core.PeerID(pid)
 		heartbeatData, err := monitor.parseMessage(peerId, hb, numInstances)
 		if err != nil {
 			log.Debug("could not parse message for pid", "pid", peerId.Pretty(), "error", err.Error())
@@ -142,7 +142,7 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	messageAge := monitor.getMessageAge(crtTime, payload.Timestamp)
 	stringType := peerInfo.PeerType.String()
 	if monitor.shouldSkipMessage(messageAge, stringType) {
-		return pubKeyHeartbeat, fmt.Errorf("validator should be skipped")
+		return pubKeyHeartbeat, heartbeat.ErrShouldSkipValidator
 	}
 
 	pk := monitor.pubKeyConverter.Encode(peerInfo.PkBytes)
