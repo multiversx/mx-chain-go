@@ -106,12 +106,12 @@ func TestNewRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
 	valInfoEligibleWithExtra := addNonEligibleValidatorInfo(100, valInfoEligible, string(common.WaitingList))
 
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfoEligibleWithExtra)
-	require.Equal(t, len(valInfoEligible), len(nodesRewardInfo))
+	require.Equal(t, len(valInfoEligible.GetShardValidatorsInfoMap()), len(nodesRewardInfo))
 
 	for shardID, nodeInfoList := range nodesRewardInfo {
-		require.Equal(t, len(nodeInfoList), len(valInfoEligible[shardID]))
+		require.Equal(t, len(nodeInfoList), len(valInfoEligible.GetShardValidatorsInfoMap()[shardID]))
 		for i, nodeInfo := range nodeInfoList {
-			require.True(t, valInfoEligible[shardID][i] == nodeInfo.valInfo)
+			require.True(t, valInfoEligible.GetShardValidatorsInfoMap()[shardID][i] == nodeInfo.valInfo)
 			require.Equal(t, zero, nodeInfo.topUpStake)
 			require.Equal(t, zero, nodeInfo.powerInShard)
 			require.Equal(t, zero, nodeInfo.baseReward)
@@ -170,9 +170,9 @@ func TestNewRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFoundZeroed(t *
 
 	nodesPerShard := uint32(10)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	for _, valList := range valInfo {
-		valList[0].PublicKey = notFoundKey
-		valList[1].PublicKey = notFoundKey
+	for _, valList := range valInfo.GetShardValidatorsInfoMap() {
+		valList[0].SetPublicKey(notFoundKey)
+		valList[1].SetPublicKey(notFoundKey)
 	}
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 
@@ -387,7 +387,7 @@ func TestNewRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
 
 	for _, nodeInfoList := range nodesRewardInfo {
 		for _, nodeInfo := range nodeInfoList {
-			blocks := nodeInfo.valInfo.NumSelectedInSuccessBlocks
+			blocks := nodeInfo.valInfo.GetNumSelectedInSuccessBlocks()
 			topUp := nodeInfo.topUpStake
 			require.Equal(t, big.NewInt(0).Mul(big.NewInt(int64(blocks)), topUp), nodeInfo.powerInShard)
 		}
@@ -609,9 +609,9 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			for shardID, vList := range vInfo {
+			for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 				for i, v := range vList {
-					if bytes.Equal(v.PublicKey, blsKey) {
+					if bytes.Equal(v.GetPublicKey(), blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -743,9 +743,9 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 			return topUpStake
 		},
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			for shardID, vList := range vInfo {
+			for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 				for i, v := range vList {
-					if bytes.Equal(v.PublicKey, blsKey) {
+					if bytes.Equal(v.GetPublicKey(), blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -1050,9 +1050,9 @@ func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *t
 					return baseEligibleStake
 				},
 				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-					for shardID, vList := range vInfo {
+					for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 						for i, v := range vList {
-							if bytes.Equal(v.PublicKey, blsKey) {
+							if bytes.Equal(v.GetPublicKey(), blsKey) {
 								return nodesRewardInfo[shardID][i].topUpStake, nil
 							}
 						}
@@ -1157,9 +1157,9 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 					return baseEligibleStake
 				},
 				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-					for shardID, vList := range vInfo {
+					for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 						for i, v := range vList {
-							if bytes.Equal(v.PublicKey, blsKey) {
+							if bytes.Equal(v.GetPublicKey(), blsKey) {
 								return nodesRewardInfo[shardID][i].topUpStake, nil
 							}
 						}
@@ -1200,7 +1200,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 
 func setupNodeRewardInfo(
 	setupResult SetupRewardsResult,
-	vInfo map[uint32][]*state.ValidatorInfo,
+	vInfo state.ShardValidatorsInfoMapHandler,
 	topupStakePerNode *big.Int,
 	validatorTopupStake *big.Int,
 ) (map[uint32][]*nodeRewardsData, error) {
@@ -1275,9 +1275,9 @@ func computeRewardsAndDust(nbEligiblePerShard uint32, args SetupRewardsResult, t
 			return totalEligibleStake
 		},
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			for shardID, vList := range vInfo {
+			for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 				for i, v := range vList {
-					if bytes.Equal(v.PublicKey, blsKey) {
+					if bytes.Equal(v.GetPublicKey(), blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -1360,11 +1360,11 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 	nbShards := int64(args.ShardCoordinator.NumberOfShards()) + 1
 	args.EconomicsDataProvider.SetLeadersFees(big.NewInt(0).Mul(big.NewInt(int64(proposerFee)), big.NewInt(int64(nbEligiblePerShard-nbOfflinePerShard)*nbShards)))
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
-	for _, valList := range valInfo {
+	for _, valList := range valInfo.GetShardValidatorsInfoMap() {
 		for i := 0; i < int(nbOfflinePerShard); i++ {
-			valList[i].LeaderSuccess = 0
-			valList[i].ValidatorSuccess = 0
-			valList[i].AccumulatedFees = big.NewInt(0)
+			valList[i].SetLeaderSuccess(0)
+			valList[i].SetValidatorSuccess(0)
+			valList[i].SetAccumulatedFees(big.NewInt(0))
 		}
 	}
 
@@ -1412,9 +1412,9 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithLeavingVali
 	nbShards := int64(args.ShardCoordinator.NumberOfShards()) + 1
 	args.EconomicsDataProvider.SetLeadersFees(big.NewInt(0).Mul(big.NewInt(int64(proposerFee)), big.NewInt(int64(nbEligiblePerShard)*nbShards)))
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
-	for _, valList := range valInfo {
+	for _, valList := range valInfo.GetShardValidatorsInfoMap() {
 		for i := 0; i < int(nbLeavingPerShard); i++ {
-			valList[i].List = string(common.LeavingList)
+			valList[i].SetList(string(common.LeavingList))
 		}
 	}
 
@@ -1500,10 +1500,8 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		DevFeesInEpoch: big.NewInt(0),
 	}
 	sumFees := big.NewInt(0)
-	for _, vInfoList := range valInfo {
-		for _, vInfo := range vInfoList {
-			sumFees.Add(sumFees, vInfo.AccumulatedFees)
-		}
+	for _, vInfo := range valInfo.GetAllValidatorsInfo() {
+		sumFees.Add(sumFees, vInfo.GetAccumulatedFees())
 	}
 
 	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
@@ -1548,12 +1546,12 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDe
 	nbAddrInMetachainPerShard := 2
 
 	sumFees := big.NewInt(0)
-	for _, vInfoList := range valInfo {
+	for _, vInfoList := range valInfo.GetShardValidatorsInfoMap() {
 		for i, vInfo := range vInfoList {
 			if i < nbAddrInMetachainPerShard {
-				vInfo.RewardAddress = addrInMeta
+				vInfo.SetRewardAddress(addrInMeta)
 			}
-			sumFees.Add(sumFees, vInfo.AccumulatedFees)
+			sumFees.Add(sumFees, vInfo.GetAccumulatedFees())
 		}
 	}
 
@@ -1591,9 +1589,9 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 			return totalTopUpStake
 		},
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			for shardID, vList := range vInfo {
+			for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 				for i, v := range vList {
-					if bytes.Equal(v.PublicKey, blsKey) {
+					if bytes.Equal(v.GetPublicKey(), blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -1637,10 +1635,8 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	}
 
 	sumFees := big.NewInt(0)
-	for _, vInfoList := range vInfo {
-		for _, v := range vInfoList {
-			sumFees.Add(sumFees, v.AccumulatedFees)
-		}
+	for _, v := range vInfo.GetAllValidatorsInfo() {
+		sumFees.Add(sumFees, v.GetAccumulatedFees())
 	}
 
 	totalRws := rwd.economicsDataProvider.RewardsToBeDistributedForBlocks()
@@ -1688,9 +1684,9 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 			return totalTopupStake
 		},
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			for shardID, vList := range vInfo {
+			for shardID, vList := range vInfo.GetShardValidatorsInfoMap() {
 				for i, v := range vList {
-					if bytes.Equal(v.PublicKey, blsKey) {
+					if bytes.Equal(v.GetPublicKey(), blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -1734,10 +1730,8 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 	}
 
 	sumFees := big.NewInt(0)
-	for _, vInfoList := range vInfo {
-		for _, v := range vInfoList {
-			sumFees.Add(sumFees, v.AccumulatedFees)
-		}
+	for _, v := range vInfo.GetAllValidatorsInfo() {
+		sumFees.Add(sumFees, v.GetAccumulatedFees())
 	}
 
 	totalRws := rwd.economicsDataProvider.RewardsToBeDistributedForBlocks()
@@ -1877,7 +1871,7 @@ func createDefaultValidatorInfo(
 	nodesConfigProvider epochStart.NodesConfigProvider,
 	proposerFeesPerNode uint32,
 	nbBlocksPerShard uint32,
-) map[uint32][]*state.ValidatorInfo {
+) state.ShardValidatorsInfoMapHandler {
 	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(0))
 	cGrMeta := uint32(nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId))
 	nbBlocksSelectedNodeInShard := nbBlocksPerShard * cGrShard / eligibleNodesPerShard
@@ -1886,9 +1880,8 @@ func createDefaultValidatorInfo(
 	shardsMap := createShardsMap(shardCoordinator)
 
 	var nbBlocksSelected uint32
-	validators := make(map[uint32][]*state.ValidatorInfo)
+	validators := state.NewShardValidatorsInfoMap()
 	for shardID := range shardsMap {
-		validators[shardID] = make([]*state.ValidatorInfo, eligibleNodesPerShard)
 		nbBlocksSelected = nbBlocksSelectedNodeInShard
 		if shardID == core.MetachainShardId {
 			nbBlocksSelected = nbBlocksSelectedNodeInMeta
@@ -1900,7 +1893,7 @@ func createDefaultValidatorInfo(
 			_ = hex.Encode(addrHex, []byte(str))
 
 			leaderSuccess := uint32(20)
-			validators[shardID][i] = &state.ValidatorInfo{
+			_ = validators.Add(&state.ValidatorInfo{
 				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d%d", shardID, i)),
 				ShardId:                    shardID,
 				RewardAddress:              addrHex,
@@ -1909,7 +1902,7 @@ func createDefaultValidatorInfo(
 				NumSelectedInSuccessBlocks: nbBlocksSelected,
 				AccumulatedFees:            big.NewInt(int64(proposerFeesPerNode)),
 				List:                       string(common.EligibleList),
-			}
+			})
 		}
 	}
 
@@ -1918,13 +1911,14 @@ func createDefaultValidatorInfo(
 
 func addNonEligibleValidatorInfo(
 	nonEligiblePerShard uint32,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	list string,
-) map[uint32][]*state.ValidatorInfo {
-	resultedValidatorsInfo := make(map[uint32][]*state.ValidatorInfo)
-	for shardID, valInfoList := range validatorsInfo {
+) state.ShardValidatorsInfoMapHandler {
+	resultedValidatorsInfo := state.NewShardValidatorsInfoMap()
+	for shardID, valInfoList := range validatorsInfo.GetShardValidatorsInfoMap() {
+		_ = resultedValidatorsInfo.SetValidatorsInShard(shardID, valInfoList)
 		for i := uint32(0); i < nonEligiblePerShard; i++ {
-			vInfo := &state.ValidatorInfo{
+			_ = resultedValidatorsInfo.Add(&state.ValidatorInfo{
 				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLSExtra%d", i)),
 				ShardId:                    shardID,
 				RewardAddress:              []byte(fmt.Sprintf("addrRewardsExtra%d", i)),
@@ -1933,8 +1927,7 @@ func addNonEligibleValidatorInfo(
 				NumSelectedInSuccessBlocks: 1,
 				AccumulatedFees:            big.NewInt(int64(10)),
 				List:                       list,
-			}
-			resultedValidatorsInfo[shardID] = append(valInfoList, vInfo)
+			})
 		}
 	}
 

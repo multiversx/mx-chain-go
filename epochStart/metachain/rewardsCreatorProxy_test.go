@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
@@ -53,9 +54,9 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithError(t *testing.T) {
 	t.Parallel()
 	expectedErr := fmt.Errorf("expectedError")
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return nil, expectedErr
 		},
@@ -72,9 +73,9 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithError(t *testing.T) {
 func TestRewardsCreatorProxy_CreateRewardsMiniBlocksOK(t *testing.T) {
 	t.Parallel()
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -91,9 +92,9 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksOK(t *testing.T) {
 func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2(t *testing.T) {
 	t.Parallel()
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -117,9 +118,9 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1(t *testing.T) {
 	t.Parallel()
 
-	rewardCreatorV2 := &mock.RewardsCreatorStub{
+	rewardCreatorV2 := &testscommon.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -144,9 +145,9 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksWithError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := fmt.Errorf("expectedError")
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
-			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
+			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics) error {
 			return expectedErr
 		},
 	}
@@ -161,9 +162,9 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksWithError(t *testing.T) {
 func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksOK(t *testing.T) {
 	t.Parallel()
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
-			metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
+			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics) error {
 			return nil
 		},
 	}
@@ -179,7 +180,7 @@ func TestRewardsCreatorProxy_GetProtocolSustainabilityRewards(t *testing.T) {
 	t.Parallel()
 
 	expectedValue := big.NewInt(12345)
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		GetProtocolSustainabilityRewardsCalled: func() *big.Int {
 			return expectedValue
 		},
@@ -195,7 +196,7 @@ func TestRewardsCreatorProxy_GetLocalTxCache(t *testing.T) {
 	t.Parallel()
 
 	expectedValue := &mock.TxForCurrentBlockStub{}
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		GetLocalTxCacheCalled: func() epochStart.TransactionCacher {
 			return expectedValue
 		},
@@ -213,7 +214,7 @@ func TestRewardsCreatorProxy_CreateMarshalizedData(t *testing.T) {
 	expectedValue := make(map[string][][]byte)
 	blockBody := createDefaultBlockBody()
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		CreateMarshalizedDataCalled: func(body *block.Body) map[string][][]byte {
 			if blockBody == body {
 				return expectedValue
@@ -237,7 +238,7 @@ func TestRewardsCreatorProxy_GetRewardsTxs(t *testing.T) {
 	}
 	blockBody := createDefaultBlockBody()
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		GetRewardsTxsCalled: func(body *block.Body) map[string]data.TransactionHandler {
 			if blockBody == body {
 				return expectedValue
@@ -258,7 +259,7 @@ func TestRewardsCreatorProxy_SaveTxBlockToStorage(t *testing.T) {
 	blockBody := createDefaultBlockBody()
 	functionCalled := false
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		SaveTxBlockToStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
@@ -276,7 +277,7 @@ func TestRewardsCreatorProxy_DeleteTxsFromStorage(t *testing.T) {
 	blockBody := createDefaultBlockBody()
 	functionCalled := false
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		DeleteTxsFromStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
@@ -294,7 +295,7 @@ func TestRewardsCreatorProxy_RemoveBlockDataFromPools(t *testing.T) {
 	blockBody := createDefaultBlockBody()
 	functionCalled := false
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		RemoveBlockDataFromPoolsCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
@@ -312,13 +313,13 @@ func TestRewardsCreatorProxy_IsInterfaceNil(t *testing.T) {
 	var rewardsCreatorProxy epochStart.RewardsCreator
 	require.True(t, check.IfNil(rewardsCreatorProxy))
 
-	rewardCreatorV1 := &mock.RewardsCreatorStub{}
+	rewardCreatorV1 := &testscommon.RewardsCreatorStub{}
 	rewardsCreatorProxy, _, _ = createTestData(rewardCreatorV1, rCreatorV1)
 
 	require.False(t, check.IfNil(rewardsCreatorProxy))
 }
 
-func createTestData(rewardCreator *mock.RewardsCreatorStub, rcType configuredRewardsCreator) (*rewardsCreatorProxy, map[uint32][]*state.ValidatorInfo, *block.MetaBlock) {
+func createTestData(rewardCreator epochStart.RewardsCreator, rcType configuredRewardsCreator) (*rewardsCreatorProxy, state.ShardValidatorsInfoMapHandler, *block.MetaBlock) {
 	args := createDefaultRewardsCreatorProxyArgs()
 	rewardsCreatorProxy := &rewardsCreatorProxy{
 		rc:            rewardCreator,
