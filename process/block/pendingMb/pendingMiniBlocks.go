@@ -161,8 +161,8 @@ func (p *pendingMiniBlocks) recreateMap(metaHandler data.MetaHeaderHandler) erro
 	epochStartHandler := metaHandler.GetEpochStartHandler()
 	lastFinalizedHeaders := epochStartHandler.GetLastFinalizedHeaderHandlers()
 	for _, hdr := range lastFinalizedHeaders {
-		pendingMiniblocks := hdr.GetPendingMiniBlockHeaderHandlers()
-		for _, mbh := range pendingMiniblocks {
+		pendingMiniBlocksHeaders := hdr.GetPendingMiniBlockHeaderHandlers()
+		for _, mbh := range pendingMiniBlocksHeaders {
 			if !shouldConsiderCrossShardMiniBlock(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
 				continue
 			}
