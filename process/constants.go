@@ -1,5 +1,7 @@
 package process
 
+import "time"
+
 // BlockHeaderState specifies which is the state of the block header received
 type BlockHeaderState int
 
@@ -111,10 +113,12 @@ const MaxNumOfTxsToSelect = 30000
 const MaxGasBandwidthPerBatchPerSender = 5000000
 
 // MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
-const MaxRoundsToKeepUnprocessedMiniBlocks = 100
+// TODO extract this in configs (EN-11896)
+const MaxRoundsToKeepUnprocessedMiniBlocks = 300
 
 // MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-const MaxRoundsToKeepUnprocessedTransactions = 100
+// TODO extract this in configs (EN-11896)
+const MaxRoundsToKeepUnprocessedTransactions = 300
 
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300
@@ -123,3 +127,7 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
+
+// TimeDurationMultiplierForProcessBlockWhenSync represents the constant that will be multiplied with the round duration
+// when considering the maximum available time window for block processing when syncing blocks
+const TimeDurationMultiplierForProcessBlockWhenSync = time.Duration(2)

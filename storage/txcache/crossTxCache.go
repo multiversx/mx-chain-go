@@ -46,7 +46,7 @@ func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
 // ImmunizeTxsAgainstEviction marks items as non-evictable
 func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	numNow, numFuture := cache.ImmunityCache.ImmunizeKeys(keys)
-	log.Debug("CrossTxCache.ImmunizeTxsAgainstEviction()",
+	log.Trace("CrossTxCache.ImmunizeTxsAgainstEviction()",
 		"name", cache.config.Name,
 		"len(keys)", len(keys),
 		"numNow", numNow,

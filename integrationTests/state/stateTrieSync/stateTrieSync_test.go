@@ -3,7 +3,6 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"strconv"
 	"testing"
@@ -57,10 +56,8 @@ func createTestProcessorNodeAndTrieStorage(
 		MaxOpenFiles:      10,
 	}
 	persisterFactory := storageFactory.NewPersisterFactory(dbConfig)
-	tempDir, err := ioutil.TempDir("", "integrationTest")
-	require.Nil(t, err)
 
-	triePersister, err := persisterFactory.Create(tempDir)
+	triePersister, err := persisterFactory.Create(t.TempDir())
 	require.Nil(t, err)
 
 	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
@@ -120,7 +117,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()
 
-	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = resolverTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	numLeaves := 0
 	for range leavesChannel {
 		numLeaves++
@@ -160,7 +158,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel, _ = requesterTrie.GetAllLeavesOnChannel(newRootHash)
+	leavesChannel = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = requesterTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), newRootHash)
 	numLeaves = 0
 	for range leavesChannel {
 		numLeaves++
@@ -249,7 +248,8 @@ func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testi
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()
 
-	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = resolverTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	numLeaves := 0
 	for range leavesChannel {
 		numLeaves++
@@ -355,7 +355,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	}
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel, err := accState.GetAllLeaves(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	for range leavesChannel {
 	}
 	require.Nil(t, err)
@@ -393,7 +394,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel, err = nRequester.AccntState.GetAllLeaves(rootHash)
+	leavesChannel = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
 	numLeaves := 0
 	for range leavesChannel {
@@ -405,7 +407,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 
 func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, adb state.AccountsAdapter, dataTriesRootHashes [][]byte) {
 	for i := range dataTriesRootHashes {
-		dataTrieLeaves, err := adb.GetAllLeaves(dataTriesRootHashes[i])
+		dataTrieLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+		err := adb.GetAllLeaves(dataTrieLeaves, context.Background(), dataTriesRootHashes[i])
 		assert.Nil(t, err)
 		numLeaves := 0
 		for range dataTrieLeaves {

@@ -49,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
@@ -87,6 +88,9 @@ var InitialRating = uint32(50)
 
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
+
+// GasSchedulePath --
+const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
 
 var log = logger.GetOrCreate("integrationtests")
 
@@ -2194,11 +2198,11 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
-func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]sharding.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		var shardValidators []sharding.GenesisNodeInfoHandler
+		var shardValidators []nodesCoordinator.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
 			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)
@@ -2213,11 +2217,11 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 func GenValidatorsFromPubKeysAndTxPubKeys(
 	blsPubKeysMap map[uint32][]string,
 	txPubKeysMap map[uint32][]string,
-) map[uint32][]sharding.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range blsPubKeysMap {
-		var shardValidators []sharding.GenesisNodeInfoHandler
+		var shardValidators []nodesCoordinator.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
 			v := mock.NewNodeInfo([]byte(txPubKeysMap[shardId][i]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)

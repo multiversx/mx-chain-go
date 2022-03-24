@@ -14,7 +14,7 @@ type TransactionCoordinatorMock struct {
 	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
-	SaveTxsToStorageCalled                               func(body *block.Body) error
+	SaveTxsToStorageCalled                               func(body *block.Body)
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
@@ -30,6 +30,8 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
+	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
+	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
 }
 
 // GetAllCurrentLogs -
@@ -87,12 +89,12 @@ func (tcm *TransactionCoordinatorMock) IsDataPreparedForProcessing(haveTime func
 }
 
 // SaveTxsToStorage -
-func (tcm *TransactionCoordinatorMock) SaveTxsToStorage(body *block.Body) error {
+func (tcm *TransactionCoordinatorMock) SaveTxsToStorage(body *block.Body) {
 	if tcm.SaveTxsToStorageCalled == nil {
-		return nil
+		return
 	}
 
-	return tcm.SaveTxsToStorageCalled(body)
+	tcm.SaveTxsToStorageCalled(body)
 }
 
 // RestoreBlockDataFromStorage -
@@ -225,6 +227,24 @@ func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxs() map[block.Type]ma
 	}
 
 	return tcm.GetAllIntermediateTxsCalled()
+}
+
+// AddTxsFromMiniBlocks -
+func (tcm *TransactionCoordinatorMock) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
+	if tcm.AddTxsFromMiniBlocksCalled == nil {
+		return
+	}
+
+	tcm.AddTxsFromMiniBlocksCalled(miniBlocks)
+}
+
+// AddTransactions -
+func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type) {
+	if tcm.AddTransactionsCalled == nil {
+		return
+	}
+
+	tcm.AddTransactionsCalled(txHandlers, blockType)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ = node(&branchNode{})
@@ -295,7 +296,7 @@ func (bn *branchNode) commitCheckpoint(
 	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -340,7 +341,7 @@ func (bn *branchNode) commitSnapshot(
 	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -773,6 +774,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	key []byte, db common.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 ) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -782,7 +784,10 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	for i := range bn.children {
 		select {
 		case <-chanClose:
-			log.Trace("getAllLeavesOnChannel interrupted")
+			log.Trace("branchNode.getAllLeavesOnChannel interrupted")
+			return nil
+		case <-ctx.Done():
+			log.Trace("branchNode.getAllLeavesOnChannel context done")
 			return nil
 		default:
 			err = resolveIfCollapsed(bn, byte(i), db)
@@ -795,7 +800,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			}
 
 			childKey := append(key, byte(i))
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose, ctx)
 			if err != nil {
 				return err
 			}

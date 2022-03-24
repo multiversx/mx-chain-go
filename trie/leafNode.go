@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ = node(&leafNode{})
@@ -135,7 +136,7 @@ func (ln *leafNode) commitCheckpoint(
 	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -177,7 +178,7 @@ func (ln *leafNode) commitSnapshot(
 	stats common.SnapshotStatisticsHandler,
 ) error {
 	if shouldStopIfContextDone(ctx) {
-		return ErrContextClosing
+		return errors.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -431,6 +432,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
+	ctx context.Context,
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -447,7 +449,10 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	for {
 		select {
 		case <-chanClose:
-			log.Trace("getAllLeavesOnChannel interrupted")
+			log.Trace("leafNode.getAllLeavesOnChannel interrupted")
+			return nil
+		case <-ctx.Done():
+			log.Trace("leafNode.getAllLeavesOnChannel: context done")
 			return nil
 		case leavesChannel <- trieLeaf:
 			return nil

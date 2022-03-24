@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -19,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -286,12 +287,7 @@ func TestExportAll(t *testing.T) {
 func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	t.Parallel()
 
-	testFolderName := "testFilesExportNodes"
-	_ = os.Mkdir(testFolderName, 0777)
-
-	defer func() {
-		_ = os.RemoveAll(testFolderName)
-	}()
+	testFolderName := t.TempDir()
 
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
@@ -321,9 +317,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		RootCalled: func() ([]byte, error) {
 			return []byte{}, nil
 		},
-		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			mm := &mock.MarshalizerMock{}
 			valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
@@ -333,7 +327,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		},
 	}
 
@@ -349,12 +343,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *testing.T) {
 	t.Parallel()
 
-	testFolderName := "testFilesExportNodes2"
-	_ = os.Mkdir(testFolderName, 0777)
-
-	defer func() {
-		_ = os.RemoveAll(testFolderName)
-	}()
+	testFolderName := t.TempDir()
 
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
