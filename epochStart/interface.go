@@ -83,14 +83,6 @@ type Notifier interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
-// needed in the epoch events
-type ValidatorStatisticsProcessorHandler interface {
-	Process(info data.ShardValidatorInfoHandler) error
-	Commit() ([]byte, error)
-	IsInterfaceNil() bool
-}
-
 // ValidatorInfoCreator defines the methods to create a validator info
 type ValidatorInfoCreator interface {
 	PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo

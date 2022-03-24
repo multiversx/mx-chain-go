@@ -151,7 +151,7 @@ type TransactionCoordinator interface {
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler, blockType block.Type)
+	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 }
 
@@ -219,7 +219,7 @@ type PreProcessor interface {
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler)
+	AddTransactions(txHandlers []data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -257,9 +257,9 @@ type ValidatorStatisticsProcessor interface {
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
+	ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error
+	GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error)
+	ProcessRatingsEndOfEpoch(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error
 	Commit() ([]byte, error)
 	DisplayRatings(epoch uint32)
 	SetLastFinalizedRootHash([]byte)

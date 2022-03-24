@@ -456,7 +456,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		BootSore:                 &mock.BootstrapStorerMock{},
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
-		ValidatorStatistics:      &mock.ValidatorStatisticsProcessorStub{},
+		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
 		ValidatorProvider:        &mock.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},

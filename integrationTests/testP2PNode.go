@@ -171,11 +171,11 @@ func (tP2pNode *TestP2PNode) initNode() {
 	processComponents.ShardCoord = tP2pNode.ShardCoordinator
 	processComponents.NodesCoord = tP2pNode.NodesCoordinator
 	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
-	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
-		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
-			return map[uint32][]*state.ValidatorInfo{
-				0: {{PublicKey: []byte("pk0")}},
-			}, nil
+	processComponents.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+		GetValidatorInfoForRootHashCalled: func(_ []byte) (state.ShardValidatorsInfoMapHandler, error) {
+			ret := state.NewShardValidatorsInfoMap()
+			_ = ret.Add(&state.ValidatorInfo{PublicKey: []byte("pk0")})
+			return ret, nil
 		},
 	}
 	processComponents.EpochNotifier = epochStartNotifier

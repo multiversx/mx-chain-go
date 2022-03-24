@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -11,21 +11,14 @@ type ValidatorStatisticsProcessorStub struct {
 	RevertPeerStateCalled                    func(header data.MetaHeaderHandler) error
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
-	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
+	LastFinalizedRootHashCalled              func() []byte
+	ResetValidatorStatisticsAtNewEpochCalled func(vInfos state.ShardValidatorsInfoMapHandler) error
+	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error)
+	ProcessRatingsEndOfEpochCalled           func(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
 	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
-}
-
-// SaveNodesCoordinatorUpdates -
-func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
-	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
-		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
-	}
-	return false, nil
 }
 
 // PeerAccountToValidatorInfo -
@@ -55,7 +48,7 @@ func (vsp *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
 }
 
 // ResetValidatorStatisticsAtNewEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
+func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error {
 	if vsp.ResetValidatorStatisticsAtNewEpochCalled != nil {
 		return vsp.ResetValidatorStatisticsAtNewEpochCalled(vInfos)
 	}
@@ -63,11 +56,11 @@ func (vsp *ValidatorStatisticsProcessorStub) ResetValidatorStatisticsAtNewEpoch(
 }
 
 // GetValidatorInfoForRootHash -
-func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 	if vsp.GetValidatorInfoForRootHashCalled != nil {
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}
-	return nil, nil
+	return state.NewShardValidatorsInfoMap(), nil
 }
 
 // UpdatePeerState -
@@ -79,7 +72,7 @@ func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.MetaHea
 }
 
 // ProcessRatingsEndOfEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error {
 	if vsp.ProcessRatingsEndOfEpochCalled != nil {
 		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos, epoch)
 	}
@@ -108,11 +101,14 @@ func (vsp *ValidatorStatisticsProcessorStub) SetLastFinalizedRootHash(_ []byte) 
 
 // LastFinalizedRootHash -
 func (vsp *ValidatorStatisticsProcessorStub) LastFinalizedRootHash() []byte {
+	if vsp.LastFinalizedRootHashCalled != nil {
+		return vsp.LastFinalizedRootHashCalled()
+	}
 	return nil
 }
 
-// GetExistingPeerAccount -
-func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+// GetPeerAccount -
+func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}
@@ -124,7 +120,15 @@ func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []by
 func (vsp *ValidatorStatisticsProcessorStub) DisplayRatings(_ uint32) {
 }
 
+// SaveNodesCoordinatorUpdates -
+func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
+		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
+	}
+	return false, nil
+}
+
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorStub) IsInterfaceNil() bool {
-	return false
+	return vsp == nil
 }

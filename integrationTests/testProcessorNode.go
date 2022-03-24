@@ -1386,7 +1386,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	if tpn.ValidatorStatisticsProcessor == nil {
-		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+		tpn.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{}
 	}
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
@@ -2922,11 +2922,11 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.NodesCoord = tpn.NodesCoordinator
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.InterceptorsContainer
-	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
-		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
-			return map[uint32][]*state.ValidatorInfo{
-				0: {{PublicKey: []byte("pk0")}},
-			}, nil
+	processComponents.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+		GetValidatorInfoForRootHashCalled: func(_ []byte) (state.ShardValidatorsInfoMapHandler, error) {
+			ret := state.NewShardValidatorsInfoMap()
+			_ = ret.Add(&state.ValidatorInfo{PublicKey: []byte("pk0")})
+			return ret, nil
 		},
 	}
 	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
@@ -3038,7 +3038,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		BootSore:                 &mock.BoostrapStorerMock{},
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
-		ValidatorStatistics:      &mock.ValidatorStatisticsProcessorStub{},
+		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
 		ValidatorProvider:        &mock.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},

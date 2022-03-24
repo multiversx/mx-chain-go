@@ -140,7 +140,7 @@ func createMockMetaArguments(
 		EpochEconomics:               &mock.EpochEconomicsStub{},
 		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
 		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 	}
 	return arguments
@@ -1130,7 +1130,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			return expectedErr
 		},
@@ -1159,7 +1159,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
@@ -2934,7 +2934,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	dataComponents.DataPool = dPool
 	dataComponents.BlockChain = blkc
 	calledSaveNodesCoordinator := false
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
 			calledSaveNodesCoordinator = true
 			return true, nil
@@ -3110,7 +3110,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.RewardsV2EnableEpoch = 10
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{}
 
 		wasCalled := false
 		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
@@ -3221,7 +3221,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -3239,8 +3239,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				return nil, expectedErr
 			},
 		}
@@ -3257,8 +3257,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-			ProcessRatingsEndOfEpochCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			ProcessRatingsEndOfEpochCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, epoch uint32) error {
 				return expectedErr
 			},
 		}
@@ -3276,15 +3276,13 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 
-	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
-		0: {
-			&state.ValidatorInfo{
-				ShardId:         1,
-				RewardAddress:   []byte("rewardAddr1"),
-				AccumulatedFees: big.NewInt(10),
-			},
-		},
-	}
+	expectedValidatorsInfo := state.NewShardValidatorsInfoMap()
+	_ = expectedValidatorsInfo.Add(
+		&state.ValidatorInfo{
+			ShardId:         1,
+			RewardAddress:   []byte("rewardAddr1"),
+			AccumulatedFees: big.NewInt(10),
+		})
 
 	rewardMiniBlocks := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -3320,11 +3318,11 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		expectedRootHash := []byte("root hash")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
 
 				return expectedValidatorsInfo, nil
@@ -3345,7 +3343,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 			CreateRewardsMiniBlocksCalled: func(
 				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
@@ -3357,7 +3355,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
 			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}
@@ -3391,11 +3389,11 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		expectedRootHash := []byte("root hash")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
 				return expectedValidatorsInfo, nil
 			},
@@ -3408,7 +3406,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
 				wasCalled = true
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},
@@ -3419,7 +3417,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
 			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+				assert.Equal(t, expectedValidatorsInfo.GetValInfoPointerMap(), validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}

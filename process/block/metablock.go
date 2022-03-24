@@ -417,23 +417,25 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	oldValidatorsInfoMap := make(map[uint32][]*state.ValidatorInfo)
+	state.Replace(oldValidatorsInfoMap, allValidatorsInfo.GetValInfoPointerMap())
 	if mp.isRewardsV2Enabled(header) {
-		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, header)
+		err = mp.processSystemSCsWithNewValidatorsInfo(oldValidatorsInfoMap, header)
 		if err != nil {
 			return err
 		}
 
-		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, oldValidatorsInfoMap, computedEconomics)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, oldValidatorsInfoMap, computedEconomics)
 		if err != nil {
 			return err
 		}
 
-		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, header)
+		err = mp.processSystemSCsWithNewValidatorsInfo(oldValidatorsInfoMap, header)
 		if err != nil {
 			return err
 		}
@@ -444,12 +446,12 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
+	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, oldValidatorsInfoMap)
 	if err != nil {
 		return err
 	}
 
-	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(state.CreateShardValidatorsMap(oldValidatorsInfoMap))
 	if err != nil {
 		return err
 	}
@@ -885,23 +887,25 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 	}
 
 	var rewardMiniBlocks block.MiniBlockSlice
+	oldValidatorsInfoMap := make(map[uint32][]*state.ValidatorInfo)
+	state.Replace(oldValidatorsInfoMap, allValidatorsInfo.GetValInfoPointerMap())
 	if mp.isRewardsV2Enabled(metaBlock) {
-		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, metaBlock)
+		err = mp.processSystemSCsWithNewValidatorsInfo(oldValidatorsInfoMap, metaBlock)
 		if err != nil {
 			return nil, err
 		}
 
-		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
+		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, oldValidatorsInfoMap, &metaBlock.EpochStart.Economics)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
+		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, oldValidatorsInfoMap, &metaBlock.EpochStart.Economics)
 		if err != nil {
 			return nil, err
 		}
 
-		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, metaBlock)
+		err = mp.processSystemSCsWithNewValidatorsInfo(oldValidatorsInfoMap, metaBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -914,12 +918,12 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
+	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(oldValidatorsInfoMap)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(state.CreateShardValidatorsMap(oldValidatorsInfoMap))
 	if err != nil {
 		return nil, err
 	}
