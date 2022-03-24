@@ -23,7 +23,7 @@ type waitingListReturnData struct {
 	afterLastJailed bool
 }
 
-func (s *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0, addFirst bool) error {
+func (s *stakingSC) processStakeV1(blsKey []byte, registrationData *StakedDataV2_0, addFirst bool) error {
 	if registrationData.Staked {
 		return nil
 	}
@@ -41,113 +41,26 @@ func (s *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0
 		return nil
 	}
 
-	if !s.flagStakingV4.IsSet() {
-		err := s.removeFromWaitingList(blsKey)
-		if err != nil {
-			s.eei.AddReturnMessage("error while removing from waiting")
-			return err
-		}
+	err := s.removeFromWaitingList(blsKey)
+	if err != nil {
+		s.eei.AddReturnMessage("error while removing from waiting")
+		return err
 	}
+
 	s.addToStakedNodes(1)
 	s.activeStakingFor(registrationData)
 
 	return nil
 }
 
-func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
-		// backward compatibility - no need for return message
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) != 1 {
-		s.eei.AddReturnMessage("not enough arguments, needed the BLS key")
-		return vmcommon.UserError
+func (s *stakingSC) unStakeV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, retCode := s.checkUnStakeArgs(args)
+	if retCode != vmcommon.Ok {
+		return retCode
 	}
 
-	registrationData, err := s.getOrCreateRegisteredData(args.Arguments[0])
-	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
-		return vmcommon.UserError
-	}
-	if len(registrationData.RewardAddress) == 0 {
-		s.eei.AddReturnMessage("cannot unStake a key that is not registered")
-		return vmcommon.UserError
-	}
-	if registrationData.Jailed && !registrationData.Staked {
-		s.eei.AddReturnMessage("already unStaked at switchJailedToWaiting")
-		return vmcommon.Ok
-	}
-
-	if !registrationData.Staked && !registrationData.Waiting {
-		log.Debug("stakingSC.unStakeAtEndOfEpoch: cannot unStake node which was already unStaked", "blsKey", hex.EncodeToString(args.Arguments[0]))
-		return vmcommon.Ok
-	}
-
-	if registrationData.Staked {
-		s.removeFromStakedNodes()
-	}
-
-	if registrationData.Waiting {
-		err = s.removeFromWaitingList(args.Arguments[0])
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-	}
-
-	registrationData.Staked = false
-	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
-	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
-	registrationData.Waiting = false
-
-	err = s.saveStakingData(args.Arguments[0], registrationData)
-	if err != nil {
-		s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
-		s.eei.AddReturnMessage("unStake function not allowed to be called by address " + string(args.CallerAddr))
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) < 2 {
-		s.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
-		return vmcommon.UserError
-	}
-
-	registrationData, err := s.getOrCreateRegisteredData(args.Arguments[0])
-	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
-		return vmcommon.UserError
-	}
-	if len(registrationData.RewardAddress) == 0 {
-		s.eei.AddReturnMessage("cannot unStake a key that is not registered")
-		return vmcommon.UserError
-	}
-	if !bytes.Equal(args.Arguments[1], registrationData.RewardAddress) {
-		s.eei.AddReturnMessage("unStake possible only from staker caller")
-		return vmcommon.UserError
-	}
-	if s.isNodeJailedOrWithBadRating(registrationData, args.Arguments[0]) {
-		s.eei.AddReturnMessage("cannot unStake node which is jailed or with bad rating")
-		return vmcommon.UserError
-	}
-
-	if !registrationData.Staked && !registrationData.Waiting {
-		s.eei.AddReturnMessage("cannot unStake node which was already unStaked")
-		return vmcommon.UserError
-	}
-
+	var err error
 	if !registrationData.Staked {
-		if s.flagStakingV4.IsSet() {
-			s.eei.AddReturnMessage(vm.ErrWaitingListDisabled.Error())
-			return vmcommon.ExecutionFailed
-		}
-
 		registrationData.Waiting = false
 		err = s.removeFromWaitingList(args.Arguments[0])
 		if err != nil {
@@ -163,35 +76,16 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	if !s.flagStakingV4.IsSet() {
-		addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
-		if addOneFromQueue {
-			_, err = s.moveFirstFromWaitingToStaked()
-			if err != nil {
-				s.eei.AddReturnMessage(err.Error())
-				return vmcommon.UserError
-			}
+	addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
+	if addOneFromQueue {
+		_, err = s.moveFirstFromWaitingToStaked()
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
 		}
 	}
 
-	if !s.canUnStake() {
-		s.eei.AddReturnMessage("unStake is not possible as too many left")
-		return vmcommon.UserError
-	}
-
-	s.removeFromStakedNodes()
-	registrationData.Staked = false
-	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
-	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
-	registrationData.Waiting = false
-
-	err = s.saveStakingData(args.Arguments[0], registrationData)
-	if err != nil {
-		s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
+	return s.tryUnStake(args.Arguments[0], registrationData)
 }
 
 func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, error) {
@@ -740,28 +634,6 @@ func (s *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 		s.eei.Finish(big.NewInt(int64(stakedData.RegisterNonce)).Bytes())
 	}
 
-	return vmcommon.Ok
-}
-
-func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.flagStakingV2.IsSet() {
-		s.eei.AddReturnMessage("invalid method to call")
-		return vmcommon.UserError
-	}
-	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
-		return vmcommon.UserError
-	}
-
-	waitingListHead, err := s.getWaitingListHead()
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	stakeConfig := s.getConfig()
-	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
-	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
 	return vmcommon.Ok
 }
 

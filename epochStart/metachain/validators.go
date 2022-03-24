@@ -74,8 +74,9 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo st
 
 	miniblocks := make([]*block.MiniBlock, 0)
 
+	validatorsMap := validatorsInfo.GetShardValidatorsInfoMap()
 	for shardId := uint32(0); shardId < vic.shardCoordinator.NumberOfShards(); shardId++ {
-		validators := validatorsInfo.GetShardValidatorsInfoMap()[shardId]
+		validators := validatorsMap[shardId]
 		if len(validators) == 0 {
 			continue
 		}
@@ -88,7 +89,7 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo st
 		miniblocks = append(miniblocks, miniBlock)
 	}
 
-	validators := validatorsInfo.GetShardValidatorsInfoMap()[core.MetachainShardId]
+	validators := validatorsMap[core.MetachainShardId]
 	if len(validators) == 0 {
 		return miniblocks, nil
 	}
