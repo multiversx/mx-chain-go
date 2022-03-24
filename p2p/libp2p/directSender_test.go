@@ -15,14 +15,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	ggio "github.com/gogo/protobuf/io"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +67,7 @@ func createLibP2PCredentialsDirectSender() (peer.ID, libp2pCrypto.PrivKey) {
 	return id, sk
 }
 
-//------- NewDirectSender
+// ------- NewDirectSender
 
 func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
 	hs := &mock.ConnectableHostStub{}
@@ -125,7 +125,7 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 	assert.Equal(t, libp2p.DirectSendID, pidCalled)
 }
 
-//------- ProcessReceivedDirectMessage
+// ------- ProcessReceivedDirectMessage
 
 func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing.T) {
 	ds, _ := libp2p.NewDirectSender(
@@ -148,7 +148,7 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsub_pb.Message{}
+	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -168,7 +168,7 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsub_pb.Message{}
+	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -192,7 +192,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsub_pb.Message{}
+	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -218,7 +218,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsub_pb.Message{}
+	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -243,7 +243,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsub_pb.Message{}
+	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
@@ -255,7 +255,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 	assert.Equal(t, checkErr, err)
 }
 
-//------- SendDirectToConnectedPeer
+// ------- SendDirectToConnectedPeer
 
 func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing.T) {
 	netw := &mock.NetworkStub{}
@@ -378,7 +378,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 		return []network.Conn{cs}
 	}
 
-	receivedMsg := &pubsub_pb.Message{}
+	receivedMsg := &pubsubPb.Message{}
 	chanDone := make(chan bool)
 
 	go func(s network.Stream) {
@@ -445,7 +445,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 		return nil, errors.New("wrong parameters")
 	}
 
-	receivedMsg := &pubsub_pb.Message{}
+	receivedMsg := &pubsubPb.Message{}
 	chanDone := make(chan bool)
 
 	go func(s network.Stream) {
@@ -477,7 +477,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	assert.Equal(t, topic, *receivedMsg.Topic)
 }
 
-//------- received messages tests
+// ------- received messages tests
 
 func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t *testing.T) {
 	var streamHandler network.StreamHandler
@@ -553,7 +553,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 
 	id, _ := createLibP2PCredentialsDirectSender()
 
-	msg := &pubsub_pb.Message{}
+	msg := &pubsubPb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
