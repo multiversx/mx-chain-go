@@ -182,3 +182,65 @@ type StoragePruningManager interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// ShardValidatorsInfoMapHandler shall be used to manage operations inside
+// a <shardID, []ValidatorInfoHandler> map in a concurrent-safe way.
+type ShardValidatorsInfoMapHandler interface {
+	GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler
+	GetAllValidatorsInfo() []ValidatorInfoHandler
+	GetValidator(blsKey []byte) ValidatorInfoHandler
+
+	Add(validator ValidatorInfoHandler) error
+	Delete(validator ValidatorInfoHandler) error
+	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
+	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
+
+	GetValInfoPointerMap() map[uint32][]*ValidatorInfo
+}
+
+//ValidatorInfoHandler defines which data shall a validator info hold.
+type ValidatorInfoHandler interface {
+	IsInterfaceNil() bool
+
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	GetRatingModifier() float32
+	GetRewardAddress() []byte
+	GetLeaderSuccess() uint32
+	GetLeaderFailure() uint32
+	GetValidatorSuccess() uint32
+	GetValidatorFailure() uint32
+	GetValidatorIgnoredSignatures() uint32
+	GetNumSelectedInSuccessBlocks() uint32
+	GetAccumulatedFees() *big.Int
+	GetTotalLeaderSuccess() uint32
+	GetTotalLeaderFailure() uint32
+	GetTotalValidatorSuccess() uint32
+	GetTotalValidatorFailure() uint32
+	GetTotalValidatorIgnoredSignatures() uint32
+
+	SetPublicKey(publicKey []byte)
+	SetShardId(shardID uint32)
+	SetList(list string)
+	SetIndex(index uint32)
+	SetTempRating(tempRating uint32)
+	SetRating(rating uint32)
+	SetRatingModifier(ratingModifier float32)
+	SetRewardAddress(rewardAddress []byte)
+	SetLeaderSuccess(leaderSuccess uint32)
+	SetLeaderFailure(leaderFailure uint32)
+	SetValidatorSuccess(validatorSuccess uint32)
+	SetValidatorFailure(validatorFailure uint32)
+	SetValidatorIgnoredSignatures(validatorIgnoredSignatures uint32)
+	SetNumSelectedInSuccessBlocks(numSelectedInSuccessBlock uint32)
+	SetAccumulatedFees(accumulatedFees *big.Int)
+	SetTotalLeaderSuccess(totalLeaderSuccess uint32)
+	SetTotalLeaderFailure(totalLeaderFailure uint32)
+	SetTotalValidatorSuccess(totalValidatorSuccess uint32)
+	SetTotalValidatorFailure(totalValidatorFailure uint32)
+	SetTotalValidatorIgnoredSignatures(totalValidatorIgnoredSignatures uint32)
+}
