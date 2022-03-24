@@ -239,7 +239,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
 			EpochEconomics:               &mock.EpochEconomicsStub{},
 			EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
-			EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
+			EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
 			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 		}

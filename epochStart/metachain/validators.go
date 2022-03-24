@@ -67,15 +67,16 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 }
 
 // CreateValidatorInfoMiniBlocks creates the validatorInfo miniblocks according to the provided validatorInfo map
-func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
 	if validatorsInfo == nil {
 		return nil, epochStart.ErrNilValidatorInfo
 	}
 
 	miniblocks := make([]*block.MiniBlock, 0)
 
+	validatorsMap := validatorsInfo.GetShardValidatorsInfoMap()
 	for shardId := uint32(0); shardId < vic.shardCoordinator.NumberOfShards(); shardId++ {
-		validators := validatorsInfo[shardId]
+		validators := validatorsMap[shardId]
 		if len(validators) == 0 {
 			continue
 		}
@@ -88,7 +89,7 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 		miniblocks = append(miniblocks, miniBlock)
 	}
 
-	validators := validatorsInfo[core.MetachainShardId]
+	validators := validatorsMap[core.MetachainShardId]
 	if len(validators) == 0 {
 		return miniblocks, nil
 	}
@@ -103,17 +104,17 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 	return miniblocks, nil
 }
 
-func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.ValidatorInfo) (*block.MiniBlock, error) {
+func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.ValidatorInfoHandler) (*block.MiniBlock, error) {
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = vic.shardCoordinator.SelfId()
 	miniBlock.ReceiverShardID = core.AllShardId
 	miniBlock.TxHashes = make([][]byte, len(validatorsInfo))
 	miniBlock.Type = block.PeerBlock
 
-	validatorCopy := make([]*state.ValidatorInfo, len(validatorsInfo))
+	validatorCopy := make([]state.ValidatorInfoHandler, len(validatorsInfo))
 	copy(validatorCopy, validatorsInfo)
 	sort.Slice(validatorCopy, func(a, b int) bool {
-		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
+		return bytes.Compare(validatorCopy[a].GetPublicKey(), validatorCopy[b].GetPublicKey()) < 0
 	})
 
 	for index, validator := range validatorCopy {
@@ -129,20 +130,20 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 	return miniBlock, nil
 }
 
-func createShardValidatorInfo(validator *state.ValidatorInfo) *state.ShardValidatorInfo {
+func createShardValidatorInfo(validator state.ValidatorInfoHandler) *state.ShardValidatorInfo {
 	return &state.ShardValidatorInfo{
-		PublicKey:  validator.PublicKey,
-		ShardId:    validator.ShardId,
-		List:       validator.List,
-		Index:      validator.Index,
-		TempRating: validator.TempRating,
+		PublicKey:  validator.GetPublicKey(),
+		ShardId:    validator.GetShardId(),
+		List:       validator.GetList(),
+		Index:      validator.GetIndex(),
+		TempRating: validator.GetTempRating(),
 	}
 }
 
 // VerifyValidatorInfoMiniBlocks verifies if received validatorinfo miniblocks are correct
 func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	miniblocks []*block.MiniBlock,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 ) error {
 	if len(miniblocks) == 0 {
 		return epochStart.ErrNilMiniblocks

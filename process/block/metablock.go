@@ -446,7 +446,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, oldValidatorsInfoMap)
+	err = mp.verifyValidatorInfoMiniBlocks(oldValidatorsInfoMap, body.MiniBlocks)
 	if err != nil {
 		return err
 	}
@@ -918,7 +918,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(oldValidatorsInfoMap)
+	validatorMiniBlocks, err := mp.createValidatorInfoMiniBlocks(oldValidatorsInfoMap)
 	if err != nil {
 		return nil, err
 	}
@@ -2506,7 +2506,7 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return metaBlock
 }
 
-// TODO: StakingV4 delete this once map[uint32][]*ValidatorInfo is replaced with interface
+// TODO: StakingV4 delete these funcs once map[uint32][]*ValidatorInfo is replaced with interface
 func (mp *metaProcessor) processSystemSCsWithNewValidatorsInfo(allValidatorsInfo map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
 	validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
 	err := mp.epochSystemSCProcessor.ProcessSystemSmartContract(validatorsInfoMap, header)
@@ -2515,4 +2515,24 @@ func (mp *metaProcessor) processSystemSCsWithNewValidatorsInfo(allValidatorsInfo
 	}
 	state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
 	return nil
+}
+
+func (mp *metaProcessor) verifyValidatorInfoMiniBlocks(allValidatorsInfo map[uint32][]*state.ValidatorInfo, miniBlocks []*block.MiniBlock) error {
+	validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+	err := mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(miniBlocks, validatorsInfoMap)
+	if err != nil {
+		return err
+	}
+	state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
+	return nil
+}
+
+func (mp *metaProcessor) createValidatorInfoMiniBlocks(allValidatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+	validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(validatorsInfoMap)
+	if err != nil {
+		return nil, err
+	}
+	state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
+	return validatorMiniBlocks, err
 }
