@@ -42,13 +42,13 @@ func checkArgs(args ArgInterceptedDataFactory) error {
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (isvif *interceptedValidatorInfoFactory) Create(buff []byte) (process.InterceptedData, error) {
-	args := p2p.ArgInterceptedShardValidatorInfo{
+	args := p2p.ArgInterceptedValidatorInfo{
 		Marshaller:  isvif.marshaller,
 		DataBuff:    buff,
 		NumOfShards: isvif.shardCoordinator.NumberOfShards(),
 	}
 
-	return p2p.NewInterceptedShardValidatorInfo(args)
+	return p2p.NewInterceptedValidatorInfo(args)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

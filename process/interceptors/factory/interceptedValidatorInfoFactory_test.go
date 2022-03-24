@@ -63,6 +63,6 @@ func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 		interceptedData, err := isvif.Create(msgBuff)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(interceptedData))
-		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*p2p.interceptedShardValidatorInfo"))
+		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*p2p.interceptedValidatorInfo"))
 	})
 }

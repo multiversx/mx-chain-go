@@ -10,23 +10,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-const interceptedShardValidatorInfoType = "intercepted shard validator info"
+const interceptedValidatorInfoType = "intercepted validator info"
 
-// ArgInterceptedShardValidatorInfo is the argument used in the intercepted shard validator info constructor
-type ArgInterceptedShardValidatorInfo struct {
+// ArgInterceptedValidatorInfo is the argument used in the intercepted validator info constructor
+type ArgInterceptedValidatorInfo struct {
 	Marshaller  marshal.Marshalizer
 	DataBuff    []byte
 	NumOfShards uint32
 }
 
-// interceptedShardValidatorInfo is a wrapper over ShardValidatorInfo
-type interceptedShardValidatorInfo struct {
+// interceptedValidatorInfo is a wrapper over ShardValidatorInfo
+type interceptedValidatorInfo struct {
 	shardValidatorInfo message.ShardValidatorInfo
 	numOfShards        uint32
 }
 
-// NewInterceptedShardValidatorInfo creates a new intercepted shard validator info instance
-func NewInterceptedShardValidatorInfo(args ArgInterceptedShardValidatorInfo) (*interceptedShardValidatorInfo, error) {
+// NewInterceptedValidatorInfo creates a new intercepted validator info instance
+func NewInterceptedValidatorInfo(args ArgInterceptedValidatorInfo) (*interceptedValidatorInfo, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -37,13 +37,13 @@ func NewInterceptedShardValidatorInfo(args ArgInterceptedShardValidatorInfo) (*i
 		return nil, err
 	}
 
-	return &interceptedShardValidatorInfo{
+	return &interceptedValidatorInfo{
 		shardValidatorInfo: *shardValidatorInfo,
 		numOfShards:        args.NumOfShards,
 	}, nil
 }
 
-func checkArgs(args ArgInterceptedShardValidatorInfo) error {
+func checkArgs(args ArgInterceptedValidatorInfo) error {
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
@@ -68,7 +68,7 @@ func createShardValidatorInfo(marshaller marshal.Marshalizer, buff []byte) (*mes
 }
 
 // CheckValidity checks the validity of the received shard validator info
-func (isvi *interceptedShardValidatorInfo) CheckValidity() error {
+func (isvi *interceptedValidatorInfo) CheckValidity() error {
 	if isvi.shardValidatorInfo.ShardId != common.MetachainShardId &&
 		isvi.shardValidatorInfo.ShardId >= isvi.numOfShards {
 		return process.ErrInvalidValue
@@ -78,36 +78,36 @@ func (isvi *interceptedShardValidatorInfo) CheckValidity() error {
 }
 
 // IsForCurrentShard always returns true
-func (isvi *interceptedShardValidatorInfo) IsForCurrentShard() bool {
+func (isvi *interceptedValidatorInfo) IsForCurrentShard() bool {
 	return true
 }
 
 // Hash always returns an empty string
-func (isvi *interceptedShardValidatorInfo) Hash() []byte {
+func (isvi *interceptedValidatorInfo) Hash() []byte {
 	return []byte("")
 }
 
 // Type returns the type of this intercepted data
-func (isvi *interceptedShardValidatorInfo) Type() string {
-	return interceptedShardValidatorInfoType
+func (isvi *interceptedValidatorInfo) Type() string {
+	return interceptedValidatorInfoType
 }
 
 // Identifiers always returns an array with an empty string
-func (isvi *interceptedShardValidatorInfo) Identifiers() [][]byte {
+func (isvi *interceptedValidatorInfo) Identifiers() [][]byte {
 	return [][]byte{make([]byte, 0)}
 }
 
 // String returns the most important fields as string
-func (isvi *interceptedShardValidatorInfo) String() string {
+func (isvi *interceptedValidatorInfo) String() string {
 	return fmt.Sprintf("shard=%d", isvi.shardValidatorInfo.ShardId)
 }
 
 // ShardID returns the shard id
-func (isvi *interceptedShardValidatorInfo) ShardID() uint32 {
+func (isvi *interceptedValidatorInfo) ShardID() uint32 {
 	return isvi.shardValidatorInfo.ShardId
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (isvi *interceptedShardValidatorInfo) IsInterfaceNil() bool {
+func (isvi *interceptedValidatorInfo) IsInterfaceNil() bool {
 	return isvi == nil
 }

@@ -74,26 +74,26 @@ var TestThrottler = &processMock.InterceptorThrottlerStub{
 // TestHeartbeatNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestHeartbeatNode struct {
-	ShardCoordinator              sharding.Coordinator
-	NodesCoordinator              nodesCoordinator.NodesCoordinator
-	PeerShardMapper               process.NetworkShardingCollector
-	Messenger                     p2p.Messenger
-	NodeKeys                      TestKeyPair
-	DataPool                      dataRetriever.PoolsHolder
-	Sender                        update.Closer
-	PeerAuthInterceptor           *interceptors.MultiDataInterceptor
-	HeartbeatInterceptor          *interceptors.MultiDataInterceptor
-	ShardValidatorInfoInterceptor *interceptors.SingleDataInterceptor
-	PeerSigHandler                crypto.PeerSignatureHandler
-	WhiteListHandler              process.WhiteListHandler
-	Storage                       dataRetriever.StorageService
-	ResolversContainer            dataRetriever.ResolversContainer
-	ResolverFinder                dataRetriever.ResolversFinder
-	RequestHandler                process.RequestHandler
-	RequestedItemsHandler         dataRetriever.RequestedItemsHandler
-	RequestsProcessor             update.Closer
-	DirectConnectionsProcessor    update.Closer
-	Interceptor                   *CountInterceptor
+	ShardCoordinator           sharding.Coordinator
+	NodesCoordinator           nodesCoordinator.NodesCoordinator
+	PeerShardMapper            process.NetworkShardingCollector
+	Messenger                  p2p.Messenger
+	NodeKeys                   TestKeyPair
+	DataPool                   dataRetriever.PoolsHolder
+	Sender                     update.Closer
+	PeerAuthInterceptor        *interceptors.MultiDataInterceptor
+	HeartbeatInterceptor       *interceptors.MultiDataInterceptor
+	ValidatorInfoInterceptor   *interceptors.SingleDataInterceptor
+	PeerSigHandler             crypto.PeerSignatureHandler
+	WhiteListHandler           process.WhiteListHandler
+	Storage                    dataRetriever.StorageService
+	ResolversContainer         dataRetriever.ResolversContainer
+	ResolverFinder             dataRetriever.ResolversFinder
+	RequestHandler             process.RequestHandler
+	RequestedItemsHandler      dataRetriever.RequestedItemsHandler
+	RequestsProcessor          update.Closer
+	DirectConnectionsProcessor update.Closer
+	Interceptor                *CountInterceptor
 }
 
 // NewTestHeartbeatNode returns a new TestHeartbeatNode instance with a libp2p messenger
@@ -505,7 +505,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 
 	thn.createPeerAuthInterceptor(argsFactory)
 	thn.createHeartbeatInterceptor(argsFactory)
-	thn.createShardValidatorInfoInterceptor(argsFactory)
+	thn.createValidatorInfoInterceptor(argsFactory)
 }
 
 func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -530,14 +530,14 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	thn.HeartbeatInterceptor = thn.initMultiDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
 }
 
-func (thn *TestHeartbeatNode) createShardValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
+func (thn *TestHeartbeatNode) createValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
 	args := interceptorsProcessor.ArgValidatorInfoInterceptorProcessor{
 		Marshaller:      &testscommon.MarshalizerMock{},
 		PeerShardMapper: thn.PeerShardMapper,
 	}
 	sviProcessor, _ := interceptorsProcessor.NewValidatorInfoInterceptorProcessor(args)
 	sviFactory, _ := interceptorFactory.NewInterceptedValidatorInfoFactory(argsFactory)
-	thn.ShardValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
+	thn.ValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
 }
 
 func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory process.InterceptedDataFactory, processor process.InterceptorProcessor) *interceptors.MultiDataInterceptor {
