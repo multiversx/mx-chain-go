@@ -14,81 +14,81 @@ import (
 
 const providedShard = uint32(5)
 
-func createMockArgInterceptedShardValidatorInfo() ArgInterceptedShardValidatorInfo {
+func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 	marshaller := testscommon.MarshalizerMock{}
 	msg := message.ShardValidatorInfo{
 		ShardId: providedShard,
 	}
 	msgBuff, _ := marshaller.Marshal(msg)
 
-	return ArgInterceptedShardValidatorInfo{
+	return ArgInterceptedValidatorInfo{
 		Marshaller:  marshaller,
 		DataBuff:    msgBuff,
 		NumOfShards: 10,
 	}
 }
-func TestNewInterceptedShardValidatorInfo(t *testing.T) {
+func TestNewInterceptedValidatorInfo(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedShardValidatorInfo()
+		args := createMockArgInterceptedValidatorInfo()
 		args.Marshaller = nil
 
-		isvi, err := NewInterceptedShardValidatorInfo(args)
+		isvi, err := NewInterceptedValidatorInfo(args)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 		assert.True(t, check.IfNil(isvi))
 	})
 	t.Run("nil data buff should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedShardValidatorInfo()
+		args := createMockArgInterceptedValidatorInfo()
 		args.DataBuff = nil
 
-		isvi, err := NewInterceptedShardValidatorInfo(args)
+		isvi, err := NewInterceptedValidatorInfo(args)
 		assert.Equal(t, process.ErrNilBuffer, err)
 		assert.True(t, check.IfNil(isvi))
 	})
 	t.Run("invalid num of shards should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedShardValidatorInfo()
+		args := createMockArgInterceptedValidatorInfo()
 		args.NumOfShards = 0
 
-		isvi, err := NewInterceptedShardValidatorInfo(args)
+		isvi, err := NewInterceptedValidatorInfo(args)
 		assert.Equal(t, process.ErrInvalidValue, err)
 		assert.True(t, check.IfNil(isvi))
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedShardValidatorInfo()
+		args := createMockArgInterceptedValidatorInfo()
 		args.DataBuff = []byte("invalid data")
 
-		isvi, err := NewInterceptedShardValidatorInfo(args)
+		isvi, err := NewInterceptedValidatorInfo(args)
 		assert.NotNil(t, err)
 		assert.True(t, check.IfNil(isvi))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		isvi, err := NewInterceptedShardValidatorInfo(createMockArgInterceptedShardValidatorInfo())
+		isvi, err := NewInterceptedValidatorInfo(createMockArgInterceptedValidatorInfo())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(isvi))
 	})
 }
 
-func Test_interceptedShardValidatorInfo_CheckValidity(t *testing.T) {
+func Test_interceptedValidatorInfo_CheckValidity(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid shard should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgInterceptedShardValidatorInfo()
+		args := createMockArgInterceptedValidatorInfo()
 		args.NumOfShards = providedShard - 1
 
-		isvi, err := NewInterceptedShardValidatorInfo(args)
+		isvi, err := NewInterceptedValidatorInfo(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(isvi))
 
@@ -98,7 +98,7 @@ func Test_interceptedShardValidatorInfo_CheckValidity(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		isvi, err := NewInterceptedShardValidatorInfo(createMockArgInterceptedShardValidatorInfo())
+		isvi, err := NewInterceptedValidatorInfo(createMockArgInterceptedValidatorInfo())
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(isvi))
 
@@ -107,16 +107,16 @@ func Test_interceptedShardValidatorInfo_CheckValidity(t *testing.T) {
 	})
 }
 
-func Test_interceptedShardValidatorInfo_Getters(t *testing.T) {
+func Test_interceptedValidatorInfo_Getters(t *testing.T) {
 	t.Parallel()
 
-	isvi, err := NewInterceptedShardValidatorInfo(createMockArgInterceptedShardValidatorInfo())
+	isvi, err := NewInterceptedValidatorInfo(createMockArgInterceptedValidatorInfo())
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(isvi))
 
 	assert.True(t, isvi.IsForCurrentShard())
 	assert.True(t, bytes.Equal([]byte(""), isvi.Hash()))
-	assert.Equal(t, interceptedShardValidatorInfoType, isvi.Type())
+	assert.Equal(t, interceptedValidatorInfoType, isvi.Type())
 	identifiers := isvi.Identifiers()
 	assert.Equal(t, 1, len(identifiers))
 	assert.True(t, bytes.Equal([]byte(""), identifiers[0]))

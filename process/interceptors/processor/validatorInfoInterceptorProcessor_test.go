@@ -105,12 +105,12 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 			ShardId: 5,
 		}
 		dataBuff, _ := args.Marshaller.Marshal(msg)
-		arg := p2p.ArgInterceptedShardValidatorInfo{
+		arg := p2p.ArgInterceptedValidatorInfo{
 			Marshaller:  args.Marshaller,
 			DataBuff:    dataBuff,
 			NumOfShards: 10,
 		}
-		data, _ := p2p.NewInterceptedShardValidatorInfo(arg)
+		data, _ := p2p.NewInterceptedValidatorInfo(arg)
 
 		err = processor.Save(data, "", "")
 		assert.Nil(t, err)
