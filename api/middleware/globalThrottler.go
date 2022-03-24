@@ -85,11 +85,6 @@ func (gt *globalThrottler) printDebugInfo() {
 	log.Debug(fmt.Sprintf("API engine stuck: \n%s", strings.Join(infoLines, "\n")))
 }
 
-// Type returns the type of the middleware
-func (gt *globalThrottler) Type() string {
-	return globalLimiterType
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (gt *globalThrottler) IsInterfaceNil() bool {
 	return gt == nil

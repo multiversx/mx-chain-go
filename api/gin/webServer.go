@@ -98,9 +98,9 @@ func (ws *webServer) StartHttpServer() error {
 		return err
 	}
 
-	for _, proc := range processors {
+	for idx, proc := range processors {
 		if check.IfNil(proc) {
-			log.Error("nil limiter", "type", proc.Type())
+			log.Error("got nil middleware processor, skipping it...", "index", idx)
 			continue
 		}
 

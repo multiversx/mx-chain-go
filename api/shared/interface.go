@@ -29,7 +29,6 @@ type HttpServerCloser interface {
 // MiddlewareProcessor defines a processor used internally by the web server when processing requests
 type MiddlewareProcessor interface {
 	MiddlewareHandlerFunc() gin.HandlerFunc
-	Type() string
 	IsInterfaceNil() bool
 }
 

@@ -54,11 +54,6 @@ func (rlm *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
 	}
 }
 
-// Type returns the type of the middleware
-func (rlm *responseLoggerMiddleware) Type() string {
-	return responseLoggerType
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (rlm *responseLoggerMiddleware) IsInterfaceNil() bool {
 	return rlm == nil
