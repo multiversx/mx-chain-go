@@ -87,7 +87,7 @@ func checkArgs(args ArgHeartbeatV2Monitor) error {
 
 // GetHeartbeats returns the heartbeat status
 func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
-	numInstances := make(map[string]uint64, 0)
+	numInstances := make(map[string]uint64)
 
 	pids := monitor.cache.Keys()
 

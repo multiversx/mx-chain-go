@@ -182,7 +182,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		monitor, _ := NewHeartbeatV2Monitor(args)
 		assert.False(t, check.IfNil(monitor))
 
-		numInstances := make(map[string]uint64, 0)
+		numInstances := make(map[string]uint64)
 		message := createHeartbeatMessage(true)
 		providedPid := core.PeerID("pid")
 		hb, err := monitor.parseMessage(providedPid, message, numInstances)

@@ -849,7 +849,7 @@ func (n *Node) GetCode(codeHash []byte) []byte {
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat, 0)
+	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat)
 
 	if !check.IfNil(n.heartbeatComponents) {
 		v1Monitor := n.heartbeatComponents.Monitor()
