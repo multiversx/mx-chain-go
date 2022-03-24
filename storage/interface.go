@@ -38,6 +38,7 @@ type Batcher interface {
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
 	Reset()
+	IsRemoved(key []byte) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
