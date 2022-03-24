@@ -1395,3 +1395,22 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 	retMap := scrPreproc.GetAllCurrentUsedTxs()
 	assert.NotNil(t, retMap)
 }
+
+func TestSmartContractResults_EpochConfirmed(t *testing.T) {
+	t.Parallel()
+
+	srcs := smartContractResults{
+		basePreProcess: &basePreProcess{
+			optimizeGasUsedInCrossMiniBlocksEnableEpoch: 1,
+		},
+	}
+
+	srcs.EpochConfirmed(0, 0)
+	assert.False(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+
+	srcs.EpochConfirmed(1, 0)
+	assert.True(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+
+	srcs.EpochConfirmed(2, 0)
+	assert.True(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+}
