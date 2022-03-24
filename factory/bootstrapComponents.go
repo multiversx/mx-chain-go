@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
@@ -50,14 +51,15 @@ type bootstrapComponentsFactory struct {
 }
 
 type bootstrapComponents struct {
-	epochStartBootstrapper  EpochStartBootstrapper
-	bootstrapParamsHolder   BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	headerVersionHandler    factory.HeaderVersionHandler
-	versionedHeaderFactory  factory.VersionedHeaderFactory
-	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
-	roundActivationHandler  process.RoundActivationHandler
+	epochStartBootstrapper          EpochStartBootstrapper
+	bootstrapParamsHolder           BootstrapParamsHolder
+	nodeType                        core.NodeType
+	shardCoordinator                sharding.Coordinator
+	headerVersionHandler            factory.HeaderVersionHandler
+	versionedHeaderFactory          factory.VersionedHeaderFactory
+	headerIntegrityVerifier         factory.HeaderIntegrityVerifierHandler
+	roundActivationHandler          process.RoundActivationHandler
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -160,27 +162,37 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
+	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		bcf.coreComponents.InternalMarshalizer(),
+		bcf.coreComponents.EpochNotifier(),
+		bcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:       bcf.coreComponents,
-		CryptoComponentsHolder:     bcf.cryptoComponents,
-		Messenger:                  bcf.networkComponents.NetworkMessenger(),
-		GeneralConfig:              bcf.config,
-		PrefsConfig:                bcf.prefConfig.Preferences,
-		EnableEpochs:               bcf.epochConfig.EnableEpochs,
-		EconomicsData:              bcf.coreComponents.EconomicsData(),
-		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
-		GenesisShardCoordinator:    genesisShardCoordinator,
-		StorageUnitOpener:          unitOpener,
-		Rater:                      bcf.coreComponents.Rater(),
-		DestinationShardAsObserver: destShardIdAsObserver,
-		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
-		RoundHandler:               bcf.coreComponents.RoundHandler(),
-		LatestStorageDataProvider:  latestStorageDataProvider,
-		ArgumentsParser:            smartContract.NewArgumentParser(),
-		StatusHandler:              bcf.coreComponents.StatusHandler(),
-		HeaderIntegrityVerifier:    headerIntegrityVerifier,
-		DataSyncerCreator:          dataSyncerFactory,
-		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		CoreComponentsHolder:            bcf.coreComponents,
+		CryptoComponentsHolder:          bcf.cryptoComponents,
+		Messenger:                       bcf.networkComponents.NetworkMessenger(),
+		GeneralConfig:                   bcf.config,
+		PrefsConfig:                     bcf.prefConfig.Preferences,
+		EnableEpochs:                    bcf.epochConfig.EnableEpochs,
+		EconomicsData:                   bcf.coreComponents.EconomicsData(),
+		GenesisNodesConfig:              bcf.coreComponents.GenesisNodesSetup(),
+		GenesisShardCoordinator:         genesisShardCoordinator,
+		StorageUnitOpener:               unitOpener,
+		Rater:                           bcf.coreComponents.Rater(),
+		DestinationShardAsObserver:      destShardIdAsObserver,
+		NodeShuffler:                    bcf.coreComponents.NodesShuffler(),
+		RoundHandler:                    bcf.coreComponents.RoundHandler(),
+		LatestStorageDataProvider:       latestStorageDataProvider,
+		ArgumentsParser:                 smartContract.NewArgumentParser(),
+		StatusHandler:                   bcf.coreComponents.StatusHandler(),
+		HeaderIntegrityVerifier:         headerIntegrityVerifier,
+		DataSyncerCreator:               dataSyncerFactory,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		ScheduledSCRsStorer:             nil, // will be updated after sync from network
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper
@@ -239,12 +251,13 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
-		nodeType:                nodeType,
-		shardCoordinator:        shardCoordinator,
-		headerVersionHandler:    headerVersionHandler,
-		headerIntegrityVerifier: headerIntegrityVerifier,
-		versionedHeaderFactory:  versionedHeaderFactory,
-		roundActivationHandler:  roundActivationHandler,
+		nodeType:                        nodeType,
+		shardCoordinator:                shardCoordinator,
+		headerVersionHandler:            headerVersionHandler,
+		headerIntegrityVerifier:         headerIntegrityVerifier,
+		versionedHeaderFactory:          versionedHeaderFactory,
+		roundActivationHandler:          roundActivationHandler,
+		nodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}, nil
 }
 
