@@ -497,7 +497,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	return validatorsPubKeys, nil
 }
 
-// GetAllShuffledOutValidatorsPublicKeys -
+// GetAllShuffledOutValidatorsPublicKeys will return all shuffled out validator public keys from all shards
 func (ihnc *indexHashedNodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)
 

@@ -2620,10 +2620,10 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 			require.Equal(t, string(common.AuctionList), peerAccount.GetList())
 			require.Equal(t, core.MetachainShardId, peerAccount.GetShardId())
 			return nil
+		default:
+			require.Fail(t, "should not have called this for other account")
+			return nil
 		}
-
-		require.Fail(t, "should not have called this for other account")
-		return nil
 	}
 
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
