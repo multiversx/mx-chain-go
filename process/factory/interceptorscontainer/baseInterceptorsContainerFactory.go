@@ -688,7 +688,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 	return bicf.container.Add(identifierHeartbeat, interceptor)
 }
 
-// ------- ShardValidatorInfo interceptor
+// ------- ValidatorInfo interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
 	identifier := common.ConnectionTopic

@@ -343,6 +343,12 @@ type HeartbeatComponentsHandler interface {
 	HeartbeatComponentsHolder
 }
 
+// HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
+type HeartbeatV2Monitor interface {
+	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
+	IsInterfaceNil() bool
+}
+
 // HeartbeatV2ComponentsHolder holds the heartbeatV2 components
 type HeartbeatV2ComponentsHolder interface {
 	Monitor() HeartbeatV2Monitor

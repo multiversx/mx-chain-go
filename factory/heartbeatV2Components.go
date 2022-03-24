@@ -44,7 +44,7 @@ type heartbeatV2Components struct {
 	sender                     update.Closer
 	peerAuthRequestsProcessor  update.Closer
 	directConnectionsProcessor update.Closer
-	monitor   HeartbeatV2Monitor
+	monitor                    HeartbeatV2Monitor
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -156,7 +156,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-
 	argsDirectConnectionsProcessor := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
@@ -164,6 +163,9 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
 	}
 	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
+	if err != nil {
+		return nil, err
+	}
 
 	argsMonitor := monitor.ArgHeartbeatV2Monitor{
 		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
@@ -175,7 +177,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		ShardId:                       epochBootstrapParams.SelfShardID(),
 	}
 	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
-
 	if err != nil {
 		return nil, err
 	}

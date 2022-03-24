@@ -54,7 +54,7 @@ func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 	})
 }
 
-func Test_validatorInfoInterceptorProcessor_Save(t *testing.T) {
+func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid message should error", func(t *testing.T) {
@@ -118,7 +118,7 @@ func Test_validatorInfoInterceptorProcessor_Save(t *testing.T) {
 	})
 }
 
-func Test_validatorInfoInterceptorProcessor_DisabledMethods(t *testing.T) {
+func TestValidatorInfoInterceptorProcessor_DisabledMethod(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
