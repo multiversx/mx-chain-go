@@ -105,6 +105,9 @@ type txsForBlock struct {
 	txHashAndInfo  map[string]*txInfo
 }
 
+// basePreProcess is the base struct for all pre-processors
+// beware of calling basePreProcess.epochConfirmed in all extensions of this struct if the flags from the basePreProcess are
+// used in those extensions instances
 type basePreProcess struct {
 	gasTracker
 	hasher                                      hashing.Hasher
@@ -227,35 +230,41 @@ func (bpp *basePreProcess) saveTxsToStorage(
 	forBlock *txsForBlock,
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
-) error {
-
+) {
 	for i := 0; i < len(txHashes); i++ {
 		txHash := txHashes[i]
+		bpp.saveTransactionToStorage(txHash, forBlock, store, dataUnit)
+	}
+}
 
-		forBlock.mutTxsForBlock.RLock()
-		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
-		forBlock.mutTxsForBlock.RUnlock()
+func (bpp *basePreProcess) saveTransactionToStorage(
+	txHash []byte,
+	forBlock *txsForBlock,
+	store dataRetriever.StorageService,
+	dataUnit dataRetriever.UnitType,
+) {
+	forBlock.mutTxsForBlock.RLock()
+	txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]
+	forBlock.mutTxsForBlock.RUnlock()
 
-		if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-			log.Debug("missing transaction in saveTxsToStorage ", "type", dataUnit, "txHash", txHash)
-			return process.ErrMissingTransaction
-		}
-
-		buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
-		if err != nil {
-			return err
-		}
-
-		errNotCritical := store.Put(dataUnit, txHash, buff)
-		if errNotCritical != nil {
-			log.Debug("store.Put",
-				"error", errNotCritical.Error(),
-				"dataUnit", dataUnit,
-			)
-		}
+	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
+		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash, "error", process.ErrMissingTransaction.Error())
+		return
 	}
 
-	return nil
+	buff, err := bpp.marshalizer.Marshal(txInfoFromMap.tx)
+	if err != nil {
+		log.Warn("basePreProcess.saveTransactionToStorage", "txHash", txHash, "error", err.Error())
+		return
+	}
+
+	errNotCritical := store.Put(dataUnit, txHash, buff)
+	if errNotCritical != nil {
+		log.Debug("store.Put",
+			"error", errNotCritical.Error(),
+			"dataUnit", dataUnit,
+		)
+	}
 }
 
 func (bpp *basePreProcess) baseReceivedTransaction(
@@ -472,8 +481,8 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
+// epochConfirmed is called whenever a new epoch is confirmed from the structs that extend this instance
+func (bpp *basePreProcess) epochConfirmed(epoch uint32, _ uint64) {
 	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)

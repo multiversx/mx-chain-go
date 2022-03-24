@@ -40,11 +40,9 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
-	vmConfig := VirtualMachineConfig{
-		ArwenVersions: []ArwenVersionByEpoch{
-			{StartEpoch: 12, Version: "v0.3"},
-			{StartEpoch: 88, Version: "v1.2"},
-		},
+	arwenVersions := []ArwenVersionByEpoch{
+		{StartEpoch: 12, Version: "v0.3"},
+		{StartEpoch: 88, Version: "v1.2"},
 	}
 
 	cfgExpected := Config{
@@ -99,10 +97,14 @@ func TestTomlParser(t *testing.T) {
 			Type: consensusType,
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
-			Execution: vmConfig,
+			Execution: VirtualMachineConfig{
+				ArwenVersions:                       arwenVersions,
+				TimeOutForSCExecutionInMilliseconds: 10000,
+				WasmerSIGSEGVPassthrough:            true,
+			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
-				VirtualMachineConfig: vmConfig,
+				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
 			},
 		},
 		Debug: DebugConfig{
@@ -176,6 +178,8 @@ func TestTomlParser(t *testing.T) {
 
 [VirtualMachine]
     [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = true
         ArwenVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
