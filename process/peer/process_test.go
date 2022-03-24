@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -119,6 +120,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		EpochNotifier:                        &epochNotifier.EpochNotifierStub{},
 		StakingV2EnableEpoch:                 5,
 		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 1500,
+		StakingV4EnableEpoch:                              444,
 	}
 	return arguments
 }
@@ -2565,6 +2567,96 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)
 	assert.Nil(t, err)
 	assert.False(t, nodeForcedToRemain)
+}
+
+func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	peerAdapter := getAccountsMock()
+	arguments := createMockArguments()
+	arguments.PeerAdapter = peerAdapter
+
+	pk0 := []byte("pk0")
+	pk1 := []byte("pk1")
+	pk2 := []byte("pk2")
+
+	account0, _ := state.NewPeerAccount(pk0)
+	account1, _ := state.NewPeerAccount(pk1)
+	account2, _ := state.NewPeerAccount(pk2)
+
+	ctLoadAccount := &atomic.Counter{}
+	ctSaveAccount := &atomic.Counter{}
+
+	peerAdapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		ctLoadAccount.Increment()
+
+		switch string(address) {
+		case string(pk0):
+			return account0, nil
+		case string(pk1):
+			return account1, nil
+		case string(pk2):
+			return account2, nil
+		default:
+			require.Fail(t, "should not have called this for other address")
+			return nil, nil
+		}
+	}
+	peerAdapter.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
+		ctSaveAccount.Increment()
+		peerAccount := account.(state.PeerAccountHandler)
+		require.Equal(t, uint32(0), peerAccount.GetIndexInList())
+
+		switch string(account.AddressBytes()) {
+		case string(pk0):
+			require.Equal(t, string(common.EligibleList), peerAccount.GetList())
+			require.Equal(t, uint32(0), peerAccount.GetShardId())
+			return nil
+		case string(pk1):
+			require.Equal(t, string(common.AuctionList), peerAccount.GetList())
+			require.Equal(t, uint32(0), peerAccount.GetShardId())
+			return nil
+		case string(pk2):
+			require.Equal(t, string(common.AuctionList), peerAccount.GetList())
+			require.Equal(t, core.MetachainShardId, peerAccount.GetShardId())
+			return nil
+		default:
+			require.Fail(t, "should not have called this for other account")
+			return nil
+		}
+	}
+
+	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
+			mapNodes := map[uint32][][]byte{
+				0: {pk0},
+			}
+			return mapNodes, nil
+		},
+		GetAllShuffledOutValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
+			mapNodes := map[uint32][][]byte{
+				0:                     {pk1},
+				core.MetachainShardId: {pk2},
+			}
+			return mapNodes, nil
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	nodeForcedToRemain, err := validatorStatistics.SaveNodesCoordinatorUpdates(0)
+	require.Nil(t, err)
+	require.False(t, nodeForcedToRemain)
+	require.Equal(t, int64(1), ctSaveAccount.Get())
+	require.Equal(t, int64(1), ctLoadAccount.Get())
+
+	ctSaveAccount.Reset()
+	ctLoadAccount.Reset()
+	validatorStatistics.EpochConfirmed(arguments.StakingV4EnableEpoch, 0)
+	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)
+	require.Nil(t, err)
+	require.False(t, nodeForcedToRemain)
+	require.Equal(t, int64(3), ctSaveAccount.Get())
+	require.Equal(t, int64(3), ctLoadAccount.Get())
 }
 
 func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {

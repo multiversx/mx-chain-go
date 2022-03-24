@@ -844,6 +844,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		EpochNotifier:                        en,
 		StakingV2EnableEpoch:                 stakingV2EnableEpoch,
+		StakingV4EnableEpoch:                 444,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
