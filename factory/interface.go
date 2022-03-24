@@ -426,6 +426,7 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory
 	IsInterfaceNil() bool
 }
 

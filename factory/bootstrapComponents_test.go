@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
@@ -170,5 +171,6 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
 		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 	}
 }

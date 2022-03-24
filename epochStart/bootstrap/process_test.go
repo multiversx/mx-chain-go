@@ -87,11 +87,17 @@ func createMockEpochStartBootstrapArgs(
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&testscommon.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		444,
+	)
 	return ArgsEpochStartBootstrap{
-		ScheduledSCRsStorer:    genericMocks.NewStorerMock("path", 0),
-		CoreComponentsHolder:   coreMock,
-		CryptoComponentsHolder: cryptoMock,
-		Messenger:              &mock.MessengerStub{},
+		ScheduledSCRsStorer:             genericMocks.NewStorerMock("path", 0),
+		CoreComponentsHolder:            coreMock,
+		CryptoComponentsHolder:          cryptoMock,
+		Messenger:                       &mock.MessengerStub{},
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
