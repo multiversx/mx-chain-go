@@ -2641,7 +2641,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
 		Rand:              generateRandomByteArray(32),
 		Auction:           auctionList,
 		NbShards:          nbShards,
-		Epoch:             444,
+		Epoch:             stakingV4Epoch,
 	}
 
 	shuffler, _ := createHashShufflerIntraShards()
@@ -2670,7 +2670,6 @@ func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
 	previousNumberOfNodes := (numEligiblePerShard+numWaitingPerShard+numNewNodesPerShard)*(int(nbShards)+1) + numAuction
 	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(allShuffledOut)
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
-
 }
 
 func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t *testing.T) {

@@ -69,34 +69,35 @@ type epochNodesConfig struct {
 }
 
 type indexHashedNodesCoordinator struct {
-	shardIDAsObserver             uint32
-	currentEpoch                  uint32
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
-	numTotalEligible              uint64
-	selfPubKey                    []byte
-	savedStateKey                 []byte
-	marshalizer                   marshal.Marshalizer
-	hasher                        hashing.Hasher
-	shuffler                      NodesShuffler
-	epochStartRegistrationHandler EpochStartEventNotifier
-	bootStorer                    storage.Storer
-	nodesConfig                   map[uint32]*epochNodesConfig
-	mutNodesConfig                sync.RWMutex
-	mutSavedStateKey              sync.RWMutex
-	nodesCoordinatorHelper        NodesCoordinatorHelper
-	consensusGroupCacher          Cacher
-	loadingFromDisk               atomic.Value
-	shuffledOutHandler            ShuffledOutHandler
-	startEpoch                    uint32
-	publicKeyToValidatorMap       map[string]*validatorWithShardID
-	waitingListFixEnableEpoch     uint32
-	stakingV4EnableEpoch          uint32
-	isFullArchive                 bool
-	chanStopNode                  chan endProcess.ArgEndProcess
-	flagWaitingListFix            atomicFlags.Flag
-	flagStakingV4                 atomicFlags.Flag
-	nodeTypeProvider              NodeTypeProviderHandler
+	shardIDAsObserver               uint32
+	currentEpoch                    uint32
+	shardConsensusGroupSize         int
+	metaConsensusGroupSize          int
+	numTotalEligible                uint64
+	selfPubKey                      []byte
+	savedStateKey                   []byte
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	shuffler                        NodesShuffler
+	epochStartRegistrationHandler   EpochStartEventNotifier
+	bootStorer                      storage.Storer
+	nodesConfig                     map[uint32]*epochNodesConfig
+	mutNodesConfig                  sync.RWMutex
+	mutSavedStateKey                sync.RWMutex
+	nodesCoordinatorHelper          NodesCoordinatorHelper
+	consensusGroupCacher            Cacher
+	loadingFromDisk                 atomic.Value
+	shuffledOutHandler              ShuffledOutHandler
+	startEpoch                      uint32
+	publicKeyToValidatorMap         map[string]*validatorWithShardID
+	waitingListFixEnableEpoch       uint32
+	stakingV4EnableEpoch            uint32
+	isFullArchive                   bool
+	chanStopNode                    chan endProcess.ArgEndProcess
+	flagWaitingListFix              atomicFlags.Flag
+	flagStakingV4                   atomicFlags.Flag
+	nodeTypeProvider                NodeTypeProviderHandler
+	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -123,30 +124,31 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{
-		marshalizer:                   arguments.Marshalizer,
-		hasher:                        arguments.Hasher,
-		shuffler:                      arguments.Shuffler,
-		epochStartRegistrationHandler: arguments.EpochStartNotifier,
-		bootStorer:                    arguments.BootStorer,
-		selfPubKey:                    arguments.SelfPublicKey,
-		nodesConfig:                   nodesConfig,
-		currentEpoch:                  arguments.Epoch,
-		savedStateKey:                 savedKey,
-		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
-		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:            arguments.ShuffledOutHandler,
-		startEpoch:                    arguments.StartEpoch,
-		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
-		stakingV4EnableEpoch:          arguments.StakingV4EnableEpoch,
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
+		marshalizer:                     arguments.Marshalizer,
+		hasher:                          arguments.Hasher,
+		shuffler:                        arguments.Shuffler,
+		epochStartRegistrationHandler:   arguments.EpochStartNotifier,
+		bootStorer:                      arguments.BootStorer,
+		selfPubKey:                      arguments.SelfPublicKey,
+		nodesConfig:                     nodesConfig,
+		currentEpoch:                    arguments.Epoch,
+		savedStateKey:                   savedKey,
+		shardConsensusGroupSize:         arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:          arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:            arguments.ConsensusGroupCache,
+		shardIDAsObserver:               arguments.ShardIDAsObserver,
+		shuffledOutHandler:              arguments.ShuffledOutHandler,
+		startEpoch:                      arguments.StartEpoch,
+		publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
+		waitingListFixEnableEpoch:       arguments.WaitingListFixEnabledEpoch,
+		stakingV4EnableEpoch:            arguments.StakingV4EnableEpoch,
+		chanStopNode:                    arguments.ChanStopNode,
+		nodeTypeProvider:                arguments.NodeTypeProvider,
+		isFullArchive:                   arguments.IsFullArchive,
+		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
-	log.Debug("indexHashedNodesCoordinator: staking v4", "epoch", ihnc.stakingV4EnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: enable epoch for staking v4", "epoch", ihnc.stakingV4EnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -219,6 +221,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if check.IfNil(arguments.NodeTypeProvider) {
 		return ErrNilNodeTypeProvider
+	}
+	if check.IfNil(arguments.NodesCoordinatorRegistryFactory) {
+		return ErrNilNodesCoordinatorRegistryFactory
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
@@ -778,6 +783,8 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.SelectedFromAuctionList):
 			if ihnc.flagStakingV4.IsSet() {
 				auctionList = append(auctionList, currentValidator)
+			} else {
+				return nil, ErrReceivedAuctionValidatorsBeforeStakingV4
 			}
 		}
 	}
