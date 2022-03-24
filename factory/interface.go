@@ -345,13 +345,14 @@ type HeartbeatComponentsHandler interface {
 
 // HeartbeatV2ComponentsHolder holds the heartbeatV2 components
 type HeartbeatV2ComponentsHolder interface {
+	Monitor() HeartbeatV2Monitor
 	IsInterfaceNil() bool
 }
 
 // HeartbeatV2ComponentsHandler defines the heartbeatV2 components handler actions
 type HeartbeatV2ComponentsHandler interface {
 	ComponentHandler
-	IsInterfaceNil() bool
+	HeartbeatV2ComponentsHolder
 }
 
 // ConsensusWorker is the consensus worker handle for the exported functionality

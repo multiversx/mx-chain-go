@@ -915,6 +915,8 @@
     MaxTimeoutInSec                                  = 7200 # 2h
     DelayBetweenConnectionNotificationsInSec         = 60   # 1min
     MaxMissingKeysInRequest                          = 1000
+    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
+    HideInactiveValidatorIntervalInSec               = 3600 # 1h
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h

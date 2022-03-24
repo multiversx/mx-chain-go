@@ -117,6 +117,8 @@ type HeartbeatV2Config struct {
 	MaxTimeoutInSec                                  int64
 	DelayBetweenConnectionNotificationsInSec         int64
 	MaxMissingKeysInRequest                          uint32
+	MaxDurationPeerUnresponsiveInSec                 int64
+	HideInactiveValidatorIntervalInSec               int64
 	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
 }

@@ -40,6 +40,8 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				MaxTimeoutInSec:                                  60,
 				DelayBetweenConnectionNotificationsInSec:         5,
 				MaxMissingKeysInRequest:                          100,
+				MaxDurationPeerUnresponsiveInSec:                 10,
+				HideInactiveValidatorIntervalInSec:               60,
 				PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 					DefaultSpanInSec: 30,
 					CacheExpiryInSec: 30,

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -43,6 +44,7 @@ type heartbeatV2Components struct {
 	sender                     update.Closer
 	peerAuthRequestsProcessor  update.Closer
 	directConnectionsProcessor update.Closer
+	monitor   HeartbeatV2Monitor
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -154,6 +156,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
+
 	argsDirectConnectionsProcessor := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
@@ -161,6 +164,18 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		DelayBetweenNotifications: time.Second * time.Duration(cfg.DelayBetweenConnectionNotificationsInSec),
 	}
 	directConnectionsProcessor, err := processor.NewDirectConnectionsProcessor(argsDirectConnectionsProcessor)
+
+	argsMonitor := monitor.ArgHeartbeatV2Monitor{
+		Cache:                         hcf.dataComponents.Datapool().Heartbeats(),
+		PubKeyConverter:               hcf.coreComponents.ValidatorPubKeyConverter(),
+		Marshaller:                    hcf.coreComponents.InternalMarshalizer(),
+		PeerShardMapper:               hcf.processComponents.PeerShardMapper(),
+		MaxDurationPeerUnresponsive:   time.Second * time.Duration(cfg.MaxDurationPeerUnresponsiveInSec),
+		HideInactiveValidatorInterval: time.Second * time.Duration(cfg.HideInactiveValidatorIntervalInSec),
+		ShardId:                       epochBootstrapParams.SelfShardID(),
+	}
+	heartbeatsMonitor, err := monitor.NewHeartbeatV2Monitor(argsMonitor)
+
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +184,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		sender:                     heartbeatV2Sender,
 		peerAuthRequestsProcessor:  paRequestsProcessor,
 		directConnectionsProcessor: directConnectionsProcessor,
+		monitor:                    heartbeatsMonitor,
 	}, nil
 }
 

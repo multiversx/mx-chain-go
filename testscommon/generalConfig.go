@@ -294,6 +294,8 @@ func GetGeneralConfig() config.Config {
 			MaxNumOfPeerAuthenticationInResponse:             5,
 			DelayBetweenConnectionNotificationsInSec:         5,
 			HeartbeatExpiryTimespanInSec:                     30,
+			MaxDurationPeerUnresponsiveInSec:                 10,
+			HideInactiveValidatorIntervalInSec:               60,
 			PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 				DefaultSpanInSec: 30,
 				CacheExpiryInSec: 30,
