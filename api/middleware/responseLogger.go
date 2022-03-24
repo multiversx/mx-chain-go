@@ -33,7 +33,7 @@ func NewResponseLoggerMiddleware(thresholdDurationForLoggingRequest time.Duratio
 	return rlm
 }
 
-// MonitoringMiddleware logs detail about a request if it is not successful or it's duration is higher than a threshold
+// MiddlewareHandlerFunc logs detail about a request if it is not successful or it's duration is higher than a threshold
 func (rlm *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()
@@ -52,6 +52,11 @@ func (rlm *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
 			rlm.logRequestAndResponse(c, latency, status, responseBodyString)
 		}
 	}
+}
+
+// Type returns the type of the middleware
+func (rlm *responseLoggerMiddleware) Type() string {
+	return responseLoggerType
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -74,7 +74,7 @@ func (ws *webServer) UpdateFacade(facade shared.FacadeHandler) error {
 	return nil
 }
 
-// CreateHttpServer will create a new instance of http.Server and populate it with all the routes
+// StartHttpServer will create a new instance of http.Server and populate it with all the routes
 func (ws *webServer) StartHttpServer() error {
 	ws.Lock()
 	defer ws.Unlock()
@@ -100,6 +100,7 @@ func (ws *webServer) StartHttpServer() error {
 
 	for _, proc := range processors {
 		if check.IfNil(proc) {
+			log.Error("nil limiter", "type", proc.Type())
 			continue
 		}
 

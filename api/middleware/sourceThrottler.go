@@ -75,6 +75,11 @@ func (st *sourceThrottler) Reset() {
 	st.mutRequests.Unlock()
 }
 
+// Type returns the type of the middleware
+func (st *sourceThrottler) Type() string {
+	return sourceLimiterType
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (st *sourceThrottler) IsInterfaceNil() bool {
 	return st == nil
