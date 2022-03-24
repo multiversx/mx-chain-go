@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 var _ ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -115,6 +116,18 @@ func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundAct
 	}
 
 	return mbf.bootstrapComponents.roundActivationHandler
+}
+
+// NodesCoordinatorRegistryFactory returns the NodesCoordinatorRegistryFactory
+func (mbf *managedBootstrapComponents) NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.bootstrapComponents == nil {
+		return nil
+	}
+
+	return mbf.bootstrapComponents.nodesCoordinatorRegistryFactory
 }
 
 // IsInterfaceNil returns true if the underlying object is nil
