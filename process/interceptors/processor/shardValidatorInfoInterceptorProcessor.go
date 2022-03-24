@@ -55,7 +55,7 @@ func (processor *validatorInfoInterceptorProcessor) Save(data process.Intercepte
 	return nil
 }
 
-// RegisterHandler registers a callback function to be notified of incoming shard validator info
+// RegisterHandler registers a callback function to be notified of incoming shard validator info, currently not implemented
 func (processor *validatorInfoInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 	log.Error("validatorInfoInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
