@@ -56,43 +56,48 @@ func (v validatorList) Less(i, j int) bool {
 
 // TODO: add a parameter for shardID  when acting as observer
 type epochNodesConfig struct {
-	nbShards     uint32
-	shardID      uint32
-	eligibleMap  map[uint32][]Validator
-	waitingMap   map[uint32][]Validator
-	selectors    map[uint32]RandomSelector
-	leavingMap   map[uint32][]Validator
-	newList      []Validator
-	mutNodesMaps sync.RWMutex
+	nbShards       uint32
+	shardID        uint32
+	eligibleMap    map[uint32][]Validator
+	waitingMap     map[uint32][]Validator
+	selectors      map[uint32]RandomSelector
+	leavingMap     map[uint32][]Validator
+	shuffledOutMap map[uint32][]Validator
+	newList        []Validator
+	auctionList    []Validator
+	mutNodesMaps   sync.RWMutex
 }
 
 type indexHashedNodesCoordinator struct {
-	shardIDAsObserver             uint32
-	currentEpoch                  uint32
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
-	numTotalEligible              uint64
-	selfPubKey                    []byte
-	savedStateKey                 []byte
-	marshalizer                   marshal.Marshalizer
-	hasher                        hashing.Hasher
-	shuffler                      NodesShuffler
-	epochStartRegistrationHandler EpochStartEventNotifier
-	bootStorer                    storage.Storer
-	nodesConfig                   map[uint32]*epochNodesConfig
-	mutNodesConfig                sync.RWMutex
-	mutSavedStateKey              sync.RWMutex
-	nodesCoordinatorHelper        NodesCoordinatorHelper
-	consensusGroupCacher          Cacher
-	loadingFromDisk               atomic.Value
-	shuffledOutHandler            ShuffledOutHandler
-	startEpoch                    uint32
-	publicKeyToValidatorMap       map[string]*validatorWithShardID
-	waitingListFixEnableEpoch     uint32
-	isFullArchive                 bool
-	chanStopNode                  chan endProcess.ArgEndProcess
-	flagWaitingListFix            atomicFlags.Flag
-	nodeTypeProvider              NodeTypeProviderHandler
+	shardIDAsObserver               uint32
+	currentEpoch                    uint32
+	shardConsensusGroupSize         int
+	metaConsensusGroupSize          int
+	numTotalEligible                uint64
+	selfPubKey                      []byte
+	savedStateKey                   []byte
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	shuffler                        NodesShuffler
+	epochStartRegistrationHandler   EpochStartEventNotifier
+	bootStorer                      storage.Storer
+	nodesConfig                     map[uint32]*epochNodesConfig
+	mutNodesConfig                  sync.RWMutex
+	mutSavedStateKey                sync.RWMutex
+	nodesCoordinatorHelper          NodesCoordinatorHelper
+	consensusGroupCacher            Cacher
+	loadingFromDisk                 atomic.Value
+	shuffledOutHandler              ShuffledOutHandler
+	startEpoch                      uint32
+	publicKeyToValidatorMap         map[string]*validatorWithShardID
+	waitingListFixEnableEpoch       uint32
+	stakingV4EnableEpoch            uint32
+	isFullArchive                   bool
+	chanStopNode                    chan endProcess.ArgEndProcess
+	flagWaitingListFix              atomicFlags.Flag
+	flagStakingV4                   atomicFlags.Flag
+	nodeTypeProvider                NodeTypeProviderHandler
+	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -105,40 +110,45 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
-		nbShards:    arguments.NbShards,
-		shardID:     arguments.ShardIDAsObserver,
-		eligibleMap: make(map[uint32][]Validator),
-		waitingMap:  make(map[uint32][]Validator),
-		selectors:   make(map[uint32]RandomSelector),
-		leavingMap:  make(map[uint32][]Validator),
-		newList:     make([]Validator, 0),
+		nbShards:       arguments.NbShards,
+		shardID:        arguments.ShardIDAsObserver,
+		eligibleMap:    make(map[uint32][]Validator),
+		waitingMap:     make(map[uint32][]Validator),
+		selectors:      make(map[uint32]RandomSelector),
+		leavingMap:     make(map[uint32][]Validator),
+		shuffledOutMap: make(map[uint32][]Validator),
+		newList:        make([]Validator, 0),
+		auctionList:    make([]Validator, 0),
 	}
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{
-		marshalizer:                   arguments.Marshalizer,
-		hasher:                        arguments.Hasher,
-		shuffler:                      arguments.Shuffler,
-		epochStartRegistrationHandler: arguments.EpochStartNotifier,
-		bootStorer:                    arguments.BootStorer,
-		selfPubKey:                    arguments.SelfPublicKey,
-		nodesConfig:                   nodesConfig,
-		currentEpoch:                  arguments.Epoch,
-		savedStateKey:                 savedKey,
-		shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
-		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:            arguments.ShuffledOutHandler,
-		startEpoch:                    arguments.StartEpoch,
-		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
+		marshalizer:                     arguments.Marshalizer,
+		hasher:                          arguments.Hasher,
+		shuffler:                        arguments.Shuffler,
+		epochStartRegistrationHandler:   arguments.EpochStartNotifier,
+		bootStorer:                      arguments.BootStorer,
+		selfPubKey:                      arguments.SelfPublicKey,
+		nodesConfig:                     nodesConfig,
+		currentEpoch:                    arguments.Epoch,
+		savedStateKey:                   savedKey,
+		shardConsensusGroupSize:         arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:          arguments.MetaConsensusGroupSize,
+		consensusGroupCacher:            arguments.ConsensusGroupCache,
+		shardIDAsObserver:               arguments.ShardIDAsObserver,
+		shuffledOutHandler:              arguments.ShuffledOutHandler,
+		startEpoch:                      arguments.StartEpoch,
+		publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
+		waitingListFixEnableEpoch:       arguments.WaitingListFixEnabledEpoch,
+		stakingV4EnableEpoch:            arguments.StakingV4EnableEpoch,
+		chanStopNode:                    arguments.ChanStopNode,
+		nodeTypeProvider:                arguments.NodeTypeProvider,
+		isFullArchive:                   arguments.IsFullArchive,
+		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: enable epoch for staking v4", "epoch", ihnc.stakingV4EnableEpoch)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -170,6 +180,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		currentConfig.waitingMap,
 		currentConfig.leavingMap,
 		make(map[uint32][]Validator),
+		currentConfig.shuffledOutMap,
 		currentConfig.nbShards)
 
 	ihnc.epochStartRegistrationHandler.RegisterHandler(ihnc)
@@ -210,6 +221,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if check.IfNil(arguments.NodeTypeProvider) {
 		return ErrNilNodeTypeProvider
+	}
+	if check.IfNil(arguments.NodesCoordinatorRegistryFactory) {
+		return ErrNilNodesCoordinatorRegistryFactory
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
@@ -607,6 +621,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		Eligible:          newNodesConfig.eligibleMap,
 		Waiting:           newNodesConfig.waitingMap,
 		NewNodes:          newNodesConfig.newList,
+		Auction:           newNodesConfig.auctionList,
 		UnStakeLeaving:    unStakeLeavingList,
 		AdditionalLeaving: additionalLeavingList,
 		Rand:              randomness,
@@ -642,6 +657,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		resUpdateNodes.Waiting,
 		leavingNodesMap,
 		stillRemainingNodesMap,
+		resUpdateNodes.ShuffledOut,
 		newNodesConfig.nbShards)
 
 	ihnc.mutSavedStateKey.Lock()
@@ -702,6 +718,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	waitingMap := make(map[uint32][]Validator)
 	leavingMap := make(map[uint32][]Validator)
 	newNodesList := make([]Validator, 0)
+	auctionList := make([]Validator, 0)
 
 	if ihnc.flagWaitingListFix.IsSet() && previousEpochConfig == nil {
 		return nil, ErrNilPreviousEpochConfig
@@ -739,10 +756,17 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
 		case string(common.JailedList):
 			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
+		case string(common.SelectedFromAuctionList):
+			if ihnc.flagStakingV4.IsSet() {
+				auctionList = append(auctionList, currentValidator)
+			} else {
+				return nil, ErrReceivedAuctionValidatorsBeforeStakingV4
+			}
 		}
 	}
 
 	sort.Sort(validatorList(newNodesList))
+	sort.Sort(validatorList(auctionList))
 	for _, eligibleList := range eligibleMap {
 		sort.Sort(validatorList(eligibleList))
 	}
@@ -764,6 +788,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		waitingMap:  waitingMap,
 		leavingMap:  leavingMap,
 		newList:     newNodesList,
+		auctionList: auctionList,
 		nbShards:    uint32(nbShards),
 	}
 
@@ -1014,6 +1039,18 @@ func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId, true
 	}
 
+	if ihnc.flagStakingV4.IsSet() {
+		found, shardId = searchInMap(nodesConfig.shuffledOutMap, pubKey)
+		if found {
+			log.Trace("computeShardForSelfPublicKey found validator in shuffled out",
+				"epoch", ihnc.currentEpoch,
+				"shard", shardId,
+				"validator PK", pubKey,
+			)
+			return shardId, true
+		}
+	}
+
 	log.Trace("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)
@@ -1195,4 +1232,7 @@ func createValidatorInfoFromBody(
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.waitingListFixEnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
+
+	ihnc.flagStakingV4.SetValue(epoch >= ihnc.stakingV4EnableEpoch)
+	log.Debug("indexHashedNodesCoordinator: staking v4", "enabled", ihnc.flagStakingV4.IsSet())
 }

@@ -8,28 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
-// SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
-type SerializableValidator struct {
-	PubKey  []byte `json:"pubKey"`
-	Chances uint32 `json:"chances"`
-	Index   uint32 `json:"index"`
-}
-
-// EpochValidators holds one epoch configuration for a nodes coordinator
-type EpochValidators struct {
-	EligibleValidators map[string][]*SerializableValidator `json:"eligibleValidators"`
-	WaitingValidators  map[string][]*SerializableValidator `json:"waitingValidators"`
-	LeavingValidators  map[string][]*SerializableValidator `json:"leavingValidators"`
-}
-
-// NodesCoordinatorRegistry holds the data that can be used to initialize a nodes coordinator
-type NodesCoordinatorRegistry struct {
-	EpochsConfig map[string]*EpochValidators `json:"epochConfigs"`
-	CurrentEpoch uint32                      `json:"currentEpoch"`
-}
-
-// TODO: add proto marshalizer for these package - replace all json marshalizers
-
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihnc.baseLoadState(key)
@@ -48,8 +26,7 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 		return err
 	}
 
-	config := &NodesCoordinatorRegistry{}
-	err = json.Unmarshal(data, config)
+	config, err := ihnc.nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry(data)
 	if err != nil {
 		return err
 	}
@@ -58,8 +35,8 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihnc.savedStateKey = key
 	ihnc.mutSavedStateKey.Unlock()
 
-	ihnc.currentEpoch = config.CurrentEpoch
-	log.Debug("loaded nodes config", "current epoch", config.CurrentEpoch)
+	ihnc.currentEpoch = config.GetCurrentEpoch()
+	log.Debug("loaded nodes config", "current epoch", config.GetCurrentEpoch())
 
 	nodesConfig, err := ihnc.registryToNodesCoordinator(config)
 	if err != nil {
@@ -84,21 +61,41 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihnc.NodesCoordinatorToRegistry()
-	data, err := json.Marshal(registry)
+	data, err := ihnc.getRegistryData()
 	if err != nil {
 		return err
 	}
 
-	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+	ncInternalKey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+	log.Debug("saving nodes coordinator config", "key", ncInternalKey)
 
-	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
+	return ihnc.bootStorer.Put(ncInternalKey, data)
+}
 
-	return ihnc.bootStorer.Put(ncInternalkey, data)
+func (ihnc *indexHashedNodesCoordinator) getRegistryData() ([]byte, error) {
+	var err error
+	var data []byte
+
+	registry := ihnc.NodesCoordinatorToRegistry()
+	if ihnc.flagStakingV4.IsSet() {
+		data, err = ihnc.marshalizer.Marshal(registry)
+	} else {
+		data, err = json.Marshal(registry)
+	}
+
+	return data, err
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
-func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
+func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() NodesCoordinatorRegistryHandler {
+	if ihnc.flagStakingV4.IsSet() {
+		return ihnc.nodesCoordinatorToRegistryWithAuction()
+	}
+
+	return ihnc.nodesCoordinatorToOldRegistry()
+}
+
+func (ihnc *indexHashedNodesCoordinator) nodesCoordinatorToOldRegistry() NodesCoordinatorRegistryHandler {
 	ihnc.mutNodesConfig.RLock()
 	defer ihnc.mutNodesConfig.RUnlock()
 
@@ -107,13 +104,8 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 		EpochsConfig: make(map[string]*EpochValidators),
 	}
 
-	minEpoch := 0
-	lastEpoch := ihnc.getLastEpochConfig()
-	if lastEpoch >= nodesCoordinatorStoredEpochs {
-		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
-	}
-
-	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
+	minEpoch, lastEpoch := ihnc.getMinAndLastEpoch()
+	for epoch := minEpoch; epoch <= lastEpoch; epoch++ {
 		epochNodesData, ok := ihnc.nodesConfig[epoch]
 		if !ok {
 			continue
@@ -123,6 +115,16 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	return registry
+}
+
+func (ihnc *indexHashedNodesCoordinator) getMinAndLastEpoch() (uint32, uint32) {
+	minEpoch := 0
+	lastEpoch := ihnc.getLastEpochConfig()
+	if lastEpoch >= nodesCoordinatorStoredEpochs {
+		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
+	}
+
+	return uint32(minEpoch), lastEpoch
 }
 
 func (ihnc *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
@@ -137,13 +139,13 @@ func (ihnc *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {
 }
 
 func (ihnc *indexHashedNodesCoordinator) registryToNodesCoordinator(
-	config *NodesCoordinatorRegistry,
+	config NodesCoordinatorRegistryHandler,
 ) (map[uint32]*epochNodesConfig, error) {
 	var err error
 	var epoch int64
 	result := make(map[uint32]*epochNodesConfig)
 
-	for epochStr, epochValidators := range config.EpochsConfig {
+	for epochStr, epochValidators := range config.GetEpochsConfig() {
 		epoch, err = strconv.ParseInt(epochStr, 10, 64)
 		if err != nil {
 			return nil, err
@@ -197,23 +199,31 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	return result
 }
 
-func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConfig, error) {
+func epochValidatorsToEpochNodesConfig(config EpochValidatorsHandler) (*epochNodesConfig, error) {
 	result := &epochNodesConfig{}
 	var err error
 
-	result.eligibleMap, err = serializableValidatorsMapToValidatorsMap(config.EligibleValidators)
+	result.eligibleMap, err = serializableValidatorsMapToValidatorsMap(config.GetEligibleValidators())
 	if err != nil {
 		return nil, err
 	}
 
-	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.WaitingValidators)
+	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.GetWaitingValidators())
 	if err != nil {
 		return nil, err
 	}
 
-	result.leavingMap, err = serializableValidatorsMapToValidatorsMap(config.LeavingValidators)
+	result.leavingMap, err = serializableValidatorsMapToValidatorsMap(config.GetLeavingValidators())
 	if err != nil {
 		return nil, err
+	}
+
+	configWithAuction, castOk := config.(EpochValidatorsHandlerWithAuction)
+	if castOk {
+		result.shuffledOutMap, err = serializableValidatorsMapToValidatorsMap(configWithAuction.GetShuffledOutValidators())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return result, nil

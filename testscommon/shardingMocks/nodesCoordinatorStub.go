@@ -20,7 +20,7 @@ type NodesCoordinatorStub struct {
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry {
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() nodesCoordinator.NodesCoordinatorRegistryHandler {
 	return nil
 }
 
@@ -47,7 +47,7 @@ func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // SetConfig -
-func (ncm *NodesCoordinatorStub) SetConfig(_ *nodesCoordinator.NodesCoordinatorRegistry) error {
+func (ncm *NodesCoordinatorStub) SetConfig(_ nodesCoordinator.NodesCoordinatorRegistryHandler) error {
 	return nil
 }
 

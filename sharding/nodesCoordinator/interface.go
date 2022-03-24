@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -129,4 +130,40 @@ type EpochsConfigUpdateHandler interface {
 	NodesCoordinator
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
+}
+
+// EpochValidatorsHandler defines what one epoch configuration for a nodes coordinator should hold
+type EpochValidatorsHandler interface {
+	GetEligibleValidators() map[string][]*SerializableValidator
+	GetWaitingValidators() map[string][]*SerializableValidator
+	GetLeavingValidators() map[string][]*SerializableValidator
+}
+
+// EpochValidatorsHandlerWithAuction defines what one epoch configuration for a nodes coordinator should hold + shuffled out validators
+type EpochValidatorsHandlerWithAuction interface {
+	EpochValidatorsHandler
+	GetShuffledOutValidators() map[string][]*SerializableValidator
+}
+
+// NodesCoordinatorRegistryHandler defines what is used to initialize nodes coordinator
+type NodesCoordinatorRegistryHandler interface {
+	GetEpochsConfig() map[string]EpochValidatorsHandler
+	GetCurrentEpoch() uint32
+	SetCurrentEpoch(epoch uint32)
+}
+
+// NodesCoordinatorRegistryFactory defines a NodesCoordinatorRegistryHandler factory
+// from the provided buffer
+type NodesCoordinatorRegistryFactory interface {
+	CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error)
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
 }

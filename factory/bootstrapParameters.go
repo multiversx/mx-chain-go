@@ -25,7 +25,7 @@ func (bph *bootstrapParams) NumOfShards() uint32 {
 }
 
 // NodesConfig returns the nodes coordinator config after bootstrap
-func (bph *bootstrapParams) NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry {
+func (bph *bootstrapParams) NodesConfig() nodesCoordinator.NodesCoordinatorRegistryHandler {
 	return bph.bootstrapParams.NodesConfig
 }
 

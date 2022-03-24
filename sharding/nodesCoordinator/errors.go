@@ -91,12 +91,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
 var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
 
-// ErrNilEpochNotifier signals that the provided epoch notifier is nil
-var ErrNilEpochNotifier = errors.New("nil epoch notifier")
-
-// ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
-var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
-
 // ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
 var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
 
@@ -111,3 +105,12 @@ var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full arc
 
 // ErrNilNodeTypeProvider signals that a nil node type provider has been given
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")
+
+// ErrNilNodesCoordinatorRegistryFactory signals that a nil nodes coordinator registry factory has been given
+var ErrNilNodesCoordinatorRegistryFactory = errors.New("nil nodes coordinator registry factory has been given")
+
+// ErrReceivedAuctionValidatorsBeforeStakingV4 signals that auction nodes have been received from peer mini blocks before enabling staking v4
+var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("should not have received selected nodes from auction in peer mini blocks, since staking v4 is not enabled yet")
+
+// ErrNilEpochNotifier signals that a nil EpochNotifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")

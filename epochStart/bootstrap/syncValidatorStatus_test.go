@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -240,6 +241,12 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&mock.MarshalizerMock{},
+		&epochNotifier.EpochNotifierStub{},
+		444,
+	)
+
 	return ArgsNewSyncValidatorStatus{
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
@@ -292,11 +299,12 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:      &shardingMocks.NodeShufflerMock{},
-		PubKey:            []byte("public key"),
-		ShardIdAsObserver: 0,
-		ChanNodeStop:      endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:  &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:     false,
+		NodeShuffler:                    &shardingMocks.NodeShufflerMock{},
+		PubKey:                          []byte("public key"),
+		ShardIdAsObserver:               0,
+		ChanNodeStop:                    endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 }

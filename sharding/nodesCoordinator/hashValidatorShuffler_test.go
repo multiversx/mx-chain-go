@@ -192,6 +192,7 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: nil,
+		StakingV4EnableEpoch: 444,
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -207,6 +208,7 @@ func createHashShufflerIntraShards() (*randHashShuffler, error) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		StakingV4EnableEpoch: 444,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -1190,6 +1192,7 @@ func TestRandHashShuffler_UpdateParams(t *testing.T) {
 		shuffleBetweenShards:  true,
 		validatorDistributor:  &CrossShardValidatorDistributor{},
 		availableNodesConfigs: nil,
+		stakingV4EnableEpoch:  444,
 	}
 
 	shuffler.UpdateParams(
@@ -2379,6 +2382,7 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		StakingV4EnableEpoch: 444,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2614,6 +2618,60 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting(t *testing.T)
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
 }
 
+func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	numEligiblePerShard := 100
+	numNewNodesPerShard := 100
+	numWaitingPerShard := 30
+	numAuction := 40
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(numEligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(numWaitingPerShard, nbShards)
+	newNodes := generateValidatorList(numNewNodesPerShard * (int(nbShards) + 1))
+	auctionList := generateValidatorList(numAuction)
+
+	args := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    make([]Validator, 0),
+		AdditionalLeaving: make([]Validator, 0),
+		Rand:              generateRandomByteArray(32),
+		Auction:           auctionList,
+		NbShards:          nbShards,
+		Epoch:             stakingV4Epoch,
+	}
+
+	shuffler, _ := createHashShufflerIntraShards()
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+
+	for _, newNode := range args.NewNodes {
+		found, _ := searchInMap(resUpdateNodeList.Waiting, newNode.PubKey())
+		assert.True(t, found)
+	}
+
+	for _, auctionNode := range args.Auction {
+		found, _ := searchInMap(resUpdateNodeList.Waiting, auctionNode.PubKey())
+		assert.True(t, found)
+	}
+
+	allShuffledOut := getValidatorsInMap(resUpdateNodeList.ShuffledOut)
+	for _, shuffledOut := range allShuffledOut {
+		found, _ := searchInMap(args.Eligible, shuffledOut.PubKey())
+		assert.True(t, found)
+	}
+
+	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
+	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
+
+	previousNumberOfNodes := (numEligiblePerShard+numWaitingPerShard+numNewNodesPerShard)*(int(nbShards)+1) + numAuction
+	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(allShuffledOut)
+	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
+}
+
 func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t *testing.T) {
 	t.Parallel()
 
@@ -2672,6 +2730,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
+		StakingV4EnableEpoch: 444,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
