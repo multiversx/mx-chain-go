@@ -418,7 +418,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	if mp.isRewardsV2Enabled(header) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, header)
 		if err != nil {
 			return err
 		}
@@ -433,7 +433,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 			return err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, header)
 		if err != nil {
 			return err
 		}
@@ -886,7 +886,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 
 	var rewardMiniBlocks block.MiniBlockSlice
 	if mp.isRewardsV2Enabled(metaBlock) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
+		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, metaBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -901,7 +901,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 			return nil, err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
+		err = mp.processSystemSCsWithNewValidatorsInfo(allValidatorsInfo, metaBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -2500,4 +2500,15 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return metaBlock
+}
+
+// TODO: StakingV4 delete this once map[uint32][]*ValidatorInfo is replaced with interface
+func (mp *metaProcessor) processSystemSCsWithNewValidatorsInfo(allValidatorsInfo map[uint32][]*state.ValidatorInfo, header data.HeaderHandler) error {
+	validatorsInfoMap := state.CreateShardValidatorsMap(allValidatorsInfo)
+	err := mp.epochSystemSCProcessor.ProcessSystemSmartContract(validatorsInfoMap, header)
+	if err != nil {
+		return err
+	}
+	state.Replace(allValidatorsInfo, validatorsInfoMap.GetValInfoPointerMap())
+	return nil
 }

@@ -241,7 +241,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
 			EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-			EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
+			EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

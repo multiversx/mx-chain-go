@@ -23,7 +23,7 @@ func NewShardValidatorsInfoMap() *shardValidatorsInfoMap {
 	}
 }
 
-// TODO: Delete this once map[uint32][]*ValidatorInfo is completely replaced with new interface
+// TODO: Delete these 2 functions once map[uint32][]*ValidatorInfo is completely replaced with new interface
 
 // CreateShardValidatorsMap creates an instance of shardValidatorsInfoMap which manages a shard validator
 // info map internally.
@@ -37,6 +37,17 @@ func CreateShardValidatorsMap(input map[uint32][]*ValidatorInfo) *shardValidator
 	}
 
 	return ret
+}
+
+// Replace will replace src with dst map
+func Replace(oldMap, newMap map[uint32][]*ValidatorInfo) {
+	for shardID := range oldMap {
+		delete(oldMap, shardID)
+	}
+
+	for shardID, validatorsInShard := range newMap {
+		oldMap[shardID] = validatorsInShard
+	}
 }
 
 // GetAllValidatorsInfo returns a []ValidatorInfoHandler copy with validators from all shards.
