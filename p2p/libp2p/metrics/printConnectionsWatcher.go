@@ -85,9 +85,6 @@ func (pcw *printConnectionsWatcher) NewKnownConnection(pid core.PeerID, connecti
 	pcw.printHandler(pid, conn)
 }
 
-// PeerConnected does nothing
-func (pcw *printConnectionsWatcher) PeerConnected(_ core.PeerID) {}
-
 // Close will close any go routines opened by this instance
 func (pcw *printConnectionsWatcher) Close() error {
 	pcw.cancel()

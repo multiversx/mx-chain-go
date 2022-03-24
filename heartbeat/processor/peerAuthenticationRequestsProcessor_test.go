@@ -358,52 +358,6 @@ func TestPeerAuthenticationRequestsProcessor_requestMissingKeys(t *testing.T) {
 		processor.requestMissingKeys(nil)
 		assert.False(t, wasCalled)
 	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedPks := [][]byte{[]byte("pk0"), []byte("pk1"), []byte("pk2"), []byte("pk3")}
-		expectedMissingKeys := make([][]byte, 0)
-		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.MinPeersThreshold = 0.6
-		counter := uint32(0)
-		args.PeerAuthenticationPool = &testscommon.CacherStub{
-			KeysCalled: func() [][]byte {
-				var keys = make([][]byte, 0)
-				switch atomic.LoadUint32(&counter) {
-				case 0:
-					keys = [][]byte{[]byte("pk0")}
-					expectedMissingKeys = [][]byte{[]byte("pk1"), []byte("pk2"), []byte("pk3")}
-				case 1:
-					keys = [][]byte{[]byte("pk0"), []byte("pk2")}
-					expectedMissingKeys = [][]byte{[]byte("pk1"), []byte("pk3")}
-				case 2:
-					keys = [][]byte{[]byte("pk0"), []byte("pk1"), []byte("pk2")}
-					expectedMissingKeys = [][]byte{[]byte("pk3")}
-				case 3:
-					keys = [][]byte{[]byte("pk0"), []byte("pk1"), []byte("pk2"), []byte("pk3")}
-					expectedMissingKeys = make([][]byte, 0)
-				}
-
-				atomic.AddUint32(&counter, 1)
-				return keys
-			},
-		}
-
-		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestPeerAuthenticationsByHashesCalled: func(destShardID uint32, hashes [][]byte) {
-				assert.Equal(t, getSortedSlice(expectedMissingKeys), getSortedSlice(hashes))
-			},
-		}
-
-		processor, err := NewPeerAuthenticationRequestsProcessor(args)
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(processor))
-
-		processor.requestMissingKeys(providedPks) // counter 0
-		processor.requestMissingKeys(providedPks) // counter 1
-		processor.requestMissingKeys(providedPks) // counter 2
-		processor.requestMissingKeys(providedPks) // counter 3
-	})
 }
 
 func TestPeerAuthenticationRequestsProcessor_getRandMaxMissingKeys(t *testing.T) {

@@ -158,6 +158,3 @@ var ErrWrongTypeAssertions = errors.New("wrong type assertion")
 
 // ErrNilConnectionsWatcher signals that a nil connections watcher has been provided
 var ErrNilConnectionsWatcher = errors.New("nil connections watcher")
-
-// ErrNilCurrentPayloadProvider signals that a nil current payload provider has been used
-var ErrNilCurrentPayloadProvider = errors.New("nil current payload provider")

@@ -38,6 +38,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				MinPeersThreshold:                                0.8,
 				DelayBetweenRequestsInSec:                        10,
 				MaxTimeoutInSec:                                  60,
+				DelayBetweenConnectionNotificationsInSec:         5,
 				MaxMissingKeysInRequest:                          100,
 				MaxDurationPeerUnresponsiveInSec:                 10,
 				HideInactiveValidatorIntervalInSec:               60,
