@@ -113,7 +113,9 @@ func createGenesisConfig() config.EnableEpochs {
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 	}
 }
 
@@ -386,15 +388,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             arg.VirtualMachineConfig,
 		BlockGasLimit:      math.MaxUint64,
 		GasSchedule:        arg.GasSchedule,
-		ArgBlockChainHook:  argsHook,
+		BlockChainHook:     blockChainHookImpl,
 		EpochNotifier:      epochNotifier,
 		EpochConfig:        arg.EpochConfig.EnableEpochs,
 		ArwenChangeLocker:  genesisArwenLocker,
 		ESDTTransferParser: esdtTransferParser,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -795,7 +803,14 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		if check.IfNil(dh) {
 			continue
 		}
-		if arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes()) {
+		sameShard := arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes())
+		if len(dh.AddressBytes()) == 0 {
+			// backwards compatibility, do not make "" address be considered empty and thus, belonging to the same shard
+			if arg.ShardCoordinator.ComputeId(ia.AddressBytes()) != 0 {
+				sameShard = false
+			}
+		}
+		if sameShard {
 			continue
 		}
 

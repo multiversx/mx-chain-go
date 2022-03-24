@@ -1,6 +1,7 @@
 package trieIterators
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"sync"
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -66,8 +68,8 @@ func checkArguments(arg ArgTrieIteratorProcessor) error {
 }
 
 // GetTotalStakedValue will calculate total staked value if needed and return calculated value
-func (svp *stakedValuesProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
-	baseStaked, topUp, err := svp.computeBaseStakedAndTopUp()
+func (svp *stakedValuesProcessor) GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error) {
+	baseStaked, topUp, err := svp.computeBaseStakedAndTopUp(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +80,7 @@ func (svp *stakedValuesProcessor) GetTotalStakedValue() (*api.StakeValues, error
 	}, nil
 }
 
-func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.Int, error) {
+func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context) (*big.Int, *big.Int, error) {
 	svp.accounts.Lock()
 	defer svp.accounts.Unlock()
 
@@ -93,7 +95,8 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.In
 	}
 
 	// TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
-	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,6 +117,10 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.In
 
 		totalBaseStaked = totalBaseStaked.Add(totalBaseStaked, baseStaked)
 		totalTopUp = totalTopUp.Add(totalTopUp, info.topUpValue)
+	}
+
+	if common.IsContextDone(ctx) {
+		return nil, nil, ErrTrieOperationsTimeout
 	}
 
 	return totalBaseStaked, totalTopUp, nil

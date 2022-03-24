@@ -65,8 +65,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
-
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
+	if check.IfNil(genesisHdr) {
+		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
 	base := &baseProcessor{
 		accountsDB:                     arguments.AccountsDB,
 		blockSizeThrottler:             arguments.BlockSizeThrottler,
@@ -357,6 +360,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 
 		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
 		if err != nil {
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 			continue
 		}
 
@@ -1454,15 +1458,15 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.Head
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
+		headerInfo, found := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !found {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
 		}
 
-		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
-		if !ok {
+		metaBlock, isMetaBlock := headerInfo.hdr.(*block.MetaBlock)
+		if !isMetaBlock {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
@@ -1912,6 +1916,9 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	if sp.flagScheduledMiniBlocks.IsSet() {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
+
+		scheduledIntermediateTxs := sp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs()
+		sp.txCoordinator.AddTransactions(scheduledIntermediateTxs[block.InvalidBlock], block.TxBlock)
 	}
 
 	// placeholder for shardProcessor.createMiniBlocks script

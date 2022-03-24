@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -268,7 +270,8 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		return err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = trie.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash)
 	if err != nil {
 		return err
 	}
@@ -292,7 +295,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
-		return sharding.ErrInvalidShardId
+		return nodesCoordinator.ErrInvalidShardId
 	}
 
 	rootHashKey := CreateRootHashKey(key)

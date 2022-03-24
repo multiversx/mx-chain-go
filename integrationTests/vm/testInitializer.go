@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -581,11 +582,13 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             *vmConfig,
 		BlockGasLimit:      maxGasLimitPerBlock,
 		GasSchedule:        gasSchedule,
-		ArgBlockChainHook:  args,
+		BlockChainHook:     blockChainHookImpl,
+		BuiltInFunctions:   args.BuiltInFunctions,
 		EpochNotifier:      epochNotifierInstance,
 		EpochConfig:        enableEpochs,
 		ArwenChangeLocker:  arwenChangeLocker,
@@ -654,8 +657,10 @@ func CreateVMAndBlockchainHookMeta(
 		log.LogIfError(err)
 	}
 
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argVMContainer := metachain.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   args,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          args.PubkeyConv,
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
@@ -664,7 +669,7 @@ func CreateVMAndBlockchainHookMeta(
 		Marshalizer:         testMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
-		ChanceComputer:      &mock.NodesCoordinatorMock{},
+		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(enableEpochs),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
@@ -947,6 +952,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		txSimulator,
 		argsNewTxProcessor.Accounts,
 		shardCoordinator,
+		argsNewSCProcessor.EpochNotifier,
+		0,
 	)
 	if err != nil {
 		return nil, err

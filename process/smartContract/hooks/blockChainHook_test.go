@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -217,12 +216,12 @@ func TestBlockChainHookImpl_GetCode(t *testing.T) {
 		code := bh.GetCode(nil)
 		require.Nil(t, code)
 	})
-
 	t.Run("expect correct returned code", func(t *testing.T) {
 		t.Parallel()
 
 		expectedCodeHash := []byte("codeHash")
 		expectedCode := []byte("code")
+
 		args := createMockBlockChainHookArgs()
 		args.Accounts = &stateMock.AccountsStub{
 			GetCodeCalled: func(codeHash []byte) []byte {
@@ -1047,7 +1046,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		require.Equal(t, code, actualCode)
 		require.False(t, wasCodeSavedInPool.IsSet())
 	})
-
 	t.Run("compiled code found in compiled sc pool, but not as byte slice, error getting it from storage", func(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.NilCompiledSCStore = true
@@ -1070,7 +1068,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 		require.Nil(t, actualCode)
 		require.False(t, wasCodeSavedInPool.IsSet())
 	})
-
 	t.Run("compiled code found in storage, but nil", func(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.NilCompiledSCStore = false
@@ -1109,7 +1106,6 @@ func TestBlockChainHookImpl_SaveCompiledCode(t *testing.T) {
 
 		_ = bh.Close()
 	})
-
 	t.Run("compiled code not found in compiled sc pool, get it from storage", func(t *testing.T) {
 		args := createMockBlockChainHookArgs()
 		args.ConfigSCStorage = config.StorageConfig{
@@ -1206,7 +1202,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, process.ErrNilVmInput, err)
 	})
-
 	t.Run("no function set in built in function container, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1218,7 +1213,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), vmcommonBuiltInFunctions.ErrInvalidContainerKey.Error()))
 	})
-
 	t.Run("cannot get sender account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1238,7 +1232,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errGetAccount, err)
 	})
-
 	t.Run("cannot convert sender account to user account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1247,7 +1240,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return &genesisMock.BaseAccountMock{}, nil
+				return &stateMock.UserAccountStub{}, nil
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1257,7 +1250,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
-
 	t.Run("cannot load destination account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1282,7 +1274,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errGetAccount, err)
 	})
-
 	t.Run("cannot convert destination account to user account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1296,7 +1287,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &genesisMock.BaseAccountMock{}, nil
+				return &stateMock.UserAccountStub{}, nil
 			},
 		}
 
@@ -1307,7 +1298,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
-
 	t.Run("cannot process new built in function, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1346,7 +1336,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errProcessBuiltInFunc, err)
 	})
-
 	t.Run("sender and receiver not in same shard, expect they are not saved", func(t *testing.T) {
 		t.Parallel()
 
@@ -1395,7 +1384,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.False(t, getReceiverAccountCalled.IsSet())
 		require.False(t, saveAccountCalled.IsSet())
 	})
-
 	t.Run("sender and receiver same shard, expect accounts saved", func(t *testing.T) {
 		t.Parallel()
 
@@ -1428,7 +1416,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &vmcommon.VMOutput{}, output)
 	})
-
 	t.Run("sender and receiver same shard, sender = receiver, expect only one account is saved", func(t *testing.T) {
 		t.Parallel()
 
@@ -1463,7 +1450,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Equal(t, int64(1), ctSaveAccount.Get())
 		require.False(t, getReceiverAccountCalled.IsSet())
 	})
-
 	t.Run("cannot save sender account, expect error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1488,7 +1474,6 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errSaveAccount, err)
 	})
-
 	t.Run("cannot save receiver account, expect error", func(t *testing.T) {
 		t.Parallel()
 

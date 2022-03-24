@@ -39,7 +39,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -106,7 +106,7 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -192,7 +192,7 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

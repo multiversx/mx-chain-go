@@ -1,6 +1,8 @@
 package testscommon
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import (
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+)
 
 // NodesSetupStub -
 type NodesSetupStub struct {
@@ -15,11 +17,11 @@ type NodesSetupStub struct {
 	MinNumberOfShardNodesCalled               func() uint32
 	GetHysteresisCalled                       func() float32
 	GetAdaptivityCalled                       func() bool
-	InitialNodesInfoForShardCalled            func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled                    func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	InitialNodesInfoForShardCalled            func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled                    func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	GetStartTimeCalled                        func() int64
 	MinNumberOfNodesCalled                    func() uint32
-	AllInitialNodesCalled                     func() []sharding.GenesisNodeInfoHandler
+	AllInitialNodesCalled                     func() []nodesCoordinator.GenesisNodeInfoHandler
 	MinNumberOfNodesWithHysteresisCalled      func() uint32
 }
 
@@ -116,7 +118,7 @@ func (n *NodesSetupStub) GetAdaptivity() bool {
 // InitialNodesInfoForShard -
 func (n *NodesSetupStub) InitialNodesInfoForShard(
 	shardId uint32,
-) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error) {
+) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error) {
 	if n.InitialNodesInfoForShardCalled != nil {
 		return n.InitialNodesInfoForShardCalled(shardId)
 	}
@@ -125,7 +127,7 @@ func (n *NodesSetupStub) InitialNodesInfoForShard(
 }
 
 // InitialNodesInfo -
-func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 	if n.InitialNodesInfoCalled != nil {
 		return n.InitialNodesInfoCalled()
 	}
@@ -158,7 +160,7 @@ func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
 }
 
 // AllInitialNodes -
-func (n *NodesSetupStub) AllInitialNodes() []sharding.GenesisNodeInfoHandler {
+func (n *NodesSetupStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler {
 	if n.AllInitialNodesCalled != nil {
 		return n.AllInitialNodesCalled()
 	}

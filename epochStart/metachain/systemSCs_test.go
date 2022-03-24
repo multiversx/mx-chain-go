@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -885,7 +886,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:                          marshalizer,
-		NodesCoordinator:                     &mock.NodesCoordinatorStub{},
+		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
 		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
 		StorageService:                       &mock.ChainStorerStub{},
@@ -924,8 +925,11 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
 
 	nodesSetup := &mock.NodesSetupStub{}
+
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
-		ArgBlockChainHook:   argsHook,
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -1003,7 +1007,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		EpochNotifier:           en,
 		GenesisNodesConfig:      nodesSetup,
 		StakingDataProvider:     stakingSCprovider,
-		NodesConfigProvider: &mock.NodesCoordinatorStub{
+		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
 					return 400
@@ -1313,7 +1317,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, len(updatedContractConfig))
 	require.Equal(t, args.ESDTOwnerAddressBytes, updatedContractConfig[0])
-	//the other config values should be unchanged
+	// the other config values should be unchanged
 	for i := 1; i < len(initialContractConfig); i++ {
 		assert.Equal(t, initialContractConfig[i], updatedContractConfig[i])
 	}

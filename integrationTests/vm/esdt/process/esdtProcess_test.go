@@ -63,7 +63,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -192,7 +192,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -287,7 +287,7 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -329,7 +329,7 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	metaNode := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	defer func() {
-		_ = metaNode.Messenger.Close()
+		metaNode.Close()
 	}()
 
 	txData := txDataBuilder.NewBuilder()
@@ -393,7 +393,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -490,7 +490,7 @@ func TestESDTcallsSC(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -569,7 +569,7 @@ func TestESDTcallsSC(t *testing.T) {
 
 	scQuery1 := &process.SCQuery{
 		ScAddress: scAddress,
-		FuncName:  "currentFunds",
+		FuncName:  "getCurrentFunds",
 		Arguments: [][]byte{},
 	}
 	vmOutput1, _ := nodes[0].SCQueryService.ExecuteQuery(scQuery1)
@@ -608,7 +608,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -761,7 +761,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -870,7 +870,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -991,7 +991,7 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1083,7 +1083,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1249,7 +1249,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1384,7 +1384,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1586,7 +1586,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -1991,7 +1991,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -2075,7 +2075,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -2191,7 +2191,7 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -2351,7 +2351,7 @@ func multiTransferFromSC(t *testing.T, numOfShards int) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 
@@ -2454,7 +2454,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}()
 

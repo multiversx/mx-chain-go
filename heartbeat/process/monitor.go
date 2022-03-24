@@ -230,13 +230,8 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	receivedHbmi := m.convertFromExportedStruct(*heartbeatDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
 	crtTime := m.timer.Now()
-	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
-	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
-		receivedHbmi.totalUpTime += crtDuration
 		receivedHbmi.timeStamp = crtTime
-	} else {
-		receivedHbmi.totalDownTime += crtDuration
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
@@ -265,8 +260,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
+		// this situation is so severe that we have to black list both the message originator and the connected peer
+		// that disseminated this message.
 		reason := "blacklisted due to invalid heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -280,8 +275,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	}
 
 	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
+		// this situation is so severe that we have to black list both the message originator and the connected peer
+		// that disseminated this message.
 		reason := "blacklisted due to inconsistent heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
@@ -293,7 +288,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		)
 	}
 
-	//message is validated, process should be done async, method can return nil
+	// message is validated, process should be done async, method can return nil
 	go m.addHeartbeatMessageToMap(hbRecv)
 
 	go m.computeAllHeartbeatMessages()
@@ -458,16 +453,11 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	for k, v := range m.heartbeatMessages {
 		v.updateMutex.RLock()
 		tmp := data.PubKeyHeartbeat{
-			PublicKey: m.validatorPubkeyConverter.Encode([]byte(k)),
-			TimeStamp: v.timeStamp,
-			MaxInactiveTime: data.Duration{
-				Duration: v.maxInactiveTime,
-			},
+			PublicKey:       m.validatorPubkeyConverter.Encode([]byte(k)),
+			TimeStamp:       v.timeStamp,
 			IsActive:        v.isActive,
 			ReceivedShardID: v.receivedShardID,
 			ComputedShardID: v.computedShardID,
-			TotalUpTime:     int64(v.totalUpTime.Seconds()),
-			TotalDownTime:   int64(v.totalDownTime.Seconds()),
 			VersionNumber:   v.versionNumber,
 			NodeDisplayName: v.nodeDisplayName,
 			Identity:        v.identity,
@@ -533,9 +523,6 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
-	ret.MaxInactiveTime = v.maxInactiveTime.Nanoseconds()
-	ret.TotalUpTime = v.totalUpTime.Nanoseconds()
-	ret.TotalDownTime = v.totalDownTime.Nanoseconds()
 	ret.LastUptimeDowntime = v.lastUptimeDowntime.UnixNano()
 	ret.GenesisTime = v.genesisTime.UnixNano()
 
@@ -558,10 +545,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		pidString:                   hbDTO.PidString,
 	}
 
-	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
 	hbmi.timeStamp = time.Unix(0, hbDTO.TimeStamp)
-	hbmi.totalUpTime = time.Duration(hbDTO.TotalUpTime)
-	hbmi.totalDownTime = time.Duration(hbDTO.TotalDownTime)
 	hbmi.lastUptimeDowntime = time.Unix(0, hbDTO.LastUptimeDowntime)
 	hbmi.genesisTime = time.Unix(0, hbDTO.GenesisTime)
 

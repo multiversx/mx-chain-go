@@ -79,7 +79,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 				return nil
 			},
 		},
-		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:   &testscommon.BlockChainHookStub{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
@@ -609,9 +609,11 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	arguments.EnableEpochs.BuiltInFunctionsEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-		return nil, localError
-	}}
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, localError
+		},
+	}
 
 	scrAdded := false
 	badTxAdded := false
@@ -802,6 +804,66 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	_ = sc.flagBuiltin.SetReturningPrevious()
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+}
+
+func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
+	t.Parallel()
+
+	vmContainer := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	accountState := &stateMock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+	arguments.AccountsDB = accountState
+	arguments.VmContainer = vmContainer
+	arguments.ArgsParser = argParser
+
+	funcName := "builtIn"
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte(funcName + "@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+	userAcc, _ := acntSrc.(vmcommon.UserAccountHandler)
+
+	builtInFunc := &mock.BuiltInFunctionStub{ProcessBuiltinFunctionCalled: func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		longData := bytes.Repeat([]byte{1}, 1<<21)
+
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, ReturnData: [][]byte{longData}}, nil
+	}}
+	_ = arguments.BuiltInFunctions.Add(funcName, builtInFunc)
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return builtInFunc.ProcessBuiltinFunction(userAcc, nil, input)
+		},
+	}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+	accountState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		return acntSrc, nil
+	}
+
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(false)
+	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_ = acntSrc.AddToBalance(big.NewInt(100))
+	sc.flagSCRSizeInvariantOnBuiltInResult.SetValue(true)
+	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
 }
 
@@ -2908,8 +2970,8 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{
-		IsPayableCalled: func(_, _ []byte) (bool, error) {
+	arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+		IsPayableCalled: func(_ []byte, _ []byte) (bool, error) {
 			return false, nil
 		},
 	}
@@ -4185,4 +4247,32 @@ func TestMergeVmOutputLogs(t *testing.T) {
 
 	mergeVMOutputLogs(vmOutput1, vmOutput2)
 	require.Len(t, vmOutput1.Logs, 2)
+}
+
+func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+
+	sc.flagCleanUpInformativeSCRs.Reset()
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 10}
+	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
+	returnMessage := "@" + fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+		TooMuchGasProvidedMessage, 1, 10)
+	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+
+	sc.flagCleanUpInformativeSCRs.SetValue(true)
+	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
+	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
+	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
+		TooMuchGasProvidedMessage, 11, 1)
+	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 }
