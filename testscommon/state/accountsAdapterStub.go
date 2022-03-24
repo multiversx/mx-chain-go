@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -29,7 +30,7 @@ type AccountsStub struct {
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeavesCalled            func(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
 	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
 	GetNumCheckpointsCalled       func() uint32
 	GetCodeCalled                 func([]byte) []byte
@@ -80,11 +81,11 @@ func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (as *AccountsStub) GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(rootHash)
+		return as.GetAllLeavesCalled(leavesChannel, ctx, rootHash)
 	}
-	return nil, nil
+	return nil
 }
 
 // Commit -

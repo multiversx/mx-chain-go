@@ -402,7 +402,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 1000
+    Capacity = 100000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
@@ -573,6 +573,9 @@
         SameSourceRequests = 10000
         # SameSourceResetIntervalInSec time frame between counter reset, in seconds
         SameSourceResetIntervalInSec = 1
+        # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
+        # can take.
+        TrieOperationsDeadlineMilliseconds = 10000
         # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
         EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                                { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -696,6 +699,8 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
@@ -703,6 +708,8 @@
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },

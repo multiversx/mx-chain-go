@@ -973,7 +973,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 	}
 }
 
-func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testing.T) {
+func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldNotErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -1013,7 +1013,7 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testin
 
 	err := txs.SaveTxsToStorage(body)
 
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	assert.Nil(t, err)
 }
 
 func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
@@ -1394,4 +1394,23 @@ func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 
 	retMap := scrPreproc.GetAllCurrentUsedTxs()
 	assert.NotNil(t, retMap)
+}
+
+func TestSmartContractResults_EpochConfirmed(t *testing.T) {
+	t.Parallel()
+
+	srcs := smartContractResults{
+		basePreProcess: &basePreProcess{
+			optimizeGasUsedInCrossMiniBlocksEnableEpoch: 1,
+		},
+	}
+
+	srcs.EpochConfirmed(0, 0)
+	assert.False(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+
+	srcs.EpochConfirmed(1, 0)
+	assert.True(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
+
+	srcs.EpochConfirmed(2, 0)
+	assert.True(t, srcs.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 }

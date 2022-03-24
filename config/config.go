@@ -307,10 +307,11 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
-	SimultaneousRequests         uint32
-	SameSourceRequests           uint32
-	SameSourceResetIntervalInSec uint32
-	EndpointsThrottlers          []EndpointsThrottlersConfig
+	SimultaneousRequests               uint32
+	SameSourceRequests                 uint32
+	SameSourceResetIntervalInSec       uint32
+	TrieOperationsDeadlineMilliseconds uint32
+	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
 // BlackListConfig will hold the p2p peer black list threshold values
@@ -383,7 +384,9 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions []ArwenVersionByEpoch
+	ArwenVersions                       []ArwenVersionByEpoch
+	TimeOutForSCExecutionInMilliseconds uint32
+	WasmerSIGSEGVPassthrough            bool
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch

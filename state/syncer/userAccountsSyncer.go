@@ -211,7 +211,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return err
 	}
 
-	leavesChannel, err := mainTrie.GetAllLeavesOnChannel(mainRootHash)
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = mainTrie.GetAllLeavesOnChannel(leavesChannel, context.Background(), mainRootHash)
 	if err != nil {
 		return err
 	}

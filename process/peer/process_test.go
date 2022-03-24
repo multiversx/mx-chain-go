@@ -2,6 +2,7 @@ package peer_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -1923,8 +1924,8 @@ func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 	arguments := createMockArguments()
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
-		return nil, expectedErr
+	peerAdapter.GetAllLeavesCalled = func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+		return expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
 
@@ -1948,18 +1949,16 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
+	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, _ context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
-			ch := make(chan core.KeyValueHolder)
-
 			go func() {
 				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		}
-		return nil, expectedErr
+		return expectedErr
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		if bytes.Equal(pa0.GetBLSPublicKey(), address) {
@@ -2009,18 +2008,17 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
+	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
-			ch := make(chan core.KeyValueHolder, 2)
 			go func() {
 				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		}
-		return nil, expectedErr
+		return expectedErr
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		if bytes.Equal(pa0.GetBLSPublicKey(), address) {
@@ -2058,18 +2056,17 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
+	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 		if bytes.Equal(rootHash, hash) {
-			ch := make(chan core.KeyValueHolder, 2)
 			go func() {
 				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 				close(ch)
 			}()
 
-			return ch, nil
+			return nil
 		}
-		return nil, expectedErr
+		return expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
 
@@ -2493,15 +2490,14 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
-		ch := make(chan core.KeyValueHolder, 2)
+	peerAdapter.GetAllLeavesCalled = func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 		go func() {
 			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 			close(ch)
 		}()
 
-		return ch, nil
+		return nil
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		return pa0, nil

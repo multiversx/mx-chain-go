@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -41,9 +42,10 @@ func createMockArguments() ArgNodeFacade {
 		RestAPIServerDebugMode: false,
 		TxSimulatorProcessor:   &mock.TxExecutionSimulatorStub{},
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
-			SimultaneousRequests:         1,
-			SameSourceRequests:           1,
-			SameSourceResetIntervalInSec: 1,
+			SimultaneousRequests:               1,
+			SameSourceRequests:                 1,
+			SameSourceResetIntervalInSec:       1,
+			TrieOperationsDeadlineMilliseconds: 1,
 		},
 		FacadeConfig: config.FacadeConfig{
 			RestApiInterface: "127.0.0.1:8080",
@@ -661,7 +663,7 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	expectedPairs := map[string]string{"k": "v"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetKeyValuePairsCalled: func(address string) (map[string]string, error) {
+		GetKeyValuePairsCalled: func(address string, _ context.Context) (map[string]string, error) {
 			return expectedPairs, nil
 		},
 	}
@@ -682,7 +684,7 @@ func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
 	}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllESDTTokensCalled: func(_ string) (map[string]*esdt.ESDigitalToken, error) {
+		GetAllESDTTokensCalled: func(_ string, _ context.Context) (map[string]*esdt.ESDigitalToken, error) {
 			return expectedTokens, nil
 		},
 	}
@@ -738,7 +740,7 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 	expectedValue := []string{"value"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string, _ context.Context) ([]string, error) {
 			return expectedValue, nil
 		},
 	}
@@ -757,7 +759,7 @@ func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetESDTsWithRoleCalled: func(address string, role string) ([]string, error) {
+		GetESDTsWithRoleCalled: func(address string, role string, _ context.Context) ([]string, error) {
 			return expectedResponse, nil
 		},
 	}
@@ -776,7 +778,7 @@ func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	args := createMockArguments()
 
 	args.Node = &mock.NodeStub{
-		GetNFTTokenIDsRegisteredByAddressCalled: func(address string) ([]string, error) {
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ context.Context) ([]string, error) {
 			return expectedResponse, nil
 		},
 	}
@@ -794,7 +796,7 @@ func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	localErr := errors.New("local")
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string, _ context.Context) ([]string, error) {
 			return nil, localErr
 		},
 	}
@@ -829,7 +831,7 @@ func TestNodeFacade_GetTotalStakedValue(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+		GetTotalStakedValueHandler: func(ctx context.Context) (*api.StakeValues, error) {
 			called = true
 			return nil, nil
 		},
@@ -847,7 +849,7 @@ func TestNodeFacade_GetDelegatorsList(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
+		GetDelegatorsListHandler: func(ctx context.Context) ([]*api.Delegator, error) {
 			called = true
 			return nil, nil
 		},
@@ -865,7 +867,7 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 	called := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
+		GetDirectStakedListHandler: func(ctx context.Context) ([]*api.DirectStakedValue, error) {
 			called = true
 			return nil, nil
 		},
