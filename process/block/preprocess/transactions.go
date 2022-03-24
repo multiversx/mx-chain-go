@@ -331,7 +331,10 @@ func (txs *transactions) computeTxsToMe(headerHandler data.HeaderHandler, body *
 			return nil, err
 		}
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, miniBlockHeader.GetIndexOfLastTxProcessed())
+		indexOfLastTxProcessedByProposer := miniBlockHeader.GetIndexOfLastTxProcessed()
+		indexOfLastTxProcessedByProposer = int32(len(miniBlock.TxHashes)) - 1
+
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, indexOfLastTxProcessedByProposer)
 		if err != nil {
 			return nil, err
 		}
@@ -392,11 +395,11 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 	return allScheduledTxs, nil
 }
 
-func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock, indexOfLastTxProcessed int32) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock, indexOfLastTxProcessedByProposer int32) ([]*txcache.WrappedTransaction, error) {
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
 
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
-		if i > int(indexOfLastTxProcessed) {
+		if i > int(indexOfLastTxProcessedByProposer) {
 			break
 		}
 

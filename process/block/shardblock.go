@@ -749,9 +749,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 				continue
 			}
 
+			indexOfLastTxProcessed := miniBlockHeader.GetIndexOfLastTxProcessed()
+			indexOfLastTxProcessed = int32(miniBlockHeader.GetTxCount()) - 1
 			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, string(miniBlockHash), &processedMb.ProcessedMiniBlockInfo{
-				IsFullyProcessed:       int32(miniBlockHeader.GetTxCount())-1 == miniBlockHeader.GetIndexOfLastTxProcessed(),
-				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
+				IsFullyProcessed:       int32(miniBlockHeader.GetTxCount())-1 == indexOfLastTxProcessed,
+				IndexOfLastTxProcessed: indexOfLastTxProcessed,
 			},
 			)
 		}
@@ -1449,7 +1451,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.He
 		"num miniblocks", len(miniBlockHashes),
 	)
 
-	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes)
+	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -1499,9 +1501,11 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 				continue
 			}
 
+			indexOfLastTxProcessed := miniBlockHeader.GetIndexOfLastTxProcessed()
+			indexOfLastTxProcessed = int32(miniBlockHeader.GetTxCount()) - 1
 			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(string(metaBlockHash), string(miniBlockHash), &processedMb.ProcessedMiniBlockInfo{
-				IsFullyProcessed:       int32(miniBlockHeader.GetTxCount())-1 == miniBlockHeader.GetIndexOfLastTxProcessed(),
-				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
+				IsFullyProcessed:       int32(miniBlockHeader.GetTxCount())-1 == indexOfLastTxProcessed,
+				IndexOfLastTxProcessed: indexOfLastTxProcessed,
 			},
 			)
 
@@ -1514,6 +1518,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 }
 
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
+	miniBlockHeaders []data.MiniBlockHeaderHandler,
 	miniBlockHashes map[int][]byte,
 ) ([]data.HeaderHandler, error) {
 
@@ -1547,7 +1552,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 				continue
 			}
 
-			processedCrossMiniBlocksHashes[string(miniBlockHash)] = sp.processedMiniBlocks.IsMiniBlockFullyProcessed(metaBlockHash, string(miniBlockHash))
+			processedCrossMiniBlocksHashes[string(miniBlockHash)] = miniBlockHeaders[key].IsFinal()
 
 			delete(miniBlockHashes, key)
 		}

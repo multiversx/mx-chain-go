@@ -18,13 +18,13 @@ func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
 	mtbHash1 := "meta1"
 	mtbHash2 := "meta2"
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash1, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash1, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash2))
 
 	pmb.RemoveMiniBlockHash(mbHash1)
@@ -47,16 +47,16 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksInfo(t *testing.T) {
 	mtbHash1 := "meta1"
 	mtbHash2 := "meta2"
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, nil)
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, nil)
-	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash2, nil)
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash2, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
 
 	mapData := pmb.GetProcessedMiniBlocksInfo(mtbHash1)
 	assert.NotNil(t, mapData[mbHash1])
 	assert.NotNil(t, mapData[mbHash2])
 
 	mapData = pmb.GetProcessedMiniBlocksInfo(mtbHash2)
-	assert.NotNil(t, mapData[mbHash1])
+	assert.NotNil(t, mapData[mbHash2])
 }
 
 func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) {
@@ -68,8 +68,10 @@ func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) 
 	mtbHash1 := "meta1"
 
 	data1 := bootstrapStorage.MiniBlocksInMeta{
-		MetaHash:         []byte(mtbHash1),
-		MiniBlocksHashes: [][]byte{[]byte(mbHash1)},
+		MetaHash:               []byte(mtbHash1),
+		MiniBlocksHashes:       [][]byte{[]byte(mbHash1)},
+		IsFullyProcessed:       []bool{true},
+		IndexOfLastTxProcessed: []int32{69},
 	}
 
 	miniBlocksInMeta := []bootstrapStorage.MiniBlocksInMeta{data1}

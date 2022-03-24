@@ -4066,7 +4066,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	assert.Equal(t, nil, metaBlockRestored)
 	assert.Error(t, err)
 
-	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
+	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes, &block.Header{})
 
 	metaBlockRestored, _ = poolFake.Headers().GetHeaderByHash(metaHash)
 
@@ -4421,7 +4421,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		}
 	}
 
-	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
+	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes, &block.Header{})
 
 	metaBlockRestored, _ = poolMock.Headers().GetHeaderByHash(metaHash)
 
@@ -5040,7 +5040,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	sp.EpochConfirmed(1, 0)
-	_, err = sp.CreateMiniBlocks(func() bool { return false })
+	_, _, err = sp.CreateMiniBlocks(func() bool { return false })
 	require.Nil(t, err)
 	require.True(t, called.IsSet())
 }

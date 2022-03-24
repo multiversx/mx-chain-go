@@ -278,14 +278,15 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		if err != nil {
 			return err
 		}
-		indexOfLastTxProcessed := miniBlockHeader.GetIndexOfLastTxProcessed()
+		indexOfLastTxProcessedByProposer := miniBlockHeader.GetIndexOfLastTxProcessed()
+		indexOfLastTxProcessedByProposer = int32(len(miniBlock.TxHashes)) - 1
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
 			}
 
-			if j > int(indexOfLastTxProcessed) {
+			if j > int(indexOfLastTxProcessedByProposer) {
 				break
 			}
 

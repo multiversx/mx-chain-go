@@ -1104,15 +1104,15 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 
 	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
 	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{txHash},
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+	}
+	miniBlockHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
 	body := block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				TxHashes:        [][]byte{txHash},
-				SenderShardID:   1,
-				ReceiverShardID: 0,
-				Type:            block.TxBlock,
-			},
-		},
+		MiniBlocks: []*block.MiniBlock{miniBlock},
 	}
 
 	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
@@ -1121,7 +1121,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&block.Header{}, &body, haveTimeTrue)
+	_ = preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash}}}, &body, haveTimeTrue)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
@@ -1192,11 +1192,11 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: f,
 	}
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
+	txsToBeReverted, indexOfLastTxProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 
 	assert.Equal(t, process.ErrMaxBlockSizeReached, err)
 	assert.Equal(t, 3, len(txsToBeReverted))
-	assert.Equal(t, 3, numTxsProcessed)
+	assert.Equal(t, 2, indexOfLastTxProcessed)
 
 	f = func() (int, int) {
 		if nbTxsProcessed == 0 {
@@ -1207,11 +1207,11 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	postProcessorInfoHandlerMock = &mock.PostProcessorInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: f,
 	}
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
+	txsToBeReverted, indexOfLastTxProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
-	assert.Equal(t, 3, numTxsProcessed)
+	assert.Equal(t, 2, indexOfLastTxProcessed)
 }
 
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDestMeTxsIsReached(t *testing.T) {
@@ -1262,19 +1262,19 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
+	txsToBeReverted, indexOfLastTxProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
-	assert.Equal(t, 1, numTxsProcessed)
+	assert.Equal(t, 0, indexOfLastTxProcessed)
 
 	txs.EpochConfirmed(2, 0)
 
-	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
+	txsToBeReverted, indexOfLastTxProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, -1, postProcessorInfoHandlerMock)
 
 	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
-	assert.Equal(t, 1, len(txsToBeReverted))
-	assert.Equal(t, 0, numTxsProcessed)
+	assert.Equal(t, 0, len(txsToBeReverted))
+	assert.Equal(t, -1, indexOfLastTxProcessed)
 }
 
 func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {

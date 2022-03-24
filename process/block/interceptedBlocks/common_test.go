@@ -389,7 +389,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		ReceiverShardID: shardCoordinator.SelfId(),
 		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
-		Reserved:        []byte("rrrrrrrrrrrrrrrrr"),
+		Reserved:        []byte("rrrrrrrrrrrrrrrrrrrrrrrrr"),
 	}
 
 	sd := block.ShardData{

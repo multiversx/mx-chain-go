@@ -1186,13 +1186,14 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			"error", err.Error(),
 		)
 
-		allTxsProcessed := indexOfLastTxProcessed+1 == len(miniBlock.TxHashes)
-		if allTxsProcessed {
-			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
-		} else {
-			processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-			processedMbInfo.IsFullyProcessed = false
-		}
+		//TODO: Remove comments and add an activation flag if needed
+		//allTxsProcessed := indexOfLastTxProcessed+1 == len(miniBlock.TxHashes)
+		//if allTxsProcessed {
+		tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
+		//} else {
+		//	processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
+		//	processedMbInfo.IsFullyProcessed = false
+		//}
 
 		return err
 	}
@@ -1660,6 +1661,7 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
 	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
 	indexOfLastTxProcessed := miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
+	indexOfLastTxProcessed = int32(len(miniBlock.TxHashes)) - 1
 
 	for index, txHash := range miniBlock.TxHashes {
 		if index > int(indexOfLastTxProcessed) {
