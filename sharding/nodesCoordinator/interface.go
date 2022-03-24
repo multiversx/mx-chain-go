@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -149,4 +150,20 @@ type NodesCoordinatorRegistryHandler interface {
 	GetEpochsConfig() map[string]EpochValidatorsHandler
 	GetCurrentEpoch() uint32
 	SetCurrentEpoch(epoch uint32)
+}
+
+// NodesCoordinatorRegistryFactory defines a NodesCoordinatorRegistryHandler factory
+// from the provided buffer
+type NodesCoordinatorRegistryFactory interface {
+	CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error)
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
 }

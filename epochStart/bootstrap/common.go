@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -105,6 +106,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
+	}
+	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory)
 	}
 
 	return nil

@@ -263,7 +263,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	config, err := nodesCoordinator.CreateNodesCoordinatorRegistry(e.coreComponentsHolder.InternalMarshalizer(), d)
+	config, err := e.nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry(d)
 	if err != nil {
 		return nil, nil, err
 	}
