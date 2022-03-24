@@ -461,7 +461,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 	require.Nil(t, err)
 }
 
-func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
+func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo state.ShardValidatorsInfoMapHandler, topUpValue *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
 	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
@@ -472,14 +472,13 @@ func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[ui
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
-	for _, valsList := range validatorsInfo {
-		for _, valInfo := range valsList {
-			stake := big.NewInt(0).Add(big.NewInt(2500), topUpValue)
-			if valInfo.List != string(common.LeavingList) && valInfo.List != string(common.InactiveList) {
-				doStake(t, s.systemVM, s.userAccountsDB, valInfo.RewardAddress, stake, valInfo.PublicKey)
-			}
-			updateCache(sdp, valInfo.RewardAddress, valInfo.PublicKey, valInfo.List, stake)
+	for _, valInfo := range validatorsInfo.GetAllValidatorsInfo() {
+		stake := big.NewInt(0).Add(big.NewInt(2500), topUpValue)
+		if valInfo.GetList() != string(common.LeavingList) && valInfo.GetList() != string(common.InactiveList) {
+			doStake(t, s.systemVM, s.userAccountsDB, valInfo.GetRewardAddress(), stake, valInfo.GetPublicKey())
 		}
+		updateCache(sdp, valInfo.GetRewardAddress(), valInfo.GetPublicKey(), valInfo.GetList(), stake)
+
 	}
 
 	return sdp
@@ -513,12 +512,12 @@ func updateCache(sdp *stakingDataProvider, ownerAddress []byte, blsKey []byte, l
 	sdp.cache[string(ownerAddress)] = owner
 }
 
-func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbInactive map[uint32]uint32) map[uint32][]*state.ValidatorInfo {
-	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbInactive map[uint32]uint32) state.ShardValidatorsInfoMapHandler {
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	shardMap := shardsMap(nbShards)
 
 	for shardID := range shardMap {
-		valInfoList := make([]*state.ValidatorInfo, 0)
+		valInfoList := make([]state.ValidatorInfoHandler, 0)
 		for eligible := uint32(0); eligible < nbEligible[shardID]; eligible++ {
 			vInfo := &state.ValidatorInfo{
 				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", common.EligibleList, shardID, eligible)),
@@ -556,7 +555,7 @@ func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbI
 			}
 			valInfoList = append(valInfoList, vInfo)
 		}
-		validatorsInfo[shardID] = valInfoList
+		_ = validatorsInfo.SetValidatorsInShard(shardID, valInfoList)
 	}
 	return validatorsInfo
 }

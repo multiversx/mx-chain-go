@@ -55,26 +55,6 @@ func TestShardValidatorsInfoMap_OperationsWithNilValidators(t *testing.T) {
 	})
 }
 
-func TestCreateShardValidatorsMap(t *testing.T) {
-	t.Parallel()
-
-	v0 := &ValidatorInfo{ShardId: core.MetachainShardId, PublicKey: []byte("pk0")}
-	v1 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk1")}
-	v2 := &ValidatorInfo{ShardId: 1, PublicKey: []byte("pk2")}
-
-	input := map[uint32][]*ValidatorInfo{
-		core.MetachainShardId: {v0},
-		1:                     {v1, v2},
-	}
-	expectedValidatorsMap := map[uint32][]ValidatorInfoHandler{
-		core.MetachainShardId: {v0},
-		1:                     {v1, v2},
-	}
-
-	vi := CreateShardValidatorsMap(input)
-	require.Equal(t, expectedValidatorsMap, vi.GetShardValidatorsInfoMap())
-}
-
 func TestShardValidatorsInfoMap_Add_GetShardValidatorsInfoMap_GetAllValidatorsInfo_GetValInfoPointerMap(t *testing.T) {
 	t.Parallel()
 
@@ -104,14 +84,6 @@ func TestShardValidatorsInfoMap_Add_GetShardValidatorsInfoMap_GetAllValidatorsIn
 		core.MetachainShardId: {v3},
 	}
 	require.Equal(t, validatorsMap, expectedValidatorsMap)
-
-	validatorPointersMap := vi.GetValInfoPointerMap()
-	expectedValidatorPointersMap := map[uint32][]*ValidatorInfo{
-		0:                     {v0, v1},
-		1:                     {v2},
-		core.MetachainShardId: {v3},
-	}
-	require.Equal(t, expectedValidatorPointersMap, validatorPointersMap)
 }
 
 func TestShardValidatorsInfoMap_GetValidator(t *testing.T) {
@@ -241,10 +213,6 @@ func TestShardValidatorsInfoMap_GettersShouldReturnCopiesOfInternalData(t *testi
 
 	validatorsMap := vi.GetShardValidatorsInfoMap()
 	delete(validatorsMap, 0)
-	validatorsMap[1][0].SetPublicKey([]byte("rnd"))
-
-	validatorPointersMap := vi.GetValInfoPointerMap()
-	delete(validatorPointersMap, 0)
 	validatorsMap[1][0].SetPublicKey([]byte("rnd"))
 
 	validators := vi.GetAllValidatorsInfo()

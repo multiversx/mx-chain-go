@@ -194,8 +194,6 @@ type ShardValidatorsInfoMapHandler interface {
 	Delete(validator ValidatorInfoHandler) error
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
-
-	GetValInfoPointerMap() map[uint32][]*ValidatorInfo
 }
 
 //ValidatorInfoHandler defines which data shall a validator info hold.
