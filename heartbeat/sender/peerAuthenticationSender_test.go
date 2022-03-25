@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"sync"
@@ -405,23 +406,24 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		t.Parallel()
 
 		wasRegisterNotifyHandlerCalled := false
-		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		argsBase := createMockBaseArgs()
+		wasBroadcastCalled := false
+		argsBase.messenger = &mock.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				wasBroadcastCalled = true
+			},
+		}
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		args.epochNotifier = &epochNotifier.EpochNotifierStub{
 			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 				wasRegisterNotifyHandlerCalled = true
 			},
 		}
 		sender, _ := newPeerAuthenticationSender(args)
-		wasCreateNewTimerCalled := false
-		sender.timerHandler = &mock.TimerHandlerStub{
-			CreateNewTimerCalled: func(duration time.Duration) {
-				wasCreateNewTimerCalled = true
-			},
-		}
 
 		sender.Execute()
 		assert.True(t, wasRegisterNotifyHandlerCalled)
-		assert.False(t, wasCreateNewTimerCalled)
+		assert.False(t, wasBroadcastCalled)
 	})
 	t.Run("execute errors, should set the error time duration value", func(t *testing.T) {
 		t.Parallel()
@@ -474,6 +476,94 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		sender.Execute()
 		assert.True(t, wasCalled)
 	})
+	t.Run("should work with routine handler simulator", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer func() {
+			cancel()
+
+			r := recover()
+			if r != nil {
+				assert.Fail(t, "should not panic")
+			}
+		}()
+
+		argsBase := createMockBaseArgs()
+		argsBase.timeBetweenSends = 2 * time.Second
+		counterBroadcast := 0
+		var mutcounterBroadcast sync.RWMutex
+		argsBase.messenger = &mock.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				mutcounterBroadcast.Lock()
+				counterBroadcast++
+				mutcounterBroadcast.Unlock()
+			},
+		}
+
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
+		epoch := 0
+		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+				epoch++
+				if epoch == 1 || epoch > 3 {
+					return nil, 0, nil // validator
+				}
+
+				return nil, 0, errors.New("observer") // observer
+			},
+		}
+
+		epochDuration := 6 * time.Second
+		args.epochNotifier = &epochNotifier.EpochNotifierStub{
+			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
+				go processEpochs(epochDuration, handler, ctx)
+			},
+		}
+
+		sender, _ := newPeerAuthenticationSender(args)
+
+		// simulate routine handler
+		go routineHandlerSimulator(sender, ctx)
+
+		secondsToRun := 4 * epochDuration
+		time.Sleep(secondsToRun)
+
+		// ~ 3 messages/epoch during 2 epochs as validator
+		mutcounterBroadcast.RLock()
+		assert.Equal(t, 6, counterBroadcast)
+		mutcounterBroadcast.RUnlock()
+	})
+}
+
+func routineHandlerSimulator(s senderHandler, ctx context.Context) {
+	defer func() {
+		s.Close()
+	}()
+
+	s.Execute()
+	for {
+		select {
+		case <-s.ExecutionReadyChannel():
+			s.Execute()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func processEpochs(epochDuration time.Duration, handler vmcommon.EpochSubscriberHandler, ctx context.Context) {
+	handler.EpochConfirmed(0, 0) // start first epoch
+	timer := time.NewTimer(epochDuration)
+	for {
+		timer.Reset(epochDuration)
+		select {
+		case <-timer.C:
+			handler.EpochConfirmed(0, 0)
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
@@ -571,43 +661,51 @@ func TestPeerAuthenticationSender_EpochConfirmed(t *testing.T) {
 	t.Run("validator", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		argsBase := createMockBaseArgs()
+		broadcastCalled := false
+		argsBase.messenger = &mock.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				assert.Equal(t, argsBase.topic, topic)
+				broadcastCalled = true
+			},
+		}
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, nil
 			},
 		}
+
 		sender, _ := newPeerAuthenticationSender(args)
-		wasCalled := false
-		sender.timerHandler = &mock.TimerHandlerStub{
-			CreateNewTimerCalled: func(duration time.Duration) {
-				wasCalled = true // this is called from Execute
-			},
-		}
 
 		sender.EpochConfirmed(0, 0)
+		sender.Execute()
 		assert.True(t, sender.isValidatorFlag.IsSet())
-		assert.True(t, wasCalled)
+		assert.True(t, broadcastCalled)
 	})
 	t.Run("observer", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		argsBase := createMockBaseArgs()
+		broadcastCalled := false
+		argsBase.messenger = &mock.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				assert.Equal(t, argsBase.topic, topic)
+				broadcastCalled = true
+			},
+		}
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("not validator")
 			},
 		}
+
 		sender, _ := newPeerAuthenticationSender(args)
-		wasCalled := false
-		sender.timerHandler = &mock.TimerHandlerStub{
-			CreateNewTimerCalled: func(duration time.Duration) {
-				wasCalled = true // this is called from Execute
-			},
-		}
 
 		sender.EpochConfirmed(0, 0)
+		sender.Execute()
 		assert.False(t, sender.isValidatorFlag.IsSet())
-		assert.False(t, wasCalled)
+		assert.False(t, broadcastCalled)
 	})
 }

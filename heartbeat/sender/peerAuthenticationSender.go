@@ -84,6 +84,7 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 // Execute will handle the execution of a cycle in which the peer authentication message will be sent
 func (sender *peerAuthenticationSender) Execute() {
 	if !sender.isValidatorFlag.IsSet() {
+		sender.CreateNewTimer(sender.timeBetweenSendsWhenError) // keep the timer alive
 		return
 	}
 
@@ -169,10 +170,6 @@ func (sender *peerAuthenticationSender) EpochConfirmed(_ uint32, _ uint64) {
 	_, _, err = sender.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
 	isEpochValidator := err == nil
 	sender.isValidatorFlag.SetValue(isEpochValidator)
-
-	if isEpochValidator {
-		sender.Execute()
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
