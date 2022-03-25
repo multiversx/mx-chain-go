@@ -656,6 +656,10 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 }
 
 func (bp *baseProcessor) setIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
+	if bp.processedMiniBlocks == nil {
+		return nil
+	}
+
 	processedMiniBlockInfo, _ := bp.processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHeaderHandler.GetHash())
 	return miniBlockHeaderHandler.SetIndexOfFirstTxProcessed(processedMiniBlockInfo.IndexOfLastTxProcessed + 1)
 }
