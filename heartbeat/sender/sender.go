@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgSender represents the arguments for the sender
@@ -29,6 +30,8 @@ type ArgSender struct {
 	PeerSignatureHandler                        crypto.PeerSignatureHandler
 	PrivateKey                                  crypto.PrivateKey
 	RedundancyHandler                           heartbeat.NodeRedundancyHandler
+	NodesCoordinator                            heartbeat.NodesCoordinator
+	EpochNotifier                               vmcommon.EpochNotifier
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -52,6 +55,8 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
+		nodesCoordinator:     args.NodesCoordinator,
+		epochNotifier:        args.EpochNotifier,
 		peerSignatureHandler: args.PeerSignatureHandler,
 		privKey:              args.PrivateKey,
 		redundancyHandler:    args.RedundancyHandler,
@@ -94,6 +99,8 @@ func checkSenderArgs(args ArgSender) error {
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
+		nodesCoordinator:     args.NodesCoordinator,
+		epochNotifier:        args.EpochNotifier,
 		peerSignatureHandler: args.PeerSignatureHandler,
 		privKey:              args.PrivateKey,
 		redundancyHandler:    args.RedundancyHandler,

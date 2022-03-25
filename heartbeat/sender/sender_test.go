@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +35,8 @@ func createMockSenderArgs() ArgSender {
 		PeerSignatureHandler:                        &mock.PeerSignatureHandlerStub{},
 		PrivateKey:                                  &mock.PrivateKeyStub{},
 		RedundancyHandler:                           &mock.RedundancyHandlerStub{},
+		NodesCoordinator:                            &shardingMocks.NodesCoordinatorStub{},
+		EpochNotifier:                               &epochNotifier.EpochNotifierStub{},
 	}
 }
 
@@ -164,6 +168,26 @@ func TestNewSender(t *testing.T) {
 
 		assert.Nil(t, sender)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
+	})
+	t.Run("nil nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.NodesCoordinator = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilNodesCoordinator, err)
+	})
+	t.Run("nil epoch notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.EpochNotifier = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilEpochNotifier, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
 		t.Parallel()
