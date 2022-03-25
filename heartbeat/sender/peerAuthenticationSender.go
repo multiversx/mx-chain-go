@@ -3,19 +3,16 @@ package sender
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // argPeerAuthenticationSender represents the arguments for the peer authentication sender
 type argPeerAuthenticationSender struct {
 	argBaseSender
 	nodesCoordinator     heartbeat.NodesCoordinator
-	epochNotifier        vmcommon.EpochNotifier
 	peerSignatureHandler crypto.PeerSignatureHandler
 	privKey              crypto.PrivateKey
 	redundancyHandler    heartbeat.NodeRedundancyHandler
@@ -24,13 +21,11 @@ type argPeerAuthenticationSender struct {
 type peerAuthenticationSender struct {
 	baseSender
 	nodesCoordinator     heartbeat.NodesCoordinator
-	epochNotifier        vmcommon.EpochNotifier
 	peerSignatureHandler crypto.PeerSignatureHandler
 	redundancy           heartbeat.NodeRedundancyHandler
 	privKey              crypto.PrivateKey
 	publicKey            crypto.PublicKey
 	observerPublicKey    crypto.PublicKey
-	isValidatorFlag      atomic.Flag
 }
 
 // newPeerAuthenticationSender will create a new instance of type peerAuthenticationSender
@@ -44,15 +39,12 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 	sender := &peerAuthenticationSender{
 		baseSender:           createBaseSender(args.argBaseSender),
 		nodesCoordinator:     args.nodesCoordinator,
-		epochNotifier:        args.epochNotifier,
 		peerSignatureHandler: args.peerSignatureHandler,
 		redundancy:           redundancyHandler,
 		privKey:              args.privKey,
 		publicKey:            args.privKey.GeneratePublic(),
 		observerPublicKey:    redundancyHandler.ObserverPrivateKey().GeneratePublic(),
 	}
-
-	sender.epochNotifier.RegisterNotifyHandler(sender)
 
 	return sender, nil
 }
@@ -64,9 +56,6 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 	}
 	if check.IfNil(args.nodesCoordinator) {
 		return heartbeat.ErrNilNodesCoordinator
-	}
-	if check.IfNil(args.epochNotifier) {
-		return heartbeat.ErrNilEpochNotifier
 	}
 	if check.IfNil(args.peerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
@@ -83,8 +72,8 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 
 // Execute will handle the execution of a cycle in which the peer authentication message will be sent
 func (sender *peerAuthenticationSender) Execute() {
-	if !sender.isValidatorFlag.IsSet() {
-		sender.CreateNewTimer(sender.timeBetweenSendsWhenError) // keep the timer alive
+	if !sender.isValidator() {
+		sender.CreateNewTimer(sender.timeBetweenSendsWhenError)
 		return
 	}
 
@@ -158,18 +147,15 @@ func (sender *peerAuthenticationSender) getCurrentPrivateAndPublicKeys() (crypto
 	return sender.redundancy.ObserverPrivateKey(), sender.observerPublicKey
 }
 
-// EpochConfirmed is called whenever an epoch is confirmed
-func (sender *peerAuthenticationSender) EpochConfirmed(_ uint32, _ uint64) {
+func (sender *peerAuthenticationSender) isValidator() bool {
 	_, pk := sender.getCurrentPrivateAndPublicKeys()
 	pkBytes, err := pk.ToByteArray()
 	if err != nil {
-		sender.isValidatorFlag.SetValue(false)
-		return
+		return false
 	}
 
 	_, _, err = sender.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
-	isEpochValidator := err == nil
-	sender.isValidatorFlag.SetValue(isEpochValidator)
+	return err == nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -132,7 +132,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PrivateKey:                                  hcf.cryptoComponents.PrivateKey(),
 		RedundancyHandler:                           hcf.processComponents.NodeRedundancyHandler(),
 		NodesCoordinator:                            hcf.processComponents.NodesCoordinator(),
-		EpochNotifier:                               hcf.coreComponents.EpochNotifier(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {
