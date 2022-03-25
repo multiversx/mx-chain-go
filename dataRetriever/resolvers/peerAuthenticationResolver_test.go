@@ -244,7 +244,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		arg := createMockArgPeerAuthenticationResolver()
 		arg.NodesCoordinator = &mock.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
-				return make(map[uint32][][]byte, 0), nil
+				return make(map[uint32][][]byte), nil
 			},
 		}
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
@@ -433,7 +433,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		pk1 := "pk01"
 		pk2 := "pk02"
-		providedKeys := make(map[string][]byte, 0)
+		providedKeys := make(map[string][]byte)
 		providedKeys[pk1] = []byte("")
 		providedKeys[pk2] = []byte("")
 		pks := make([][]byte, 0)
