@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -228,6 +229,7 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 func (scr *smartContractResults) ProcessBlockTransactions(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if check.IfNil(body) {
@@ -274,16 +276,30 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			continue
 		}
 
-		miniBlockHeader, err := scr.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlock)
+		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		indexOfLastTxProcessedByItself := int32(-1)
+		if processedMiniBlocks != nil {
+			processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+			indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+		}
+
+		miniBlockHeader, err := scr.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
 		if err != nil {
 			return err
 		}
 		indexOfLastTxProcessedByProposer := miniBlockHeader.GetIndexOfLastTxProcessed()
-		indexOfLastTxProcessedByProposer = int32(len(miniBlock.TxHashes)) - 1
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
+			}
+
+			if j <= int(indexOfLastTxProcessedByItself) {
+				continue
 			}
 
 			if j > int(indexOfLastTxProcessedByProposer) {

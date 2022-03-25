@@ -423,6 +423,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	header data.HeaderHandler,
 	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	timeRemaining func() time.Duration,
 ) error {
 	if check.IfNil(body) {
@@ -440,7 +441,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	tc.doubleTransactionsDetector.ProcessBlockBody(body)
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
+	mbIndex, err := tc.processMiniBlocksToMe(header, body, processedMiniBlocks, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
@@ -501,7 +502,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], haveTime)
+		err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], nil, haveTime)
 		if err != nil {
 			return err
 		}
@@ -515,6 +516,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	header data.HeaderHandler,
 	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) (int, error) {
 	numMiniBlocksProcessed := 0
@@ -543,7 +545,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		}
 
 		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
-		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, processedMiniBlocks, haveTime)
 		if err != nil {
 			return mbIndex, err
 		}
@@ -1186,14 +1188,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			"error", err.Error(),
 		)
 
-		//TODO: Remove comments and add an activation flag if needed
-		//allTxsProcessed := indexOfLastTxProcessed+1 == len(miniBlock.TxHashes)
-		//if allTxsProcessed {
-		tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
-		//} else {
-		//	processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-		//	processedMbInfo.IsFullyProcessed = false
-		//}
+		notAllTxsProcessed := indexOfLastTxProcessed+1 < len(miniBlock.TxHashes)
+		if tc.flagMiniBlockPartialExecution.IsSet() && notAllTxsProcessed {
+			processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
+			processedMbInfo.IsFullyProcessed = false
+		} else {
+			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
+		}
 
 		return err
 	}
@@ -1488,7 +1489,11 @@ func getNumOfCrossShardScCallsOrSpecialTxs(
 }
 
 // VerifyCreatedMiniBlocks re-checks gas used and generated fees in the given block
-func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHandler, body *block.Body) error {
+func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
+	header data.HeaderHandler,
+	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
+) error {
 	if header.GetEpoch() < tc.blockGasAndFeesReCheckEnableEpoch {
 		return nil
 	}
@@ -1500,7 +1505,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHand
 		return err
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, processedMiniBlocks)
 	if err != nil {
 		return err
 	}
@@ -1603,6 +1608,7 @@ func (tc *transactionCoordinator) verifyFees(
 	header data.HeaderHandler,
 	body *block.Body,
 	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 ) error {
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
@@ -1634,6 +1640,7 @@ func (tc *transactionCoordinator) verifyFees(
 			header.GetMiniBlockHeaderHandlers()[index],
 			miniBlock,
 			mapMiniBlockTypeAllTxs[miniBlock.Type],
+			processedMiniBlocks,
 		)
 		if err != nil {
 			return err
@@ -1657,14 +1664,30 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	miniBlock *block.MiniBlock,
 	mapHashTx map[string]data.TransactionHandler,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 ) (*big.Int, *big.Int, error) {
 	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
 	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
-	indexOfLastTxProcessed := miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
-	indexOfLastTxProcessed = int32(len(miniBlock.TxHashes)) - 1
+
+	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	if err != nil {
+		return big.NewInt(0), big.NewInt(0), err
+	}
+
+	indexOfLastTxProcessedByItself := int32(-1)
+	if processedMiniBlocks != nil {
+		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+		indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+	}
+
+	indexOfLastTxProcessedByProposer := miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
 
 	for index, txHash := range miniBlock.TxHashes {
-		if index > int(indexOfLastTxProcessed) {
+		if index <= int(indexOfLastTxProcessedByItself) {
+			continue
+		}
+
+		if index > int(indexOfLastTxProcessedByProposer) {
 			break
 		}
 

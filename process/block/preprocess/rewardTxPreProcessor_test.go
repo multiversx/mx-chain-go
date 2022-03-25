@@ -629,7 +629,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	var blockBody block.Body
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
-	err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: mbHash1}, {Hash: mbHash2}}}, &blockBody, haveTimeTrue)
+	err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: mbHash1}, {Hash: mbHash2}}}, &blockBody, nil, haveTimeTrue)
 	assert.Nil(t, err)
 }
 

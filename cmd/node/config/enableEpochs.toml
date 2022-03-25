@@ -200,7 +200,7 @@
     ]
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 2
+    MiniBlockPartialExecutionEnableEpoch = 3
 
 [GasSchedule]
     GasScheduleByEpochs = [

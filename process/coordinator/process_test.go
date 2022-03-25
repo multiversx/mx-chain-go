@@ -1706,7 +1706,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, nil, haveTime)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
@@ -1715,20 +1715,20 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, nil, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	noTime := func() time.Duration {
 		return 0
 	}
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1}}}, body, noTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, nil, noTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	miniBlockHash2, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1}, {Hash: miniBlockHash2}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}, {Hash: miniBlockHash2, TxCount: 1}}}, body, nil, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -1748,7 +1748,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, nil, haveTime)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
@@ -1757,20 +1757,20 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, nil, haveTime)
 	assert.Nil(t, err)
 
 	noTime := func() time.Duration {
 		return -1
 	}
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1}}}, body, noTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, nil, noTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	miniBlockHash2, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1}, {Hash: miniBlockHash2}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}, {Hash: miniBlockHash2, TxCount: 1}}}, body, nil, haveTime)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
@@ -2550,7 +2550,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 	header := &block.Header{}
 	body := &block.Body{}
 
-	err = tc.VerifyCreatedMiniBlocks(header, body)
+	err = tc.VerifyCreatedMiniBlocks(header, body, nil)
 	assert.Nil(t, err)
 }
 
@@ -2617,7 +2617,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		},
 	}
 
-	err = tc.VerifyCreatedMiniBlocks(header, body)
+	err = tc.VerifyCreatedMiniBlocks(header, body, nil)
 	assert.Equal(t, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached, err)
 }
 
@@ -2695,7 +2695,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		},
 	}
 
-	err = tc.VerifyCreatedMiniBlocks(header, body)
+	err = tc.VerifyCreatedMiniBlocks(header, body, nil)
 	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
 }
 
@@ -2762,7 +2762,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(11),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -2773,7 +2773,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		},
 	}
 
-	err = tc.VerifyCreatedMiniBlocks(header, body)
+	err = tc.VerifyCreatedMiniBlocks(header, body, nil)
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 }
 
@@ -2840,7 +2840,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -2851,7 +2851,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		},
 	}
 
-	err = tc.VerifyCreatedMiniBlocks(header, body)
+	err = tc.VerifyCreatedMiniBlocks(header, body, nil)
 	assert.Nil(t, err)
 }
 
@@ -3447,7 +3447,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}},
 	}
 
 	body := &block.Body{
@@ -3460,7 +3460,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		},
 	}
 
-	err = tc.verifyFees(header, body, nil)
+	err = tc.verifyFees(header, body, nil, nil)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
@@ -3530,7 +3530,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		},
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
 }
 
@@ -3583,7 +3583,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(11),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {TxCount: 1}},
 	}
 
 	body := &block.Body{
@@ -3599,7 +3599,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		},
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 }
 
@@ -3659,7 +3659,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {TxCount: 1}},
 	}
 	for index := range header.MiniBlockHeaders {
 		_ = header.MiniBlockHeaders[index].SetProcessingType(int32(block.Normal))
@@ -3678,12 +3678,12 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 		},
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
 
 	tc.EpochConfirmed(2, 0)
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Nil(t, err)
 }
 
@@ -3743,7 +3743,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(11),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {TxCount: 1}},
 	}
 	for index := range header.MiniBlockHeaders {
 		_ = header.MiniBlockHeaders[index].SetProcessingType(int32(block.Normal))
@@ -3762,12 +3762,12 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 		},
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 
 	tc.EpochConfirmed(2, 0)
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Nil(t, err)
 }
 
@@ -3827,7 +3827,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(100),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {TxCount: 1}},
 	}
 
 	body := &block.Body{
@@ -3843,7 +3843,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 		},
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Nil(t, err)
 
 	tc.EpochConfirmed(2, 0)
@@ -3851,13 +3851,13 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	header = &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(11),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{}, {TxCount: 1}},
 	}
 	for index := range header.MiniBlockHeaders {
 		_ = header.MiniBlockHeaders[index].SetProcessingType(int32(block.Normal))
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, nil)
 	assert.Nil(t, err)
 }
 
@@ -3904,7 +3904,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		TxCount: 1,
 	}
 
-	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, nil)
+	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, nil, nil)
 	assert.Equal(t, process.ErrMissingTransaction, errGetMaxFees)
 	assert.Equal(t, big.NewInt(0), accumulatedFees)
 	assert.Equal(t, big.NewInt(0), developerFees)
@@ -3972,7 +3972,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		TxCount: 3,
 	}
 
-	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, mapAllTxs)
+	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, mapAllTxs, nil)
 	assert.Nil(t, errGetMaxFees)
 	assert.Equal(t, big.NewInt(600), accumulatedFees)
 	assert.Equal(t, big.NewInt(60), developerFees)

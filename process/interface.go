@@ -134,7 +134,7 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -147,11 +147,11 @@ type TransactionCoordinator interface {
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	CreateMarshalizedReceipts() ([]byte, error)
-	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
+	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler, blockType block.Type)
+	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 }
 
@@ -210,7 +210,7 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() bool) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
@@ -219,7 +219,7 @@ type PreProcessor interface {
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler)
+	AddTransactions(txHandlers []data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 

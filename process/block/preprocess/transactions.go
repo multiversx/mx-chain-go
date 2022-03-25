@@ -20,6 +20,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -294,10 +295,11 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 func (txs *transactions) ProcessBlockTransactions(
 	header data.HeaderHandler,
 	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if txs.isBodyToMe(body) {
-		return txs.processTxsToMe(header, body, haveTime)
+		return txs.processTxsToMe(header, body, processedMiniBlocks, haveTime)
 	}
 
 	if txs.isBodyFromMe(body) {
@@ -307,7 +309,11 @@ func (txs *transactions) ProcessBlockTransactions(
 	return process.ErrInvalidBody
 }
 
-func (txs *transactions) computeTxsToMe(headerHandler data.HeaderHandler, body *block.Body) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsToMe(
+	headerHandler data.HeaderHandler,
+	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
+) ([]*txcache.WrappedTransaction, error) {
 	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
 	}
@@ -326,15 +332,25 @@ func (txs *transactions) computeTxsToMe(headerHandler data.HeaderHandler, body *
 				miniBlock.ReceiverShardID)
 		}
 
-		miniBlockHeader, err := txs.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlock)
+		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		indexOfLastTxProcessedByItself := int32(-1)
+		if processedMiniBlocks != nil {
+			processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+			indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+		}
+
+		miniBlockHeader, err := txs.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
 		if err != nil {
 			return nil, err
 		}
 
 		indexOfLastTxProcessedByProposer := miniBlockHeader.GetIndexOfLastTxProcessed()
-		indexOfLastTxProcessedByProposer = int32(len(miniBlock.TxHashes)) - 1
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, indexOfLastTxProcessedByProposer)
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, indexOfLastTxProcessedByItself, indexOfLastTxProcessedByProposer)
 		if err != nil {
 			return nil, err
 		}
@@ -359,7 +375,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 			continue
 		}
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, int32(len(miniBlock.TxHashes))-1)
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, -1, int32(len(miniBlock.TxHashes))-1)
 		if err != nil {
 			return nil, err
 		}
@@ -384,7 +400,7 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 			continue
 		}
 
-		txsFromScheduledMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, int32(len(miniBlock.TxHashes))-1)
+		txsFromScheduledMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, -1, int32(len(miniBlock.TxHashes))-1)
 		if err != nil {
 			return nil, err
 		}
@@ -395,10 +411,19 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 	return allScheduledTxs, nil
 }
 
-func (txs *transactions) computeTxsFromMiniBlock(miniBlock *block.MiniBlock, indexOfLastTxProcessedByProposer int32) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsFromMiniBlock(
+	miniBlock *block.MiniBlock,
+	indexOfLastTxProcessedByItself int32,
+	indexOfLastTxProcessedByProposer int32,
+) ([]*txcache.WrappedTransaction, error) {
+
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
 
 	for i := 0; i < len(miniBlock.TxHashes); i++ {
+		if i <= int(indexOfLastTxProcessedByItself) {
+			continue
+		}
+
 		if i > int(indexOfLastTxProcessedByProposer) {
 			break
 		}
@@ -446,6 +471,7 @@ func (txs *transactions) getShardFromAddress(address []byte) uint32 {
 func (txs *transactions) processTxsToMe(
 	header data.HeaderHandler,
 	body *block.Body,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if check.IfNil(body) {
@@ -464,7 +490,7 @@ func (txs *transactions) processTxsToMe(
 		}
 	}
 
-	txsToMe, err := txs.computeTxsToMe(header, body)
+	txsToMe, err := txs.computeTxsToMe(header, body, processedMiniBlocks)
 	if err != nil {
 		return err
 	}

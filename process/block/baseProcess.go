@@ -98,6 +98,7 @@ type baseProcessor struct {
 	processDataTriesOnCommitEpoch  bool
 	scheduledMiniBlocksEnableEpoch uint32
 	flagScheduledMiniBlocks        atomic.Flag
+	processedMiniBlocks            *processedMb.ProcessedMiniBlockTracker
 }
 
 type bootStorerDataArgs struct {
@@ -635,7 +636,12 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 		return nil
 	}
 
-	err := bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+	err := bp.setIndexOfFirstTxProcessed(miniBlockHeaderHandler)
+	if err != nil {
+		return err
+	}
+
+	err = bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 	if err != nil {
 		return err
 	}
@@ -647,6 +653,11 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	}
 
 	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) setIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
+	processedMiniBlockInfo, _ := bp.processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHeaderHandler.GetHash())
+	return miniBlockHeaderHandler.SetIndexOfFirstTxProcessed(processedMiniBlockInfo.IndexOfLastTxProcessed + 1)
 }
 
 func (bp *baseProcessor) setIndexOfLastTxProcessed(

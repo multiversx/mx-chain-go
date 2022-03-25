@@ -351,7 +351,7 @@ func (mp *metaProcessor) ProcessBlock(
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
-	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, nil, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,

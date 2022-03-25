@@ -1,11 +1,12 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -17,7 +18,7 @@ type PreProcessorMock struct {
 	RemoveTxsFromPoolsCalled              func(body *block.Body) error
 	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                func(body *block.Body) error
-	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() bool) error
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
@@ -77,11 +78,11 @@ func (ppm *PreProcessorMock) SaveTxsToStorage(body *block.Body) error {
 }
 
 // ProcessBlockTransactions -
-func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() bool) error {
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil
 	}
-	return ppm.ProcessBlockTransactionsCalled(header, body, haveTime)
+	return ppm.ProcessBlockTransactionsCalled(header, body, processedMiniBlocks, haveTime)
 }
 
 // RequestBlockTransactions -

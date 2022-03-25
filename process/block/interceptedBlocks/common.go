@@ -9,7 +9,7 @@ import (
 )
 
 const maxLenMiniBlockReservedField = 10
-const maxLenMiniBlockHeaderReservedField = 24
+const maxLenMiniBlockHeaderReservedField = 32
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {

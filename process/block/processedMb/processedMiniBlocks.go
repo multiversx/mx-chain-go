@@ -33,69 +33,94 @@ func NewProcessedMiniBlocks() *ProcessedMiniBlockTracker {
 }
 
 // SetProcessedMiniBlockInfo will set a processed miniblock info for the given metablock hash and miniblock hash
-func (pmb *ProcessedMiniBlockTracker) SetProcessedMiniBlockInfo(metaBlockHash string, miniBlockHash string, processedMbInfo *ProcessedMiniBlockInfo) {
+func (pmb *ProcessedMiniBlockTracker) SetProcessedMiniBlockInfo(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *ProcessedMiniBlockInfo) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	defer pmb.mutProcessedMiniBlocks.Unlock()
 
-	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
+	miniBlocksProcessed, ok := pmb.processedMiniBlocks[string(metaBlockHash)]
 	if !ok {
 		miniBlocksProcessed = make(MiniBlocksInfo)
-		pmb.processedMiniBlocks[metaBlockHash] = miniBlocksProcessed
+		pmb.processedMiniBlocks[string(metaBlockHash)] = miniBlocksProcessed
 	}
 
-	miniBlocksProcessed[miniBlockHash] = &ProcessedMiniBlockInfo{
+	miniBlocksProcessed[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
 		IsFullyProcessed:       processedMbInfo.IsFullyProcessed,
 		IndexOfLastTxProcessed: processedMbInfo.IndexOfLastTxProcessed,
 	}
 }
 
 // RemoveMetaBlockHash will remove a meta block hash
-func (pmb *ProcessedMiniBlockTracker) RemoveMetaBlockHash(metaBlockHash string) {
+func (pmb *ProcessedMiniBlockTracker) RemoveMetaBlockHash(metaBlockHash []byte) {
 	pmb.mutProcessedMiniBlocks.Lock()
-	delete(pmb.processedMiniBlocks, metaBlockHash)
-	pmb.mutProcessedMiniBlocks.Unlock()
+	defer pmb.mutProcessedMiniBlocks.Unlock()
+
+	delete(pmb.processedMiniBlocks, string(metaBlockHash))
 }
 
 // RemoveMiniBlockHash will remove a mini block hash
-func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) {
+func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash []byte) {
 	pmb.mutProcessedMiniBlocks.Lock()
+	defer pmb.mutProcessedMiniBlocks.Unlock()
+
 	for metaHash, miniBlocksProcessed := range pmb.processedMiniBlocks {
-		delete(miniBlocksProcessed, miniBlockHash)
+		delete(miniBlocksProcessed, string(miniBlockHash))
 
 		if len(miniBlocksProcessed) == 0 {
 			delete(pmb.processedMiniBlocks, metaHash)
 		}
 	}
-	pmb.mutProcessedMiniBlocks.Unlock()
 }
 
 // GetProcessedMiniBlocksInfo will return all processed miniblocks info for a metablock
-func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksInfo(metaBlockHash string) map[string]*ProcessedMiniBlockInfo {
-	processedMiniBlocksInfo := make(map[string]*ProcessedMiniBlockInfo)
-
+func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*ProcessedMiniBlockInfo {
 	pmb.mutProcessedMiniBlocks.RLock()
-	for miniBlockHash, processedMiniBlockInfo := range pmb.processedMiniBlocks[metaBlockHash] {
+	defer pmb.mutProcessedMiniBlocks.RUnlock()
+
+	processedMiniBlocksInfo := make(map[string]*ProcessedMiniBlockInfo)
+	for miniBlockHash, processedMiniBlockInfo := range pmb.processedMiniBlocks[string(metaBlockHash)] {
 		processedMiniBlocksInfo[miniBlockHash] = &ProcessedMiniBlockInfo{
 			IsFullyProcessed:       processedMiniBlockInfo.IsFullyProcessed,
 			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
 		}
 	}
-	pmb.mutProcessedMiniBlocks.RUnlock()
 
 	return processedMiniBlocksInfo
 }
 
-// IsMiniBlockFullyProcessed will return true if a mini block is fully processed
-func (pmb *ProcessedMiniBlockTracker) IsMiniBlockFullyProcessed(metaBlockHash string, miniBlockHash string) bool {
+// GetProcessedMiniBlockInfo will return all processed info for a miniblock
+func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlockInfo(miniBlockHash []byte) (*ProcessedMiniBlockInfo, []byte) {
 	pmb.mutProcessedMiniBlocks.RLock()
 	defer pmb.mutProcessedMiniBlocks.RUnlock()
 
-	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
+	for metaBlockHash, miniBlocksInfo := range pmb.processedMiniBlocks {
+		processedMiniBlockInfo, hashExists := miniBlocksInfo[string(miniBlockHash)]
+		if !hashExists {
+			continue
+		}
+
+		return &ProcessedMiniBlockInfo{
+			IsFullyProcessed:       processedMiniBlockInfo.IsFullyProcessed,
+			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
+		}, []byte(metaBlockHash)
+	}
+
+	return &ProcessedMiniBlockInfo{
+		IsFullyProcessed:       false,
+		IndexOfLastTxProcessed: -1,
+	}, nil
+}
+
+// IsMiniBlockFullyProcessed will return true if a mini block is fully processed
+func (pmb *ProcessedMiniBlockTracker) IsMiniBlockFullyProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
+	pmb.mutProcessedMiniBlocks.RLock()
+	defer pmb.mutProcessedMiniBlocks.RUnlock()
+
+	miniBlocksProcessed, ok := pmb.processedMiniBlocks[string(metaBlockHash)]
 	if !ok {
 		return false
 	}
 
-	processedMbInfo, hashExists := miniBlocksProcessed[miniBlockHash]
+	processedMbInfo, hashExists := miniBlocksProcessed[string(miniBlockHash)]
 	if !hashExists {
 		return false
 	}
@@ -148,7 +173,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 			}
 
 			//TODO: Check how to set the correct index
-			indexOfLastTxProcessed := int32(math.MaxInt32)
+			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
 			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && len(miniBlocksInMeta.IndexOfLastTxProcessed) > index {
 				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
 			}
@@ -164,9 +189,10 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 
 // DisplayProcessedMiniBlocks will display all miniblocks hashes and meta block hash from the map
 func (pmb *ProcessedMiniBlockTracker) DisplayProcessedMiniBlocks() {
-	log.Debug("processed mini blocks applied")
-
 	pmb.mutProcessedMiniBlocks.RLock()
+	defer pmb.mutProcessedMiniBlocks.RUnlock()
+
+	log.Debug("processed mini blocks applied")
 	for metaBlockHash, miniBlocksInfo := range pmb.processedMiniBlocks {
 		log.Debug("processed",
 			"meta hash", []byte(metaBlockHash))
@@ -178,5 +204,4 @@ func (pmb *ProcessedMiniBlockTracker) DisplayProcessedMiniBlocks() {
 			)
 		}
 	}
-	pmb.mutProcessedMiniBlocks.RUnlock()
 }
