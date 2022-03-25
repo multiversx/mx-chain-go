@@ -150,8 +150,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		return nil, storage.ErrDBIsClosed
 	}
 
-	isRemoved := s.batch.IsRemoved(key)
-	if isRemoved {
+	if s.batch.IsRemoved(key) {
 		return nil, storage.ErrKeyNotFound
 	}
 
@@ -178,8 +177,7 @@ func (s *DB) Has(key []byte) error {
 		return storage.ErrDBIsClosed
 	}
 
-	isRemoved := s.batch.IsRemoved(key)
-	if isRemoved {
+	if s.batch.IsRemoved(key) {
 		return storage.ErrKeyNotFound
 	}
 
