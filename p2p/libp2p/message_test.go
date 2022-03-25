@@ -13,11 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubpb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubpb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

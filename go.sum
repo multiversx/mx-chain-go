@@ -45,8 +45,8 @@ github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYb
 github.com/ElrondNetwork/elrond-vm-common v1.3.0/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/elrond-vm-common v1.3.2 h1:O/Wr5k7HXX7p0+U3ZsGdY5ydqfSABZvBSzwyV/xbu08=
 github.com/ElrondNetwork/elrond-vm-common v1.3.2/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
-github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-gamma h1:k3Ko5UI2HNZlrU9laVeWx13+jnm79Maame4wIhf6J7Y=
-github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-gamma/go.mod h1:gVOzwebXVdSMDQBTfH8ACO5EJ4SQrvsHqCmYsCZpD0E=
+github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2 h1:Eyi2JlK0Eg6D8XNOiK0dLffpKy2ExQ0mXt+xm1cpKHk=
+github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2/go.mod h1:3VSrYfPnRU8skcNAJNCPSyzM0dkazQHTdBMWyn/oAIA=
 github.com/ElrondNetwork/notifier-go v1.0.3 h1:LhecyXqKuc/Q4NtIOlb9rw4hfMSj6usmxvYQWvb7Pn4=
 github.com/ElrondNetwork/notifier-go v1.0.3/go.mod h1:GOv7j2o90e/GVmmBddWwyfJZ/JW4V4pvyXIpukd6FfY=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
