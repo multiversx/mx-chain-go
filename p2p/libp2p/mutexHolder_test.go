@@ -36,7 +36,7 @@ func TestMutexHolder_MutexNotFoundShouldCreate(t *testing.T) {
 	assert.NotNil(t, mut)
 	assert.Equal(t, 1, mh.Mutexes().Len())
 	addedMutex, _ := mh.Mutexes().Get([]byte(key))
-	//pointer testing to not have the situation of creating new mutexes for each getMutex call
+	// pointer testing to not have the situation of creating new mutexes for each getMutex call
 	assert.True(t, mut == addedMutex)
 }
 
@@ -51,7 +51,7 @@ func TestMutexHolder_OtherObjectInCacheShouldRewriteWithNewMutexAndReturn(t *tes
 	assert.NotNil(t, mut)
 	assert.Equal(t, 1, mh.Mutexes().Len())
 	addedMutex, _ := mh.Mutexes().Get([]byte(key))
-	//pointer testing to not have the situation of creating new mutexes for each getMutex call
+	// pointer testing to not have the situation of creating new mutexes for each getMutex call
 	assert.True(t, mut == addedMutex)
 }
 
@@ -67,7 +67,7 @@ func TestMutexHolder_MutexFoundShouldReturnIt(t *testing.T) {
 	assert.NotNil(t, mutRecov)
 	assert.Equal(t, 1, mh.Mutexes().Len())
 	addedMutex, _ := mh.Mutexes().Get([]byte(key))
-	//pointer testing to not have the situation of creating new mutexes for each getMutex call
+	// pointer testing to not have the situation of creating new mutexes for each getMutex call
 	assert.True(t, mut == addedMutex)
 	assert.True(t, mut == mutRecov)
 }
