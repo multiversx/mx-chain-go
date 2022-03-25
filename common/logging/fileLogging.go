@@ -128,6 +128,8 @@ func (fl *fileLogging) recreateLogFile() {
 
 	errNotCritical = logger.RemoveLogObserver(oldFile)
 	log.LogIfError(errNotCritical, "step", "removing old log observer")
+
+	fl.timeBasedLogLifeSpanner.reset()
 }
 
 func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
