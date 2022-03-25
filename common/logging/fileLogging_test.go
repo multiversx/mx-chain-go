@@ -144,5 +144,4 @@ func TestFileLogging_sizeReached(t *testing.T) {
 		fl.lifeSpanSize = uint64(len(data) + 1)
 		assert.False(t, fl.sizeReached())
 	})
-
 }

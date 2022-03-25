@@ -221,6 +221,8 @@ func (fl *fileLogging) Close() error {
 	fl.mutOperation.Unlock()
 
 	fl.cancelFunc()
+	fl.sizeBaseLogLifeSpanner.close()
+	fl.timeBasedLogLifeSpanner.close()
 
 	return err
 }
