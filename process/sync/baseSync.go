@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
+const minimumProcessWaitTime = time.Millisecond * 100
 
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
@@ -119,6 +121,7 @@ type baseBootstrap struct {
 	cancelFunc                   func()
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	processWaitTime              time.Duration
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -417,8 +420,8 @@ func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHan
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
-// checkBootstrapNilParameters will check the imput parameters for nil values
-func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
+// checkBaseBootstrapParameters will check the correctness of the provided parameters
+func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.ChainHandler) {
 		return process.ErrNilBlockChain
 	}
@@ -478,6 +481,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
+	}
+	if arguments.ProcessWaitTime < minimumProcessWaitTime {
+		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
 	}
 
 	return nil
@@ -631,7 +637,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startTime := time.Now()
-	waitTime := boot.roundHandler.TimeDuration() * process.TimeDurationMultiplierForProcessBlockWhenSync
+	waitTime := boot.processWaitTime
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}

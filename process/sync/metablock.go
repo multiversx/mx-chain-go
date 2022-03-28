@@ -44,7 +44,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
 
-	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
+	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +77,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		isInImportMode:               arguments.IsInImportMode,
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+		processWaitTime:              arguments.ProcessWaitTime,
 	}
 
 	if base.isInImportMode {
