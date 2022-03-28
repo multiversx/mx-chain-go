@@ -117,6 +117,9 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 					MaxHardCapForMissingNodes: 5,
 					TrieSyncerVersion:         2,
 				},
+				GeneralSettings: config.GeneralSettingsConfig{
+					SyncProcessTimeInMillis: 6000,
+				},
 			},
 			BootstrapRoundIndex: 0,
 			HardforkTrigger:     n.node.GetHardforkTrigger(),
