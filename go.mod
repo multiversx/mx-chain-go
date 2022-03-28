@@ -13,8 +13,8 @@ require (
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.6
 	github.com/ElrondNetwork/elrond-vm-common v1.3.2
-	github.com/ElrondNetwork/notifier-go v1.0.4-0.20220201135024-c6fdc94cb5a1
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2
+	github.com/ElrondNetwork/notifier-go v1.0.4-0.20220201135024-c6fdc94cb5a1
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
