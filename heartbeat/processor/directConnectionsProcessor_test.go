@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,8 +22,8 @@ import (
 func createMockArgDirectConnectionsProcessor() ArgDirectConnectionsProcessor {
 	return ArgDirectConnectionsProcessor{
 		Messenger:                 &p2pmocks.MessengerStub{},
-		Marshaller:                &mock.MarshallerStub{},
-		ShardCoordinator:          &mock.ShardCoordinatorMock{},
+		Marshaller:                &testscommon.MarshalizerStub{},
+		ShardCoordinator:          &testscommon.ShardsCoordinatorMock{},
 		DelayBetweenNotifications: time.Second,
 	}
 }
@@ -184,8 +184,8 @@ func Test_directConnectionsProcessor_notifyNewPeers(t *testing.T) {
 				return nil
 			},
 		}
-		args.Marshaller = &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) ([]byte, error) {
+		args.Marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, errors.New("error")
 			},
 		}

@@ -12,6 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +25,7 @@ func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication 
 		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "hardfork message",
 	}
-	marshalizer := mock.MarshalizerMock{}
+	marshalizer := testscommon.MarshalizerMock{}
 	payloadBytes, err := marshalizer.Marshal(payload)
 	if err != nil {
 		return nil
@@ -46,11 +49,11 @@ func getSizeOfPA(pa *heartbeat.PeerAuthentication) int {
 func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerAuthentication) ArgInterceptedPeerAuthentication {
 	arg := ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: ArgBaseInterceptedHeartbeat{
-			Marshalizer: &mock.MarshalizerMock{},
+			Marshalizer: &testscommon.MarshalizerMock{},
 		},
-		NodesCoordinator:     &processMocks.NodesCoordinatorStub{},
+		NodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
 		SignaturesHandler:    &processMocks.SignaturesHandlerStub{},
-		PeerSignatureHandler: &processMocks.PeerSignatureHandlerStub{},
+		PeerSignatureHandler: &cryptoMocks.PeerSignatureHandlerStub{},
 		ExpiryTimespanInSec:  30,
 	}
 	arg.DataBuff, _ = arg.Marshalizer.Marshal(interceptedData)
@@ -216,7 +219,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 	t.Run("message is expired", func(t *testing.T) {
 		t.Parallel()
 
-		marshalizer := mock.MarshalizerMock{}
+		marshalizer := testscommon.MarshalizerMock{}
 		expiryTimespanInSec := int64(30)
 		interceptedData := createDefaultInterceptedPeerAuthentication()
 		expiredTimestamp := time.Now().Unix() - expiryTimespanInSec - 1

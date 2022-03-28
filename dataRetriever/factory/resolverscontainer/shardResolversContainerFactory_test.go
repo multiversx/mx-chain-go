@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -406,7 +407,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
-		NodesCoordinator:                     &mock.NodesCoordinatorStub{},
+		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},
 	}

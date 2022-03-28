@@ -152,8 +152,8 @@ func TestHeartbeatSender_Execute(t *testing.T) {
 		argsBase := createMockBaseArgs()
 		argsBase.timeBetweenSendsWhenError = time.Second * 3
 		argsBase.timeBetweenSends = time.Second * 2
-		argsBase.marshaller = &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) ([]byte, error) {
+		argsBase.marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
@@ -202,8 +202,8 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
-		argsBase.marshaller = &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) ([]byte, error) {
+		argsBase.marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
@@ -220,8 +220,8 @@ func TestHeartbeatSender_execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		numOfCalls := 0
-		argsBase.marshaller = &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) ([]byte, error) {
+		argsBase.marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				if numOfCalls < 1 {
 					numOfCalls++
 					return []byte(""), nil
