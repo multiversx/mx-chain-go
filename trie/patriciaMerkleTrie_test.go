@@ -2,12 +2,14 @@ package trie_test
 
 import (
 	cryptoRand "crypto/rand"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -31,7 +33,7 @@ func emptyTrie(tb testing.TB) common.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters(tb testing.TB) (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
+func getDefaultTrieParameters(tb testing.TB) (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint, common.StorageAccessType) {
 	db := testscommon.NewMemDbMock()
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
@@ -63,7 +65,7 @@ func getDefaultTrieParameters(tb testing.TB) (common.StorageManager, marshal.Mar
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
-	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
+	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory, common.TestPriority
 }
 
 func initTrieMultipleValues(t *testing.T, nr int) (common.Trie, [][]byte) {
@@ -92,8 +94,8 @@ func initTrie(t *testing.T) common.Trie {
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, maxTrieLevelInMemory := getDefaultTrieParameters(t)
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, maxTrieLevelInMemory)
+	_, marshalizer, hasher, maxTrieLevelInMemory, priority := getDefaultTrieParameters(t)
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, maxTrieLevelInMemory, priority)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -102,8 +104,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher, maxTrieLevelInMemory := getDefaultTrieParameters(t)
-	tr, err := trie.NewTrie(trieStorage, nil, hasher, maxTrieLevelInMemory)
+	trieStorage, _, hasher, maxTrieLevelInMemory, priority := getDefaultTrieParameters(t)
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, maxTrieLevelInMemory, priority)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -112,8 +114,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _, maxTrieLevelInMemory := getDefaultTrieParameters(t)
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, maxTrieLevelInMemory)
+	trieStorage, marshalizer, _, maxTrieLevelInMemory, priority := getDefaultTrieParameters(t)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, maxTrieLevelInMemory, priority)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -122,11 +124,21 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, _ := getDefaultTrieParameters(t)
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 0)
+	trieStorage, marshalizer, hasher, _, priority := getDefaultTrieParameters(t)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 0, priority)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrInvalidLevelValue, err)
+}
+
+func TestNewTrie_InvalidPriorityType(t *testing.T) {
+	t.Parallel()
+
+	trieStorage, marshalizer, hasher, maxTrieLevelInMemory, _ := getDefaultTrieParameters(t)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory, "invalid")
+
+	assert.True(t, check.IfNil(tr))
+	assert.True(t, errors.Is(err, trie.ErrInvalidPriorityType))
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
@@ -377,7 +389,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 	_ = tr.Commit()
 
-	newTr, err := tr.Recreate(rootHash)
+	newTr, err := tr.Recreate(rootHash, common.TestPriority)
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 
@@ -390,7 +402,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 
 	tr := initTrie(t)
 
-	newTr, err := tr.Recreate(nil)
+	newTr, err := tr.Recreate(nil, common.TestPriority)
 	assert.Nil(t, err)
 	root, _ := newTr.RootHash()
 	assert.Equal(t, emptyTrieHash, root)
@@ -405,7 +417,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
-	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -419,7 +431,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 
 	maxBuffToSend := uint64(150)
 	expectedNodes := 2
-	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -437,12 +449,12 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager.SetCheckpoint(rootHash, make([]byte, 0), nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
 
-	err := storageManager.Remove(rootHash)
+	err := storageManager.Remove(rootHash, common.TestPriority)
 	assert.Nil(t, err)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
-	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }

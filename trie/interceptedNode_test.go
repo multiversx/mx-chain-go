@@ -21,7 +21,7 @@ func getDefaultInterceptedTrieNodeParameters(t *testing.T) ([]byte, marshal.Mars
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
-	it, _ := trie.NewIterator(tr)
+	it, _ := trie.NewIterator(tr, common.TestPriority)
 	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)

@@ -23,6 +23,7 @@ func NewPeerAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 	storagePruningManager StoragePruningManager,
+	startingPriority common.StorageAccessType,
 ) (*PeerAccountsDB, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
@@ -38,6 +39,9 @@ func NewPeerAccountsDB(
 	}
 	if check.IfNil(storagePruningManager) {
 		return nil, ErrNilStoragePruningManager
+	}
+	if !common.IsStorageAccessValid(startingPriority) {
+		return nil, fmt.Errorf("%w: %s in NewPeerAccountsDB", ErrInvalidPriorityType, startingPriority)
 	}
 
 	trieStorageManager := trie.GetStorageManager()
@@ -57,10 +61,11 @@ func NewPeerAccountsDB(
 			},
 			storagePruningManager: storagePruningManager,
 			lastSnapshot:          &snapshotInfo{},
+			priority:              startingPriority,
 		},
 	}
 
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
+	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey), common.SnapshotPriority)
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
@@ -76,7 +81,7 @@ func (adb *PeerAccountsDB) MarkSnapshotDone() {
 		return
 	}
 
-	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+	err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch, common.SnapshotPriority)
 	handleLoggingWhenError("error while putting active DB value into main storer", err)
 }
 
@@ -108,7 +113,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
-	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
+	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash, common.SnapshotPriority) // write on the same priority as the snapshot
 	if err != nil {
 		log.Warn("could not set lastSnapshotStarted", "err", err, "rootHash", rootHash)
 	}
@@ -123,7 +128,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		printStats(stats, "snapshotState peer trie", rootHash)
 
-		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
+		err = trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch, common.SnapshotPriority)
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
 	}()
 
@@ -157,7 +162,11 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
-	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	adb.mutOp.RLock()
+	priority := adb.priority
+	adb.mutOp.RUnlock()
+
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash, priority)
 	if err != nil {
 		return nil, err
 	}

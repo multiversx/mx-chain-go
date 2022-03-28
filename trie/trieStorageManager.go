@@ -291,7 +291,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]common.Snapshot
 }
 
 // Get checks all the storers for the given key, and returns it if it is found
-func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
+func (tsm *trieStorageManager) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
@@ -300,7 +300,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
-	val, err := tsm.mainStorer.Get(key)
+	val, err := tsm.mainStorer.Get(key, priority)
 	if isClosingError(err) {
 		return nil, err
 	}
@@ -308,11 +308,11 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return val, nil
 	}
 
-	return tsm.getFromOtherStorers(key)
+	return tsm.getFromOtherStorers(key, priority)
 }
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
-func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 
 	if tsm.closed {
@@ -330,11 +330,11 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 	tsm.storageOperationMutex.Unlock()
 
-	return storer.GetFromCurrentEpoch(key)
+	return storer.GetFromCurrentEpoch(key, priority)
 }
 
-func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
-	val, err := tsm.checkpointsStorer.Get(key)
+func (tsm *trieStorageManager) getFromOtherStorers(key []byte, priority common.StorageAccessType) ([]byte, error) {
+	val, err := tsm.checkpointsStorer.Get(key, priority)
 	if isClosingError(err) {
 		return nil, err
 	}
@@ -346,7 +346,7 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 		return nil, ErrKeyNotFound
 	}
 
-	val, err = tsm.db.Get(key)
+	val, err = tsm.db.Get(key, priority)
 	if isClosingError(err) {
 		return nil, err
 	}
@@ -355,7 +355,7 @@ func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	}
 
 	for i := len(tsm.snapshots) - 1; i >= 0; i-- {
-		val, _ = tsm.snapshots[i].Get(key)
+		val, _ = tsm.snapshots[i].Get(key, priority)
 		if len(val) != 0 {
 			return val, nil
 		}
@@ -377,7 +377,7 @@ func isClosingError(err error) bool {
 }
 
 // Put adds the given value to the main storer
-func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
+func (tsm *trieStorageManager) Put(key []byte, val []byte, priority common.StorageAccessType) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 	log.Trace("put hash in tsm", "hash", key)
@@ -387,11 +387,11 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 		return errors.ErrContextClosing
 	}
 
-	return tsm.mainStorer.Put(key, val)
+	return tsm.mainStorer.Put(key, val, priority)
 }
 
 // PutInEpoch adds the given value to the main storer in the specified epoch
-func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
+func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32, priority common.StorageAccessType) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
@@ -406,7 +406,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 		return fmt.Errorf("invalid storer type for PutInEpoch")
 	}
 
-	return storer.PutInEpochWithoutCache(key, val, epoch)
+	return storer.PutInEpochWithoutCache(key, val, epoch, priority)
 }
 
 // EnterPruningBufferingMode increases the counter that tracks how many operations
@@ -546,7 +546,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
+	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash, common.SnapshotPriority)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeSnapshot",
@@ -584,7 +584,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 
 	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash)
+	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash, common.SnapshotPriority)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: newSnapshotNode takeCheckpoint",
@@ -619,8 +619,9 @@ func newSnapshotNode(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	rootHash []byte,
+	priority common.StorageAccessType,
 ) (snapshotNode, error) {
-	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
+	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh, priority)
 	if err != nil {
 		return nil, err
 	}
@@ -657,7 +658,7 @@ func (tsm *trieStorageManager) AddDirtyCheckpointHashes(rootHash []byte, hashes 
 }
 
 // Remove removes the given hash form the storage and from the checkpoint hashes holder
-func (tsm *trieStorageManager) Remove(hash []byte) error {
+func (tsm *trieStorageManager) Remove(hash []byte, priority common.StorageAccessType) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
@@ -667,7 +668,7 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 		return fmt.Errorf("%w, storer type is %s", ErrWrongTypeAssertion, fmt.Sprintf("%T", tsm.mainStorer))
 	}
 
-	return storer.RemoveFromCurrentEpoch(hash)
+	return storer.RemoveFromCurrentEpoch(hash, priority)
 }
 
 func (tsm *trieStorageManager) isClosed() bool {
@@ -755,7 +756,7 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 }
 
 func isActiveDB(stsm *snapshotTrieStorageManager) bool {
-	val, err := stsm.Get([]byte(common.ActiveDBKey))
+	val, err := stsm.Get([]byte(common.ActiveDBKey), common.SnapshotPriority)
 	if err != nil {
 		log.Debug("isActiveDB get error", "err", err.Error())
 		return false
@@ -771,7 +772,7 @@ func isActiveDB(stsm *snapshotTrieStorageManager) bool {
 }
 
 func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
-	val, err := stsm.GetFromCurrentEpoch([]byte(common.TrieSyncedKey))
+	val, err := stsm.GetFromCurrentEpoch([]byte(common.TrieSyncedKey), common.ProcessPriority)
 	if err != nil {
 		log.Debug("isTrieSynced get error", "err", err.Error())
 		return false

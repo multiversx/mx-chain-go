@@ -56,7 +56,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 	}
 
 	key := []byte(strconv.FormatInt(round, 10))
-	err = bs.store.Put(key, bootDataBytes)
+	err = bs.store.Put(key, bootDataBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 		return err
 	}
 
-	err = bs.store.Put([]byte(common.HighestRoundFromBootStorage), roundBytes)
+	err = bs.store.Put([]byte(common.HighestRoundFromBootStorage), roundBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 // Get will read data from storage
 func (bs *bootstrapStorer) Get(round int64) (BootstrapData, error) {
 	key := []byte(strconv.FormatInt(round, 10))
-	bootstrapDataBytes, err := bs.store.Get(key)
+	bootstrapDataBytes, err := bs.store.Get(key, common.ProcessPriority)
 	if err != nil {
 		return BootstrapData{}, err
 	}
@@ -96,7 +96,7 @@ func (bs *bootstrapStorer) Get(round int64) (BootstrapData, error) {
 
 // GetHighestRound will return highest round saved in storage
 func (bs *bootstrapStorer) GetHighestRound() int64 {
-	roundBytes, err := bs.store.Get([]byte(common.HighestRoundFromBootStorage))
+	roundBytes, err := bs.store.Get([]byte(common.HighestRoundFromBootStorage), common.ProcessPriority)
 	if err != nil {
 		return 0
 	}
@@ -120,7 +120,7 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 		return err
 	}
 
-	err = bs.store.Put([]byte(common.HighestRoundFromBootStorage), roundBytes)
+	err = bs.store.Put([]byte(common.HighestRoundFromBootStorage), roundBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}

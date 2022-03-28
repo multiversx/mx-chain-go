@@ -153,7 +153,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 	}
 
 	epochIdentifier := core.EpochStartIdentifier(hdr.GetEpoch())
-	epochStartHdr, err := boot.headerStore.Get([]byte(epochIdentifier))
+	epochStartHdr, err := boot.headerStore.Get([]byte(epochIdentifier), common.ProcessPriority)
 	if err != nil {
 		return
 	}
@@ -294,7 +294,7 @@ func (boot *MetaBootstrap) getPrevHeader(
 ) (data.HeaderHandler, error) {
 
 	prevHash := header.GetPrevHash()
-	buffHeader, err := headerStore.Get(prevHash)
+	buffHeader, err := headerStore.Get(prevHash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}

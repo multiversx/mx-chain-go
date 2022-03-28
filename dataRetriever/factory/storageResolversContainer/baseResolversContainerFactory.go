@@ -232,6 +232,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		MaxTrieLevelInMem:          brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		DisableOldTrieStorageEpoch: brcf.disableOldTrieStorageEpoch,
 		EpochStartNotifier:         brcf.epochNotifier,
+		Priority:                   common.ResolveRequestPriority,
 	}
 	return trieFactoryInstance.Create(args)
 }

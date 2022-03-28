@@ -50,7 +50,7 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) comm
 	defer tsm.storageOperationMutex.Unlock()
 
 	for i := range tsm.snapshots {
-		_, err := tsm.snapshots[i].Get(rootHash)
+		_, err := tsm.snapshots[i].Get(rootHash, common.TestPriority)
 
 		hashPresent := err == nil
 		if hashPresent {
@@ -115,7 +115,7 @@ func (tsm *trieStorageManager) GetFromCheckpoint(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	return tsm.checkpointsStorer.Get(key)
+	return tsm.checkpointsStorer.Get(key, common.TestPriority)
 }
 
 // CreateSmallTestTrieAndStorageManager -

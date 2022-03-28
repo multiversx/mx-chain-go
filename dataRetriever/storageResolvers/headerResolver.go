@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -83,7 +84,7 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
 	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 2)
 
-	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
+	buff, err := hdrRes.hdrStorage.SearchFirst(hash, common.ResolveRequestPriority)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
 		return err
@@ -95,7 +96,7 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 // RequestDataFromNonce requests a header by its nonce
 func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
 	nonceKey := hdrRes.nonceConverter.ToByteSlice(nonce)
-	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey)
+	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey, common.ResolveRequestPriority)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
 		return err
@@ -127,7 +128,7 @@ func (hdrRes *headerResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 		actualKey = []byte(core.EpochStartIdentifier(hdrRes.manualEpochStartNotifier.CurrentEpoch() - 1))
 	}
 
-	return hdrRes.hdrStorage.SearchFirst(actualKey)
+	return hdrRes.hdrStorage.SearchFirst(actualKey, common.ResolveRequestPriority)
 }
 
 // SetEpochHandler sets the epoch handler

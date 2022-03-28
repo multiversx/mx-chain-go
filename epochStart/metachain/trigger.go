@@ -255,12 +255,12 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
-	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = t.metaHeaderStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	errNotCritical = t.metaHeaderStorage.Put([]byte(epochStartIdentifier), metaBuff, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into metaHdrStorage", "error", errNotCritical.Error())
 	}
@@ -332,7 +332,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	defer t.mutTrigger.Unlock()
 
 	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
-	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier), common.ProcessPriority)
 	if err != nil {
 		log.Warn("Revert get previous meta from storage", "error", err)
 		return err
@@ -346,12 +346,12 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
-	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
+	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier), common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier))
+	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier), common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}

@@ -3,6 +3,7 @@ package trie
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
@@ -26,7 +27,7 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 }
 
 // Get checks all the storers for the given key, and returns it if it is found
-func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
+func (stsm *snapshotTrieStorageManager) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	stsm.storageOperationMutex.Lock()
 	defer stsm.storageOperationMutex.Unlock()
 
@@ -35,7 +36,7 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
-	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
+	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, common.SnapshotPriority)
 	if isClosingError(err) {
 		return nil, err
 	}
@@ -43,11 +44,11 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return val, nil
 	}
 
-	return stsm.getFromOtherStorers(key)
+	return stsm.getFromOtherStorers(key, common.SnapshotPriority)
 }
 
 // Put adds the given value to the main storer
-func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
+func (stsm *snapshotTrieStorageManager) Put(key, data []byte, _ common.StorageAccessType) error {
 	stsm.storageOperationMutex.Lock()
 	defer stsm.storageOperationMutex.Unlock()
 
@@ -57,7 +58,7 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 	}
 
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
-	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
+	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch, common.SnapshotPriority)
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
@@ -70,5 +71,5 @@ func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, er
 		return nil, errors.ErrContextClosing
 	}
 
-	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
+	return stsm.mainSnapshotStorer.GetFromLastEpoch(key, common.SnapshotPriority)
 }

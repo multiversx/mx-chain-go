@@ -3,6 +3,7 @@ package storageBootstrap
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -121,7 +122,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
 		nonceToByteSlice := msb.uint64Converter.ToByteSlice(shardHeader.GetNonce())
-		err = storer.Remove(nonceToByteSlice)
+		err = storer.Remove(nonceToByteSlice, common.ProcessPriority)
 		if err != nil {
 			log.Debug("shard header was not removed from ShardHdrNonceHashDataUnit storage",
 				"shardId", shardHeader.GetShardID(),

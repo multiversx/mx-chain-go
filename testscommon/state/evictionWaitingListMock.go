@@ -54,7 +54,7 @@ func (ewl *EvictionWaitingList) Put(rootHash []byte, hashes common.ModifiedHashe
 		return err
 	}
 
-	err = ewl.Db.Put(rootHash, marshalizedHashes)
+	err = ewl.Db.Put(rootHash, marshalizedHashes, common.TestPriority)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (ewl *EvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHashes, e
 		return hashes, nil
 	}
 
-	marshalizedHashes, err := ewl.Db.Get(rootHash)
+	marshalizedHashes, err := ewl.Db.Get(rootHash, common.TestPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (ewl *EvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHashes, e
 		hashes[string(h)] = struct{}{}
 	}
 
-	err = ewl.Db.Remove(rootHash)
+	err = ewl.Db.Remove(rootHash, common.TestPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (ewl *EvictionWaitingList) ShouldKeepHash(hash string, identifier state.Tri
 
 		hashes := ewl.Cache[key]
 		if len(hashes) == 0 {
-			marshalizedHashes, err := ewl.Db.Get([]byte(key))
+			marshalizedHashes, err := ewl.Db.Get([]byte(key), common.TestPriority)
 			if err != nil {
 				return false, err
 			}

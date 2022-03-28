@@ -9,12 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // maxBuffToSend represents max buffer size to send in bytes
-const maxBuffToSend = 1 << 18 //256KB
+const maxBuffToSend = 1 << 18 // 256KB
 
 // ArgSliceResolver is the argument structure used to create a new sliceResolver instance
 type ArgSliceResolver struct {
@@ -72,7 +73,7 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 
 // RequestDataFromHash searches the hash in provided storage and then will send to self the message
 func (sliceRes *sliceResolver) RequestDataFromHash(hash []byte, _ uint32) error {
-	mb, err := sliceRes.storage.Get(hash)
+	mb, err := sliceRes.storage.Get(hash, common.ResolveRequestPriority)
 	if err != nil {
 		sliceRes.signalGracefullyClose()
 		return err
@@ -95,7 +96,7 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	errorsFound := 0
 	mbsBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
-		mb, errTemp := sliceRes.storage.Get(hash)
+		mb, errTemp := sliceRes.storage.Get(hash, common.ResolveRequestPriority)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
 			log.Trace("fetchMbAsByteSlice missing",

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidatorInfo_IsInterfaceNile(t *testing.T) {
+func TestValidatorInfo_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	vi := &ValidatorInfo{}

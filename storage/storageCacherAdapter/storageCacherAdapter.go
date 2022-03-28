@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -21,6 +22,7 @@ type storageCacherAdapter struct {
 	storedDataFactory  storage.StoredDataFactory
 	marshalizer        marshal.Marshalizer
 	numValuesInStorage int
+	defaultPriority    common.StorageAccessType
 }
 
 // NewStorageCacherAdapter creates a new storageCacherAdapter
@@ -29,6 +31,7 @@ func NewStorageCacherAdapter(
 	db storage.Persister,
 	storedDataFactory storage.StoredDataFactory,
 	marshalizer marshal.Marshalizer,
+	defaultPriority common.StorageAccessType,
 ) (*storageCacherAdapter, error) {
 	if check.IfNil(cacher) {
 		return nil, storage.ErrNilCacher
@@ -50,6 +53,7 @@ func NewStorageCacherAdapter(
 		storedDataFactory:  storedDataFactory,
 		marshalizer:        marshalizer,
 		numValuesInStorage: 0,
+		defaultPriority:    defaultPriority,
 	}, nil
 }
 
@@ -84,7 +88,7 @@ func (c *storageCacherAdapter) Put(key []byte, value interface{}, sizeInBytes in
 			continue
 		}
 
-		err := c.db.Put([]byte(evictedKeyStr), evictedValBytes)
+		err := c.db.Put([]byte(evictedKeyStr), evictedValBytes, c.defaultPriority)
 		if err != nil {
 			log.Error("could not save to db", "error", err)
 			continue
@@ -125,7 +129,7 @@ func (c *storageCacherAdapter) Get(key []byte) (interface{}, bool) {
 		return nil, false
 	}
 
-	valBytes, err := c.db.Get(key)
+	valBytes, err := c.db.Get(key, c.defaultPriority)
 	if err != nil {
 		return nil, false
 	}
@@ -169,7 +173,7 @@ func (c *storageCacherAdapter) Has(key []byte) bool {
 		return false
 	}
 
-	err := c.db.Has(key)
+	err := c.db.Has(key, c.defaultPriority)
 	return err == nil
 }
 
@@ -203,7 +207,7 @@ func (c *storageCacherAdapter) Remove(key []byte) {
 		return
 	}
 
-	err := c.db.Remove(key)
+	err := c.db.Remove(key, c.defaultPriority)
 	if err == nil {
 		c.numValuesInStorage--
 	}

@@ -241,7 +241,7 @@ func TestExtensionNode_commit(t *testing.T) {
 	err := en.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
 
-	encNode, _ := db.Get(hash)
+	encNode, _ := db.Get(hash, common.TestPriority)
 	n, _ := decodeNode(encNode, en.marsh, en.hasher)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
@@ -279,7 +279,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	err := collapsedEn.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
 
-	encNode, _ := db.Get(hash)
+	encNode, _ := db.Get(hash, common.TestPriority)
 	n, _ := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
 	collapsedEn.hash = nil
 
@@ -329,7 +329,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	_ = en.commitDirty(0, 5, db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 
-	err := collapsedEn.resolveCollapsed(0, db)
+	err := collapsedEn.resolveCollapsed(0, db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
 
@@ -343,7 +343,7 @@ func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
 
 	en := &extensionNode{}
 
-	err := en.resolveCollapsed(0, nil)
+	err := en.resolveCollapsed(0, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
@@ -352,7 +352,7 @@ func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	err := en.resolveCollapsed(2, nil)
+	err := en.resolveCollapsed(2, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
@@ -379,7 +379,7 @@ func TestExtensionNode_tryGet(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, err := en.tryGet(key, nil)
+	val, err := en.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, dogBytes, val)
 	assert.Nil(t, err)
 }
@@ -390,7 +390,7 @@ func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	var key []byte
 
-	val, err := en.tryGet(key, nil)
+	val, err := en.tryGet(key, nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
@@ -401,7 +401,7 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	key := []byte("gdo")
 
-	val, err := en.tryGet(key, nil)
+	val, err := en.tryGet(key, nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
@@ -420,7 +420,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, err := collapsedEn.tryGet(key, db)
+	val, err := collapsedEn.tryGet(key, db, common.TestPriority)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 }
@@ -431,7 +431,7 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 	key := []byte("dog")
 
-	val, err := en.tryGet(key, nil)
+	val, err := en.tryGet(key, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, val)
 }
@@ -442,7 +442,7 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	var en *extensionNode
 	key := []byte("dog")
 
-	val, err := en.tryGet(key, nil)
+	val, err := en.tryGet(key, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, val)
 }
@@ -459,7 +459,7 @@ func TestExtensionNode_getNext(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	n, newKey, err := en.getNext(key, nil)
+	n, newKey, err := en.getNext(key, nil, common.TestPriority)
 	assert.Equal(t, nextNode, n)
 	assert.Equal(t, key[1:], newKey)
 	assert.Nil(t, err)
@@ -473,7 +473,7 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	lnKey := []byte("dog")
 	key := append(bnKey, lnKey...)
 
-	n, key, err := en.getNext(key, nil)
+	n, key, err := en.getNext(key, nil, common.TestPriority)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
@@ -486,11 +486,11 @@ func TestExtensionNode_insert(t *testing.T) {
 	key := []byte{100, 15, 5, 6}
 	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
-	newNode, _, err := en.insert(n, nil)
+	newNode, _, err := en.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(key, nil)
+	val, _ := newNode.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -505,11 +505,11 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	_ = en.setHash()
 	_ = en.commitDirty(0, 5, db, db)
 
-	newNode, _, err := collapsedEn.insert(n, db)
+	newNode, _, err := collapsedEn.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(key, db)
+	val, _ := newNode.tryGet(key, db, common.TestPriority)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -524,11 +524,11 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 
 	_ = en.commitDirty(0, 5, db, db)
 	enHash := en.getHash()
-	bn, _, _ := en.getNext(enKey, db)
+	bn, _, _ := en.getNext(enKey, db, common.TestPriority)
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
-	newNode, oldHashes, err := en.insert(n, db)
+	newNode, oldHashes, err := en.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -547,7 +547,7 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	_ = en.commitDirty(0, 5, db, db)
 	expectedHashes := [][]byte{en.getHash()}
 
-	newNode, oldHashes, err := en.insert(n, db)
+	newNode, oldHashes, err := en.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -560,7 +560,7 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 	nodeKey := []byte{100, 11, 12}
 	n, _ := newLeafNode(nodeKey, []byte("dogs"), en.marsh, en.hasher)
 
-	newNode, oldHashes, err := en.insert(n, nil)
+	newNode, oldHashes, err := en.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -575,7 +575,7 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	nodeKey := []byte{11, 12}
 	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
-	newNode, oldHashes, err := en.insert(n, nil)
+	newNode, oldHashes, err := en.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -586,7 +586,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	newNode, _, err := en.insert(&leafNode{}, nil)
+	newNode, _, err := en.insert(&leafNode{}, nil, common.TestPriority)
 	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, newNode)
@@ -604,13 +604,13 @@ func TestExtensionNode_delete(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _ := en.tryGet(key, nil)
+	val, _ := en.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, dogBytes, val)
 
-	dirty, _, _, err := en.delete(key, nil)
+	dirty, _, _, err := en.delete(key, nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ = en.tryGet(key, nil)
+	val, _ = en.tryGet(key, nil, common.TestPriority)
 	assert.Nil(t, val)
 }
 
@@ -627,11 +627,11 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	lnPathKey := key
 
 	_ = en.commitDirty(0, 5, db, db)
-	bn, key, _ := en.getNext(key, db)
-	ln, _, _ := bn.getNext(key, db)
+	bn, key, _ := en.getNext(key, db, common.TestPriority)
+	ln, _, _ := bn.getNext(key, db, common.TestPriority)
 	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
 
-	dirty, _, oldHashes, err := en.delete(lnPathKey, db)
+	dirty, _, oldHashes, err := en.delete(lnPathKey, db, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -643,7 +643,7 @@ func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	lnKey := []byte{100, 2, 100, 111, 103}
 
-	dirty, _, oldHashes, err := en.delete(lnKey, nil)
+	dirty, _, oldHashes, err := en.delete(lnKey, nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -654,7 +654,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 
 	en := &extensionNode{}
 
-	dirty, newNode, _, err := en.delete([]byte("dog"), nil)
+	dirty, newNode, _, err := en.delete([]byte("dog"), nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, newNode)
@@ -665,7 +665,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	dirty, newNode, _, err := en.delete([]byte("dog"), nil)
+	dirty, newNode, _, err := en.delete([]byte("dog"), nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, newNode)
@@ -676,7 +676,7 @@ func TestExtensionNode_deleteEmptykey(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 
-	dirty, newNode, _, err := en.delete([]byte{}, nil)
+	dirty, newNode, _, err := en.delete([]byte{}, nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newNode)
@@ -696,13 +696,13 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _ := en.tryGet(key, db)
+	val, _ := en.tryGet(key, db, common.TestPriority)
 	assert.Equal(t, []byte("dog"), val)
 
-	dirty, newNode, _, err := collapsedEn.delete(key, db)
+	dirty, newNode, _, err := collapsedEn.delete(key, db, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ = newNode.tryGet(key, db)
+	val, _ = newNode.tryGet(key, db, common.TestPriority)
 	assert.Nil(t, val)
 }
 
@@ -728,7 +728,7 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	tr := initTrie()
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
-	collapsedTrie, _ := tr.Recreate(rootHash)
+	collapsedTrie, _ := tr.Recreate(rootHash, common.TestPriority)
 
 	err := collapsedTrie.Delete([]byte("doe"))
 	assert.Nil(t, err)
@@ -761,7 +761,7 @@ func TestExtensionNode_getChildren(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 
-	children, err := en.getChildren(nil)
+	children, err := en.getChildren(nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(children))
 }
@@ -773,7 +773,7 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
 
-	children, err := collapsedEn.getChildren(db)
+	children, err := collapsedEn.getChildren(db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(children))
 }
@@ -904,8 +904,8 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	_ = en.commitDirty(0, 5, db, db)
 	_ = collapsedEn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
-	en.print(enWriter, 0, db)
-	collapsedEn.print(collapsedEnWriter, 0, db)
+	en.print(enWriter, 0, db, common.TestPriority)
+	collapsedEn.print(collapsedEnWriter, 0, db, common.TestPriority)
 
 	assert.Equal(t, enWriter.Bytes(), collapsedEnWriter.Bytes())
 }
@@ -929,7 +929,7 @@ func TestExtensionNode_getAllHashes(t *testing.T) {
 	trieNodes := 5
 	en, _ := getEnAndCollapsedEn()
 
-	hashes, err := en.getAllHashes(testscommon.NewMemDbMock())
+	hashes, err := en.getAllHashes(testscommon.NewMemDbMock(), common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
 }
@@ -942,7 +942,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
-	hashes, err := collapsedEn.getAllHashes(db)
+	hashes, err := collapsedEn.getAllHashes(db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
 }

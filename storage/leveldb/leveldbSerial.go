@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/closing"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -24,12 +24,14 @@ type SerialDB struct {
 	*baseLevelDb
 	maxBatchSize      int
 	batchDelaySeconds int
-	sizeBatch         int
-	batch             storage.Batcher
-	mutBatch          sync.RWMutex
-	dbAccess          chan serialQueryer
-	cancel            context.CancelFunc
-	closer            core.SafeCloser
+
+	lowPrioBatch  *batchWrapper
+	highPrioBatch *batchWrapper
+
+	lowPrioDbAccess  chan serialQueryer
+	highPrioDbAccess chan serialQueryer
+	cancel           context.CancelFunc
+	closer           core.SafeCloser
 }
 
 // NewSerialDB is a constructor for the leveldb persister
@@ -65,13 +67,13 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		baseLevelDb:       bldb,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
-		sizeBatch:         0,
-		dbAccess:          make(chan serialQueryer),
+		lowPrioBatch:      newBatchWrapper(),
+		highPrioBatch:     newBatchWrapper(),
+		lowPrioDbAccess:   make(chan serialQueryer),
+		highPrioDbAccess:  make(chan serialQueryer),
 		cancel:            cancel,
 		closer:            closing.NewSafeChanCloser(),
 	}
-
-	dbStore.batch = NewBatch()
 
 	go dbStore.batchTimeoutHandle(ctx)
 	go dbStore.processLoop(ctx)
@@ -96,11 +98,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 
 		select {
 		case <-timer.C:
-			err := s.putBatch()
-			if err != nil {
-				log.Warn("leveldb serial putBatch", "error", err.Error())
-				continue
-			}
+			s.putAllBatches()
 		case <-ctx.Done():
 			log.Debug("batchTimeoutHandle - closing", "path", s.path)
 			return
@@ -108,46 +106,75 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 	}
 }
 
-func (s *SerialDB) updateBatchWithIncrement() error {
-	s.mutBatch.Lock()
-	s.sizeBatch++
-	if s.sizeBatch < s.maxBatchSize {
-		s.mutBatch.Unlock()
+func (s *SerialDB) putAllBatches() {
+	s.putBatchHandlingErrors(common.LowPriority)
+	s.putBatchHandlingErrors(common.HighPriority)
+}
+
+func (s *SerialDB) putBatchHandlingErrors(priority common.StorageAccessType) {
+	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
+	if err != nil {
+		log.Warn("SerialDB.putBatchHandlingErrors", "priority", priority, "error", err)
+		return
+	}
+
+	err = s.putBatch(wrappedBatch, writeChan)
+	if err != nil {
+		log.Warn("SerialDB.putBatchHandlingErrors -> putBatch", "error", err.Error())
+		return
+	}
+}
+
+func (s *SerialDB) updateBatchWithIncrement(wrappedBatch *batchWrapper, writeChan chan serialQueryer) error {
+	if wrappedBatch.updateBatchSizeReturningCurrent() < s.maxBatchSize {
 		return nil
 	}
-	s.mutBatch.Unlock()
 
-	err := s.putBatch()
+	return s.putBatch(wrappedBatch, writeChan)
+}
 
-	return err
+func (s *SerialDB) getBatchWrapperAndChan(priority common.StorageAccessType) (*batchWrapper, chan serialQueryer, error) {
+	if priority == common.HighPriority {
+		return s.highPrioBatch, s.highPrioDbAccess, nil
+	}
+	if priority == common.LowPriority {
+		return s.lowPrioBatch, s.lowPrioDbAccess, nil
+	}
+
+	return nil, nil, storage.ErrInvalidPriorityType
 }
 
 // Put adds the value to the (key, val) storage medium
-func (s *SerialDB) Put(key, val []byte) error {
+func (s *SerialDB) Put(key, val []byte, priority common.StorageAccessType) error {
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
 
-	s.mutBatch.RLock()
-	err := s.batch.Put(key, val)
-	s.mutBatch.RUnlock()
+	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
+	if err != nil {
+		return fmt.Errorf("%w in SerialDB.Put", err)
+	}
+
+	err = wrappedBatch.put(key, val)
 	if err != nil {
 		return err
 	}
 
-	return s.updateBatchWithIncrement()
+	return s.updateBatchWithIncrement(wrappedBatch, writeChan)
 }
 
 // Get returns the value associated to the key
-func (s *SerialDB) Get(key []byte) ([]byte, error) {
+func (s *SerialDB) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	if s.isClosed() {
 		return nil, storage.ErrDBIsClosed
 	}
 
-	s.mutBatch.RLock()
-	data := s.batch.Get(key)
-	s.mutBatch.RUnlock()
+	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
+	if err != nil {
+		return nil, fmt.Errorf("%w in SerialDB.Get", err)
+	}
 
+	data := wrappedBatch.get(key)
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
 			return nil, storage.ErrKeyNotFound
@@ -161,7 +188,7 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 		resChan: ch,
 	}
 
-	err := s.tryWriteInDbAccessChan(req)
+	err = s.tryWriteInDbAccessChan(req, writeChan)
 	if err != nil {
 		return nil, err
 	}
@@ -179,15 +206,17 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns nil if the given key is present in the persistence medium
-func (s *SerialDB) Has(key []byte) error {
+func (s *SerialDB) Has(key []byte, priority common.StorageAccessType) error {
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
 
-	s.mutBatch.RLock()
-	data := s.batch.Get(key)
-	s.mutBatch.RUnlock()
+	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
+	if err != nil {
+		return fmt.Errorf("%w in SerialDB.Has", err)
+	}
 
+	data := wrappedBatch.get(key)
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
 			return storage.ErrKeyNotFound
@@ -201,7 +230,7 @@ func (s *SerialDB) Has(key []byte) error {
 		resChan: ch,
 	}
 
-	err := s.tryWriteInDbAccessChan(req)
+	err = s.tryWriteInDbAccessChan(req, writeChan)
 	if err != nil {
 		return err
 	}
@@ -211,9 +240,9 @@ func (s *SerialDB) Has(key []byte) error {
 	return result
 }
 
-func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
+func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer, ch chan serialQueryer) error {
 	select {
-	case s.dbAccess <- req:
+	case ch <- req:
 		return nil
 	case <-s.closer.ChanClose():
 		return storage.ErrDBIsClosed
@@ -221,16 +250,12 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
 }
 
 // putBatch writes the Batch data into the database
-func (s *SerialDB) putBatch() error {
-	s.mutBatch.Lock()
-	dbBatch, ok := s.batch.(*batch)
+func (s *SerialDB) putBatch(wrappedBatch *batchWrapper, writeChan chan serialQueryer) error {
+	lastBatch := wrappedBatch.resetBatchReturningLast()
+	dbBatch, ok := lastBatch.(*batch)
 	if !ok {
-		s.mutBatch.Unlock()
 		return storage.ErrInvalidBatch
 	}
-	s.sizeBatch = 0
-	s.batch = NewBatch()
-	s.mutBatch.Unlock()
 
 	ch := make(chan error)
 	req := &putBatchAct{
@@ -238,7 +263,7 @@ func (s *SerialDB) putBatch() error {
 		resChan: ch,
 	}
 
-	err := s.tryWriteInDbAccessChan(req)
+	err := s.tryWriteInDbAccessChan(req, writeChan)
 	if err != nil {
 		return err
 	}
@@ -264,16 +289,19 @@ func (s *SerialDB) Close() error {
 }
 
 // Remove removes the data associated to the given key
-func (s *SerialDB) Remove(key []byte) error {
+func (s *SerialDB) Remove(key []byte, priority common.StorageAccessType) error {
 	if s.isClosed() {
 		return storage.ErrDBIsClosed
 	}
 
-	s.mutBatch.Lock()
-	_ = s.batch.Delete(key)
-	s.mutBatch.Unlock()
+	wrappedBatch, writeChan, err := s.getBatchWrapperAndChan(priority)
+	if err != nil {
+		return fmt.Errorf("%w in SerialDB.Remove", err)
+	}
 
-	return s.updateBatchWithIncrement()
+	wrappedBatch.delete(key)
+
+	return s.updateBatchWithIncrement(wrappedBatch, writeChan)
 }
 
 // Destroy removes the storage medium stored data
@@ -305,7 +333,7 @@ func (s *SerialDB) DestroyClosed() error {
 // must be called under mutex protection
 // TODO: re-use this function in leveldb.go as well
 func (s *SerialDB) doClose() error {
-	_ = s.putBatch()
+	s.putAllBatches()
 	s.cancel()
 
 	db := s.makeDbPointerNilReturningLast()
@@ -319,7 +347,19 @@ func (s *SerialDB) doClose() error {
 func (s *SerialDB) processLoop(ctx context.Context) {
 	for {
 		select {
-		case queryer := <-s.dbAccess:
+		case queryer := <-s.highPrioDbAccess:
+			queryer.request(s)
+			continue
+		case <-ctx.Done():
+			log.Debug("processLoop - closing the leveldb process loop", "path", s.path)
+			return
+		default:
+		}
+
+		select {
+		case queryer := <-s.highPrioDbAccess:
+			queryer.request(s)
+		case queryer := <-s.lowPrioDbAccess:
 			queryer.request(s)
 		case <-ctx.Done():
 			log.Debug("processLoop - closing the leveldb process loop", "path", s.path)

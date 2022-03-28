@@ -12,7 +12,7 @@ import (
 )
 
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
+var maxBuffToSendTrieNodes = uint64(1 << 18) // 256KB
 
 // ArgTrieResolver is the argument structure used to create new TrieResolver instance
 type ArgTrieResolver struct {
@@ -102,7 +102,7 @@ func (tnr *trieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32)
 }
 
 func (tnr *trieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
-	serializedNodes, remainingSpace, err := tnr.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
+	serializedNodes, remainingSpace, err := tnr.trieDataGetter.GetSerializedNodes(hash, remainingSpace, common.ResolveRequestPriority)
 	if err != nil {
 		tnr.signalGracefullyClose()
 		return nil, remainingSpace, err

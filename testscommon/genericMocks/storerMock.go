@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // StorerMock -
@@ -57,7 +58,7 @@ func (sm *StorerMock) GetEpochData(epoch uint32) *container.MutexMap {
 }
 
 // GetFromEpoch -
-func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32, _ common.StorageAccessType) ([]byte, error) {
 	data := sm.GetEpochData(epoch)
 	value, ok := data.Get(string(key))
 	if !ok {
@@ -68,7 +69,7 @@ func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32, _ common.StorageAccessType) (map[string][]byte, error) {
 	data := sm.GetEpochData(epoch)
 	result := map[string][]byte{}
 
@@ -95,14 +96,14 @@ func (sm *StorerMock) hasInEpoch(key []byte, epoch uint32) error {
 }
 
 // Put -
-func (sm *StorerMock) Put(key, value []byte) error {
+func (sm *StorerMock) Put(key, value []byte, _ common.StorageAccessType) error {
 	data := sm.GetCurrentEpochData()
 	data.Set(string(key), value)
 	return nil
 }
 
 // PutInEpoch -
-func (sm *StorerMock) PutInEpoch(key, value []byte, epoch uint32) error {
+func (sm *StorerMock) PutInEpoch(key, value []byte, epoch uint32, _ common.StorageAccessType) error {
 	data := sm.GetEpochData(epoch)
 	data.Set(string(key), value)
 	return nil
@@ -115,11 +116,11 @@ func (sm *StorerMock) PutWithMarshalizer(key []byte, obj interface{}, marshalize
 		return err
 	}
 
-	return sm.Put(key, data)
+	return sm.Put(key, data, common.TestPriority)
 }
 
 // Get -
-func (sm *StorerMock) Get(key []byte) ([]byte, error) {
+func (sm *StorerMock) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	data := sm.GetCurrentEpochData()
 	value, ok := data.Get(string(key))
 	if !ok {
@@ -131,7 +132,7 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 
 // GetFromEpochWithMarshalizer -
 func (sm *StorerMock) GetFromEpochWithMarshalizer(key []byte, epoch uint32, obj interface{}, marshalizer marshal.Marshalizer) error {
-	data, err := sm.GetFromEpoch(key, epoch)
+	data, err := sm.GetFromEpoch(key, epoch, common.TestPriority)
 	if err != nil {
 		return err
 	}
@@ -145,8 +146,8 @@ func (sm *StorerMock) GetFromEpochWithMarshalizer(key []byte, epoch uint32, obj 
 }
 
 // SearchFirst -
-func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
-	return sm.Get(key)
+func (sm *StorerMock) SearchFirst(key []byte, priority common.StorageAccessType) ([]byte, error) {
+	return sm.Get(key, priority)
 }
 
 // Close -
@@ -155,17 +156,17 @@ func (sm *StorerMock) Close() error {
 }
 
 // Has -
-func (sm *StorerMock) Has(key []byte) error {
+func (sm *StorerMock) Has(key []byte, _ common.StorageAccessType) error {
 	return sm.hasInEpoch(key, sm.currentEpoch.Get())
 }
 
 // RemoveFromCurrentEpoch -
-func (sm *StorerMock) RemoveFromCurrentEpoch(_ []byte) error {
+func (sm *StorerMock) RemoveFromCurrentEpoch(_ []byte, _ common.StorageAccessType) error {
 	return errors.New("not implemented")
 }
 
 // Remove -
-func (sm *StorerMock) Remove(_ []byte) error {
+func (sm *StorerMock) Remove(_ []byte, _ common.StorageAccessType) error {
 	return errors.New("not implemented")
 }
 

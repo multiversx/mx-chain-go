@@ -375,7 +375,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 
-	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash, common.TestPriority)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
@@ -712,7 +712,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 
 		headersPool.AddHeader(metaBlockHash, metaBlock)
 
-		err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash, common.ProcessPriority)
 		if err != nil {
 			log.Debug("unable to remove hash from MetaBlockUnit",
 				"hash", metaBlockHash)
@@ -720,7 +720,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 		}
 
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-		errNotCritical = sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		errNotCritical = sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice, common.ProcessPriority)
 		if errNotCritical != nil {
 			log.Debug("error not critical",
 				"error", errNotCritical.Error())

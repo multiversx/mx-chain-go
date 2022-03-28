@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	genesisMock "github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -61,6 +62,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
 		},
+		Priority: common.TestPriority,
 	}
 	return arguments
 }
@@ -173,6 +175,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 		{
 			args: func() hooks.ArgBlockChainHook {
 				args := createMockBlockChainHookArgs()
+				args.Priority = "invalid"
+				return args
+			},
+			expectedErr: hooks.ErrInvalidPriorityType,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
 				args.NilCompiledSCStore = false
 				args.ConfigSCStorage = config.StorageConfig{
 					Cache: config.CacheConfig{
@@ -196,7 +206,7 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 
 	for _, test := range tests {
 		bh, err := hooks.NewBlockChainHookImpl(test.args())
-		require.Equal(t, test.expectedErr, err)
+		require.True(t, errors.Is(err, test.expectedErr))
 
 		if test.expectedErr != nil {
 			require.Nil(t, bh)

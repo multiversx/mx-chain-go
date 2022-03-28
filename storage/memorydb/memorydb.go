@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -27,7 +28,7 @@ func New() *DB {
 }
 
 // Put adds the value to the (key, val) storage medium
-func (s *DB) Put(key, val []byte) error {
+func (s *DB) Put(key, val []byte, _ common.StorageAccessType) error {
 	s.mutx.Lock()
 	defer s.mutx.Unlock()
 
@@ -37,7 +38,7 @@ func (s *DB) Put(key, val []byte) error {
 }
 
 // Get gets the value associated to the key, or reports an error
-func (s *DB) Get(key []byte) ([]byte, error) {
+func (s *DB) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
 
@@ -51,7 +52,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistence medium, false otherwise
-func (s *DB) Has(key []byte) error {
+func (s *DB) Has(key []byte, _ common.StorageAccessType) error {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
 
@@ -70,7 +71,7 @@ func (s *DB) Close() error {
 }
 
 // Remove removes the data associated to the given key
-func (s *DB) Remove(key []byte) error {
+func (s *DB) Remove(key []byte, _ common.StorageAccessType) error {
 	s.mutx.Lock()
 	defer s.mutx.Unlock()
 

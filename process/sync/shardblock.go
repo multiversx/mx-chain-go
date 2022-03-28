@@ -234,7 +234,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 ) (data.HeaderHandler, error) {
 
 	prevHash := header.GetPrevHash()
-	buffHeader, err := headerStore.Get(prevHash)
+	buffHeader, err := headerStore.Get(prevHash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}

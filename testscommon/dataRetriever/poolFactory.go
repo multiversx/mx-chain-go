@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -102,6 +103,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		persister,
 		tnf,
 		&marshal.GogoProtoMarshalizer{},
+		common.TestPriority,
 	)
 	panicIfError("Create AdaptedTrieNodesStorage", err)
 

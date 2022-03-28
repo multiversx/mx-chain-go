@@ -26,22 +26,22 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *
 	testKey2 := []byte("key2")
 	testVal2 := []byte("value2")
 
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0, common.TestPriority)
 	assert.Nil(t, err)
 
 	err = ps.ChangeEpochSimple(1)
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(1)
 
-	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1)
+	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, common.TestPriority)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
+	res, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -57,12 +57,12 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	testKey1 := []byte("key1")
 	testVal1 := []byte("value1")
 
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -78,14 +78,14 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	testKey1 := []byte("key1")
 	testVal1 := []byte("value1")
 
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 	_ = ps.ChangeEpochSimple(2)
 	_ = ps.ChangeEpochSimple(3)
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -121,7 +121,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	_ = ps.ChangeEpochSimple(3)
 	_ = ps.Close()
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"), common.TestPriority)
 	assert.Nil(t, val)
 	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
@@ -140,11 +140,11 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentSto
 	testKey1 := []byte("key1")
 	testVal1 := []byte("value1")
 
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0, common.TestPriority)
 	assert.Nil(t, err)
 	ps.ClearCache()
 
-	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -165,14 +165,14 @@ func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
 	testKey3 := []byte("key3")
 	testVal3 := []byte("value3")
 
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0, common.TestPriority)
 	assert.Nil(t, err)
 
 	err = ps.ChangeEpochSimple(1)
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(1)
 
-	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1)
+	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
@@ -180,20 +180,20 @@ func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(2)
 
-	err = ps.PutInEpochWithoutCache(testKey3, testVal3, 2)
+	err = ps.PutInEpochWithoutCache(testKey3, testVal3, 2, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromLastEpoch(testKey2)
+	res, err := ps.GetFromLastEpoch(testKey2, common.TestPriority)
 	assert.Equal(t, testVal2, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromLastEpoch(testKey1)
+	res, err = ps.GetFromLastEpoch(testKey1, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 
-	res, err = ps.GetFromLastEpoch(testKey3)
+	res, err = ps.GetFromLastEpoch(testKey3, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -214,14 +214,14 @@ func TestTriePruningStorer_GetFromCurrentEpochSearchesOnlyCurrentEpoch(t *testin
 	testKey3 := []byte("key3")
 	testVal3 := []byte("value3")
 
-	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0)
+	err := ps.PutInEpochWithoutCache(testKey1, testVal1, 0, common.TestPriority)
 	assert.Nil(t, err)
 
 	err = ps.ChangeEpochSimple(1)
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(1)
 
-	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1)
+	err = ps.PutInEpochWithoutCache(testKey2, testVal2, 1, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
@@ -229,20 +229,20 @@ func TestTriePruningStorer_GetFromCurrentEpochSearchesOnlyCurrentEpoch(t *testin
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(2)
 
-	err = ps.PutInEpochWithoutCache(testKey3, testVal3, 2)
+	err = ps.PutInEpochWithoutCache(testKey3, testVal3, 2, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromCurrentEpoch(testKey3)
+	res, err := ps.GetFromCurrentEpoch(testKey3, common.TestPriority)
 	assert.Equal(t, testVal3, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromCurrentEpoch(testKey1)
+	res, err = ps.GetFromCurrentEpoch(testKey1, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 
-	res, err = ps.GetFromCurrentEpoch(testKey2)
+	res, err = ps.GetFromCurrentEpoch(testKey2, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -257,7 +257,7 @@ func TestTriePruningStorer_OpenMoreDbsIfNecessary(t *testing.T) {
 	_ = tps.ChangeEpochSimple(1)
 
 	tps.SetEpochForPutOperation(1)
-	err := tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	err := tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), common.TestPriority)
 	assert.Nil(t, err)
 
 	_ = tps.ChangeEpochSimple(2)
@@ -285,7 +285,7 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 	_ = tps.ChangeEpochSimple(1)
 
 	tps.SetEpochForPutOperation(1)
-	err := tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	err := tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), common.TestPriority)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 2, tps.GetNumActivePersisters())
@@ -297,7 +297,7 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 	assert.Equal(t, 5, tps.GetNumActivePersisters())
 
 	tps.SetEpochForPutOperation(4)
-	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	err = tps.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), common.TestPriority)
 	assert.Nil(t, err)
 
 	_ = tps.ChangeEpochSimple(5)

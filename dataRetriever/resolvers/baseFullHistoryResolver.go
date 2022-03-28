@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -9,10 +10,10 @@ type baseFullHistoryResolver struct {
 }
 
 func (bfhr *baseFullHistoryResolver) getFromStorage(key []byte, epoch uint32) ([]byte, error) {
-	//we just call the storer to search in the provided epoch. (it will search automatically also in the next epoch)
-	return bfhr.storer.GetFromEpoch(key, epoch)
+	// we just call the storer to search in the provided epoch. (it will search automatically also in the next epoch)
+	return bfhr.storer.GetFromEpoch(key, epoch, common.ResolveRequestPriority)
 }
 
 func (bfhr *baseFullHistoryResolver) searchFirst(key []byte) ([]byte, error) {
-	return bfhr.storer.SearchFirst(key)
+	return bfhr.storer.SearchFirst(key, common.ResolveRequestPriority)
 }

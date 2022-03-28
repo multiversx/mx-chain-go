@@ -44,7 +44,7 @@ func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConver
 ) (map[string]uint64, map[string]string) {
 	nonceBytes := uint64ByteSliceConverter.ToByteSlice(nonce)
 	storer := store.GetStorer(dataRetriever.StatusMetricsUnit)
-	statusMetricsDbBytes, err := storer.Get(nonceBytes)
+	statusMetricsDbBytes, err := storer.Get(nonceBytes, common.ProcessPriority)
 	if err != nil {
 		log.Debug("cannot load persistent metrics from storage", "error", err)
 		return nil, nil

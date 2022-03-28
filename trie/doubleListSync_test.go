@@ -71,7 +71,7 @@ func createTrieStorageManager(t *testing.T, store storage.Storer) (common.Storag
 func createInMemoryTrie(t *testing.T) (common.Trie, storage.Storer) {
 	memUnit := createMemUnit()
 	tsm, _ := createTrieStorageManager(t, memUnit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6, common.TestPriority)
 
 	return tr, memUnit
 }
@@ -84,7 +84,7 @@ func createInMemoryTrieFromDB(t *testing.T, db storage.Persister) (common.Trie, 
 	unit, _ := storageUnit.NewStorageUnit(cache, db)
 
 	tsm, _ := createTrieStorageManager(t, unit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6, common.TestPriority)
 
 	return tr, unit
 }
@@ -105,7 +105,7 @@ func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.
 					continue
 				}
 
-				buff, err := completeTrie.GetSerializedNode(hash)
+				buff, err := completeTrie.GetSerializedNode(hash, common.TestPriority)
 				if err != nil {
 					continue
 				}
@@ -234,7 +234,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	trie, _ := createInMemoryTrieFromDB(t, arg.DB.(*testscommon.MemDbMock))
-	trie, _ = trie.Recreate(roothash)
+	trie, _ = trie.Recreate(roothash, common.TestPriority)
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
@@ -273,7 +273,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 		if numKeysCopied >= numKeysValues/2 {
 			return false
 		}
-		_ = arg.DB.Put(key, val)
+		_ = arg.DB.Put(key, val, common.TestPriority)
 		exceptionHashes = append(exceptionHashes, key)
 		numKeysCopied++
 		return true
@@ -291,7 +291,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	require.Nil(t, err)
 
 	trie, _ := createInMemoryTrieFromDB(t, arg.DB.(*testscommon.MemDbMock))
-	trie, _ = trie.Recreate(roothash)
+	trie, _ = trie.Recreate(roothash, common.TestPriority)
 	require.False(t, check.IfNil(trie))
 
 	var val []byte

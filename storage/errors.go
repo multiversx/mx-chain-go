@@ -144,3 +144,6 @@ var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
 // ErrNilStoredDataFactory signals that a nil stored data factory has been provided
 var ErrNilStoredDataFactory = errors.New("nil stored data factory")
+
+// ErrInvalidPriorityType signals that an invalid priority type was provided
+var ErrInvalidPriorityType = errors.New("invalid priority type")

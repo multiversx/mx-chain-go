@@ -2,23 +2,25 @@ package factory
 
 import (
 	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 type disabledPersister struct {
 }
 
 // Put returns error
-func (dp *disabledPersister) Put(_, _ []byte) error {
+func (dp *disabledPersister) Put(_, _ []byte, _ common.StorageAccessType) error {
 	return fmt.Errorf("disabledPersister.Put")
 }
 
 // Get returns error
-func (dp *disabledPersister) Get(_ []byte) ([]byte, error) {
+func (dp *disabledPersister) Get(_ []byte, _ common.StorageAccessType) ([]byte, error) {
 	return nil, fmt.Errorf("disabledPersister.Get")
 }
 
 // Has returns error
-func (dp *disabledPersister) Has(_ []byte) error {
+func (dp *disabledPersister) Has(_ []byte, _ common.StorageAccessType) error {
 	return fmt.Errorf("disabledPersister.Has")
 }
 
@@ -28,7 +30,7 @@ func (dp *disabledPersister) Close() error {
 }
 
 // Remove returns error
-func (dp *disabledPersister) Remove(_ []byte) error {
+func (dp *disabledPersister) Remove(_ []byte, _ common.StorageAccessType) error {
 	return fmt.Errorf("disabledPersister.Remove")
 }
 

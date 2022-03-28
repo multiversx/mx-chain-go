@@ -31,6 +31,7 @@ type TrieCreateArgs struct {
 	MaxTrieLevelInMem          uint
 	DisableOldTrieStorageEpoch uint32
 	EpochStartNotifier         trie.EpochNotifier
+	Priority                   common.StorageAccessType
 }
 
 type trieCreator struct {
@@ -82,7 +83,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 
 	log.Debug("trie pruning status", "enabled", args.PruningEnabled)
 	if !args.PruningEnabled {
-		return tc.newTrieAndTrieStorageWithoutPruning(accountsTrieStorage, args.MaxTrieLevelInMem)
+		return tc.newTrieAndTrieStorageWithoutPruning(accountsTrieStorage, args.MaxTrieLevelInMem, args.Priority)
 	}
 
 	snapshotDbCfg := config.DBConfig{
@@ -112,22 +113,23 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
 	if !args.CheckpointsEnabled {
-		return tc.newTrieAndTrieStorageWithoutCheckpoints(storageManagerArgs, args.MaxTrieLevelInMem)
+		return tc.newTrieAndTrieStorageWithoutCheckpoints(storageManagerArgs, args.MaxTrieLevelInMem, args.Priority)
 	}
 
-	return tc.newTrieAndTrieStorage(storageManagerArgs, args.MaxTrieLevelInMem)
+	return tc.newTrieAndTrieStorage(storageManagerArgs, args.MaxTrieLevelInMem, args.Priority)
 }
 
 func (tc *trieCreator) newTrieAndTrieStorage(
 	args trie.NewTrieStorageManagerArgs,
 	maxTrieLevelInMem uint,
+	priority common.StorageAccessType,
 ) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManager(args)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem, priority)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -138,13 +140,14 @@ func (tc *trieCreator) newTrieAndTrieStorage(
 func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
 	args trie.NewTrieStorageManagerArgs,
 	maxTrieLevelInMem uint,
+	priority common.StorageAccessType,
 ) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManagerWithoutCheckpoints(args)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem, priority)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -155,13 +158,14 @@ func (tc *trieCreator) newTrieAndTrieStorageWithoutCheckpoints(
 func (tc *trieCreator) newTrieAndTrieStorageWithoutPruning(
 	accountsTrieStorage common.DBWriteCacher,
 	maxTrieLevelInMem uint,
+	priority common.StorageAccessType,
 ) (common.StorageManager, common.Trie, error) {
 	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem, priority)
 	if err != nil {
 		return nil, nil, err
 	}

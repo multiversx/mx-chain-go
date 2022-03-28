@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -103,7 +104,7 @@ func (lp *logsProcessor) saveSupplies(supplies map[string]*SupplyESDT) error {
 			return err
 		}
 
-		err = lp.suppliesStorer.Put([]byte(identifier), supplyESDTBytes)
+		err = lp.suppliesStorer.Put([]byte(identifier), supplyESDTBytes, common.ProcessPriority)
 		if err != nil {
 			return err
 		}
@@ -173,7 +174,7 @@ func (lp *logsProcessor) updateTokenSupply(tokenSupply *SupplyESDT, valueFromEve
 }
 
 func (lp *logsProcessor) getESDTSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
-	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier)
+	supplyFromStorageBytes, err := lp.suppliesStorer.Get(tokenIdentifier, common.ProcessPriority)
 	if err != nil {
 		if err == storage.ErrKeyNotFound {
 			return newSupplyESDTZero(), nil

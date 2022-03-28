@@ -65,7 +65,7 @@ func TestBootstrapDataProvider_LoadForPath_KeyNotFound(t *testing.T) {
 	require.Nil(t, bootstrapData)
 }
 
-func TestBootstrapDataProvider_LoadForPath_ShouldWork(t *testing.T) {
+func TestBootstrapDataProvider_LoadForPathShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -78,10 +78,10 @@ func TestBootstrapDataProvider_LoadForPath_ShouldWork(t *testing.T) {
 	expectedBD := &bootstrapStorage.BootstrapData{LastRound: 37}
 	expectedBDBytes, _ := marshalizer.Marshal(expectedBD)
 
-	_ = persisterToUse.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes)
+	_ = persisterToUse.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes, common.TestPriority)
 
 	key := []byte(strconv.FormatInt(expectedRound, 10))
-	_ = persisterToUse.Put(key, expectedBDBytes)
+	_ = persisterToUse.Put(key, expectedBDBytes, common.TestPriority)
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(_ string) (storage.Persister, error) {
 			return persisterToUse, nil

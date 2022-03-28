@@ -55,7 +55,7 @@ func createStoreForMeta() dataRetriever.StorageService {
 	}
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -133,7 +133,7 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(rcf))
 }
 
-//------- Create
+// ------- Create
 
 func TestMetaResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()

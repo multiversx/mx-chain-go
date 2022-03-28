@@ -716,7 +716,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
-		errNotCritical = storer.Remove(nonceToByteSlice)
+		errNotCritical = storer.Remove(nonceToByteSlice, common.ProcessPriority)
 		if errNotCritical != nil {
 			log.Debug("ShardHdrNonceHashDataUnit.Remove", "error", errNotCritical.Error())
 		}
@@ -1583,7 +1583,7 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash, common.ProcessPriority)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),

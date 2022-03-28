@@ -102,7 +102,7 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 	nonceBytes := psh.uint64ByteSliceConverter.ToByteSlice(nonce)
 
 	psh.mutStore.RLock()
-	err = psh.store.Put(nonceBytes, statusMetricsBytes)
+	err = psh.store.Put(nonceBytes, statusMetricsBytes, common.ProcessPriority)
 	psh.mutStore.RUnlock()
 	if err != nil {
 		log.Debug("cannot save metrics map in storage",
@@ -129,7 +129,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 
 	psh.persistentMetrics.Store(key, value)
 
-	//metrics wil be saved in storage every time when a block is committed successfully
+	// metrics wil be saved in storage every time when a block is committed successfully
 	if key != common.MetricNonce {
 		return
 	}

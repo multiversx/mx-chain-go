@@ -50,7 +50,7 @@ func (ps *triePruningStorer) extendPersisterLife() bool {
 			continue
 		}
 
-		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey))
+		val, err := ps.activePersisters[i].persister.Get([]byte(common.ActiveDBKey), common.SnapshotPriority)
 		if err != nil {
 			continue
 		}
@@ -113,7 +113,7 @@ func initTriePersisterInEpoch(
 }
 
 func shouldCloseOldPersisters(pd *persisterData) bool {
-	val, err := pd.persister.Get([]byte(common.ActiveDBKey))
+	val, err := pd.persister.Get([]byte(common.ActiveDBKey), common.SnapshotPriority)
 	if err != nil {
 		return false
 	}
@@ -126,7 +126,7 @@ func shouldCloseOldPersisters(pd *persisterData) bool {
 }
 
 // PutInEpochWithoutCache adds data to persistence medium related to the specified epoch
-func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
+func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32, priority common.StorageAccessType) error {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -140,7 +140,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 	}
 	defer closePersister()
 
-	err = persister.Put(key, data)
+	err = persister.Put(key, data, priority)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
 		return v.([]byte), nil
@@ -160,7 +160,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 
 	numClosedDbs := 0
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
-		val, err := ps.activePersisters[idx].persister.Get(key)
+		val, err := ps.activePersisters[idx].persister.Get(key, priority)
 		if err != nil {
 			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
@@ -180,7 +180,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
-func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromLastEpoch(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -188,11 +188,11 @@ func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 	}
 
-	return ps.activePersisters[lastEpochIndex].persister.Get(key)
+	return ps.activePersisters[lastEpochIndex].persister.Get(key, priority)
 }
 
 // GetFromCurrentEpoch searches only the current epoch storer for the given key
-func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	ps.lock.RLock()
 
 	if len(ps.activePersisters) == 0 {
@@ -203,7 +203,7 @@ func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	persister := ps.activePersisters[currentEpochIndex].persister
 	ps.lock.RUnlock()
 
-	return persister.Get(key)
+	return persister.Get(key, priority)
 }
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister

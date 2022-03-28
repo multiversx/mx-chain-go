@@ -16,16 +16,16 @@ type TrieStub struct {
 	DeleteCalled                func(key []byte) error
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
-	RecreateCalled              func(root []byte) (common.Trie, error)
+	RecreateCalled              func(root []byte, priority common.StorageAccessType) (common.Trie, error)
 	GetObsoleteHashesCalled     func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
-	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNodesCalled    func([]byte, uint64, common.StorageAccessType) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
 	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() common.StorageManager
-	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetSerializedNodeCalled     func(bytes []byte, priority common.StorageAccessType) ([]byte, error)
 	GetNumNodesCalled           func() common.NumNodesDTO
 	GetOldRootCalled            func() []byte
 	CloseCalled                 func() error
@@ -116,9 +116,9 @@ func (ts *TrieStub) Commit() error {
 }
 
 // Recreate -
-func (ts *TrieStub) Recreate(root []byte) (common.Trie, error) {
+func (ts *TrieStub) Recreate(root []byte, priority common.StorageAccessType) (common.Trie, error) {
 	if ts.RecreateCalled != nil {
-		return ts.RecreateCalled(root)
+		return ts.RecreateCalled(root, priority)
 	}
 
 	return nil, errNotImplemented
@@ -144,9 +144,9 @@ func (ts *TrieStub) GetObsoleteHashes() [][]byte {
 }
 
 // GetSerializedNodes -
-func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
+func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 	if ts.GetSerializedNodesCalled != nil {
-		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
+		return ts.GetSerializedNodesCalled(hash, maxBuffToSend, priority)
 	}
 	return nil, 0, nil
 }
@@ -170,9 +170,9 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 }
 
 // GetSerializedNode -
-func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+func (ts *TrieStub) GetSerializedNode(bytes []byte, priority common.StorageAccessType) ([]byte, error) {
 	if ts.GetSerializedNodeCalled != nil {
-		return ts.GetSerializedNodeCalled(bytes)
+		return ts.GetSerializedNodeCalled(bytes, priority)
 	}
 
 	return nil, nil

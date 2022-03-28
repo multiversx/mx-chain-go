@@ -18,6 +18,7 @@ import (
 var log = logger.GetOrCreate("trie")
 
 var _ dataRetriever.TrieDataGetter = (*patriciaMerkleTrie)(nil)
+var _ common.Trie = (*patriciaMerkleTrie)(nil)
 
 const (
 	extension = iota
@@ -40,6 +41,7 @@ type patriciaMerkleTrie struct {
 	oldRoot              []byte
 	maxTrieLevelInMemory uint
 	chanClose            chan struct{}
+	priority             common.StorageAccessType
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -48,6 +50,7 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	maxTrieLevelInMemory uint,
+	priority common.StorageAccessType,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -61,6 +64,10 @@ func NewTrie(
 	if maxTrieLevelInMemory == 0 {
 		return nil, ErrInvalidLevelValue
 	}
+	if !common.IsStorageAccessValid(priority) {
+		return nil, fmt.Errorf("%w: %s in NewTrie", ErrInvalidPriorityType, priority)
+	}
+
 	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
@@ -71,6 +78,7 @@ func NewTrie(
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: maxTrieLevelInMemory,
 		chanClose:            make(chan struct{}),
+		priority:             priority,
 	}, nil
 }
 
@@ -85,7 +93,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, err := tr.root.tryGet(hexKey, tr.trieStorage)
+	val, err := tr.root.tryGet(hexKey, tr.trieStorage, tr.priority)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
 		return nil, err
@@ -126,7 +134,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage)
+		newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage, tr.priority)
 		if err != nil {
 			return err
 		}
@@ -148,7 +156,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err = tr.root.delete(hexKey, tr.trieStorage)
+		_, newRoot, oldHashes, err = tr.root.delete(hexKey, tr.trieStorage, tr.priority)
 		if err != nil {
 			return err
 		}
@@ -175,7 +183,7 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.trieStorage)
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.trieStorage, tr.priority)
 	if err != nil {
 		return err
 	}
@@ -241,29 +249,30 @@ func (tr *patriciaMerkleTrie) Commit() error {
 }
 
 // Recreate returns a new trie that has the given root hash and database
-func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
+func (tr *patriciaMerkleTrie) Recreate(root []byte, priority common.StorageAccessType) (common.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreate(root)
+	return tr.recreate(root, priority)
 }
 
-func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error) {
+func (tr *patriciaMerkleTrie) recreate(root []byte, priority common.StorageAccessType) (*patriciaMerkleTrie, error) {
 	if emptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.hasher,
 			tr.maxTrieLevelInMemory,
+			priority,
 		)
 	}
 
-	_, err := tr.trieStorage.Get(root)
+	_, err := tr.trieStorage.Get(root, priority)
 	if err != nil {
 		return nil, err
 	}
 
-	newTr, _, err := tr.recreateFromDb(root, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(root, tr.trieStorage, priority)
 	if err != nil {
 		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(root))
 		return nil, err
@@ -279,7 +288,7 @@ func (tr *patriciaMerkleTrie) String() string {
 	if tr.root == nil {
 		_, _ = fmt.Fprintln(writer, "*** EMPTY TRIE ***")
 	} else {
-		tr.root.print(writer, 0, tr.trieStorage)
+		tr.root.print(writer, 0, tr.trieStorage, tr.priority)
 	}
 
 	return writer.String()
@@ -336,18 +345,19 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	return dirtyHashes, nil
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager, priority common.StorageAccessType) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
 		tr.hasher,
 		tr.maxTrieLevelInMemory,
+		priority,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newRoot, err := getNodeFromDBAndDecode(rootHash, tsm, tr.marshalizer, tr.hasher)
+	newRoot, err := getNodeFromDBAndDecode(rootHash, tsm, tr.marshalizer, tr.hasher, priority)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -359,29 +369,29 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 }
 
 // GetSerializedNode returns the serialized node (if existing) provided the node's hash
-func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte) ([]byte, error) {
+func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte, priority common.StorageAccessType) ([]byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	log.Trace("GetSerializedNode", "hash", hash)
 
-	return tr.trieStorage.Get(hash)
+	return tr.trieStorage.Get(hash, priority)
 }
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
-func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
+func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage, priority)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	it, err := NewIterator(newTr)
+	it, err := NewIterator(newTr, priority)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -423,7 +433,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.
 	leavesChannel := make(chan core.KeyValueHolder, 100)
 
 	tr.mutOperation.RLock()
-	newTrie, err := tr.recreate(rootHash)
+	newTrie, err := tr.recreate(rootHash, tr.priority)
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
@@ -446,6 +456,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.chanClose,
+			tr.priority,
 		)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
@@ -476,7 +487,7 @@ func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 		return nil, err
 	}
 
-	hashes, err = tr.root.getAllHashes(tr.trieStorage)
+	hashes, err = tr.root.getAllHashes(tr.trieStorage, tr.priority)
 	if err != nil {
 		return nil, err
 	}
@@ -526,7 +537,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 		proof = append(proof, encodedNode)
 		value := currentNode.getValue()
 
-		currentNode, hexKey, errGet = currentNode.getNext(hexKey, tr.trieStorage)
+		currentNode, hexKey, errGet = currentNode.getNext(hexKey, tr.trieStorage, tr.priority)
 		if errGet != nil {
 			return nil, nil, errGet
 		}

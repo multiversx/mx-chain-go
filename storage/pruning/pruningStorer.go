@@ -285,11 +285,11 @@ func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 }
 
 // Put adds data to both cache and persistence medium
-func (ps *PruningStorer) Put(key, data []byte) error {
+func (ps *PruningStorer) Put(key, data []byte, priority common.StorageAccessType) error {
 	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.getPersisterToUse()
-	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
+	return ps.doPutInPersister(key, data, persisterToUse.getPersister(), priority)
 }
 
 func (ps *PruningStorer) getPersisterToUse() *persisterData {
@@ -313,8 +313,8 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 	return persisterToUse
 }
 
-func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister) error {
-	err := persister.Put(key, data)
+func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister, priority common.StorageAccessType) error {
+	err := persister.Put(key, data, priority)
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
@@ -324,7 +324,7 @@ func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Pe
 }
 
 // PutInEpoch adds data to specified epoch
-func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
+func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32, priority common.StorageAccessType) error {
 	ps.cacher.Put(key, data, len(data))
 
 	ps.lock.RLock()
@@ -340,7 +340,7 @@ func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
 	}
 	defer closePersister()
 
-	return ps.doPutInPersister(key, data, persister)
+	return ps.doPutInPersister(key, data, persister, priority)
 }
 
 func (ps *PruningStorer) createAndInitPersisterIfClosedProtected(pd *persisterData) (storage.Persister, func(), error) {
@@ -386,7 +386,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 }
 
 // Get searches the key in the cache. In case it is not found, the key may be in the db.
-func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
+func (ps *PruningStorer) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
 		return v.([]byte), nil
@@ -399,7 +399,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 	numClosedDbs := 0
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
-		val, err := ps.activePersisters[idx].persister.Get(key)
+		val, err := ps.activePersisters[idx].persister.Get(key, priority)
 		if err != nil {
 			if err == storage.ErrDBIsClosed {
 				numClosedDbs++
@@ -443,7 +443,7 @@ func (ps *PruningStorer) Close() error {
 }
 
 // GetFromEpoch will search a key only in the persister for the given epoch
-func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 	// TODO: this will be used when requesting from resolvers
 	v, ok := ps.cacher.Get(key)
 	if ok {
@@ -464,7 +464,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	}
 	defer closePersister()
 
-	res, err := persister.Get(key)
+	res, err := persister.Get(key, priority)
 	if err == nil {
 		return res, nil
 	}
@@ -481,7 +481,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32, priority common.StorageAccessType) (map[string][]byte, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -506,7 +506,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		res, errGet := persisterToRead.Get(key)
+		res, errGet := persisterToRead.Get(key, priority)
 		if errGet != nil {
 			log.Warn("cannot get from persister",
 				"hash", hex.EncodeToString(key),
@@ -522,7 +522,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 }
 
 // SearchFirst will search a given key in all the active persisters, from the newest to the oldest
-func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
+func (ps *PruningStorer) SearchFirst(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
 		return v.([]byte), nil
@@ -534,7 +534,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
-		res, err = pd.getPersister().Get(key)
+		res, err = pd.getPersister().Get(key, priority)
 		if err == nil {
 			return res, nil
 		}
@@ -550,7 +550,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the db
-func (ps *PruningStorer) Has(key []byte) error {
+func (ps *PruningStorer) Has(key []byte, priority common.StorageAccessType) error {
 	has := ps.cacher.Has(key)
 	if has {
 		return nil
@@ -560,7 +560,7 @@ func (ps *PruningStorer) Has(key []byte) error {
 	defer ps.lock.RUnlock()
 
 	for _, persister := range ps.activePersisters {
-		if persister.getPersister().Has(key) != nil {
+		if persister.getPersister().Has(key, priority) != nil {
 			continue
 		}
 
@@ -578,7 +578,7 @@ func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
 }
 
 // RemoveFromCurrentEpoch removes the data associated to the given key from both cache and the current epoch persistence medium
-func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
+func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte, priority common.StorageAccessType) error {
 	ps.cacher.Remove(key)
 
 	ps.lock.RLock()
@@ -589,18 +589,18 @@ func (ps *PruningStorer) RemoveFromCurrentEpoch(key []byte) error {
 
 	persisterToUse := ps.activePersisters[0]
 
-	return persisterToUse.persister.Remove(key)
+	return persisterToUse.persister.Remove(key, priority)
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
-func (ps *PruningStorer) Remove(key []byte) error {
+func (ps *PruningStorer) Remove(key []byte, priority common.StorageAccessType) error {
 	var err error
 	ps.cacher.Remove(key)
 
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	for _, pd := range ps.activePersisters {
-		err = pd.persister.Remove(key)
+		err = pd.persister.Remove(key, priority)
 		if err == nil {
 			return nil
 		}

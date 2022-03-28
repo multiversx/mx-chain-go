@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -36,6 +37,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
 		EpochStartNotifier: &epochNotifier.EpochNotifierStub{},
+		Priority:           common.TestPriority,
 	}
 }
 

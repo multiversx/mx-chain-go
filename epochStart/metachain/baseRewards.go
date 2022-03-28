@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -56,7 +57,7 @@ type baseRewardsCreator struct {
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
-	flagDelegationSystemSCEnabled      atomic.Flag //nolint
+	flagDelegationSystemSCEnabled      atomic.Flag // nolint
 	delegationSystemSCEnableEpoch      uint32
 	userAccountsDB                     state.AccountsAdapter
 	mutRewardsData                     sync.RWMutex
@@ -206,7 +207,7 @@ func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.MetaHeaderHandler, bo
 				continue
 			}
 
-			_ = brc.rewardsStorage.Put(txHash, marshalizedData)
+			_ = brc.rewardsStorage.Put(txHash, marshalizedData, common.ProcessPriority)
 		}
 
 		marshalizedData, err := brc.marshalizer.Marshal(miniBlock)
@@ -215,7 +216,7 @@ func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.MetaHeaderHandler, bo
 		}
 
 		mbHash := brc.hasher.Compute(string(marshalizedData))
-		_ = brc.miniBlockStorage.Put(mbHash, marshalizedData)
+		_ = brc.miniBlockStorage.Put(mbHash, marshalizedData, common.ProcessPriority)
 	}
 }
 
@@ -231,13 +232,13 @@ func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.MetaHeaderHan
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
-			_ = brc.rewardsStorage.Remove(txHash)
+			_ = brc.rewardsStorage.Remove(txHash, common.ProcessPriority)
 		}
 	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if mbHeader.GetTypeInt32() == int32(block.RewardsBlock) {
-			_ = brc.miniBlockStorage.Remove(mbHeader.GetHash())
+			_ = brc.miniBlockStorage.Remove(mbHeader.GetHash(), common.ProcessPriority)
 		}
 	}
 }

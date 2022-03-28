@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -73,12 +74,12 @@ func TestNewFullHistoryPruningStorer_PutAndGetInEpochShouldWork(t *testing.T) {
 
 	testKey, testVal := []byte("key"), []byte("value")
 	// init persister for epoch 7
-	_, _ = fhps.GetFromEpoch(testKey, 7)
+	_, _ = fhps.GetFromEpoch(testKey, 7, common.TestPriority)
 
-	err := fhps.PutInEpoch(testKey, testVal, 7)
+	err := fhps.PutInEpoch(testKey, testVal, 7, common.TestPriority)
 	assert.Nil(t, err)
 
-	res, err := fhps.GetFromEpoch(testKey, 7)
+	res, err := fhps.GetFromEpoch(testKey, 7, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 }
@@ -97,7 +98,7 @@ func TestNewFullHistoryPruningStorer_GetMultipleDifferentEpochsShouldEvict(t *te
 	testEpoch := []byte("7")
 	testEpochNext := []byte("8")
 	// init persister for epoch 7 and 8
-	_, _ = fhps.GetFromEpoch(testKey, 7)
+	_, _ = fhps.GetFromEpoch(testKey, 7, common.TestPriority)
 	ok := fhps.GetOldEpochsActivePersisters().Has(testEpoch)
 	assert.True(t, ok)
 
@@ -105,7 +106,7 @@ func TestNewFullHistoryPruningStorer_GetMultipleDifferentEpochsShouldEvict(t *te
 	assert.True(t, ok)
 
 	// init persister for epoch 9
-	_, _ = fhps.GetFromEpoch(testKey, 9)
+	_, _ = fhps.GetFromEpoch(testKey, 9, common.TestPriority)
 	ok = fhps.GetOldEpochsActivePersisters().Has(testEpoch)
 	assert.False(t, ok)
 }
@@ -130,22 +131,22 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	testEpochKey := []byte("7")
 	testEpoch := uint32(7)
 	// init persister for epoch 7 and 8
-	_, _ = fhps.GetFromEpoch(nil, testEpoch)
+	_, _ = fhps.GetFromEpoch(nil, testEpoch, common.TestPriority)
 	ok := fhps.GetOldEpochsActivePersisters().Has(testEpochKey)
 	assert.True(t, ok)
 
-	err := fhps.PutInEpoch(testKey, testVal, testEpoch)
+	err := fhps.PutInEpoch(testKey, testVal, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 
-	res, err := fhps.GetFromEpoch(testKey, testEpoch)
+	res, err := fhps.GetFromEpoch(testKey, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
 	// init persister for epoch 9 and 10
-	_, _ = fhps.GetFromEpoch(testKey, 9)
+	_, _ = fhps.GetFromEpoch(testKey, 9, common.TestPriority)
 
 	// get from evicted epoch 7
-	res, err = fhps.GetFromEpoch(testKey, testEpoch)
+	res, err = fhps.GetFromEpoch(testKey, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 }
@@ -163,16 +164,16 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	testKey := []byte("key")
 	testEpoch := uint32(7)
 	// init persister for epoch 7
-	_, _ = fhps.GetFromEpoch(nil, testEpoch)
+	_, _ = fhps.GetFromEpoch(nil, testEpoch, common.TestPriority)
 
-	err := fhps.PutInEpoch(testKey, testVal, testEpoch)
+	err := fhps.PutInEpoch(testKey, testVal, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 
-	res1, err := fhps.GetFromEpoch(testKey, testEpoch)
+	res1, err := fhps.GetFromEpoch(testKey, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res1)
 
-	res2, err := fhps.GetFromEpoch(testKey, testEpoch-1)
+	res2, err := fhps.GetFromEpoch(testKey, testEpoch-1, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res2)
 }
@@ -191,11 +192,11 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	testKey2, testVal2 := []byte("key0"), []byte("value0")
 	testEpoch := uint32(7)
 
-	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch)
-	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch)
-	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch)
+	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch, common.TestPriority)
+	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch, common.TestPriority)
+	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch, common.TestPriority)
 
-	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch)
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 
 	expectedMap := map[string][]byte{
@@ -219,13 +220,13 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *t
 	testKey2, testVal2 := []byte("key0"), []byte("value0")
 	testEpoch := uint32(7)
 
-	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch)
-	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch)
-	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch)
+	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch, common.TestPriority)
+	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch, common.TestPriority)
+	_ = fhps.PutInEpoch(testKey2, testVal2, testEpoch, common.TestPriority)
 
 	fhps.ClearCache()
 
-	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch)
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1, testKey2}, testEpoch, common.TestPriority)
 	assert.Nil(t, err)
 
 	expectedMap := map[string][]byte{
@@ -278,7 +279,7 @@ func TestFullHistoryPruningStorer_Close(t *testing.T) {
 	}
 	fhps, _ := pruning.NewShardedFullHistoryPruningStorer(fhArgs, 2)
 	for i := 0; i < 10; i++ {
-		_, _ = fhps.GetFromEpoch([]byte("key"), uint32(i))
+		_, _ = fhps.GetFromEpoch([]byte("key"), uint32(i), common.TestPriority)
 	}
 	assert.Equal(t, int(fhArgs.NumOfOldActivePersisters), fhps.GetOldEpochsActivePersisters().Len())
 
@@ -364,15 +365,15 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
 			switch index % 6 {
 			case 1:
-				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(index-1))
+				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(index-1), common.TestPriority)
 			case 2:
-				_ = fhps.Put([]byte("key"), []byte("value"))
+				_ = fhps.Put([]byte("key"), []byte("value"), common.TestPriority)
 			case 3:
-				_, _ = fhps.Get([]byte("key"))
+				_, _ = fhps.Get([]byte("key"), common.TestPriority)
 			case 4:
-				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(rnd.Intn(100)))
+				_, _ = fhps.GetFromEpoch([]byte("key"), uint32(rnd.Intn(100)), common.TestPriority)
 			case 5:
-				_, _ = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, uint32(rnd.Intn(100)))
+				_, _ = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, uint32(rnd.Intn(100)), common.TestPriority)
 			}
 			wg.Done()
 		}(idx)

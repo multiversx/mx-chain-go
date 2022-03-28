@@ -92,7 +92,7 @@ func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(testscommon.NewMemDbMock())
-	assert.Nil(t, ts.Remove([]byte("key")))
+	assert.Nil(t, ts.Remove([]byte("key"), common.TestPriority))
 }
 
 func TestTrieStorageManagerWithoutPruning_ShouldTakeSnapshot(t *testing.T) {

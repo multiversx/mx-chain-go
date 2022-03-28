@@ -125,7 +125,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
-		//TODO: extract this in a parameter and inject it
+		// TODO: extract this in a parameter and inject it
 		time.Sleep(common.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err

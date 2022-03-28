@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -505,7 +506,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments(createComponentHolderMocks())
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return expectedErr
 		},
 	}
@@ -1010,7 +1011,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 
 	metaHdr := &block.MetaBlock{}
 	metaHdrData, _ := coreComponents.InternalMarshalizer().Marshal(metaHdr)
-	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
+	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData, common.TestPriority)
 
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
@@ -1020,7 +1021,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		Economics:            block.Economics{},
 	}}
 	metaHdrData, _ = coreComponents.InternalMarshalizer().Marshal(metaHdr)
-	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
+	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData, common.TestPriority)
 
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)

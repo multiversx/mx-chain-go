@@ -9,10 +9,11 @@ type iterator struct {
 	currentNode node
 	nextNodes   []node
 	db          common.DBWriteCacher
+	priority    common.StorageAccessType
 }
 
 // NewIterator creates a new instance of trie iterator
-func NewIterator(trie common.Trie) (*iterator, error) {
+func NewIterator(trie common.Trie, priority common.StorageAccessType) (*iterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
@@ -23,7 +24,7 @@ func NewIterator(trie common.Trie) (*iterator, error) {
 	}
 
 	trieStorage := trie.GetStorageManager()
-	nextNodes, err := pmt.root.getChildren(trieStorage)
+	nextNodes, err := pmt.root.getChildren(trieStorage, priority)
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +33,7 @@ func NewIterator(trie common.Trie) (*iterator, error) {
 		currentNode: pmt.root,
 		nextNodes:   nextNodes,
 		db:          trieStorage,
+		priority:    priority,
 	}, nil
 }
 
@@ -50,7 +52,7 @@ func (it *iterator) Next() error {
 	}
 
 	it.currentNode = n
-	nextChildren, err := it.currentNode.getChildren(it.db)
+	nextChildren, err := it.currentNode.getChildren(it.db, it.priority)
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -96,7 +97,7 @@ func TestNewTrieNodeResolver_OkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(tnRes))
 }
 
-//------- ProcessReceivedMessage
+// ------- ProcessReceivedMessage
 
 func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldErr(t *testing.T) {
 	t.Parallel()
@@ -165,7 +166,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) 
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-//TODO in this PR: add more unit tests
+// TODO in this PR: add more unit tests
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *testing.T) {
 	t.Parallel()
@@ -175,7 +176,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	sendWasCalled := false
 
 	tr := &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(hash []byte, priority common.StorageAccessType) ([]byte, error) {
 			if bytes.Equal([]byte("node1"), hash) {
 				getSerializedNodesWasCalled = true
 				return []byte("node1"), nil
@@ -240,7 +241,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	expectedErr := errors.New("expected err")
 	arg := createMockArgTrieNodeResolver()
 	arg.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -267,7 +268,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 		},
 	}
 	arg.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -312,7 +313,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 		},
 	}
 	arg.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(hash []byte, priority common.StorageAccessType) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
 					return nodes[i], nil
@@ -321,7 +322,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 
 			return nil, fmt.Errorf("not found")
 		},
-		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(i []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			return nil, 0, expectedErr
 		},
 	}
@@ -368,7 +369,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 		},
 	}
 	arg.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(hash []byte, priority common.StorageAccessType) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
 					return nodes[i], nil
@@ -377,7 +378,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 
 			return nil, fmt.Errorf("not found")
 		},
-		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(i []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			assert.Fail(t, "should have not called GetSerializedNodesCalled")
 			return nil, 0, expectedErr
 		},
@@ -425,7 +426,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 		},
 	}
 	arg.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(hash []byte, priority common.StorageAccessType) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
 					return nodes[i], nil
@@ -434,7 +435,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 
 			return nil, fmt.Errorf("not found")
 		},
-		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(i []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			used := 0
 			for _, buff := range subtriesNodes {
 				used += len(buff)
@@ -500,7 +501,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 		},
 	}
 	arg.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+		GetSerializedNodeCalled: func(hash []byte, priority common.StorageAccessType) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
 					return nodes[i], nil
@@ -509,7 +510,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 
 			return nil, fmt.Errorf("not found")
 		},
-		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(i []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			return make([][]byte, 0), 0, nil
 		},
 	}
@@ -534,7 +535,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChunk(t *testing.T) {
 	t.Parallel()
 
-	randBuff := make([]byte, 1<<20) //1MB
+	randBuff := make([]byte, 1<<20) // 1MB
 	_, _ = rand.Read(randBuff)
 	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 0, 4, 0, core.MaxBufferSizeToSendTrieNodes)
 }
@@ -542,7 +543,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChun
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredChunk(t *testing.T) {
 	t.Parallel()
 
-	randBuff := make([]byte, 1<<20) //1MB
+	randBuff := make([]byte, 1<<20) // 1MB
 	_, _ = rand.Read(randBuff)
 	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 		t,
@@ -569,7 +570,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredC
 		4*core.MaxBufferSizeToSendTrieNodes,
 	)
 
-	randBuff = make([]byte, 1<<20+1) //1MB + 1 byte
+	randBuff = make([]byte, 1<<20+1) // 1MB + 1 byte
 	_, _ = rand.Read(randBuff)
 	startIndex := len(randBuff) - 1
 	endIndex := len(randBuff)
@@ -586,7 +587,7 @@ func buffInSlice(buff []byte, slice [][]byte) bool {
 	return false
 }
 
-//------- RequestTransactionFromHash
+// ------- RequestTransactionFromHash
 
 func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
@@ -612,7 +613,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	}, requested)
 }
 
-//------ NumPeersToQuery setter and getter
+// ------ NumPeersToQuery setter and getter
 
 func TestTrieNodeResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	t.Parallel()
@@ -659,7 +660,7 @@ func TestTrieNodeResolver_RequestDataFromHashArray(t *testing.T) {
 			err := arg.Marshalizer.Unmarshal(b, rd.Value)
 			require.Nil(t, err)
 			assert.Equal(t, [][]byte{hash1, hash2}, b.Data)
-			assert.Equal(t, uint32(0), b.ChunkIndex) //mandatory to be 0
+			assert.Equal(t, uint32(0), b.ChunkIndex) // mandatory to be 0
 
 			return nil
 		},

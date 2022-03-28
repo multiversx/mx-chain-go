@@ -1,6 +1,7 @@
 package genericMocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -49,22 +50,22 @@ func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 }
 
 // Has -
-func (sm *ChainStorerMock) Has(_ dataRetriever.UnitType, _ []byte) error {
+func (sm *ChainStorerMock) Has(_ dataRetriever.UnitType, _ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
 // Get -
-func (sm *ChainStorerMock) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-	return sm.GetStorer(unitType).Get(key)
+func (sm *ChainStorerMock) Get(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
+	return sm.GetStorer(unitType).Get(key, priority)
 }
 
 // Put -
-func (sm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-	return sm.GetStorer(unitType).Put(key, value)
+func (sm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
+	return sm.GetStorer(unitType).Put(key, value, priority)
 }
 
 // GetAll -
-func (sm *ChainStorerMock) GetAll(_ dataRetriever.UnitType, _ [][]byte) (map[string][]byte, error) {
+func (sm *ChainStorerMock) GetAll(_ dataRetriever.UnitType, _ [][]byte, _ common.StorageAccessType) (map[string][]byte, error) {
 	panic("not supported")
 }
 

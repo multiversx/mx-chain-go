@@ -24,23 +24,23 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsed(pos byte, db common.DBWriteCacher) error
+	resolveCollapsed(pos byte, db common.DBWriteCacher, priority common.StorageAccessType) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, db common.DBWriteCacher) ([]byte, error)
-	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error)
-	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
+	tryGet(key []byte, db common.DBWriteCacher, priority common.StorageAccessType) ([]byte, error)
+	getNext(key []byte, db common.DBWriteCacher, priority common.StorageAccessType) (node, []byte, error)
+	insert(n *leafNode, db common.DBWriteCacher, priority common.StorageAccessType) (node, [][]byte, error)
+	delete(key []byte, db common.DBWriteCacher, priority common.StorageAccessType) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
-	print(writer io.Writer, index int, db common.DBWriteCacher)
+	print(writer io.Writer, index int, db common.DBWriteCacher, priority common.StorageAccessType)
 	getDirtyHashes(common.ModifiedHashes) error
-	getChildren(db common.DBWriteCacher) ([]node, error)
+	getChildren(db common.DBWriteCacher, priority common.StorageAccessType) ([]node, error)
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, common.DBWriteCacher, marshal.Marshalizer, chan struct{}) error
-	getAllHashes(db common.DBWriteCacher) ([][]byte, error)
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, common.DBWriteCacher, marshal.Marshalizer, chan struct{}, common.StorageAccessType) error
+	getAllHashes(db common.DBWriteCacher, priority common.StorageAccessType) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() common.NumNodesDTO
 	getValue() []byte
@@ -93,12 +93,12 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.DBWriteCacher
-	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error)
-	GetFromLastEpoch(key []byte) ([]byte, error)
-	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
+	GetFromOldEpochsWithoutAddingToCache(key []byte, priority common.StorageAccessType) ([]byte, error)
+	GetFromLastEpoch(key []byte, priority common.StorageAccessType) ([]byte, error)
+	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32, priority common.StorageAccessType) error
 	GetLatestStorageEpoch() (uint32, error)
-	GetFromCurrentEpoch(key []byte) ([]byte, error)
-	RemoveFromCurrentEpoch(key []byte) error
+	GetFromCurrentEpoch(key []byte, priority common.StorageAccessType) ([]byte, error)
+	RemoveFromCurrentEpoch(key []byte, priority common.StorageAccessType) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch

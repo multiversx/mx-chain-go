@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -198,10 +199,10 @@ func TestPruningStorer_PutAndGetShouldWork(t *testing.T) {
 	ps, _ := pruning.NewPruningStorer(args)
 
 	testKey, testVal := []byte("key"), []byte("value")
-	err := ps.Put(testKey, testVal)
+	err := ps.Put(testKey, testVal, common.TestPriority)
 	assert.Nil(t, err)
 
-	res, err := ps.Get(testKey)
+	res, err := ps.Get(testKey, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 }
@@ -231,9 +232,9 @@ func TestPruningStorer_Put_EpochWhichWasSetDoesNotExistShouldNotFind(t *testing.
 	ps.SetEpochForPutOperation(expectedEpoch)
 
 	testKey, testVal := []byte("key1"), []byte("val1")
-	_ = ps.Put(testKey, testVal) // the persister for epoch 37 does not exist - will put in storer 0
+	_ = ps.Put(testKey, testVal, common.TestPriority) // the persister for epoch 37 does not exist - will put in storer 0
 
-	res, _ := ps.Get(testKey)
+	res, _ := ps.Get(testKey, common.TestPriority)
 	assert.Equal(t, testVal, res)
 }
 
@@ -266,14 +267,14 @@ func TestPruningStorer_Put_ShouldPutInSpecifiedEpoch(t *testing.T) {
 	_ = ps.ChangeEpochSimple(0)             // set back
 
 	testKey, testVal := []byte("key1"), []byte("val1")
-	_ = ps.Put(testKey, testVal) // the persister for epoch 37 exists - will put it there
+	_ = ps.Put(testKey, testVal, common.TestPriority) // the persister for epoch 37 exists - will put it there
 
 	ps.ClearCache()
 
-	_, err := ps.GetFromEpoch(testKey, 0)
+	_, err := ps.GetFromEpoch(testKey, 0, common.TestPriority)
 	assert.NotNil(t, err)
 
-	res, err := ps.GetFromEpoch(testKey, expectedEpoch)
+	res, err := ps.GetFromEpoch(testKey, expectedEpoch, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 }
@@ -285,20 +286,20 @@ func TestPruningStorer_RemoveShouldWork(t *testing.T) {
 	ps, _ := pruning.NewPruningStorer(args)
 
 	testKey, testVal := []byte("key"), []byte("value")
-	err := ps.Put(testKey, testVal)
+	err := ps.Put(testKey, testVal, common.TestPriority)
 	assert.Nil(t, err)
 
 	// make sure that the key is there
-	res, err := ps.Get(testKey)
+	res, err := ps.Get(testKey, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
 	// now remove it
-	err = ps.Remove(testKey)
+	err = ps.Remove(testKey, common.TestPriority)
 	assert.Nil(t, err)
 
 	// it should have been removed from the persister and cache
-	res, err = ps.Get(testKey)
+	res, err = ps.Get(testKey, common.TestPriority)
 	assert.NotNil(t, err)
 	assert.Nil(t, res)
 }
@@ -326,14 +327,14 @@ func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
 	ps, _ := pruning.NewPruningStorer(args)
 
 	testKey, testVal := []byte("key"), []byte("value")
-	err := ps.Put(testKey, testVal)
+	err := ps.Put(testKey, testVal, common.TestPriority)
 	assert.Nil(t, err)
 
-	err = ps.Has(testKey)
+	err = ps.Has(testKey, common.TestPriority)
 	assert.Nil(t, err)
 
 	wrongKey := []byte("wrong_key")
-	err = ps.Has(wrongKey)
+	err = ps.Has(wrongKey, common.TestPriority)
 	assert.NotNil(t, err)
 }
 
@@ -346,13 +347,13 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 	// add a key and then make 2 epoch changes so the data won't be available anymore
 	testKey, _ := json.Marshal([]byte("key"))
 	testVal := []byte("value")
-	err := ps.Put(testKey, testVal)
+	err := ps.Put(testKey, testVal, common.TestPriority)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
 
 	// first check that data is available
-	res, err := ps.Get(testKey)
+	res, err := ps.Get(testKey, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
@@ -363,7 +364,7 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 	ps.ClearCache()
 
 	// check if data is still available
-	res, err = ps.Get(testKey)
+	res, err = ps.Get(testKey, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
@@ -374,7 +375,7 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 	ps.ClearCache()
 
 	// data shouldn't be available anymore
-	res, err = ps.Get(testKey)
+	res, err = ps.Get(testKey, common.TestPriority)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -405,13 +406,13 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	// add a key and then make 2 epoch changes so the data won't be available anymore
 	testKey, _ := json.Marshal([]byte("key"))
 	testVal := []byte("value")
-	err := ps.Put(testKey, testVal)
+	err := ps.Put(testKey, testVal, common.TestPriority)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
 
 	// first check that data is available
-	res, err := ps.Get(testKey)
+	res, err := ps.Get(testKey, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
@@ -422,7 +423,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	ps.ClearCache()
 
 	// check if data is still available after searching in closed activePersisters
-	res, err = ps.GetFromEpoch(testKey, 0)
+	res, err = ps.GetFromEpoch(testKey, 0, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 }
@@ -452,9 +453,9 @@ func TestNewPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	// add a key and then make 2 epoch changes so the data won't be available anymore
 	testKey1, testKey2 := []byte("key1"), []byte("key2")
 	testVal1, testVal2 := []byte("value1"), []byte("value2")
-	err := ps.Put(testKey1, testVal1)
+	err := ps.Put(testKey1, testVal1, common.TestPriority)
 	assert.Nil(t, err)
-	err = ps.Put(testKey2, testVal2)
+	err = ps.Put(testKey2, testVal2, common.TestPriority)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
@@ -466,7 +467,7 @@ func TestNewPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	ps.ClearCache()
 
 	// check if data is still available after searching in closed activePersisters
-	res, err := ps.GetBulkFromEpoch([][]byte{testKey1, testKey2}, 0)
+	res, err := ps.GetBulkFromEpoch([][]byte{testKey1, testKey2}, 0, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, res[string(testKey1)])
 	assert.Equal(t, testVal2, res[string(testKey2)])
@@ -532,7 +533,7 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 			case <-ctx.Done():
 				return
 			default:
-				err1 := ps.Put([]byte("key"+strconv.Itoa(cnt)), []byte("val"+strconv.Itoa(cnt)))
+				err1 := ps.Put([]byte("key"+strconv.Itoa(cnt)), []byte("val"+strconv.Itoa(cnt)), common.TestPriority)
 				require.Nil(t, err1)
 				cnt++
 				time.Sleep(time.Millisecond)
@@ -589,31 +590,31 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 	// add a key and then make 2 epoch changes so the data won't be available anymore
 	testKey, _ := json.Marshal([]byte("key"))
 	testVal := []byte("value")
-	err := ps.Put(testKey, testVal)
+	err := ps.Put(testKey, testVal, common.TestPriority)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
 
 	// check the SearchFirst method works for only one active persister
-	res, _ := ps.SearchFirst(testKey)
+	res, _ := ps.SearchFirst(testKey, common.TestPriority)
 	assert.Equal(t, testVal, res)
 
 	// now skip 1 epoch and data should still be available
 	_ = ps.ChangeEpochSimple(1)
 	ps.ClearCache()
-	res, _ = ps.SearchFirst(testKey)
+	res, _ = ps.SearchFirst(testKey, common.TestPriority)
 	assert.Equal(t, testVal, res)
 
 	// skip one more epoch and data should still be available
 	_ = ps.ChangeEpochSimple(2)
 	ps.ClearCache()
-	res, _ = ps.SearchFirst(testKey)
+	res, _ = ps.SearchFirst(testKey, common.TestPriority)
 	assert.Equal(t, testVal, res)
 
 	// when we skip one more epoch, the number of active persisters is exceeded and data shouldn't be available anymore
 	_ = ps.ChangeEpochSimple(3)
 	ps.ClearCache()
-	res, err = ps.SearchFirst(testKey)
+	res, err = ps.SearchFirst(testKey, common.TestPriority)
 	assert.Nil(t, res)
 	assert.True(t, errors.Is(err, storage.ErrKeyNotFound))
 }
@@ -761,17 +762,17 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	key2 := []byte("key_ep2")
 	val2 := []byte("value_key_ep2")
 
-	err := ps.Put(key0, val0)
+	err := ps.Put(key0, val0, common.TestPriority)
 	require.Nil(t, err)
 
 	_ = ps.ChangeEpochSimple(1)
 	ps.ClearCache()
-	err = ps.Put(key1, val1)
+	err = ps.Put(key1, val1, common.TestPriority)
 	require.Nil(t, err)
 
 	_ = ps.ChangeEpochSimple(2)
 	ps.ClearCache()
-	err = ps.Put(key2, val2)
+	err = ps.Put(key2, val2, common.TestPriority)
 	require.Nil(t, err)
 
 	err = ps.ChangeEpochSimple(1)
@@ -781,18 +782,18 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	err = ps.ChangeEpochSimple(1)
 	require.Nil(t, err)
 	ps.ClearCache()
-	restoredVal0, err := ps.Get(key0)
+	restoredVal0, err := ps.Get(key0, common.TestPriority)
 	require.Nil(t, err)
 	require.Equal(t, val0, restoredVal0)
 
-	restoredVal1, err := ps.Get(key1)
+	restoredVal1, err := ps.Get(key1, common.TestPriority)
 	require.Nil(t, err)
 	require.Equal(t, val1, restoredVal1)
 
 	err = ps.ChangeEpochSimple(2)
 	require.Nil(t, err)
 	ps.ClearCache()
-	restoredVal2, err := ps.Get(key2)
+	restoredVal2, err := ps.Get(key2, common.TestPriority)
 	require.Nil(t, err)
 	require.Equal(t, val2, restoredVal2)
 }
@@ -902,21 +903,21 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 			time.Sleep(time.Duration(index) * 1 * time.Millisecond)
 			switch index % 6 {
 			case 1:
-				_, _ = ps.GetFromEpoch([]byte("key"), uint32(index-1))
+				_, _ = ps.GetFromEpoch([]byte("key"), uint32(index-1), common.TestPriority)
 				log.Debug("called GetFromEpoch", "epoch", index-1)
 			case 2:
-				_ = ps.Put([]byte("key"), []byte("value"))
+				_ = ps.Put([]byte("key"), []byte("value"), common.TestPriority)
 				log.Debug("called Put")
 			case 3:
-				_, _ = ps.Get([]byte("key"))
+				_, _ = ps.Get([]byte("key"), common.TestPriority)
 				log.Debug("called Get")
 			case 4:
 				epoch := uint32(rnd.Intn(100))
-				_, _ = ps.GetFromEpoch([]byte("key"), epoch)
+				_, _ = ps.GetFromEpoch([]byte("key"), epoch, common.TestPriority)
 				log.Debug("called GetFromEpoch", "epoch", epoch)
 			case 5:
 				epoch := uint32(rnd.Intn(100))
-				_, _ = ps.GetBulkFromEpoch([][]byte{[]byte("key")}, epoch)
+				_, _ = ps.GetBulkFromEpoch([][]byte{[]byte("key")}, epoch, common.TestPriority)
 				log.Debug("called GetBulkFromEpoch", "epoch", epoch)
 			}
 			wg.Done()

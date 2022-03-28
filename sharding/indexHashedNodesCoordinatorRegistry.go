@@ -43,7 +43,7 @@ func (ihgs *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ihgs.loadingFromDisk.Store(true)
 	defer ihgs.loadingFromDisk.Store(false)
 
-	data, err := ihgs.bootStorer.Get(ncInternalkey)
+	data, err := ihgs.bootStorer.Get(ncInternalkey, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 
-	return ihgs.bootStorer.Put(ncInternalkey, data)
+	return ihgs.bootStorer.Put(ncInternalkey, data, common.ProcessPriority)
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry

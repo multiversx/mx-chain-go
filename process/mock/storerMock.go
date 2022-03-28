@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // StorerMock -
@@ -26,7 +28,7 @@ func (sm *StorerMock) Close() error {
 }
 
 // Put -
-func (sm *StorerMock) Put(key, data []byte) error {
+func (sm *StorerMock) Put(key, data []byte, _ common.StorageAccessType) error {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
 	sm.data[string(key)] = data
@@ -35,12 +37,12 @@ func (sm *StorerMock) Put(key, data []byte) error {
 }
 
 // PutInEpoch -
-func (sm *StorerMock) PutInEpoch(key, data []byte, _ uint32) error {
-	return sm.Put(key, data)
+func (sm *StorerMock) PutInEpoch(key, data []byte, _ uint32, priority common.StorageAccessType) error {
+	return sm.Put(key, data, priority)
 }
 
 // Get -
-func (sm *StorerMock) Get(key []byte) ([]byte, error) {
+func (sm *StorerMock) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
 
@@ -53,15 +55,15 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 }
 
 // GetFromEpoch -
-func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
-	return sm.Get(key)
+func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32, priority common.StorageAccessType) ([]byte, error) {
+	return sm.Get(key, priority)
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32, priority common.StorageAccessType) (map[string][]byte, error) {
 	retValue := map[string][]byte{}
 	for _, key := range keys {
-		value, err := sm.Get(key)
+		value, err := sm.Get(key, priority)
 		if err != nil {
 			continue
 		}
@@ -72,22 +74,22 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]by
 }
 
 // SearchFirst -
-func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
+func (sm *StorerMock) SearchFirst(_ []byte, _ common.StorageAccessType) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
 // Has -
-func (sm *StorerMock) Has(_ []byte) error {
+func (sm *StorerMock) Has(_ []byte, _ common.StorageAccessType) error {
 	return errors.New("not implemented")
 }
 
 // RemoveFromCurrentEpoch -
-func (sm *StorerMock) RemoveFromCurrentEpoch(key []byte) error {
-	return sm.Remove(key)
+func (sm *StorerMock) RemoveFromCurrentEpoch(key []byte, priority common.StorageAccessType) error {
+	return sm.Remove(key, priority)
 }
 
 // Remove -
-func (sm *StorerMock) Remove(key []byte) error {
+func (sm *StorerMock) Remove(key []byte, _ common.StorageAccessType) error {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
 

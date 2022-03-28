@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -110,7 +111,7 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 	usedAllSpace := false
 	remainingSpace := core.MaxBufferSizeToSendTrieNodes
 	for _, hash := range hashes {
-		serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
+		serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash, common.ResolveRequestPriority)
 		if err != nil {
 			continue
 		}
@@ -170,7 +171,7 @@ func convertMapToSlice(m map[string]struct{}) [][]byte {
 }
 
 func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P) error {
-	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
+	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash, common.ResolveRequestPriority)
 	if err != nil {
 		return err
 	}
@@ -179,7 +180,7 @@ func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, me
 }
 
 func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
-	serializedNodes, remainingSpace, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
+	serializedNodes, remainingSpace, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace, common.ResolveRequestPriority)
 	if err != nil {
 		tnRes.ResolverDebugHandler().LogFailedToResolveData(
 			tnRes.topic,
@@ -203,7 +204,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 ) error {
 
 	if len(serializedNodes) == 0 {
-		//do not send useless message
+		// do not send useless message
 		return nil
 	}
 

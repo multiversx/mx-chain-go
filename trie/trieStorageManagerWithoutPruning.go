@@ -21,23 +21,23 @@ func NewTrieStorageManagerWithoutPruning(db common.DBWriteCacher) (*trieStorageM
 }
 
 // Put adds only to the db
-func (tsm *trieStorageManagerWithoutPruning) Put(key []byte, val []byte) error {
-	return tsm.db.Put(key, val)
+func (tsm *trieStorageManagerWithoutPruning) Put(key []byte, val []byte, priority common.StorageAccessType) error {
+	return tsm.db.Put(key, val, priority)
 }
 
 // PutInEpoch adds only to the db
-func (tsm *trieStorageManagerWithoutPruning) PutInEpoch(key []byte, val []byte, _ uint32) error {
-	return tsm.db.Put(key, val)
+func (tsm *trieStorageManagerWithoutPruning) PutInEpoch(key []byte, val []byte, _ uint32, priority common.StorageAccessType) error {
+	return tsm.db.Put(key, val, priority)
 }
 
 // Get checks only the db
-func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
-	return tsm.db.Get(key)
+func (tsm *trieStorageManagerWithoutPruning) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
+	return tsm.db.Get(key, priority)
 }
 
 // GetFromCurrentEpoch checks only the db
-func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	return tsm.db.Get(key)
+func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte, priority common.StorageAccessType) ([]byte, error) {
+	return tsm.db.Get(key, priority)
 }
 
 // TakeSnapshot does nothing if pruning is disabled
@@ -87,6 +87,6 @@ func (tsm *trieStorageManagerWithoutPruning) GetLatestStorageEpoch() (uint32, er
 }
 
 // Remove does nothing for this implementation
-func (tsm *trieStorageManagerWithoutPruning) Remove(_ []byte) error {
+func (tsm *trieStorageManagerWithoutPruning) Remove(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }

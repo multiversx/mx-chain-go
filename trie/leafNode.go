@@ -123,7 +123,7 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.DBWriteCacher, targetDb
 	}
 
 	ln.dirty = false
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, targetDb, common.ProcessPriority)
 
 	return err
 }
@@ -161,7 +161,7 @@ func (ln *leafNode) commitCheckpoint(
 
 	checkpointHashes.Remove(hash)
 
-	nodeSize, err := encodeNodeAndCommitToDB(ln, targetDb)
+	nodeSize, err := encodeNodeAndCommitToDB(ln, targetDb, common.SnapshotPriority)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
+	nodeSize, err := encodeNodeAndCommitToDB(ln, db, common.SnapshotPriority)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(_ byte, _ common.DBWriteCacher) error {
+func (ln *leafNode) resolveCollapsed(_ byte, _ common.DBWriteCacher, _ common.StorageAccessType) error {
 	return nil
 }
 
@@ -242,7 +242,7 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, _ common.DBWriteCacher) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, _ common.DBWriteCacher, _ common.StorageAccessType) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("tryGet error %w", err)
@@ -254,7 +254,7 @@ func (ln *leafNode) tryGet(key []byte, _ common.DBWriteCacher) (value []byte, er
 	return nil, nil
 }
 
-func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher, _ common.StorageAccessType) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -264,7 +264,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher, _ common.StorageAccessType) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -338,7 +338,7 @@ func (ln *leafNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, error) {
 	return bn, nil
 }
 
-func (ln *leafNode) delete(key []byte, _ common.DBWriteCacher) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(key []byte, _ common.DBWriteCacher, _ common.StorageAccessType) (bool, node, [][]byte, error) {
 	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
@@ -371,7 +371,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int, _ common.DBWriteCacher) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ common.DBWriteCacher, _ common.StorageAccessType) {
 	if ln == nil {
 		return
 	}
@@ -403,7 +403,7 @@ func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	return nil
 }
 
-func (ln *leafNode) getChildren(_ common.DBWriteCacher) ([]node, error) {
+func (ln *leafNode) getChildren(_ common.DBWriteCacher, _ common.StorageAccessType) ([]node, error) {
 	return nil, nil
 }
 
@@ -432,6 +432,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	_ common.DBWriteCacher,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
+	_ common.StorageAccessType,
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -456,7 +457,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	}
 }
 
-func (ln *leafNode) getAllHashes(_ common.DBWriteCacher) ([][]byte, error) {
+func (ln *leafNode) getAllHashes(_ common.DBWriteCacher, _ common.StorageAccessType) ([][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)

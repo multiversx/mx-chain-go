@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -126,7 +127,7 @@ func (sc *statusComputer) SetStatusIfIsRewardReverted(
 	}
 
 	nonceToByteSlice := sc.uint64ByteSliceConverter.ToByteSlice(headerNonce)
-	headerHashFromStorage, err := sc.store.Get(storerUnit, nonceToByteSlice)
+	headerHashFromStorage, err := sc.store.Get(storerUnit, nonceToByteSlice, common.ProcessPriority)
 	if err != nil {
 		log.Warn("cannot get header hash by nonce", "error", err.Error())
 		return false, nil

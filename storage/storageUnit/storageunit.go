@@ -21,8 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
 
-var _ storage.Storer = (*Unit)(nil)
-
 // CacheType represents the type of the supported caches
 type CacheType string
 
@@ -105,13 +103,13 @@ type Unit struct {
 }
 
 // Put adds data to both cache and persistence medium
-func (u *Unit) Put(key, data []byte) error {
+func (u *Unit) Put(key, data []byte, priority common.StorageAccessType) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 
 	u.cacher.Put(key, data, len(data))
 
-	err := u.persister.Put(key, data)
+	err := u.persister.Put(key, data, priority)
 	if err != nil {
 		u.cacher.Remove(key)
 		return err
@@ -121,8 +119,8 @@ func (u *Unit) Put(key, data []byte) error {
 }
 
 // PutInEpoch will call the Put method as this storer doesn't handle epochs
-func (u *Unit) PutInEpoch(key, data []byte, _ uint32) error {
-	return u.Put(key, data)
+func (u *Unit) PutInEpoch(key, data []byte, _ uint32, priority common.StorageAccessType) error {
+	return u.Put(key, data, priority)
 }
 
 // GetOldestEpoch will return an error that signals that the oldest epoch fetching is not available
@@ -151,7 +149,7 @@ func (u *Unit) RangeKeys(handler func(key []byte, value []byte) bool) {
 // Get searches the key in the cache. In case it is not found,
 // it further searches it in the associated database.
 // In case it is found in the database, the cache is updated with the value as well.
-func (u *Unit) Get(key []byte) ([]byte, error) {
+func (u *Unit) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 
@@ -162,7 +160,7 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 		// not found in cache
 		// search it in second persistence medium
 
-		v, err = u.persister.Get(key)
+		v, err = u.persister.Get(key, priority)
 		if err != nil {
 			return nil, err
 		}
@@ -180,15 +178,15 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 }
 
 // GetFromEpoch will call the Get method as this storer doesn't handle epochs
-func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
-	return u.Get(key)
+func (u *Unit) GetFromEpoch(key []byte, _ uint32, priority common.StorageAccessType) ([]byte, error) {
+	return u.Get(key, priority)
 }
 
 // GetBulkFromEpoch will call the Get method for all keys as this storer doesn't handle epochs
-func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
+func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32, priority common.StorageAccessType) (map[string][]byte, error) {
 	retMap := make(map[string][]byte)
 	for _, key := range keys {
-		value, err := u.Get(key)
+		value, err := u.Get(key, priority)
 		if err != nil {
 			log.Warn("cannot get key from unit",
 				"key", key,
@@ -203,7 +201,7 @@ func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, err
 
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the db
-func (u *Unit) Has(key []byte) error {
+func (u *Unit) Has(key []byte, priority common.StorageAccessType) error {
 	u.lock.RLock()
 	defer u.lock.RUnlock()
 
@@ -212,26 +210,26 @@ func (u *Unit) Has(key []byte) error {
 		return nil
 	}
 
-	return u.persister.Has(key)
+	return u.persister.Has(key, priority)
 }
 
 // SearchFirst will call the Get method as this storer doesn't handle epochs
-func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
-	return u.Get(key)
+func (u *Unit) SearchFirst(key []byte, priority common.StorageAccessType) ([]byte, error) {
+	return u.Get(key, priority)
 }
 
 // RemoveFromCurrentEpoch removes the data associated to the given key from both cache and persistence medium
-func (u *Unit) RemoveFromCurrentEpoch(key []byte) error {
-	return u.Remove(key)
+func (u *Unit) RemoveFromCurrentEpoch(key []byte, priority common.StorageAccessType) error {
+	return u.Remove(key, priority)
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
-func (u *Unit) Remove(key []byte) error {
+func (u *Unit) Remove(key []byte, priority common.StorageAccessType) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 
 	u.cacher.Remove(key)
-	err := u.persister.Remove(key)
+	err := u.persister.Remove(key, priority)
 
 	return err
 }

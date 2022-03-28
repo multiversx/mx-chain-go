@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -118,7 +119,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 			"hash", metaBlockHash)
 
 		nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-		err = ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		err = ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice, common.ProcessPriority)
 		if err != nil {
 			log.Debug("meta block was not removed from MetaHdrNonceHashDataUnit storage",
 				"shardId", metaBlock.GetShardID(),
@@ -127,7 +128,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 				"error", err.Error())
 		}
 
-		err = ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		err = ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash, common.ProcessPriority)
 		if err != nil {
 			log.Debug("meta block was not removed from MetaBlockUnit storage",
 				"shardId", metaBlock.GetShardID(),

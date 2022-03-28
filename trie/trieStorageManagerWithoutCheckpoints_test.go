@@ -87,19 +87,19 @@ func TestTrieStorageManagerWithoutCheckpoints_Remove(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 
-	_ = args.MainStorer.Put(key, value)
+	_ = args.MainStorer.Put(key, value, common.TestPriority)
 	hashes := make(common.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 
-	val, err := args.MainStorer.Get(key)
+	val, err := args.MainStorer.Get(key, common.TestPriority)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
 
-	err = ts.Remove(key)
+	err = ts.Remove(key, common.TestPriority)
 	assert.Nil(t, err)
 
-	val, err = args.MainStorer.Get(key)
+	val, err = args.MainStorer.Get(key, common.TestPriority)
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 }

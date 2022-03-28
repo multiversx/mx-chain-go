@@ -572,12 +572,12 @@ func (t *trigger) saveEpochStartMeta(metaHdr data.HeaderHandler) {
 		return
 	}
 
-	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff, common.ProcessPriority)
 	if err != nil {
 		log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
 	}
 
-	err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff, common.ProcessPriority)
 	if err != nil {
 		log.Debug("updateTriggerMeta put into triggerStorage", "error", err.Error())
 	}
@@ -699,7 +699,7 @@ func (t *trigger) getHeaderWithHashFromPool(neededHash []byte) data.HeaderHandle
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) data.HeaderHandler {
-	storageData, err := t.metaHdrStorage.Get(neededHash)
+	storageData, err := t.metaHdrStorage.Get(neededHash, common.ProcessPriority)
 	if err == nil {
 		var neededHdr block.MetaBlock
 		err = t.marshaller.Unmarshal(&neededHdr, storageData)
@@ -867,7 +867,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.GetEpoch())
-	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
+	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put to shard header storage error", "error", errNotCritical)
 	}
@@ -912,7 +912,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	epoch := t.epochStartShardHeader.GetEpoch() - 1
 	for ; epoch > 0; epoch-- {
 		prevEpochStartIdentifier := core.EpochStartIdentifier(epoch)
-		shardHdrBuff, err = t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+		shardHdrBuff, err = t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier), common.ProcessPriority)
 		if err != nil {
 			log.Debug("RevertStateToBlock get header from storage error", "err", err)
 			continue
@@ -937,7 +937,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.GetEpoch())
-	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier))
+	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier), common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("RevertStateToBlock remove from header storage error", "err", errNotCritical)
 	}

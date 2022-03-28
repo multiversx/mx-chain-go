@@ -4,6 +4,7 @@ package dblookupext
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -20,7 +21,7 @@ func newHashToEpochIndex(storer storage.Storer, marshalizer marshal.Marshalizer)
 }
 
 func (i *epochByHashIndex) getEpochByHash(hash []byte) (uint32, error) {
-	rawBytes, err := i.storer.Get(hash)
+	rawBytes, err := i.storer.Get(hash, common.ProcessPriority)
 	if err != nil {
 		return 0, err
 	}
@@ -44,5 +45,5 @@ func (i *epochByHashIndex) saveEpochByHash(hash []byte, epoch uint32) error {
 		return err
 	}
 
-	return i.storer.Put(hash, rawBytes)
+	return i.storer.Put(hash, rawBytes, common.ProcessPriority)
 }

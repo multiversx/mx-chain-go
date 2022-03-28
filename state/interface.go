@@ -113,7 +113,7 @@ type AccountsAdapter interface {
 	GetNumCheckpoints() uint32
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
-	RecreateTrie(rootHash []byte) error
+	RecreateTrie(rootHash []byte, priority common.StorageAccessType) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte)

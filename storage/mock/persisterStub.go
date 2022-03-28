@@ -1,5 +1,9 @@
 package mock
 
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
+
 // PersisterStub -
 type PersisterStub struct {
 	PutCalled           func(key, val []byte) error
@@ -13,7 +17,7 @@ type PersisterStub struct {
 }
 
 // Put -
-func (p *PersisterStub) Put(key, val []byte) error {
+func (p *PersisterStub) Put(key, val []byte, _ common.StorageAccessType) error {
 	if p.PutCalled != nil {
 		return p.PutCalled(key, val)
 	}
@@ -22,7 +26,7 @@ func (p *PersisterStub) Put(key, val []byte) error {
 }
 
 // Get -
-func (p *PersisterStub) Get(key []byte) ([]byte, error) {
+func (p *PersisterStub) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	if p.GetCalled != nil {
 		return p.GetCalled(key)
 	}
@@ -31,7 +35,7 @@ func (p *PersisterStub) Get(key []byte) ([]byte, error) {
 }
 
 // Has -
-func (p *PersisterStub) Has(key []byte) error {
+func (p *PersisterStub) Has(key []byte, _ common.StorageAccessType) error {
 	if p.HasCalled != nil {
 		return p.HasCalled(key)
 	}
@@ -49,7 +53,7 @@ func (p *PersisterStub) Close() error {
 }
 
 // Remove -
-func (p *PersisterStub) Remove(key []byte) error {
+func (p *PersisterStub) Remove(key []byte, _ common.StorageAccessType) error {
 	if p.RemoveCalled != nil {
 		return p.RemoveCalled(key)
 	}

@@ -1514,7 +1514,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -1657,7 +1657,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -1882,7 +1882,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	args.ForkDetector = forkDetector
 
 	store := createStore()
-	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 		nonceToBytes := mock.NewNonceHashConverterMock().ToByteSlice(uint64(1))
 		if bytes.Equal(key, nonceToBytes) {
 			return []byte("hdr"), nil
@@ -1895,7 +1895,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 
 		return nil, nil
 	}
-	store.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+	store.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error) {
 		mapToRet := make(map[string][]byte)
 		mb := block.MiniBlock{ReceiverShardID: 1, SenderShardID: 0}
 		mshlzdMb, _ := json.Marshal(mb)

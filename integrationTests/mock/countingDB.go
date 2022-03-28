@@ -1,11 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
-
-var _ storage.Persister = (*countingDB)(nil)
 
 type countingDB struct {
 	db      *memorydb.DB
@@ -18,20 +16,20 @@ func NewCountingDB() *countingDB {
 }
 
 // Put will add the given key-value pair in the db
-func (cdb *countingDB) Put(key, val []byte) error {
-	_ = cdb.db.Put(key, val)
+func (cdb *countingDB) Put(key, val []byte, priority common.StorageAccessType) error {
+	_ = cdb.db.Put(key, val, priority)
 	cdb.nrOfPut++
 	return nil
 }
 
 // Get will return the value for the given key, if exists
-func (cdb *countingDB) Get(key []byte) ([]byte, error) {
-	return cdb.db.Get(key)
+func (cdb *countingDB) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
+	return cdb.db.Get(key, priority)
 }
 
 // Has will return true if the db has the given key stored
-func (cdb *countingDB) Has(key []byte) error {
-	return cdb.db.Has(key)
+func (cdb *countingDB) Has(key []byte, priority common.StorageAccessType) error {
+	return cdb.db.Has(key, priority)
 }
 
 // Close will close the db
@@ -40,8 +38,8 @@ func (cdb *countingDB) Close() error {
 }
 
 // Remove will remove the key-value pair for the given key, if found in the db
-func (cdb *countingDB) Remove(key []byte) error {
-	return cdb.db.Remove(key)
+func (cdb *countingDB) Remove(key []byte, priority common.StorageAccessType) error {
+	return cdb.db.Remove(key, priority)
 }
 
 // Destroy will destroy the db

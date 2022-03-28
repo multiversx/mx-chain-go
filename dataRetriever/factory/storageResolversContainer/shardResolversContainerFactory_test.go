@@ -59,7 +59,7 @@ func createStoreForShard() dataRetriever.StorageService {
 	}
 }
 
-//------- NewResolversContainerFactory
+// ------- NewResolversContainerFactory
 
 func TestNewShardResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -138,7 +138,7 @@ func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	require.False(t, rcf.IsInterfaceNil())
 }
 
-//------- Create
+// ------- Create
 
 func TestShardResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
@@ -165,7 +165,8 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := storageResolversContainers.NewShardResolversContainerFactory(args)
 
-	container, _ := rcf.Create()
+	container, err := rcf.Create()
+	require.Nil(t, err)
 
 	numResolverSCRs := noOfShards + 1
 	numResolverTxs := noOfShards + 1

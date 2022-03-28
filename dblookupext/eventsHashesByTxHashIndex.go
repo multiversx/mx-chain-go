@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -32,7 +33,7 @@ func (eht *eventsHashesByTxHash) saveResultsHashes(epoch uint32, scResults, rece
 			continue
 		}
 
-		err = eht.storer.Put([]byte(txHash), resultHashesBytes)
+		err = eht.storer.Put([]byte(txHash), resultHashesBytes, common.ProcessPriority)
 		if err != nil {
 			log.Warn("saveResultsHashes() cannot save resultHashesByte",
 				"error", err.Error())
@@ -100,7 +101,7 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 	records map[string]*ResultsHashesByTxHash,
 ) map[string]*ResultsHashesByTxHash {
 	for originalTxHash, results := range records {
-		rawBytes, err := eht.storer.Get([]byte(originalTxHash))
+		rawBytes, err := eht.storer.Get([]byte(originalTxHash), common.ProcessPriority)
 		if err != nil {
 			continue
 		}
@@ -118,7 +119,7 @@ func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 }
 
 func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
-	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch)
+	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}

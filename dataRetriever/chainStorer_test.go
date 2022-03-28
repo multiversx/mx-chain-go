@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -20,7 +21,7 @@ func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 	assert.False(t, b.IsInterfaceNil())
 
 	b.AddStorer(1, s)
-	err := b.Has(2, []byte("whatever"))
+	err := b.Has(2, []byte("whatever"), common.TestPriority)
 	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
 
@@ -34,7 +35,7 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	err := b.Has(1, []byte("whatever"))
+	err := b.Has(1, []byte("whatever"), common.TestPriority)
 	assert.Nil(t, err)
 }
 
@@ -45,7 +46,7 @@ func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	obj, err := b.Get(2, []byte("whatever"))
+	obj, err := b.Get(2, []byte("whatever"), common.TestPriority)
 	assert.Nil(t, obj)
 	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
@@ -61,7 +62,7 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	obj, err := b.Get(1, []byte("whatever"))
+	obj, err := b.Get(1, []byte("whatever"), common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, getResult, obj)
 }
@@ -73,7 +74,7 @@ func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	err := b.Put(2, []byte("whatever"), []byte("whatever value"))
+	err := b.Put(2, []byte("whatever"), []byte("whatever value"), common.TestPriority)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrNoSuchStorageUnit))
 }
@@ -89,7 +90,7 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	err := b.Put(1, []byte("whatever"), []byte("whatever value"))
+	err := b.Put(1, []byte("whatever"), []byte("whatever value"), common.TestPriority)
 	assert.Equal(t, putErr, err)
 }
 
@@ -100,7 +101,7 @@ func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	ret, err := b.GetAll(2, [][]byte{[]byte("whatever"), []byte("whatever 2")})
+	ret, err := b.GetAll(2, [][]byte{[]byte("whatever"), []byte("whatever 2")}, common.TestPriority)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
@@ -117,7 +118,7 @@ func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	ret, err := b.GetAll(1, [][]byte{[]byte("whatever"), []byte("whatever 2")})
+	ret, err := b.GetAll(1, [][]byte{[]byte("whatever"), []byte("whatever 2")}, common.TestPriority)
 
 	assert.Nil(t, ret)
 	assert.Equal(t, getErr, err)
@@ -143,11 +144,11 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
-	t1, err := b.GetAll(1, [][]byte{[]byte(key1)})
+	t1, err := b.GetAll(1, [][]byte{[]byte(key1)}, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, map[string][]byte{key1: val1}, t1)
 
-	t2, err := b.GetAll(1, [][]byte{[]byte(key1), []byte(key2)})
+	t2, err := b.GetAll(1, [][]byte{[]byte(key1), []byte(key2)}, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, map[string][]byte{key1: val1, key2: val2}, t2)
 }

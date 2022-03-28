@@ -2,6 +2,7 @@ package esdtSupply
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -35,7 +36,7 @@ func (np *nonceProcessor) shouldProcessLog(blockNonce uint64, isRevert bool) (bo
 }
 
 func (np *nonceProcessor) getLatestProcessedBlockNonceFromStorage() (uint64, error) {
-	processedBlockBytes, err := np.storer.Get([]byte(processedBlockKey))
+	processedBlockBytes, err := np.storer.Get([]byte(processedBlockKey), common.ProcessPriority)
 	if err != nil && err == storage.ErrKeyNotFound {
 		log.Debug("logsProcessor.getLatestProcessedBlockNonceFromStorage nothing in storage")
 		return 0, nil
@@ -63,5 +64,5 @@ func (np *nonceProcessor) saveNonceInStorage(nonce uint64) error {
 		return err
 	}
 
-	return np.storer.Put([]byte(processedBlockKey), processedBlockBytes)
+	return np.storer.Put([]byte(processedBlockKey), processedBlockBytes, common.ProcessPriority)
 }

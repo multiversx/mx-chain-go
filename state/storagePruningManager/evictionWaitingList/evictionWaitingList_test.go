@@ -99,7 +99,7 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 		assert.Equal(t, hashesMap, ec.cache[string(roots[i])])
 	}
 	for i := cacheSize; i < uint(len(roots)); i++ {
-		encVal, err := ec.db.Get(roots[i])
+		encVal, err := ec.db.Get(roots[i], common.TestPriority)
 		assert.Nil(t, err)
 
 		b := &batch.Batch{}
@@ -156,14 +156,14 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 		_ = ec.Put(roots[i], hashesMap)
 	}
 
-	val, _ := ec.db.Get(roots[2])
+	val, _ := ec.db.Get(roots[2], common.TestPriority)
 	assert.NotNil(t, val)
 
 	vals, err := ec.Evict(roots[2])
 	assert.Nil(t, err)
 	assert.Equal(t, hashesMap, vals)
 
-	val, _ = ec.db.Get(roots[2])
+	val, _ = ec.db.Get(roots[2], common.TestPriority)
 	assert.Nil(t, val)
 }
 

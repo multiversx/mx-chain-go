@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 
 	key := []byte("key")
 	val := []byte("val")
-	err = db.Put(key, val)
+	err = db.Put(key, val, common.TestPriority)
 	require.Nil(t, err)
 	_ = db.Close()
 
@@ -41,7 +42,7 @@ func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 		return
 	}
 
-	valRecovered, err := dbRecovered.Get(key)
+	valRecovered, err := dbRecovered.Get(key, common.TestPriority)
 	assert.Nil(t, err)
 	_ = dbRecovered.Close()
 
@@ -86,7 +87,7 @@ func TestDB_PutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in DB")
 }
@@ -95,9 +96,9 @@ func TestDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 1, 100, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 	assert.Nil(t, err)
-	v, err := ldb.Get(key)
+	v, err := ldb.Get(key, common.TestPriority)
 	assert.Equal(t, val, v)
 	assert.Nil(t, err)
 }
@@ -106,11 +107,11 @@ func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 1, 100, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 	assert.Nil(t, err)
 	time.Sleep(time.Second * 3)
 
-	v, err := ldb.Get(key)
+	v, err := ldb.Get(key, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, val, v)
 }
@@ -119,7 +120,7 @@ func TestDB_GetErrorOnFail(t *testing.T) {
 	ldb := createLevelDb(t, 1, 100, 10)
 	_ = ldb.Close()
 
-	v, err := ldb.Get([]byte("key"))
+	v, err := ldb.Get([]byte("key"), common.TestPriority)
 	assert.Nil(t, v)
 	assert.NotNil(t, err)
 }
@@ -132,13 +133,13 @@ func TestDB_RemoveBeforeTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 1, 100, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 	assert.Nil(t, err)
 
-	_ = ldb.Remove(key)
+	_ = ldb.Remove(key, common.TestPriority)
 	time.Sleep(time.Second * 2)
 
-	v, err := ldb.Get(key)
+	v, err := ldb.Get(key, common.TestPriority)
 	assert.Nil(t, v)
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
@@ -147,13 +148,13 @@ func TestDB_RemoveAfterTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 1, 100, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 	assert.Nil(t, err)
 	time.Sleep(time.Second * 2)
 
-	_ = ldb.Remove(key)
+	_ = ldb.Remove(key, common.TestPriority)
 
-	v, err := ldb.Get(key)
+	v, err := ldb.Get(key, common.TestPriority)
 	assert.Nil(t, v)
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
@@ -162,11 +163,11 @@ func TestDB_GetPresent(t *testing.T) {
 	key, val := []byte("key1"), []byte("value1")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in DB")
 
-	v, err := ldb.Get(key)
+	v, err := ldb.Get(key, common.TestPriority)
 
 	assert.Nil(t, err, "error not expected, but got %s", err)
 	assert.Equalf(t, v, val, "read:%s but expected: %s", v, val)
@@ -176,7 +177,7 @@ func TestDB_GetNotPresent(t *testing.T) {
 	key := []byte("key2")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	v, err := ldb.Get(key)
+	v, err := ldb.Get(key, common.TestPriority)
 
 	assert.NotNil(t, err, "error expected but got nil, value %s", v)
 }
@@ -185,11 +186,11 @@ func TestDB_HasPresent(t *testing.T) {
 	key, val := []byte("key3"), []byte("value3")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in DB")
 
-	err = ldb.Has(key)
+	err = ldb.Has(key, common.TestPriority)
 
 	assert.Nil(t, err)
 }
@@ -198,7 +199,7 @@ func TestDB_HasNotPresent(t *testing.T) {
 	key := []byte("key4")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	err := ldb.Has(key)
+	err := ldb.Has(key, common.TestPriority)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, storage.ErrKeyNotFound)
@@ -208,15 +209,15 @@ func TestDB_RemovePresent(t *testing.T) {
 	key, val := []byte("key5"), []byte("value5")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	err := ldb.Put(key, val)
+	err := ldb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in DB")
 
-	err = ldb.Remove(key)
+	err = ldb.Remove(key, common.TestPriority)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	err = ldb.Has(key)
+	err = ldb.Has(key, common.TestPriority)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, storage.ErrKeyNotFound)
@@ -226,7 +227,7 @@ func TestDB_RemoveNotPresent(t *testing.T) {
 	key := []byte("key6")
 	ldb := createLevelDb(t, 10, 1, 10)
 
-	err := ldb.Remove(key)
+	err := ldb.Remove(key, common.TestPriority)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
@@ -264,7 +265,7 @@ func TestDB_RangeKeys(t *testing.T) {
 	}
 
 	for key, val := range keysVals {
-		_ = ldb.Put([]byte(key), val)
+		_ = ldb.Put([]byte(key), val, common.TestPriority)
 	}
 
 	time.Sleep(time.Second * 2)
@@ -293,12 +294,12 @@ func TestDB_PutGetLargeValue(t *testing.T) {
 		_ = ldb.Close()
 	}()
 
-	err := ldb.Put(key, buffLargeValue)
+	err := ldb.Put(key, buffLargeValue, common.TestPriority)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second * 2)
 
-	recovered, err := ldb.Get(key)
+	recovered, err := ldb.Get(key, common.TestPriority)
 	assert.Nil(t, err)
 
 	assert.Equal(t, buffLargeValue, recovered)
@@ -334,13 +335,13 @@ func testDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.
 	ldb := createLevelDb(t, 1, 1, 10)
 	closeHandler(ldb)
 
-	err := ldb.Put([]byte("key1"), []byte("val1"))
+	err := ldb.Put([]byte("key1"), []byte("val1"), common.TestPriority)
 	require.Equal(t, storage.ErrDBIsClosed, err)
 
-	_, err = ldb.Get([]byte("key2"))
+	_, err = ldb.Get([]byte("key2"), common.TestPriority)
 	require.Equal(t, storage.ErrDBIsClosed, err)
 
-	err = ldb.Has([]byte("key3"))
+	err = ldb.Has([]byte("key3"), common.TestPriority)
 	require.Equal(t, storage.ErrDBIsClosed, err)
 
 	ldb.RangeKeys(func(key []byte, value []byte) bool {
@@ -348,6 +349,6 @@ func testDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.
 		return false
 	})
 
-	err = ldb.Remove([]byte("key4"))
+	err = ldb.Remove([]byte("key4"), common.TestPriority)
 	require.Equal(t, storage.ErrDBIsClosed, err)
 }

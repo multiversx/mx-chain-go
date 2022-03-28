@@ -1,6 +1,9 @@
 package storageUnit
 
-import "github.com/ElrondNetwork/elrond-go/storage"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
 
 // NilStorer resembles a disabled implementation of the Storer interface
 type NilStorer struct {
@@ -12,27 +15,27 @@ func NewNilStorer() *NilStorer {
 }
 
 // GetFromEpoch will do nothing
-func (ns *NilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
+func (ns *NilStorer) GetFromEpoch(_ []byte, _ uint32, _ common.StorageAccessType) ([]byte, error) {
 	return nil, nil
 }
 
 // GetBulkFromEpoch will do nothing
-func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, error) {
+func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32, _ common.StorageAccessType) (map[string][]byte, error) {
 	return nil, nil
 }
 
 // SearchFirst will do nothing
-func (ns *NilStorer) SearchFirst(_ []byte) ([]byte, error) {
+func (ns *NilStorer) SearchFirst(_ []byte, _ common.StorageAccessType) ([]byte, error) {
 	return nil, nil
 }
 
 // Put will do nothing
-func (ns *NilStorer) Put(_, _ []byte) error {
+func (ns *NilStorer) Put(_, _ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
 // PutInEpoch will do nothing
-func (ns *NilStorer) PutInEpoch(_, _ []byte, _ uint32) error {
+func (ns *NilStorer) PutInEpoch(_, _ []byte, _ uint32, _ common.StorageAccessType) error {
 	return nil
 }
 
@@ -47,22 +50,22 @@ func (ns *NilStorer) Close() error {
 }
 
 // Get will do nothing
-func (ns *NilStorer) Get(_ []byte) ([]byte, error) {
+func (ns *NilStorer) Get(_ []byte, _ common.StorageAccessType) ([]byte, error) {
 	return nil, nil
 }
 
 // Has will do nothing
-func (ns *NilStorer) Has(_ []byte) error {
+func (ns *NilStorer) Has(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
 // RemoveFromCurrentEpoch will do nothing
-func (ns *NilStorer) RemoveFromCurrentEpoch(_ []byte) error {
+func (ns *NilStorer) RemoveFromCurrentEpoch(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
 // Remove will do nothing
-func (ns *NilStorer) Remove(_ []byte) error {
+func (ns *NilStorer) Remove(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 

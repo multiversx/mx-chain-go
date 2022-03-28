@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -68,18 +69,18 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 }
 
 // GetFromEpoch will search a key only in the persister for the given epoch
-func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
-	data, err := fhps.searchInEpoch(key, epoch)
+func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
+	data, err := fhps.searchInEpoch(key, epoch, priority)
 	if err == nil && data != nil {
 		return data, nil
 	}
 
-	return fhps.searchInEpoch(key, epoch+1)
+	return fhps.searchInEpoch(key, epoch+1, priority)
 }
 
 // GetBulkFromEpoch will search a a bulk of keys in the persister for the given epoch
 // doesn't return an error if a key or any isn't found
-func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32, priority common.StorageAccessType) (map[string][]byte, error) {
 	persister, err := fhps.getOrOpenPersister(epoch)
 	if err != nil {
 		return nil, err
@@ -92,7 +93,7 @@ func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint
 			results[string(key)] = dataInCache.([]byte)
 			continue
 		}
-		data, errGet := persister.Get(key)
+		data, errGet := persister.Get(key, priority)
 		if errGet == nil && data != nil {
 			results[string(key)] = data
 		}
@@ -102,7 +103,7 @@ func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint
 }
 
 // PutInEpoch will set the key-value pair in the given epoch
-func (fhps *FullHistoryPruningStorer) PutInEpoch(key []byte, data []byte, epoch uint32) error {
+func (fhps *FullHistoryPruningStorer) PutInEpoch(key []byte, data []byte, epoch uint32, priority common.StorageAccessType) error {
 	fhps.cacher.Put(key, data, len(data))
 
 	persister, err := fhps.getOrOpenPersister(epoch)
@@ -110,15 +111,15 @@ func (fhps *FullHistoryPruningStorer) PutInEpoch(key []byte, data []byte, epoch 
 		return err
 	}
 
-	return fhps.doPutInPersister(key, data, persister)
+	return fhps.doPutInPersister(key, data, persister, priority)
 }
 
-func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
+func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 	if fhps.isEpochActive(epoch) {
-		return fhps.PruningStorer.SearchFirst(key)
+		return fhps.PruningStorer.SearchFirst(key, priority)
 	}
 
-	data, err := fhps.getFromOldEpoch(key, epoch)
+	data, err := fhps.getFromOldEpoch(key, epoch, priority)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +136,13 @@ func (fhps *FullHistoryPruningStorer) isEpochActive(epoch uint32) bool {
 	return epoch >= oldestEpochInCurrentSetting && epoch <= newestEpochInCurrentSetting
 }
 
-func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) ([]byte, error) {
+func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 	persister, err := fhps.getOrOpenPersister(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := persister.Get(key)
+	res, err := persister.Get(key, priority)
 	if err == nil {
 		return res, nil
 	}

@@ -21,13 +21,13 @@ type Trie interface {
 	Delete(key []byte) error
 	RootHash() ([]byte, error)
 	Commit() error
-	Recreate(root []byte) (Trie, error)
+	Recreate(root []byte, priority StorageAccessType) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
 	GetOldRoot() []byte
-	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
-	GetSerializedNode([]byte) ([]byte, error)
+	GetSerializedNodes([]byte, uint64, StorageAccessType) ([][]byte, uint64, error)
+	GetSerializedNode([]byte, StorageAccessType) ([]byte, error)
 	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
@@ -40,9 +40,9 @@ type Trie interface {
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
-	Get(key []byte) ([]byte, error)
-	GetFromCurrentEpoch(key []byte) ([]byte, error)
-	PutInEpoch(key []byte, val []byte, epoch uint32) error
+	Get(key []byte, priority StorageAccessType) ([]byte, error)
+	GetFromCurrentEpoch(key []byte, priority StorageAccessType) ([]byte, error)
+	PutInEpoch(key []byte, val []byte, epoch uint32, priority StorageAccessType) error
 	TakeSnapshot(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, leavesChan chan core.KeyValueHolder, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
@@ -52,22 +52,22 @@ type StorageManager interface {
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
-	Remove(hash []byte) error
+	Remove(hash []byte, priority StorageAccessType) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
 	Close() error
 	IsInterfaceNil() bool
 
-	//TODO remove Put() when removing increaseNumCheckpoints()
+	// TODO remove Put() when removing increaseNumCheckpoints()
 
-	Put(key []byte, val []byte) error
+	Put(key []byte, val []byte, priority StorageAccessType) error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
 type DBWriteCacher interface {
-	Put(key, val []byte) error
-	Get(key []byte) ([]byte, error)
-	Remove(key []byte) error
+	Put(key, val []byte, priority StorageAccessType) error
+	Get(key []byte, priority StorageAccessType) ([]byte, error)
+	Remove(key []byte, priority StorageAccessType) error
 	Close() error
 	IsInterfaceNil() bool
 }

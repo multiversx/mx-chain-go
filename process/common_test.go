@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -1644,7 +1645,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromStorage)
 	storageService := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if bytes.Equal(key, hash) {
 				return txMarsh, nil
 			}
@@ -1814,7 +1815,7 @@ func TestGetTransactionHandlerFromStorageShouldErrWhenTxIsNotFound(t *testing.T)
 	errExpected := errors.New("error")
 
 	storageService := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, errExpected
 		},
 	}
@@ -1834,7 +1835,7 @@ func TestGetTransactionHandlerFromStorageShouldErrWhenUnmarshalFail(t *testing.T
 
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, nil
 		},
 	}
@@ -1858,7 +1859,7 @@ func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromPool)
 	storageService := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if bytes.Equal(key, hash) {
 				return txMarsh, nil
 			}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -65,7 +66,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingBody(t
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
 	storerMock := mock.NewStorerMock()
-	_ = storerMock.Put(headerHash, marshaledHeader)
+	_ = storerMock.Put(headerHash, marshaledHeader, common.TestPriority)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
@@ -100,7 +101,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
 	storerMock := mock.NewStorerMock()
-	_ = storerMock.Put(headerHash, marshaledHeader)
+	_ = storerMock.Put(headerHash, marshaledHeader, common.TestPriority)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
@@ -134,7 +135,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 	}
 	marshaledHeader, _ := baseArgs.Marshalizer.Marshal(header)
 	storerMock := mock.NewStorerMock()
-	_ = storerMock.Put(headerHash, marshaledHeader)
+	_ = storerMock.Put(headerHash, marshaledHeader, common.TestPriority)
 	baseArgs.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock

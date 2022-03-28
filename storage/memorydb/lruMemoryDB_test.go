@@ -3,6 +3,7 @@ package memorydb_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func TestLruDB_PutNoError(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	err = mdb.Put(key, val)
+	err = mdb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in db")
 }
@@ -31,11 +32,11 @@ func TestLruDB_GetPresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	err = mdb.Put(key, val)
+	err = mdb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in db")
 
-	v, err := mdb.Get(key)
+	v, err := mdb.Get(key, common.TestPriority)
 
 	assert.Nil(t, err, "error not expected but got %s", err)
 	assert.Equal(t, val, v, "expected %s but got %s", val, v)
@@ -47,7 +48,7 @@ func TestLruDB_GetNotPresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	v, err := mdb.Get(key)
+	v, err := mdb.Get(key, common.TestPriority)
 
 	assert.NotNil(t, err, "error expected but got nil, value %s", v)
 }
@@ -58,11 +59,11 @@ func TestLruDB_HasPresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	err = mdb.Put(key, val)
+	err = mdb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in db")
 
-	err = mdb.Has(key)
+	err = mdb.Has(key, common.TestPriority)
 
 	assert.Nil(t, err, "error not expected but got %s", err)
 }
@@ -73,7 +74,7 @@ func TestLruDB_HasNotPresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	err = mdb.Has(key)
+	err = mdb.Has(key, common.TestPriority)
 
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
@@ -84,15 +85,15 @@ func TestLruDB_DeletePresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	err = mdb.Put(key, val)
+	err = mdb.Put(key, val, common.TestPriority)
 
 	assert.Nil(t, err, "error saving in db")
 
-	err = mdb.Remove(key)
+	err = mdb.Remove(key, common.TestPriority)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	err = mdb.Has(key)
+	err = mdb.Has(key, common.TestPriority)
 
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
@@ -103,7 +104,7 @@ func TestLruDB_DeleteNotPresent(t *testing.T) {
 
 	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	err = mdb.Remove(key)
+	err = mdb.Remove(key, common.TestPriority)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
@@ -144,7 +145,7 @@ func TestLruDB_RangeKeys(t *testing.T) {
 	}
 
 	for key, val := range keysVals {
-		_ = mdb.Put([]byte(key), val)
+		_ = mdb.Put([]byte(key), val, common.TestPriority)
 	}
 
 	recovered := make(map[string][]byte)

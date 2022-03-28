@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -70,7 +71,7 @@ func (tlp *txLogProcessor) GetLog(txHash []byte) (data.LogHandler, error) {
 		return tlp.logs[index], nil
 	}
 
-	txLogBuff, err := tlp.storer.Get(txHash)
+	txLogBuff, err := tlp.storer.Get(txHash, common.ProcessPriority)
 	if err != nil {
 		return nil, process.ErrLogNotFound
 	}
@@ -167,7 +168,7 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 		return err
 	}
 
-	return tlp.storer.Put(txHash, buff)
+	return tlp.storer.Put(txHash, buff, common.ProcessPriority)
 }
 
 func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {

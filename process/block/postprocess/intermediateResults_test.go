@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -835,7 +836,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 		shardCoordinator,
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{
-			PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 				if unitType == dataRetriever.UnsignedTransactionUnit {
 					putCounter++
 				}

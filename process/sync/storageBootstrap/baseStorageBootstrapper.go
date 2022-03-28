@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -411,7 +412,7 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 	log.Debug("cleanup storage")
 
 	nonceToByteSlice := st.uint64Converter.ToByteSlice(headerInfo.Nonce)
-	err := st.headerNonceHashStore.Remove(nonceToByteSlice)
+	err := st.headerNonceHashStore.Remove(nonceToByteSlice, common.ProcessPriority)
 	if err != nil {
 		log.Debug("block was not removed from storage",
 			"shradId", headerInfo.ShardId,

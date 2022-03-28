@@ -84,7 +84,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	atomic.AddInt32(&b.numMaxTries, 1)
 
 	log.Trace("syncing main trie", "roothash", rootHash)
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 
 	log.Trace("finished syncing main trie", "roothash", rootHash)
 
-	return dataTrie.Recreate(rootHash)
+	return dataTrie.Recreate(rootHash, common.ProcessPriority)
 }
 
 func (b *baseAccountsSyncer) printStatistics(ssh common.SizeSyncStatisticsHandler, ctx context.Context) {
@@ -188,7 +188,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory, common.ProcessPriority)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)
@@ -197,7 +197,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	var recreatedTrie common.Trie
 	clonedMap := make(map[string]common.Trie, len(b.dataTries))
 	for key := range b.dataTries {
-		recreatedTrie, err = dataTrie.Recreate([]byte(key))
+		recreatedTrie, err = dataTrie.Recreate([]byte(key), common.ProcessPriority)
 		if err != nil {
 			log.Warn("error recreating trie in baseAccountsSyncer.GetSyncedTries",
 				"roothash", []byte(key), "error", err)

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -176,7 +177,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 
 func (hr *historyRepository) putHashByRound(blockHeaderHash []byte, header data.HeaderHandler) error {
 	roundToByteSlice := hr.uint64ByteSliceConverter.ToByteSlice(header.GetRound())
-	return hr.blockHashByRound.Put(roundToByteSlice, blockHeaderHash)
+	return hr.blockHashByRound.Put(roundToByteSlice, blockHeaderHash, common.ProcessPriority)
 }
 
 func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
@@ -213,7 +214,7 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	hr.markMiniblockMetadataAsRecentlyInserted(miniblockHash, epoch)
 
 	for _, txHash := range miniblock.TxHashes {
-		errPut := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
+		errPut := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash, common.ProcessPriority)
 		if errPut != nil {
 			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", errPut)
 			continue
@@ -247,7 +248,7 @@ func (hr *historyRepository) markMiniblockMetadataAsRecentlyInserted(miniblockHa
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
 func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
-	miniblockHash, err := hr.miniblockHashByTxHashIndex.Get(hash)
+	miniblockHash, err := hr.miniblockHashByTxHashIndex.Get(hash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +262,7 @@ func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *Miniblo
 		return err
 	}
 
-	err = hr.miniblocksMetadataStorer.PutInEpoch(hash, metadataBytes, metadata.Epoch)
+	err = hr.miniblocksMetadataStorer.PutInEpoch(hash, metadataBytes, metadata.Epoch, common.ProcessPriority)
 	if err != nil {
 		return newErrCannotSaveMiniblockMetadata(hash, err)
 	}
@@ -275,7 +276,7 @@ func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*
 		return nil, err
 	}
 
-	metadataBytes, err := hr.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
+	metadataBytes, err := hr.miniblocksMetadataStorer.GetFromEpoch(hash, epoch, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}

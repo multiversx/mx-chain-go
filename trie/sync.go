@@ -223,7 +223,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.db)
+			nextNodes, err = currentNode.getChildren(ts.db, common.ProcessPriority)
 			if err != nil {
 				return false, err
 			}
@@ -234,7 +234,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			delete(ts.nodesForTrie, nodeHash)
 
 			var numBytes int
-			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.db)
+			numBytes, err = encodeNodeAndCommitToDB(currentNode, ts.db, common.ProcessPriority)
 			if err != nil {
 				return false, err
 			}
@@ -306,7 +306,7 @@ func getNodeFromCacheOrStorage(
 		return n, nil
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher, common.ProcessPriority)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}

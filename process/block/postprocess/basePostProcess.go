@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -65,7 +66,7 @@ func (bpp *basePostProcessor) saveIntermediateTxToStorage(tx data.TransactionHan
 		return
 	}
 
-	errNotCritical := bpp.store.Put(bpp.storageType, bpp.hasher.Compute(string(buff)), buff)
+	errNotCritical := bpp.store.Put(bpp.storageType, bpp.hasher.Compute(string(buff)), buff, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Debug("SaveCurrentIntermediateTxToStorage put", "type", bpp.storageType, "error", errNotCritical.Error())
 	}

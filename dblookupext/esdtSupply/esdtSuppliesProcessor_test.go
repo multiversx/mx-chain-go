@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -18,9 +19,9 @@ import (
 )
 
 const (
-	testNftCreateValue = 10
+	testNftCreateValue   = 10
 	testAddQuantityValue = 50
-	testBurnValue = 30
+	testBurnValue        = 30
 )
 
 func TestNewSuppliesProcessor(t *testing.T) {
@@ -199,7 +200,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 			}
 			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
 			if string(key) == supplyKey {
-				val, err := membDB.Get(key)
+				val, err := membDB.Get(key, common.TestPriority)
 				if err != nil {
 					return nil, storage.ErrKeyNotFound
 				}
@@ -218,17 +219,17 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Minted)
 				case 1:
 					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue), supplyEsdt.Supply)
+					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Supply)
 					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue), supplyEsdt.Minted)
+					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
 				case 2:
 					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue - testBurnValue), supplyEsdt.Supply)
+					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue-testBurnValue), supplyEsdt.Supply)
 					require.Equal(t, big.NewInt(testBurnValue), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue + testAddQuantityValue), supplyEsdt.Minted)
+					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
 				}
 
-				_ = membDB.Put(key, data)
+				_ = membDB.Put(key, data, common.TestPriority)
 				numTimesCalled++
 
 				return nil

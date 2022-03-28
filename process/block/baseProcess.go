@@ -532,7 +532,7 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
-//TODO: remove bool parameter and give instead the set to sort
+// TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
@@ -1178,7 +1178,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 
 		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
-		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock)
+		errNotCritical = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, marshalizedMiniBlock, common.ProcessPriority)
 		if errNotCritical != nil {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
@@ -1190,7 +1190,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
 	} else {
 		if len(marshalizedReceipts) > 0 {
-			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceipts)
+			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceipts, common.ProcessPriority)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
 			}
@@ -1211,14 +1211,14 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.GetShardID())
 
-	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	errNotCritical := bp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn(fmt.Sprintf("saveHeader.Put -> ShardHdrNonceHashDataUnit_%d", header.GetShardID()),
 			"error", errNotCritical.Error(),
 		)
 	}
 
-	errNotCritical = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, marshalizedHeader)
+	errNotCritical = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, marshalizedHeader, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("saveHeader.Put -> BlockHeaderUnit", "error", errNotCritical.Error())
 	}
@@ -1234,12 +1234,12 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 
 	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
 
-	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
+	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("saveMetaHeader.Put -> MetaHdrNonceHashDataUnit", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader)
+	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader, common.ProcessPriority)
 	if errNotCritical != nil {
 		log.Warn("saveMetaHeader.Put -> MetaBlockUnit", "error", errNotCritical.Error())
 	}
@@ -1596,7 +1596,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
 
-	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
+	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash, common.ProcessPriority)
 	if err != nil {
 		return err
 	}

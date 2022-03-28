@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
@@ -14,11 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -173,7 +174,7 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilHeadersStorage
 	}
 
-	buffHdr, err := hdrStore.Get(hash)
+	buffHdr, err := hdrStore.Get(hash, common.ProcessPriority)
 	if err != nil {
 		return nil, fmt.Errorf("%w : GetMarshalizedHeaderFromStorage hash = %s",
 			ErrMissingHeader, logger.DisplayByteSlice(hash))
@@ -423,7 +424,7 @@ func GetTransactionHandlerFromStorage(
 		return nil, ErrNilMarshalizer
 	}
 
-	txBuff, err := storageService.Get(dataRetriever.TransactionUnit, txHash)
+	txBuff, err := storageService.Get(dataRetriever.TransactionUnit, txHash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +528,7 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
@@ -555,7 +556,7 @@ func getHeaderHashFromStorageWithNonce(
 	}
 
 	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
-	hash, err := headerStore.Get(nonceToByteSlice)
+	hash, err := headerStore.Get(nonceToByteSlice, common.ProcessPriority)
 	if err != nil {
 		return nil, ErrMissingHashForHeaderNonce
 	}

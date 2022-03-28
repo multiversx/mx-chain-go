@@ -1,5 +1,7 @@
 package storage
 
+import "github.com/ElrondNetwork/elrond-go/common"
+
 // StorerStub -
 type StorerStub struct {
 	PutCalled                    func(key, data []byte) error
@@ -19,7 +21,7 @@ type StorerStub struct {
 }
 
 // Put -
-func (ss *StorerStub) Put(key, data []byte) error {
+func (ss *StorerStub) Put(key, data []byte, _ common.StorageAccessType) error {
 	if ss.PutCalled != nil {
 		return ss.PutCalled(key, data)
 	}
@@ -27,7 +29,7 @@ func (ss *StorerStub) Put(key, data []byte) error {
 }
 
 // PutInEpoch -
-func (ss *StorerStub) PutInEpoch(key, data []byte, epoch uint32) error {
+func (ss *StorerStub) PutInEpoch(key, data []byte, epoch uint32, _ common.StorageAccessType) error {
 	if ss.PutInEpochCalled != nil {
 		return ss.PutInEpochCalled(key, data, epoch)
 	}
@@ -35,7 +37,7 @@ func (ss *StorerStub) PutInEpoch(key, data []byte, epoch uint32) error {
 }
 
 // Get -
-func (ss *StorerStub) Get(key []byte) ([]byte, error) {
+func (ss *StorerStub) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	if ss.GetCalled != nil {
 		return ss.GetCalled(key)
 	}
@@ -43,7 +45,7 @@ func (ss *StorerStub) Get(key []byte) ([]byte, error) {
 }
 
 // Has -
-func (ss *StorerStub) Has(key []byte) error {
+func (ss *StorerStub) Has(key []byte, _ common.StorageAccessType) error {
 	if ss.HasCalled != nil {
 		return ss.HasCalled(key)
 	}
@@ -51,7 +53,7 @@ func (ss *StorerStub) Has(key []byte) error {
 }
 
 // SearchFirst -
-func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
+func (ss *StorerStub) SearchFirst(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	if ss.SearchFirstCalled != nil {
 		return ss.SearchFirstCalled(key)
 	}
@@ -59,7 +61,7 @@ func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 }
 
 // RemoveFromCurrentEpoch -
-func (ss *StorerStub) RemoveFromCurrentEpoch(key []byte) error {
+func (ss *StorerStub) RemoveFromCurrentEpoch(key []byte, _ common.StorageAccessType) error {
 	if ss.RemoveFromCurrentEpochCalled != nil {
 		return ss.RemoveFromCurrentEpochCalled(key)
 	}
@@ -67,7 +69,7 @@ func (ss *StorerStub) RemoveFromCurrentEpoch(key []byte) error {
 }
 
 // Remove -
-func (ss *StorerStub) Remove(key []byte) error {
+func (ss *StorerStub) Remove(key []byte, _ common.StorageAccessType) error {
 	if ss.RemoveCalled != nil {
 		return ss.RemoveCalled(key)
 	}
@@ -90,7 +92,7 @@ func (ss *StorerStub) DestroyUnit() error {
 }
 
 // GetFromEpoch -
-func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32, _ common.StorageAccessType) ([]byte, error) {
 	if ss.GetFromEpochCalled != nil {
 		return ss.GetFromEpochCalled(key, epoch)
 	}
@@ -98,7 +100,7 @@ func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32, _ common.StorageAccessType) (map[string][]byte, error) {
 	if ss.GetBulkFromEpochCalled != nil {
 		return ss.GetBulkFromEpochCalled(keys, epoch)
 	}

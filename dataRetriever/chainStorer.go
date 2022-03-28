@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -42,7 +43,7 @@ func (bc *ChainStorer) GetStorer(unitType UnitType) storage.Storer {
 // Has returns true if the key is found in the selected Unit or false otherwise
 // It can return an error if the provided unit type is not supported or if the
 // underlying implementation of the storage unit reports an error.
-func (bc *ChainStorer) Has(unitType UnitType, key []byte) error {
+func (bc *ChainStorer) Has(unitType UnitType, key []byte, priority common.StorageAccessType) error {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
@@ -51,13 +52,13 @@ func (bc *ChainStorer) Has(unitType UnitType, key []byte) error {
 		return ErrNoSuchStorageUnit
 	}
 
-	return storer.Has(key)
+	return storer.Has(key, priority)
 }
 
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (bc *ChainStorer) Get(unitType UnitType, key []byte) ([]byte, error) {
+func (bc *ChainStorer) Get(unitType UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
@@ -66,13 +67,13 @@ func (bc *ChainStorer) Get(unitType UnitType, key []byte) ([]byte, error) {
 		return nil, ErrNoSuchStorageUnit
 	}
 
-	return storer.Get(key)
+	return storer.Get(key, priority)
 }
 
 // Put stores the key, value pair in the selected storage unit
 // It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (bc *ChainStorer) Put(unitType UnitType, key []byte, value []byte) error {
+func (bc *ChainStorer) Put(unitType UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
@@ -81,7 +82,7 @@ func (bc *ChainStorer) Put(unitType UnitType, key []byte, value []byte) error {
 		return fmt.Errorf("%w for unit type %s", ErrNoSuchStorageUnit, unitType.String())
 	}
 
-	return storer.Put(key, value)
+	return storer.Put(key, value, priority)
 }
 
 // SetEpochForPutOperation will set the epoch to be used in all persisters for the put operation
@@ -101,7 +102,7 @@ func (bc *ChainStorer) SetEpochForPutOperation(epoch uint32) {
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
 // It can report an error if the provided unit type is not supported, if there is a missing
 // key in the unit, or if the underlying implementation of the storage unit reports an error.
-func (bc *ChainStorer) GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error) {
+func (bc *ChainStorer) GetAll(unitType UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
@@ -113,7 +114,7 @@ func (bc *ChainStorer) GetAll(unitType UnitType, keys [][]byte) (map[string][]by
 	m := map[string][]byte{}
 
 	for _, key := range keys {
-		val, err := storer.Get(key)
+		val, err := storer.Get(key, priority)
 
 		if err != nil {
 			return nil, err

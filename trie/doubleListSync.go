@@ -166,7 +166,7 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+		numBytes, err := encodeNodeAndCommitToDB(element, d.db, common.ProcessPriority)
 		if err != nil {
 			return err
 		}

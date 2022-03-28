@@ -15,8 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +46,7 @@ func TestNewIndexHashedGroupSelectorWithRater_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- LoadEligibleList
+// ------- LoadEligibleList
 
 func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -107,7 +107,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	assert.Equal(t, eligibleMap[0], readEligible)
 }
 
-//------- functionality tests
+// ------- functionality tests
 
 func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldNotCallGetRating(t *testing.T) {
 	t.Parallel()
@@ -143,7 +143,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	consensusGroupSize := 63
 	list := make([]Validator, 0)
 
-	//generate 400 validators
+	// generate 400 validators
 	for i := 0; i < 400; i++ {
 		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
@@ -210,7 +210,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	shardSize := uint32(400)
 	list := make([]Validator, 0)
 
-	//generate 400 validators
+	// generate 400 validators
 	for i := uint32(0); i < shardSize; i++ {
 		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
 	}
@@ -757,7 +757,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 		}
 	}
 
-	//a := []int{1, 2, 3, 4, 5, 6, 7, 8}
+	// a := []int{1, 2, 3, 4, 5, 6, 7, 8}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
 	m2 := runtime.MemStats{}
@@ -792,7 +792,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	consensusGroupSize := 21
 	list := make([]Validator, 0)
 
-	//generate 400 validators
+	// generate 400 validators
 	for i := 0; i < 400; i++ {
 		list = append(list, mock.NewValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}

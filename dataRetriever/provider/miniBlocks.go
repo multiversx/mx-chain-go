@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -144,7 +145,7 @@ func (mbp *miniBlockProvider) GetMiniBlocksFromStorer(hashes [][]byte) ([]*block
 
 // getMiniBlocksFromStorer returns a list of mini blocks from storage and a list of missing hashes
 func (mbp *miniBlockProvider) getMiniBlockFromStorer(hash []byte) *block.MiniBlock {
-	buff, err := mbp.miniBlockStorage.Get(hash)
+	buff, err := mbp.miniBlockStorage.Get(hash, common.ResolveRequestPriority)
 	if err != nil {
 		log.Trace("miniBlockProvider.getMiniBlockFromStorer missing miniblock in storer",
 			"error", err.Error(),

@@ -17,7 +17,7 @@ func (t *trigger) LoadState(key []byte) error {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
-	triggerData, err := t.triggerStorage.Get(trigInternalKey)
+	triggerData, err := t.triggerStorage.Get(trigInternalKey, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -139,5 +139,5 @@ func (t *trigger) saveState(key []byte) error {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
-	return t.triggerStorage.Put(trigInternalKey, marshalledRegistry)
+	return t.triggerStorage.Put(trigInternalKey, marshalledRegistry, common.ProcessPriority)
 }

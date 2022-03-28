@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -211,7 +212,7 @@ func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ data.HeaderH
 		}
 
 		mbHash := vic.hasher.Compute(string(marshalizedData))
-		_ = vic.miniBlockStorage.Put(mbHash, marshalizedData)
+		_ = vic.miniBlockStorage.Put(mbHash, marshalizedData, common.ProcessPriority)
 	}
 }
 
@@ -223,7 +224,7 @@ func (vic *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock 
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
-			_ = vic.miniBlockStorage.Remove(mbHeader.GetHash())
+			_ = vic.miniBlockStorage.Remove(mbHeader.GetHash(), common.ProcessPriority)
 		}
 	}
 }

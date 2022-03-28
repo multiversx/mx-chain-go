@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -888,7 +889,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 
 	marshaller := &mock.MarshalizerMock{}
 	chainStorer := &mock.ChainStorerMock{
-		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 			assert.Equal(t, dataRetriever.UnsignedTransactionUnit, unitType)
 			scr := &smartContractResult.SmartContractResult{}
 			err := marshaller.Unmarshal(scr, value)
@@ -1237,10 +1238,10 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	txHash := []byte("txHash")
 	scrstorage := mock.ChainStorerMock{}
 	scrstorage.AddStorer(1, &storageStubs.StorerStub{})
-	err := scrstorage.Put(1, txHash, txHash)
+	err := scrstorage.Put(1, txHash, txHash, common.TestPriority)
 	assert.Nil(t, err)
 
-	scrstorage.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (bytes map[string][]byte, e error) {
+	scrstorage.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (bytes map[string][]byte, e error) {
 		par := make(map[string][]byte)
 		tx := smartContractResult.SmartContractResult{}
 		par["txHash"], _ = json.Marshal(tx)

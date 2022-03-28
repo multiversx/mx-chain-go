@@ -29,6 +29,7 @@ func TestNewPeerAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -44,6 +45,7 @@ func TestNewPeerAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -59,6 +61,7 @@ func TestNewPeerAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -74,6 +77,7 @@ func TestNewPeerAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		nil,
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -89,10 +93,27 @@ func TestNewPeerAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		nil,
+		common.TestPriority,
 	)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilStoragePruningManager, err)
+}
+
+func TestNewPeerAccountsDB_InvalidPriorityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb, err := state.NewPeerAccountsDB(
+		&trieMock.TrieStub{},
+		&hashingMocks.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&stateMock.AccountsFactoryStub{},
+		nil,
+		"invalid",
+	)
+
+	assert.True(t, check.IfNil(adb))
+	assert.True(t, errors.Is(err, state.ErrNilStoragePruningManager))
 }
 
 func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
@@ -108,6 +129,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.Nil(t, err)
@@ -132,6 +154,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.Nil(t, err)
@@ -162,6 +185,7 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
@@ -188,6 +212,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.Nil(t, err)
@@ -206,7 +231,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &testscommon.StorageManagerStub{}
 			},
-			RecreateCalled: func(_ []byte) (common.Trie, error) {
+			RecreateCalled: func(_ []byte, priority common.StorageAccessType) (common.Trie, error) {
 				recreateCalled = true
 				return nil, nil
 			},
@@ -215,6 +240,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 
 	assert.Nil(t, err)
@@ -238,7 +264,7 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					if bytes.Equal(key, []byte(common.ActiveDBKey)) {
 						return nil, fmt.Errorf("key not found")
 					}
@@ -262,6 +288,7 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
 		disabled.NewDisabledStoragePruningManager(),
+		common.TestPriority,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, adb)
@@ -290,7 +317,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			&trieMock.TrieStub{
 				GetStorageManagerCalled: func() common.StorageManager {
 					return &testscommon.StorageManagerStub{
-						PutInEpochCalled: func(bytes []byte, bytes2 []byte, u uint32) error {
+						PutInEpochCalled: func(bytes []byte, bytes2 []byte, u uint32, priority common.StorageAccessType) error {
 							assert.Fail(t, "should have not called put in epoch")
 							return nil
 						},
@@ -304,6 +331,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			&testscommon.MarshalizerMock{},
 			&stateMock.AccountsFactoryStub{},
 			disabled.NewDisabledStoragePruningManager(),
+			common.TestPriority,
 		)
 
 		adb.MarkSnapshotDone()
@@ -324,7 +352,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			&trieMock.TrieStub{
 				GetStorageManagerCalled: func() common.StorageManager {
 					return &testscommon.StorageManagerStub{
-						PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+						PutInEpochCalled: func(key []byte, value []byte, epoch uint32, priority common.StorageAccessType) error {
 							assert.Equal(t, common.ActiveDBKey, string(key))
 							assert.Equal(t, common.ActiveDBVal, string(value))
 							putWasCalled = true
@@ -338,6 +366,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			&testscommon.MarshalizerMock{},
 			&stateMock.AccountsFactoryStub{},
 			disabled.NewDisabledStoragePruningManager(),
+			common.TestPriority,
 		)
 
 		adb.MarkSnapshotDone()
@@ -351,7 +380,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			&trieMock.TrieStub{
 				GetStorageManagerCalled: func() common.StorageManager {
 					return &testscommon.StorageManagerStub{
-						PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+						PutInEpochCalled: func(key []byte, value []byte, epoch uint32, priority common.StorageAccessType) error {
 							assert.Equal(t, common.ActiveDBKey, string(key))
 							assert.Equal(t, common.ActiveDBVal, string(value))
 							putWasCalled = true
@@ -365,6 +394,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 			&testscommon.MarshalizerMock{},
 			&stateMock.AccountsFactoryStub{},
 			disabled.NewDisabledStoragePruningManager(),
+			common.TestPriority,
 		)
 
 		adb.MarkSnapshotDone()

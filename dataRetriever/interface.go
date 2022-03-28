@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/counting"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -75,7 +76,7 @@ const (
 	HeartbeatUnit UnitType = 8
 	// BootstrapUnit is the bootstrap storage unit identifier
 	BootstrapUnit UnitType = 9
-	//StatusMetricsUnit is the status metrics storage unit identifier
+	// StatusMetricsUnit is the status metrics storage unit identifier
 	StatusMetricsUnit UnitType = 10
 	// TxLogsUnit is the transactions logs storage unit identifier
 	TxLogsUnit UnitType = 11
@@ -107,11 +108,11 @@ const (
 	ScheduledSCRsUnit UnitType = 24
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
-	//TODO: Add only unit types lower than 100
+	// TODO: Add only unit types lower than 100
 	ShardHdrNonceHashDataUnit UnitType = 100
-	//TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
-	//100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
-	//creation
+	// TODO: Do not add unit type greater than 100 as the metachain creates this kind of unit type for each shard.
+	// 100 -> shard 0, 101 -> shard 1 and so on. This should be replaced with a factory which will manage the unit types
+	// creation
 )
 
 // ResolverThrottler can monitor the number of the currently running resolver go routines
@@ -330,21 +331,21 @@ type StorageService interface {
 	// AddStorer will add a new storer to the chain map
 	AddStorer(key UnitType, s storage.Storer)
 	// Has returns true if the key is found in the selected Unit or false otherwise
-	Has(unitType UnitType, key []byte) error
+	Has(unitType UnitType, key []byte, priority common.StorageAccessType) error
 	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
-	Get(unitType UnitType, key []byte) ([]byte, error)
+	Get(unitType UnitType, key []byte, priority common.StorageAccessType) ([]byte, error)
 	// Put stores the key, value pair in the selected storage unit
-	Put(unitType UnitType, key []byte, value []byte) error
+	Put(unitType UnitType, key []byte, value []byte, priority common.StorageAccessType) error
 	// SetEpochForPutOperation will set the epoch which will be used for the put operation
 	SetEpochForPutOperation(epoch uint32)
 	// GetAll gets all the elements with keys in the keys array, from the selected storage unit
 	// If there is a missing key in the unit, it returns an error
-	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
+	GetAll(unitType UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error)
 	// GetAllStorers returns all the storers
 	GetAllStorers() map[UnitType]storage.Storer
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
-	//CloseAll will close all the units
+	// CloseAll will close all the units
 	CloseAll() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -358,8 +359,8 @@ type DataPacker interface {
 
 // TrieDataGetter returns requested data from the trie
 type TrieDataGetter interface {
-	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
-	GetSerializedNode([]byte) ([]byte, error)
+	GetSerializedNodes([]byte, uint64, common.StorageAccessType) ([][]byte, uint64, error)
+	GetSerializedNode([]byte, common.StorageAccessType) ([]byte, error)
 	IsInterfaceNil() bool
 }
 

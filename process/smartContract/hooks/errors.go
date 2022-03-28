@@ -13,3 +13,6 @@ var ErrAddressLengthNotCorrect = errors.New("address length is not correct")
 
 // ErrVMTypeLengthIsNotCorrect signals that the vm type length is not correct
 var ErrVMTypeLengthIsNotCorrect = errors.New("vm type length is not correct")
+
+// ErrInvalidPriorityType signals that an invalid priority type has been provided
+var ErrInvalidPriorityType = errors.New("invalid priority type")

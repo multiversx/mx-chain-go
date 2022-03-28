@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -158,7 +159,7 @@ func TestLeafNode_commit(t *testing.T) {
 	err := ln.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
 
-	encNode, _ := db.Get(hash)
+	encNode, _ := db.Get(hash, common.TestPriority)
 	n, _ := decodeNode(encNode, ln.marsh, ln.hasher)
 	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
@@ -220,7 +221,7 @@ func TestLeafNode_resolveCollapsed(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	assert.Nil(t, ln.resolveCollapsed(0, nil))
+	assert.Nil(t, ln.resolveCollapsed(0, nil, common.TestPriority))
 }
 
 func TestLeafNode_isCollapsed(t *testing.T) {
@@ -236,7 +237,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, err := ln.tryGet(key, nil)
+	val, err := ln.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 }
@@ -247,7 +248,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	val, err := ln.tryGet(wrongKey, nil)
+	val, err := ln.tryGet(wrongKey, nil, common.TestPriority)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 }
@@ -258,7 +259,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	key := []byte("dog")
-	val, err := ln.tryGet(key, nil)
+	val, err := ln.tryGet(key, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
 }
@@ -269,7 +270,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	val, err := ln.tryGet(key, nil)
+	val, err := ln.tryGet(key, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
 }
@@ -280,7 +281,7 @@ func TestLeafNode_getNext(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	n, key, err := ln.getNext(key, nil)
+	n, key, err := ln.getNext(key, nil, common.TestPriority)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Nil(t, err)
@@ -292,7 +293,7 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := append([]byte{2}, []byte("dog")...)
 
-	n, key, err := ln.getNext(wrongKey, nil)
+	n, key, err := ln.getNext(wrongKey, nil, common.TestPriority)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
@@ -304,7 +305,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	n, key, err := ln.getNext(key, nil)
+	n, key, err := ln.getNext(key, nil, common.TestPriority)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
@@ -318,11 +319,11 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	expectedVal := []byte("dogs")
 	n, _ := newLeafNode(key, expectedVal, ln.marsh, ln.hasher)
 
-	newNode, _, err := ln.insert(n, nil)
+	newNode, _, err := ln.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(key, nil)
+	val, _ := newNode.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, expectedVal, val)
 }
 
@@ -338,11 +339,11 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	nodeVal := []byte{3, 4, 5}
 	n, _ := newLeafNode(nodeKey, nodeVal, marsh, hasher)
 
-	newNode, _, err := ln.insert(n, nil)
+	newNode, _, err := ln.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _ := newNode.tryGet(nodeKey, nil)
+	val, _ := newNode.tryGet(nodeKey, nil, common.TestPriority)
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }
@@ -356,7 +357,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
-	newNode, oldHashes, err := ln.insert(n, db)
+	newNode, oldHashes, err := ln.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -372,7 +373,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
-	newNode, oldHashes, err := ln.insert(n, db)
+	newNode, oldHashes, err := ln.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -384,7 +385,7 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.marsh, ln.hasher)
 
-	newNode, oldHashes, err := ln.insert(n, nil)
+	newNode, oldHashes, err := ln.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -397,7 +398,7 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), marsh, hasher)
 	n, _ := newLeafNode([]byte{4, 5, 6}, []byte("dogs"), marsh, hasher)
 
-	newNode, oldHashes, err := ln.insert(n, nil)
+	newNode, oldHashes, err := ln.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -408,7 +409,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	newNode, _, err := ln.insert(&leafNode{}, nil)
+	newNode, _, err := ln.insert(&leafNode{}, nil, common.TestPriority)
 	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, newNode)
@@ -419,7 +420,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	dirty, newNode, _, err := ln.delete([]byte("dog"), nil)
+	dirty, newNode, _, err := ln.delete([]byte("dog"), nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Nil(t, newNode)
@@ -433,7 +434,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
-	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db)
+	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -447,7 +448,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	_ = ln.commitDirty(0, 5, db, db)
 	wrongKey := []byte{1, 2, 3}
 
-	dirty, _, oldHashes, err := ln.delete(wrongKey, db)
+	dirty, _, oldHashes, err := ln.delete(wrongKey, db, common.TestPriority)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -458,7 +459,7 @@ func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	dirty, _, oldHashes, err := ln.delete([]byte("dog"), nil)
+	dirty, _, oldHashes, err := ln.delete([]byte("dog"), nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -470,7 +471,7 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	dirty, newNode, _, err := ln.delete(wrongKey, nil)
+	dirty, newNode, _, err := ln.delete(wrongKey, nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newNode)
@@ -505,7 +506,7 @@ func TestLeafNode_getChildren(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	children, err := ln.getChildren(nil)
+	children, err := ln.getChildren(nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(children))
 }
@@ -653,7 +654,7 @@ func TestLeafNode_getAllHashes(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
-	hashes, err := ln.getAllHashes(testscommon.NewMemDbMock())
+	hashes, err := ln.getAllHashes(testscommon.NewMemDbMock(), common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(hashes))
 	assert.Equal(t, ln.hash, hashes[0])

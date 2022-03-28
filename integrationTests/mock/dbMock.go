@@ -1,21 +1,25 @@
 package mock
 
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+)
+
 // MockDB -
 type MockDB struct {
 }
 
 // Put -
-func (MockDB) Put(_, _ []byte) error {
+func (MockDB) Put(_, _ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
 // Get -
-func (MockDB) Get(_ []byte) ([]byte, error) {
+func (MockDB) Get(_ []byte, _ common.StorageAccessType) ([]byte, error) {
 	return []byte{}, nil
 }
 
 // Has -
-func (MockDB) Has(_ []byte) error {
+func (MockDB) Has(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
@@ -25,7 +29,7 @@ func (MockDB) Close() error {
 }
 
 // Remove -
-func (MockDB) Remove(_ []byte) error {
+func (MockDB) Remove(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 

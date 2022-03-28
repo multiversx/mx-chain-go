@@ -206,7 +206,7 @@ func (spm *storagePruningManager) removeFromDb(
 
 		hash := []byte(key)
 		log.Trace("remove hash from trie db", "hash", hash)
-		errRemove := tsm.Remove(hash)
+		errRemove := tsm.Remove(hash, common.ProcessPriority)
 		if errRemove != nil {
 			return errRemove
 		}

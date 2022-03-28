@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -56,6 +57,7 @@ type ArgBlockChainHook struct {
 	EpochNotifier      vmcommon.EpochNotifier
 	WorkingDir         string
 	NilCompiledSCStore bool
+	Priority           common.StorageAccessType
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -69,6 +71,7 @@ type BlockChainHookImpl struct {
 	uint64Converter   typeConverters.Uint64ByteSliceConverter
 	builtInFunctions  vmcommon.BuiltInFunctionContainer
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler
+	priority          common.StorageAccessType
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -93,7 +96,7 @@ type BlockChainHookImpl struct {
 func NewBlockChainHookImpl(
 	args ArgBlockChainHook,
 ) (*BlockChainHookImpl, error) {
-	err := checkForNil(args)
+	err := checkArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +119,7 @@ func NewBlockChainHookImpl(
 		optimizeNFTStoreEnableEpoch:    args.EnableEpochs.OptimizeNFTStoreEnableEpoch,
 		doNotReturnOldBlockEnableEpoch: args.EnableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch,
 		filterCodeMetadataEnableEpoch:  args.EnableEpochs.IsPayableBySCEnableEpoch,
+		priority:                       args.Priority,
 	}
 
 	log.Debug("blockchainHook: payable by SC", "epoch", blockChainHookImpl.isPayableBySCEnableEpoch)
@@ -136,7 +140,7 @@ func NewBlockChainHookImpl(
 	return blockChainHookImpl, nil
 }
 
-func checkForNil(args ArgBlockChainHook) error {
+func checkArgs(args ArgBlockChainHook) error {
 	if check.IfNil(args.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
@@ -169,6 +173,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if !common.IsStorageAccessValid(args.Priority) {
+		return fmt.Errorf("%w: %s in NewBlockChainHookImpl", ErrInvalidPriorityType, args.Priority)
 	}
 
 	return nil
@@ -641,7 +648,7 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 // SaveCompiledCode saves the compiled code to cache and storage
 func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	bh.compiledScPool.Put(codeHash, code, len(code))
-	err := bh.compiledScStorage.Put(codeHash, code)
+	err := bh.compiledScStorage.Put(codeHash, code, bh.priority)
 	if err != nil {
 		log.Debug("BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put",
 			"error", err, "codeHash", codeHash)
@@ -658,7 +665,7 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 		}
 	}
 
-	compiledCode, err := bh.compiledScStorage.Get(codeHash)
+	compiledCode, err := bh.compiledScStorage.Get(codeHash, bh.priority)
 	if err != nil || len(compiledCode) == 0 {
 		return false, nil
 	}
@@ -671,7 +678,7 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 // DeleteCompiledCode deletes the compiled code from storage and cache
 func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	bh.compiledScPool.Remove(codeHash)
-	err := bh.compiledScStorage.Remove(codeHash)
+	err := bh.compiledScStorage.Remove(codeHash, bh.priority)
 	if err != nil {
 		log.Debug("BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove",
 			"error", err, "codeHash", codeHash)

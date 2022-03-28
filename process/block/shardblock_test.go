@@ -3022,7 +3022,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	buffTx, _ := marshalizerMock.Marshal(tx)
 
 	store := &mock.ChainStorerMock{
-		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error) {
 			m := make(map[string][]byte)
 			m[string(txHash)] = buffTx
 			return m, nil
@@ -3268,7 +3268,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	wg.Add(4)
 	putCalledNr := uint32(0)
 	store := &mock.ChainStorerMock{
-		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return nil
@@ -3423,7 +3423,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	wg.Add(2)
 	putCalledNr := uint32(0)
 	store := &mock.ChainStorerMock{
-		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return nil
@@ -3565,7 +3565,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	wg.Add(4)
 	putCalledNr := uint32(0)
 	store := &mock.ChainStorerMock{
-		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return nil
@@ -4112,7 +4112,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	}
 	ownHash, _ = core.CalculateHash(marshalizer, hasher, ownHdr)
 	mrsOwnHdr, _ := marshalizer.Marshal(ownHdr)
-	_ = store.Put(dataRetriever.BlockHeaderUnit, ownHash, mrsOwnHdr)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, ownHash, mrsOwnHdr, common.TestPriority)
 
 	shardInfo = make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardID: 0})
@@ -4205,7 +4205,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	assert.Equal(t, nil, metaBlockRestored)
 	assert.Error(t, err)
 
-	storer.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+	storer.GetCalled = func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 		return metaBytes, nil
 	}
 	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
@@ -4380,6 +4380,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 		dataRetriever.ShardHdrNonceHashDataUnit,
 		coreComponents.Uint64ByteSliceConverter().ToByteSlice(header.Nonce),
 		key,
+		common.TestPriority,
 	)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
@@ -4441,8 +4442,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 		dataRetriever.ShardHdrNonceHashDataUnit,
 		coreComponents.Uint64ByteSliceConverter().ToByteSlice(prevHeader.Nonce),
 		prevHash,
+		common.TestPriority,
 	)
-	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData, common.TestPriority)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -4505,8 +4507,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		dataRetriever.ShardHdrNonceHashDataUnit,
 		coreComponents.Uint64ByteSliceConverter().ToByteSlice(prevHeader.Nonce),
 		prevHash,
+		common.TestPriority,
 	)
-	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData, common.TestPriority)
 
 	prevPrevHeader := &block.Header{
 		Nonce:    7,
@@ -4519,8 +4522,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		dataRetriever.ShardHdrNonceHashDataUnit,
 		coreComponents.Uint64ByteSliceConverter().ToByteSlice(prevPrevHeader.Nonce),
 		prevPrevHash,
+		common.TestPriority,
 	)
-	_ = store.Put(dataRetriever.BlockHeaderUnit, prevPrevHash, prevPrevHeaderData)
+	_ = store.Put(dataRetriever.BlockHeaderUnit, prevPrevHash, prevPrevHeaderData, common.TestPriority)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)

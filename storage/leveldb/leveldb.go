@@ -11,6 +11,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -135,7 +136,7 @@ func (s *DB) updateBatchWithIncrement() error {
 }
 
 // Put adds the value to the (key, val) storage medium
-func (s *DB) Put(key, val []byte) error {
+func (s *DB) Put(key, val []byte, _ common.StorageAccessType) error {
 	err := s.batch.Put(key, val)
 	if err != nil {
 		return err
@@ -145,7 +146,7 @@ func (s *DB) Put(key, val []byte) error {
 }
 
 // Get returns the value associated to the key
-func (s *DB) Get(key []byte) ([]byte, error) {
+func (s *DB) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	db := s.getDbPointer()
 	if db == nil {
 		return nil, storage.ErrDBIsClosed
@@ -171,7 +172,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns nil if the given key is present in the persistence medium
-func (s *DB) Has(key []byte) error {
+func (s *DB) Has(key []byte, _ common.StorageAccessType) error {
 	db := s.getDbPointer()
 	if db == nil {
 		return storage.ErrDBIsClosed
@@ -238,7 +239,7 @@ func (s *DB) Close() error {
 }
 
 // Remove removes the data associated to the given key
-func (s *DB) Remove(key []byte) error {
+func (s *DB) Remove(key []byte, _ common.StorageAccessType) error {
 	s.mutBatch.Lock()
 	_ = s.batch.Delete(key)
 	s.mutBatch.Unlock()

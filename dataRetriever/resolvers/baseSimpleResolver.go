@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -9,9 +10,9 @@ type baseSimpleResolver struct {
 }
 
 func (bsr *baseSimpleResolver) getFromStorage(key []byte, _ uint32) ([]byte, error) {
-	return bsr.storer.SearchFirst(key)
+	return bsr.storer.SearchFirst(key, common.ResolveRequestPriority)
 }
 
 func (bsr *baseSimpleResolver) searchFirst(key []byte) ([]byte, error) {
-	return bsr.storer.SearchFirst(key)
+	return bsr.storer.SearchFirst(key, common.ResolveRequestPriority)
 }

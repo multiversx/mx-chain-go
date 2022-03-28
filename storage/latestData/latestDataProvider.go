@@ -217,7 +217,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 	storer storage.Storer,
 ) (uint64, error) {
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
-	trigData, err := storer.Get(trigInternalKey)
+	trigData, err := storer.Get(trigInternalKey, common.ProcessPriority)
 	if err != nil {
 		return 0, err
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -84,7 +85,7 @@ func TestTrieNodeResolver_RequestDataFromHashGetSubtrieFailsShouldErr(t *testing
 	args := createMockTrieResolverArguments()
 	expectedErr := errors.New("expected error")
 	args.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(bytes []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			return nil, 0, expectedErr
 		},
 	}
@@ -106,7 +107,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	args := createMockTrieResolverArguments()
 	buff := []byte("data")
 	args.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(bytes []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			return [][]byte{buff}, 1, nil
 		},
 	}
@@ -133,7 +134,7 @@ func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	buff := []byte("data")
 	numGetSerializedNodesCalled := uint32(0)
 	args.TrieDataGetter = &trieMock.TrieStub{
-		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
+		GetSerializedNodesCalled: func(bytes []byte, u uint64, priority common.StorageAccessType) ([][]byte, uint64, error) {
 			atomic.AddUint32(&numGetSerializedNodesCalled, 1)
 			return [][]byte{buff}, 1, nil
 		},

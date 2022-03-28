@@ -7,10 +7,10 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	PutCalled                       func([]byte, []byte) error
-	PutInEpochCalled                func([]byte, []byte, uint32) error
-	GetCalled                       func([]byte) ([]byte, error)
-	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
+	PutCalled                       func([]byte, []byte, common.StorageAccessType) error
+	PutInEpochCalled                func([]byte, []byte, uint32, common.StorageAccessType) error
+	GetCalled                       func([]byte, common.StorageAccessType) ([]byte, error)
+	GetFromCurrentEpochCalled       func([]byte, common.StorageAccessType) ([]byte, error)
 	TakeSnapshotCalled              func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled             func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
@@ -19,8 +19,8 @@ type StorageManagerStub struct {
 	EnterPruningBufferingModeCalled func()
 	ExitPruningBufferingModeCalled  func()
 	AddDirtyCheckpointHashesCalled  func([]byte, common.ModifiedHashes) bool
-	RemoveFromCurrentEpochCalled    func([]byte) error
-	RemoveCalled                    func([]byte) error
+	RemoveFromCurrentEpochCalled    func([]byte, common.StorageAccessType) error
+	RemoveCalled                    func([]byte, common.StorageAccessType) error
 	IsInterfaceNilCalled            func() bool
 	SetEpochForPutOperationCalled   func(uint32)
 	ShouldTakeSnapshotCalled        func() bool
@@ -28,36 +28,36 @@ type StorageManagerStub struct {
 }
 
 // Put -
-func (sms *StorageManagerStub) Put(key []byte, val []byte) error {
+func (sms *StorageManagerStub) Put(key []byte, val []byte, priority common.StorageAccessType) error {
 	if sms.PutCalled != nil {
-		return sms.PutCalled(key, val)
+		return sms.PutCalled(key, val, priority)
 	}
 
 	return nil
 }
 
 // PutInEpoch -
-func (sms *StorageManagerStub) PutInEpoch(key []byte, val []byte, epoch uint32) error {
+func (sms *StorageManagerStub) PutInEpoch(key []byte, val []byte, epoch uint32, priority common.StorageAccessType) error {
 	if sms.PutInEpochCalled != nil {
-		return sms.PutInEpochCalled(key, val, epoch)
+		return sms.PutInEpochCalled(key, val, epoch, priority)
 	}
 
 	return nil
 }
 
 // Get -
-func (sms *StorageManagerStub) Get(key []byte) ([]byte, error) {
+func (sms *StorageManagerStub) Get(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	if sms.GetCalled != nil {
-		return sms.GetCalled(key)
+		return sms.GetCalled(key, priority)
 	}
 
 	return nil, nil
 }
 
 // GetFromCurrentEpoch -
-func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte, priority common.StorageAccessType) ([]byte, error) {
 	if sms.GetFromCurrentEpochCalled != nil {
-		return sms.GetFromCurrentEpochCalled(key)
+		return sms.GetFromCurrentEpochCalled(key, priority)
 	}
 
 	return nil, nil
@@ -117,17 +117,17 @@ func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes 
 }
 
 // RemoveFromCurrentEpoch -
-func (sms *StorageManagerStub) RemoveFromCurrentEpoch(hash []byte) error {
+func (sms *StorageManagerStub) RemoveFromCurrentEpoch(hash []byte, priority common.StorageAccessType) error {
 	if sms.RemoveFromCurrentEpochCalled != nil {
-		return sms.RemoveFromCurrentEpochCalled(hash)
+		return sms.RemoveFromCurrentEpochCalled(hash, priority)
 	}
 	return nil
 }
 
 // Remove -
-func (sms *StorageManagerStub) Remove(hash []byte) error {
+func (sms *StorageManagerStub) Remove(hash []byte, priority common.StorageAccessType) error {
 	if sms.RemoveCalled != nil {
-		return sms.RemoveCalled(hash)
+		return sms.RemoveCalled(hash, priority)
 	}
 
 	return nil

@@ -118,7 +118,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 
 	key := []byte("key")
 	value := []byte("value")
-	err = snapshotDb.Put(key, value)
+	err = snapshotDb.Put(key, value, common.TestPriority)
 	assert.Nil(t, err)
 	err = snapshotDb.Close()
 	assert.Nil(t, err)
@@ -157,7 +157,7 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 	numSnapshots := 10
 	for i := 0; i < numSnapshots; i++ {
 		snapshotDb, _ := trieStorage.NewSnapshotDb()
-		err := snapshotDb.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		err := snapshotDb.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)), common.TestPriority)
 		assert.Nil(t, err)
 		_ = snapshotDb.Close()
 	}
@@ -167,7 +167,7 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 
 	snapshots := newTrieStorage.GetSnapshots()
 	for i := 0; i < numSnapshots; i++ {
-		val, err := snapshots[i].Get([]byte(strconv.Itoa(i)))
+		val, err := snapshots[i].Get([]byte(strconv.Itoa(i)), common.TestPriority)
 		assert.Nil(t, err)
 		assert.NotNil(t, val)
 	}
@@ -262,22 +262,22 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 
-	_ = args.MainStorer.Put(key, value)
+	_ = args.MainStorer.Put(key, value, common.TestPriority)
 	hashes := make(common.ModifiedHashes)
 	hashes[string(value)] = struct{}{}
 	hashes[string(key)] = struct{}{}
 	_ = args.CheckpointHashesHolder.Put(key, hashes)
 
-	val, err := args.MainStorer.Get(key)
+	val, err := args.MainStorer.Get(key, common.TestPriority)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
 	ok := args.CheckpointHashesHolder.ShouldCommit(key)
 	assert.True(t, ok)
 
-	err = ts.Remove(key)
+	err = ts.Remove(key, common.TestPriority)
 	assert.Nil(t, err)
 
-	val, err = args.MainStorer.Get(key)
+	val, err = args.MainStorer.Get(key, common.TestPriority)
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 	ok = args.CheckpointHashesHolder.ShouldCommit(key)
@@ -293,7 +293,7 @@ func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
 
 	key := []byte("key")
 	value := []byte("value")
-	err := ts.PutInEpoch(key, value, 0)
+	err := ts.PutInEpoch(key, value, 0, common.TestPriority)
 	assert.Equal(t, errors.ErrContextClosing, err)
 }
 
@@ -305,7 +305,7 @@ func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
 
 	key := []byte("key")
 	value := []byte("value")
-	err := ts.PutInEpoch(key, value, 0)
+	err := ts.PutInEpoch(key, value, 0, common.TestPriority)
 	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
 }
 
@@ -316,7 +316,7 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 		DB: memorydb.New(),
-		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32) error {
+		PutInEpochWithoutCacheCalled: func(key []byte, data []byte, epoch uint32, priority common.StorageAccessType) error {
 			putInEpochCalled = true
 			return nil
 		},
@@ -325,7 +325,7 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 
 	key := []byte("key")
 	value := []byte("value")
-	err := ts.PutInEpoch(key, value, 0)
+	err := ts.PutInEpoch(key, value, 0, common.TestPriority)
 	assert.Nil(t, err)
 	assert.True(t, putInEpochCalled)
 }
@@ -419,14 +419,14 @@ func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 		DB: memorydb.New(),
-		GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
+		GetFromCurrentEpochCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 			getFromCurrentEpochCalled = true
 			return nil, nil
 		},
 	}
 	ts, _ := trie.NewTrieStorageManager(args)
 
-	_, err := ts.GetFromCurrentEpoch([]byte("key"))
+	_, err := ts.GetFromCurrentEpoch([]byte("key"), common.TestPriority)
 	assert.Nil(t, err)
 	assert.True(t, getFromCurrentEpochCalled)
 }

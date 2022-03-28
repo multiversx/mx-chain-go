@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -167,7 +168,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 	epoch := rd.Epoch
 
 	// header-nonces storer contains un-pruned data so it is safe to search like this
-	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(rd.Value)
+	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(rd.Value, common.ResolveRequestPriority)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
 		// Search the nonce-key pair in data pool

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -124,7 +125,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	tnf := trieFactory.NewTrieNodeFactory()
-	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer, common.ProcessPriority)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the adapter for the trie nodes", err)
 	}

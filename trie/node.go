@@ -18,7 +18,7 @@ const (
 	nibbleSize           = 4
 	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
-	numNodeInnerPointers = 2 //each trie node contains a marshalizer and a hasher
+	numNodeInnerPointers = 2 // each trie node contains a marshaller and a hasher
 )
 
 type baseNode struct {
@@ -71,7 +71,7 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 }
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
-func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
+func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher, priority common.StorageAccessType) (int, error) {
 	key, err := computeAndSetNodeHash(n)
 	if err != nil {
 		return 0, err
@@ -87,9 +87,9 @@ func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 		return 0, err
 	}
 
-	//test point encodeNodeAndCommitToDB
+	// test point encodeNodeAndCommitToDB
 
-	err = db.Put(key, val)
+	err = db.Put(key, val, priority)
 
 	return len(val), err
 }
@@ -109,8 +109,8 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 	return key, nil
 }
 
-func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	encChild, err := db.Get(n)
+func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher, priority common.StorageAccessType) (node, error) {
+	encChild, err := db.Get(n, priority)
 	if err != nil {
 		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
 		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
@@ -124,14 +124,14 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	return decodedNode, nil
 }
 
-func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
+func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher, priority common.StorageAccessType) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsed(pos, db)
+		err = n.resolveCollapsed(pos, db, priority)
 		if err != nil {
 			return err
 		}

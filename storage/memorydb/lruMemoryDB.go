@@ -1,6 +1,7 @@
 package memorydb
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -24,13 +25,13 @@ func NewlruDB(size uint32) (*lruDB, error) {
 }
 
 // Put adds the value to the (key, val) storage medium
-func (l *lruDB) Put(key, val []byte) error {
+func (l *lruDB) Put(key, val []byte, _ common.StorageAccessType) error {
 	_ = l.cacher.Put(key, val, len(val))
 	return nil
 }
 
 // Get gets the value associated to the key, or reports an error
-func (l *lruDB) Get(key []byte) ([]byte, error) {
+func (l *lruDB) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	val, ok := l.cacher.Get(key)
 	if !ok {
 		return nil, storage.ErrKeyNotFound
@@ -44,7 +45,7 @@ func (l *lruDB) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistence medium, false otherwise
-func (l *lruDB) Has(key []byte) error {
+func (l *lruDB) Has(key []byte, _ common.StorageAccessType) error {
 	has := l.cacher.Has(key)
 	if has {
 		return nil
@@ -59,7 +60,7 @@ func (l *lruDB) Close() error {
 }
 
 // Remove removes the data associated to the given key
-func (l *lruDB) Remove(key []byte) error {
+func (l *lruDB) Remove(key []byte, _ common.StorageAccessType) error {
 	l.cacher.Remove(key)
 	return nil
 }

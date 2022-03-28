@@ -90,6 +90,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: 5,
 		chanClose:            make(chan struct{}),
+		priority:             common.TestPriority,
 	}
 
 	return tr, trieStorage
@@ -105,7 +106,7 @@ func initTrie() *patriciaMerkleTrie {
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
-	it, _ := NewIterator(tr)
+	it, _ := NewIterator(tr, common.TestPriority)
 	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)
@@ -228,8 +229,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	trieStorage2, _ := NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
-	tr1, _ := NewTrie(trieStorage1, marsh, hsh, maxTrieLevelInMemory)
-	tr2, _ := NewTrie(trieStorage2, marsh, hsh, maxTrieLevelInMemory)
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh, maxTrieLevelInMemory, common.TestPriority)
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh, maxTrieLevelInMemory, common.TestPriority)
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {
@@ -391,7 +392,7 @@ func TestBranchNode_commit(t *testing.T) {
 	err := bn.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
 
-	encNode, _ := db.Get(hash)
+	encNode, _ := db.Get(hash, common.TestPriority)
 	n, _ := decodeNode(encNode, marsh, hasher)
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
 	h2, _ := encodeNodeAndGetHash(n)
@@ -462,7 +463,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
 
-	err := collapsedBn.resolveCollapsed(childPos, db)
+	err := collapsedBn.resolveCollapsed(childPos, db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, resolved, collapsedBn.children[childPos])
 }
@@ -472,7 +473,7 @@ func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
 
 	bn := emptyDirtyBranchNode()
 
-	err := bn.resolveCollapsed(2, nil)
+	err := bn.resolveCollapsed(2, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
@@ -481,7 +482,7 @@ func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
 
 	var bn *branchNode
 
-	err := bn.resolveCollapsed(2, nil)
+	err := bn.resolveCollapsed(2, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
@@ -490,7 +491,7 @@ func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	err := bn.resolveCollapsed(17, nil)
+	err := bn.resolveCollapsed(17, nil, common.TestPriority)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 }
 
@@ -513,7 +514,7 @@ func TestBranchNode_tryGet(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, err := bn.tryGet(key, nil)
+	val, err := bn.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 }
@@ -524,7 +525,7 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	var key []byte
 
-	val, err := bn.tryGet(key, nil)
+	val, err := bn.tryGet(key, nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
@@ -535,7 +536,7 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, err := bn.tryGet(key, nil)
+	val, err := bn.tryGet(key, nil, common.TestPriority)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, val)
 }
@@ -546,7 +547,7 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	nilChildKey := []byte{3}
 
-	val, err := bn.tryGet(nilChildKey, nil)
+	val, err := bn.tryGet(nilChildKey, nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 }
@@ -563,7 +564,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, err := collapsedBn.tryGet(key, db)
+	val, err := collapsedBn.tryGet(key, db, common.TestPriority)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 }
@@ -575,7 +576,7 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, err := bn.tryGet(key, nil)
+	val, err := bn.tryGet(key, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, val)
 }
@@ -587,7 +588,7 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, err := bn.tryGet(key, nil)
+	val, err := bn.tryGet(key, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, val)
 }
@@ -600,7 +601,7 @@ func TestBranchNode_getNext(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	n, key, err := bn.getNext(key, nil)
+	n, key, err := bn.getNext(key, nil, common.TestPriority)
 
 	h1, _ := encodeNodeAndGetHash(nextNode)
 	h2, _ := encodeNodeAndGetHash(n)
@@ -615,7 +616,7 @@ func TestBranchNode_getNextWrongKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	n, key, err := bn.getNext(key, nil)
+	n, key, err := bn.getNext(key, nil, common.TestPriority)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
@@ -628,7 +629,7 @@ func TestBranchNode_getNextNilChild(t *testing.T) {
 	nilChildPos := byte(4)
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 
-	n, key, err := bn.getNext(key, nil)
+	n, key, err := bn.getNext(key, nil, common.TestPriority)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
@@ -641,7 +642,7 @@ func TestBranchNode_insert(t *testing.T) {
 	nodeKey := []byte{0, 2, 3}
 	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
-	newBn, _, err := bn.insert(n, nil)
+	newBn, _, err := bn.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
@@ -656,7 +657,7 @@ func TestBranchNode_insertEmptyKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte{}, []byte("dogs"), bn.marsh, bn.hasher)
 
-	newBn, _, err := bn.insert(n, nil)
+	newBn, _, err := bn.insert(n, nil, common.TestPriority)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
 }
@@ -667,7 +668,7 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), bn.marsh, bn.hasher)
 
-	newBn, _, err := bn.insert(n, nil)
+	newBn, _, err := bn.insert(n, nil, common.TestPriority)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, newBn)
 }
@@ -684,11 +685,11 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	_ = bn.setHash()
 	_ = bn.commitDirty(0, 5, db, db)
 
-	newBn, _, err := collapsedBn.insert(n, db)
+	newBn, _, err := collapsedBn.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
-	val, _ := newBn.tryGet(key, db)
+	val, _ := newBn.tryGet(key, db, common.TestPriority)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -703,11 +704,11 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 
 	_ = bn.commitDirty(0, 5, db, db)
 	bnHash := bn.getHash()
-	ln, _, _ := bn.getNext(key, db)
+	ln, _, _ := bn.getNext(key, db, common.TestPriority)
 	lnHash := ln.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
-	newNode, oldHashes, err := bn.insert(n, db)
+	newNode, oldHashes, err := bn.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -726,7 +727,7 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash}
 
-	newNode, oldHashes, err := bn.insert(n, db)
+	newNode, oldHashes, err := bn.insert(n, db, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -740,7 +741,7 @@ func TestBranchNode_insertInDirtyBnOnNilPos(t *testing.T) {
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 	n, _ := newLeafNode(key, []byte("dogs"), bn.marsh, bn.hasher)
 
-	newNode, oldHashes, err := bn.insert(n, nil)
+	newNode, oldHashes, err := bn.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -754,7 +755,7 @@ func TestBranchNode_insertInDirtyBnOnExistingPos(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	n, _ := newLeafNode(key, []byte("dogs"), bn.marsh, bn.hasher)
 
-	newNode, oldHashes, err := bn.insert(n, nil)
+	newNode, oldHashes, err := bn.insert(n, nil, common.TestPriority)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -765,7 +766,7 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 
 	var bn *branchNode
 
-	newBn, _, err := bn.insert(&leafNode{}, nil)
+	newBn, _, err := bn.insert(&leafNode{}, nil, common.TestPriority)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
@@ -783,7 +784,7 @@ func TestBranchNode_delete(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(key, nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -802,11 +803,11 @@ func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 
 	_ = bn.commitDirty(0, 5, db, db)
 	bnHash := bn.getHash()
-	ln, _, _ := bn.getNext(lnKey, db)
+	ln, _, _ := bn.getNext(lnKey, db, common.TestPriority)
 	lnHash := ln.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
-	dirty, _, oldHashes, err := bn.delete(lnKey, db)
+	dirty, _, oldHashes, err := bn.delete(lnKey, db, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -819,7 +820,7 @@ func TestBranchNode_deleteFromDirtyBn(t *testing.T) {
 	childPos := byte(2)
 	lnKey := append([]byte{childPos}, []byte("dog")...)
 
-	dirty, _, oldHashes, err := bn.delete(lnKey, nil)
+	dirty, _, oldHashes, err := bn.delete(lnKey, nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -832,7 +833,7 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(key, nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, newBn)
@@ -845,7 +846,7 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(key, nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
@@ -859,7 +860,7 @@ func TestBranchNode_deleteNonexistentNodeFromChild(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("butterfly")...)
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(key, nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, bn, newBn)
@@ -870,7 +871,7 @@ func TestBranchNode_deleteEmptykey(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	dirty, newBn, _, err := bn.delete([]byte{}, nil)
+	dirty, newBn, _, err := bn.delete([]byte{}, nil, common.TestPriority)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
@@ -887,11 +888,11 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	dirty, newBn, _, err := collapsedBn.delete(key, db)
+	dirty, newBn, _, err := collapsedBn.delete(key, db, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
-	val, err := newBn.tryGet(key, db)
+	val, err := newBn.tryGet(key, db, common.TestPriority)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 }
@@ -911,7 +912,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	ln, _ := newLeafNode(key, []byte("dog"), bn.marsh, bn.hasher)
 
 	key = append([]byte{secondChildPos}, []byte("doe")...)
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(key, nil, common.TestPriority)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newBn)
@@ -1045,7 +1046,7 @@ func TestBranchNode_getChildren(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	children, err := bn.getChildren(nil)
+	children, err := bn.getChildren(nil, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(children))
 }
@@ -1057,7 +1058,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
-	children, err := collapsedBn.getChildren(db)
+	children, err := collapsedBn.getChildren(db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(children))
 }
@@ -1258,8 +1259,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 	_ = collapsedBn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
-	bn.print(bnWriter, 0, db)
-	collapsedBn.print(collapsedBnWriter, 0, db)
+	bn.print(bnWriter, 0, db, common.TestPriority)
+	collapsedBn.print(collapsedBnWriter, 0, db, common.TestPriority)
 
 	assert.Equal(t, bnWriter.Bytes(), collapsedBnWriter.Bytes())
 }
@@ -1283,7 +1284,7 @@ func TestBranchNode_getAllHashes(t *testing.T) {
 	trieNodes := 4
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	hashes, err := bn.getAllHashes(testscommon.NewMemDbMock())
+	hashes, err := bn.getAllHashes(testscommon.NewMemDbMock(), common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
 }
@@ -1295,7 +1296,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
 
-	hashes, err := collapsedBn.getAllHashes(db)
+	hashes, err := collapsedBn.getAllHashes(db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(hashes))
 }

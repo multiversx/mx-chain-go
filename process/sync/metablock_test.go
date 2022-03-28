@@ -1358,7 +1358,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -1499,7 +1499,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
 	args.Accounts = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}

@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -10,15 +11,15 @@ import (
 // Persister provides storage of data services in a database like construct
 type Persister interface {
 	// Put add the value to the (key, val) persistence medium
-	Put(key, val []byte) error
+	Put(key, val []byte, priority common.StorageAccessType) error
 	// Get gets the value associated to the key
-	Get(key []byte) ([]byte, error)
+	Get(key []byte, priority common.StorageAccessType) ([]byte, error)
 	// Has returns true if the given key is present in the persistence medium
-	Has(key []byte) error
+	Has(key []byte, priority common.StorageAccessType) error
 	// Close closes the files/resources associated to the persistence medium
 	Close() error
 	// Remove removes the data associated to the given key
-	Remove(key []byte) error
+	Remove(key []byte, priority common.StorageAccessType) error
 	// Destroy removes the persistence medium stored data
 	Destroy() error
 	// DestroyClosed removes the already closed persistence medium stored data
@@ -83,17 +84,17 @@ type Cacher interface {
 // Storer provides storage services in a two layered storage construct, where the first layer is
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
-	Put(key, data []byte) error
-	PutInEpoch(key, data []byte, epoch uint32) error
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) error
-	SearchFirst(key []byte) ([]byte, error)
-	RemoveFromCurrentEpoch(key []byte) error
-	Remove(key []byte) error
+	Put(key, data []byte, priority common.StorageAccessType) error
+	PutInEpoch(key, data []byte, epoch uint32, priority common.StorageAccessType) error
+	Get(key []byte, priority common.StorageAccessType) ([]byte, error)
+	Has(key []byte, priority common.StorageAccessType) error
+	SearchFirst(key []byte, priority common.StorageAccessType) ([]byte, error)
+	RemoveFromCurrentEpoch(key []byte, priority common.StorageAccessType) error
+	Remove(key []byte, priority common.StorageAccessType) error
 	ClearCache()
 	DestroyUnit() error
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	GetFromEpoch(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32, priority common.StorageAccessType) (map[string][]byte, error)
 	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
 	Close() error

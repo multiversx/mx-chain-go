@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -109,10 +110,10 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	encNode = append(encNode, branch)
 	nodeHash := collapsedBn.hasher.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(collapsedBn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedBn, db, common.TestPriority)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := db.Get(nodeHash, common.TestPriority)
 	assert.Equal(t, encNode, val)
 }
 
@@ -125,10 +126,10 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	encNode = append(encNode, extension)
 	nodeHash := collapsedEn.hasher.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(collapsedEn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedEn, db, common.TestPriority)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := db.Get(nodeHash, common.TestPriority)
 	assert.Equal(t, encNode, val)
 }
 
@@ -141,10 +142,10 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	_, err := encodeNodeAndCommitToDB(ln, db)
+	_, err := encodeNodeAndCommitToDB(ln, db, common.TestPriority)
 	assert.Nil(t, err)
 
-	val, _ := db.Get(nodeHash)
+	val, _ := db.Get(nodeHash, common.TestPriority)
 	assert.Equal(t, encNode, val)
 }
 
@@ -159,7 +160,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	encNode = append(encNode, branch)
 	nodeHash := bn.hasher.Compute(string(encNode))
 
-	node, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher, common.TestPriority)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
@@ -178,7 +179,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	encNode = append(encNode, extension)
 	nodeHash := en.hasher.Compute(string(encNode))
 
-	node, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher, common.TestPriority)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
@@ -197,7 +198,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	node, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher, common.TestPriority)
 	assert.Nil(t, err)
 
 	ln = getLn(ln.marsh, ln.hasher)
@@ -213,7 +214,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	childPos := byte(2)
 	_ = bn.commitDirty(0, 5, db, db)
 
-	err := resolveIfCollapsed(collapsedBn, childPos, db)
+	err := resolveIfCollapsed(collapsedBn, childPos, db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.False(t, collapsedBn.isCollapsed())
 }
@@ -225,7 +226,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
 
-	err := resolveIfCollapsed(collapsedEn, 0, db)
+	err := resolveIfCollapsed(collapsedEn, 0, db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.False(t, collapsedEn.isCollapsed())
 }
@@ -237,7 +238,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 
-	err := resolveIfCollapsed(ln, 0, db)
+	err := resolveIfCollapsed(ln, 0, db, common.TestPriority)
 	assert.Nil(t, err)
 	assert.False(t, ln.isCollapsed())
 }
@@ -247,7 +248,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 
 	var node *extensionNode
 
-	err := resolveIfCollapsed(node, 0, nil)
+	err := resolveIfCollapsed(node, 0, nil, common.TestPriority)
 	assert.Equal(t, ErrNilExtensionNode, err)
 }
 

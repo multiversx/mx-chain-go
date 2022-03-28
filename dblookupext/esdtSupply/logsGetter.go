@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -73,7 +74,7 @@ func (lg *logsGetter) getLogsBasedOnMB(mb *block.MiniBlock) ([]*data.LogData, er
 }
 
 func (lg *logsGetter) getTxLog(txHash []byte) (data.LogHandler, bool, error) {
-	logBytes, err := lg.logsStorer.Get(txHash)
+	logBytes, err := lg.logsStorer.Get(txHash, common.ProcessPriority)
 	if err != nil {
 		return nil, false, nil
 	}

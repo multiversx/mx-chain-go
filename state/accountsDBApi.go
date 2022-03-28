@@ -61,7 +61,7 @@ func (accountsDB *accountsDBApi) doRecreateTrie(targetRootHash []byte) error {
 		return nil
 	}
 
-	err := accountsDB.innerAccountsAdapter.RecreateTrie(targetRootHash)
+	err := accountsDB.innerAccountsAdapter.RecreateTrie(targetRootHash, common.APIPriority)
 	if err != nil {
 		accountsDB.lastRootHash = nil
 		return err

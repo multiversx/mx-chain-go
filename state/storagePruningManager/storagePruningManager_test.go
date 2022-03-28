@@ -39,10 +39,10 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5, common.TestPriority)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, common.Normal)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, common.Normal, common.TestPriority)
 
 	return tr, adb, spm
 }
@@ -199,7 +199,7 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	spm.CancelPrune(rootHash, state.OldRoot, trieStorage)
 	spm.PruneTrie(rootHash, state.OldRoot, trieStorage)
 
-	newTr, err := tr.Recreate(rootHash)
+	newTr, err := tr.Recreate(rootHash, common.TestPriority)
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 }

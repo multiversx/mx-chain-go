@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -564,7 +565,7 @@ func (ste *scheduledTxsExecution) SaveState(headerHash []byte, scheduledInfo *pr
 		"gasAndFees.GasPenalized", scheduledInfo.GasAndFees.GasPenalized,
 		"gasAndFees.GasRefunded", scheduledInfo.GasAndFees.GasRefunded,
 		"length of marshalized scheduled info", len(marshalledScheduledInfo))
-	err = ste.storer.Put(headerHash, marshalledScheduledInfo)
+	err = ste.storer.Put(headerHash, marshalledScheduledInfo, common.ProcessPriority)
 	if err != nil {
 		log.Warn("scheduledTxsExecution.SaveState Put -> ScheduledIntermediateTxsUnit", "error", err.Error())
 	}
@@ -581,7 +582,7 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte) (
 		}
 	}()
 
-	marshalledSCRsSavedData, err := ste.storer.Get(headerHash)
+	marshalledSCRsSavedData, err := ste.storer.Get(headerHash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -630,9 +631,9 @@ func (ste *scheduledTxsExecution) IsScheduledTx(txHash []byte) bool {
 
 // IsMiniBlockExecuted returns true if the given mini block is already executed
 func (ste *scheduledTxsExecution) IsMiniBlockExecuted(mbHash []byte) bool {
-	//TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later,
-	//but only when we could differentiate between the final mini blocks executed as scheduled in the last block and the normal mini blocks
-	//from the current block which are also final, but not yet executed
+	// TODO: This method and also ste.mapScheduledMbHashes could be removed when we will have mini block header IsFinal method later,
+	//  but only when we could differentiate between the final mini blocks executed as scheduled in the last block and the normal mini blocks
+	//  from the current block which are also final, but not yet executed
 	ste.mutScheduledTxs.RLock()
 	_, ok := ste.mapScheduledMbHashes[string(mbHash)]
 	ste.mutScheduledTxs.RUnlock()
