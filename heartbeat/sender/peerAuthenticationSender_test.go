@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -229,8 +230,8 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
 		}
-		argsBase.marshaller = &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) ([]byte, error) {
+		argsBase.marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
@@ -271,8 +272,8 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
 		}
-		argsBase.marshaller = &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) ([]byte, error) {
+		argsBase.marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				numCalls++
 				if numCalls < 2 {
 					return make([]byte, 0), nil

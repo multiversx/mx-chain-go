@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ import (
 func createMockSenderArgs() ArgSender {
 	return ArgSender{
 		Messenger:                          &mock.MessengerStub{},
-		Marshaller:                         &mock.MarshallerMock{},
+		Marshaller:                         &testscommon.MarshalizerMock{},
 		PeerAuthenticationTopic:            "pa-topic",
 		HeartbeatTopic:                     "hb-topic",
 		PeerAuthenticationTimeBetweenSends: time.Second,

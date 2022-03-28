@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -24,7 +23,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 	return ArgHeartbeatV2Monitor{
 		Cache:                         testscommon.NewCacherMock(),
 		PubKeyConverter:               &testscommon.PubkeyConverterMock{},
-		Marshaller:                    &mock.MarshallerMock{},
+		Marshaller:                    &testscommon.MarshalizerMock{},
 		PeerShardMapper:               &p2pmocks.NetworkShardingCollectorStub{},
 		MaxDurationPeerUnresponsive:   time.Second * 3,
 		HideInactiveValidatorInterval: time.Second * 5,
@@ -45,7 +44,7 @@ func createHeartbeatMessage(active bool) heartbeat.HeartbeatV2 {
 		Timestamp: messageTimestamp,
 	}
 
-	marshaller := mock.MarshallerMock{}
+	marshaller := testscommon.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)
 	return heartbeat.HeartbeatV2{
 		Payload:         payloadBytes,

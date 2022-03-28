@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -27,8 +28,8 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		},
 		PeerSignatureHandler: &mock.PeerSignatureHandler{},
 		PrivKey:              &mock.PrivateKeyStub{},
-		Marshalizer: &mock.MarshallerStub{
-			MarshalHandler: func(obj interface{}) (i []byte, e error) {
+		Marshalizer: &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) (i []byte, e error) {
 				return nil, nil
 			},
 		},
@@ -254,8 +255,8 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 	}
 	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
 
-	arg.Marshalizer = &mock.MarshallerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			expectedErr = marshalErr
 			return nil, marshalErr
 		},
@@ -308,8 +309,8 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshallerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			hb, ok := obj.(*data.Heartbeat)
 			if ok {
 				pubkeyBytes, _ := pubKey.ToByteArray()
@@ -352,7 +353,7 @@ func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
 	genPubKeyCalled := false
 
 	arg := createMockArgHeartbeatSender()
-	arg.Marshalizer = &mock.MarshallerMock{}
+	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -424,7 +425,7 @@ func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
 			}
 		},
 	}
-	arg.Marshalizer = &mock.MarshallerMock{}
+	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -496,7 +497,7 @@ func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing
 			}
 		},
 	}
-	arg.Marshalizer = &mock.MarshallerMock{}
+	arg.Marshalizer = &testscommon.MarshalizerMock{}
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -575,8 +576,8 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshallerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			hb, ok := obj.(*data.Heartbeat)
 			if ok {
 				pubkeyBytes, _ := pubKey.ToByteArray()
@@ -659,8 +660,8 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshallerStub{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
 			hb, ok := obj.(*data.Heartbeat)
 			if ok {
 				pubkeyBytes, _ := pubKey.ToByteArray()
