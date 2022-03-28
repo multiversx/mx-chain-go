@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/big"
 	"time"
 
@@ -703,7 +704,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 ) error {
 	headersPool := sp.dataPool.Headers()
 
-	mapMetaHashMiniBlockHashes := make(map[string][][]byte, len(metaBlockHashes))
+	mapMetaHashMiniBlockHashes := make(map[string][][]byte)
 
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
@@ -742,15 +743,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 
 	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
 		for _, miniBlockHash := range miniBlockHashes {
-			miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, miniBlockHash)
-			if miniBlockHeader == nil {
-				log.Warn("shardProcessor.restoreMetaBlockIntoPool: GetMiniBlockHeaderWithHash", "mb hash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
-				continue
-			}
-
+			//TODO: Check how to set the correct index
+			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
 			sp.processedMiniBlocks.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
-				IsFullyProcessed:       miniBlockHeader.IsFinal(),
-				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
+				IsFullyProcessed:       true,
+				IndexOfLastTxProcessed: indexOfLastTxProcessed,
 			})
 		}
 	}
@@ -762,7 +759,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 			continue
 		}
 
-		sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, []byte(miniBlockHash))
+		isCrossShardDestMeMiniBlock := miniBlockHeader.GetSenderShardID() != sp.shardCoordinator.SelfId() &&
+			(miniBlockHeader.GetReceiverShardID() == sp.shardCoordinator.SelfId() || miniBlockHeader.GetReceiverShardID() == core.AllShardId)
+		if isCrossShardDestMeMiniBlock {
+			sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, []byte(miniBlockHash))
+		}
 	}
 
 	return nil
@@ -777,6 +778,11 @@ func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 
 	_, metaBlockHash := sp.processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
 	if metaBlockHash == nil {
+		log.Warn("shardProcessor.rollBackProcessedMiniBlockInfo: mini block was not found in ProcessedMiniBlockTracker component",
+			"sender shard", miniBlockHeader.GetSenderShardID(),
+			"receiver shard", miniBlockHeader.GetReceiverShardID(),
+			"tx count", miniBlockHeader.GetTxCount(),
+			"mb hash", miniBlockHash)
 		return
 	}
 
