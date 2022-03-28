@@ -12,13 +12,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockSenderArgs() ArgSender {
 	return ArgSender{
-		Messenger:                          &mock.MessengerStub{},
+		Messenger:                          &p2pmocks.MessengerStub{},
 		Marshaller:                         &testscommon.MarshalizerMock{},
 		PeerAuthenticationTopic:            "pa-topic",
 		HeartbeatTopic:                     "hb-topic",
