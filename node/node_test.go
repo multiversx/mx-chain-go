@@ -2,6 +2,7 @@ package node_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -50,7 +51,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	txsSenderMock "github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txsSenderMock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -290,9 +291,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
 					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
@@ -304,7 +303,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -334,7 +333,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 	)
 
-	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
+	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), context.Background())
 	assert.Nil(t, err)
 	resV1, ok := pairs[hex.EncodeToString(k1)]
 	assert.True(t, ok)
@@ -343,6 +342,56 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	resV2, ok := pairs[hex.EncodeToString(k2)]
 	assert.True(t, ok)
 	assert.Equal(t, hex.EncodeToString(v2), resV2)
+}
+
+func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	accDB := &stateMock.AccountsStub{}
+	acc.DataTrieTracker().SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+				go func() {
+					time.Sleep(time.Second)
+					close(ch)
+				}()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		return acc, nil
+	}
+	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+		return nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+
+	dataComponents := getDefaultDataComponents()
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+	)
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64), ctxWithTimeout)
+	assert.Nil(t, pairs)
+	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
 func TestNode_GetValueForKey(t *testing.T) {
@@ -471,16 +520,14 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -514,10 +561,63 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	value, err := n.GetAllESDTTokens(hexAddress)
+	value, err := n.GetAllESDTTokens(hexAddress, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, esdtData, value[esdtToken])
+}
+
+func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	hexAddress := createDummyHexAddress(64)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+				go func() {
+					time.Sleep(time.Second)
+					close(ch)
+				}()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+
+	dataComponents := getDefaultDataComponents()
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+	)
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	value, err := n.GetAllESDTTokens(hexAddress, ctxWithTimeout)
+	assert.Nil(t, value)
+	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
@@ -555,9 +655,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	}
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder, 2)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
@@ -572,7 +670,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 				wg.Wait()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -601,7 +699,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		node.WithESDTNFTStorageHandler(esdtStorageStub),
 	)
 
-	tokens, err := n.GetAllESDTTokens(hexAddress)
+	tokens, err := n.GetAllESDTTokens(hexAddress, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
 	assert.Equal(t, esdtData, tokens[esdtToken])
@@ -636,9 +734,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
@@ -651,7 +747,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -683,22 +779,22 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	value, err := n.GetAllIssuedESDTs(core.FungibleESDT)
+	value, err := n.GetAllIssuedESDTs(core.FungibleESDT, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, string(esdtToken), value[0])
 
-	value, err = n.GetAllIssuedESDTs(core.SemiFungibleESDT)
+	value, err = n.GetAllIssuedESDTs(core.SemiFungibleESDT, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, string(sftToken), value[0])
 
-	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDT)
+	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDT, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, string(nftToken), value[0])
 
-	value, err = n.GetAllIssuedESDTs("")
+	value, err = n.GetAllIssuedESDTs("", context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(value))
 }
@@ -723,16 +819,14 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -763,17 +857,17 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity)
+	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint)
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint, context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
 
-	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate)
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate, context.Background())
 	require.NoError(t, err)
 	require.Len(t, tokenResult, 0)
 }
@@ -798,16 +892,14 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -838,7 +930,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes))
+	tokenResult, err := n.GetESDTsRoles(hex.EncodeToString(addrBytes), context.Background())
 	require.NoError(t, err)
 	require.Equal(t, map[string][]string{
 		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
@@ -858,16 +950,14 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	acc.DataTrieTracker().SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
-				ch := make(chan core.KeyValueHolder)
-
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
 
-				return ch, nil
+				return nil
 			},
 			RootCalled: func() ([]byte, error) {
 				return nil, nil
@@ -899,10 +989,62 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes))
+	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), context.Background())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
+}
+
+func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T) {
+	addrBytes := []byte("newaddress")
+	acc, _ := state.NewUserAccount(addrBytes)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
+				go func() {
+					time.Sleep(time.Second)
+					close(ch)
+				}()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		},
+	)
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+		return acc, nil
+	}
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.AccountsAPI = accDB
+	dataComponents := getDefaultDataComponents()
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+	)
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	tokens, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes), ctxWithTimeout)
+	require.Nil(t, tokens)
+	require.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
 // ------- GenerateTransaction
@@ -3085,7 +3227,7 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 	)
 
-	res, err := n.GetKeyValuePairs("addr")
+	res, err := n.GetKeyValuePairs("addr", context.Background())
 	require.Nil(t, res)
 	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
 }

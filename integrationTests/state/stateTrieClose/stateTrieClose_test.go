@@ -1,6 +1,7 @@
 package stateTrieClose
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -34,12 +37,14 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	rootHash, _ := tr.RootHash()
-	leavesChannel1, _ := tr.GetAllLeavesOnChannel(rootHash)
+	leavesChannel1 := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash)
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
 
-	_, _ = tr.GetAllLeavesOnChannel(rootHash)
+	leavesChannel1 = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 2)
@@ -48,7 +53,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
-	_, _ = tr.GetAllLeavesOnChannel(rootHash)
+	leavesChannel1 = make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
@@ -57,7 +63,8 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	_ = tr.Commit()
 
 	rootHash, _ = tr.RootHash()
-	leavesChannel2, _ := tr.GetAllLeavesOnChannel(rootHash)
+	leavesChannel2 := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 4)
