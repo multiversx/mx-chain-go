@@ -1,6 +1,7 @@
 package trieIterators
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -37,7 +39,7 @@ func NewDelegatedListProcessor(arg ArgTrieIteratorProcessor) (*delegatedListProc
 }
 
 // GetDelegatorsList will return the delegators list
-func (dlp *delegatedListProcessor) GetDelegatorsList() ([]*api.Delegator, error) {
+func (dlp *delegatedListProcessor) GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error) {
 	dlp.accounts.Lock()
 	defer dlp.accounts.Unlock()
 
@@ -48,7 +50,7 @@ func (dlp *delegatedListProcessor) GetDelegatorsList() ([]*api.Delegator, error)
 
 	delegatorsInfo := make(map[string]*api.Delegator)
 	for _, delegationSC := range delegationScAddresses {
-		err = dlp.getDelegatorsInfo(delegationSC, delegatorsInfo)
+		err = dlp.getDelegatorsInfo(delegationSC, delegatorsInfo, ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -77,8 +79,8 @@ func (dlp *delegatedListProcessor) getAllDelegationContractAddresses() ([][]byte
 	return vmOutput.ReturnData, nil
 }
 
-func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delegatorsMap map[string]*api.Delegator) error {
-	delegatorsList, err := dlp.getDelegatorsList(delegationSC)
+func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delegatorsMap map[string]*api.Delegator, ctx context.Context) error {
+	delegatorsList, err := dlp.getDelegatorsList(delegationSC, ctx)
 	if err != nil {
 		return err
 	}
@@ -113,7 +115,7 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 	return nil
 }
 
-func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]byte, error) {
+func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx context.Context) ([][]byte, error) {
 	delegatorAccount, err := dlp.getAccount(delegationSC)
 	if err != nil {
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
@@ -124,7 +126,8 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]b
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
 	}
 
-	chLeaves, err := delegatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = delegatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +140,10 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]b
 		}
 
 		delegators = append(delegators, leafKey)
+	}
+
+	if common.IsContextDone(ctx) {
+		return nil, ErrTrieOperationsTimeout
 	}
 
 	return delegators, nil

@@ -2,6 +2,7 @@ package node
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -179,7 +180,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 }
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
-func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
@@ -199,7 +200,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -225,6 +227,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		}
 	}
 
+	if common.IsContextDone(ctx) {
+		return nil, ErrTrieOperationsTimeout
+	}
+
 	return tokens, nil
 }
 
@@ -247,7 +253,7 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
-func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
+func (n *Node) GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
@@ -262,7 +268,8 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -277,6 +284,10 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 		}
 
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+	}
+
+	if common.IsContextDone(ctx) {
+		return nil, ErrTrieOperationsTimeout
 	}
 
 	return mapToReturn, nil
@@ -329,6 +340,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 
 func (n *Node) getTokensIDsWithFilter(
 	f filter,
+	ctx context.Context,
 ) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
@@ -349,7 +361,8 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -370,11 +383,15 @@ func (n *Node) getTokensIDsWithFilter(
 		}
 	}
 
+	if common.IsContextDone(ctx) {
+		return nil, ErrTrieOperationsTimeout
+	}
+
 	return tokens, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
@@ -383,11 +400,11 @@ func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, erro
 	f := &getRegisteredNftsFilter{
 		addressBytes: addressBytes,
 	}
-	return n.getTokensIDsWithFilter(f)
+	return n.getTokensIDsWithFilter(f, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
-func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
+func (n *Node) GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error) {
 	if !core.IsValidESDTRole(role) {
 		return nil, ErrInvalidESDTRole
 	}
@@ -401,11 +418,11 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		addressBytes: addressBytes,
 		role:         role,
 	}
-	return n.getTokensIDsWithFilter(f)
+	return n.getTokensIDsWithFilter(f, ctx)
 }
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
-func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
+func (n *Node) GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error) {
 	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
@@ -417,7 +434,7 @@ func (n *Node) GetESDTsRoles(address string) (map[string][]string, error) {
 		addressBytes: addressBytes,
 		outputRoles:  tokensRoles,
 	}
-	_, err = n.getTokensIDsWithFilter(f)
+	_, err = n.getTokensIDsWithFilter(f, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +464,7 @@ func bigToString(bigValue *big.Int) string {
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
-func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
+func (n *Node) GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error) {
 	userAccount, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
@@ -466,7 +483,8 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		return nil, err
 	}
 
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -500,6 +518,10 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		}
 
 		allESDTs[tokenName] = esdtToken
+	}
+
+	if common.IsContextDone(ctx) {
+		return nil, ErrTrieOperationsTimeout
 	}
 
 	return allESDTs, nil
