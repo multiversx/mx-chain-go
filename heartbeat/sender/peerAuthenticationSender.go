@@ -124,7 +124,7 @@ func (sender *peerAuthenticationSender) execute() error {
 		return err
 	}
 
-	b := batch.Batch{
+	b := &batch.Batch{
 		Data: make([][]byte, 1),
 	}
 	b.Data[0] = msgBytes

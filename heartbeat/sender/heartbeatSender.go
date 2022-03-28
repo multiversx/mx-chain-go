@@ -92,7 +92,7 @@ func (sender *heartbeatSender) execute() error {
 		nonce = currentBlock.GetNonce()
 	}
 
-	msg := heartbeat.HeartbeatV2{
+	msg := &heartbeat.HeartbeatV2{
 		Payload:         payloadBytes,
 		VersionNumber:   sender.versionNumber,
 		NodeDisplayName: sender.nodeDisplayName,
@@ -106,7 +106,7 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	b := batch.Batch{
+	b := &batch.Batch{
 		Data: make([][]byte, 1),
 	}
 	b.Data[0] = msgBytes
