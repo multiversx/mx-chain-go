@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 		Cache:                         testscommon.NewCacherMock(),
 		PubKeyConverter:               &testscommon.PubkeyConverterMock{},
 		Marshaller:                    &mock.MarshallerMock{},
-		PeerShardMapper:               &processMocks.PeerShardMapperStub{},
+		PeerShardMapper:               &p2pmocks.NetworkShardingCollectorStub{},
 		MaxDurationPeerUnresponsive:   time.Second * 3,
 		HideInactiveValidatorInterval: time.Second * 5,
 		ShardId:                       0,

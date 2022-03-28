@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,9 +50,9 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		ArgBaseInterceptedHeartbeat: ArgBaseInterceptedHeartbeat{
 			Marshalizer: &mock.MarshalizerMock{},
 		},
-		NodesCoordinator:     &processMocks.NodesCoordinatorStub{},
+		NodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
 		SignaturesHandler:    &processMocks.SignaturesHandlerStub{},
-		PeerSignatureHandler: &processMocks.PeerSignatureHandlerStub{},
+		PeerSignatureHandler: &cryptoMocks.PeerSignatureHandlerStub{},
 		ExpiryTimespanInSec:  30,
 	}
 	arg.DataBuff, _ = arg.Marshalizer.Marshal(interceptedData)
