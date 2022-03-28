@@ -759,11 +759,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 			continue
 		}
 
-		isCrossShardDestMeMiniBlock := miniBlockHeader.GetSenderShardID() != sp.shardCoordinator.SelfId() &&
-			(miniBlockHeader.GetReceiverShardID() == sp.shardCoordinator.SelfId() || miniBlockHeader.GetReceiverShardID() == core.AllShardId)
-		if isCrossShardDestMeMiniBlock {
-			sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, []byte(miniBlockHash))
+		if miniBlockHeader.GetSenderShardID() == sp.shardCoordinator.SelfId() {
+			continue
 		}
+
+		sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, []byte(miniBlockHash))
 	}
 
 	return nil
