@@ -49,6 +49,7 @@ func GetGeneralConfig() config.Config {
 			GenesisMaxNumberOfShards:             100,
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
+			SyncProcessTimeInMillis:              6000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,

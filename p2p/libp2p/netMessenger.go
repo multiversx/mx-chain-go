@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
@@ -34,10 +36,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
+
+	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 )
 
 const (
@@ -82,7 +83,7 @@ const (
 )
 
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
-//  https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
+// https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 // 64kB
 var maxSendBuffSize = (1 << 21) - messageHeader
 var log = logger.GetOrCreate("p2p/libp2p")
@@ -121,7 +122,6 @@ type networkMessenger struct {
 	outgoingPLB             p2p.ChannelLoadBalancer
 	poc                     *peersOnChannel
 	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
-	ip                      *identityProvider
 	connectionsMetric       *metrics.Connections
 	debugger                p2p.Debugger
 	marshalizer             p2p.Marshalizer
@@ -210,7 +210,7 @@ func constructNode(
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		transportOption,
-		// we need to call disable relay option in order to save the node's bandwidth as much as possible
+		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
@@ -587,17 +587,6 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 
 		setupExternalP2PLoggers()
 	}
-}
-
-// ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
-	for _, opt := range opts {
-		err := opt(netMes)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Close closes the host, connections and streams

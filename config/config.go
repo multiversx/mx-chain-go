@@ -269,6 +269,7 @@ type GeneralSettingsConfig struct {
 	MinTransactionVersion                uint32
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
+	SyncProcessTimeInMillis              uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
