@@ -82,6 +82,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              testProcessWaitTime,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -364,6 +365,18 @@ func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilCurrentNetworkEpochProvider, err)
 }
 
+func TestNewMetaBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.ProcessWaitTime = time.Millisecond*100 - 1
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -398,6 +411,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
+	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
 }
 
 // ------- processing

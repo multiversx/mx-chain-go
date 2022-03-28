@@ -35,6 +35,7 @@ import (
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
 const waitTime = 100 * time.Millisecond
+const testProcessWaitTime = time.Second
 
 type removedFlags struct {
 	flagHdrRemovedFromHeaders      bool
@@ -205,6 +206,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              testProcessWaitTime,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -416,6 +418,18 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
+func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.ProcessWaitTime = time.Millisecond*100 - 1
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -459,6 +473,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.False(t, bs.IsInImportMode())
+	assert.Equal(t, testProcessWaitTime, bs.ProcessWaitTime())
 }
 
 // ------- processing

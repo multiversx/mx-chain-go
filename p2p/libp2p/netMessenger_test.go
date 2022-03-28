@@ -24,11 +24,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
@@ -1328,7 +1328,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
-		Message: &pubsub_pb.Message{
+		Message: &pubsubPb.Message{
 			From:                 []byte(pid),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1400,7 +1400,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
-		Message: &pubsub_pb.Message{
+		Message: &pubsubPb.Message{
 			From:                 []byte("not a valid pid"),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1464,7 +1464,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	topic := "topic"
 	msg := &pubsub.Message{
-		Message: &pubsub_pb.Message{
+		Message: &pubsubPb.Message{
 			From:                 []byte(mes.ID()),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
@@ -1674,33 +1674,6 @@ func TestNetworkMessenger_mapHistogram(t *testing.T) {
 	output := `shard 0: 5, shard 1: 7, shard 2: 9, meta: 11`
 
 	require.Equal(t, output, netMes.MapHistogram(inp))
-}
-
-func TestNetworkMessenger_ApplyOptionsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected option err")
-	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
-
-	opt := netMes.GetOption(func() error {
-		return expectedErr
-	})
-	err := netMes.ApplyOptions(opt)
-	require.Equal(t, expectedErr, err)
-}
-
-func TestNetworkMessenger_ApplyOptionsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := createMockNetworkArgs()
-	netMes, _ := libp2p.NewNetworkMessenger(args)
-
-	opt := netMes.GetOption(func() error {
-		return nil
-	})
-	err := netMes.ApplyOptions(opt)
-	require.NoError(t, err)
 }
 
 func TestNetworkMessenger_ChooseAnotherPortIfBindFails(t *testing.T) {

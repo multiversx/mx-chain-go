@@ -1103,3 +1103,6 @@ var ErrNilPeerAuthenticationCacher = errors.New("nil peer authentication cacher"
 
 // ErrNilHeartbeatCacher signals that a nil heartbeat cacher was provided
 var ErrNilHeartbeatCacher = errors.New("nil heartbeat cacher")
+
+// ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
+var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")

@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
@@ -34,10 +36,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
+
+	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 )
 
 const (
@@ -82,7 +83,7 @@ const (
 )
 
 // TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
-//  https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
+// https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 // 64kB
 var maxSendBuffSize = (1 << 21) - messageHeader
 var log = logger.GetOrCreate("p2p/libp2p")
@@ -100,7 +101,6 @@ func init() {
 
 // TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	*p2pSigner
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -108,26 +108,25 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor             ConnectionMonitor
-	connMonitorWrapper      p2p.ConnectionMonitorWrapper
-	peerDiscoverer          p2p.PeerDiscoverer
-	sharder                 p2p.Sharder
-	peerShardResolver       p2p.PeerShardResolver
-	mutPeerResolver         sync.RWMutex
-	mutTopics               sync.RWMutex
-	processors              map[string]*topicProcessors
-	topics                  map[string]*pubsub.Topic
-	subscriptions           map[string]*pubsub.Subscription
-	outgoingPLB             p2p.ChannelLoadBalancer
-	poc                     *peersOnChannel
-	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
-	ip                      *identityProvider
-	connectionsMetric       *metrics.Connections
-	debugger                p2p.Debugger
-	marshalizer             p2p.Marshalizer
-	syncTimer               p2p.SyncTimer
-	preferredPeersHolder    p2p.PreferredPeersHolderHandler
-	printConnectionsWatcher p2p.ConnectionsWatcher
+	connMonitor          ConnectionMonitor
+	connMonitorWrapper   p2p.ConnectionMonitorWrapper
+	peerDiscoverer       p2p.PeerDiscoverer
+	sharder              p2p.Sharder
+	peerShardResolver    p2p.PeerShardResolver
+	mutPeerResolver      sync.RWMutex
+	mutTopics            sync.RWMutex
+	processors           map[string]*topicProcessors
+	topics               map[string]*pubsub.Topic
+	subscriptions        map[string]*pubsub.Subscription
+	outgoingPLB          p2p.ChannelLoadBalancer
+	poc                  *peersOnChannel
+	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
+	connectionsMetric    *metrics.Connections
+	debugger             p2p.Debugger
+	marshalizer          p2p.Marshalizer
+	syncTimer            p2p.SyncTimer
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher   p2p.ConnectionsWatcher
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -210,7 +209,7 @@ func constructNode(
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		transportOption,
-		// we need to call disable relay option in order to save the node's bandwidth as much as possible
+		// we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
@@ -223,13 +222,10 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		p2pSigner: &p2pSigner{
-			privateKey: p2pPrivKey,
-		},
-		ctx:                     ctx,
-		cancelFunc:              cancelFunc,
-		p2pHost:                 NewConnectableHost(h),
-		port:                    port,
+		ctx:                ctx,
+		cancelFunc:         cancelFunc,
+		p2pHost:            NewConnectableHost(h),
+		port:               port,
 		printConnectionsWatcher: connWatcher,
 	}
 
@@ -587,17 +583,6 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 
 		setupExternalP2PLoggers()
 	}
-}
-
-// ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
-	for _, opt := range opts {
-		err := opt(netMes)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Close closes the host, connections and streams
@@ -961,7 +946,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 		topicProcs = newTopicProcessors()
 		netMes.processors[topic] = topicProcs
 
-		err := netMes.registerOnPubSub(topic, topicProcs)
+		err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 		if err != nil {
 			return err
 		}
@@ -973,15 +958,6 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 	}
 
 	return nil
-}
-
-func (netMes *networkMessenger) registerOnPubSub(topic string, topicProcs *topicProcessors) error {
-	if topic == common.ConnectionTopic {
-		// do not allow broadcasts on this connection topic
-		return nil
-	}
-
-	return netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 }
 
 func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {

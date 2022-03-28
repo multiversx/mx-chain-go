@@ -293,6 +293,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -337,6 +338,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
