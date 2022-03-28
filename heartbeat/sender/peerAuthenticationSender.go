@@ -12,6 +12,7 @@ import (
 // argPeerAuthenticationSender represents the arguments for the peer authentication sender
 type argPeerAuthenticationSender struct {
 	argBaseSender
+	nodesCoordinator     heartbeat.NodesCoordinator
 	peerSignatureHandler crypto.PeerSignatureHandler
 	privKey              crypto.PrivateKey
 	redundancyHandler    heartbeat.NodeRedundancyHandler
@@ -19,6 +20,7 @@ type argPeerAuthenticationSender struct {
 
 type peerAuthenticationSender struct {
 	baseSender
+	nodesCoordinator     heartbeat.NodesCoordinator
 	peerSignatureHandler crypto.PeerSignatureHandler
 	redundancy           heartbeat.NodeRedundancyHandler
 	privKey              crypto.PrivateKey
@@ -36,6 +38,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 	redundancyHandler := args.redundancyHandler
 	sender := &peerAuthenticationSender{
 		baseSender:           createBaseSender(args.argBaseSender),
+		nodesCoordinator:     args.nodesCoordinator,
 		peerSignatureHandler: args.peerSignatureHandler,
 		redundancy:           redundancyHandler,
 		privKey:              args.privKey,
@@ -50,6 +53,9 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 	err := checkBaseSenderArgs(args.argBaseSender)
 	if err != nil {
 		return err
+	}
+	if check.IfNil(args.nodesCoordinator) {
+		return heartbeat.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.peerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
@@ -66,6 +72,11 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 
 // Execute will handle the execution of a cycle in which the peer authentication message will be sent
 func (sender *peerAuthenticationSender) Execute() {
+	if !sender.isValidator() {
+		sender.CreateNewTimer(sender.timeBetweenSendsWhenError)
+		return
+	}
+
 	duration := sender.computeRandomDuration()
 	err := sender.execute()
 	if err != nil {
@@ -134,6 +145,17 @@ func (sender *peerAuthenticationSender) getCurrentPrivateAndPublicKeys() (crypto
 	}
 
 	return sender.redundancy.ObserverPrivateKey(), sender.observerPublicKey
+}
+
+func (sender *peerAuthenticationSender) isValidator() bool {
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return false
+	}
+
+	_, _, err = sender.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
+	return err == nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

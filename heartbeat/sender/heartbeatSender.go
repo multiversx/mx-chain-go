@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
+const maxSizeInBytes = 128
+
 // argHeartbeatSender represents the arguments for the heartbeat sender
 type argHeartbeatSender struct {
 	argBaseSender
@@ -50,14 +52,8 @@ func checkHeartbeatSenderArgs(args argHeartbeatSender) error {
 	if err != nil {
 		return err
 	}
-	if len(args.versionNumber) == 0 {
-		return heartbeat.ErrEmptyVersionNumber
-	}
-	if len(args.nodeDisplayName) == 0 {
-		return heartbeat.ErrEmptyNodeDisplayName
-	}
-	if len(args.identity) == 0 {
-		return heartbeat.ErrEmptyIdentity
+	if len(args.versionNumber) > maxSizeInBytes {
+		return heartbeat.ErrPropertyTooLong
 	}
 	if check.IfNil(args.currentBlockProvider) {
 		return heartbeat.ErrNilCurrentBlockProvider

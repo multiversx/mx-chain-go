@@ -108,15 +108,6 @@ var ErrEmptySendTopic = errors.New("empty topic for sending messages")
 // ErrInvalidTimeDuration signals that an invalid time duration was provided
 var ErrInvalidTimeDuration = errors.New("invalid time duration")
 
-// ErrEmptyVersionNumber signals that an empty version number was provided
-var ErrEmptyVersionNumber = errors.New("empty version number")
-
-// ErrEmptyNodeDisplayName signals that an empty node display name was provided
-var ErrEmptyNodeDisplayName = errors.New("empty node display name")
-
-// ErrEmptyIdentity signals that an empty identity was provided
-var ErrEmptyIdentity = errors.New("empty identity")
-
 // ErrInvalidThreshold signals that an invalid threshold was provided
 var ErrInvalidThreshold = errors.New("invalid threshold")
 

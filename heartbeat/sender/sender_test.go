@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +34,7 @@ func createMockSenderArgs() ArgSender {
 		PeerSignatureHandler:                        &mock.PeerSignatureHandlerStub{},
 		PrivateKey:                                  &mock.PrivateKeyStub{},
 		RedundancyHandler:                           &mock.RedundancyHandlerStub{},
+		NodesCoordinator:                            &shardingMocks.NodesCoordinatorStub{},
 	}
 }
 
@@ -129,31 +131,11 @@ func TestNewSender(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSenderArgs()
-		args.VersionNumber = ""
+		args.VersionNumber = string(make([]byte, 150))
 		sender, err := NewSender(args)
 
 		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrEmptyVersionNumber, err)
-	})
-	t.Run("empty node display name should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockSenderArgs()
-		args.NodeDisplayName = ""
-		sender, err := NewSender(args)
-
-		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrEmptyNodeDisplayName, err)
-	})
-	t.Run("empty identity should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockSenderArgs()
-		args.Identity = ""
-		sender, err := NewSender(args)
-
-		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrEmptyIdentity, err)
+		assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
 	})
 	t.Run("nil current block provider should error", func(t *testing.T) {
 		t.Parallel()
@@ -164,6 +146,16 @@ func TestNewSender(t *testing.T) {
 
 		assert.Nil(t, sender)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
+	})
+	t.Run("nil nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.NodesCoordinator = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
 		t.Parallel()

@@ -29,6 +29,7 @@ type ArgSender struct {
 	PeerSignatureHandler                        crypto.PeerSignatureHandler
 	PrivateKey                                  crypto.PrivateKey
 	RedundancyHandler                           heartbeat.NodeRedundancyHandler
+	NodesCoordinator                            heartbeat.NodesCoordinator
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -52,6 +53,7 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
+		nodesCoordinator:     args.NodesCoordinator,
 		peerSignatureHandler: args.PeerSignatureHandler,
 		privKey:              args.PrivateKey,
 		redundancyHandler:    args.RedundancyHandler,
@@ -94,6 +96,7 @@ func checkSenderArgs(args ArgSender) error {
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
+		nodesCoordinator:     args.NodesCoordinator,
 		peerSignatureHandler: args.PeerSignatureHandler,
 		privKey:              args.PrivateKey,
 		redundancyHandler:    args.RedundancyHandler,

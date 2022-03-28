@@ -401,6 +401,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		PeerSignatureHandler:    thn.PeerSigHandler,
 		PrivateKey:              thn.NodeKeys.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
+		NodesCoordinator:        thn.NodesCoordinator,
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,

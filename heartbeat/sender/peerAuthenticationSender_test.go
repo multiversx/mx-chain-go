@@ -3,6 +3,7 @@ package sender
 import (
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,12 +18,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthenticationSender {
 	return argPeerAuthenticationSender{
 		argBaseSender:        argBase,
+		nodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
 		peerSignatureHandler: &mock.PeerSignatureHandlerStub{},
 		privKey:              &mock.PrivateKeyStub{},
 		redundancyHandler:    &mock.RedundancyHandlerStub{},
@@ -35,7 +39,8 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseS
 	singleSigner := singlesig.NewBlsSigner()
 
 	return argPeerAuthenticationSender{
-		argBaseSender: baseArg,
+		argBaseSender:    baseArg,
+		nodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
 		peerSignatureHandler: &mock.PeerSignatureHandlerStub{
 			VerifyPeerSignatureCalled: func(pk []byte, pid core.PeerID, signature []byte) error {
 				senderPubKey, err := keyGen.PublicKeyFromByteArray(pk)
@@ -67,6 +72,16 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 
 		assert.True(t, check.IfNil(sender))
 		assert.Equal(t, heartbeat.ErrNilMessenger, err)
+	})
+	t.Run("nil nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.nodesCoordinator = nil
+		sender, err := newPeerAuthenticationSender(args)
+
+		assert.True(t, check.IfNil(sender))
+		assert.Equal(t, heartbeat.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
 		t.Parallel()
@@ -365,6 +380,27 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 func TestPeerAuthenticationSender_Execute(t *testing.T) {
 	t.Parallel()
 
+	t.Run("observer should not execute", func(t *testing.T) {
+		t.Parallel()
+
+		argsBase := createMockBaseArgs()
+		wasBroadcastCalled := false
+		argsBase.messenger = &mock.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				wasBroadcastCalled = true
+			},
+		}
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
+		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+				return nil, 0, errors.New("observer")
+			},
+		}
+		sender, _ := newPeerAuthenticationSender(args)
+
+		sender.Execute()
+		assert.False(t, wasBroadcastCalled)
+	})
 	t.Run("execute errors, should set the error time duration value", func(t *testing.T) {
 		t.Parallel()
 
@@ -413,6 +449,36 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 
 		sender.Execute()
 		assert.True(t, wasCalled)
+	})
+	t.Run("observer->validator->observer should work", func(t *testing.T) {
+		t.Parallel()
+
+		argsBase := createMockBaseArgs()
+		counterBroadcast := 0
+		argsBase.messenger = &mock.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				counterBroadcast++
+			},
+		}
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
+		counter := 0
+		args.nodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
+				counter++
+				if counter == 2 {
+					return nil, 0, nil // validator
+				}
+
+				return nil, 0, errors.New("observer") // observer
+			},
+		}
+
+		sender, _ := newPeerAuthenticationSender(args)
+
+		sender.Execute() // observer
+		sender.Execute() // validator
+		sender.Execute() // observer
+		assert.Equal(t, 1, counterBroadcast)
 	})
 }
 
@@ -471,5 +537,36 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 		assert.True(t, sk == args.redundancyHandler.ObserverPrivateKey()) // pointer testing
 		assert.True(t, pk == sender.observerPublicKey)                    // pointer testing
 	})
+	t.Run("call from multiple threads", func(t *testing.T) {
+		t.Parallel()
 
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, "should not panic")
+			}
+		}()
+
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.redundancyHandler = &mock.RedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return false
+			},
+		}
+		sender, _ := newPeerAuthenticationSender(args)
+
+		numOfThreads := 10
+		var wg sync.WaitGroup
+		wg.Add(numOfThreads)
+		for i := 0; i < numOfThreads; i++ {
+			go func() {
+				defer wg.Done()
+				sk, pk := sender.getCurrentPrivateAndPublicKeys()
+				assert.True(t, sk == args.privKey)     // pointer testing
+				assert.True(t, pk == sender.publicKey) // pointer testing
+			}()
+		}
+
+		wg.Wait()
+	})
 }

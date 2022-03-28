@@ -93,31 +93,11 @@ func TestNewHeartbeatSender(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
-		args.versionNumber = ""
+		args.versionNumber = string(make([]byte, 150))
 		sender, err := newHeartbeatSender(args)
 
 		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrEmptyVersionNumber, err)
-	})
-	t.Run("empty node display name should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
-		args.nodeDisplayName = ""
-		sender, err := newHeartbeatSender(args)
-
-		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrEmptyNodeDisplayName, err)
-	})
-	t.Run("empty identity should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
-		args.identity = ""
-		sender, err := newHeartbeatSender(args)
-
-		assert.Nil(t, sender)
-		assert.Equal(t, heartbeat.ErrEmptyIdentity, err)
+		assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
 	})
 	t.Run("nil current block provider should error", func(t *testing.T) {
 		t.Parallel()
