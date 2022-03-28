@@ -12,16 +12,16 @@ import (
 	coreAtomic "github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
 	return ArgPeerAuthenticationRequestsProcessor{
 		RequestHandler:          &testscommon.RequestHandlerStub{},
-		NodesCoordinator:        &mock.NodesCoordinatorStub{},
+		NodesCoordinator:        &shardingMocks.NodesCoordinatorStub{},
 		PeerAuthenticationPool:  &testscommon.CacherMock{},
 		ShardId:                 0,
 		Epoch:                   0,
@@ -170,7 +170,7 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 		providedKeysMap[0] = providedKeys[:len(providedKeys)/2]
 		providedKeysMap[1] = providedKeys[len(providedKeys)/2:]
 		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.NodesCoordinator = &mock.NodesCoordinatorStub{
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 				return providedKeysMap, nil
 			},
@@ -214,7 +214,7 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 		providedKeysMap[0] = providedKeys[:len(providedKeys)/2]
 		providedKeysMap[1] = providedKeys[len(providedKeys)/2:]
 		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.NodesCoordinator = &mock.NodesCoordinatorStub{
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 				return providedKeysMap, nil
 			},

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,7 +43,7 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 	return resolvers.ArgPeerAuthenticationResolver{
 		ArgBaseResolver:        createMockArgBaseResolver(),
 		PeerAuthenticationPool: testscommon.NewCacherStub(),
-		NodesCoordinator: &mock.NodesCoordinatorStub{
+		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 				return pksMap, nil
 			},
@@ -226,7 +227,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgPeerAuthenticationResolver()
-		arg.NodesCoordinator = &mock.NodesCoordinatorStub{
+		arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 				return nil, expectedErr
 			},
@@ -242,7 +243,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgPeerAuthenticationResolver()
-		arg.NodesCoordinator = &mock.NodesCoordinatorStub{
+		arg.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
 			GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
 				return make(map[uint32][][]byte), nil
 			},
