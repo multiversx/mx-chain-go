@@ -101,6 +101,7 @@ func init() {
 
 // TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
+	*p2pSigner
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	p2pHost    ConnectableHost
@@ -108,25 +109,25 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor          ConnectionMonitor
-	connMonitorWrapper   p2p.ConnectionMonitorWrapper
-	peerDiscoverer       p2p.PeerDiscoverer
-	sharder              p2p.Sharder
-	peerShardResolver    p2p.PeerShardResolver
-	mutPeerResolver      sync.RWMutex
-	mutTopics            sync.RWMutex
-	processors           map[string]*topicProcessors
-	topics               map[string]*pubsub.Topic
-	subscriptions        map[string]*pubsub.Subscription
-	outgoingPLB          p2p.ChannelLoadBalancer
-	poc                  *peersOnChannel
-	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	connectionsMetric    *metrics.Connections
-	debugger             p2p.Debugger
-	marshalizer          p2p.Marshalizer
-	syncTimer            p2p.SyncTimer
-	preferredPeersHolder p2p.PreferredPeersHolderHandler
-	printConnectionsWatcher   p2p.ConnectionsWatcher
+	connMonitor             ConnectionMonitor
+	connMonitorWrapper      p2p.ConnectionMonitorWrapper
+	peerDiscoverer          p2p.PeerDiscoverer
+	sharder                 p2p.Sharder
+	peerShardResolver       p2p.PeerShardResolver
+	mutPeerResolver         sync.RWMutex
+	mutTopics               sync.RWMutex
+	processors              map[string]*topicProcessors
+	topics                  map[string]*pubsub.Topic
+	subscriptions           map[string]*pubsub.Subscription
+	outgoingPLB             p2p.ChannelLoadBalancer
+	poc                     *peersOnChannel
+	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
+	connectionsMetric       *metrics.Connections
+	debugger                p2p.Debugger
+	marshalizer             p2p.Marshalizer
+	syncTimer               p2p.SyncTimer
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher p2p.ConnectionsWatcher
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -222,10 +223,13 @@ func constructNode(
 	}
 
 	p2pNode := &networkMessenger{
-		ctx:                ctx,
-		cancelFunc:         cancelFunc,
-		p2pHost:            NewConnectableHost(h),
-		port:               port,
+		p2pSigner: &p2pSigner{
+			privateKey: p2pPrivKey,
+		},
+		ctx:                     ctx,
+		cancelFunc:              cancelFunc,
+		p2pHost:                 NewConnectableHost(h),
+		port:                    port,
 		printConnectionsWatcher: connWatcher,
 	}
 
@@ -946,7 +950,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 		topicProcs = newTopicProcessors()
 		netMes.processors[topic] = topicProcs
 
-		err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
+		err := netMes.registerOnPubSub(topic, topicProcs)
 		if err != nil {
 			return err
 		}
@@ -958,6 +962,15 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifie
 	}
 
 	return nil
+}
+
+func (netMes *networkMessenger) registerOnPubSub(topic string, topicProcs *topicProcessors) error {
+	if topic == common.ConnectionTopic {
+		// do not allow broadcasts on this connection topic
+		return nil
+	}
+
+	return netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
 }
 
 func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
