@@ -843,7 +843,6 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 	}
 
 	if name == common.ConnectionTopic {
-		netMes.topics[name] = nil
 		return nil
 	}
 
@@ -1113,10 +1112,6 @@ func (netMes *networkMessenger) UnjoinAllTopics() error {
 
 	var errFound error
 	for topicName, t := range netMes.topics {
-		if topicName == common.ConnectionTopic {
-			delete(netMes.topics, topicName)
-			continue
-		}
 
 		subscr := netMes.subscriptions[topicName]
 		if subscr != nil {
