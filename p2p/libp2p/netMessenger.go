@@ -1112,7 +1112,6 @@ func (netMes *networkMessenger) UnjoinAllTopics() error {
 
 	var errFound error
 	for topicName, t := range netMes.topics {
-
 		subscr := netMes.subscriptions[topicName]
 		if subscr != nil {
 			subscr.Cancel()
