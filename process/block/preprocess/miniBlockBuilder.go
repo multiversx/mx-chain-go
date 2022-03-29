@@ -296,7 +296,6 @@ func (mbb *miniBlocksBuilder) accountHasEnoughBalance(tx *transaction.Transactio
 	if isAddressSet {
 		txMaxTotalCost := mbb.getTxMaxTotalCost(tx)
 		addressHasEnoughBalance := mbb.balanceComputationHandler.AddressHasEnoughBalance(tx.GetSndAddr(), txMaxTotalCost)
-
 		if !addressHasEnoughBalance {
 			mbb.stats.numTxsWithInitialBalanceConsumed++
 			return false
