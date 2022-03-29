@@ -22,7 +22,7 @@ type PreProcessorMock struct {
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, indexOfLastTxProcessed int, postProcessorInfoHandler process.PostProcessorInfoHandler) ([][]byte, int, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, postProcessorInfoHandler process.PostProcessorInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
@@ -115,13 +115,14 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
+	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	postProcessorInfoHandler process.PostProcessorInfoHandler,
-) ([][]byte, int, error) {
+) ([][]byte, int, bool, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
-		return nil, 0, nil
+		return nil, 0, false, nil
 	}
-	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, scheduledMode, indexOfLastTxProcessed, postProcessorInfoHandler)
+	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime, haveAdditionalTime, scheduledMode, partialMbExecutionMode, indexOfLastTxProcessed, postProcessorInfoHandler)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

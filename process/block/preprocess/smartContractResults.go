@@ -522,24 +522,27 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	haveTime func() bool,
 	_ func() bool,
 	_ bool,
+	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	postProcessorInfoHandler process.PostProcessorInfoHandler,
-) ([][]byte, int, error) {
+) ([][]byte, int, bool, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
-		return nil, indexOfLastTxProcessed, process.ErrWrongTypeInMiniBlock
+		return nil, indexOfLastTxProcessed, false, process.ErrWrongTypeInMiniBlock
 	}
 
 	numSCRsProcessed := 0
 	var gasProvidedByTxInSelfShard uint64
+	var err error
+	var txIndex int
 	processedTxHashes := make([][]byte, 0)
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return nil, indexOfLastTxProcessed, err
+		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockScrs)) {
-		return nil, indexOfLastTxProcessed, process.ErrMaxBlockSizeReached
+	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
 	gasInfo := gasConsumedInfo{
@@ -575,44 +578,50 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		)
 	}()
 
-	for index := range miniBlockScrs {
-		if index <= indexOfLastTxProcessed {
+	for txIndex = 0; txIndex < len(miniBlockScrs); txIndex++ {
+		if txIndex <= indexOfLastTxProcessed {
 			continue
 		}
 		if !haveTime() {
-			return processedTxHashes, index - 1, process.ErrTimeIsOut
+			err = process.ErrTimeIsOut
+			break
 		}
 
 		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
-			miniBlockScrs[index],
-			miniBlockTxHashes[index],
+			miniBlockScrs[txIndex],
+			miniBlockTxHashes[txIndex],
 			&gasInfo)
 
 		if err != nil {
-			return processedTxHashes, index - 1, err
+			break
 		}
 
 		if scr.flagOptimizeGasUsedInCrossMiniBlocks.IsSet() {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				return processedTxHashes, index - 1, process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
+				break
 			}
 		}
 
-		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
+		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
 
-		snapshot := scr.handleProcessTransactionInit(postProcessorInfoHandler, miniBlockTxHashes[index])
-		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
+		snapshot := scr.handleProcessTransactionInit(postProcessorInfoHandler, miniBlockTxHashes[txIndex])
+		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
-			scr.handleProcessTransactionError(postProcessorInfoHandler, snapshot, miniBlockTxHashes[index])
-			return processedTxHashes, index - 1, err
+			scr.handleProcessTransactionError(postProcessorInfoHandler, snapshot, miniBlockTxHashes[txIndex])
+			break
 		}
 
-		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[index], &gasInfo)
-		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[index])
-		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
+		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[txIndex], &gasInfo)
+		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[txIndex])
+		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[txIndex])
 		numSCRsProcessed++
+	}
+
+	if err != nil && !partialMbExecutionMode {
+		return processedTxHashes, txIndex - 1, true, err
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
@@ -624,9 +633,9 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
 	scr.blockSizeComputation.AddNumMiniBlocks(1)
-	scr.blockSizeComputation.AddNumTxs(len(miniBlockScrs))
+	scr.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
-	return nil, len(miniBlockScrs) - 1, nil
+	return nil, txIndex - 1, false, err
 }
 
 // CreateMarshalizedData marshalizes smartContractResults and creates and saves them into a new structure

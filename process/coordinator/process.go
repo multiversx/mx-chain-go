@@ -1155,11 +1155,12 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 	)
 
-	txsToBeReverted, indexOfLastTxProcessed, err := preproc.ProcessMiniBlock(
+	txsToBeReverted, indexOfLastTxProcessed, shouldRevert, err := preproc.ProcessMiniBlock(
 		miniBlock,
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
+		tc.flagMiniBlockPartialExecution.IsSet(),
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
 	)
@@ -1185,15 +1186,17 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			"txs to be reverted", len(txsToBeReverted),
 			"num all txs processed", indexOfLastTxProcessed+1,
 			"num current txs processed", indexOfLastTxProcessed-int(processedMbInfo.IndexOfLastTxProcessed),
+			"should revert", shouldRevert,
 			"error", err.Error(),
 		)
 
-		notAllTxsProcessed := indexOfLastTxProcessed+1 < len(miniBlock.TxHashes)
-		if tc.flagMiniBlockPartialExecution.IsSet() && notAllTxsProcessed {
-			processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-			processedMbInfo.IsFullyProcessed = false
-		} else {
+		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
+		} else {
+			if tc.flagMiniBlockPartialExecution.IsSet() {
+				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
+				processedMbInfo.IsFullyProcessed = false
+			}
 		}
 
 		return err

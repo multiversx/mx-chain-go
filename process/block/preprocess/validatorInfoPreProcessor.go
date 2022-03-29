@@ -156,26 +156,27 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
 	_ func() bool,
 	_ func() bool,
 	_ bool,
+	_ bool,
 	indexOfLastTxProcessed int,
 	_ process.PostProcessorInfoHandler,
-) ([][]byte, int, error) {
+) ([][]byte, int, bool, error) {
 	if miniBlock.Type != block.PeerBlock {
-		return nil, indexOfLastTxProcessed, process.ErrWrongTypeInMiniBlock
+		return nil, indexOfLastTxProcessed, false, process.ErrWrongTypeInMiniBlock
 	}
 	if miniBlock.SenderShardID != core.MetachainShardId {
-		return nil, indexOfLastTxProcessed, process.ErrValidatorInfoMiniBlockNotFromMeta
+		return nil, indexOfLastTxProcessed, false, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 
 	//TODO: We need another function in the BlockSizeComputationHandler implementation that will better handle
 	//the PeerBlock miniblocks as those are not hashes
 	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
-		return nil, indexOfLastTxProcessed, process.ErrMaxBlockSizeReached
+		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
 	vip.blockSizeComputation.AddNumMiniBlocks(1)
 	vip.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
-	return nil, len(miniBlock.TxHashes) - 1, nil
+	return nil, len(miniBlock.TxHashes) - 1, false, nil
 }
 
 // CreateMarshalizedData does nothing
