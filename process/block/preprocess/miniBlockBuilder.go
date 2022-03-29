@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
@@ -297,10 +296,6 @@ func (mbb *miniBlocksBuilder) accountHasEnoughBalance(tx *transaction.Transactio
 	if isAddressSet {
 		txMaxTotalCost := mbb.getTxMaxTotalCost(tx)
 		addressHasEnoughBalance := mbb.balanceComputationHandler.AddressHasEnoughBalance(tx.GetSndAddr(), txMaxTotalCost)
-
-		pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
-		log.Error("miniBlocksBuilder.accountHasEnoughBalance", "address", pkConv.Encode(tx.GetSndAddr()),
-			"txMaxTotalCost", txMaxTotalCost, "addressHasEnoughBalance", addressHasEnoughBalance)
 
 		if !addressHasEnoughBalance {
 			mbb.stats.numTxsWithInitialBalanceConsumed++

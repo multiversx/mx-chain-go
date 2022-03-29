@@ -1,7 +1,5 @@
 package mock
 
-import "errors"
-
 // PersisterStub -
 type PersisterStub struct {
 	PutCalled           func(key, val []byte) error
@@ -29,7 +27,7 @@ func (p *PersisterStub) Get(key []byte) ([]byte, error) {
 		return p.GetCalled(key)
 	}
 
-	return nil, errors.New("not found")
+	return nil, nil
 }
 
 // Has -
@@ -38,7 +36,7 @@ func (p *PersisterStub) Has(key []byte) error {
 		return p.HasCalled(key)
 	}
 
-	return errors.New("not found")
+	return nil
 }
 
 // Close -

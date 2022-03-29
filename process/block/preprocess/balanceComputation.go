@@ -3,8 +3,6 @@ package preprocess
 import (
 	"math/big"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 )
 
 type balanceComputation struct {
@@ -28,9 +26,6 @@ func (bc *balanceComputation) Init() {
 
 // SetBalanceToAddress method sets balance to an address
 func (bc *balanceComputation) SetBalanceToAddress(address []byte, value *big.Int) {
-	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
-	log.Error("balanceComputation.SetBalanceToAddress", "address", pkConv.Encode(address), "value", value.String())
-
 	bc.mutAddressBalance.Lock()
 	bc.mapAddressBalance[string(address)] = big.NewInt(0).Set(value)
 	bc.mutAddressBalance.Unlock()
