@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -106,7 +107,7 @@ func TestHardforkStorer_WriteReadTests(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	//load and check
+	// load and check
 	mutRecovered := sync.Mutex{}
 	recovered := make(map[string][]string)
 	hs.RangeKeys(func(identifier string, keys [][]byte) bool {
@@ -132,7 +133,7 @@ func TestHardforkStorer_Get(t *testing.T) {
 	providedKey := []byte("key")
 	identifier := "identifier"
 	arg.KeyValue = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if bytes.Equal(key, append([]byte(identifier), providedKey...)) {
 				getCalled++
 				return expectedResult, nil

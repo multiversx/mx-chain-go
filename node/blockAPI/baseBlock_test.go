@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
@@ -27,10 +28,10 @@ func createMockArgumentsWithTx(
 	storerMock := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32, priority common.StorageAccessType) (map[string][]byte, error) {
 					return map[string][]byte{txHash: txBytes}, nil
 				},
-				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 					return miniblockBytes, nil
 				},
 			}

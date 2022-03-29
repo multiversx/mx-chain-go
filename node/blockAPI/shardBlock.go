@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,7 +39,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
+	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}

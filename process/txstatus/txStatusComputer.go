@@ -22,7 +22,7 @@ type statusComputer struct {
 	store                    dataRetriever.StorageService
 }
 
-// Create a new instance of statusComputer
+// NewStatusComputer creates a new instance of statusComputer
 func NewStatusComputer(
 	selfShardID uint32,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,

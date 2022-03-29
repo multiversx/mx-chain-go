@@ -101,7 +101,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	require.Nil(t, err)
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 
-	err = bootStorer.Put(trigInternalKey, d)
+	err = bootStorer.Put(trigInternalKey, d, common.TestPriority)
 	require.Nil(t, err)
 
 	err = epochStartTrigger2.LoadState(key)

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -430,7 +431,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	vic.SaveValidatorInfoBlocksToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := miniBlockStorage.Get(mbHeader.Hash)
+		mb, err := miniBlockStorage.Get(mbHeader.Hash, common.TestPriority)
 		require.Nil(t, err)
 
 		unmarshaledMiniblock := &block.MiniBlock{}
@@ -472,7 +473,7 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExis
 			Type:            blockType,
 		}
 		miniblockHeaders = append(miniblockHeaders, mbHeader)
-		_ = mbStorage.Put(hash, mMb)
+		_ = mbStorage.Put(hash, mMb, common.TestPriority)
 	}
 
 	meta := &block.MetaBlock{
@@ -499,7 +500,7 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExis
 	}
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := mbStorage.Get(mbHeader.Hash)
+		mb, err := mbStorage.Get(mbHeader.Hash, common.TestPriority)
 		require.NotNil(t, mb)
 		require.Nil(t, err)
 	}
@@ -507,7 +508,7 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExis
 	vic.DeleteValidatorInfoBlocksFromStorage(meta)
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := mbStorage.Get(mbHeader.Hash)
+		mb, err := mbStorage.Get(mbHeader.Hash, common.TestPriority)
 		if shouldExist {
 			require.NotNil(t, mb)
 			require.Nil(t, err)

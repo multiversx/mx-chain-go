@@ -468,6 +468,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		e.storageService,
 		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return err
@@ -750,6 +751,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		storageHandlerComponent.storageService,
 		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return err
@@ -918,6 +920,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		storageHandlerComponent.storageService,
 		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return err

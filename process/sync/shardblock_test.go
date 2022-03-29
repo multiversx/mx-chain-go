@@ -64,10 +64,10 @@ func createStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return nil, process.ErrMissingHeader
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					return nil
 				},
 			}
@@ -470,7 +470,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	blockBodyUnit := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 			return nil, nil
 		},
 	}
@@ -1460,10 +1460,10 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
@@ -1603,10 +1603,10 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
@@ -1719,7 +1719,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 	requestedHash = append(requestedHash, mbh)
 
 	txBlockUnit := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 			return nil, errors.New("not found")
 		},
 	}

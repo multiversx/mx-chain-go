@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -216,10 +217,10 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 	localErr := errors.New("not found")
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
-			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
 		},
@@ -267,10 +268,10 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 	localErr := errors.New("not found")
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
-			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
 		},
@@ -317,7 +318,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 	marshalizer := &mock.MarshalizerMock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				mbBytes, _ := marshalizer.Marshal(mb)
 				return mbBytes, nil
 			},
@@ -368,11 +369,11 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				mbBytes, _ := marshalizer.Marshal(mb)
 				return mbBytes, nil
 			},
-			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
 		},

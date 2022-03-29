@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,9 +22,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -480,7 +481,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 		mmb, err = args.Marshalizer.Marshal(dummyMiniBlock)
 		require.Nil(t, err)
 		mbHash := args.Hasher.Compute(string(mmb))
-		mb, err = args.MiniBlockStorage.Get(mbHash)
+		mb, err = args.MiniBlockStorage.Get(mbHash, common.TestPriority)
 		require.Nil(t, mb)
 		require.NotNil(t, err)
 	}
@@ -495,11 +496,11 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 	mmb, err = args.Marshalizer.Marshal(dummyMiniBlock)
 	require.Nil(t, err)
 	mbHash := args.Hasher.Compute(string(mmb))
-	mb, err = rwd.miniBlockStorage.Get(mbHash)
+	mb, err = rwd.miniBlockStorage.Get(mbHash, common.TestPriority)
 	require.Equal(t, mmb, mb)
 	require.Nil(t, err)
 
-	rwTx, err := rwd.rewardsStorage.Get(dummyMiniBlock.TxHashes[0])
+	rwTx, err := rwd.rewardsStorage.Get(dummyMiniBlock.TxHashes[0], common.TestPriority)
 	require.NotNil(t, rwTx)
 	require.Nil(t, err)
 }
@@ -520,11 +521,11 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNotFoundTxIgnored(t *testing.T) 
 	mmb, err := args.Marshalizer.Marshal(dummyMb)
 	require.Nil(t, err)
 	mbHash := args.Hasher.Compute(string(mmb))
-	mb, err := rwd.miniBlockStorage.Get(mbHash)
+	mb, err := rwd.miniBlockStorage.Get(mbHash, common.TestPriority)
 	require.Equal(t, mmb, mb)
 	require.Nil(t, err)
 
-	rwTx, err := rwd.rewardsStorage.Get(rwTxHash)
+	rwTx, err := rwd.rewardsStorage.Get(rwTxHash, common.TestPriority)
 	require.Nil(t, rwTx)
 	require.NotNil(t, err)
 }
@@ -596,7 +597,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *t
 		marshalledRwTx, _ := args.Marshalizer.Marshal(&rewardTx.RewardTx{})
 		dummyMb.TxHashes = [][]byte{rwTxHash}
 
-		_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx)
+		_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx, common.TestPriority)
 
 		mbHash := []byte("mb1")
 		metaBlk.MiniBlockHeaders = []block.MiniBlockHeader{
@@ -606,14 +607,14 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *t
 			},
 		}
 		dummyMbMarshalled, _ := args.Marshalizer.Marshal(dummyMb)
-		_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
+		_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled, common.TestPriority)
 
 		rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
-		tx, err = rwd.rewardsStorage.Get(rwTxHash)
+		tx, err = rwd.rewardsStorage.Get(rwTxHash, common.TestPriority)
 		require.Nil(t, err)
 		require.NotNil(t, tx)
 
-		mb, err = rwd.miniBlockStorage.Get(mbHash)
+		mb, err = rwd.miniBlockStorage.Get(mbHash, common.TestPriority)
 		require.Nil(t, err)
 		require.NotNil(t, mb)
 	}
@@ -638,7 +639,7 @@ func TestBaseRewardsCreator_DeleteTxsFromStorage(t *testing.T) {
 	dummyMb.TxHashes = [][]byte{rwTxHash}
 	marshalledRwTx, _ := args.Marshalizer.Marshal(&rewardTx.RewardTx{})
 
-	_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx)
+	_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx, common.TestPriority)
 
 	mbHash := []byte("mb1")
 	metaBlk.MiniBlockHeaders = []block.MiniBlockHeader{
@@ -648,14 +649,14 @@ func TestBaseRewardsCreator_DeleteTxsFromStorage(t *testing.T) {
 		},
 	}
 	dummyMbMarshalled, _ := args.Marshalizer.Marshal(dummyMb)
-	_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
+	_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled, common.TestPriority)
 
 	rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
-	tx, err := rwd.rewardsStorage.Get(rwTxHash)
+	tx, err := rwd.rewardsStorage.Get(rwTxHash, common.TestPriority)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
 
-	mb, err := rwd.miniBlockStorage.Get(mbHash)
+	mb, err := rwd.miniBlockStorage.Get(mbHash, common.TestPriority)
 	require.NotNil(t, err)
 	require.Nil(t, mb)
 }
@@ -725,7 +726,7 @@ func TestBaseRewardsCreator_RemoveBlockDataFromPoolsNonRewardsMiniBlocksIgnored(
 		marshalledRwTx, _ := args.Marshalizer.Marshal(&rewardTx.RewardTx{})
 		dummyMb.TxHashes = [][]byte{rwTxHash}
 
-		_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx)
+		_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx, common.TestPriority)
 
 		mbHash := []byte("mb1")
 		metaBlk.MiniBlockHeaders = []block.MiniBlockHeader{
@@ -772,7 +773,7 @@ func TestBaseRewardsCreator_RemoveBlockDataFromPools(t *testing.T) {
 	marshalledRwTx, _ := args.Marshalizer.Marshal(&rewardTx.RewardTx{})
 	dummyMb.TxHashes = [][]byte{rwTxHash}
 
-	_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx)
+	_ = rwd.rewardsStorage.Put(rwTxHash, marshalledRwTx, common.TestPriority)
 
 	mbHash := []byte("mb1")
 	metaBlk.MiniBlockHeaders = []block.MiniBlockHeader{

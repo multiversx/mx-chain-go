@@ -160,7 +160,7 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
+func (accountsDB *accountsDBApi) RecreateTrie(_ []byte, _ common.StorageAccessType) error {
 	return ErrOperationNotPermitted
 }
 

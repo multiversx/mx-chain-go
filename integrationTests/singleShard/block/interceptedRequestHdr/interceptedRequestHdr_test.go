@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -44,7 +45,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 		_ = nResolver.Messenger.Close()
 	}()
 
-	//connect messengers together
+	// connect messengers together
 	time.Sleep(time.Second)
 	err := nResolver.ConnectTo(nRequester)
 	require.Nil(t, err)
@@ -57,21 +58,21 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hdrBuff2, _ := marshalizer.Marshal(hdr2)
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
-	//resolver has the headers
+	// resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2, common.TestPriority)
+	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2, common.TestPriority)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
-	//request header from pool
+	// request header from pool
 	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0, 0)
 
-	//request header that is stored
+	// request header that is stored
 	_ = hdrResolver.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadBoth(t, chanDone1, chanDone2)
@@ -100,7 +101,7 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 		_ = nResolver.Messenger.Close()
 	}()
 
-	//connect messengers together
+	// connect messengers together
 	time.Sleep(time.Second)
 	err := nResolver.ConnectTo(nRequester)
 	require.Nil(t, err)
@@ -114,21 +115,21 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	hdrBuff2, _ := marshalizer.Marshal(hdr2)
 	hdrHash2 := hasher.Compute(string(hdrBuff2))
 
-	//resolver has the headers
+	// resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2, common.TestPriority)
+	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2, common.TestPriority)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
-	//request header from pool
+	// request header from pool
 	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	_ = hdrResolver.RequestDataFromNonce(0, 0)
 
-	//request header that is stored
+	// request header that is stored
 	_ = hdrResolver.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadNone(t, chanDone1, chanDone2)
@@ -180,7 +181,7 @@ func wireUpHandler(
 	hdr2 data.HeaderHandler,
 ) (chan struct{}, chan struct{}) {
 
-	//wire up a received handler
+	// wire up a received handler
 	chanDone1 := make(chan struct{}, 1)
 	chanDone2 := make(chan struct{}, 1)
 	nRequester.DataPool.Headers().RegisterHandler(func(header data.HeaderHandler, key []byte) {

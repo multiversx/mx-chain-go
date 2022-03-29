@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-crypto"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/singleShard/block"
@@ -62,13 +63,13 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 
 	checkCurrentBlockHeight(t, nodes, nonce)
 
-	//only nonce increases, round stays the same
+	// only nonce increases, round stays the same
 	nonce++
 
 	err = proposeAndCommitBlock(nodes[idxProposer], round, nonce)
 	assert.Equal(t, process.ErrLowerRoundInBlock, err)
 
-	//mockTestingT is used as in normal case SyncBlock would fail as it doesn't find the header with nonce 2
+	// mockTestingT is used as in normal case SyncBlock would fail as it doesn't find the header with nonce 2
 	mockTestingT := &testing.T{}
 	integrationTests.SyncBlock(mockTestingT, nodes, []int{idxProposer}, nonce)
 
@@ -215,7 +216,7 @@ func testTxIsInMiniblock(t *testing.T, proposer *integrationTests.TestProcessorN
 			continue
 		}
 
-		mbBuff, err := proposer.Storage.Get(dataRetriever.MiniBlockUnit, mbh.Hash)
+		mbBuff, err := proposer.Storage.Get(dataRetriever.MiniBlockUnit, mbh.Hash, common.TestPriority)
 		assert.Nil(t, err)
 
 		miniblock := &block.MiniBlock{}
@@ -236,7 +237,7 @@ func testTxIsInNotInBody(t *testing.T, proposer *integrationTests.TestProcessorN
 	hdr := hdrHandler.(*block.Header)
 
 	for _, mbh := range hdr.MiniBlockHeaders {
-		mbBuff, err := proposer.Storage.Get(dataRetriever.MiniBlockUnit, mbh.Hash)
+		mbBuff, err := proposer.Storage.Get(dataRetriever.MiniBlockUnit, mbh.Hash, common.TestPriority)
 		assert.Nil(t, err)
 
 		miniblock := &block.MiniBlock{}

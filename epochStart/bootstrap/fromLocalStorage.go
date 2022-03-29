@@ -116,6 +116,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		e.storageService,
 		e.enableEpochs.DisableOldTrieStorageEpoch,
 		e.epochNotifier,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return Parameters{}, err
@@ -257,7 +258,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
-	d, err := storer.SearchFirst(ncInternalkey)
+	d, err := storer.SearchFirst(ncInternalkey, common.ProcessPriority)
 	if err != nil {
 		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
 		return nil, nil, err
@@ -274,7 +275,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
-	epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
+	epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier), common.ProcessPriority)
 	if err != nil {
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
 		return nil, err

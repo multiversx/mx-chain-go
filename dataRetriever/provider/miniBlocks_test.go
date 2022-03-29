@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
@@ -25,7 +26,7 @@ func createMockMiniblockProviderArgs(
 	return provider.ArgMiniBlockProvider{
 		Marshalizer: marshalizer,
 		MiniBlockStorage: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 				if isByteSliceInSlice(key, storerExistingHashes) {
 					buff, _ := marshalizer.Marshal(&dataBlock.MiniBlock{})
 
@@ -103,7 +104,7 @@ func TestNewMiniBlockProvider_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- GetMiniBlocksFromPool
+// ------- GetMiniBlocksFromPool
 
 func TestMiniBlockProvider_GetMiniBlocksFromPoolFoundInPoolShouldReturn(t *testing.T) {
 	t.Parallel()
@@ -151,7 +152,7 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolWrongTypeInPoolShouldNotReturn(t
 	assert.Equal(t, hashes, missingHashes)
 }
 
-//------- GetMiniBlocks
+// ------- GetMiniBlocks
 
 func TestMiniBlockProvider_GetMiniBlocksFoundInPoolShouldReturn(t *testing.T) {
 	t.Parallel()

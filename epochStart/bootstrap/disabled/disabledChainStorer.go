@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -13,6 +14,7 @@ var _ dataRetriever.StorageService = (*chainStorer)(nil)
 var log = logger.GetOrCreate("disabledChainStorer")
 
 // ChainStorer is a mock implementation of the ChainStorer interface
+// TODO rename this as this is not a disabled or mock storer. Maybe use the real chain storer implementation?
 type chainStorer struct {
 	mapStorages map[dataRetriever.UnitType]storage.Storer
 	mutex       sync.Mutex
@@ -73,36 +75,36 @@ func (c *chainStorer) SetEpochForPutOperation(_ uint32) {
 // Has returns true if the key is found in the selected Unit or false otherwise
 // It can return an error if the provided unit type is not supported or if the
 // underlying implementation of the storage unit reports an error.
-func (c *chainStorer) Has(unitType dataRetriever.UnitType, key []byte) error {
+func (c *chainStorer) Has(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) error {
 	store := c.GetStorer(unitType)
-	return store.Has(key)
+	return store.Has(key, priority)
 }
 
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (c *chainStorer) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+func (c *chainStorer) Get(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 	store := c.GetStorer(unitType)
-	return store.Get(key)
+	return store.Get(key, priority)
 }
 
 // Put stores the key, value pair in the selected storage unit
 // It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (c *chainStorer) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+func (c *chainStorer) Put(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 	store := c.GetStorer(unitType)
-	return store.Put(key, value)
+	return store.Put(key, value, priority)
 }
 
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
 // It can report an error if the provided unit type is not supported, if there is a missing
 // key in the unit, or if the underlying implementation of the storage unit reports an error.
-func (c *chainStorer) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+func (c *chainStorer) GetAll(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error) {
 	store := c.GetStorer(unitType)
 	allValues := make(map[string][]byte, len(keys))
 
 	for _, key := range keys {
-		value, err := store.Get(key)
+		value, err := store.Get(key, priority)
 		if err != nil {
 			return nil, err
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -526,13 +527,13 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 
 	args := getRewardsArguments()
 	args.RewardsStorage = &storageStubs.StorerStub{
-		PutCalled: func(_, _ []byte) error {
+		PutCalled: func(_, _ []byte, priority common.StorageAccessType) error {
 			putRwdTxWasCalled = true
 			return nil
 		},
 	}
 	args.MiniBlockStorage = &storageStubs.StorerStub{
-		PutCalled: func(_, _ []byte) error {
+		PutCalled: func(_, _ []byte, priority common.StorageAccessType) error {
 			putMbWasCalled = true
 			return nil
 		},
@@ -601,7 +602,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0]) //nolint
+	cloneMb := &(*miniBlocks[0]) // nolint
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRwdTx := &rewardTx.RewardTx{
 		Round:   0,
@@ -716,7 +717,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0]) //nolint
+	cloneMb := &(*miniBlocks[0]) // nolint
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,

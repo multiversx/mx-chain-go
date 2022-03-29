@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -33,7 +34,7 @@ func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	}
 }
 
-//------- NewMiniblockResolver
+// ------- NewMiniblockResolver
 
 func TestNewMiniblockResolver_NilSenderResolverShouldErr(t *testing.T) {
 	t.Parallel()
@@ -142,7 +143,7 @@ func TestMiniblockResolver_RequestDataFromHashArray(t *testing.T) {
 	require.True(t, called)
 }
 
-//------- ProcessReceivedMessage
+// ------- ProcessReceivedMessage
 
 func TestMiniblockResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -220,7 +221,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 	}
 	arg.MiniBlockPool = cache
 	arg.MiniBlockStorage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 			return make([]byte, 0), nil
 		},
 	}
@@ -271,7 +272,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShoul
 	arg := createMockArgMiniblockResolver()
 	arg.MiniBlockPool = cache
 	arg.MiniBlockStorage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 			body := block.MiniBlock{}
 			buff, _ := goodMarshalizer.Marshal(&body)
 			return buff, nil
@@ -308,7 +309,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	}
 
 	store := &storageStubs.StorerStub{}
-	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 		wasResolved = true
 		mb, _ := marshalizer.Marshal(&block.MiniBlock{})
 		return mb, nil
@@ -354,7 +355,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 	}
 
 	store := &storageStubs.StorerStub{}
-	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 		return nil, errors.New("key not found")
 	}
 
@@ -379,7 +380,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-//------- Requests
+// ------- Requests
 
 func TestMiniblockResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
@@ -401,7 +402,7 @@ func TestMiniblockResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-//------ NumPeersToQuery setter and getter
+// ------ NumPeersToQuery setter and getter
 
 func TestMiniblockResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	t.Parallel()

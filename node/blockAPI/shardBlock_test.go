@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -30,9 +31,9 @@ func createMockShardAPIProcessor(
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return storerMock
 				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 					if withKey {
-						return storerMock.Get(key)
+						return storerMock.Get(key, priority)
 					}
 					return blockHeaderHash, nil
 				},
@@ -146,10 +147,10 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 		DeveloperFees:   big.NewInt(0),
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(nonceBytes, headerHash, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -205,7 +206,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		DeveloperFees:   big.NewInt(50),
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -261,13 +262,13 @@ func TestShardAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		DeveloperFees:   big.NewInt(50),
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	uint64Converter := shardAPIBlockProcessor.uint64ByteSliceConverter
 	roundBytes := uint64Converter.ToByteSlice(round)
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(roundBytes, headerHash)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(roundBytes, headerHash, common.TestPriority)
+	_ = storerMock.Put(nonceBytes, headerHash, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -324,11 +325,11 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 		DeveloperFees:   big.NewInt(50),
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	correctHash := []byte("correct-hash")
-	_ = storerMock.Put(nonceBytes, correctHash)
+	_ = storerMock.Put(nonceBytes, correctHash, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,

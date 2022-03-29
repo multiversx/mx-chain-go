@@ -279,6 +279,7 @@ func createScQueryElement(
 		EpochNotifier:      args.coreComponents.EpochNotifier(),
 		EnableEpochs:       args.epochConfig.EnableEpochs,
 		NilCompiledSCStore: true,
+		Priority:           common.APIPriority,
 	}
 
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {

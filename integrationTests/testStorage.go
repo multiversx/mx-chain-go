@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -141,7 +142,7 @@ func (ts *TestStorage) WriteMultipleWithNotif(
 		}
 
 		key, val := ts.CreateStoredData(uint64(counter))
-		errPut := store.Put(key, val)
+		errPut := store.Put(key, val, common.TestPriority)
 		if errPut != nil {
 			fmt.Println(errPut.Error())
 			atomic.AddInt32(errors, 1)
@@ -173,11 +174,11 @@ func (ts *TestStorage) RemoveMultiple(
 			fmt.Println("Done Removing!")
 			return
 		case <-time.After(time.Millisecond * 100):
-			//remove happen less often than writes
+			// remove happen less often than writes
 		}
 
 		if atomic.LoadUint64(ts.maxWritten) == 0 {
-			//not written yet
+			// not written yet
 			continue
 		}
 
@@ -187,7 +188,7 @@ func (ts *TestStorage) RemoveMultiple(
 		key, _ := ts.CreateStoredData(existingNonce.Uint64())
 		ts.mapRemovedKeys.Store(string(key), struct{}{})
 
-		errRemove := store.Remove(key)
+		errRemove := store.Remove(key, common.TestPriority)
 		if errRemove != nil {
 			fmt.Println(errRemove.Error())
 			atomic.AddInt32(errors, 1)
@@ -240,7 +241,7 @@ func (ts *TestStorage) ReadMultiple(
 			}
 
 			key, val := ts.CreateStoredData(count)
-			v, errGet := store.Get(key)
+			v, errGet := store.Get(key, common.TestPriority)
 			_, ok := ts.mapRemovedKeys.Load(string(key))
 			if !ok && errGet != nil {
 				fmt.Printf("Not getting tx with nonce %d\n", count)

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -52,10 +53,10 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 
 	marshalizer := testscommon.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			if string(key) == processedBlockKey {
 				return nil
 			}
@@ -106,13 +107,13 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	marshalizer := testscommon.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			supplyESDT := &SupplyESDT{
 				Supply: big.NewInt(1000),
 			}
 			return marshalizer.Marshal(supplyESDT)
 		},
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			supplyKey := string(token)
 			require.Equal(t, supplyKey, string(key))
 

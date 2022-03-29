@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -88,7 +89,7 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 	roundInStorage := int64(5)
 	marshalizer := &mock.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			putWasCalled = true
 			rn := bootstrapStorage.RoundNum{}
 			err := marshalizer.Unmarshal(&rn, data)
@@ -98,7 +99,7 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 			}
 			return nil
 		},
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return marshalizer.Marshal(&bootstrapStorage.RoundNum{Num: roundInStorage})
 		},
 	}

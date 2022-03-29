@@ -290,7 +290,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +322,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -400,6 +400,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				accountFactory,
 				disabled.NewDisabledStoragePruningManager(),
 				common.Normal,
+				common.ProcessPriority,
 			)
 			if errCreate != nil {
 				return nil, nil, errCreate
@@ -421,6 +422,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		accountFactory,
 		disabled.NewDisabledStoragePruningManager(),
 		common.Normal,
+		common.ProcessPriority,
 	)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err

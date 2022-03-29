@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/mock"
 	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -22,7 +23,7 @@ import (
 
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
 	}, &storageStubs.StorerStub{})
@@ -100,7 +101,7 @@ func TestHistoryRepository_RecordBlockInvalidBlockRoundByHashStorerExpectError(t
 	errPut := errors.New("error put")
 	args := createMockHistoryRepoArgs(0)
 	args.BlockHashByRound = &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			return errPut
 		},
 	}
@@ -646,14 +647,14 @@ func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrors
 	hr := &historyRepository{
 		epochByHashIndex: newHashToEpochIndex(
 			&storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return []byte("{}"), nil
 				},
 			},
 			&mock.MarshalizerMock{},
 		),
 		miniblocksMetadataStorer: &storageStubs.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 				return nil, expectedErr
 			},
 		},

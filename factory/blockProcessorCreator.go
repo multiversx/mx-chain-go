@@ -1045,6 +1045,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		NilCompiledSCStore: false,
 		ConfigSCStorage:    configSCStorage,
 		EnableEpochs:       pcf.epochConfig.EnableEpochs,
+		Priority:           common.ProcessPriority,
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -1084,6 +1085,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EpochNotifier:      pcf.coreData.EpochNotifier(),
 		NilCompiledSCStore: false,
 		EnableEpochs:       pcf.epochConfig.EnableEpochs,
+		Priority:           common.ProcessPriority,
 	}
 
 	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{

@@ -3,7 +3,10 @@ package blockAPI
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/common"
+
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -82,7 +85,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 ) []*transaction.ApiTransactionResult {
 	storer := bap.store.GetStorer(unit)
 	start := time.Now()
-	marshalizedTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
+	marshalizedTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch, common.APIPriority)
 	if err != nil {
 		log.Warn("cannot get from storage transactions",
 			"error", err.Error())
@@ -118,7 +121,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 
 func (bap *baseAPIBlockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {
 	if !bap.hasDbLookupExtensions {
-		return bap.store.Get(unit, key)
+		return bap.store.Get(unit, key, common.APIPriority)
 	}
 
 	epoch, err := bap.historyRepo.GetEpochByHash(key)
@@ -127,17 +130,17 @@ func (bap *baseAPIBlockProcessor) getFromStorer(unit dataRetriever.UnitType, key
 	}
 
 	storer := bap.store.GetStorer(unit)
-	return storer.GetFromEpoch(key, epoch)
+	return storer.GetFromEpoch(key, epoch, common.APIPriority)
 }
 
 func (bap *baseAPIBlockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitType, key []byte, epoch uint32) ([]byte, error) {
 	storer := bap.store.GetStorer(unit)
-	return storer.GetFromEpoch(key, epoch)
+	return storer.GetFromEpoch(key, epoch, common.APIPriority)
 }
 
 func (bap *baseAPIBlockProcessor) computeBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
 	nonceToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(blockAPI.Nonce)
-	headerHash, err := bap.store.Get(storerUnit, nonceToByteSlice)
+	headerHash, err := bap.store.Get(storerUnit, nonceToByteSlice, common.APIPriority)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +165,7 @@ func (bap *baseAPIBlockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block
 
 func (bap *baseAPIBlockProcessor) getBlockHeaderHashAndBytesByRound(round uint64, blockUnitType dataRetriever.UnitType) (headerHash []byte, blockBytes []byte, err error) {
 	roundToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(round)
-	headerHash, err = bap.store.Get(dataRetriever.RoundHdrHashDataUnit, roundToByteSlice)
+	headerHash, err = bap.store.Get(dataRetriever.RoundHdrHashDataUnit, roundToByteSlice, common.APIPriority)
 	if err != nil {
 		return nil, nil, err
 	}

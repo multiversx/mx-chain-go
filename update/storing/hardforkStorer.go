@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -64,7 +65,7 @@ func (hs *hardforkStorer) Write(identifier string, key []byte, value []byte) err
 		"value", value,
 	)
 
-	return hs.keyValue.Put(hs.getFullKey(identifier, key), value)
+	return hs.keyValue.Put(hs.getFullKey(identifier, key), value, common.ProcessPriority)
 }
 
 // FinishedIdentifier prepares and writes the identifier along with its set of keys. It does so as to
@@ -91,7 +92,7 @@ func (hs *hardforkStorer) FinishedIdentifier(identifier string) error {
 
 	delete(hs.keys, identifier)
 
-	return hs.keysStore.Put([]byte(identifier), buff)
+	return hs.keysStore.Put([]byte(identifier), buff, common.ProcessPriority)
 }
 
 // RangeKeys iterates over all identifiers and its set of keys. The order is not guaranteed.
@@ -117,7 +118,7 @@ func (hs *hardforkStorer) RangeKeys(handler func(identifier string, keys [][]byt
 
 // Get returns the value of a provided key from the state storer
 func (hs *hardforkStorer) Get(identifier string, key []byte) ([]byte, error) {
-	return hs.keyValue.Get(hs.getFullKey(identifier, key))
+	return hs.keyValue.Get(hs.getFullKey(identifier, key), common.ProcessPriority)
 }
 
 func (hs *hardforkStorer) getFullKey(identifier string, key []byte) []byte {

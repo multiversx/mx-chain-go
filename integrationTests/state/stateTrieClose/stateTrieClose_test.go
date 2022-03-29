@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -23,7 +24,7 @@ import (
 func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	numLeavesToAdd := 200
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, 5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, 5, common.TestPriority)
 
 	for i := 0; i < numLeavesToAdd; i++ {
 		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -63,14 +64,14 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 
 	for range leavesChannel1 {
 	}
-	time.Sleep(time.Second) //wait for go routine to finish
+	time.Sleep(time.Second) // wait for go routine to finish
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
 
 	for range leavesChannel2 {
 	}
-	time.Sleep(time.Second) //wait for go routine to finish
+	time.Sleep(time.Second) // wait for go routine to finish
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 2, len(diff), fmt.Sprintf("%v", diff))

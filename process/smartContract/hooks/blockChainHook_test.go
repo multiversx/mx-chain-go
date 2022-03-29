@@ -546,7 +546,7 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerErrorReadingFromStorage(t *tes
 		},
 	}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, errors.New("local error")
 		},
 	}
@@ -580,13 +580,13 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpoch(t *testing.T) {
 	}
 
 	storerBlockHeader := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			require.Equal(t, hash, key)
 			return marshalledHeader, nil
 		},
 	}
 	storerShardHdrNonceHash := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			require.Equal(t, nonceToByteSlice, key)
 			return hash, nil
 		},
@@ -627,13 +627,13 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 	}
 
 	storerBlockHeader := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			require.Fail(t, "should have not called Get operation")
 			return nil, nil
 		},
 	}
 	storerShardHdrNonceHash := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			require.Fail(t, "should have not called Get operation")
 			return nil, nil
 		},
@@ -676,14 +676,14 @@ func TestBlockChainHookImpl_GetBlockhashFromOldEpochExpectError(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			if uint8(unitType) >= uint8(dataRetriever.ShardHdrNonceHashDataUnit) {
 				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
+					GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 						return hashToRet, nil
 					},
 				}
 			}
 
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return marshaledData, nil
 				},
 			}

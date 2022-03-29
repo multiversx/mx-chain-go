@@ -138,14 +138,14 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	err = bootStorer.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes)
+	err = bootStorer.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
 
 	log.Info("saved bootstrap data to storage", "round", roundToUseAsKey)
 	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
-	err = bootStorer.Put(key, bootStrapDataBytes)
+	err = bootStorer.Put(key, bootStrapDataBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -617,7 +617,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	errPut := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit).Put(trigInternalKey, triggerRegBytes)
+	errPut := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit).Put(trigInternalKey, triggerRegBytes, common.ProcessPriority)
 	if errPut != nil {
 		return nil, errPut
 	}

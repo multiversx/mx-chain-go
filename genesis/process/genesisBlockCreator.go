@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -436,6 +437,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochs config.EnableEp
 		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 		EnableEpochs:       enableEpochs,
+		Priority:           common.ProcessPriority,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
@@ -508,7 +510,7 @@ func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) erro
 		unitType = dataRetriever.MetaBlockUnit
 	}
 
-	return gbc.arg.Data.StorageService().Put(unitType, hash, blockBuff)
+	return gbc.arg.Data.StorageService().Put(unitType, hash, blockBuff, common.ProcessPriority)
 }
 
 func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(

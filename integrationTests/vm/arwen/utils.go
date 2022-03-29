@@ -266,6 +266,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
+		Priority: common.TestPriority,
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

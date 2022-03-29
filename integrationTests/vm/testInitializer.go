@@ -313,9 +313,9 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory, common.TestPriority)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm, common.Normal)
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm, common.Normal, common.TestPriority)
 
 	return adb
 }
@@ -426,6 +426,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		NilCompiledSCStore: true,
 		ConfigSCStorage:    *defaultStorageConfig(),
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		Priority:           common.TestPriority,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -525,6 +526,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter, enableEpochs config
 		ConfigSCStorage:    *defaultStorageConfig(),
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EnableEpochs:       enableEpochs,
+		Priority:           common.TestPriority,
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -577,6 +579,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		ConfigSCStorage:    *defaultStorageConfig(),
 		EpochNotifier:      epochNotifierInstance,
 		EnableEpochs:       enableEpochs,
+		Priority:           common.TestPriority,
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
@@ -647,6 +650,7 @@ func CreateVMAndBlockchainHookMeta(
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		Priority:           common.TestPriority,
 	}
 
 	economicsData, err := createEconomicsData(0)

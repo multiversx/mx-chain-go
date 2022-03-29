@@ -78,7 +78,7 @@ func (r *readOnlyAccountsDB) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
+func (r *readOnlyAccountsDB) RecreateTrie(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 

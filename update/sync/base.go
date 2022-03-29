@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -14,7 +15,7 @@ func GetDataFromStorage(hash []byte, storer update.HistoryStorer) ([]byte, error
 		return nil, update.ErrNilStorage
 	}
 
-	currData, err := storer.Get(hash)
+	currData, err := storer.Get(hash, common.ProcessPriority)
 
 	return currData, err
 }

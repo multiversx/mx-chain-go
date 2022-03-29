@@ -144,12 +144,12 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = bootStorer.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes)
+	err = bootStorer.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
 	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
-	err = bootStorer.Put(key, bootStrapDataBytes)
+	err = bootStorer.Put(key, bootStrapDataBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 	}
 
 	bootstrapStorageUnit := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	errPut := bootstrapStorageUnit.Put(trigInternalKey, triggerRegBytes)
+	errPut := bootstrapStorageUnit.Put(trigInternalKey, triggerRegBytes, common.ProcessPriority)
 	if errPut != nil {
 		return nil, errPut
 	}

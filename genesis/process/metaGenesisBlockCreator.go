@@ -174,7 +174,7 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash(), common.ProcessPriority)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -257,12 +257,12 @@ func saveGenesisMetaToStorage(
 		return err
 	}
 
-	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
 
-	err = triggerStorage.Put([]byte(epochStartID), marshaledData)
+	err = triggerStorage.Put([]byte(epochStartID), marshaledData, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
@@ -294,6 +294,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EpochNotifier:      epochNotifier,
 		NilCompiledSCStore: true,
 		EnableEpochs:       enableEpochs,
+		Priority:           common.ProcessPriority,
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)

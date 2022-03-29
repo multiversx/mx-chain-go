@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func TestGetDataFromStorage_NotFoundShouldErr(t *testing.T) {
 
 	localErr := errors.New("not found")
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(_ []byte) ([]byte, error) {
+		GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, localErr
 		},
 	}
@@ -38,7 +39,7 @@ func TestGetDataFromStorage_FoundShouldWork(t *testing.T) {
 
 	expRes := []byte("result")
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(_ []byte) ([]byte, error) {
+		GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 			return expRes, nil
 		},
 	}

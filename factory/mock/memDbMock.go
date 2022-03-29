@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/common"
 )
 
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
@@ -23,7 +25,7 @@ func NewMemDbMock() *MemDbMock {
 }
 
 // Put adds the value to the (key, val) storage medium
-func (s *MemDbMock) Put(key, val []byte) error {
+func (s *MemDbMock) Put(key, val []byte, _ common.StorageAccessType) error {
 	s.mutx.Lock()
 	defer s.mutx.Unlock()
 
@@ -33,7 +35,7 @@ func (s *MemDbMock) Put(key, val []byte) error {
 }
 
 // Get gets the value associated to the key, or reports an error
-func (s *MemDbMock) Get(key []byte) ([]byte, error) {
+func (s *MemDbMock) Get(key []byte, _ common.StorageAccessType) ([]byte, error) {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
 
@@ -47,7 +49,7 @@ func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistence medium, false otherwise
-func (s *MemDbMock) Has(key []byte) error {
+func (s *MemDbMock) Has(key []byte, _ common.StorageAccessType) error {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
 
@@ -72,7 +74,7 @@ func (s *MemDbMock) Close() error {
 }
 
 // Remove removes the data associated to the given key
-func (s *MemDbMock) Remove(key []byte) error {
+func (s *MemDbMock) Remove(key []byte, _ common.StorageAccessType) error {
 	s.mutx.Lock()
 	defer s.mutx.Unlock()
 

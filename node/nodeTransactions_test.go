@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -190,7 +191,7 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
-	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"), common.APIPriority)
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
@@ -221,19 +222,19 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
 				return &storageStubs.StorerStub{
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
 				}
 			case dataRetriever.UnsignedTransactionUnit:
 				return &storageStubs.StorerStub{
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
 				}
 			case dataRetriever.TxLogsUnit:
 				return &storageStubs.StorerStub{
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},
 				}
@@ -347,7 +348,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash := []byte("hash")
 	headerNonce := uint64(1)
 	nonceBytes := n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash, common.APIPriority)
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, headerHash, headerNonce)
@@ -407,7 +408,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Contains(t, err.Error(), "fooError")
 
 	// Badly serialized transaction
-	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"), common.APIPriority)
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return &dblookupext.MiniblockMetadata{}, nil
 	}
@@ -420,7 +421,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash = []byte("hash")
 	headerNonce = uint64(1)
 	nonceBytes = n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash, common.APIPriority)
 	txH := &rewardTx.RewardTx{Round: 50, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.GetCoreComponents().InternalMarshalizer())
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, wrongHeaderHash, headerNonce)

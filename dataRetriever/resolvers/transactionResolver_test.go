@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -33,7 +34,7 @@ func createMockArgTxResolver() resolvers.ArgTxResolver {
 	}
 }
 
-//------- NewTxResolver
+// ------- NewTxResolver
 
 func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 	t.Parallel()
@@ -122,7 +123,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(txRes))
 }
 
-//------- ProcessReceivedMessage
+// ------- ProcessReceivedMessage
 
 func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -284,7 +285,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 
 	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
-		//not found in txPool
+		// not found in txPool
 		return nil, false
 	}
 	searchWasCalled := false
@@ -294,7 +295,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 	}
 	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
 	txStorage := &storageStubs.StorerStub{}
-	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
+	txStorage.SearchFirstCalled = func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
 			return txReturnedAsBuffer, nil
@@ -334,14 +335,14 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
-		//not found in txPool
+		// not found in txPool
 		return nil, false
 	}
 
 	errExpected := errors.New("expected error")
 
 	txStorage := &storageStubs.StorerStub{}
-	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
+	txStorage.SearchFirstCalled = func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return nil, errExpected
 		}
@@ -457,7 +458,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 		},
 	}
 	arg.TxStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) (i []byte, err error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) (i []byte, err error) {
 			return nil, errors.New("not found")
 		},
 	}
@@ -488,7 +489,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-//------- RequestTransactionFromHash
+// ------- RequestTransactionFromHash
 
 func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
@@ -514,7 +515,7 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	}, requested)
 }
 
-//------- RequestDataFromHashArray
+// ------- RequestDataFromHashArray
 
 func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	t.Parallel()
@@ -544,7 +545,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	}, requested)
 }
 
-//------ NumPeersToQuery setter and getter
+// ------ NumPeersToQuery setter and getter
 
 func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	t.Parallel()

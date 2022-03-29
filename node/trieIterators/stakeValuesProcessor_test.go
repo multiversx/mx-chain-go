@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -106,7 +107,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -147,7 +148,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -174,7 +175,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -204,7 +205,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -274,7 +275,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}

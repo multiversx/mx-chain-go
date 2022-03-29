@@ -56,7 +56,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	}
 
 	bootstrapUnit := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	err = bootstrapUnit.Put(key, registryBytes)
+	err = bootstrapUnit.Put(key, registryBytes, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +75,14 @@ func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler
 	headerHash := bsh.hasher.Compute(string(headerBytes))
 
 	metaHdrStorage := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
-	err = metaHdrStorage.Put(headerHash, headerBytes)
+	err = metaHdrStorage.Put(headerHash, headerBytes, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(metaBlock.GetNonce())
 	metaHdrNonceStorage := bsh.storageService.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	err = metaHdrNonceStorage.Put(nonceToByteSlice, headerHash)
+	err = metaHdrNonceStorage.Put(nonceToByteSlice, headerHash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -99,14 +99,14 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 	headerHash := bsh.hasher.Compute(string(headerBytes))
 
 	shardHdrStorage := bsh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
-	err = shardHdrStorage.Put(headerHash, headerBytes)
+	err = shardHdrStorage.Put(headerHash, headerBytes, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(hdr.GetNonce())
 	shardHdrNonceStorage := bsh.storageService.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(hdr.GetShardID()))
-	err = shardHdrNonceStorage.Put(nonceToByteSlice, headerHash)
+	err = shardHdrNonceStorage.Put(nonceToByteSlice, headerHash, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +122,13 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
 	metaHdrStorage := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
-	err = metaHdrStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes)
+	err = metaHdrStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}
 
 	triggerStorage := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	err = triggerStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes)
+	err = triggerStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes, common.ProcessPriority)
 	if err != nil {
 		return err
 	}

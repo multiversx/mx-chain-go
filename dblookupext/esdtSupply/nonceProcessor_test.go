@@ -3,6 +3,7 @@ package esdtSupply
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -14,7 +15,7 @@ func TestNonceProcessor_shouldProcessLogs_currentNonceLowerThanProcessed(t *test
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			processedBlockNonce := &ProcessedBlockNonce{
 				Nonce: 10,
 			}
@@ -32,7 +33,7 @@ func TestNonceProcessor_shouldProcessLogs_currentNonceHigherThanProcessed(t *tes
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			processedBlockNonce := &ProcessedBlockNonce{
 				Nonce: 10,
 			}
@@ -50,7 +51,7 @@ func TestNonceProcessor_shouldProcessLogs_nothingInStorageShouldProcess(t *testi
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
 	})
@@ -65,7 +66,7 @@ func TestNonceProcessor_shouldProcessLogs_revertNothingInStorage(t *testing.T) {
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
 	})
@@ -80,7 +81,7 @@ func TestNonceProcessor_saveNonceInStorage(t *testing.T) {
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	nonceProc := newNonceProcessor(marshalizer, &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			require.Equal(t, []byte(processedBlockKey), key)
 			processedNonceBlock := &ProcessedBlockNonce{}
 			_ = marshalizer.Unmarshal(processedNonceBlock, data)

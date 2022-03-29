@@ -1660,15 +1660,15 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	hdrUnit := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 			return marshalizer.Marshal(&block.Header{})
 		},
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return errPersister
 		},
-		HasCalled: func(key []byte) error {
+		HasCalled: func(key []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -1742,7 +1742,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	miniBlockUnit := &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
 			return errPersister
@@ -3089,10 +3089,10 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			RemoveCalled: func(key []byte) error {
+			RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 				return marshalizerMock.Marshal(metablockHeader)
 			},
 		}
@@ -3827,10 +3827,10 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					return nil
 				},
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return marshalizer.Marshal(&metaBlock)
 				},
 			}
@@ -4210,10 +4210,10 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	}
 	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			RemoveCalled: func(key []byte) error {
+			RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 				return metaBytes, nil
 			},
 		}
@@ -4238,7 +4238,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	poolMock := dataRetrieverMock.NewPoolsHolderMock()
 
 	hdrStore := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			hdr := block.Header{Nonce: 7, RootHash: rootHash}
 			return json.Marshal(hdr)
 		},

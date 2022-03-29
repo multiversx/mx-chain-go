@@ -37,10 +37,10 @@ func TestGetEpochStartMetaFromStorage(t *testing.T) {
 	meta := &block.MetaBlock{Nonce: 1}
 	metaBytes, _ := json.Marshal(meta)
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (bytes []byte, err error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 			return metaBytes, nil
 		},
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return metaBytes, nil
 		},
 	}
@@ -71,7 +71,7 @@ func TestGetLastBootstrapData(t *testing.T) {
 	}
 
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (b []byte, err error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (b []byte, err error) {
 			switch {
 			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
 				return roundBytes, nil
@@ -83,7 +83,7 @@ func TestGetLastBootstrapData(t *testing.T) {
 				return nil, nil
 			}
 		},
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
 			return nodesConfigRegistryBytes, nil
 		},

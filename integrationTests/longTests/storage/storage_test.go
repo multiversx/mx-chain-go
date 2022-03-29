@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ func TestWriteContinuously(t *testing.T) {
 		}
 
 		key, val := testStorage.CreateStoredData(uint64(i))
-		err := store.Put(key, val)
+		err := store.Put(key, val, common.TestPriority)
 
 		assert.Nil(t, err)
 	}
@@ -108,7 +109,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	trieStorage, _ := trie.NewTrieStorageManagerWithoutPruning(store)
 
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), maxTrieLevelInMemory, common.TestPriority)
 
 	defer func() {
 		_ = store.DestroyUnit()

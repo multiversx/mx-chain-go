@@ -93,6 +93,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		scf.storageService,
 		scf.enableEpochs.DisableOldTrieStorageEpoch,
 		scf.core.EpochNotifier(),
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return nil, err
@@ -132,6 +133,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		accountFactory,
 		storagePruning,
 		scf.processingMode,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
@@ -144,6 +146,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		accountFactory,
 		storagePruning,
 		scf.processingMode,
+		common.APIPriority,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
@@ -171,6 +174,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return nil, err

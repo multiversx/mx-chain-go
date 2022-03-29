@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -43,10 +44,10 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) (bytes []byte, err error) {
+					GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
-					PutCalled: func(key, data []byte) error {
+					PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 						return nil
 					},
 				}
@@ -406,10 +407,10 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					return noncesToHeader[string(key)], nil
 				},
-				PutCalled: func(key, data []byte) error {
+				PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 					return nil
 				},
 			}
@@ -497,16 +498,16 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					return []byte("hash"), nil
 				},
-				PutCalled: func(key, data []byte) error {
+				PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 					return nil
 				},
-				SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
+				SearchFirstCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					return prevEpochHdrBuff, nil
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					return nil
 				},
 			}
@@ -549,19 +550,19 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					return []byte("hash"), nil
 				},
-				PutCalled: func(key, data []byte) error {
+				PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 					return nil
 				},
-				SearchFirstCalled: func(key []byte) ([]byte, error) {
+				SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					if bytes.Equal(key, []byte(epochStartKey)) {
 						return prevEpochHdrBuff, nil
 					}
 					return nil, epochStart.ErrMissingHeader
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					return nil
 				},
 			}

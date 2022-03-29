@@ -174,7 +174,7 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RevertToSnapshot(0))
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil, common.ProcessPriority))
 
 	buff, err := accountsApi.CommitInEpoch(0, 0)
 	assert.Nil(t, buff)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 	logSCR := &transaction.Log{}
 
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if bytes.Equal(key, txHash) {
 				return marshalizer.Marshal(logTx)
 			}

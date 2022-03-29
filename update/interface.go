@@ -53,13 +53,13 @@ type EpochStartVerifier interface {
 // HistoryStorer provides storage services in a two layered storage construct, where the first layer is
 // represented by a cache and second layer by a persitent storage (DB-like)
 type HistoryStorer interface {
-	Put(key, data []byte) error
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) error
-	Remove(key []byte) error
+	Put(key, data []byte, priority common.StorageAccessType) error
+	Get(key []byte, priority common.StorageAccessType) ([]byte, error)
+	Has(key []byte, priority common.StorageAccessType) error
+	Remove(key []byte, priority common.StorageAccessType) error
 	ClearCache()
 	DestroyUnit() error
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+	GetFromEpoch(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error)
 
 	IsInterfaceNil() bool
 }

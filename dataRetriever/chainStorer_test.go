@@ -29,7 +29,7 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 	t.Parallel()
 
 	s := &storageStubs.StorerStub{}
-	s.HasCalled = func(key []byte) error {
+	s.HasCalled = func(key []byte, priority common.StorageAccessType) error {
 		return nil
 	}
 
@@ -56,7 +56,7 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 
 	s := &storageStubs.StorerStub{}
 	getResult := []byte("get called")
-	s.GetCalled = func(key []byte) (b []byte, e error) {
+	s.GetCalled = func(key []byte, priority common.StorageAccessType) (b []byte, e error) {
 		return getResult, nil
 	}
 
@@ -84,7 +84,7 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 
 	s := &storageStubs.StorerStub{}
 	putErr := errors.New("error")
-	s.PutCalled = func(key, data []byte) error {
+	s.PutCalled = func(key, data []byte, priority common.StorageAccessType) error {
 		return putErr
 	}
 
@@ -112,7 +112,7 @@ func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
 
 	s := &storageStubs.StorerStub{}
 	getErr := errors.New("error")
-	s.GetCalled = func(key []byte) (bytes []byte, e error) {
+	s.GetCalled = func(key []byte, priority common.StorageAccessType) (bytes []byte, e error) {
 		return nil, getErr
 	}
 
@@ -138,7 +138,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 	}
 
 	s := &storageStubs.StorerStub{}
-	s.GetCalled = func(key []byte) (bytes []byte, e error) {
+	s.GetCalled = func(key []byte, priority common.StorageAccessType) (bytes []byte, e error) {
 		return m[string(key)], nil
 	}
 

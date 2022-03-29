@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -107,7 +108,7 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 	retErr := errors.New("put err")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 				return retErr
 			},
 		},
@@ -131,7 +132,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	buffActual := []byte("currently wrong value")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 				buffActual = data
 				return nil
 			},
@@ -155,7 +156,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 func TestTxLogProcessor_GetLogErrNotFound(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, errors.New("storer error")
 			},
 		},
@@ -172,7 +173,7 @@ func TestTxLogProcessor_GetLogUnmarshalErr(t *testing.T) {
 	retErr := errors.New("marshal error")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return make([]byte, 0), nil
 			},
 		},
@@ -192,7 +193,7 @@ func TestTxLogProcessor_GetLogUnmarshalErr(t *testing.T) {
 func TestTxLogProcessor_GetLogFromCache(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 				return nil
 			},
 		},
@@ -220,10 +221,10 @@ func TestTxLogProcessor_GetLogFromCacheNotInCacheShouldReturnFromStorage(t *test
 	marshalizer := &mock.MarshalizerMock{}
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 				logsBytes, _ := marshalizer.Marshal(txLog)
 				return logsBytes, nil
 			},

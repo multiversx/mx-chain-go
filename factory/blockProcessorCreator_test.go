@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -166,12 +166,12 @@ func createAccountAdapter(
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 5)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 5, common.TestPriority)
 	if err != nil {
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), common.Normal)
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), common.Normal, common.TestPriority)
 	if err != nil {
 		return nil, err
 	}

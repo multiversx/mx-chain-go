@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -61,15 +62,15 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	proposerNode := nodes[0]
 
-	//sender shard keys, receivers  keys
+	// sender shard keys, receivers  keys
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
 	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
-		//receivers in same shard with the sender
+		// receivers in same shard with the sender
 		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)
-		//receivers in other shards
+		// receivers in other shards
 		for _, shardId := range recvShards {
 			_, pk, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 			receiversPublicKeys[shardId] = append(receiversPublicKeys[shardId], pk)
@@ -111,13 +112,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			continue
 		}
 
-		//test sender balances
+		// test sender balances
 		for _, sk := range sendersPrivateKeys {
 			valTransferred := big.NewInt(0).Mul(totalValuePerTx, big.NewInt(int64(len(receiversPublicKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
 			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}
-		//test receiver balances from same shard
+		// test receiver balances from same shard
 		for _, pk := range receiversPublicKeys[proposerNode.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
@@ -136,7 +137,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			continue
 		}
 
-		//test receiver balances from same shard
+		// test receiver balances from same shard
 		for _, pk := range receiversPublicKeys[n.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
@@ -353,7 +354,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 }
 
 func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
-	//TODO fix this test
+	// TODO fix this test
 	t.Skip("TODO fix this test")
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -521,7 +522,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 
 func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr data.HeaderHandler) {
 	for _, miniblockHdr := range hdr.GetMiniBlockHeaderHandlers() {
-		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.GetHash())
+		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.GetHash(), common.TestPriority)
 		if err != nil {
 			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.GetHash()) + "not found")
 			continue
@@ -540,19 +541,19 @@ func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr data.Header
 			mbType := block.Type(miniblockHdr.GetTypeInt32())
 			switch mbType {
 			case block.TxBlock:
-				txBytes, err = tpn.Storage.Get(dataRetriever.TransactionUnit, txHash)
+				txBytes, err = tpn.Storage.Get(dataRetriever.TransactionUnit, txHash, common.TestPriority)
 				if err != nil {
 					fmt.Println("tx hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
 					continue
 				}
 			case block.SmartContractResultBlock:
-				txBytes, err = tpn.Storage.Get(dataRetriever.UnsignedTransactionUnit, txHash)
+				txBytes, err = tpn.Storage.Get(dataRetriever.UnsignedTransactionUnit, txHash, common.TestPriority)
 				if err != nil {
 					fmt.Println("scr hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
 					continue
 				}
 			case block.RewardsBlock:
-				txBytes, err = tpn.Storage.Get(dataRetriever.RewardTransactionUnit, txHash)
+				txBytes, err = tpn.Storage.Get(dataRetriever.RewardTransactionUnit, txHash, common.TestPriority)
 				if err != nil {
 					fmt.Println("reward hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
 					continue

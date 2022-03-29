@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/filters"
@@ -40,7 +41,7 @@ func (n *Node) putReceiptInTransaction(tx *transaction.ApiTransactionResult, rec
 
 func (n *Node) getReceiptFromStorage(hash []byte, epoch uint32) (*receipt.Receipt, error) {
 	receiptsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
-	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch)
+	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func (n *Node) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSm
 
 func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
 	unsignedTxsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
-	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch)
+	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +185,7 @@ func (n *Node) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction
 
 func (n *Node) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
 	logsAndEventsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.TxLogsUnit)
-	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
+	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}

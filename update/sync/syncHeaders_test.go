@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
@@ -145,7 +146,7 @@ func TestSyncEpochStartMetaHeader_MetaBlockInStorage(t *testing.T) {
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return json.Marshal(meta)
 			},
 		}
@@ -169,10 +170,10 @@ func TestSyncEpochStartMetaHeader_MissingHeaderTimeout(t *testing.T) {
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
-			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
 		}
@@ -202,10 +203,10 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
-			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) (bytes []byte, err error) {
 				return nil, localErr
 			},
 		}
@@ -255,10 +256,10 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 	metaBytes, _ := args.Marshalizer.Marshal(meta)
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				return metaBytes, nil
 			},
-			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+			GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) (bytes []byte, err error) {
 				return metaBytes, nil
 			},
 		}

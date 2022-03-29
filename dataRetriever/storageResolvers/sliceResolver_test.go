@@ -111,7 +111,7 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	sendWasCalled := false
 	arg := createMockSliceResolverArg()
 	arg.Storage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -145,7 +145,7 @@ func TestSliceResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	sendWasCalled := false
 	arg := createMockSliceResolverArg()
 	arg.Storage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
@@ -170,7 +170,7 @@ func TestSliceResolver_RequestDataFromHashesShouldWork(t *testing.T) {
 	numGetCalled := 0
 	arg := createMockSliceResolverArg()
 	arg.Storage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			numGetCalled++
 			return make([]byte, 0), nil
 		},
@@ -199,7 +199,7 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 	expectedErr := errors.New("expected err")
 	arg := createMockSliceResolverArg()
 	arg.Storage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			numGetCalled++
 			if numGetCalled == 1 {
 				return nil, expectedErr
@@ -242,7 +242,7 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 	expectedErr := errors.New("expected err")
 	arg := createMockSliceResolverArg()
 	arg.Storage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			numGetCalled++
 			return make([]byte, 0), nil
 		},

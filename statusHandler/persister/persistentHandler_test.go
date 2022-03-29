@@ -192,7 +192,7 @@ func TestPersistentStatusHandler_saveMetricsInDbPutError(t *testing.T) {
 		return nil, nil
 	}
 	storer := &storageStubs.StorerStub{}
-	storer.PutCalled = func(key, data []byte) error {
+	storer.PutCalled = func(key, data []byte, priority common.StorageAccessType) error {
 		flag++
 		return errors.New("error")
 	}

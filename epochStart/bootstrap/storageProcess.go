@@ -154,6 +154,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.storageService,
 		sesb.enableEpochs.DisableOldTrieStorageEpoch,
 		sesb.epochNotifier,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return err
@@ -460,7 +461,7 @@ func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(meta
 
 	for i := range originalMiniblocksHeaders {
 		mb := originalMiniblocksHeaders[i].ShallowClone()
-		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) //it is safe to modify here as mbh is passed by value
+		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) // it is safe to modify here as mbh is passed by value
 		if err != nil {
 			return err
 		}

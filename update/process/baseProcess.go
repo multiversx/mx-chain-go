@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -241,7 +242,7 @@ func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *b
 			continue
 		}
 
-		errNotCritical = b.storage.Put(dataRetriever.MiniBlockUnit, miniBlockHeadersHashes[i], marshalizedMiniBlock)
+		errNotCritical = b.storage.Put(dataRetriever.MiniBlockUnit, miniBlockHeadersHashes[i], marshalizedMiniBlock, common.ProcessPriority)
 		if errNotCritical != nil {
 			log.Warn("saveMiniBlocks.Put -> MiniBlockUnit",
 				"error", errNotCritical.Error())
@@ -258,7 +259,7 @@ func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
 	}
 
 	if len(marshalizedReceipts) > 0 {
-		errNotCritical = b.storage.Put(dataRetriever.ReceiptsUnit, headerHandler.GetReceiptsHash(), marshalizedReceipts)
+		errNotCritical = b.storage.Put(dataRetriever.ReceiptsUnit, headerHandler.GetReceiptsHash(), marshalizedReceipts, common.ProcessPriority)
 		if errNotCritical != nil {
 			log.Warn("saveReceipts.Put -> ReceiptsUnit",
 				"error", errNotCritical.Error())
@@ -291,7 +292,7 @@ func (b *baseProcessor) saveTransactions(body *block.Body) {
 				continue
 			}
 
-			errNotCritical = b.storage.Put(unitType, txHash, marshaledData)
+			errNotCritical = b.storage.Put(unitType, txHash, marshaledData, common.ProcessPriority)
 			if errNotCritical != nil {
 				log.Warn("saveTransactions.Put -> Transaction",
 					"error", errNotCritical.Error())

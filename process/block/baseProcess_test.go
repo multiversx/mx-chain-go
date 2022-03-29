@@ -1376,7 +1376,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
 		&storageStubs.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 				require.NoError(t, err)
 				require.Equal(t, epoch, uint32(restoredEpoch))
@@ -1435,7 +1435,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		store := dataRetriever.NewChainStorer()
 		store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
 			&storageStubs.StorerStub{
-				PutCalled: func(key, data []byte) error {
+				PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 					restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 					require.NoError(t, err)
 					require.Equal(t, epoch, uint32(restoredEpoch))
@@ -1492,7 +1492,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	}
 
 	hdrStore := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if len(headers) != 0 {
 				header := headers[0]
 				headers = headers[1:]

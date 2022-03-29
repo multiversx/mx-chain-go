@@ -632,7 +632,7 @@ func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 		epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
 			GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
 				return &storageMocks.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
+					GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 						return nil, expectedErr
 					},
 				}, nil
@@ -706,10 +706,10 @@ func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
 	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
 		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
 			return &storageMocks.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return nodesCoordBytes, nil
 				},
-				SearchFirstCalled: func(key []byte) ([]byte, error) {
+				SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return nodesCoordBytes, nil
 				},
 			}, nil
@@ -970,6 +970,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		disabled.NewChainStorer(),
 		0,
 		coreComp.EpochNotifier(),
+		common.TestPriority,
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -992,6 +993,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		disabled.NewChainStorer(),
 		0,
 		coreComp.EpochNotifier(),
+		common.TestPriority,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(triesContainer.GetAll()))
@@ -1021,6 +1023,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 		disabled.NewChainStorer(),
 		0,
 		coreComp.EpochNotifier(),
+		common.TestPriority,
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer

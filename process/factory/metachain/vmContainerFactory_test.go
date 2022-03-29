@@ -47,6 +47,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		CompiledSCPool:     datapool.SmartContracts(),
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
+		Priority:           common.TestPriority,
 	}
 	return arguments
 }

@@ -83,7 +83,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	wasPutCalled := false
 	marshalizer := testscommon.MarshalizerMock{}
 	suppliesStorer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if string(key) == "processed-block" {
 				pbn := ProcessedBlockNonce{Nonce: 5}
 				pbnB, _ := marshalizer.Marshal(pbn)
@@ -92,7 +92,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 
 			return nil, storage.ErrKeyNotFound
 		},
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			if string(key) == "processed-block" {
 				return nil
 			}
@@ -192,7 +192,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	marshalizer := testscommon.MarshalizerMock{}
 	numTimesCalled := 0
 	suppliesStorer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if string(key) == "processed-block" {
 				pbn := ProcessedBlockNonce{Nonce: 5}
 				pbnB, _ := marshalizer.Marshal(pbn)
@@ -208,7 +208,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 			}
 			return nil, storage.ErrKeyNotFound
 		},
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
 			if string(key) == supplyKey {
 				switch numTimesCalled {
@@ -267,7 +267,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 
 	marshalizer := &testscommon.MarshalizerMock{}
 	proc, _ := NewSuppliesProcessor(marshalizer, &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if string(key) == "my-token" {
 				supply := &SupplyESDT{Supply: big.NewInt(123456)}
 				return marshalizer.Marshal(supply)

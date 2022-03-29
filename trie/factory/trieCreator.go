@@ -186,6 +186,7 @@ func CreateTriesComponentsForShardId(
 	storageService dataRetriever.StorageService,
 	disableoOldTrieStorageEpoch uint32,
 	notifier trie.EpochNotifier,
+	priority common.StorageAccessType,
 ) (common.TriesHolder, map[string]common.StorageManager, error) {
 	trieFactoryArgs := TrieFactoryArgs{
 		SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
@@ -209,6 +210,7 @@ func CreateTriesComponentsForShardId(
 		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
 		EpochStartNotifier:         notifier,
+		Priority:                   priority,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -231,6 +233,7 @@ func CreateTriesComponentsForShardId(
 		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
 		EpochStartNotifier:         notifier,
+		Priority:                   priority,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

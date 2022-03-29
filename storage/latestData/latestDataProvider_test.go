@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -88,7 +89,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 		EpochStartRound: startRound,
 	}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
 		},
@@ -139,7 +140,7 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 		EpochStartRound: startRound,
 	}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			stateBytes, _ := json.Marshal(state)
 			return stateBytes, nil
 		},
@@ -164,7 +165,7 @@ func TestLoadEpochStartRoundMetachain(t *testing.T) {
 	}
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
@@ -202,7 +203,7 @@ func TestLatestDataProvider_ShouldWork(t *testing.T) {
 	}
 
 	storerStub := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return json.Marshal(&block.ShardTriggerRegistry{
 				EpochStartRound: 1,
 			})
@@ -285,7 +286,7 @@ func TestFullHistoryLatestDataProvider_Get(t *testing.T) {
 	}
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
@@ -327,7 +328,7 @@ func TestFullHistoryLoadEpochStartRoundShard(t *testing.T) {
 	}
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},
@@ -353,7 +354,7 @@ func TestFullHistoryLoadEpochStartRoundMetachain(t *testing.T) {
 
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	storer := &storageStubs.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			stateBytes, _ := marshaller.Marshal(state)
 			return stateBytes, nil
 		},

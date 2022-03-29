@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -37,7 +38,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*
 	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
 
 	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(nonce)
-	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
+	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice, common.APIPriority)
 	if err != nil {
 		return nil, err
 	}

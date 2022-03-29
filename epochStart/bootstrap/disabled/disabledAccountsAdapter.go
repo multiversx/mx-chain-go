@@ -75,7 +75,7 @@ func (a *accountsAdapter) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie -
-func (a *accountsAdapter) RecreateTrie(_ []byte) error {
+func (a *accountsAdapter) RecreateTrie(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 

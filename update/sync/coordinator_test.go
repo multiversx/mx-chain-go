@@ -42,7 +42,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 		return &storageStubs.StorerStub{
-			GetCalled: func(key []byte) (bytes []byte, err error) {
+			GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 				if retErr {
 					return nil, errors.New("err")
 				}
@@ -55,11 +55,11 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 	if !retErr {
 		args.StorageService = initStore()
 		byteArray := args.Uint64Converter.ToByteSlice(meta.Nonce)
-		_ = args.StorageService.Put(dataRetriever.MetaHdrNonceHashDataUnit, byteArray, []byte("firstPending"))
+		_ = args.StorageService.Put(dataRetriever.MetaHdrNonceHashDataUnit, byteArray, []byte("firstPending"), common.TestPriority)
 		marshaledData, _ := json.Marshal(meta)
-		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte("firstPending"), marshaledData)
+		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte("firstPending"), marshaledData, common.TestPriority)
 
-		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(meta.Epoch)), marshaledData)
+		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(meta.Epoch)), marshaledData, common.TestPriority)
 	}
 
 	headersSyncHandler, _ := NewHeadersSyncHandler(args)
@@ -90,7 +90,7 @@ func createPendingTxSyncHandler() update.TransactionsSyncHandler {
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
 						Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),
 					}

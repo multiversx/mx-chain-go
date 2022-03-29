@@ -17,7 +17,7 @@ func createAccountAdapter(
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory, common.ProcessPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +29,7 @@ func createAccountAdapter(
 		accountFactory,
 		disabled.NewDisabledStoragePruningManager(),
 		common.Normal,
+		common.ProcessPriority,
 	)
 	if err != nil {
 		return nil, err

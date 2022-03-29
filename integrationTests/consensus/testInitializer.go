@@ -193,7 +193,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory, common.TestPriority)
 	storagePruning, _ := storagePruningManager.NewStoragePruningManager(
 		ewl,
 		generalCfg.PruningBufferLen,
@@ -209,6 +209,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		},
 		storagePruning,
 		common.Normal,
+		common.TestPriority,
 	)
 	return adb
 }

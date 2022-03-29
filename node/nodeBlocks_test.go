@@ -97,7 +97,7 @@ func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
 		},
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return headerHash, nil
 		},
 	}
@@ -142,7 +142,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
 		},
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return headerHash, nil
 		},
 	}
@@ -165,10 +165,10 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		DeveloperFees:   big.NewInt(0),
 	}
 	blockBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, blockBytes)
+	_ = storerMock.Put(headerHash, blockBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(nonceBytes, headerHash, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -214,8 +214,8 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	}
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			return storerMock.Get(key)
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
+			return storerMock.Get(key, priority)
 		},
 	}
 
@@ -238,10 +238,10 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		DevFeesInEpoch:         big.NewInt(49),
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, headerBytes)
+	_ = storerMock.Put(headerHash, headerBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
-	_ = storerMock.Put(nonceBytes, headerHash)
+	_ = storerMock.Put(nonceBytes, headerHash, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -328,7 +328,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	processComponentsMock.HistoryRepositoryInternal = historyProc
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return hex.DecodeString(headerHash)
 		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -354,7 +354,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		DeveloperFees:   big.NewInt(50),
 	}
 	headerBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(func() []byte { hashBytes, _ := hex.DecodeString(headerHash); return hashBytes }(), headerBytes)
+	_ = storerMock.Put(func() []byte { hashBytes, _ := hex.DecodeString(headerHash); return hashBytes }(), headerBytes, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,
@@ -391,7 +391,7 @@ func TestGetBlockByNonce_GetBlockByRound_FromNormalNode(t *testing.T) {
 	processComponentsMock := getDefaultProcessComponents()
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 			if unitType == dataRetriever.ShardHdrNonceHashDataUnit ||
 				unitType == dataRetriever.RoundHdrHashDataUnit {
 				return hex.DecodeString(headerHash)
@@ -477,8 +477,8 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return storerMock
 		},
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			return storerMock.Get(key)
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
+			return storerMock.Get(key, priority)
 		},
 	}
 
@@ -502,11 +502,11 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		DeveloperFees:   big.NewInt(55),
 	}
 	blockBytes, _ := json.Marshal(header)
-	_ = storerMock.Put([]byte(headerHash), blockBytes)
+	_ = storerMock.Put([]byte(headerHash), blockBytes, common.TestPriority)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	correctHash := []byte("correct-hash")
-	_ = storerMock.Put(nonceBytes, correctHash)
+	_ = storerMock.Put(nonceBytes, correctHash, common.TestPriority)
 
 	expectedBlock := &api.Block{
 		Nonce: nonce,

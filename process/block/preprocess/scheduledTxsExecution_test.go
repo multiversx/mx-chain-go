@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -940,7 +941,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
 			&storageMocks.StorerStub{
-				GetCalled: func(_ []byte) ([]byte, error) {
+				GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 					return nil, expectedErr
 				},
 			},
@@ -961,7 +962,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 			&testscommon.TxProcessorMock{},
 			&mock.TransactionCoordinatorMock{},
 			&storageMocks.StorerStub{
-				GetCalled: func(_ []byte) ([]byte, error) {
+				GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 					return nil, nil
 				},
 			},
@@ -1003,7 +1004,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldWork(t *testing.T)
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			GetCalled: func(_ []byte) ([]byte, error) {
+			GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 				return marshalledSCRsSavedData, nil
 			},
 		},
@@ -1075,7 +1076,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldFail(t *testing.T) {
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			GetCalled: func(_ []byte) ([]byte, error) {
+			GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 				return nil, expectedErr
 			},
 		},
@@ -1115,7 +1116,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			GetCalled: func(_ []byte) ([]byte, error) {
+			GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 				return marshalledSCRsSavedData, nil
 			},
 		},
@@ -1177,7 +1178,7 @@ func TestScheduledTxsExecution_SaveState(t *testing.T) {
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 				require.Equal(t, headerHash, key)
 				require.Equal(t, marshalledScheduledData, data)
 				return nil
@@ -1206,7 +1207,7 @@ func TestScheduledTxsExecution_SaveStateIfNeeded(t *testing.T) {
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			PutCalled: func(key, _ []byte) error {
+			PutCalled: func(key, _ []byte, priority common.StorageAccessType) error {
 				wasCalled = true
 				require.Equal(t, headerHash, key)
 				return nil
@@ -1428,7 +1429,7 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderWithErrorShouldFail(
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			GetCalled: func(_ []byte) ([]byte, error) {
+			GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 				return nil, expectedErr
 			},
 		},
@@ -1465,7 +1466,7 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldWork(t *testin
 		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
-			GetCalled: func(_ []byte) ([]byte, error) {
+			GetCalled: func(_ []byte, priority common.StorageAccessType) ([]byte, error) {
 				return marshalledSCRsSavedData, nil
 			},
 		},
@@ -1525,7 +1526,7 @@ func TestScheduledTxsExecution_removeInvalidTxsFromScheduledMiniBlocks(t *testin
 	scheduledTxsExec.scheduledMbs = mbs
 	scheduledTxsExec.removeInvalidTxsFromScheduledMiniBlocks(scrsInfo)
 
-	//TODO: check if a scheduledMB should have no TxHashes inside
+	// TODO: check if a scheduledMB should have no TxHashes inside
 	expectedLen := 0
 	assert.Equal(t, expectedLen, len(scheduledTxsExec.scheduledMbs[1].TxHashes))
 

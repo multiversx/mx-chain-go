@@ -87,7 +87,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	err = roAccDb.RevertToSnapshot(0)
 	require.NoError(t, err)
 
-	err = roAccDb.RecreateTrie(nil)
+	err = roAccDb.RecreateTrie(nil, common.TestPriority)
 	require.NoError(t, err)
 
 	roAccDb.PruneTrie(nil, state.NewRoot)

@@ -161,10 +161,10 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 
 		if shardId == core.MetachainShardId {
 			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
-			_ = metablockStorer.Put(headerHash, buffHeader)
+			_ = metablockStorer.Put(headerHash, buffHeader, common.TestPriority)
 		} else {
 			shardblockStorer := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
-			_ = shardblockStorer.Put(headerHash, buffHeader)
+			_ = shardblockStorer.Put(headerHash, buffHeader, common.TestPriority)
 		}
 	}
 }

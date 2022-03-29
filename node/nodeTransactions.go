@@ -10,6 +10,7 @@ import (
 	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
@@ -185,19 +186,19 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxTyp
 func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
 	store := n.dataComponents.StorageService()
 	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
-	txBytes, err := txsStorer.SearchFirst(hash)
+	txBytes, err := txsStorer.SearchFirst(hash, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
-	txBytes, err = rewardTxsStorer.SearchFirst(hash)
+	txBytes, err = rewardTxsStorer.SearchFirst(hash, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
+	txBytes, err = unsignedTxsStorer.SearchFirst(hash, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
 	}
@@ -208,19 +209,19 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, b
 func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
 	store := n.dataComponents.StorageService()
 	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
-	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
+	txBytes, err := txsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
-	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
+	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
+	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch, common.APIPriority)
 	if err == nil {
 		return txBytes, transaction.TxTypeUnsigned, true
 	}

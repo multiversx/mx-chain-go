@@ -107,7 +107,7 @@ func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
 }
 
 func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container common.TriesHolder) error {
-	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.maxTrieLevelInMemory, common.ProcessPriority)
 	if err != nil {
 		return err
 	}

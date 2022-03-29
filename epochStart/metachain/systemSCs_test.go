@@ -868,10 +868,10 @@ func createAccountsDB(
 	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
+	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5, common.TestPriority)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal, common.TestPriority)
 	return adb
 }
 
@@ -917,6 +917,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		CompiledSCPool:     testDataPool.SmartContracts(),
 		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		NilCompiledSCStore: true,
+		Priority:           common.TestPriority,
 	}
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()
@@ -1313,7 +1314,7 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, len(updatedContractConfig))
 	require.Equal(t, args.ESDTOwnerAddressBytes, updatedContractConfig[0])
-	//the other config values should be unchanged
+	// the other config values should be unchanged
 	for i := 1; i < len(initialContractConfig); i++ {
 		assert.Equal(t, initialContractConfig[i], updatedContractConfig[i])
 	}

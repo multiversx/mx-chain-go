@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -9,10 +10,10 @@ import (
 type ChainStorerStub struct {
 	AddStorerCalled     func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled     func(unitType dataRetriever.UnitType) storage.Storer
-	HasCalled           func(unitType dataRetriever.UnitType, key []byte) error
-	GetCalled           func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
-	PutCalled           func(unitType dataRetriever.UnitType, key []byte, value []byte) error
-	GetAllCalled        func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
+	HasCalled           func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) error
+	GetCalled           func(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error)
+	PutCalled           func(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error
+	GetAllCalled        func(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error)
 	GetAllStorersCalled func() map[dataRetriever.UnitType]storage.Storer
 	DestroyCalled       func() error
 	CloseAllCalled      func() error
@@ -42,33 +43,33 @@ func (css *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) storage.S
 }
 
 // Has -
-func (css *ChainStorerStub) Has(unitType dataRetriever.UnitType, key []byte) error {
+func (css *ChainStorerStub) Has(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) error {
 	if css.HasCalled != nil {
-		return css.HasCalled(unitType, key)
+		return css.HasCalled(unitType, key, priority)
 	}
 	return nil
 }
 
 // Get -
-func (css *ChainStorerStub) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+func (css *ChainStorerStub) Get(unitType dataRetriever.UnitType, key []byte, priority common.StorageAccessType) ([]byte, error) {
 	if css.GetCalled != nil {
-		return css.GetCalled(unitType, key)
+		return css.GetCalled(unitType, key, priority)
 	}
 	return nil, nil
 }
 
 // Put -
-func (css *ChainStorerStub) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+func (css *ChainStorerStub) Put(unitType dataRetriever.UnitType, key []byte, value []byte, priority common.StorageAccessType) error {
 	if css.PutCalled != nil {
-		return css.PutCalled(unitType, key, value)
+		return css.PutCalled(unitType, key, value, priority)
 	}
 	return nil
 }
 
 // GetAll -
-func (css *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+func (css *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error) {
 	if css.GetAllCalled != nil {
-		return css.GetAllCalled(unitType, keys)
+		return css.GetAllCalled(unitType, keys, priority)
 	}
 	return nil, nil
 }

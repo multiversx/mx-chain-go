@@ -6,6 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -58,7 +59,7 @@ func TestPutRemove(t *testing.T) {
 	}
 }
 
-//nolint
+// nolint
 func generateValues(numPuts int, valuesPayloadSize int) map[string][]byte {
 	m := make(map[string][]byte)
 	for i := 0; i < numPuts; i++ {
@@ -74,19 +75,19 @@ func generateValues(numPuts int, valuesPayloadSize int) map[string][]byte {
 	return m
 }
 
-//nolint
+// nolint
 func putValues(store storage.Storer, values map[string][]byte, rmv map[int][][]byte, idx int) {
 	hashes := make([][]byte, 0, len(rmv))
 	for key, val := range values {
 		hashes = append(hashes, []byte(key))
-		err := store.Put([]byte(key), val)
+		err := store.Put([]byte(key), val, common.TestPriority)
 		log.LogIfError(err)
 	}
 
 	rmv[idx] = hashes
 }
 
-//nolint
+// nolint
 func removeOld(store storage.Storer, rmv map[int][][]byte, idx int) {
 	hashes, found := rmv[idx-2]
 	if !found {
@@ -94,7 +95,7 @@ func removeOld(store storage.Storer, rmv map[int][][]byte, idx int) {
 	}
 
 	for _, hash := range hashes {
-		err := store.Remove(hash)
+		err := store.Remove(hash, common.TestPriority)
 		log.LogIfError(err)
 	}
 

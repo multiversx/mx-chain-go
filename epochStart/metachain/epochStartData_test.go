@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -365,10 +366,10 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	meta2 := &block.MetaBlock{Nonce: 101, PrevHash: metaHash1, ShardInfo: []block.ShardData{shardData}}
 
 	marshaledData, _ := arguments.Marshalizer.Marshal(meta1)
-	_ = metaHdrStorage.Put(metaHash1, marshaledData)
+	_ = metaHdrStorage.Put(metaHash1, marshaledData, common.TestPriority)
 
 	marshaledData, _ = arguments.Marshalizer.Marshal(meta2)
-	_ = metaHdrStorage.Put(metaHash2, marshaledData)
+	_ = metaHdrStorage.Put(metaHash2, marshaledData, common.TestPriority)
 
 	epoch, _ := NewEpochStartData(arguments)
 
@@ -437,10 +438,10 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	metaHash2, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, meta2)
 
 	marshaledData, _ := arguments.Marshalizer.Marshal(meta1)
-	_ = metaHdrStorage.Put(metaHash1, marshaledData)
+	_ = metaHdrStorage.Put(metaHash1, marshaledData, common.TestPriority)
 
 	marshaledData, _ = arguments.Marshalizer.Marshal(meta2)
-	_ = metaHdrStorage.Put(metaHash2, marshaledData)
+	_ = metaHdrStorage.Put(metaHash2, marshaledData, common.TestPriority)
 
 	shardID := uint32(1)
 	prevPrevShardHdr := &block.Header{

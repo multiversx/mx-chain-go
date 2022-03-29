@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
@@ -80,7 +81,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 5
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(roundsPerEpoch), nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
@@ -177,7 +178,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 		integrationTests.MinTransactionVersion,
 	)
 	time.Sleep(time.Second)
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
@@ -676,7 +677,7 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 				continue
 			}
 
-			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash)
+			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash, common.TestPriority)
 			assert.Nil(t, err)
 
 			shardHeader := block.Header{}

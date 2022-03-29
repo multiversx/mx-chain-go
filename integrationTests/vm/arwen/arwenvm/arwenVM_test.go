@@ -721,7 +721,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
 			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot)
-			_ = testContext.Accounts.RecreateTrie(rootHash)
+			_ = testContext.Accounts.RecreateTrie(rootHash, common.TestPriority)
 			continue
 		}
 

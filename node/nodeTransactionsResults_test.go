@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -38,7 +39,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 					recBytes, _ := json.Marshal(rec)
 					return recBytes, nil
 				},
@@ -116,7 +117,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			switch unitType {
 			case dataRetriever.UnsignedTransactionUnit:
 				return &storageStubs.StorerStub{
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 						switch {
 						case bytes.Equal(key, scrHash1):
 							return marshalizerdMock.Marshal(scr1)
@@ -224,7 +225,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				GetFromEpochCalled: func(key []byte, epoch uint32, priority common.StorageAccessType) ([]byte, error) {
 					switch {
 					case bytes.Equal(key, txHash):
 						return marshalizerMock.Marshal(logsAndEvents)

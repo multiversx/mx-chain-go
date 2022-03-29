@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -37,16 +38,16 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) (bytes []byte, err error) {
+					GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
-					PutCalled: func(key, data []byte) error {
+					PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 						return nil
 					},
-					RemoveCalled: func(key []byte) error {
+					RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 						return nil
 					},
-					SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
+					SearchFirstCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
 				}
@@ -295,16 +296,16 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					return []byte("hash"), nil
 				},
-				PutCalled: func(key, data []byte) error {
+				PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 					return nil
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					return nil
 				},
-				SearchFirstCalled: func(key []byte) (bytes []byte, err error) {
+				SearchFirstCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					return firstBlockBuff, nil
 				},
 			}

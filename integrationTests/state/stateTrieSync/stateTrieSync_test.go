@@ -150,7 +150,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.Nil(t, err)
 	cancel()
 
-	requesterTrie, err = requesterTrie.Recreate(rootHash)
+	requesterTrie, err = requesterTrie.Recreate(rootHash, common.TestPriority)
 	require.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.RootHash()
@@ -384,7 +384,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	err = userAccSyncer.SyncAccounts(rootHash)
 	assert.Nil(t, err)
 
-	_ = nRequester.AccntState.RecreateTrie(rootHash)
+	_ = nRequester.AccntState.RecreateTrie(rootHash, common.TestPriority)
 
 	newRootHash, _ := nRequester.AccntState.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)

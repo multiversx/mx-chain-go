@@ -1150,7 +1150,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	args.ForkDetector = forkDetector
 
 	headerStorage := &storageStubs.StorerStub{}
-	headerStorage.GetCalled = func(key []byte) (i []byte, e error) {
+	headerStorage.GetCalled = func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 		if bytes.Equal(key, addedHash) {
 			buff, _ := args.Marshalizer.Marshal(addedHdr)
 
@@ -1304,10 +1304,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},
@@ -1446,10 +1446,10 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return prevHdrBytes, nil
 				},
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					remFlags.flagHdrRemovedFromStorage = true
 					return nil
 				},

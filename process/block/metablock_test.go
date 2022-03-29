@@ -848,12 +848,12 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	hdrUnit := &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			wasCalled = true
 			wg.Done()
 			return errPersister
 		},
-		GetCalled: func(key []byte) (i []byte, e error) {
+		GetCalled: func(key []byte, priority common.StorageAccessType) (i []byte, e error) {
 			hdrBuff, _ := marshalizer.Marshal(&block.MetaBlock{})
 			return hdrBuff, nil
 		},
@@ -962,7 +962,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	hasher := &mock.HasherStub{}
 	blockHeaderUnit := &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
+		PutCalled: func(key, data []byte, priority common.StorageAccessType) error {
 			return nil
 		},
 	}
@@ -1738,10 +1738,10 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				RemoveCalled: func(key []byte) error {
+				RemoveCalled: func(key []byte, priority common.StorageAccessType) error {
 					return nil
 				},
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 					return buffHdr, nil
 				},
 			}

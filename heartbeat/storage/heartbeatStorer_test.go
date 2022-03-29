@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
@@ -68,7 +69,7 @@ func TestHeartbeatDbStorer_LoadKeysUnmarshalInvalidShouldErr(t *testing.T) {
 
 	storer := mock.NewStorerMock()
 	keysBytes := []byte("invalid keys slice")
-	_ = storer.Put([]byte("keys"), keysBytes)
+	_ = storer.Put([]byte("keys"), keysBytes, common.TestPriority)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
@@ -87,7 +88,7 @@ func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	msr := &mock.MarshalizerMock{}
 	keysBytes, _ := msr.Marshal(&batch.Batch{Data: keys})
-	_ = storer.Put([]byte("keys"), keysBytes)
+	_ = storer.Put([]byte("keys"), keysBytes, common.TestPriority)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
@@ -131,7 +132,7 @@ func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	storer := mock.NewStorerMock()
-	_ = storer.Put([]byte("genesisTime"), []byte("wrong genesis time"))
+	_ = storer.Put([]byte("genesisTime"), []byte("wrong genesis time"), common.TestPriority)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
@@ -154,7 +155,7 @@ func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 	expectedTime := time.Unix(0, dbt.Timestamp)
 
 	genTimeBytes, _ := msr.Marshal(dbt)
-	_ = storer.Put([]byte("genesisTime"), genTimeBytes)
+	_ = storer.Put([]byte("genesisTime"), genTimeBytes, common.TestPriority)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
@@ -177,7 +178,7 @@ func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
 	}
 
 	genTimeBytes, _ := msr.Marshal(dbt)
-	_ = storer.Put([]byte("genesisTime"), genTimeBytes)
+	_ = storer.Put([]byte("genesisTime"), genTimeBytes, common.TestPriority)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
@@ -234,7 +235,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutNotSucceededShouldErr(t *testing.T) 
 	expectedErr := errors.New("error putting")
 	hs, _ := storage.NewHeartbeatDbStorer(
 		&storageStubs.StorerStub{
-			PutCalled: func(key, data []byte) error {
+			PutCalled: func(key, data []byte, _ common.StorageAccessType) error {
 				return expectedErr
 			},
 		},

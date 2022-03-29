@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -95,7 +96,7 @@ func TestSyncPendingTransactionsFor(t *testing.T) {
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
 						Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),
 					}
@@ -124,7 +125,7 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					dummy := 10
 					return json.Marshal(dummy)
 				},
@@ -278,7 +279,7 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &storageStubs.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, err error) {
+				GetCalled: func(key []byte, priority common.StorageAccessType) (bytes []byte, err error) {
 					dummy := 10
 					return json.Marshal(dummy)
 				},

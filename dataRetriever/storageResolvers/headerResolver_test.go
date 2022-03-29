@@ -144,7 +144,7 @@ func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -177,7 +177,7 @@ func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -219,7 +219,7 @@ func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
@@ -252,12 +252,12 @@ func TestHeaderResolver_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
 	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return nil, expectedErr
 		},
 	}
@@ -289,12 +289,12 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
 	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
@@ -330,7 +330,7 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 	epochIdentifier := []byte(core.EpochStartIdentifier(math.MaxUint32))
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
+		SearchFirstCalled: func(key []byte, priority common.StorageAccessType) ([]byte, error) {
 			assert.Equal(t, epochIdentifier, key)
 			return make([]byte, 0), nil
 		},
