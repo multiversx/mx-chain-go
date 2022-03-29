@@ -842,6 +842,11 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return nil
 	}
 
+	if name == common.ConnectionTopic {
+		netMes.topics[name] = nil
+		return nil
+	}
+
 	topic, err := netMes.pb.Join(name)
 	if err != nil {
 		return fmt.Errorf("%w for topic %s", err, name)
@@ -1089,9 +1094,11 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	defer netMes.mutTopics.Unlock()
 
 	for topic := range netMes.processors {
-		err := netMes.pb.UnregisterTopicValidator(topic)
-		if err != nil {
-			return err
+		if topic != common.ConnectionTopic { // no validator registered for this topic
+			err := netMes.pb.UnregisterTopicValidator(topic)
+			if err != nil {
+				return err
+			}
 		}
 
 		delete(netMes.processors, topic)
@@ -1106,6 +1113,11 @@ func (netMes *networkMessenger) UnjoinAllTopics() error {
 
 	var errFound error
 	for topicName, t := range netMes.topics {
+		if topicName == common.ConnectionTopic {
+			delete(netMes.topics, topicName)
+			continue
+		}
+
 		subscr := netMes.subscriptions[topicName]
 		if subscr != nil {
 			subscr.Cancel()
@@ -1145,7 +1157,9 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string, identif
 	if len(identifiers) == 0 {
 		netMes.processors[topic] = nil
 
-		return netMes.pb.UnregisterTopicValidator(topic)
+		if topic != common.ConnectionTopic { // no validator registered for this topic
+			return netMes.pb.UnregisterTopicValidator(topic)
+		}
 	}
 
 	return nil
