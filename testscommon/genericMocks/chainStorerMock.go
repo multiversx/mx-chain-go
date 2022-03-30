@@ -65,8 +65,20 @@ func (sm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, valu
 }
 
 // GetAll -
-func (sm *ChainStorerMock) GetAll(_ dataRetriever.UnitType, _ [][]byte, _ common.StorageAccessType) (map[string][]byte, error) {
-	panic("not supported")
+func (sm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte, priority common.StorageAccessType) (map[string][]byte, error) {
+	storer := sm.GetStorer(unitType)
+
+	data := make(map[string][]byte)
+	for _, key := range keys {
+		buff, err := storer.Get(key, priority)
+		if err != nil {
+			return nil, err
+		}
+
+		data[string(key)] = buff
+	}
+
+	return data, nil
 }
 
 // SetEpochForPutOperation -

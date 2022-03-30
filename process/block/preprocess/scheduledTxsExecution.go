@@ -269,6 +269,15 @@ func (ste *scheduledTxsExecution) removeInvalidTxsFromScheduledMiniBlocks(interm
 		}
 	}
 
+	resultedScheduledMbs := make(block.MiniBlockSlice, 0)
+	for _, miniBlock := range ste.scheduledMbs {
+		if len(miniBlock.TxHashes) == 0 {
+			continue
+		}
+		resultedScheduledMbs = append(resultedScheduledMbs, miniBlock)
+	}
+	ste.scheduledMbs = resultedScheduledMbs
+
 	log.Debug("scheduledTxsExecution.removeInvalidTxsFromScheduledMiniBlocks", "num of invalid txs removed", numInvalidTxsRemoved)
 }
 
