@@ -165,13 +165,13 @@ func (spm *storagePruningManager) resolveBufferedHashes(oldHashes [][]byte, tsm 
 func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManager) {
 	log.Trace("trie storage manager prune", "root", rootHash)
 
-	err := spm.removeFromDb(rootHash, tsm)
+	err := spm.pruneDb(rootHash, tsm)
 	if err != nil {
 		log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
 	}
 }
 
-func (spm *storagePruningManager) removeFromDb(
+func (spm *storagePruningManager) pruneDb(
 	rootHash []byte,
 	tsm common.StorageManager,
 ) error {
@@ -206,7 +206,7 @@ func (spm *storagePruningManager) removeFromDb(
 
 		hash := []byte(key)
 		log.Trace("remove hash from trie db", "hash", hash)
-		errRemove := tsm.Remove(hash, common.ProcessPriority)
+		errRemove := tsm.Remove(hash, common.TriePruningPriority)
 		if errRemove != nil {
 			return errRemove
 		}

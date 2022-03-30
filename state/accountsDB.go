@@ -187,7 +187,7 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 }
 
 func getNumCheckpoints(trieStorageManager common.StorageManager) uint32 {
-	val, err := trieStorageManager.Get(numCheckpointsKey, common.ProcessPriority)
+	val, err := trieStorageManager.Get(numCheckpointsKey, common.SnapshotPriority)
 	if err != nil {
 		return 0
 	}
@@ -1227,7 +1227,7 @@ func (adb *AccountsDB) increaseNumCheckpoints() {
 	numCheckpointsVal := make([]byte, 4)
 	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
 
-	err := trieStorageManager.Put(numCheckpointsKey, numCheckpointsVal, common.ProcessPriority) // marker, should be set ASAP
+	err := trieStorageManager.Put(numCheckpointsKey, numCheckpointsVal, common.SnapshotPriority)
 	handleLoggingWhenError("could not add num checkpoints to database", err)
 }
 

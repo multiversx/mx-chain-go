@@ -23,6 +23,8 @@ func TestIsStorageAccessValid(t *testing.T) {
 		assert.True(t, IsStorageAccessValid(APIPriority))
 		assert.True(t, IsStorageAccessValid(ResolveRequestPriority))
 		assert.True(t, IsStorageAccessValid(SnapshotPriority))
+		assert.True(t, IsStorageAccessValid(TriePruningPriority))
+		assert.True(t, IsStorageAccessValid(HeartbeatPriority))
 		assert.True(t, IsStorageAccessValid(TestPriority))
 	})
 }

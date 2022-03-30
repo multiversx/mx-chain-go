@@ -191,7 +191,7 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
-	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"), common.APIPriority)
+	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"), common.TestPriority)
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
@@ -348,7 +348,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash := []byte("hash")
 	headerNonce := uint64(1)
 	nonceBytes := n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash, common.APIPriority)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash, common.TestPriority)
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, headerHash, headerNonce)
@@ -408,7 +408,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Contains(t, err.Error(), "fooError")
 
 	// Badly serialized transaction
-	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"), common.APIPriority)
+	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"), common.TestPriority)
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return &dblookupext.MiniblockMetadata{}, nil
 	}
@@ -421,7 +421,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	headerHash = []byte("hash")
 	headerNonce = uint64(1)
 	nonceBytes = n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
-	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash, common.APIPriority)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash, common.TestPriority)
 	txH := &rewardTx.RewardTx{Round: 50, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.GetCoreComponents().InternalMarshalizer())
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, wrongHeaderHash, headerNonce)

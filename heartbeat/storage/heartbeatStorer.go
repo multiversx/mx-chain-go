@@ -44,7 +44,7 @@ func NewHeartbeatDbStorer(
 
 // LoadGenesisTime will return the genesis time saved in the storer
 func (hs *HeartbeatDbStorer) LoadGenesisTime() (time.Time, error) {
-	genesisTimeFromDbBytes, err := hs.storer.Get([]byte(genesisTimeDbEntry), common.ProcessPriority)
+	genesisTimeFromDbBytes, err := hs.storer.Get([]byte(genesisTimeDbEntry), common.HeartbeatPriority)
 	if err != nil {
 		return time.Time{}, heartbeat.ErrFetchGenesisTimeFromDb
 	}
@@ -90,7 +90,7 @@ func (hs *HeartbeatDbStorer) saveGenesisTimeToDb(genesisTime time.Time) error {
 		return heartbeat.ErrMarshalGenesisTime
 	}
 
-	err = hs.storer.Put([]byte(genesisTimeDbEntry), genesisTimeBytes, common.ProcessPriority)
+	err = hs.storer.Put([]byte(genesisTimeDbEntry), genesisTimeBytes, common.HeartbeatPriority)
 	if err != nil {
 		return heartbeat.ErrStoreGenesisTimeToDb
 	}
@@ -102,7 +102,7 @@ func (hs *HeartbeatDbStorer) saveGenesisTimeToDb(genesisTime time.Time) error {
 func (hs *HeartbeatDbStorer) LoadHeartBeatDTO(pubKey string) (*data.HeartbeatDTO, error) {
 	pkbytes := []byte(pubKey)
 
-	hbFromDB, err := hs.storer.Get(pkbytes, common.ProcessPriority)
+	hbFromDB, err := hs.storer.Get(pkbytes, common.HeartbeatPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (hs *HeartbeatDbStorer) LoadHeartBeatDTO(pubKey string) (*data.HeartbeatDTO
 
 // LoadKeys will return the keys saved in the storer, representing public keys of all peers the node is connected to
 func (hs *HeartbeatDbStorer) LoadKeys() ([][]byte, error) {
-	allKeysBytes, err := hs.storer.Get([]byte(peersKeysDbEntry), common.ProcessPriority)
+	allKeysBytes, err := hs.storer.Get([]byte(peersKeysDbEntry), common.HeartbeatPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (hs *HeartbeatDbStorer) SaveKeys(peersSlice [][]byte) error {
 		return errMarsh
 	}
 
-	return hs.storer.Put([]byte(peersKeysDbEntry), marshalizedFullPeersSlice, common.ProcessPriority)
+	return hs.storer.Put([]byte(peersKeysDbEntry), marshalizedFullPeersSlice, common.HeartbeatPriority)
 }
 
 // SavePubkeyData will add or update a HeartbeatDTO in the storer
@@ -152,7 +152,7 @@ func (hs *HeartbeatDbStorer) SavePubkeyData(
 		return err
 	}
 
-	errStore := hs.storer.Put(pubkey, marshalizedHeartBeat, common.ProcessPriority)
+	errStore := hs.storer.Put(pubkey, marshalizedHeartBeat, common.HeartbeatPriority)
 	if errStore != nil {
 		return errStore
 	}

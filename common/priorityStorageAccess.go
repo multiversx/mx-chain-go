@@ -24,6 +24,13 @@ const (
 	// SnapshotPriority is the priority used when doing a trie snapshot
 	SnapshotPriority = LowPriority
 
+	// TriePruningPriority is the priority used when doing a trie pruning operation
+	TriePruningPriority = LowPriority
+
+	// HeartbeatPriority is the priority used for the heartbeat operation
+	// TODO remove this after heartbeat v2 is in place
+	HeartbeatPriority = LowPriority
+
 	// TestPriority is the priority used when executing test code
 	TestPriority = LowPriority
 )

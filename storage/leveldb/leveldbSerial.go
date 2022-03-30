@@ -19,11 +19,14 @@ import (
 
 var _ storage.Persister = (*SerialDB)(nil)
 
+const maxTimeOperationForHighPrio = time.Millisecond * 30
+
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
 	*baseLevelDb
 	maxBatchSize      int
 	batchDelaySeconds int
+	waitingOperations *waitingOperationsCounters
 
 	lowPrioBatch  *batchWrapper
 	highPrioBatch *batchWrapper
@@ -73,6 +76,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		highPrioDbAccess:  make(chan serialQueryer),
 		cancel:            cancel,
 		closer:            closing.NewSafeChanCloser(),
+		waitingOperations: newWaitingOperationsCounters(),
 	}
 
 	go dbStore.batchTimeoutHandle(ctx)
@@ -118,19 +122,19 @@ func (s *SerialDB) putBatchHandlingErrors(priority common.StorageAccessType) {
 		return
 	}
 
-	err = s.putBatch(wrappedBatch, writeChan)
+	err = s.putBatch(wrappedBatch, writeChan, priority)
 	if err != nil {
 		log.Warn("SerialDB.putBatchHandlingErrors -> putBatch", "error", err.Error())
 		return
 	}
 }
 
-func (s *SerialDB) updateBatchWithIncrement(wrappedBatch *batchWrapper, writeChan chan serialQueryer) error {
+func (s *SerialDB) updateBatchWithIncrement(wrappedBatch *batchWrapper, writeChan chan serialQueryer, priority common.StorageAccessType) error {
 	if wrappedBatch.updateBatchSizeReturningCurrent() < s.maxBatchSize {
 		return nil
 	}
 
-	return s.putBatch(wrappedBatch, writeChan)
+	return s.putBatch(wrappedBatch, writeChan, priority)
 }
 
 func (s *SerialDB) getBatchWrapperAndChan(priority common.StorageAccessType) (*batchWrapper, chan serialQueryer, error) {
@@ -160,7 +164,7 @@ func (s *SerialDB) Put(key, val []byte, priority common.StorageAccessType) error
 		return err
 	}
 
-	return s.updateBatchWithIncrement(wrappedBatch, writeChan)
+	return s.updateBatchWithIncrement(wrappedBatch, writeChan, priority)
 }
 
 // Get returns the value associated to the key
@@ -182,27 +186,22 @@ func (s *SerialDB) Get(key []byte, priority common.StorageAccessType) ([]byte, e
 		return data, nil
 	}
 
-	ch := make(chan *pairResult)
-	req := &getAct{
+	resChan := make(chan *result)
+	req := &getAction{
 		key:     key,
-		resChan: ch,
+		resChan: resChan,
 	}
 
-	err = s.tryWriteInDbAccessChan(req, writeChan)
-	if err != nil {
-		return nil, err
-	}
-	result := <-ch
-	close(ch)
+	res := s.executeSerialDBRequest(req, writeChan, priority, "get")
 
-	if result.err == leveldb.ErrNotFound {
+	if res.err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
-	if result.err != nil {
-		return nil, result.err
+	if res.err != nil {
+		return nil, res.err
 	}
 
-	return result.value, nil
+	return res.value, nil
 }
 
 // Has returns nil if the given key is present in the persistence medium
@@ -224,20 +223,13 @@ func (s *SerialDB) Has(key []byte, priority common.StorageAccessType) error {
 		return nil
 	}
 
-	ch := make(chan error)
-	req := &hasAct{
+	resChan := make(chan *result)
+	req := &hasAction{
 		key:     key,
-		resChan: ch,
+		resChan: resChan,
 	}
 
-	err = s.tryWriteInDbAccessChan(req, writeChan)
-	if err != nil {
-		return err
-	}
-	result := <-ch
-	close(ch)
-
-	return result
+	return s.executeSerialDBRequest(req, writeChan, priority, "has").err
 }
 
 func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer, ch chan serialQueryer) error {
@@ -249,28 +241,53 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer, ch chan serialQuery
 	}
 }
 
+func (s *SerialDB) executeSerialDBRequest(req serialQueryer, writeChan chan serialQueryer, priority common.StorageAccessType, operation string) *result {
+	s.waitingOperations.increment(priority)
+	defer s.waitingOperations.increment(priority)
+
+	start := time.Now()
+	defer func() {
+		if priority != common.HighPriority {
+			return
+		}
+
+		measuredDuration := time.Since(start)
+		if measuredDuration > maxTimeOperationForHighPrio {
+			log.Warn(fmt.Sprintf("high priority disk operation took > %v", maxTimeOperationForHighPrio),
+				"measured duration", measuredDuration,
+				"operation", operation,
+				"pending operations", s.waitingOperations.snapshotString())
+		}
+	}()
+
+	err := s.tryWriteInDbAccessChan(req, writeChan)
+	if err != nil {
+		return &result{
+			err: err,
+		}
+	}
+
+	res := <-req.resultChan()
+	close(req.resultChan())
+
+	return res
+}
+
 // putBatch writes the Batch data into the database
-func (s *SerialDB) putBatch(wrappedBatch *batchWrapper, writeChan chan serialQueryer) error {
+func (s *SerialDB) putBatch(wrappedBatch *batchWrapper, writeChan chan serialQueryer, priority common.StorageAccessType) error {
 	lastBatch := wrappedBatch.resetBatchReturningLast()
 	dbBatch, ok := lastBatch.(*batch)
 	if !ok {
 		return storage.ErrInvalidBatch
 	}
 
-	ch := make(chan error)
-	req := &putBatchAct{
+	resChan := make(chan *result)
+	req := &putBatchAction{
 		batch:   dbBatch,
-		resChan: ch,
+		resChan: resChan,
 	}
 
-	err := s.tryWriteInDbAccessChan(req, writeChan)
-	if err != nil {
-		return err
-	}
-	result := <-ch
-	close(ch)
-
-	return result
+	return s.executeSerialDBRequest(req, writeChan, priority, "put").err
 }
 
 func (s *SerialDB) isClosed() bool {
@@ -301,7 +318,7 @@ func (s *SerialDB) Remove(key []byte, priority common.StorageAccessType) error {
 
 	wrappedBatch.delete(key)
 
-	return s.updateBatchWithIncrement(wrappedBatch, writeChan)
+	return s.updateBatchWithIncrement(wrappedBatch, writeChan, priority)
 }
 
 // Destroy removes the storage medium stored data
