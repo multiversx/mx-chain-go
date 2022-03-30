@@ -1093,11 +1093,14 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	defer netMes.mutTopics.Unlock()
 
 	for topic := range netMes.processors {
-		if topic != common.ConnectionTopic { // no validator registered for this topic
-			err := netMes.pb.UnregisterTopicValidator(topic)
-			if err != nil {
-				return err
-			}
+		if topic == common.ConnectionTopic {
+			delete(netMes.processors, topic)
+			continue
+		}
+
+		err := netMes.pb.UnregisterTopicValidator(topic)
+		if err != nil {
+			return err
 		}
 
 		delete(netMes.processors, topic)
