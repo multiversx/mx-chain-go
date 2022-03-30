@@ -288,9 +288,9 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
 				"intermediate tx hash", txHash,
 				"intermediate tx nonce", txHandler.GetNonce(),
-				"intermediate tx sender address", string(txHandler.GetSndAddr()),
-				"intermediate tx receiver address", string(txHandler.GetRcvAddr()),
-				"intermediate tx data", string(txHandler.GetData()),
+				"intermediate tx sender address", txHandler.GetSndAddr(),
+				"intermediate tx receiver address", txHandler.GetRcvAddr(),
+				"intermediate tx data", txHandler.GetData(),
 			)
 		}
 	}

@@ -227,7 +227,7 @@ func (txs *transactions) processTransaction(
 			"senderUsername", tx.GetSndUserName(),
 			"receiverAddr", tx.GetRcvAddr(),
 			"receiverUsername", tx.GetRcvUserName(),
-			"data", string(tx.Data),
+			"data", tx.Data,
 			"err", err.Error(),
 		)
 		if !mbInfo.firstInvalidTxFound {
