@@ -286,7 +286,7 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 		if isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(txHash), txHandler, selfShardID) {
 			scheduledIntermediateTxs[txHash] = txHandler
 			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
-				"intermediate tx hash", txHash,
+				"intermediate tx hash", []byte(txHash),
 				"intermediate tx nonce", txHandler.GetNonce(),
 				"intermediate tx sender address", txHandler.GetSndAddr(),
 				"intermediate tx receiver address", txHandler.GetRcvAddr(),
