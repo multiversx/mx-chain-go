@@ -175,7 +175,7 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 				"gas price", txHandler.GetGasPrice(),
 				"sender address", txHandler.GetSndAddr(),
 				"receiver address", txHandler.GetRcvAddr(),
-				"data", txHandler.GetData(),
+				"data", string(txHandler.GetData()),
 				"error", err.Error())
 			if !errors.Is(err, process.ErrFailedTransaction) {
 				return err
