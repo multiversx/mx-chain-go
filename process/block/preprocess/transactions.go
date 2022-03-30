@@ -253,7 +253,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		miniBlockStrCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
 			log.Debug("tx from mini block was not found in TransactionUnit",
@@ -272,6 +272,7 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 				return txsRestored, err
 			}
 
+			strCache := txs.computeCacheIdentifier(miniBlockStrCache, &tx, miniBlock.Type)
 			txs.txPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
@@ -288,6 +289,23 @@ func (txs *transactions) RestoreBlockDataIntoPools(
 	}
 
 	return txsRestored, nil
+}
+
+func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *transaction.Transaction, miniBlockType block.Type) string {
+	if miniBlockType != block.InvalidBlock {
+		return miniBlockStrCache
+	}
+	if !txs.flagScheduledMiniBlocks.IsSet() {
+		return miniBlockStrCache
+	}
+
+	// scheduled miniblocks feature requires that the transactions are properly restored in the correct cache, not the one
+	// provided by the containing miniblock (think of how invalid transactions are executed and stored)
+
+	senderShardID := txs.getShardFromAddress(tx.GetSndAddr())
+	receiverShardID := txs.getShardFromAddress(tx.GetRcvAddr())
+
+	return process.ShardCacherIdentifier(senderShardID, receiverShardID)
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
