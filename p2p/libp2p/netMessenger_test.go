@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
@@ -1757,7 +1758,8 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Type:                    "NilListSharder",
 			},
 		},
-		SyncTimer: &mock.SyncTimerStub{},
+		SyncTimer:            &mock.SyncTimerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	netMes, err := libp2p.NewNetworkMessenger(args)
@@ -1869,4 +1871,96 @@ func TestLibp2pMessenger_SignVerifyPayloadShouldWork(t *testing.T) {
 
 	err = messenger1.Verify(payload, messenger1.ID(), sig)
 	assert.Nil(t, err)
+}
+
+func TestLibp2pMessenger_ConnectionTopic(t *testing.T) {
+	t.Parallel()
+
+	t.Run("create topic should work", func(t *testing.T) {
+		t.Parallel()
+
+		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		topic := common.ConnectionTopic
+		err := netMes.CreateTopic(topic, true)
+		assert.Nil(t, err)
+		assert.False(t, netMes.HasTopic(topic))
+		assert.False(t, netMes.PubsubHasTopic(topic))
+
+		testTopic := "test topic"
+		err = netMes.CreateTopic(testTopic, true)
+		assert.Nil(t, err)
+		assert.True(t, netMes.HasTopic(testTopic))
+		assert.True(t, netMes.PubsubHasTopic(testTopic))
+
+		err = netMes.UnjoinAllTopics()
+		assert.Nil(t, err)
+		assert.False(t, netMes.HasTopic(topic))
+		assert.False(t, netMes.PubsubHasTopic(topic))
+		assert.False(t, netMes.HasTopic(testTopic))
+		assert.False(t, netMes.PubsubHasTopic(testTopic))
+
+		_ = netMes.Close()
+	})
+	t.Run("register-unregister message processor should work", func(t *testing.T) {
+		t.Parallel()
+
+		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		identifier := "identifier"
+		topic := common.ConnectionTopic
+		err := netMes.RegisterMessageProcessor(topic, identifier, &mock.MessageProcessorStub{})
+		assert.Nil(t, err)
+		assert.True(t, netMes.HasProcessorForTopic(topic))
+
+		err = netMes.UnregisterMessageProcessor(topic, identifier)
+		assert.Nil(t, err)
+		assert.False(t, netMes.HasProcessorForTopic(topic))
+
+		_ = netMes.Close()
+	})
+	t.Run("unregister all processors should work", func(t *testing.T) {
+		t.Parallel()
+
+		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		topic := common.ConnectionTopic
+		err := netMes.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{})
+		assert.Nil(t, err)
+		assert.True(t, netMes.HasProcessorForTopic(topic))
+
+		testTopic := "test topic"
+		err = netMes.RegisterMessageProcessor(testTopic, "identifier", &mock.MessageProcessorStub{})
+		assert.Nil(t, err)
+		assert.True(t, netMes.HasProcessorForTopic(testTopic))
+
+		err = netMes.UnregisterAllMessageProcessors()
+		assert.Nil(t, err)
+		assert.False(t, netMes.HasProcessorForTopic(topic))
+		assert.False(t, netMes.HasProcessorForTopic(testTopic))
+
+		_ = netMes.Close()
+	})
+	t.Run("unregister all processors should work", func(t *testing.T) {
+		t.Parallel()
+
+		netMes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+		topic := common.ConnectionTopic
+		err := netMes.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{})
+		assert.Nil(t, err)
+		assert.True(t, netMes.HasProcessorForTopic(topic))
+
+		testTopic := "test topic"
+		err = netMes.RegisterMessageProcessor(testTopic, "identifier", &mock.MessageProcessorStub{})
+		assert.Nil(t, err)
+		assert.True(t, netMes.HasProcessorForTopic(testTopic))
+
+		err = netMes.UnregisterAllMessageProcessors()
+		assert.Nil(t, err)
+		assert.False(t, netMes.HasProcessorForTopic(topic))
+		assert.False(t, netMes.HasProcessorForTopic(testTopic))
+
+		_ = netMes.Close()
+	})
 }

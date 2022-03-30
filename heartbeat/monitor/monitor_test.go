@@ -278,25 +278,6 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		args := createMockHeartbeatV2MonitorArgs()
-		counter := 0
-		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				// Only first entry is unique, then all should have same pk
-				var info core.P2PPeerInfo
-				if counter == 0 {
-					info = core.P2PPeerInfo{
-						PkBytes: pid.Bytes(),
-					}
-				} else {
-					info = core.P2PPeerInfo{
-						PkBytes: []byte("same pk"),
-					}
-				}
-
-				counter++
-				return info
-			},
-		}
 		providedStatuses := []bool{true, true, true}
 		numOfMessages := len(providedStatuses)
 		providedPids := make([]core.PeerID, numOfMessages)
@@ -306,6 +287,23 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
 
 			args.Cache.Put(providedPids[i].Bytes(), providedMessages[i], providedMessages[i].Size())
+		}
+		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				// Only first entry is unique, then all should have same pk
+				var info core.P2PPeerInfo
+				if pid == providedPids[0] {
+					info = core.P2PPeerInfo{
+						PkBytes: pid.Bytes(),
+					}
+				} else {
+					info = core.P2PPeerInfo{
+						PkBytes: []byte("same pk"),
+					}
+				}
+
+				return info
+			},
 		}
 
 		monitor, _ := NewHeartbeatV2Monitor(args)
