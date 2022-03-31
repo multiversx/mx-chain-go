@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
@@ -51,7 +52,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -74,10 +74,10 @@ func NewTestMetaProcessor(
 	metaConsensusGroupSize int,
 ) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createMockComponentHolders(uint32(numOfShards))
-	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents)
-	scp := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
+	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents)
+	scp, validatorsInfoCreator := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
 	return &TestMetaProcessor{
-		MetaBlockProcessor: createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents),
+		MetaBlockProcessor: createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator),
 	}
 }
 
@@ -99,8 +99,8 @@ func createSystemSCProcessor(
 	stateComponents factory2.StateComponentsHandler,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
-) process.EpochStartSystemSCProcessor {
-	args, _ := createFullArgumentsForSystemSCProcessing(nc,
+) (process.EpochStartSystemSCProcessor, process.ValidatorStatisticsProcessor) {
+	args, _, validatorsInfOCreator := createFullArgumentsForSystemSCProcessing(nc,
 		1000,
 		coreComponents,
 		stateComponents,
@@ -108,7 +108,7 @@ func createSystemSCProcessor(
 		dataComponents,
 	)
 	s, _ := metachain.NewSystemSCProcessor(args)
-	return s
+	return s, validatorsInfOCreator
 }
 
 // TODO: MAYBE USE factory from mainFactory.CreateNodesCoordinator
@@ -119,6 +119,7 @@ func createNodesCoordinator(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	coreComponents factory2.CoreComponentsHolder,
+	dataComponents factory2.DataComponentsHolder,
 ) nodesCoordinator.NodesCoordinator {
 	validatorsMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
@@ -137,7 +138,6 @@ func createNodesCoordinator(
 		BalanceWaitingListsEnableEpoch: 0,
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
-	bootStorer := integrationTests.CreateMemUnit()
 
 	cache, _ := lrucache.NewCache(10000)
 	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(integrationTests.TestMarshalizer, forking.NewGenericEpochNotifier(), 4444)
@@ -157,7 +157,7 @@ func createNodesCoordinator(
 		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 		IsFullArchive:                   false,
 		Shuffler:                        nodeShuffler,
-		BootStorer:                      bootStorer,
+		BootStorer:                      dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
 		StakingV4EnableEpoch:            444,
 		NodesCoordinatorRegistryFactory: ncrf,
@@ -207,8 +207,10 @@ func createMetaBlockProcessor(
 	dataComponents factory2.DataComponentsHolder,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
 	statusComponents *mock.StatusComponentsMock,
+	stateComponents factory2.StateComponentsHandler,
+	validatorsInfoCreator process.ValidatorStatisticsProcessor,
 ) process.BlockProcessor {
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor, stateComponents, validatorsInfoCreator)
 
 	metaProc, _ := blproc.NewMetaProcessor(arguments)
 	return metaProc
@@ -232,11 +234,17 @@ func createMockComponentHolders(numOfShards uint32) (
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
 		RaterField:                         &mock2.RaterMock{},
+		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
+		EconomicsDataField:                 createEconomicsData(),
 	}
 
-	blockChain, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
+	blockChain, _ := blockchain.NewMetaChain(statusHandler.NewStatusMetrics())
+	_ = blockChain.SetGenesisHeader(createGenesisMetaBlock())
+
+	chainStorer := dataRetriever.NewChainStorer()
+	chainStorer.AddStorer(dataRetriever.BootstrapUnit, integrationTests.CreateMemUnit())
 	dataComponents := &factory3.DataComponentsMock{ //&mock.DataComponentsMock{
-		Store:      dataRetriever.NewChainStorer(),
+		Store:      chainStorer,
 		DataPool:   dataRetrieverMock.NewPoolsHolderMock(),
 		BlockChain: blockChain,
 	}
@@ -276,69 +284,61 @@ func createMockMetaArguments(
 	statusComponents *mock.StatusComponentsMock,
 	nodesCoord nodesCoordinator.NodesCoordinator,
 	systemSCProcessor process.EpochStartSystemSCProcessor,
+	stateComponents factory2.StateComponentsHandler,
+	validatorsInfoCreator process.ValidatorStatisticsProcessor,
 ) blproc.ArgMetaProcessor {
-
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &mock.HasherStub{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:      coreComponents.Hasher(),
+		Marshalizer: coreComponents.InternalMarshalizer(),
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
 	startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
-		CommitCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-	}
-	accountsDb[state.PeerAccountsState] = &stateMock.AccountsStub{
-		CommitCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-	}
+	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter()
+	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts()
+
+	bootStrapStorer, _ := bootstrapStorage.NewBootstrapStorer(coreComponents.InternalMarshalizer(), integrationTests.CreateMemUnit())
+	valInfoCreator, _ := metachain.NewValidatorInfoCreator(metachain.ArgsNewValidatorInfoCreator{
+		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
+		MiniBlockStorage: integrationTests.CreateMemUnit(),
+		Hasher:           coreComponents.Hasher(),
+		Marshalizer:      coreComponents.InternalMarshalizer(),
+		DataPool:         dataComponents.Datapool(),
+	})
 
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			CoreComponents:      coreComponents,
-			DataComponents:      dataComponents,
-			BootstrapComponents: bootstrapComponents,
-			StatusComponents:    statusComponents,
-			AccountsDB:          accountsDb,
-			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    nodesCoord,
-			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-			HeaderValidator:     headerValidator,
-			GasHandler:          &mock.GasHandlerMock{},
-			BootStorer: &mock.BoostrapStorerMock{
-				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
-					return nil
-				},
-			},
+			CoreComponents:                 coreComponents,
+			DataComponents:                 dataComponents,
+			BootstrapComponents:            bootstrapComponents,
+			StatusComponents:               statusComponents,
+			AccountsDB:                     accountsDb,
+			ForkDetector:                   &mock.ForkDetectorMock{},
+			NodesCoordinator:               nodesCoord,
+			FeeHandler:                     &mock.FeeAccumulatorStub{},
+			RequestHandler:                 &testscommon.RequestHandlerStub{},
+			BlockChainHook:                 &testscommon.BlockChainHookStub{},
+			TxCoordinator:                  &mock.TransactionCoordinatorMock{},
+			EpochStartTrigger:              &mock.EpochStartTriggerStub{},
+			HeaderValidator:                headerValidator,
+			GasHandler:                     &mock.GasHandlerMock{},
+			BootStorer:                     bootStrapStorer,
 			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
+			EpochNotifier:                  coreComponents.EpochNotifier(),
 			RoundNotifier:                  &mock.RoundNotifierStub{},
 			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 2,
+			ScheduledMiniBlocksEnableEpoch: 10000,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
 		EpochEconomics:               &mock.EpochEconomicsStub{},
 		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
-		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
-		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
+		EpochValidatorInfoCreator:    valInfoCreator,
+		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
 	}
 	return arguments
@@ -391,7 +391,7 @@ func createFullArgumentsForSystemSCProcessing(
 	stateComponents factory2.StateComponentsHandler,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
-) (metachain.ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
+) (metachain.ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer, process.ValidatorStatisticsProcessor) {
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:                          coreComponents.InternalMarshalizer(),
 		NodesCoordinator:                     nc,
@@ -541,7 +541,7 @@ func createFullArgumentsForSystemSCProcessing(
 			},
 		},
 	}
-	return args, metaVmFactory.SystemSmartContractContainer()
+	return args, metaVmFactory.SystemSmartContractContainer(), vCreator
 }
 
 func createAccountsDB(
