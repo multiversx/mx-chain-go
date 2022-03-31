@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-core/data/vm"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -1040,4 +1041,75 @@ func TestNodeFacade_GetBlockByRoundShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
+}
+
+func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
+	arg := createMockArguments()
+	nf, _ := NewNodeFacade(arg)
+
+	convertAddressFunc := func(input []byte) string {
+		// NodeStub uses hex.EncodeToString for the stubbed EncodeAddressPubkey() function
+		return hex.EncodeToString(input)
+	}
+
+	retData := [][]byte{[]byte("ret_data_0")}
+	outAcc, outAccStorageKey, outAccOffset := []byte("addr0"), []byte("out_acc_storage_key"), []byte("offset")
+	outAccTransferSndrAddr := []byte("addr1")
+	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, []byte("log_data")
+	vmInput := vmcommon.VMOutput{
+		ReturnData: retData,
+		OutputAccounts: map[string]*vmcommon.OutputAccount{
+			string(outAcc): {
+				Address: outAcc,
+				StorageUpdates: map[string]*vmcommon.StorageUpdate{
+					string(outAccStorageKey): {
+						Offset: outAccOffset,
+					},
+				},
+				OutputTransfers: []vmcommon.OutputTransfer{
+					{
+						SenderAddress: outAccTransferSndrAddr,
+					},
+				},
+			},
+		},
+		Logs: []*vmcommon.LogEntry{
+			{
+				Identifier: logId,
+				Address:    logAddr,
+				Topics:     logTopics,
+				Data:       logData,
+			},
+		},
+	}
+
+	expectedOutputAccounts := map[string]*vm.OutputAccountApi{
+		convertAddressFunc(outAcc): {
+			Address: convertAddressFunc(outAcc),
+			StorageUpdates: map[string]*vm.StorageUpdateApi{
+				hex.EncodeToString(outAccStorageKey): {
+					Offset: outAccOffset,
+				},
+			},
+			OutputTransfers: []vm.OutputTransferApi{
+				{
+					SenderAddress: convertAddressFunc(outAccTransferSndrAddr),
+				},
+			},
+		},
+	}
+
+	expectedLogs := []*vm.LogEntryApi{
+		{
+			Identifier: logId,
+			Address:    convertAddressFunc(logAddr),
+			Topics:     logTopics,
+			Data:       logData,
+		},
+	}
+
+	res := nf.convertVmOutputToApiResponse(&vmInput)
+	require.Equal(t, retData, res.ReturnData)
+	require.Equal(t, expectedOutputAccounts, res.OutputAccounts)
+	require.Equal(t, expectedLogs, res.Logs)
 }
