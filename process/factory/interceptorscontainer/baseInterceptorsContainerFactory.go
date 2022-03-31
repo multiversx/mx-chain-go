@@ -607,9 +607,11 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptor() error {
 	identifierPeerAuthentication := common.PeerAuthenticationTopic
 
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
 		PeerShardMapper:          bicf.peerShardMapper,
+		Marshaller:               internalMarshalizer,
 		HardforkTrigger:          bicf.hardforkTrigger,
 	}
 	peerAuthenticationProcessor, err := processor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
@@ -622,7 +624,6 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 		return err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                identifierPeerAuthentication,

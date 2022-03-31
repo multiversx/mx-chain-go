@@ -475,6 +475,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 				return &mock.PrivateKeyStub{}
 			},
 		},
+		HardforkTriggerField: &mock.HardforkTriggerStub{},
 	}
 }
 
