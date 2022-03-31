@@ -38,6 +38,7 @@ func NewShardInterceptorsContainerFactory(
 		args.PreferredPeersHolder,
 		args.RequestHandler,
 		args.PeerShardMapper,
+		args.HardforkTrigger,
 	)
 	if err != nil {
 		return nil, err
@@ -117,6 +118,7 @@ func NewShardInterceptorsContainerFactory(
 		hasher:                 args.CoreComponents.Hasher(),
 		requestHandler:         args.RequestHandler,
 		peerShardMapper:        args.PeerShardMapper,
+		hardforkTrigger:        args.HardforkTrigger,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

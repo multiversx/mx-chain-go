@@ -9,6 +9,11 @@ type senderHandler interface {
 	IsInterfaceNil() bool
 }
 
+type hardforkHandler interface {
+	ShouldTriggerHardfork() <-chan struct{}
+	Execute()
+}
+
 type timerHandler interface {
 	CreateNewTimer(duration time.Duration)
 	ExecutionReadyChannel() <-chan time.Time

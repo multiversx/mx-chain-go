@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -12,20 +13,24 @@ import (
 // argPeerAuthenticationSender represents the arguments for the peer authentication sender
 type argPeerAuthenticationSender struct {
 	argBaseSender
-	nodesCoordinator     heartbeat.NodesCoordinator
-	peerSignatureHandler crypto.PeerSignatureHandler
-	privKey              crypto.PrivateKey
-	redundancyHandler    heartbeat.NodeRedundancyHandler
+	nodesCoordinator         heartbeat.NodesCoordinator
+	peerSignatureHandler     crypto.PeerSignatureHandler
+	privKey                  crypto.PrivateKey
+	redundancyHandler        heartbeat.NodeRedundancyHandler
+	hardforkTrigger          heartbeat.HardforkTrigger
+	hardforkTimeBetweenSends time.Duration
 }
 
 type peerAuthenticationSender struct {
 	baseSender
-	nodesCoordinator     heartbeat.NodesCoordinator
-	peerSignatureHandler crypto.PeerSignatureHandler
-	redundancy           heartbeat.NodeRedundancyHandler
-	privKey              crypto.PrivateKey
-	publicKey            crypto.PublicKey
-	observerPublicKey    crypto.PublicKey
+	nodesCoordinator         heartbeat.NodesCoordinator
+	peerSignatureHandler     crypto.PeerSignatureHandler
+	redundancy               heartbeat.NodeRedundancyHandler
+	privKey                  crypto.PrivateKey
+	publicKey                crypto.PublicKey
+	observerPublicKey        crypto.PublicKey
+	hardforkTrigger          heartbeat.HardforkTrigger
+	hardforkTimeBetweenSends time.Duration
 }
 
 // newPeerAuthenticationSender will create a new instance of type peerAuthenticationSender
@@ -37,13 +42,15 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 
 	redundancyHandler := args.redundancyHandler
 	sender := &peerAuthenticationSender{
-		baseSender:           createBaseSender(args.argBaseSender),
-		nodesCoordinator:     args.nodesCoordinator,
-		peerSignatureHandler: args.peerSignatureHandler,
-		redundancy:           redundancyHandler,
-		privKey:              args.privKey,
-		publicKey:            args.privKey.GeneratePublic(),
-		observerPublicKey:    redundancyHandler.ObserverPrivateKey().GeneratePublic(),
+		baseSender:               createBaseSender(args.argBaseSender),
+		nodesCoordinator:         args.nodesCoordinator,
+		peerSignatureHandler:     args.peerSignatureHandler,
+		redundancy:               redundancyHandler,
+		privKey:                  args.privKey,
+		publicKey:                args.privKey.GeneratePublic(),
+		observerPublicKey:        redundancyHandler.ObserverPrivateKey().GeneratePublic(),
+		hardforkTrigger:          args.hardforkTrigger,
+		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
 	}
 
 	return sender, nil
@@ -66,62 +73,78 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 	if check.IfNil(args.redundancyHandler) {
 		return heartbeat.ErrNilRedundancyHandler
 	}
+	if check.IfNil(args.hardforkTrigger) {
+		return heartbeat.ErrNilHardforkTrigger
+	}
+	if args.hardforkTimeBetweenSends < minTimeBetweenSends {
+		return fmt.Errorf("%w for hardforkTimeBetweenSends", heartbeat.ErrInvalidTimeDuration)
+	}
 
 	return nil
 }
 
 // Execute will handle the execution of a cycle in which the peer authentication message will be sent
 func (sender *peerAuthenticationSender) Execute() {
+	var duration time.Duration
+	defer func() {
+		sender.CreateNewTimer(duration)
+	}()
+
 	if !sender.isValidator() {
-		sender.CreateNewTimer(sender.timeBetweenSendsWhenError)
+		duration = sender.timeBetweenSendsWhenError
 		return
 	}
 
-	duration := sender.computeRandomDuration()
-	err := sender.execute()
+	duration = sender.computeRandomDuration()
+	err, isHardforkTriggered := sender.execute()
 	if err != nil {
 		duration = sender.timeBetweenSendsWhenError
-		log.Error("error sending peer authentication message", "error", err, "next send will be in", duration)
-	} else {
-		log.Debug("peer authentication message sent", "next send will be in", duration)
+		log.Error("error sending peer authentication message", "error", err, "is hardfork triggered", isHardforkTriggered, "next send will be in", duration)
+		return
 	}
 
-	sender.CreateNewTimer(duration)
+	if isHardforkTriggered {
+		duration = sender.hardforkTimeBetweenSends
+	}
+
+	log.Debug("peer authentication message sent", "is hardfork triggered", isHardforkTriggered, "next send will be in", duration)
 }
 
-func (sender *peerAuthenticationSender) execute() error {
+func (sender *peerAuthenticationSender) execute() (error, bool) {
 	sk, pk := sender.getCurrentPrivateAndPublicKeys()
 
 	msg := &heartbeat.PeerAuthentication{
 		Pid: sender.messenger.ID().Bytes(),
 	}
+
+	hardforkPayload, isTriggered := sender.getHardforkPayload()
 	payload := &heartbeat.Payload{
 		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "", // TODO add the hardfork message, if required
+		HardforkMessage: string(hardforkPayload),
 	}
 	payloadBytes, err := sender.marshaller.Marshal(payload)
 	if err != nil {
-		return err
+		return err, isTriggered
 	}
 	msg.Payload = payloadBytes
 	msg.PayloadSignature, err = sender.messenger.Sign(payloadBytes)
 	if err != nil {
-		return err
+		return err, isTriggered
 	}
 
 	msg.Pubkey, err = pk.ToByteArray()
 	if err != nil {
-		return err
+		return err, isTriggered
 	}
 
 	msg.Signature, err = sender.peerSignatureHandler.GetPeerSignature(sk, msg.Pid)
 	if err != nil {
-		return err
+		return err, isTriggered
 	}
 
 	msgBytes, err := sender.marshaller.Marshal(msg)
 	if err != nil {
-		return err
+		return err, isTriggered
 	}
 
 	b := &batch.Batch{
@@ -130,12 +153,17 @@ func (sender *peerAuthenticationSender) execute() error {
 	b.Data[0] = msgBytes
 	data, err := sender.marshaller.Marshal(b)
 	if err != nil {
-		return err
+		return err, isTriggered
 	}
 
 	sender.messenger.Broadcast(sender.topic, data)
 
-	return nil
+	return nil, isTriggered
+}
+
+// ShouldTriggerHardfork signals when hardfork message should be sent
+func (sender *peerAuthenticationSender) ShouldTriggerHardfork() <-chan struct{} {
+	return sender.hardforkTrigger.NotifyTriggerReceivedV2()
 }
 
 func (sender *peerAuthenticationSender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.PublicKey) {
@@ -156,6 +184,16 @@ func (sender *peerAuthenticationSender) isValidator() bool {
 
 	_, _, err = sender.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
 	return err == nil
+}
+
+func (sender *peerAuthenticationSender) getHardforkPayload() ([]byte, bool) {
+	payload := make([]byte, 0)
+	_, isTriggered := sender.hardforkTrigger.RecordedTriggerMessage()
+	if isTriggered {
+		payload = sender.hardforkTrigger.CreateData()
+	}
+
+	return payload, isTriggered
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -219,7 +219,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		Prefs:             config.Preferences{},
 		AppVersion:        "test",
 		GenesisTime:       time.Time{},
-		HardforkTrigger:   hardforkTrigger,
 		RedundancyHandler: redundancyHandler,
 		CoreComponents:    coreComponents,
 		DataComponents:    dataComponents,

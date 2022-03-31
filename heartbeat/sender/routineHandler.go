@@ -11,13 +11,15 @@ var log = logger.GetOrCreate("heartbeat/sender")
 type routineHandler struct {
 	peerAuthenticationSender senderHandler
 	heartbeatSender          senderHandler
+	hardforkSender           hardforkHandler
 	cancel                   func()
 }
 
-func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler) *routineHandler {
+func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler, hardforkSender hardforkHandler) *routineHandler {
 	handler := &routineHandler{
 		peerAuthenticationSender: peerAuthenticationSender,
 		heartbeatSender:          heartbeatSender,
+		hardforkSender:           hardforkSender,
 	}
 
 	var ctx context.Context
@@ -44,6 +46,8 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 			handler.peerAuthenticationSender.Execute()
 		case <-handler.heartbeatSender.ExecutionReadyChannel():
 			handler.heartbeatSender.Execute()
+		case <-handler.hardforkSender.ShouldTriggerHardfork():
+			handler.hardforkSender.Execute()
 		case <-ctx.Done():
 			return
 		}

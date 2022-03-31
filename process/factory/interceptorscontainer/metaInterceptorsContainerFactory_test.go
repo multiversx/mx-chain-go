@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	heartbeatMock "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -430,6 +431,18 @@ func TestNewMetaInterceptorsContainerFactory_NilPeerShardMapperShouldErr(t *test
 	assert.Equal(t, process.ErrNilPeerShardMapper, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.HardforkTrigger = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHardforkTrigger, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -633,5 +646,6 @@ func getArgumentsMeta(
 		SignaturesHandler:            &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
+		HardforkTrigger:              &heartbeatMock.HardforkTriggerStub{},
 	}
 }

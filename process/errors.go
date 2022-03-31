@@ -1106,3 +1106,6 @@ var ErrNilHeartbeatCacher = errors.New("nil heartbeat cacher")
 
 // ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
 var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
+
+// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")

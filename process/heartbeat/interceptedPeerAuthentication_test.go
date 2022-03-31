@@ -298,6 +298,7 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	assert.Equal(t, expectedPeerAuthentication.Payload, ipa.Payload())
 	assert.Equal(t, expectedPeerAuthentication.PayloadSignature, ipa.PayloadSignature())
 	assert.Equal(t, []byte(""), ipa.Hash())
+	assert.Equal(t, expectedPeerAuthentication.Pubkey, ipa.Pubkey())
 
 	identifiers := ipa.Identifiers()
 	assert.Equal(t, 2, len(identifiers))

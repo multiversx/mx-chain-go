@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"sync"
@@ -27,11 +28,13 @@ import (
 
 func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthenticationSender {
 	return argPeerAuthenticationSender{
-		argBaseSender:        argBase,
-		nodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
-		peerSignatureHandler: &cryptoMocks.PeerSignatureHandlerStub{},
-		privKey:              &cryptoMocks.PrivateKeyStub{},
-		redundancyHandler:    &mock.RedundancyHandlerStub{},
+		argBaseSender:            argBase,
+		nodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
+		peerSignatureHandler:     &cryptoMocks.PeerSignatureHandlerStub{},
+		privKey:                  &cryptoMocks.PrivateKeyStub{},
+		redundancyHandler:        &mock.RedundancyHandlerStub{},
+		hardforkTrigger:          &mock.HardforkTriggerStub{},
+		hardforkTimeBetweenSends: time.Second,
 	}
 }
 
@@ -55,8 +58,10 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseS
 				return singleSigner.Sign(privateKey, pid)
 			},
 		},
-		privKey:           sk,
-		redundancyHandler: &mock.RedundancyHandlerStub{},
+		privKey:                  sk,
+		redundancyHandler:        &mock.RedundancyHandlerStub{},
+		hardforkTrigger:          &mock.HardforkTriggerStub{},
+		hardforkTimeBetweenSends: time.Second,
 	}
 }
 
@@ -188,6 +193,27 @@ func TestNewPeerAuthenticationSender(t *testing.T) {
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
 		assert.True(t, strings.Contains(err.Error(), "thresholdBetweenSends"))
 	})
+	t.Run("nil hardfork trigger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.hardforkTrigger = nil
+		sender, err := newPeerAuthenticationSender(args)
+
+		assert.True(t, check.IfNil(sender))
+		assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
+	})
+	t.Run("invalid time between hardforks should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.hardforkTimeBetweenSends = time.Second - time.Nanosecond
+		sender, err := newPeerAuthenticationSender(args)
+
+		assert.True(t, check.IfNil(sender))
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -218,8 +244,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, _ := newPeerAuthenticationSender(args)
 
-		err := sender.execute()
+		err, isHardforkTriggered := sender.execute()
 		assert.Equal(t, expectedErr, err)
+		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("marshaller fails in first time, should return error", func(t *testing.T) {
 		t.Parallel()
@@ -239,8 +266,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, _ := newPeerAuthenticationSender(args)
 
-		err := sender.execute()
+		err, isHardforkTriggered := sender.execute()
 		assert.Equal(t, expectedErr, err)
+		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("get peer signature method fails, should return error", func(t *testing.T) {
 		t.Parallel()
@@ -259,8 +287,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 		sender, _ := newPeerAuthenticationSender(args)
 
-		err := sender.execute()
+		err, isHardforkTriggered := sender.execute()
 		assert.Equal(t, expectedErr, err)
+		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("marshaller fails fot the second time, should return error", func(t *testing.T) {
 		t.Parallel()
@@ -285,8 +314,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, _ := newPeerAuthenticationSender(args)
 
-		err := sender.execute()
+		err, isHardforkTriggered := sender.execute()
 		assert.Equal(t, expectedErr, err)
+		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("should work with stubs", func(t *testing.T) {
 		t.Parallel()
@@ -303,9 +333,10 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		sender, _ := newPeerAuthenticationSender(args)
 
-		err := sender.execute()
+		err, isHardforkTriggered := sender.execute()
 		assert.Nil(t, err)
 		assert.True(t, broadcastCalled)
+		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("should work with some real components", func(t *testing.T) {
 		t.Parallel()
@@ -341,8 +372,9 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgsSemiIntegrationTests(argsBase)
 		sender, _ := newPeerAuthenticationSender(args)
 
-		err := sender.execute()
+		err, isHardforkTriggered := sender.execute()
 		assert.Nil(t, err)
+		assert.False(t, isHardforkTriggered)
 
 		skBytes, _ := sender.privKey.ToByteArray()
 		pkBytes, _ := sender.publicKey.ToByteArray()
@@ -482,6 +514,32 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		sender.Execute() // observer
 		assert.Equal(t, 1, counterBroadcast)
 	})
+	t.Run("execute worked, should set the hardfork time duration value", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		argsBase := createMockBaseArgs()
+		args := createMockPeerAuthenticationSenderArgs(argsBase)
+		args.hardforkTimeBetweenSends = time.Second * 3
+		args.hardforkTrigger = &mock.HardforkTriggerStub{
+			RecordedTriggerMessageCalled: func() ([]byte, bool) {
+				return make([]byte, 0), true
+			},
+		}
+		sender, _ := newPeerAuthenticationSender(args)
+		sender.timerHandler = &mock.TimerHandlerStub{
+			CreateNewTimerCalled: func(duration time.Duration) {
+				floatTBH := float64(args.hardforkTimeBetweenSends.Nanoseconds())
+				maxDuration := floatTBH + floatTBH*argsBase.thresholdBetweenSends
+				assert.True(t, time.Duration(maxDuration) > duration)
+				assert.True(t, args.hardforkTimeBetweenSends <= duration)
+				wasCalled = true
+			},
+		}
+
+		sender.Execute()
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
@@ -571,4 +629,81 @@ func TestPeerAuthenticationSender_getCurrentPrivateAndPublicKeys(t *testing.T) {
 
 		wg.Wait()
 	})
+}
+
+func TestPeerAuthenticationSender_getHardforkPayload(t *testing.T) {
+	t.Parallel()
+
+	t.Run("hardfork not triggered should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedPayload := make([]byte, 0)
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.hardforkTrigger = &mock.HardforkTriggerStub{
+			RecordedTriggerMessageCalled: func() ([]byte, bool) {
+				return nil, false
+			},
+		}
+
+		sender, _ := newPeerAuthenticationSender(args)
+
+		payload, isTriggered := sender.getHardforkPayload()
+		assert.False(t, isTriggered)
+		assert.Equal(t, providedPayload, payload)
+	})
+	t.Run("hardfork triggered should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedPayload := []byte("provided payload")
+		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+		args.hardforkTrigger = &mock.HardforkTriggerStub{
+			RecordedTriggerMessageCalled: func() ([]byte, bool) {
+				return nil, true
+			},
+			CreateDataCalled: func() []byte {
+				return providedPayload
+			},
+		}
+
+		sender, _ := newPeerAuthenticationSender(args)
+
+		payload, isTriggered := sender.getHardforkPayload()
+		assert.True(t, isTriggered)
+		assert.Equal(t, providedPayload, payload)
+	})
+}
+
+func TestPeerAuthenticationSender_ShouldTriggerHardfork(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	ch := make(chan struct{})
+	args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
+	args.hardforkTrigger = &mock.HardforkTriggerStub{
+		NotifyTriggerReceivedV2Called: func() <-chan struct{} {
+			return ch
+		},
+	}
+
+	go func() {
+		time.Sleep(time.Second)
+		ch <- struct{}{}
+	}()
+
+	sender, _ := newPeerAuthenticationSender(args)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	select {
+	case <-sender.ShouldTriggerHardfork():
+		return
+	case <-ctx.Done():
+		assert.Fail(t, "should not reach timeout")
+	}
 }

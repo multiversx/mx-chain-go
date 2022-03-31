@@ -927,6 +927,7 @@
     MaxMissingKeysInRequest                          = 1000
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
+    HardforkTimeBetweenSendsInSec                    = 10   # 10sec
     [HeartbeatV2.PeerAuthenticationPool]
         DefaultSpanInSec = 3600 # 1h
         CacheExpiryInSec = 3600 # 1h

@@ -53,6 +53,7 @@ const (
 	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
 	thresholdBetweenSends     = 0.2
+	timeBetweenHardforks      = 2 * time.Second
 
 	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
@@ -402,6 +403,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		PrivateKey:              thn.NodeKeys.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
+		HardforkTrigger:         &mock.HardforkTriggerStub{},
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
@@ -409,6 +411,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatThresholdBetweenSends:              thresholdBetweenSends,
+		HardforkTimeBetweenSends:                    timeBetweenHardforks,
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
@@ -513,6 +516,7 @@ func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorF
 	args := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
 		PeerShardMapper:          thn.PeerShardMapper,
+		HardforkTrigger:          &mock.HardforkTriggerStub{},
 	}
 	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(args)
 	paFactory, _ := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(argsFactory)

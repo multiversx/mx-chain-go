@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -60,6 +61,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
+	updateDisabled "github.com/ElrondNetwork/elrond-go/update/disabled"
+	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
+	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -106,6 +110,7 @@ type processComponents struct {
 	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
+	hardforkTrigger              HardforkTrigger
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -114,6 +119,7 @@ type ProcessComponentsFactoryArgs struct {
 	EpochConfig            config.EpochConfig
 	PrefConfigs            config.PreferencesConfig
 	ImportDBConfig         config.ImportDbConfig
+	FlagsConfig            config.ContextFlagsConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
@@ -142,6 +148,7 @@ type processComponentsFactory struct {
 	epochConfig            config.EpochConfig
 	prefConfigs            config.PreferencesConfig
 	importDBConfig         config.ImportDbConfig
+	flagsConfig            config.ContextFlagsConfig
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
@@ -180,6 +187,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochConfig:            args.EpochConfig,
 		prefConfigs:            args.PrefConfigs,
 		importDBConfig:         args.ImportDBConfig,
+		flagsConfig:            args.FlagsConfig,
 		accountsParser:         args.AccountsParser,
 		smartContractParser:    args.SmartContractParser,
 		gasSchedule:            args.GasSchedule,
@@ -432,6 +440,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	hardforkTrigger, err := pcf.createHardforkTrigger(epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
 		pcf.bootstrapComponents.HeaderIntegrityVerifier(),
@@ -439,6 +452,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		epochStartTrigger,
 		requestHandler,
 		peerShardMapper,
+		hardforkTrigger,
 	)
 	if err != nil {
 		return nil, err
@@ -446,6 +460,23 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	// TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	exportFactoryHandler, err := pcf.createExportFactoryHandler(
+		headerValidator,
+		requestHandler,
+		resolversFinder,
+		interceptorsContainer,
+		headerSigVerifier,
+		blockTracker,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hardforkTrigger.SetExportFactoryHandler(exportFactoryHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -609,6 +640,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
+		hardforkTrigger:              hardforkTrigger,
 	}, nil
 }
 
@@ -621,10 +653,10 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		peerDataPool = pcf.data.Datapool()
 	}
 
-	hardForkConfig := pcf.config.Hardfork
+	hardforkConfig := pcf.config.Hardfork
 	ratingEnabledEpoch := uint32(0)
-	if hardForkConfig.AfterHardFork {
-		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
+	if hardforkConfig.AfterHardFork {
+		ratingEnabledEpoch = hardforkConfig.StartEpoch + hardforkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:                          pcf.state.PeerAccounts(),
@@ -1101,6 +1133,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
 	peerShardMapper *networksharding.PeerShardMapper,
+	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
@@ -1110,6 +1143,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			epochStartTrigger,
 			requestHandler,
 			peerShardMapper,
+			hardforkTrigger,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1120,6 +1154,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			epochStartTrigger,
 			requestHandler,
 			peerShardMapper,
+			hardforkTrigger,
 		)
 	}
 
@@ -1257,6 +1292,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
 	peerShardMapper *networksharding.PeerShardMapper,
+	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1287,6 +1323,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
+		HardforkTrigger:              hardforkTrigger,
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1305,6 +1342,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
 	peerShardMapper *networksharding.PeerShardMapper,
+	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1335,6 +1373,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		SignaturesHandler:            pcf.network.NetworkMessenger(),
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
+		HardforkTrigger:              hardforkTrigger,
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1387,6 +1426,82 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 	}
 
 	return networkShardingCollector, nil
+}
+
+func (pcf *processComponentsFactory) createExportFactoryHandler(
+	headerValidator epochStart.HeaderValidator,
+	requestHandler process.RequestHandler,
+	resolversFinder dataRetriever.ResolversFinder,
+	interceptorsContainer process.InterceptorsContainer,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	blockTracker process.ValidityAttester,
+) (update.ExportFactoryHandler, error) {
+
+	hardforkConfig := pcf.config.Hardfork
+	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
+	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
+	exportFolder := filepath.Join(pcf.flagsConfig.WorkingDir, hardforkConfig.ImportFolder)
+	argsExporter := updateFactory.ArgsExporter{
+		CoreComponents:            pcf.coreData,
+		CryptoComponents:          pcf.crypto,
+		HeaderValidator:           headerValidator,
+		DataPool:                  pcf.data.Datapool(),
+		StorageService:            pcf.data.StorageService(),
+		RequestHandler:            requestHandler,
+		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                 pcf.network.NetworkMessenger(),
+		ActiveAccountsDBs:         accountsDBs,
+		ExistingResolvers:         resolversFinder,
+		ExportFolder:              exportFolder,
+		ExportTriesStorageConfig:  hardforkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig:  hardforkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:     hardforkConfig.ExportKeysStorageConfig,
+		MaxTrieLevelInMemory:      pcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		WhiteListHandler:          pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:    pcf.whiteListerVerifiedTxs,
+		InterceptorsContainer:     interceptorsContainer,
+		NodesCoordinator:          pcf.nodesCoordinator,
+		HeaderSigVerifier:         headerSigVerifier,
+		HeaderIntegrityVerifier:   pcf.bootstrapComponents.HeaderIntegrityVerifier(),
+		ValidityAttester:          blockTracker,
+		InputAntifloodHandler:     pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:    pcf.network.OutputAntiFloodHandler(),
+		RoundHandler:              pcf.coreData.RoundHandler(),
+		InterceptorDebugConfig:    pcf.config.Debug.InterceptorResolver,
+		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		MaxHardCapForMissingNodes: pcf.config.TrieSync.MaxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
+		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
+	}
+	return updateFactory.NewExportHandlerFactory(argsExporter)
+}
+
+func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger update.EpochHandler) (HardforkTrigger, error) {
+	hardforkConfig := pcf.config.Hardfork
+	selfPubKeyBytes := pcf.crypto.PublicKeyBytes()
+	triggerPubKeyBytes, err := pcf.coreData.ValidatorPubKeyConverter().Decode(hardforkConfig.PublicKeyToListenFrom)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
+	atArgumentParser := smartContract.NewArgumentParser()
+	argTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:        triggerPubKeyBytes,
+		SelfPubKeyBytes:           selfPubKeyBytes,
+		Enabled:                   hardforkConfig.EnableTrigger,
+		EnabledAuthenticated:      hardforkConfig.EnableTriggerFromP2P,
+		ArgumentParser:            atArgumentParser,
+		EpochProvider:             epochStartTrigger,
+		ExportFactoryHandler:      &updateDisabled.ExportFactoryHandler{},
+		ChanStopNodeProcess:       pcf.coreData.ChanStopNodeProcess(),
+		EpochConfirmedNotifier:    pcf.coreData.EpochStartNotifierWithConfirm(),
+		CloseAfterExportInMinutes: hardforkConfig.CloseAfterExportInMinutes,
+		ImportStartHandler:        pcf.importStartHandler,
+		RoundHandler:              pcf.coreData.RoundHandler(),
+	}
+
+	return trigger.NewTrigger(argTrigger)
 }
 
 func createNetworkShardingCollector(

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -42,6 +43,7 @@ type baseInterceptorsContainerFactory struct {
 	hasher                 hashing.Hasher
 	requestHandler         process.RequestHandler
 	peerShardMapper        process.PeerShardMapper
+	hardforkTrigger        heartbeat.HardforkTrigger
 }
 
 func checkBaseParams(
@@ -60,6 +62,7 @@ func checkBaseParams(
 	preferredPeersHolder process.PreferredPeersHolderHandler,
 	requestHandler process.RequestHandler,
 	peerShardMapper process.PeerShardMapper,
+	hardforkTrigger heartbeat.HardforkTrigger,
 ) error {
 	if check.IfNil(coreComponents) {
 		return process.ErrNilCoreComponentsHolder
@@ -144,6 +147,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(peerShardMapper) {
 		return process.ErrNilPeerShardMapper
+	}
+	if check.IfNil(hardforkTrigger) {
+		return process.ErrNilHardforkTrigger
 	}
 
 	return nil
@@ -604,6 +610,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 	argProcessor := processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
 		PeerShardMapper:          bicf.peerShardMapper,
+		HardforkTrigger:          bicf.hardforkTrigger,
 	}
 	peerAuthenticationProcessor, err := processor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
 	if err != nil {

@@ -3,6 +3,7 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -12,12 +13,16 @@ import (
 type ArgPeerAuthenticationInterceptorProcessor struct {
 	PeerAuthenticationCacher storage.Cacher
 	PeerShardMapper          process.PeerShardMapper
+	Marshaller               marshal.Marshalizer
+	HardforkTrigger          heartbeat.HardforkTrigger
 }
 
 // peerAuthenticationInterceptorProcessor is the processor used when intercepting peer authentication
 type peerAuthenticationInterceptorProcessor struct {
 	peerAuthenticationCacher storage.Cacher
 	peerShardMapper          process.PeerShardMapper
+	marshaller               marshal.Marshalizer
+	hardforkTrigger          heartbeat.HardforkTrigger
 }
 
 // NewPeerAuthenticationInterceptorProcessor creates a new peerAuthenticationInterceptorProcessor
@@ -30,6 +35,8 @@ func NewPeerAuthenticationInterceptorProcessor(args ArgPeerAuthenticationInterce
 	return &peerAuthenticationInterceptorProcessor{
 		peerAuthenticationCacher: args.PeerAuthenticationCacher,
 		peerShardMapper:          args.PeerShardMapper,
+		marshaller:               args.Marshaller,
+		hardforkTrigger:          args.HardforkTrigger,
 	}, nil
 }
 
@@ -39,6 +46,12 @@ func checkArgsPeerAuthentication(args ArgPeerAuthenticationInterceptorProcessor)
 	}
 	if check.IfNil(args.PeerShardMapper) {
 		return process.ErrNilPeerShardMapper
+	}
+	if check.IfNil(args.Marshaller) {
+		return heartbeat.ErrNilMarshaller
+	}
+	if check.IfNil(args.HardforkTrigger) {
+		return heartbeat.ErrNilHardforkTrigger
 	}
 
 	return nil
@@ -52,9 +65,21 @@ func (paip *peerAuthenticationInterceptorProcessor) Validate(_ process.Intercept
 
 // Save will save the intercepted peer authentication inside the peer authentication cacher
 func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
-	interceptedPeerAuthenticationData, ok := data.(interceptedDataMessageHandler)
+	interceptedPeerAuthenticationData, ok := data.(interceptedPeerAuthenticationMessageHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	payloadBuff := interceptedPeerAuthenticationData.Payload()
+	payload := &heartbeat.Payload{}
+	err := paip.marshaller.Unmarshal(payload, payloadBuff)
+	if err != nil {
+		return err
+	}
+
+	isHardforkTrigger, err := paip.hardforkTrigger.TriggerReceived(nil, []byte(payload.HardforkMessage), interceptedPeerAuthenticationData.Pubkey())
+	if isHardforkTrigger {
+		return err
 	}
 
 	paip.peerAuthenticationCacher.Put(fromConnectedPeer.Bytes(), interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())

@@ -189,6 +189,11 @@ func (ipa *interceptedPeerAuthentication) Message() interface{} {
 	return ipa.peerAuthentication
 }
 
+// Pubkey returns the public key
+func (ipa *interceptedPeerAuthentication) Pubkey() []byte {
+	return ipa.peerAuthentication.Pubkey
+}
+
 // String returns the most important fields as string
 func (ipa *interceptedPeerAuthentication) String() string {
 	return fmt.Sprintf("pk=%s, pid=%s, sig=%s, payload=%s, payloadSig=%s",
@@ -208,7 +213,6 @@ func (ipa *interceptedPeerAuthentication) verifyPayload() error {
 	if messageTimeStamp < minTimestampAllowed || messageTimeStamp > maxTimestampAllowed {
 		return process.ErrMessageExpired
 	}
-	// TODO: check for payload hardfork
 
 	return nil
 }

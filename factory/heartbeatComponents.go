@@ -26,7 +26,6 @@ type HeartbeatComponentsFactoryArgs struct {
 	Prefs                 config.Preferences
 	AppVersion            string
 	GenesisTime           time.Time
-	HardforkTrigger       heartbeat.HardforkTrigger
 	RedundancyHandler     heartbeat.NodeRedundancyHandler
 	CoreComponents        CoreComponentsHolder
 	DataComponents        DataComponentsHolder
@@ -41,7 +40,6 @@ type heartbeatComponentsFactory struct {
 	prefs                 config.Preferences
 	version               string
 	GenesisTime           time.Time
-	hardforkTrigger       heartbeat.HardforkTrigger
 	redundancyHandler     heartbeat.NodeRedundancyHandler
 	coreComponents        CoreComponentsHolder
 	dataComponents        DataComponentsHolder
@@ -62,9 +60,6 @@ type heartbeatComponents struct {
 // NewHeartbeatComponentsFactory creates the heartbeat components factory
 func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartbeatComponentsFactory, error) {
 
-	if check.IfNil(args.HardforkTrigger) {
-		return nil, heartbeat.ErrNilHardforkTrigger
-	}
 	if check.IfNil(args.RedundancyHandler) {
 		return nil, heartbeat.ErrNilRedundancyHandler
 	}
@@ -83,13 +78,16 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 	if check.IfNil(args.ProcessComponents) {
 		return nil, errors.ErrNilProcessComponentsHolder
 	}
+	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
+	if check.IfNil(hardforkTrigger) {
+		return nil, heartbeat.ErrNilHardforkTrigger
+	}
 
 	return &heartbeatComponentsFactory{
 		config:                args.Config,
 		prefs:                 args.Prefs,
 		version:               args.AppVersion,
 		GenesisTime:           args.GenesisTime,
-		hardforkTrigger:       args.HardforkTrigger,
 		redundancyHandler:     args.RedundancyHandler,
 		coreComponents:        args.CoreComponents,
 		dataComponents:        args.DataComponents,
@@ -138,6 +136,8 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		peerSubType = core.FullHistoryObserver
 	}
 
+	hardforkTrigger := hcf.processComponents.HardforkTrigger()
+
 	argSender := heartbeatProcess.ArgHeartbeatSender{
 		PeerSubType:           peerSubType,
 		PeerMessenger:         hcf.networkComponents.NetworkMessenger(),
@@ -151,7 +151,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		VersionNumber:         hcf.version,
 		NodeDisplayName:       hcf.prefs.Preferences.NodeDisplayName,
 		KeyBaseIdentity:       hcf.prefs.Preferences.Identity,
-		HardforkTrigger:       hcf.hardforkTrigger,
+		HardforkTrigger:       hardforkTrigger,
 		CurrentBlockProvider:  hcf.dataComponents.Blockchain(),
 		RedundancyHandler:     hcf.redundancyHandler,
 		EpochNotifier:         hcf.coreComponents.EpochNotifier(),
@@ -206,7 +206,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		PeerTypeProvider:                   peerTypeProvider,
 		Timer:                              timer,
 		AntifloodHandler:                   hcf.networkComponents.InputAntiFloodHandler(),
-		HardforkTrigger:                    hcf.hardforkTrigger,
+		HardforkTrigger:                    hardforkTrigger,
 		ValidatorPubkeyConverter:           hcf.coreComponents.ValidatorPubKeyConverter(),
 		HeartbeatRefreshIntervalInSec:      hcf.config.Heartbeat.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: hcf.config.Heartbeat.HideInactiveValidatorIntervalInSec,
@@ -263,6 +263,7 @@ func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Contex
 	diffSeconds := cfg.MaxTimeToWaitBetweenBroadcastsInSec - cfg.MinTimeToWaitBetweenBroadcastsInSec
 	diffNanos := int64(diffSeconds) * time.Second.Nanoseconds()
 
+	hardforkTrigger := hcf.processComponents.HardforkTrigger()
 	for {
 		randomNanos := r.Int63n(diffNanos)
 		timeToWait := time.Second*time.Duration(cfg.MinTimeToWaitBetweenBroadcastsInSec) + time.Duration(randomNanos)
@@ -272,7 +273,7 @@ func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Contex
 			log.Debug("heartbeat's go routine is stopping...")
 			return
 		case <-time.After(timeToWait):
-		case <-hcf.hardforkTrigger.NotifyTriggerReceived():
+		case <-hardforkTrigger.NotifyTriggerReceived():
 			//this will force an immediate broadcast of the trigger
 			//message on the network
 			log.Debug("hardfork message prepared for heartbeat sending")

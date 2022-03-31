@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	heartbeatMock "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -387,6 +388,18 @@ func TestNewShardInterceptorsContainerFactory_NilPeerShardMapperShouldErr(t *tes
 	assert.Equal(t, process.ErrNilPeerShardMapper, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.HardforkTrigger = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHardforkTrigger, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -712,5 +725,6 @@ func getArgumentsShard(
 		SignaturesHandler:            &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
+		HardforkTrigger:              &heartbeatMock.HardforkTriggerStub{},
 	}
 }

@@ -1250,6 +1250,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
+			HardforkTrigger:              &mock.HardforkTriggerStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1310,6 +1311,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
+			HardforkTrigger:              &mock.HardforkTriggerStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -2891,7 +2893,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 			Heartbeat: hbConfig,
 		},
 		Prefs:             config.Preferences{},
-		HardforkTrigger:   hardforkTrigger,
 		RedundancyHandler: redundancyHandler,
 		CoreComponents:    tpn.Node.GetCoreComponents(),
 		DataComponents:    tpn.Node.GetDataComponents(),
@@ -2991,6 +2992,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
+		HardforkTriggerField:         &mock.HardforkTriggerStub{},
 	}
 }
 
