@@ -130,11 +130,11 @@ func TestTransactions_GetScheduledTxAndMbInfoShouldWork(t *testing.T) {
 	}
 
 	mbInfo.mapCrossShardScCallTxs[receiverShardID] = 1
-	scheduledTxAndMbInfo := preprocessor.getScheduledTxAndMbInfo(true, receiverShardID, mbInfo)
+	scheduledTxAndMbInfoInstance := preprocessor.getScheduledTxAndMbInfo(true, receiverShardID, mbInfo)
 
-	assert.True(t, scheduledTxAndMbInfo.isCrossShardScCallTx)
-	assert.Equal(t, 2, scheduledTxAndMbInfo.numNewMiniBlocks)
-	assert.Equal(t, 4, scheduledTxAndMbInfo.numNewTxs)
+	assert.True(t, scheduledTxAndMbInfoInstance.isCrossShardScCallTx)
+	assert.Equal(t, 2, scheduledTxAndMbInfoInstance.numNewMiniBlocks)
+	assert.Equal(t, 4, scheduledTxAndMbInfoInstance.numNewTxs)
 }
 
 func TestTransactions_ShouldContinueProcessingScheduledTxShouldWork(t *testing.T) {

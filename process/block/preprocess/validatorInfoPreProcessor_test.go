@@ -146,12 +146,12 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
+	blockSizeComputationInstance := &testscommon.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
-		blockSizeComputation,
+		blockSizeComputationInstance,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -187,12 +187,12 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRes
 
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
+	blockSizeComputationInstance := &testscommon.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
-		blockSizeComputation,
+		blockSizeComputationInstance,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -228,12 +228,12 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
+	blockSizeComputationInstance := &testscommon.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
-		blockSizeComputation,
+		blockSizeComputationInstance,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -269,12 +269,12 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemov
 
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &testscommon.MarshalizerMock{}
-	blockSizeComputation := &testscommon.BlockSizeComputationStub{}
+	blockSizeComputationInstance := &testscommon.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
-		blockSizeComputation,
+		blockSizeComputationInstance,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}

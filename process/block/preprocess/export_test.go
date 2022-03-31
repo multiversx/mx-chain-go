@@ -129,12 +129,12 @@ func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.Transacti
 	txs.txsForCurrBlock.mutTxsForBlock.RLock()
 	defer txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
-	txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+	txInfoInstance, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 	if !ok {
 		return nil, 0, 0
 	}
 
-	return txInfo.tx, txInfo.senderShardID, txInfo.receiverShardID
+	return txInfoInstance.tx, txInfoInstance.senderShardID, txInfoInstance.receiverShardID
 }
 
 func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {

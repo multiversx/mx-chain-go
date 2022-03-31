@@ -778,14 +778,14 @@ func TestScheduledTxsExecution_getAllIntermediateTxsAfterScheduledExecution(t *t
 			},
 		)
 
-		allTxsAfterExec := map[string]data.TransactionHandler{
+		allTxsAfterExecLocal := map[string]data.TransactionHandler{
 			"txHash1": &transaction.Transaction{Nonce: 1},
 			"txHash2": &transaction.Transaction{Nonce: 2},
 		}
 
 		scrsInfo := scheduledTxsExec.getAllIntermediateTxsAfterScheduledExecution(
 			allTxsBeforeExec[0],
-			allTxsAfterExec,
+			allTxsAfterExecLocal,
 			0,
 		)
 

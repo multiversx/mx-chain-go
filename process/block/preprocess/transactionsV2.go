@@ -557,9 +557,9 @@ func (txs *transactions) getTxAndMbInfo(
 
 	_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
 	isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
-	isCrossShardScCallOrSpecialTx := receiverShardID != txs.shardCoordinator.SelfId() &&
+	isCrossShardScCallOrSpecialTxVar := receiverShardID != txs.shardCoordinator.SelfId() &&
 		(isReceiverSmartContractAddress || len(tx.RcvUserName) > 0)
-	if isCrossShardScCallOrSpecialTx {
+	if isCrossShardScCallOrSpecialTxVar {
 		if !mbInfo.firstCrossShardScCallOrSpecialTxFound {
 			numNewMiniBlocks++
 		}
@@ -572,7 +572,7 @@ func (txs *transactions) getTxAndMbInfo(
 		numNewTxs:                      numNewTxs,
 		numNewMiniBlocks:               numNewMiniBlocks,
 		isReceiverSmartContractAddress: isReceiverSmartContractAddress,
-		isCrossShardScCallOrSpecialTx:  isCrossShardScCallOrSpecialTx,
+		isCrossShardScCallOrSpecialTx:  isCrossShardScCallOrSpecialTxVar,
 	}
 }
 
@@ -612,7 +612,7 @@ func (txs *transactions) applyExecutedTransaction(
 		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
-			//we need to increment this as to account for the corresponding SCR hash
+			// we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
@@ -773,7 +773,7 @@ func (txs *transactions) applyVerifiedTransaction(
 		crossShardScCallTxs := mbInfo.mapCrossShardScCallTxs[receiverShardID]
 		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
 			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
-			//we need to increment this as to account for the corresponding SCR hash
+			// we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++

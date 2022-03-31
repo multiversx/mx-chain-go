@@ -157,8 +157,8 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBloc
 		return nil, 0, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 
-	//TODO: We need another function in the BlockSizeComputationHandler implementation that will better handle
-	//the PeerBlock miniblocks as those are not hashes
+	// TODO: We need another function in the BlockSizeComputationHandler implementation that will better handle
+	//  the PeerBlock miniblocks as those are not hashes
 	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, 0, process.ErrMaxBlockSizeReached
 	}

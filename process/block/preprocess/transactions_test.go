@@ -2054,7 +2054,7 @@ func createMockBlockBody() (*block.Body, []*txInfoHolder) {
 
 func addTxsInStorer(storer storage.Storer, txs []*txInfoHolder) {
 	for _, tx := range txs {
-		_ = storer.Put(tx.hash, tx.buff)
+		_ = storer.Put(tx.hash, tx.buff, common.TestPriority)
 	}
 }
 
