@@ -1,6 +1,9 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go/storage"
+import (
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
 
 type persister struct{}
 
@@ -10,17 +13,17 @@ func NewPersister() *persister {
 }
 
 // Put returns nil
-func (p *persister) Put(_, _ []byte) error {
+func (p *persister) Put(_, _ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
 // Get returns nil and ErrKeyNotFound
-func (p *persister) Get(_ []byte) ([]byte, error) {
+func (p *persister) Get(_ []byte, _ common.StorageAccessType) ([]byte, error) {
 	return nil, storage.ErrKeyNotFound
 }
 
 // Has returns ErrKeyNotFound
-func (p *persister) Has(_ []byte) error {
+func (p *persister) Has(_ []byte, _ common.StorageAccessType) error {
 	return storage.ErrKeyNotFound
 }
 
@@ -30,7 +33,7 @@ func (p *persister) Close() error {
 }
 
 // Remove returns nil
-func (p *persister) Remove(_ []byte) error {
+func (p *persister) Remove(_ []byte, _ common.StorageAccessType) error {
 	return nil
 }
 
