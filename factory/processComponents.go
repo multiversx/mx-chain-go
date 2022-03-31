@@ -119,7 +119,6 @@ type ProcessComponentsFactoryArgs struct {
 	EpochConfig            config.EpochConfig
 	PrefConfigs            config.PreferencesConfig
 	ImportDBConfig         config.ImportDbConfig
-	FlagsConfig            config.ContextFlagsConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
@@ -148,7 +147,6 @@ type processComponentsFactory struct {
 	epochConfig            config.EpochConfig
 	prefConfigs            config.PreferencesConfig
 	importDBConfig         config.ImportDbConfig
-	flagsConfig            config.ContextFlagsConfig
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
@@ -187,7 +185,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochConfig:            args.EpochConfig,
 		prefConfigs:            args.PrefConfigs,
 		importDBConfig:         args.ImportDBConfig,
-		flagsConfig:            args.FlagsConfig,
 		accountsParser:         args.AccountsParser,
 		smartContractParser:    args.SmartContractParser,
 		gasSchedule:            args.GasSchedule,
@@ -1441,7 +1438,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
-	exportFolder := filepath.Join(pcf.flagsConfig.WorkingDir, hardforkConfig.ImportFolder)
+	exportFolder := filepath.Join(pcf.workingDir, hardforkConfig.ImportFolder)
 	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,
