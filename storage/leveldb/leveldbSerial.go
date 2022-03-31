@@ -1,7 +1,6 @@
 package leveldb
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -145,13 +144,15 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	}
 
 	s.mutBatch.RLock()
+	if s.batch.IsRemoved(key) {
+		s.mutBatch.RUnlock()
+		return nil, storage.ErrKeyNotFound
+	}
+
 	data := s.batch.Get(key)
 	s.mutBatch.RUnlock()
 
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return nil, storage.ErrKeyNotFound
-		}
 		return data, nil
 	}
 
@@ -185,13 +186,15 @@ func (s *SerialDB) Has(key []byte) error {
 	}
 
 	s.mutBatch.RLock()
+	if s.batch.IsRemoved(key) {
+		s.mutBatch.RUnlock()
+		return storage.ErrKeyNotFound
+	}
+
 	data := s.batch.Get(key)
 	s.mutBatch.RUnlock()
 
 	if data != nil {
-		if bytes.Equal(data, []byte(removed)) {
-			return storage.ErrKeyNotFound
-		}
 		return nil
 	}
 
