@@ -3,8 +3,6 @@ package staking
 import (
 	"bytes"
 	"fmt"
-	"math/big"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -14,15 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	mock3 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -65,6 +60,7 @@ import (
 type TestMetaProcessor struct {
 	MetaBlockProcessor process.BlockProcessor
 	SystemSCProcessor  process.EpochStartSystemSCProcessor
+	NodesCoordinator   nodesCoordinator.NodesCoordinator
 }
 
 // NewTestMetaProcessor -
@@ -75,10 +71,11 @@ func NewTestMetaProcessor(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) *TestMetaProcessor {
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders(uint32(numOfShards))
 	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize)
-	scp := createSystemSCProcessor()
+	scp := createSystemSCProcessor(nc)
 	return &TestMetaProcessor{
-		MetaBlockProcessor: createMetaBlockProcessor(nc, scp),
+		MetaBlockProcessor: createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents),
 	}
 }
 
@@ -92,8 +89,8 @@ const (
 	delegationContractsList = "delegationContracts"
 )
 
-func createSystemSCProcessor() process.EpochStartSystemSCProcessor {
-	args, _ := createFullArgumentsForSystemSCProcessing(1000, integrationTests.CreateMemUnit())
+func createSystemSCProcessor(nc nodesCoordinator.NodesCoordinator) process.EpochStartSystemSCProcessor {
+	args, _ := createFullArgumentsForSystemSCProcessing(nc, 1000, integrationTests.CreateMemUnit())
 	s, _ := metachain.NewSystemSCProcessor(args)
 	return s
 }
@@ -105,19 +102,11 @@ func createNodesCoordinator(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) nodesCoordinator.NodesCoordinator {
-	//coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
-	//	PeerAccountListAndRatingHandler: testscommon.GetNewMockRater(),
-	//}
-
 	validatorsMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
 	waitingMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
-
-	//nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
-	//	return validatorsMap, waitingMap
-	//}}
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     uint32(numOfNodesPerShard),
@@ -189,22 +178,26 @@ func generateGenesisNodeInfoMap(
 	return validatorsMap
 }
 
-func createMetaBlockProcessor(nc nodesCoordinator.NodesCoordinator, systemSCProcessor process.EpochStartSystemSCProcessor) process.BlockProcessor {
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+func createMetaBlockProcessor(
+	nc nodesCoordinator.NodesCoordinator,
+	systemSCProcessor process.EpochStartSystemSCProcessor,
+	coreComponents *mock.CoreComponentsMock,
+	dataComponents *mock.DataComponentsMock,
+	bootstrapComponents *mock.BootstrapComponentsMock,
+	statusComponents *mock.StatusComponentsMock,
+) process.BlockProcessor {
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor)
 
 	metaProc, _ := blproc.NewMetaProcessor(arguments)
 	return metaProc
 }
 
-func createMockComponentHolders() (
+func createMockComponentHolders(numOfShards uint32) (
 	*mock.CoreComponentsMock,
 	*mock.DataComponentsMock,
 	*mock.BootstrapComponentsMock,
 	*mock.StatusComponentsMock,
 ) {
-	mdp := initDataPool([]byte("tx_hash"))
-
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherStub{},
@@ -214,12 +207,17 @@ func createMockComponentHolders() (
 	}
 
 	dataComponents := &mock.DataComponentsMock{
-		Storage:    &mock.ChainStorerMock{},
-		DataPool:   mdp,
-		BlockChain: createTestBlockchain(),
+		Storage:  &mock.ChainStorerMock{},
+		DataPool: dataRetrieverMock.NewPoolsHolderMock(),
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: 0}
+			},
+		},
 	}
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numOfShards, core.MetachainShardId)
 	boostrapComponents := &mock.BootstrapComponentsMock{
-		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		Coordinator:          shardCoordinator,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
 			CreateCalled: func(epoch uint32) data.HeaderHandler {
@@ -233,150 +231,6 @@ func createMockComponentHolders() (
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
-}
-
-func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
-	rwdTx := &rewardTx.RewardTx{
-		Round:   1,
-		Epoch:   0,
-		Value:   big.NewInt(10),
-		RcvAddr: []byte("receiver"),
-	}
-	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
-
-	sdp := &dataRetrieverMock.PoolsHolderStub{
-		TransactionsCalled:         txCalled,
-		UnsignedTransactionsCalled: unsignedTxCalled,
-		RewardTransactionsCalled:   rewardTransactionsCalled,
-		MetaBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				KeysCalled: func() [][]byte {
-					return nil
-				},
-				LenCalled: func() int {
-					return 0
-				},
-				MaxSizeCalled: func() int {
-					return 1000
-				},
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
-				RemoveCalled:          func(key []byte) {},
-			}
-		},
-		MiniBlocksCalled: func() storage.Cacher {
-			cs := testscommon.NewCacherStub()
-			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
-			}
-			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
-				}
-
-				return nil, false
-			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
-				}
-
-				return nil, false
-			}
-			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
-			cs.RemoveCalled = func(key []byte) {}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 300
-			}
-			cs.KeysCalled = func() [][]byte {
-				return nil
-			}
-			return cs
-		},
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
-			}
-			cs.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
-				return nil, process.ErrMissingHeader
-			}
-			cs.RemoveHeaderByHashCalled = func(key []byte) {
-			}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 1000
-			}
-			cs.NoncesCalled = func(shardId uint32) []uint64 {
-				return nil
-			}
-			return cs
-		},
-	}
-
-	return sdp
-}
-
-func createShardedDataChacherNotifier(
-	handler data.TransactionHandler,
-	testHash []byte,
-) func() dataRetriever.ShardedDataCacherNotifier {
-	return func() dataRetriever.ShardedDataCacherNotifier {
-		return &testscommon.ShardedDataStub{
-			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
-					PeekCalled: func(key []byte) (value interface{}, ok bool) {
-						if reflect.DeepEqual(key, testHash) {
-							return handler, true
-						}
-						return nil, false
-					},
-					KeysCalled: func() [][]byte {
-						return [][]byte{[]byte("key1"), []byte("key2")}
-					},
-					LenCalled: func() int {
-						return 0
-					},
-					MaxSizeCalled: func() int {
-						return 1000
-					},
-				}
-			},
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				if reflect.DeepEqual(key, []byte("tx1_hash")) {
-					return handler, true
-				}
-				return nil, false
-			},
-			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
-			},
-		}
-	}
-}
-
-func createTestBlockchain() *testscommon.ChainHandlerStub {
-	return &testscommon.ChainHandlerStub{
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{Nonce: 0}
-		},
-	}
 }
 
 func createMockMetaArguments(
@@ -494,7 +348,7 @@ func createGenesisMetaBlock() *block.MetaBlock {
 	}
 }
 
-func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieStorer storage.Storer) (metachain.ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
+func createFullArgumentsForSystemSCProcessing(nc nodesCoordinator.NodesCoordinator, stakingV2EnableEpoch uint32, trieStorer storage.Storer) (metachain.ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(trieStorer)
@@ -504,7 +358,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:                          marshalizer,
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
+		NodesCoordinator:                     nc,
 		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
 		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
 		StorageService:                       &mock3.ChainStorerStub{},
@@ -623,7 +477,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			},
 		},
 		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
+		NodesCoordinator: nc,
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
