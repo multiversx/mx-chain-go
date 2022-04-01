@@ -3,6 +3,7 @@ package staking
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/stretchr/testify/assert"
@@ -15,11 +16,11 @@ func createMetaBlockHeader() *block.MetaBlock {
 		PrevHash:               []byte(""),
 		Signature:              []byte("signature"),
 		PubKeysBitmap:          []byte("pubKeysBitmap"),
-		RootHash:               []byte("rootHash"),
+		RootHash:               []byte("roothash"),
 		ShardInfo:              make([]block.ShardData, 0),
 		TxCount:                1,
-		PrevRandSeed:           make([]byte, 0),
-		RandSeed:               make([]byte, 0),
+		PrevRandSeed:           []byte("roothash"),
+		RandSeed:               []byte("roothash"),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		AccumulatedFees:        big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
@@ -54,25 +55,9 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	headerHandler, bodyHandler, err := node.MetaBlockProcessor.CreateBlock(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	err = headerHandler.SetRound(uint64(1))
+	node.DisplayNodesConfig(0, 1)
+
+	err = node.MetaBlockProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
-
-	err = headerHandler.SetNonce(1)
-	assert.Nil(t, err)
-
-	err = headerHandler.SetPrevHash([]byte("hash"))
-	assert.Nil(t, err)
-
-	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
-	assert.Nil(t, err)
-
-	_ = bodyHandler
-	/*
-		metaHeaderHandler, _ := headerHandler.(data.MetaHeaderHandler)
-		err = metaHeaderHandler.SetAccumulatedFeesInEpoch(big.NewInt(0))
-		assert.Nil(t, err)
-
-		err = node.MetaBlockProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
-		assert.Nil(t, err)
-	*/
+	node.DisplayNodesConfig(0, 1)
 }
