@@ -105,6 +105,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), "the cache for the trie nodes"))
 
 	args = getGoodArgs()
+	args.Config.TrieSyncStorage.EnableDB = true
 	args.Config.TrieSyncStorage.DB.Type = "invalid DB type"
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)

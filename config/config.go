@@ -35,9 +35,10 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	DB          DBConfig
 	Capacity    uint32
 	SizeInBytes uint64
+	EnableDB    bool
+	DB          DBConfig
 }
 
 // PubkeyConfig will map the public key configuration
