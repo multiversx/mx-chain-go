@@ -3,6 +3,7 @@ package staking
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -75,9 +77,9 @@ func NewTestMetaProcessor(
 ) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createMockComponentHolders(uint32(numOfShards))
 	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents)
-	scp, validatorsInfoCreator := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
+	scp, blockChainHook, validatorsInfoCreator := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
 	return &TestMetaProcessor{
-		MetaBlockProcessor: createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator),
+		MetaBlockProcessor: createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator, blockChainHook),
 	}
 }
 
@@ -99,8 +101,8 @@ func createSystemSCProcessor(
 	stateComponents factory2.StateComponentsHandler,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
-) (process.EpochStartSystemSCProcessor, process.ValidatorStatisticsProcessor) {
-	args, _, validatorsInfOCreator := createFullArgumentsForSystemSCProcessing(nc,
+) (process.EpochStartSystemSCProcessor, process.BlockChainHookHandler, process.ValidatorStatisticsProcessor) {
+	args, blockChainHook, validatorsInfOCreator := createFullArgumentsForSystemSCProcessing(nc,
 		1000,
 		coreComponents,
 		stateComponents,
@@ -108,7 +110,7 @@ func createSystemSCProcessor(
 		dataComponents,
 	)
 	s, _ := metachain.NewSystemSCProcessor(args)
-	return s, validatorsInfOCreator
+	return s, blockChainHook, validatorsInfOCreator
 }
 
 // TODO: MAYBE USE factory from mainFactory.CreateNodesCoordinator
@@ -209,8 +211,9 @@ func createMetaBlockProcessor(
 	statusComponents *mock.StatusComponentsMock,
 	stateComponents factory2.StateComponentsHandler,
 	validatorsInfoCreator process.ValidatorStatisticsProcessor,
+	blockChainHook process.BlockChainHookHandler,
 ) process.BlockProcessor {
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor, stateComponents, validatorsInfoCreator)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor, stateComponents, validatorsInfoCreator, blockChainHook)
 
 	metaProc, _ := blproc.NewMetaProcessor(arguments)
 	return metaProc
@@ -286,6 +289,7 @@ func createMockMetaArguments(
 	systemSCProcessor process.EpochStartSystemSCProcessor,
 	stateComponents factory2.StateComponentsHandler,
 	validatorsInfoCreator process.ValidatorStatisticsProcessor,
+	blockChainHook process.BlockChainHookHandler,
 ) blproc.ArgMetaProcessor {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      coreComponents.Hasher(),
@@ -307,6 +311,7 @@ func createMockMetaArguments(
 		DataPool:         dataComponents.Datapool(),
 	})
 
+	feeHandler, _ := postprocess.NewFeeAccumulator()
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:                 coreComponents,
@@ -316,9 +321,9 @@ func createMockMetaArguments(
 			AccountsDB:                     accountsDb,
 			ForkDetector:                   &mock.ForkDetectorMock{},
 			NodesCoordinator:               nodesCoord,
-			FeeHandler:                     &mock.FeeAccumulatorStub{},
+			FeeHandler:                     feeHandler,
 			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			BlockChainHook:                 &testscommon.BlockChainHookStub{},
+			BlockChainHook:                 blockChainHook,
 			TxCoordinator:                  &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:              &mock.EpochStartTriggerStub{},
 			HeaderValidator:                headerValidator,
@@ -358,29 +363,33 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 func createGenesisBlock(ShardID uint32) *block.Header {
 	rootHash := []byte("roothash")
 	return &block.Header{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		ShardID:       ShardID,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         ShardID,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 
 func createGenesisMetaBlock() *block.MetaBlock {
 	rootHash := []byte("roothash")
 	return &block.MetaBlock{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 
@@ -391,7 +400,7 @@ func createFullArgumentsForSystemSCProcessing(
 	stateComponents factory2.StateComponentsHandler,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
-) (metachain.ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer, process.ValidatorStatisticsProcessor) {
+) (metachain.ArgsNewEpochStartSystemSCProcessing, process.BlockChainHookHandler, process.ValidatorStatisticsProcessor) {
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:                          coreComponents.InternalMarshalizer(),
 		NodesCoordinator:                     nc,
@@ -541,7 +550,8 @@ func createFullArgumentsForSystemSCProcessing(
 			},
 		},
 	}
-	return args, metaVmFactory.SystemSmartContractContainer(), vCreator
+
+	return args, blockChainHookImpl, vCreator
 }
 
 func createAccountsDB(

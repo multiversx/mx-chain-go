@@ -8,9 +8,49 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMetaBlockHeader() *block.MetaBlock {
+	hdr := block.MetaBlock{
+		Nonce:                  1,
+		Round:                  1,
+		PrevHash:               []byte(""),
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte("pubKeysBitmap"),
+		RootHash:               []byte("rootHash"),
+		ShardInfo:              make([]block.ShardData, 0),
+		TxCount:                1,
+		PrevRandSeed:           make([]byte, 0),
+		RandSeed:               make([]byte, 0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+	}
+
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+	shardMiniBlockHeader := block.MiniBlockHeader{
+		Hash:            []byte("mb_hash1"),
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxCount:         1,
+	}
+	shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
+	shardData := block.ShardData{
+		Nonce:                 1,
+		ShardID:               0,
+		HeaderHash:            []byte("hdr_hash1"),
+		TxCount:               1,
+		ShardMiniBlockHeaders: shardMiniBlockHeaders,
+		DeveloperFees:         big.NewInt(0),
+		AccumulatedFees:       big.NewInt(0),
+	}
+	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
+
+	return &hdr
+}
+
 func TestNewTestMetaProcessor(t *testing.T) {
 	node := NewTestMetaProcessor(1, 1, 1, 1, 1)
-	metaHdr := &block.MetaBlock{}
+	metaHdr := createMetaBlockHeader()
 	headerHandler, bodyHandler, err := node.MetaBlockProcessor.CreateBlock(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
