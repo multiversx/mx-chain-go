@@ -38,16 +38,12 @@ func (printer *waitingOperationsPrinter) endExecuting(priority common.StorageAcc
 
 	printer.counters.decrement(priority)
 
-	if printer.counters.numNonZeroCounters == 0 {
-		printer.checkAndPrintProblemsEnded()
-	}
-
 	if priority != common.HighPriority {
 		return
 	}
 
 	measuredDuration := time.Since(startTime)
-	if measuredDuration > maxTimeOperationForHighPrio {
+	if measuredDuration > maxTimeOperationForHighPrio && !printer.problemsFound {
 		printer.problemsFound = true
 
 		printer.logger.Warn(fmt.Sprintf("high priority disk operation took > %v", maxTimeOperationForHighPrio),
@@ -55,9 +51,14 @@ func (printer *waitingOperationsPrinter) endExecuting(priority common.StorageAcc
 			"operation", operation,
 			"pending operations", printer.counters.snapshotString())
 	}
+
+	printer.checkAndPrintProblemsEnded()
 }
 
 func (printer *waitingOperationsPrinter) checkAndPrintProblemsEnded() {
+	if printer.counters.numNonZeroCounters > 0 {
+		return
+	}
 	if !printer.problemsFound {
 		return
 	}

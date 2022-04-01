@@ -74,18 +74,35 @@ func TestWaitingOperationsPrinter_endExecuting(t *testing.T) {
 		printer.endExecuting(common.HighPriority, operation, time.Now())
 		assert.True(t, debugCalled)
 	})
-	t.Run("num non zero counters is 0 and high priority with problems should print the debug line and warn line", func(t *testing.T) {
+	t.Run("num non zero counters is 0 and high priority with problems should print the debug line but not warn line", func(t *testing.T) {
 		printer := newWaitingOperationsPrinter()
 		printer.startExecuting(common.HighPriority)
 		printer.startExecuting(common.HighPriority)
 		printer.endExecuting(common.HighPriority, operation, time.Now().Add(-time.Hour))
 
 		debugCalled := false
-		warnCalled := false
 		printer.logger = &loggerMock.LoggerStub{
 			DebugCalled: func(message string, args ...interface{}) {
 				debugCalled = true
 				assert.Equal(t, expectedDebugMessage, message)
+			},
+			WarnCalled: func(message string, args ...interface{}) {
+				assert.Fail(t, "should have not called warn")
+			},
+		}
+
+		printer.endExecuting(common.HighPriority, "operation", time.Now().Add(-time.Hour))
+		assert.True(t, debugCalled)
+	})
+	t.Run("num non zero counters is 0 and high priority with problems should print warn line", func(t *testing.T) {
+		printer := newWaitingOperationsPrinter()
+		printer.startExecuting(common.HighPriority)
+		printer.startExecuting(common.HighPriority)
+
+		warnCalled := false
+		printer.logger = &loggerMock.LoggerStub{
+			DebugCalled: func(message string, args ...interface{}) {
+				assert.Fail(t, "should have not called debug")
 			},
 			WarnCalled: func(message string, args ...interface{}) {
 				warnCalled = true
@@ -95,7 +112,21 @@ func TestWaitingOperationsPrinter_endExecuting(t *testing.T) {
 		}
 
 		printer.endExecuting(common.HighPriority, "operation", time.Now().Add(-time.Hour))
-		assert.True(t, debugCalled)
 		assert.True(t, warnCalled)
+	})
+	t.Run("num non zero counters is 0 and high priority no problems should not print debug line", func(t *testing.T) {
+		printer := newWaitingOperationsPrinter()
+		printer.startExecuting(common.HighPriority)
+
+		printer.logger = &loggerMock.LoggerStub{
+			DebugCalled: func(message string, args ...interface{}) {
+				assert.Fail(t, "should have not called debug")
+			},
+			WarnCalled: func(message string, args ...interface{}) {
+				assert.Fail(t, "should have not called warn")
+			},
+		}
+
+		printer.endExecuting(common.HighPriority, "operation", time.Now())
 	})
 }
