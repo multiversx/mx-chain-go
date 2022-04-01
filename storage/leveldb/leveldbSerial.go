@@ -348,25 +348,33 @@ func (s *SerialDB) doClose() error {
 
 func (s *SerialDB) processLoop(ctx context.Context) {
 	for {
-		select {
-		case queryer := <-s.highPrioDbAccess:
-			queryer.request(s)
-			continue
-		case <-ctx.Done():
+		shouldContinue := s.doOneProcessIterationReturningIfShouldContinue(ctx)
+		if !shouldContinue {
 			log.Debug("processLoop - closing the leveldb process loop", "path", s.path)
 			return
-		default:
 		}
+	}
+}
 
-		select {
-		case queryer := <-s.highPrioDbAccess:
-			queryer.request(s)
-		case queryer := <-s.lowPrioDbAccess:
-			queryer.request(s)
-		case <-ctx.Done():
-			log.Debug("processLoop - closing the leveldb process loop", "path", s.path)
-			return
-		}
+func (s *SerialDB) doOneProcessIterationReturningIfShouldContinue(ctx context.Context) bool {
+	select {
+	case queryer := <-s.highPrioDbAccess:
+		queryer.request(s)
+		return true
+	case <-ctx.Done():
+		return false
+	default:
+	}
+
+	select {
+	case queryer := <-s.highPrioDbAccess:
+		queryer.request(s)
+		return true
+	case queryer := <-s.lowPrioDbAccess:
+		queryer.request(s)
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 
