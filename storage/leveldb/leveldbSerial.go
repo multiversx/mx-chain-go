@@ -19,14 +19,12 @@ import (
 
 var _ storage.Persister = (*SerialDB)(nil)
 
-const maxTimeOperationForHighPrio = time.Millisecond * 30
-
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
 	*baseLevelDb
 	maxBatchSize      int
 	batchDelaySeconds int
-	waitingOperations *waitingOperationsCounters
+	waitingOperations *waitingOperationsPrinter
 
 	lowPrioBatch  *batchWrapper
 	highPrioBatch *batchWrapper
@@ -76,7 +74,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		highPrioDbAccess:  make(chan serialQueryer),
 		cancel:            cancel,
 		closer:            closing.NewSafeChanCloser(),
-		waitingOperations: newWaitingOperationsCounters(),
+		waitingOperations: newWaitingOperationsPrinter(),
 	}
 
 	go dbStore.batchTimeoutHandle(ctx)
@@ -111,8 +109,8 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 }
 
 func (s *SerialDB) putAllBatches() {
-	s.putBatchHandlingErrors(common.LowPriority)
 	s.putBatchHandlingErrors(common.HighPriority)
+	s.putBatchHandlingErrors(common.LowPriority)
 }
 
 func (s *SerialDB) putBatchHandlingErrors(priority common.StorageAccessType) {
@@ -242,23 +240,10 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer, ch chan serialQuery
 }
 
 func (s *SerialDB) executeSerialDBRequest(req serialQueryer, writeChan chan serialQueryer, priority common.StorageAccessType, operation string) *result {
-	s.waitingOperations.increment(priority)
-	defer s.waitingOperations.increment(priority)
-
+	s.waitingOperations.startExecuting(priority)
 	start := time.Now()
-	defer func() {
-		if priority != common.HighPriority {
-			return
-		}
 
-		measuredDuration := time.Since(start)
-		if measuredDuration > maxTimeOperationForHighPrio {
-			log.Warn(fmt.Sprintf("high priority disk operation took > %v", maxTimeOperationForHighPrio),
-				"measured duration", measuredDuration,
-				"operation", operation,
-				"pending operations", s.waitingOperations.snapshotString())
-		}
-	}()
+	defer s.waitingOperations.endExecuting(priority, operation, start)
 
 	err := s.tryWriteInDbAccessChan(req, writeChan)
 	if err != nil {

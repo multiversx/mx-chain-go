@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -89,6 +90,20 @@ func TestNewTrieFactory_ShouldWork(t *testing.T) {
 	tf, err := factory.NewTrieFactory(args)
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tf))
+}
+
+func TestTrieFactory_CreateInvalidPriorityValue(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.Priority = "invalid"
+	sm, tr, err := tf.Create(createArgs)
+	require.True(t, check.IfNil(sm))
+	require.True(t, check.IfNil(tr))
+	require.True(t, errors.Is(err, trie.ErrInvalidPriorityType))
 }
 
 func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {

@@ -108,12 +108,12 @@ func TestNewPeerAccountsDB_InvalidPriorityShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		&testscommon.MarshalizerMock{},
 		&stateMock.AccountsFactoryStub{},
-		nil,
+		disabled.NewDisabledStoragePruningManager(),
 		"invalid",
 	)
 
 	assert.True(t, check.IfNil(adb))
-	assert.True(t, errors.Is(err, state.ErrNilStoragePruningManager))
+	assert.True(t, errors.Is(err, state.ErrInvalidPriorityType))
 }
 
 func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {

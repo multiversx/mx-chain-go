@@ -1,6 +1,7 @@
 package storageCacherAdapter
 
 import (
+	"fmt"
 	"math"
 	"sync"
 
@@ -44,6 +45,9 @@ func NewStorageCacherAdapter(
 	}
 	if check.IfNil(storedDataFactory) {
 		return nil, storage.ErrNilStoredDataFactory
+	}
+	if !common.IsStorageAccessValid(defaultPriority) {
+		return nil, fmt.Errorf("%w: %s in NewStorageCacherAdapter", storage.ErrInvalidPriorityType, defaultPriority)
 	}
 
 	return &storageCacherAdapter{

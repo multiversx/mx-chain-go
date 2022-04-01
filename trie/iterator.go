@@ -1,6 +1,8 @@
 package trie
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
@@ -16,6 +18,9 @@ type iterator struct {
 func NewIterator(trie common.Trie, priority common.StorageAccessType) (*iterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
+	}
+	if !common.IsStorageAccessValid(priority) {
+		return nil, fmt.Errorf("%w: %s in NewIterator", ErrInvalidPriorityType, priority)
 	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)

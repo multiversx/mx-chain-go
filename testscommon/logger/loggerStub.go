@@ -1,4 +1,4 @@
-package testscommon
+package logger
 
 import logger "github.com/ElrondNetwork/elrond-go-logger"
 

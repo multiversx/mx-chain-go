@@ -1,6 +1,7 @@
 package trie_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -18,7 +19,7 @@ func TestNewIterator(t *testing.T) {
 	assert.NotNil(t, it)
 }
 
-func TestNewIteratorNilTrieShouldErr(t *testing.T) {
+func TestNewIterator_NilTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	var tr common.Trie
@@ -26,6 +27,16 @@ func TestNewIteratorNilTrieShouldErr(t *testing.T) {
 	it, err := trie.NewIterator(tr, common.TestPriority)
 	assert.Nil(t, it)
 	assert.Equal(t, trie.ErrNilTrie, err)
+}
+
+func TestNewIterator_InvalidPriorityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie(t)
+
+	it, err := trie.NewIterator(tr, "invalid")
+	assert.Nil(t, it)
+	assert.True(t, errors.Is(err, trie.ErrInvalidPriorityType))
 }
 
 func TestIterator_HasNext(t *testing.T) {

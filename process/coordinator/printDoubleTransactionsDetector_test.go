@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	loggerMock "github.com/ElrondNetwork/elrond-go/testscommon/logger"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -72,7 +73,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		errorCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
-		detector.logger = &testscommon.LoggerStub{
+		detector.logger = &loggerMock.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
 				errorCalled = message == nilBlockBodyMessage
 			},
@@ -87,7 +88,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
-		detector.logger = &testscommon.LoggerStub{
+		detector.logger = &loggerMock.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
 				assert.Fail(t, "should have not called error")
 			},
@@ -105,7 +106,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
-		detector.logger = &testscommon.LoggerStub{
+		detector.logger = &loggerMock.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
 				assert.Fail(t, "should have not called error")
 			},
@@ -134,7 +135,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		args.AddFailedRelayedTxToInvalidMBsDisableEpoch = 100000
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
-		detector.logger = &testscommon.LoggerStub{
+		detector.logger = &loggerMock.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
 				assert.Fail(t, "should have not called error")
 			},
@@ -169,7 +170,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 `
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
-		detector.logger = &testscommon.LoggerStub{
+		detector.logger = &loggerMock.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
 				assert.Equal(t, expectedMessage, message)
 				errorCalled = message == expectedMessage
@@ -205,7 +206,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 `
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
-		detector.logger = &testscommon.LoggerStub{
+		detector.logger = &loggerMock.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
 				assert.Equal(t, expectedMessage, message)
 				errorCalled = message == expectedMessage

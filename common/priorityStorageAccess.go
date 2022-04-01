@@ -12,13 +12,13 @@ const (
 )
 
 const (
-	// ProcessPriority is the time critical priority, usually used when processing block
+	// ProcessPriority is the time critical priority, usually used when processing blocks
 	ProcessPriority = HighPriority
 
 	// APIPriority is the priority used when serving API calls
 	APIPriority = HighPriority
 
-	// ResolveRequestPriority is the priority used when serving request
+	// ResolveRequestPriority is the priority used when serving requests
 	ResolveRequestPriority = LowPriority
 
 	// SnapshotPriority is the priority used when doing a trie snapshot

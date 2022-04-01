@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
+// waitingOperationsCounters is not concurrent safe
 type waitingOperationsCounters struct {
-	mut      sync.RWMutex
-	counters map[common.StorageAccessType]int
+	counters           map[common.StorageAccessType]int
+	numNonZeroCounters int
 }
 
 func newWaitingOperationsCounters() *waitingOperationsCounters {
@@ -20,31 +20,27 @@ func newWaitingOperationsCounters() *waitingOperationsCounters {
 	}
 }
 
-func (woc *waitingOperationsCounters) getCounter(priority common.StorageAccessType) int {
-	woc.mut.RLock()
-	defer woc.mut.RUnlock()
-
-	return woc.counters[priority]
-}
-
 func (woc *waitingOperationsCounters) increment(priority common.StorageAccessType) {
-	woc.mut.Lock()
-	defer woc.mut.Unlock()
-
+	old := woc.counters[priority]
 	woc.counters[priority]++
+	if old == 0 {
+		woc.numNonZeroCounters++
+	}
 }
 
 func (woc *waitingOperationsCounters) decrement(priority common.StorageAccessType) {
-	woc.mut.Lock()
-	defer woc.mut.Unlock()
+	old := woc.counters[priority]
+	if old < 1 {
+		return
+	}
+	if old == 1 {
+		woc.numNonZeroCounters--
+	}
 
 	woc.counters[priority]--
 }
 
 func (woc *waitingOperationsCounters) snapshotString() string {
-	woc.mut.RLock()
-	defer woc.mut.RUnlock()
-
 	keys := make([]common.StorageAccessType, 0, len(woc.counters))
 	for priority := range woc.counters {
 		keys = append(keys, priority)

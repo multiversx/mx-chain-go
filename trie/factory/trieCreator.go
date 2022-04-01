@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"path"
 	"path/filepath"
 
@@ -69,6 +70,10 @@ func NewTrieFactory(
 
 // Create creates a new trie
 func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
+	if !common.IsStorageAccessValid(args.Priority) {
+		return nil, nil, fmt.Errorf("%w: %s in trieCreator.Create", trie.ErrInvalidPriorityType, args.Priority)
+	}
+
 	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(args.ShardID, args.TrieStorageConfig.DB.FilePath))
 
 	dbConfig := factory.GetDBFromConfig(args.TrieStorageConfig.DB)

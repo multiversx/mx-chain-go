@@ -1,6 +1,7 @@
 package storageCacherAdapter
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"testing"
@@ -16,60 +17,87 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStorageCacherAdapter_NilCacher(t *testing.T) {
+func TestNewStorageCacherAdapter(t *testing.T) {
 	t.Parallel()
 
-	sca, err := NewStorageCacherAdapter(
-		nil,
-		&storageMock.PersisterStub{},
-		trieFactory.NewTrieNodeFactory(),
-		&mock.MarshalizerMock{},
-		common.TestPriority,
-	)
-	assert.Nil(t, sca)
-	assert.Equal(t, storage.ErrNilCacher, err)
-}
+	t.Run("nil cacher should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewStorageCacherAdapter_NilDB(t *testing.T) {
-	t.Parallel()
+		sca, err := NewStorageCacherAdapter(
+			nil,
+			&storageMock.PersisterStub{},
+			trieFactory.NewTrieNodeFactory(),
+			&mock.MarshalizerMock{},
+			common.TestPriority,
+		)
+		assert.True(t, check.IfNil(sca))
+		assert.Equal(t, storage.ErrNilCacher, err)
+	})
+	t.Run("nil DB should error", func(t *testing.T) {
+		t.Parallel()
 
-	sca, err := NewStorageCacherAdapter(
-		&storageMock.AdaptedSizedLruCacheStub{},
-		nil,
-		trieFactory.NewTrieNodeFactory(),
-		&mock.MarshalizerMock{},
-		common.TestPriority,
-	)
-	assert.True(t, check.IfNil(sca))
-	assert.Equal(t, storage.ErrNilPersister, err)
-}
+		sca, err := NewStorageCacherAdapter(
+			&storageMock.AdaptedSizedLruCacheStub{},
+			nil,
+			trieFactory.NewTrieNodeFactory(),
+			&mock.MarshalizerMock{},
+			common.TestPriority,
+		)
+		assert.True(t, check.IfNil(sca))
+		assert.Equal(t, storage.ErrNilPersister, err)
+	})
+	t.Run("nil stored data factory should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewStorageCacherAdapter_NilStoredDataFactory(t *testing.T) {
-	t.Parallel()
+		sca, err := NewStorageCacherAdapter(
+			&storageMock.AdaptedSizedLruCacheStub{},
+			&storageMock.PersisterStub{},
+			nil,
+			&mock.MarshalizerMock{},
+			common.TestPriority,
+		)
+		assert.True(t, check.IfNil(sca))
+		assert.Equal(t, storage.ErrNilStoredDataFactory, err)
+	})
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
 
-	sca, err := NewStorageCacherAdapter(
-		&storageMock.AdaptedSizedLruCacheStub{},
-		&storageMock.PersisterStub{},
-		nil,
-		&mock.MarshalizerMock{},
-		common.TestPriority,
-	)
-	assert.Nil(t, sca)
-	assert.Equal(t, storage.ErrNilStoredDataFactory, err)
-}
+		sca, err := NewStorageCacherAdapter(
+			&storageMock.AdaptedSizedLruCacheStub{},
+			&storageMock.PersisterStub{},
+			trieFactory.NewTrieNodeFactory(),
+			nil,
+			common.TestPriority,
+		)
+		assert.True(t, check.IfNil(sca))
+		assert.Equal(t, storage.ErrNilMarshalizer, err)
+	})
+	t.Run("invalid default priority should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewStorageCacherAdapter_NilMarshalizer(t *testing.T) {
-	t.Parallel()
+		sca, err := NewStorageCacherAdapter(
+			&storageMock.AdaptedSizedLruCacheStub{},
+			&storageMock.PersisterStub{},
+			trieFactory.NewTrieNodeFactory(),
+			&mock.MarshalizerMock{},
+			"invalid",
+		)
+		assert.True(t, check.IfNil(sca))
+		assert.True(t, errors.Is(err, storage.ErrInvalidPriorityType))
+	})
+	t.Run("shouled work", func(t *testing.T) {
+		t.Parallel()
 
-	sca, err := NewStorageCacherAdapter(
-		&storageMock.AdaptedSizedLruCacheStub{},
-		&storageMock.PersisterStub{},
-		trieFactory.NewTrieNodeFactory(),
-		nil,
-		common.TestPriority,
-	)
-	assert.Nil(t, sca)
-	assert.Equal(t, storage.ErrNilMarshalizer, err)
+		sca, err := NewStorageCacherAdapter(
+			&storageMock.AdaptedSizedLruCacheStub{},
+			&storageMock.PersisterStub{},
+			trieFactory.NewTrieNodeFactory(),
+			&mock.MarshalizerMock{},
+			common.TestPriority,
+		)
+		assert.False(t, check.IfNil(sca))
+		assert.Nil(t, err)
+	})
 }
 
 func TestStorageCacherAdapter_Clear(t *testing.T) {
