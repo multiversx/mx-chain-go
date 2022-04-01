@@ -2970,8 +2970,13 @@ func TestNode_DirectTrigger(t *testing.T) {
 			return nil
 		},
 	}
+
+	processComponents := &integrationTestsMock.ProcessComponentsStub{
+		HardforkTriggerField: hardforkTrigger,
+	}
+
 	n, _ := node.NewNode(
-		node.WithHardforkTrigger(hardforkTrigger),
+		node.WithProcessComponents(processComponents),
 	)
 
 	err := n.DirectTrigger(epoch, true)
@@ -2993,8 +2998,13 @@ func TestNode_IsSelfTrigger(t *testing.T) {
 			return true
 		},
 	}
+
+	processComponents := &integrationTestsMock.ProcessComponentsStub{
+		HardforkTriggerField: hardforkTrigger,
+	}
+
 	n, _ := node.NewNode(
-		node.WithHardforkTrigger(hardforkTrigger),
+		node.WithProcessComponents(processComponents),
 	)
 
 	isSelf := n.IsSelfTrigger()

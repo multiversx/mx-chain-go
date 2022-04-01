@@ -106,7 +106,6 @@ func CreateNode(
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
 		WithPeerDenialEvaluator(peerDenialEvaluator),
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
-		WithHardforkTrigger(processComponents.HardforkTrigger()),
 		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),

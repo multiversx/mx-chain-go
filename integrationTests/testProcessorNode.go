@@ -2304,7 +2304,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	log.LogIfError(err)
 
@@ -2800,30 +2799,6 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 }
 
 func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk string) {
-	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
-	argHardforkTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:        pkBytes,
-		Enabled:                   true,
-		EnabledAuthenticated:      true,
-		ArgumentParser:            smartContract.NewArgumentParser(),
-		EpochProvider:             tpn.EpochStartTrigger,
-		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
-		CloseAfterExportInMinutes: 5,
-		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
-		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
-		SelfPubKeyBytes:           pkBytes,
-		ImportStartHandler:        &mock.ImportStartHandlerStub{},
-		RoundHandler:              &mock.RoundHandlerMock{},
-	}
-	var err error
-	if len(heartbeatPk) > 0 {
-		argHardforkTrigger.TriggerPubKeyBytes, err = hex.DecodeString(heartbeatPk)
-		log.LogIfError(err)
-	}
-
-	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
-	log.LogIfError(err)
-
 	cacher := testscommon.NewCacherMock()
 	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
 		cacher,
@@ -2870,10 +2845,32 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
 
+	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
+	argHardforkTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:        pkBytes,
+		Enabled:                   true,
+		EnabledAuthenticated:      true,
+		ArgumentParser:            smartContract.NewArgumentParser(),
+		EpochProvider:             tpn.EpochStartTrigger,
+		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
+		CloseAfterExportInMinutes: 5,
+		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
+		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
+		SelfPubKeyBytes:           pkBytes,
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+		RoundHandler:              &mock.RoundHandlerMock{},
+	}
+	if len(heartbeatPk) > 0 {
+		argHardforkTrigger.TriggerPubKeyBytes, err = hex.DecodeString(heartbeatPk)
+		log.LogIfError(err)
+	}
+	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
+	log.LogIfError(err)
+	processComponents.HardforkTriggerField = hardforkTrigger
+
 	redundancyHandler := &mock.RedundancyHandlerStub{}
 
 	err = tpn.Node.ApplyOptions(
-		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
@@ -2892,13 +2889,14 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		Config: config.Config{
 			Heartbeat: hbConfig,
 		},
-		Prefs:             config.Preferences{},
-		RedundancyHandler: redundancyHandler,
-		CoreComponents:    tpn.Node.GetCoreComponents(),
-		DataComponents:    tpn.Node.GetDataComponents(),
-		NetworkComponents: tpn.Node.GetNetworkComponents(),
-		CryptoComponents:  tpn.Node.GetCryptoComponents(),
-		ProcessComponents: tpn.Node.GetProcessComponents(),
+		HeartbeatDisableEpoch: 10,
+		Prefs:                 config.Preferences{},
+		RedundancyHandler:     redundancyHandler,
+		CoreComponents:        tpn.Node.GetCoreComponents(),
+		DataComponents:        tpn.Node.GetDataComponents(),
+		NetworkComponents:     tpn.Node.GetNetworkComponents(),
+		CryptoComponents:      tpn.Node.GetCryptoComponents(),
+		ProcessComponents:     tpn.Node.GetProcessComponents(),
 	}
 
 	heartbeatFactory, err := mainFactory.NewHeartbeatComponentsFactory(hbFactoryArgs)

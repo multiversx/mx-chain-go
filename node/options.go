@@ -268,19 +268,6 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 	}
 }
 
-// WithHardforkTrigger sets up a hardfork trigger
-func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
-	return func(n *Node) error {
-		if check.IfNil(hardforkTrigger) {
-			return ErrNilHardforkTrigger
-		}
-
-		n.hardforkTrigger = hardforkTrigger
-
-		return nil
-	}
-}
-
 // WithAddressSignatureSize sets up an addressSignatureSize option for the Node
 func WithAddressSignatureSize(signatureSize int) Option {
 	return func(n *Node) error {

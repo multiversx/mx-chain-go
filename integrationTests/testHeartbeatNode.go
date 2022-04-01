@@ -516,6 +516,7 @@ func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorF
 	args := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
 		PeerShardMapper:          thn.PeerShardMapper,
+		Marshaller:               TestMarshaller,
 		HardforkTrigger:          &mock.HardforkTriggerStub{},
 	}
 	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(args)
