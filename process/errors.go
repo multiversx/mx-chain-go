@@ -1076,3 +1076,12 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
+
+// ErrNilGuardianSigVerifier signals that a nil guardian signature verifier was provided
+var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")
+
+// ErrNilGuardianChecker signals that a nil guardian checker was provided
+var ErrNilGuardianChecker = errors.New("nil guardian checker")
+
+// ErrNilGuardianPublicKey signals that a nil guardian public key was provided
+var ErrNilGuardianPublicKey = errors.New("nil guardian public key")

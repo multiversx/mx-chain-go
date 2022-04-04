@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -15,12 +16,21 @@ import (
 
 var _ process.TxValidator = (*txValidator)(nil)
 
+// GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
+// TODO: add an implementation and integrate it
+type GuardianSigVerifier interface {
+	VerifyGuardianSignature(guardianPubKey []byte, tx data.TransactionHandler) error // todo: through crypto.SingleSigner
+	GetActiveGuardian(handler data.UserAccountHandler) ([]byte, error)               // todo: through core.GuardianChecker
+	IsInterfaceNil() bool
+}
+
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
-	pubkeyConverter      core.PubkeyConverter
+	pubKeyConverter      core.PubkeyConverter
+	guardianSigVerifier  GuardianSigVerifier
 	maxNonceDeltaAllowed int
 }
 
@@ -29,7 +39,8 @@ func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
-	pubkeyConverter core.PubkeyConverter,
+	pubKeyConverter core.PubkeyConverter,
+	guardianSigVerifier GuardianSigVerifier,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {
@@ -41,8 +52,11 @@ func NewTxValidator(
 	if check.IfNil(whiteListHandler) {
 		return nil, process.ErrNilWhiteListHandler
 	}
-	if check.IfNil(pubkeyConverter) {
+	if check.IfNil(pubKeyConverter) {
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
+	}
+	if check.IfNil(guardianSigVerifier) {
+		return nil, process.ErrNilGuardianSigVerifier
 	}
 
 	return &txValidator{
@@ -50,7 +64,8 @@ func NewTxValidator(
 		shardCoordinator:     shardCoordinator,
 		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
-		pubkeyConverter:      pubkeyConverter,
+		pubKeyConverter:      pubKeyConverter,
+		guardianSigVerifier:  guardianSigVerifier,
 	}, nil
 }
 
@@ -89,7 +104,7 @@ func (txv *txValidator) checkAccount(
 		return err
 	}
 
-	err = checkPermission(interceptedTx, account)
+	err = txv.checkPermission(interceptedTx, account)
 	if err != nil {
 		return err
 	}
@@ -106,7 +121,7 @@ func (txv *txValidator) getSenderUserAccount(
 	if !ok {
 		return nil, fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
-			txv.pubkeyConverter.Encode(senderAddress),
+			txv.pubKeyConverter.Encode(senderAddress),
 		)
 	}
 	return account, nil
@@ -119,7 +134,7 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTxHandler,
 		senderAddress := interceptedTx.SenderAddress()
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
-			txv.pubkeyConverter.Encode(senderAddress),
+			txv.pubKeyConverter.Encode(senderAddress),
 			txFee,
 			accountBalance,
 		)
@@ -128,7 +143,7 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTxHandler,
 	return nil
 }
 
-func checkPermission(interceptedTx process.InterceptedTxHandler, account state.UserAccountHandler) error {
+func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTxHandler, account state.UserAccountHandler) error {
 	txData, err := getTxData(interceptedTx)
 	if err != nil {
 		return err
@@ -138,8 +153,15 @@ func checkPermission(interceptedTx process.InterceptedTxHandler, account state.U
 			return state.ErrOperationNotPermitted
 		}
 
-		// TODO: verify guardian signature on Tx
-		//interceptedTx.Transaction()
+		guardianPubKey, errGuardian := txv.guardianSigVerifier.GetActiveGuardian(account)
+		if errGuardian != nil {
+			return fmt.Errorf("%w due to error in getting the active guardian %s", state.ErrOperationNotPermitted, errGuardian.Error())
+		}
+
+		errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(guardianPubKey, interceptedTx.Transaction())
+		if errGuardianSignature != nil {
+			return fmt.Errorf("%w due to error in signature verification %s", state.ErrOperationNotPermitted, errGuardianSignature.Error())
+		}
 	}
 
 	return nil
@@ -172,7 +194,7 @@ func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTxHand
 	if err != nil {
 		return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
 			process.ErrAccountNotFound,
-			txv.pubkeyConverter.Encode(senderAddress),
+			txv.pubKeyConverter.Encode(senderAddress),
 			txv.shardCoordinator.SelfId(),
 			err.Error(),
 		)
