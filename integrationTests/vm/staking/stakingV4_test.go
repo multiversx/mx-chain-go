@@ -1,13 +1,10 @@
 package staking
 
 import (
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -56,77 +53,90 @@ func createMetaBlockHeader(epoch uint32, round uint64, prevHash []byte) *block.M
 }
 
 func TestNewTestMetaProcessor(t *testing.T) {
-	node := NewTestMetaProcessor(1, 1, 1, 1, 1)
-	//metaHdr := createMetaBlockHeader(1,1)
-	//headerHandler, bodyHandler, err := node.MetaBlockProcessor.CreateBlock(metaHdr, func() bool { return true })
-	//assert.Nil(t, err)
-	//
-	//node.DisplayNodesConfig(0, 1)
-	//
-	//err = node.MetaBlockProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
-	//assert.Nil(t, err)
-	//
-	//err = node.MetaBlockProcessor.CommitBlock(headerHandler, bodyHandler)
-	node.DisplayNodesConfig(0, 1)
-	newHdr := createMetaBlockHeader(1, 1, []byte(""))
-	newHdr.SetPrevHash(node.GenesisHeader.Hash)
+	node := NewTestMetaProcessor(3, 3, 3, 2, 2)
+	node.DisplayNodesConfig(0, 4)
+
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	newHdr := createMetaBlockHeader(0, 1, node.GenesisHeader.Hash)
+	_, _ = node.MetaBlockProcessor.CreateNewHeader(1, 1)
 	newHdr2, newBodyHandler2, err := node.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
-
 	require.Nil(t, err)
-	//newHdr22 := newHdr2.(*block.MetaBlock)
-
-	//valstat, _ := hex.DecodeString("8de5a7881cdf0edc6f37d0382f870609c4a79559b0c4dbac8260fea955db9bb9")
-	//newHdr22.ValidatorStatsRootHash = valstat
-
-	//err = node.MetaBlockProcessor.ProcessBlock(newHdr2, newBodyHandler2, func() time.Duration { return 4 * time.Second })
-	//require.Nil(t, err)
 	err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
 	require.Nil(t, err)
 
-	currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		currentBlockHeader = node.BlockChain.GetGenesisHeader()
-	}
+	node.DisplayNodesConfig(0, 4)
 
 	marshaller := &mock.MarshalizerMock{}
+	hasher := sha256.NewSha256()
+
 	prevBlockBytes, _ := marshaller.Marshal(newHdr2)
-	prevBlockBytes = sha256.NewSha256().Compute(string(prevBlockBytes))
-	prevBlockHash := hex.EncodeToString(prevBlockBytes)
-	fmt.Println(prevBlockHash)
+	prevBlockBytes = hasher.Compute(string(prevBlockBytes))
+	prevRandomness := node.BlockChain.GetCurrentBlockHeader().GetRandSeed()
+	newHdr = createMetaBlockHeader(0, 2, prevBlockBytes)
+	newHdr.PrevRandSeed = prevRandomness
 
-	//prevHash, _ := hex.DecodeString("a9307adeffe84090fab6a0e2e6c94c4102bdf083bc1314a389e4e85500861710")
-	prevRandomness := currentBlockHeader.GetRandSeed()
-	newRandomness := currentBlockHeader.GetRandSeed()
-	anotherHdr := createMetaBlockHeader(1, 2, prevBlockBytes)
-
-	//	rootHash ,_ := node.ValidatorStatistics.RootHash()
-	//	anotherHdr.ValidatorStatsRootHash = rootHash
-	anotherHdr.PrevRandSeed = prevRandomness
-	anotherHdr.RandSeed = newRandomness
-	hh, bb, err := node.MetaBlockProcessor.CreateBlock(anotherHdr, func() bool { return true })
+	_, _ = node.MetaBlockProcessor.CreateNewHeader(2, 2)
+	newHdr2, newBodyHandler2, err = node.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
 	require.Nil(t, err)
-
-	//err = node.MetaBlockProcessor.ProcessBlock(hh,bb,func() time.Duration { return 4* time.Second })
-	//require.Nil(t, err)
-
-	err = node.MetaBlockProcessor.CommitBlock(hh, bb)
+	err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
 	require.Nil(t, err)
+	node.DisplayNodesConfig(0, 4)
 
-	/*
-		prevHash, _ := hex.DecodeString("7a8de8d447691a793f053a7e744b28da19c42cedbef7e76caef7d4acb2ff3906")
-		prevRandSeed := newHdr2.GetRandSeed()
-		newHdr2 = createMetaBlockHeader(2,2, prevHash)
-		newHdr2.SetPrevRandSeed(prevRandSeed)
+	prevBlockBytes, _ = marshaller.Marshal(newHdr2)
+	prevBlockBytes = hasher.Compute(string(prevBlockBytes))
+	prevRandomness = node.BlockChain.GetCurrentBlockHeader().GetRandSeed()
+	newHdr = createMetaBlockHeader(0, 3, prevBlockBytes)
+	newHdr.PrevRandSeed = prevRandomness
 
-		metablk := newHdr2.(*block.MetaBlock)
-		valStats, _ := hex.DecodeString("5f4f6e8be67205b432eaf2aafb2b1aa3555cf58a936a5f93b3b89917a9a9fa42")
-		metablk.ValidatorStatsRootHash = valStats
-		newHdr2, newBodyHandler2, err = node.MetaBlockProcessor.CreateBlock(newHdr2, func() bool { return true })
-		require.Nil(t, err)
-		err = node.MetaBlockProcessor.ProcessBlock(newHdr2, newBodyHandler2, func() time.Duration { return time.Second })
-		require.Nil(t, err)
-		err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
-		require.Nil(t, err)
+	_, _ = node.MetaBlockProcessor.CreateNewHeader(3, 3)
+	newHdr2, newBodyHandler2, err = node.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
+	require.Nil(t, err)
+	err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
+	require.Nil(t, err)
+	node.DisplayNodesConfig(0, 4)
 
-	*/
+	prevBlockBytes, _ = marshaller.Marshal(newHdr2)
+	prevBlockBytes = hasher.Compute(string(prevBlockBytes))
+	prevRandomness = node.BlockChain.GetCurrentBlockHeader().GetRandSeed()
+	newHdr = createMetaBlockHeader(1, 4, prevBlockBytes)
+	newHdr.PrevRandSeed = prevRandomness
+
+	_, _ = node.MetaBlockProcessor.CreateNewHeader(4, 4)
+	newHdr2, newBodyHandler2, err = node.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
+	require.Nil(t, err)
+	err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
+	require.Nil(t, err)
+	node.DisplayNodesConfig(0, 4)
+
+	prevBlockBytes, _ = marshaller.Marshal(newHdr2)
+	prevBlockBytes = hasher.Compute(string(prevBlockBytes))
+	prevRandomness = node.BlockChain.GetCurrentBlockHeader().GetRandSeed()
+	newHdr = createMetaBlockHeader(1, 5, prevBlockBytes)
+	newHdr.PrevRandSeed = prevRandomness
+	newHdr.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{}}
+	newHdr.EpochStart.Economics = block.Economics{RewardsForProtocolSustainability: big.NewInt(0)}
+
+	_, _ = node.MetaBlockProcessor.CreateNewHeader(5, 5)
+	newHdr2, newBodyHandler2, err = node.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
+	//node.CoreComponents.EpochStartNotifierWithConfirm().NotifyAllPrepare(newHdr2,newBodyHandler2)
+	require.Nil(t, err)
+	err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
+	require.Nil(t, err)
+	node.DisplayNodesConfig(1, 4)
+
+	// epoch start
+	prevBlockBytes, _ = marshaller.Marshal(newHdr2)
+	prevBlockBytes = hasher.Compute(string(prevBlockBytes))
+	prevRandomness = node.BlockChain.GetCurrentBlockHeader().GetRandSeed()
+	newHdr = createMetaBlockHeader(1, 6, prevBlockBytes)
+	newHdr.PrevRandSeed = prevRandomness
+
+	_, _ = node.MetaBlockProcessor.CreateNewHeader(6, 6)
+	newHdr2, newBodyHandler2, err = node.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
+	require.Nil(t, err)
+	err = node.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
+	require.Nil(t, err)
+	node.DisplayNodesConfig(1, 4)
+
 }

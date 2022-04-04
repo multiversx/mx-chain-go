@@ -74,7 +74,9 @@ type TestMetaProcessor struct {
 	NodesCoordinator    nodesCoordinator.NodesCoordinator
 	BlockChain          data.ChainHandler
 	ValidatorStatistics process.ValidatorStatisticsProcessor
+	EpochStartTrigger   integrationTests.TestEpochStartTrigger
 	GenesisHeader       *HeaderInfo
+	CoreComponents      factory2.CoreComponentsHolder
 }
 
 // NewTestMetaProcessor -
@@ -86,6 +88,8 @@ func NewTestMetaProcessor(
 	metaConsensusGroupSize int,
 ) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, genesisHeader := createMockComponentHolders(uint32(numOfShards))
+	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents)
+
 	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents, stateComponents)
 	scp, blockChainHook, validatorsInfoCreator, metaVMFactory := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
 
@@ -93,13 +97,35 @@ func NewTestMetaProcessor(
 	fmt.Println("ROOT HASh FOR PEER ACCOUNTS " + hex.EncodeToString(rootHash))
 
 	return &TestMetaProcessor{
-		MetaBlockProcessor:  createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory),
+		MetaBlockProcessor:  createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory, epochStartTrigger),
 		SystemSCProcessor:   scp,
 		NodesCoordinator:    nc,
 		BlockChain:          dataComponents.Blockchain(),
 		ValidatorStatistics: validatorsInfoCreator,
 		GenesisHeader:       genesisHeader,
+		EpochStartTrigger:   epochStartTrigger,
+		CoreComponents:      coreComponents,
 	}
+}
+
+func createEpochStartTrigger(coreComponents factory2.CoreComponentsHolder, dataComponents factory2.DataComponentsHolder) integrationTests.TestEpochStartTrigger {
+	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+		GenesisTime: time.Now(),
+		Settings: &config.EpochStartConfig{
+			MinRoundsBetweenEpochs: 100,
+			RoundsPerEpoch:         100,
+		},
+		Epoch:              0,
+		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
+		Storage:            dataComponents.StorageService(),
+		Marshalizer:        coreComponents.InternalMarshalizer(),
+		Hasher:             coreComponents.Hasher(),
+		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+	}
+	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+	ret := &metachain.TestTrigger{}
+	ret.SetTrigger(epochStartTrigger)
+	return ret
 }
 
 func (tmp *TestMetaProcessor) DisplayNodesConfig(epoch uint32, numOfShards int) {
@@ -108,23 +134,20 @@ func (tmp *TestMetaProcessor) DisplayNodesConfig(epoch uint32, numOfShards int) 
 	leaving, _ := tmp.NodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
 	shuffledOut, _ := tmp.NodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
 
-	for shard := 0; shard < numOfShards; shard++ {
-		shardID := uint32(shard)
-		if shard == numOfShards {
-			shardID = core.MetachainShardId
-		}
+	fmt.Println("############### Displaying nodes config in epoch " + strconv.Itoa(int(epoch)))
 
-		for _, pk := range eligible[shardID] {
-			fmt.Println("eligible", "pk", string(pk), "shardID", shardID)
+	for shard := range eligible {
+		for _, pk := range eligible[shard] {
+			fmt.Println("eligible", "pk", string(pk), "shardID", shard)
 		}
-		for _, pk := range waiting[shardID] {
-			fmt.Println("waiting", "pk", string(pk), "shardID", shardID)
+		for _, pk := range waiting[shard] {
+			fmt.Println("waiting", "pk", string(pk), "shardID", shard)
 		}
-		for _, pk := range leaving[shardID] {
-			fmt.Println("leaving", "pk", string(pk), "shardID", shardID)
+		for _, pk := range leaving[shard] {
+			fmt.Println("leaving", "pk", string(pk), "shardID", shard)
 		}
-		for _, pk := range shuffledOut[shardID] {
-			fmt.Println("shuffled out", "pk", string(pk), "shardID", shardID)
+		for _, pk := range shuffledOut[shard] {
+			fmt.Println("shuffled out", "pk", string(pk), "shardID", shard)
 		}
 	}
 }
@@ -173,14 +196,32 @@ func createNodesCoordinator(
 	validatorsMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, 0)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	waitingMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, numOfMetaNodes)
+	waitingMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, numOfMetaNodes+numOfShards*numOfNodesPerShard)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
 	// TODO: HERE SAVE ALL ACCOUNTS
-	acc, _ := stateComponents.PeerAccounts().LoadAccount(validatorsMap[0][0].PubKeyBytes())
-	peerAcc := acc.(state.PeerAccountHandler)
-	peerAcc.SetTempRating(5)
-	stateComponents.PeerAccounts().SaveAccount(peerAcc)
+
+	for shardID, vals := range validatorsMap {
+		for _, val := range vals {
+			peerAccount, _ := state.NewPeerAccount(val.PubKeyBytes())
+			peerAccount.SetTempRating(5)
+			peerAccount.ShardId = shardID
+			peerAccount.BLSPublicKey = val.PubKeyBytes()
+			peerAccount.List = string(common.EligibleList)
+			stateComponents.PeerAccounts().SaveAccount(peerAccount)
+		}
+	}
+
+	for shardID, vals := range waitingMap {
+		for _, val := range vals {
+			peerAccount, _ := state.NewPeerAccount(val.PubKeyBytes())
+			peerAccount.SetTempRating(5)
+			peerAccount.ShardId = shardID
+			peerAccount.BLSPublicKey = val.PubKeyBytes()
+			peerAccount.List = string(common.WaitingList)
+			stateComponents.PeerAccounts().SaveAccount(peerAccount)
+		}
+	}
 
 	rootHash, _ := stateComponents.PeerAccounts().RootHash()
 	fmt.Println("ROOT HASh FOR PEER ACCOUNTS " + hex.EncodeToString(rootHash))
@@ -199,11 +240,12 @@ func createNodesCoordinator(
 		MaxNodesEnableConfig:           nil,
 		WaitingListFixEnableEpoch:      0,
 		BalanceWaitingListsEnableEpoch: 0,
+		StakingV4EnableEpoch:           4444,
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 
 	cache, _ := lrucache.NewCache(10000)
-	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(integrationTests.TestMarshalizer, forking.NewGenericEpochNotifier(), 4444)
+	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(coreComponents.InternalMarshalizer(), coreComponents.EpochNotifier(), 4444)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         shardConsensusGroupSize,
 		MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -247,18 +289,21 @@ func generateGenesisNodeInfoMap(
 	startIdx int,
 ) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
 	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	id := startIdx
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for n := 0; n < numOfNodesPerShard; n++ {
-			addr := []byte("addr" + strconv.Itoa(n+startIdx))
+			addr := []byte("addr" + strconv.Itoa(id))
 			validator := mock2.NewNodeInfo(addr, addr, uint32(shardId), 5)
 			validatorsMap[uint32(shardId)] = append(validatorsMap[uint32(shardId)], validator)
+			id++
 		}
 	}
 
 	for n := 0; n < numOfMetaNodes; n++ {
-		addr := []byte("addr" + strconv.Itoa(n+startIdx))
+		addr := []byte("addr" + strconv.Itoa(id))
 		validator := mock2.NewNodeInfo(addr, addr, uint32(core.MetachainShardId), 5)
 		validatorsMap[core.MetachainShardId] = append(validatorsMap[core.MetachainShardId], validator)
+		id++
 	}
 
 	return validatorsMap
@@ -275,8 +320,9 @@ func createMetaBlockProcessor(
 	validatorsInfoCreator process.ValidatorStatisticsProcessor,
 	blockChainHook process.BlockChainHookHandler,
 	metaVMFactory process.VirtualMachinesContainerFactory,
+	epochStartHandler process.EpochStartTriggerHandler,
 ) process.BlockProcessor {
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory, epochStartHandler)
 
 	metaProc, _ := blproc.NewMetaProcessor(arguments)
 	return metaProc
@@ -300,7 +346,7 @@ func createMockComponentHolders(numOfShards uint32) (
 		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
-		RaterField:                         mock.GetNewMockRater(),
+		RaterField:                         &testscommon.RaterMock{Chance: 5}, //mock.GetNewMockRater(),
 		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
 		EconomicsDataField:                 createEconomicsData(),
 	}
@@ -366,6 +412,7 @@ func createMockMetaArguments(
 	validatorsInfoCreator process.ValidatorStatisticsProcessor,
 	blockChainHook process.BlockChainHookHandler,
 	metaVMFactory process.VirtualMachinesContainerFactory,
+	epochStartHandler process.EpochStartTriggerHandler,
 ) blproc.ArgMetaProcessor {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      coreComponents.Hasher(),
@@ -390,6 +437,21 @@ func createMockMetaArguments(
 	feeHandler, _ := postprocess.NewFeeAccumulator()
 
 	vmContainer, _ := metaVMFactory.Create()
+	blockTracker := mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+
+	argsEpochStartDataCreator := metachain.ArgsNewEpochStartData{
+		Marshalizer:       coreComponents.InternalMarshalizer(),
+		Hasher:            coreComponents.Hasher(),
+		Store:             dataComponents.StorageService(),
+		DataPool:          dataComponents.Datapool(),
+		BlockTracker:      blockTracker,
+		ShardCoordinator:  bootstrapComponents.ShardCoordinator(),
+		EpochStartTrigger: epochStartHandler,
+		RequestHandler:    &testscommon.RequestHandlerStub{},
+		GenesisEpoch:      0,
+	}
+	epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartDataCreator)
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:                 coreComponents,
@@ -403,11 +465,11 @@ func createMockMetaArguments(
 			RequestHandler:                 &testscommon.RequestHandlerStub{},
 			BlockChainHook:                 blockChainHook,
 			TxCoordinator:                  &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger:              &mock.EpochStartTriggerStub{},
+			EpochStartTrigger:              epochStartHandler,
 			HeaderValidator:                headerValidator,
 			GasHandler:                     &mock.GasHandlerMock{},
 			BootStorer:                     bootStrapStorer,
-			BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockTracker:                   blockTracker,
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:                  coreComponents.EpochNotifier(),
@@ -419,7 +481,7 @@ func createMockMetaArguments(
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
-		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
+		EpochStartDataCreator:        epochStartDataCreator,
 		EpochEconomics:               &mock.EpochEconomicsStub{},
 		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
 		EpochValidatorInfoCreator:    valInfoCreator,

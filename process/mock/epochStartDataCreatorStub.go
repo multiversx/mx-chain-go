@@ -1,6 +1,10 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data/block"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
+)
 
 // EpochStartDataCreatorStub -
 type EpochStartDataCreatorStub struct {
@@ -13,7 +17,11 @@ func (e *EpochStartDataCreatorStub) CreateEpochStartData() (*block.EpochStart, e
 	if e.CreateEpochStartDataCalled != nil {
 		return e.CreateEpochStartDataCalled()
 	}
-	return &block.EpochStart{}, nil
+	return &block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{{}},
+		Economics: block.Economics{
+			RewardsForProtocolSustainability: big.NewInt(0)},
+	}, nil
 }
 
 // VerifyEpochStartDataForMetablock -
