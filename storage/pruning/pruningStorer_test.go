@@ -82,6 +82,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 		NumOfActivePersisters:  2,
 		Notifier:               &mock.EpochStartNotifierStub{},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 	}
 }
@@ -109,6 +110,7 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 		NumOfActivePersisters:  2,
 		Notifier:               &mock.EpochStartNotifierStub{},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           20,
 	}
 }
@@ -156,6 +158,28 @@ func TestNewPruningStorer_NilPathManagerShouldErr(t *testing.T) {
 
 	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPathManager, err)
+}
+
+func TestNewPruningStorer_NilOldDataCleanerProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.OldDataCleanerProvider = nil
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrNilOldDataCleanerProvider, err)
+}
+
+func TestNewPruningStorer_NilCustomDatabaseRemoverProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.CustomDatabaseRemover = nil
+	ps, err := pruning.NewPruningStorer(args)
+
+	assert.Nil(t, ps)
+	assert.Equal(t, storage.ErrNilCustomDatabaseRemover, err)
 }
 
 func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
@@ -797,6 +821,129 @@ func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	require.Equal(t, val2, restoredVal2)
 }
 
+func TestPruningStorer_ClosePersisters(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should remove old databases from map", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		args.OldDataCleanerProvider = &testscommon.OldDataCleanerProviderStub{
+			ShouldCleanCalled: func() bool {
+				return true
+			},
+		}
+		args.NumOfActivePersisters = 2
+		args.NumOfEpochsToKeep = 3
+
+		ps, _ := pruning.NewPruningStorer(args)
+		ps.ClearPersisters()
+
+		ps.AddMockActivePersisters([]uint32{0, 1}, true)
+		err := ps.ClosePersisters(1)
+		require.NoError(t, err)
+		require.Equal(t, []uint32{0, 1}, ps.PersistersMapByEpochToSlice())
+
+		ps.AddMockActivePersisters([]uint32{2, 3}, true)
+		err = ps.ClosePersisters(3)
+		require.NoError(t, err)
+		require.Equal(t, []uint32{1, 2, 3}, ps.PersistersMapByEpochToSlice())
+
+		ps.AddMockActivePersisters([]uint32{4, 5, 6}, true)
+		err = ps.ClosePersisters(6)
+		require.NoError(t, err)
+		require.Equal(t, []uint32{4, 5, 6}, ps.PersistersMapByEpochToSlice())
+	})
+
+	t.Run("should remove old databases from map + destroy them", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		args.OldDataCleanerProvider = &testscommon.OldDataCleanerProviderStub{
+			ShouldCleanCalled: func() bool {
+				return true
+			},
+		}
+		args.CustomDatabaseRemover = &testscommon.CustomDatabaseRemoverStub{
+			ShouldRemoveCalled: func(_ string, _ uint32) bool {
+				return true
+			},
+		}
+		args.NumOfActivePersisters = 2
+		args.NumOfEpochsToKeep = 3
+
+		ps, _ := pruning.NewPruningStorer(args)
+
+		destroyClosedWasCalled0 := false
+		mockPersister0 := &mock.PersisterStub{
+			DestroyClosedCalled: func() error {
+				destroyClosedWasCalled0 = true
+				return nil
+			},
+		}
+		destroyClosedWasCalled1 := false
+		mockPersister1 := &mock.PersisterStub{
+			DestroyClosedCalled: func() error {
+				destroyClosedWasCalled1 = true
+				return nil
+			},
+		}
+		ps.AddMockActivePersister(0, mockPersister0)
+		ps.AddMockActivePersister(1, mockPersister1)
+		err := ps.ClosePersisters(1)
+		require.NoError(t, err)
+		require.Equal(t, []uint32{0, 1}, ps.PersistersMapByEpochToSlice())
+		require.False(t, destroyClosedWasCalled0)
+		require.False(t, destroyClosedWasCalled1)
+
+		destroyClosedWasCalled2 := false
+		mockPersister2 := &mock.PersisterStub{
+			DestroyClosedCalled: func() error {
+				destroyClosedWasCalled2 = true
+				return nil
+			},
+		}
+		destroyClosedWasCalled3 := false
+		mockPersister3 := &mock.PersisterStub{
+			DestroyClosedCalled: func() error {
+				destroyClosedWasCalled3 = true
+				return nil
+			},
+		}
+		ps.AddMockActivePersister(2, mockPersister2)
+		ps.AddMockActivePersister(3, mockPersister3)
+		err = ps.ClosePersisters(3)
+		require.NoError(t, err)
+		require.Equal(t, []uint32{1, 2, 3}, ps.PersistersMapByEpochToSlice())
+		require.True(t, destroyClosedWasCalled0)
+		require.False(t, destroyClosedWasCalled1)
+		require.False(t, destroyClosedWasCalled2)
+		require.False(t, destroyClosedWasCalled3)
+	})
+
+}
+
+func TestPruningStorer_CleanCustomDatabase(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not destroy old database", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultArgs()
+		args.CustomDatabaseRemover = &testscommon.CustomDatabaseRemoverStub{
+			ShouldRemoveCalled: func(_ string, _ uint32) bool {
+				return false
+			},
+		}
+		args.OldDataCleanerProvider = &testscommon.OldDataCleanerProviderStub{
+			ShouldCleanCalled: func() bool {
+				return true
+			},
+		}
+	})
+
+}
+
 func TestRegex(t *testing.T) {
 	t.Parallel()
 
@@ -821,7 +968,7 @@ func TestPruningStorer_processPersistersToClose(t *testing.T) {
 
 	ps := pruning.NewEmptyPruningStorer()
 	ps.SetNumActivePersistersParameter(3)
-	ps.AddMockActivePersisters([]uint32{10, 9, 8, 7, 6})
+	ps.AddMockActivePersisters([]uint32{6, 7, 8, 9, 10}, false)
 	persistersToCloseEpochs := ps.ProcessPersistersToClose()
 	assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
 	assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())

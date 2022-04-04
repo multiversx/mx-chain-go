@@ -92,6 +92,7 @@ type PruningStorer struct {
 	mutEpochPrepareHdr     sync.RWMutex
 	epochPrepareHdr        data.HeaderHandler
 	oldDataCleanerProvider clean.OldDataCleanerProvider
+	customDatabaseRemover  storage.CustomDatabaseRemoverHandler
 	identifier             string
 	numOfEpochsToKeep      uint32
 	numOfActivePersisters  uint32
@@ -152,6 +153,7 @@ func initPruningStorer(
 	pdb.numOfEpochsToKeep = args.NumOfEpochsToKeep
 	pdb.numOfActivePersisters = args.NumOfActivePersisters
 	pdb.oldDataCleanerProvider = args.OldDataCleanerProvider
+	pdb.customDatabaseRemover = args.CustomDatabaseRemover
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 
@@ -177,6 +179,12 @@ func checkArgs(args *StorerArgs) error {
 	}
 	if check.IfNil(args.PathManager) {
 		return storage.ErrNilPathManager
+	}
+	if check.IfNil(args.CustomDatabaseRemover) {
+		return storage.ErrNilCustomDatabaseRemover
+	}
+	if check.IfNil(args.OldDataCleanerProvider) {
+		return storage.ErrNilOldDataCleanerProvider
 	}
 	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return storage.ErrCacheSizeIsLowerThanBatchSize
@@ -895,14 +903,15 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := ps.processPersistersToClose()
 
-	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
-		idxToRemove := epoch - ps.numOfEpochsToKeep
+	epochsToRemove := make([]uint32, 0)
+	idxToRemove := epoch - ps.numOfEpochsToKeep
+	if uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		for {
 			_, exists := ps.persistersMapByEpoch[idxToRemove]
 			if !exists {
 				break
 			}
-			delete(ps.persistersMapByEpoch, idxToRemove)
+			epochsToRemove = append(epochsToRemove, idxToRemove)
 			idxToRemove--
 		}
 	}
@@ -911,6 +920,22 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 		err := pd.Close()
 		if err != nil {
 			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
+		}
+	}
+
+	shouldRemoveFromMap := ps.oldDataCleanerProvider.ShouldClean()
+	for _, epochToRemove := range epochsToRemove {
+		persisterToRemove := ps.persistersMapByEpoch[epochToRemove]
+		if ps.customDatabaseRemover.ShouldRemove(persisterToRemove.path, epochToRemove) {
+			log.Debug("destroying persister", "path", persisterToRemove.path)
+			err := persisterToRemove.getPersister().DestroyClosed()
+			if err != nil {
+				return err
+			}
+		}
+
+		if shouldRemoveFromMap {
+			delete(ps.persistersMapByEpoch, epochToRemove)
 		}
 	}
 

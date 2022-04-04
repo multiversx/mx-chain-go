@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/mock"
 )
 
 // NewEmptyPruningStorer -
@@ -16,14 +17,36 @@ func NewEmptyPruningStorer() *PruningStorer {
 }
 
 // AddMockActivePersister -
-func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32) {
+func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32, withMap bool) {
 	for _, e := range epochs {
 		pd := &persisterData{
-			epoch: e,
+			epoch:     e,
+			persister: &mock.PersisterStub{},
 		}
 
-		ps.activePersisters = append(ps.activePersisters, pd)
+		ps.activePersisters = append([]*persisterData{pd}, ps.activePersisters...)
+
+		if withMap {
+			ps.persistersMapByEpoch[e] = pd
+		}
 	}
+}
+
+// ClearPersisters -
+func (ps *PruningStorer) ClearPersisters() {
+	ps.activePersisters = make([]*persisterData, 0)
+	ps.persistersMapByEpoch = make(map[uint32]*persisterData)
+}
+
+// AddMockActivePersister -
+func (ps *PruningStorer) AddMockActivePersister(epoch uint32, persister storage.Persister) {
+	pd := &persisterData{
+		epoch:     epoch,
+		persister: persister,
+	}
+
+	ps.activePersisters = append([]*persisterData{pd}, ps.activePersisters...)
+	ps.persistersMapByEpoch[epoch] = pd
 }
 
 // PersistersMapByEpochToSlice -
@@ -102,6 +125,11 @@ func (ps *PruningStorer) GetNumActivePersisters() int {
 	defer ps.lock.RUnlock()
 
 	return len(ps.activePersisters)
+}
+
+// ClosePersisters -
+func (ps *PruningStorer) ClosePersisters(epoch uint32) error {
+	return ps.closePersisters(epoch)
 }
 
 // GetOldEpochsActivePersisters -
