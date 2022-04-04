@@ -89,7 +89,7 @@ endif
 
 run-lint:
 	@echo "Running golint"
-	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
+	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m --print-resources-usage
 
 lint: lint-install run-lint
 
