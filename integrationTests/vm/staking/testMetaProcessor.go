@@ -2,6 +2,7 @@ package staking
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -25,6 +26,7 @@ import (
 	mock3 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	factory2 "github.com/ElrondNetwork/elrond-go/factory"
+	mock4 "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -60,11 +62,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 )
 
+type HeaderInfo struct {
+	Hash   []byte
+	Header data.HeaderHandler
+}
+
 // TestMetaProcessor -
 type TestMetaProcessor struct {
-	MetaBlockProcessor process.BlockProcessor
-	SystemSCProcessor  process.EpochStartSystemSCProcessor
-	NodesCoordinator   nodesCoordinator.NodesCoordinator
+	MetaBlockProcessor  process.BlockProcessor
+	SystemSCProcessor   process.EpochStartSystemSCProcessor
+	NodesCoordinator    nodesCoordinator.NodesCoordinator
+	BlockChain          data.ChainHandler
+	ValidatorStatistics process.ValidatorStatisticsProcessor
+	GenesisHeader       *HeaderInfo
 }
 
 // NewTestMetaProcessor -
@@ -75,13 +85,20 @@ func NewTestMetaProcessor(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) *TestMetaProcessor {
-	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createMockComponentHolders(uint32(numOfShards))
-	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents)
+	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, genesisHeader := createMockComponentHolders(uint32(numOfShards))
+	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents, stateComponents)
 	scp, blockChainHook, validatorsInfoCreator, metaVMFactory := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
+
+	rootHash, _ := stateComponents.PeerAccounts().RootHash()
+	fmt.Println("ROOT HASh FOR PEER ACCOUNTS " + hex.EncodeToString(rootHash))
+
 	return &TestMetaProcessor{
-		MetaBlockProcessor: createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory),
-		SystemSCProcessor:  scp,
-		NodesCoordinator:   nc,
+		MetaBlockProcessor:  createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory),
+		SystemSCProcessor:   scp,
+		NodesCoordinator:    nc,
+		BlockChain:          dataComponents.Blockchain(),
+		ValidatorStatistics: validatorsInfoCreator,
+		GenesisHeader:       genesisHeader,
 	}
 }
 
@@ -151,12 +168,27 @@ func createNodesCoordinator(
 	metaConsensusGroupSize int,
 	coreComponents factory2.CoreComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
+	stateComponents factory2.StateComponentsHandler,
 ) nodesCoordinator.NodesCoordinator {
 	validatorsMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, 0)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
 	waitingMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, numOfMetaNodes)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
+
+	// TODO: HERE SAVE ALL ACCOUNTS
+	acc, _ := stateComponents.PeerAccounts().LoadAccount(validatorsMap[0][0].PubKeyBytes())
+	peerAcc := acc.(state.PeerAccountHandler)
+	peerAcc.SetTempRating(5)
+	stateComponents.PeerAccounts().SaveAccount(peerAcc)
+
+	rootHash, _ := stateComponents.PeerAccounts().RootHash()
+	fmt.Println("ROOT HASh FOR PEER ACCOUNTS " + hex.EncodeToString(rootHash))
+
+	//acc,_ = stateComponents.PeerAccounts().LoadAccount(waitingMap[0][0].PubKeyBytes())
+	//peerAcc = acc.(state.PeerAccountHandler)
+	//peerAcc.SetTempRating(5)
+	//stateComponents.PeerAccounts().SaveAccount(peerAcc)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:                     uint32(numOfNodesPerShard),
@@ -256,6 +288,7 @@ func createMockComponentHolders(numOfShards uint32) (
 	factory2.BootstrapComponentsHolder,
 	*mock.StatusComponentsMock,
 	factory2.StateComponentsHandler,
+	*HeaderInfo,
 ) {
 	//hasher := sha256.NewSha256()
 	//marshalizer := &marshal.GogoProtoMarshalizer{}
@@ -267,17 +300,24 @@ func createMockComponentHolders(numOfShards uint32) (
 		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
-		RaterField:                         &mock2.RaterMock{},
+		RaterField:                         mock.GetNewMockRater(),
 		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
 		EconomicsDataField:                 createEconomicsData(),
 	}
 
 	blockChain, _ := blockchain.NewMetaChain(statusHandler.NewStatusMetrics())
-	_ = blockChain.SetCurrentBlockHeaderAndRootHash(createGenesisMetaBlock(), []byte("roothash"))
+	//_ = blockChain.SetCurrentBlockHeaderAndRootHash(createGenesisMetaBlock(), []byte("roothash"))
+	genesisBlock := createGenesisMetaBlock()
+	genesisBlockHash, _ := coreComponents.InternalMarshalizer().Marshal(genesisBlock)
+	genesisBlockHash = coreComponents.Hasher().Compute(string(genesisBlockHash))
 	_ = blockChain.SetGenesisHeader(createGenesisMetaBlock())
+	blockChain.SetGenesisHeaderHash(genesisBlockHash)
+	fmt.Println("GENESIS BLOCK HASH: " + hex.EncodeToString(genesisBlockHash))
 
 	chainStorer := dataRetriever.NewChainStorer()
 	chainStorer.AddStorer(dataRetriever.BootstrapUnit, integrationTests.CreateMemUnit())
+	chainStorer.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, integrationTests.CreateMemUnit())
+	chainStorer.AddStorer(dataRetriever.MetaBlockUnit, integrationTests.CreateMemUnit())
 	dataComponents := &factory3.DataComponentsMock{ //&mock.DataComponentsMock{
 		Store:      chainStorer,
 		DataPool:   dataRetrieverMock.NewPoolsHolderMock(),
@@ -309,7 +349,10 @@ func createMockComponentHolders(numOfShards uint32) (
 		StorageManagers: nil,
 	}
 
-	return coreComponents, dataComponents, boostrapComponents, statusComponents, stateComponents
+	return coreComponents, dataComponents, boostrapComponents, statusComponents, stateComponents, &HeaderInfo{
+		Hash:   genesisBlockHash,
+		Header: genesisBlock,
+	}
 }
 
 func createMockMetaArguments(
@@ -354,7 +397,7 @@ func createMockMetaArguments(
 			BootstrapComponents:            bootstrapComponents,
 			StatusComponents:               statusComponents,
 			AccountsDB:                     accountsDb,
-			ForkDetector:                   &mock.ForkDetectorMock{},
+			ForkDetector:                   &mock4.ForkDetectorStub{},
 			NodesCoordinator:               nodesCoord,
 			FeeHandler:                     feeHandler,
 			RequestHandler:                 &testscommon.RequestHandlerStub{},
