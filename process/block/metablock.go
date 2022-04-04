@@ -2047,6 +2047,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			shardMiniBlockHeader.Hash = shardHdr.GetMiniBlockHeaderHandlers()[i].GetHash()
 			shardMiniBlockHeader.TxCount = shardHdr.GetMiniBlockHeaderHandlers()[i].GetTxCount()
 			shardMiniBlockHeader.Type = block.Type(shardHdr.GetMiniBlockHeaderHandlers()[i].GetTypeInt32())
+			shardMiniBlockHeader.Reserved = shardHdr.GetMiniBlockHeaderHandlers()[i].GetReserved()
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}

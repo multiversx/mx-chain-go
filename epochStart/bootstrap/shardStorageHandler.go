@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -177,14 +178,12 @@ func getEpochStartShardData(metaBlock data.MetaHeaderHandler, shardId uint32) (d
 	return &block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (ssh *shardStorageHandler) getCrossProcessedMbsDestMeByHeader(
-	shardHeader data.ShardHeaderHandler,
-) map[uint32][]data.MiniBlockHeaderHandler {
-	crossMbsProcessed := make(map[uint32][]data.MiniBlockHeaderHandler)
+func (ssh *shardStorageHandler) getCrossProcessedMiniBlockHeadersDestMe(shardHeader data.ShardHeaderHandler) map[string]data.MiniBlockHeaderHandler {
+	crossMbsProcessed := make(map[string]data.MiniBlockHeaderHandler)
 	processedMiniBlockHeaders := shardHeader.GetMiniBlockHeaderHandlers()
 	ownShardID := shardHeader.GetShardID()
 
-	for i, mbHeader := range processedMiniBlockHeaders {
+	for index, mbHeader := range processedMiniBlockHeaders {
 		if mbHeader.GetReceiverShardID() != ownShardID {
 			continue
 		}
@@ -192,13 +191,7 @@ func (ssh *shardStorageHandler) getCrossProcessedMbsDestMeByHeader(
 			continue
 		}
 
-		mbs, ok := crossMbsProcessed[mbHeader.GetSenderShardID()]
-		if !ok {
-			mbs = make([]data.MiniBlockHeaderHandler, 0)
-		}
-
-		mbs = append(mbs, processedMiniBlockHeaders[i])
-		crossMbsProcessed[mbHeader.GetSenderShardID()] = mbs
+		crossMbsProcessed[string(mbHeader.GetHash())] = processedMiniBlockHeaders[index]
 	}
 
 	return crossMbsProcessed
@@ -217,7 +210,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	}
 
 	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: initial processed and pending for scheduled")
-	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
+	printProcessedAndPendingMiniBlocks(processedMiniBlocks, pendingMiniBlocks)
 
 	if !withScheduled {
 		return processedMiniBlocks, pendingMiniBlocks, nil
@@ -228,25 +221,26 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 		return nil, nil, epochStart.ErrWrongTypeAssertion
 	}
 
+	mapHashMiniBlockHeaders := ssh.getCrossProcessedMiniBlockHeadersDestMe(shardHeader)
+
+	processedMiniBlocks, err = updateProcessedMiniBlocksForScheduled(processedMiniBlocks, mapHashMiniBlockHeaders)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	referencedMetaBlocks := shardHeader.GetMetaBlockHashes()
 	if len(referencedMetaBlocks) == 0 {
 		referencedMetaBlocks = append(referencedMetaBlocks, firstPendingMetaBlockHash)
 	}
 
-	mapMbHeaderHandlers := ssh.getCrossProcessedMbsDestMeByHeader(shardHeader)
-	pendingMiniBlocks = addMbsToPending(pendingMiniBlocks, mapMbHeaderHandlers)
-	pendingMiniBlockHashes := getPendingMiniBlocksHashes(pendingMiniBlocks)
-	processedMiniBlocks, err = updateProcessedMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlockHashes, headers, ssh.shardCoordinator.SelfId())
-	if err != nil {
-		return nil, nil, err
-	}
+	pendingMiniBlocks = addMiniBlocksToPending(pendingMiniBlocks, mapHashMiniBlockHeaders)
 	pendingMiniBlocks, err = updatePendingMiniBlocksForScheduled(referencedMetaBlocks, pendingMiniBlocks, headers, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, err
 	}
 
 	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: updated processed and pending for scheduled")
-	printProcessedAndPendingMbs(processedMiniBlocks, pendingMiniBlocks)
+	printProcessedAndPendingMiniBlocks(processedMiniBlocks, pendingMiniBlocks)
 
 	return processedMiniBlocks, pendingMiniBlocks, nil
 }
@@ -261,30 +255,46 @@ func getPendingMiniBlocksHashes(pendingMbsInfo []bootstrapStorage.PendingMiniBlo
 }
 
 func updateProcessedMiniBlocksForScheduled(
-	referencedMetaBlockHashes [][]byte,
-	pendingMiniBlockHashes [][]byte,
-	headers map[string]data.HeaderHandler,
-	selfShardID uint32,
+	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
+	mapHashMiniBlockHeaders map[string]data.MiniBlockHeaderHandler,
 ) ([]bootstrapStorage.MiniBlocksInMeta, error) {
-	miniBlocksInMetaList := make([]bootstrapStorage.MiniBlocksInMeta, 0)
-	for _, metaBlockHash := range referencedMetaBlockHashes {
-		mbsInMeta := bootstrapStorage.MiniBlocksInMeta{
-			MetaHash: metaBlockHash,
-		}
-		mbHashes, err := getProcessedMiniBlockHashesForMetaBlockHash(selfShardID, metaBlockHash, headers)
-		if err != nil {
-			return nil, err
-		}
-		if len(mbHashes) > 0 {
-			remainingMbHashes := removeHashes(mbHashes, pendingMiniBlockHashes)
-			if len(remainingMbHashes) > 0 {
-				mbsInMeta.MiniBlocksHashes = remainingMbHashes
-				miniBlocksInMetaList = append(miniBlocksInMetaList, mbsInMeta)
+
+	remainingProcessedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+
+	for _, miniBlocksInMeta := range processedMiniBlocks {
+		miniBlockHashes := make([][]byte, 0)
+		isFullyProcessed := make([]bool, 0)
+		indexOfLastTxProcessed := make([]int32, 0)
+
+		for index := range miniBlocksInMeta.MiniBlocksHashes {
+			mbHash := miniBlocksInMeta.MiniBlocksHashes[index]
+			mbHeader, ok := mapHashMiniBlockHeaders[string(mbHash)]
+			if !ok {
+				miniBlockHashes = append(miniBlockHashes, mbHash)
+				isFullyProcessed = append(isFullyProcessed, miniBlocksInMeta.IsFullyProcessed[index])
+				indexOfLastTxProcessed = append(indexOfLastTxProcessed, miniBlocksInMeta.IndexOfLastTxProcessed[index])
+				continue
 			}
+
+			indexOfFirstTxProcessed := mbHeader.GetIndexOfFirstTxProcessed()
+			if indexOfFirstTxProcessed > 0 {
+				miniBlockHashes = append(miniBlockHashes, mbHash)
+				isFullyProcessed = append(isFullyProcessed, false)
+				indexOfLastTxProcessed = append(indexOfLastTxProcessed, indexOfFirstTxProcessed-1)
+			}
+		}
+
+		if len(miniBlockHashes) > 0 {
+			remainingProcessedMiniBlocks = append(remainingProcessedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
+				MetaHash:               miniBlocksInMeta.MetaHash,
+				MiniBlocksHashes:       miniBlockHashes,
+				IsFullyProcessed:       isFullyProcessed,
+				IndexOfLastTxProcessed: indexOfLastTxProcessed,
+			})
 		}
 	}
 
-	return miniBlocksInMetaList, nil
+	return remainingProcessedMiniBlocks, nil
 }
 
 func updatePendingMiniBlocksForScheduled(
@@ -296,6 +306,9 @@ func updatePendingMiniBlocksForScheduled(
 	remainingPendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
 	for index, metaBlockHash := range referencedMetaBlockHashes {
 		if index == 0 {
+			//TODO: There could be situations when even first meta block referenced in one shard block was started and finalized there
+			//and the pending mini blocks could be removed at all with the code below, as the roll back will go before this meta block
+			//Anyway, even if they will remain as pending here, this is not critical yet, as they count only for isShardStuck analysis
 			continue
 		}
 		mbHashes, err := getProcessedMiniBlockHashesForMetaBlockHash(selfShardID, metaBlockHash, headers)
@@ -335,7 +348,12 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
-	mbHashes := getProcessedMbHashes(neededMeta, selfShardID, noPendingMbs)
+	mbHeaders := getProcessedMiniBlockHeaders(neededMeta, selfShardID, noPendingMbs)
+	mbHashes := make([][]byte, 0)
+	for mbHash := range mbHeaders {
+		mbHashes = append(mbHashes, []byte(mbHash))
+	}
+
 	return mbHashes, nil
 }
 
@@ -360,11 +378,23 @@ func removeHash(hashes [][]byte, hashToRemove []byte) [][]byte {
 	return append(result, hashes...)
 }
 
-func printProcessedAndPendingMbs(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
+func printProcessedAndPendingMiniBlocks(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
 	for _, miniBlocksInMeta := range processedMiniBlocks {
 		log.Debug("processed meta block", "hash", miniBlocksInMeta.MetaHash)
-		for _, mbHash := range miniBlocksInMeta.MiniBlocksHashes {
-			log.Debug("processedMiniBlock", "hash", mbHash)
+		for index, mbHash := range miniBlocksInMeta.MiniBlocksHashes {
+			isFullyProcessed := true
+			if miniBlocksInMeta.IsFullyProcessed != nil && index < len(miniBlocksInMeta.IsFullyProcessed) {
+				isFullyProcessed = miniBlocksInMeta.IsFullyProcessed[index]
+			}
+
+			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
+			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
+				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
+			}
+
+			log.Debug("processedMiniBlock", "hash", mbHash,
+				"index of last tx processed", indexOfLastTxProcessed,
+				"is fully processed", isFullyProcessed)
 		}
 	}
 
@@ -376,20 +406,20 @@ func printProcessedAndPendingMbs(processedMiniBlocks []bootstrapStorage.MiniBloc
 	}
 }
 
-func addMbToPendingList(
-	mbHandler data.MiniBlockHeaderHandler,
+func addMiniBlockToPendingList(
+	mbHeader data.MiniBlockHeaderHandler,
 	pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo,
 ) []bootstrapStorage.PendingMiniBlocksInfo {
 	for i := range pendingMiniBlocks {
-		if pendingMiniBlocks[i].ShardID == mbHandler.GetReceiverShardID() {
-			pendingMiniBlocks[i].MiniBlocksHashes = append(pendingMiniBlocks[i].MiniBlocksHashes, mbHandler.GetHash())
+		if pendingMiniBlocks[i].ShardID == mbHeader.GetReceiverShardID() {
+			pendingMiniBlocks[i].MiniBlocksHashes = append(pendingMiniBlocks[i].MiniBlocksHashes, mbHeader.GetHash())
 			return pendingMiniBlocks
 		}
 	}
 
 	pendingMbInfo := bootstrapStorage.PendingMiniBlocksInfo{
-		ShardID:          mbHandler.GetReceiverShardID(),
-		MiniBlocksHashes: [][]byte{mbHandler.GetHash()},
+		ShardID:          mbHeader.GetReceiverShardID(),
+		MiniBlocksHashes: [][]byte{mbHeader.GetHash()},
 	}
 
 	pendingMiniBlocks = append(pendingMiniBlocks, pendingMbInfo)
@@ -397,14 +427,12 @@ func addMbToPendingList(
 	return pendingMiniBlocks
 }
 
-func addMbsToPending(
+func addMiniBlocksToPending(
 	pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo,
-	mapMbHeaderHandlers map[uint32][]data.MiniBlockHeaderHandler,
+	mapHashMiniBlockHeaders map[string]data.MiniBlockHeaderHandler,
 ) []bootstrapStorage.PendingMiniBlocksInfo {
-	for _, pendingMbs := range mapMbHeaderHandlers {
-		for _, pendingMb := range pendingMbs {
-			pendingMiniBlocks = addMbToPendingList(pendingMb, pendingMiniBlocks)
-		}
+	for _, miniBlockHeader := range mapHashMiniBlockHeaders {
+		pendingMiniBlocks = addMiniBlockToPendingList(miniBlockHeader, pendingMiniBlocks)
 	}
 
 	return pendingMiniBlocks
@@ -414,6 +442,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	meta data.MetaHeaderHandler,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, []byte, error) {
+
 	epochShardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, nil, err
@@ -425,6 +454,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 			epochStart.ErrMissingHeader,
 			hex.EncodeToString(epochShardData.GetFirstPendingMetaBlock()))
 	}
+
 	neededMeta, ok := header.(*block.MetaBlock)
 	if !ok {
 		return nil, nil, nil, epochStart.ErrWrongTypeAssertion
@@ -433,46 +463,63 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 		return nil, nil, nil, epochStart.ErrNilMetaBlock
 	}
 
-	pendingMBsMap := make(map[string]struct{})
-	pendingMBsPerShardMap := make(map[uint32][][]byte)
+	miniBlockHashes := make([][]byte, 0)
+	isFullyProcessed := make([]bool, 0)
+	indexOfLastTxProcessed := make([]int32, 0)
+	pendingMiniBlocksMap := make(map[string]struct{})
+	pendingMiniBlocksPerShardMap := make(map[uint32][][]byte)
+
 	for _, mbHeader := range epochShardData.GetPendingMiniBlockHeaderHandlers() {
 		receiverShardID := mbHeader.GetReceiverShardID()
-		pendingMBsPerShardMap[receiverShardID] = append(pendingMBsPerShardMap[receiverShardID], mbHeader.GetHash())
-		pendingMBsMap[string(mbHeader.GetHash())] = struct{}{}
+		pendingMiniBlocksPerShardMap[receiverShardID] = append(pendingMiniBlocksPerShardMap[receiverShardID], mbHeader.GetHash())
+		pendingMiniBlocksMap[string(mbHeader.GetHash())] = struct{}{}
+
+		if mbHeader.GetIndexOfLastTxProcessed() > -1 {
+			miniBlockHashes = append(miniBlockHashes, mbHeader.GetHash())
+			isFullyProcessed = append(isFullyProcessed, false)
+			indexOfLastTxProcessed = append(indexOfLastTxProcessed, mbHeader.GetIndexOfLastTxProcessed())
+		}
 	}
 
-	processedMbHashes := getProcessedMbHashes(neededMeta, ssh.shardCoordinator.SelfId(), pendingMBsMap)
+	miniBlockHeaders := getProcessedMiniBlockHeaders(neededMeta, ssh.shardCoordinator.SelfId(), pendingMiniBlocksMap)
+	for mbHash, mbHeader := range miniBlockHeaders {
+		miniBlockHashes = append(miniBlockHashes, []byte(mbHash))
+		isFullyProcessed = append(isFullyProcessed, mbHeader.IsFinal())
+		indexOfLastTxProcessed = append(indexOfLastTxProcessed, mbHeader.GetIndexOfLastTxProcessed())
+	}
 
 	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
-	if len(processedMbHashes) > 0 {
+	if len(miniBlockHashes) > 0 {
 		processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
-			MetaHash:         epochShardData.GetFirstPendingMetaBlock(),
-			MiniBlocksHashes: processedMbHashes,
+			MetaHash:               epochShardData.GetFirstPendingMetaBlock(),
+			MiniBlocksHashes:       miniBlockHashes,
+			IsFullyProcessed:       isFullyProcessed,
+			IndexOfLastTxProcessed: indexOfLastTxProcessed,
 		})
 	}
 
-	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
-	for shardID, hashes := range pendingMBsPerShardMap {
-		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlocksInfo{
-			ShardID:          shardID,
-			MiniBlocksHashes: hashes,
+	pendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	for receiverShardID, mbHashes := range pendingMiniBlocksPerShardMap {
+		pendingMiniBlocks = append(pendingMiniBlocks, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          receiverShardID,
+			MiniBlocksHashes: mbHashes,
 		})
 	}
 
-	return processedMiniBlocks, sliceToRet, epochShardData.GetFirstPendingMetaBlock(), nil
+	return processedMiniBlocks, pendingMiniBlocks, epochShardData.GetFirstPendingMetaBlock(), nil
 }
 
-func getProcessedMbHashes(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) [][]byte {
-	processedMbHashes := make([][]byte, 0)
-	miniBlocksDstMe := getNewPendingMiniBlocksForDst(metaBlock, destShardID)
-	for hash, mb := range miniBlocksDstMe {
+func getProcessedMiniBlockHeaders(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
+	processedMiniBlockHeaders := make(map[string]block.MiniBlockHeader)
+	miniBlockHeadersDestMe := getNewPendingMiniBlockHeadersForDest(metaBlock, destShardID)
+	for hash, mbh := range miniBlockHeadersDestMe {
 		if _, hashExists := pendingMBsMap[hash]; hashExists {
 			continue
 		}
 
-		processedMbHashes = append(processedMbHashes, mb.Hash)
+		processedMiniBlockHeaders[hash] = mbh
 	}
-	return processedMbHashes
+	return processedMiniBlockHeaders
 }
 
 func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
@@ -625,7 +672,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	return bootstrapKey, nil
 }
 
-func getNewPendingMiniBlocksForDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+func getNewPendingMiniBlockHeadersForDest(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		if metaBlock.ShardInfo[i].ShardID == destId {

@@ -168,13 +168,13 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 		miniBlocksInfo := make(MiniBlocksInfo)
 		for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
 			isFullyProcessed := true
-			if miniBlocksInMeta.IsFullyProcessed != nil && len(miniBlocksInMeta.IsFullyProcessed) > index {
+			if miniBlocksInMeta.IsFullyProcessed != nil && index < len(miniBlocksInMeta.IsFullyProcessed) {
 				isFullyProcessed = miniBlocksInMeta.IsFullyProcessed[index]
 			}
 
 			//TODO: Check how to set the correct index
 			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
-			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && len(miniBlocksInMeta.IndexOfLastTxProcessed) > index {
+			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
 				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
 			}
 
@@ -199,8 +199,8 @@ func (pmb *ProcessedMiniBlockTracker) DisplayProcessedMiniBlocks() {
 		for miniBlockHash, processedMiniBlockInfo := range miniBlocksInfo {
 			log.Debug("processed",
 				"mini block hash", []byte(miniBlockHash),
-				"is fully processed", processedMiniBlockInfo.IsFullyProcessed,
 				"index of last tx processed", processedMiniBlockInfo.IndexOfLastTxProcessed,
+				"is fully processed", processedMiniBlockInfo.IsFullyProcessed,
 			)
 		}
 	}

@@ -378,6 +378,9 @@ func (e *epochStartData) computeStillPending(
 
 	for _, shardHdr := range shardHdrs {
 		for _, mbHeader := range shardHdr.GetMiniBlockHeaderHandlers() {
+			if !mbHeader.IsFinal() {
+				continue
+			}
 			delete(miniBlockHeaders, string(mbHeader.GetHash()))
 		}
 	}
