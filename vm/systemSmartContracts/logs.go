@@ -8,6 +8,11 @@ import (
 )
 
 func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCallInput, topics ...[]byte) {
+	identifier := contractCallInput.Function
+	if identifier == mergeValidatorDataToDelegation {
+		identifier = "delegate"
+	}
+
 	entry := &vmcommon.LogEntry{
 		Identifier: []byte(contractCallInput.Function),
 		Address:    contractCallInput.CallerAddr,
