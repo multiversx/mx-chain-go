@@ -462,6 +462,7 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 		NumOfActivePersisters:  4,
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 	}
 
