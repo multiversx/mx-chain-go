@@ -14,7 +14,7 @@ func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCa
 	}
 
 	entry := &vmcommon.LogEntry{
-		Identifier: []byte(contractCallInput.Function),
+		Identifier: []byte(identifier),
 		Address:    contractCallInput.CallerAddr,
 		Topics:     topics,
 	}
