@@ -123,7 +123,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.EconomicsData,
 	)
 	tpn.initBlockTracker()
-	tpn.initInterceptors()
+	tpn.initInterceptors("")
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,
