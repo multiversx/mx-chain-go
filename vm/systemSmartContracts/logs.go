@@ -4,12 +4,13 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCallInput, topics ...[]byte) {
 	identifier := contractCallInput.Function
-	if identifier == mergeValidatorDataToDelegation {
+	if identifier == mergeValidatorDataToDelegation || identifier == core.SCDeployInitFunctionName {
 		identifier = "delegate"
 	}
 
