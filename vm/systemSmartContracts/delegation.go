@@ -723,12 +723,7 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	delegatedValue := big.NewInt(0).Set(callValue)
-	if args.Function == mergeValidatorDataToDelegation {
-		delegatedValue = big.NewInt(0).Set(delegationValue)
-	}
-
-	d.createAndAddLogEntryForDelegate(args, delegatedValue, globalFund, delegator, dStatus, isNew)
+	d.createAndAddLogEntryForDelegate(args, delegationValue, globalFund, delegator, dStatus, isNew)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus,
 		callerAddr, args.RecipientAddr, delegationValue, callValue, isNew, true)
