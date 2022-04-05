@@ -174,6 +174,8 @@ func (sp *shardProcessor) ProcessBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
+	common.PreventSnapshots()
+	defer common.CanStartSnapshot()
 
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
@@ -825,6 +827,9 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	common.PreventSnapshots()
+	defer common.CanStartSnapshot()
+
 	var err error
 	defer func() {
 		if err != nil {
