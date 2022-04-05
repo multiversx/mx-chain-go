@@ -54,6 +54,8 @@
 
     # If this flag is set to false, the node won't delete the AccountsTrie database for old epochs
     # Applicable for both observers and validators
+    # WARNING! Setting this to false will increase each epoch's directory size with the trie snapshot,
+    # which might easily cause the node to run out of disk space.
     AccountsTrieCleanOldEpochsData = true
 
     # AccountsTrieSkipRemovalCustomPattern represents the custom pattern that determines when AccountsTrie database

@@ -1,4 +1,4 @@
-package helpers
+package databaseremover
 
 import (
 	"fmt"
@@ -14,6 +14,7 @@ const (
 )
 
 type customDatabaseRemover struct {
+	divisibleEpochs     []uint32
 	shouldRemoveHandler func(dbIdentifier string, epoch uint32) bool
 }
 
@@ -27,22 +28,32 @@ func NewCustomDatabaseRemover(cfg config.StoragePruningConfig) (*customDatabaseR
 		}, nil
 	}
 
-	shouldRemoveFunc, err := parseCustomPattern(cfg.AccountsTrieSkipRemovalCustomPattern)
+	divisibleEpochs, err := parseCustomPattern(cfg.AccountsTrieSkipRemovalCustomPattern)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating a custom database remover", err)
 	}
 
 	return &customDatabaseRemover{
-		shouldRemoveHandler: shouldRemoveFunc,
+		divisibleEpochs: divisibleEpochs,
 	}, nil
 }
 
 // ShouldRemove returns the result of the inner handler function
-func (c *customDatabaseRemover) ShouldRemove(dbIdentifier string, epoch uint32) bool {
-	return c.shouldRemoveHandler(dbIdentifier, epoch)
+func (c *customDatabaseRemover) ShouldRemove(_ string, epoch uint32) bool {
+	return c.shouldRemoveConsideringDivisibleEpochs(epoch)
 }
 
-func parseCustomPattern(pattern string) (func(dbIdentifier string, epoch uint32) bool, error) {
+func (c *customDatabaseRemover) shouldRemoveConsideringDivisibleEpochs(epoch uint32) bool {
+	for _, divisibleEpoch := range c.divisibleEpochs {
+		if epoch%divisibleEpoch == 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func parseCustomPattern(pattern string) ([]uint32, error) {
 	epochs := make([]uint32, 0)
 	splitArgs := strings.Split(pattern, patternItemsSeparator)
 	for _, arg := range splitArgs {
@@ -58,15 +69,7 @@ func parseCustomPattern(pattern string) (func(dbIdentifier string, epoch uint32)
 		epochs = append(epochs, epoch)
 	}
 
-	return func(_ string, epoch uint32) bool {
-		for _, divisibleEpoch := range epochs {
-			if epoch%divisibleEpoch == 0 {
-				return false
-			}
-		}
-
-		return true
-	}, nil
+	return epochs, nil
 }
 
 func extractEpochFromArg(arg string) (uint32, error) {

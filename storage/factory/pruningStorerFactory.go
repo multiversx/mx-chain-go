@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/helpers"
-	"github.com/ElrondNetwork/elrond-go/storage/helpers/disabled"
+	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
+	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -118,7 +118,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}()
 
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-	customDatabaseRemover, err := helpers.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
+	customDatabaseRemover, err := databaseremover.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, disabledCustomDatabaseRemover)
+	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
 	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
 	if err != nil {
 		return nil, err
@@ -349,7 +349,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}()
 
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
-	customDatabaseRemover, err := helpers.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
+	customDatabaseRemover, err := databaseremover.NewCustomDatabaseRemover(psf.generalConfig.StoragePruning)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, userAccountsUnit)
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, disabledCustomDatabaseRemover)
+	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
 	peerAccountsUnit, err = psf.createTriePruningPersister(peerAccountsUnitArgs)
 	if err != nil {
 		return nil, err
