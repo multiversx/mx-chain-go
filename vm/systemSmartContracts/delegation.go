@@ -1736,7 +1736,8 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), big.NewInt(0).Bytes(), globalFund.TotalActive.Bytes())
+	zeroValueByteSlice := make([]byte, 0)
+	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes())
 
 	return vmcommon.Ok
 }
