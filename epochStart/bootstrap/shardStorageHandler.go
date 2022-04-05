@@ -412,6 +412,12 @@ func addMiniBlockToPendingList(
 ) []bootstrapStorage.PendingMiniBlocksInfo {
 	for i := range pendingMiniBlocks {
 		if pendingMiniBlocks[i].ShardID == mbHeader.GetReceiverShardID() {
+			for _, mbHash := range pendingMiniBlocks[i].MiniBlocksHashes {
+				if bytes.Equal(mbHash, mbHeader.GetHash()) {
+					return pendingMiniBlocks
+				}
+			}
+
 			pendingMiniBlocks[i].MiniBlocksHashes = append(pendingMiniBlocks[i].MiniBlocksHashes, mbHeader.GetHash())
 			return pendingMiniBlocks
 		}
@@ -470,6 +476,13 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	pendingMiniBlocksPerShardMap := make(map[uint32][][]byte)
 
 	for _, mbHeader := range epochShardData.GetPendingMiniBlockHeaderHandlers() {
+		log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: epochShardData.GetPendingMiniBlockHeaderHandlers",
+			"mb hash", mbHeader.GetHash(),
+			"len(reserved)", len(mbHeader.GetReserved()),
+			"index of first tx processed", mbHeader.GetIndexOfFirstTxProcessed(),
+			"index of last tx processed", mbHeader.GetIndexOfLastTxProcessed(),
+		)
+
 		receiverShardID := mbHeader.GetReceiverShardID()
 		pendingMiniBlocksPerShardMap[receiverShardID] = append(pendingMiniBlocksPerShardMap[receiverShardID], mbHeader.GetHash())
 		pendingMiniBlocksMap[string(mbHeader.GetHash())] = struct{}{}
@@ -483,6 +496,13 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 	miniBlockHeaders := getProcessedMiniBlockHeaders(neededMeta, ssh.shardCoordinator.SelfId(), pendingMiniBlocksMap)
 	for mbHash, mbHeader := range miniBlockHeaders {
+		log.Debug("shardStorageHandler.getProcessedAndPendingMiniBlocks: miniBlockHeaders",
+			"mb hash", mbHeader.GetHash(),
+			"len(reserved)", len(mbHeader.GetReserved()),
+			"index of first tx processed", mbHeader.GetIndexOfFirstTxProcessed(),
+			"index of last tx processed", mbHeader.GetIndexOfLastTxProcessed(),
+		)
+
 		miniBlockHashes = append(miniBlockHashes, []byte(mbHash))
 		isFullyProcessed = append(isFullyProcessed, mbHeader.IsFinal())
 		indexOfLastTxProcessed = append(indexOfLastTxProcessed, mbHeader.GetIndexOfLastTxProcessed())
