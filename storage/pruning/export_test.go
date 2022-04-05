@@ -17,14 +17,19 @@ func NewEmptyPruningStorer() *PruningStorer {
 }
 
 // AddMockActivePersister -
-func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32, withMap bool) {
+func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32, ordered bool, withMap bool) {
 	for _, e := range epochs {
 		pd := &persisterData{
 			epoch:     e,
 			persister: &mock.PersisterStub{},
 		}
 
-		ps.activePersisters = append([]*persisterData{pd}, ps.activePersisters...)
+		if ordered {
+			ps.activePersisters = append([]*persisterData{pd}, ps.activePersisters...)
+		} else {
+			ps.activePersisters = append(ps.activePersisters, pd)
+		}
+
 
 		if withMap {
 			ps.persistersMapByEpoch[e] = pd

@@ -14,17 +14,14 @@ const (
 )
 
 type customDatabaseRemover struct {
-	divisibleEpochs     []uint32
-	shouldRemoveHandler func(dbIdentifier string, epoch uint32) bool
+	divisibleEpochs []uint32
 }
 
 // NewCustomDatabaseRemover returns a new instance of customDatabaseRemover
 func NewCustomDatabaseRemover(cfg config.StoragePruningConfig) (*customDatabaseRemover, error) {
 	if len(cfg.AccountsTrieSkipRemovalCustomPattern) == 0 {
 		return &customDatabaseRemover{
-			shouldRemoveHandler: func(_ string, _ uint32) bool {
-				return true
-			},
+			divisibleEpochs: make([]uint32, 0),
 		}, nil
 	}
 

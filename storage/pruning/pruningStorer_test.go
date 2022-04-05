@@ -839,17 +839,17 @@ func TestPruningStorer_ClosePersisters(t *testing.T) {
 		ps, _ := pruning.NewPruningStorer(args)
 		ps.ClearPersisters()
 
-		ps.AddMockActivePersisters([]uint32{0, 1}, true)
+		ps.AddMockActivePersisters([]uint32{0, 1}, true,true)
 		err := ps.ClosePersisters(1)
 		require.NoError(t, err)
 		require.Equal(t, []uint32{0, 1}, ps.PersistersMapByEpochToSlice())
 
-		ps.AddMockActivePersisters([]uint32{2, 3}, true)
+		ps.AddMockActivePersisters([]uint32{2, 3}, true,true)
 		err = ps.ClosePersisters(3)
 		require.NoError(t, err)
 		require.Equal(t, []uint32{1, 2, 3}, ps.PersistersMapByEpochToSlice())
 
-		ps.AddMockActivePersisters([]uint32{4, 5, 6}, true)
+		ps.AddMockActivePersisters([]uint32{4, 5, 6}, true,true)
 		err = ps.ClosePersisters(6)
 		require.NoError(t, err)
 		require.Equal(t, []uint32{4, 5, 6}, ps.PersistersMapByEpochToSlice())
@@ -964,15 +964,26 @@ func TestRegex(t *testing.T) {
 }
 
 func TestPruningStorer_processPersistersToClose(t *testing.T) {
-	t.Parallel()
+	t.Run("edge case - epochs in reversed order", func(t *testing.T) {
+		ps := pruning.NewEmptyPruningStorer()
+		ps.SetNumActivePersistersParameter(3)
+		ps.AddMockActivePersisters([]uint32{10, 9, 8, 7, 6}, false, false)
+		persistersToCloseEpochs := ps.ProcessPersistersToClose()
+		assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
+		assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())
+		assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
+	})
 
-	ps := pruning.NewEmptyPruningStorer()
-	ps.SetNumActivePersistersParameter(3)
-	ps.AddMockActivePersisters([]uint32{6, 7, 8, 9, 10}, false)
-	persistersToCloseEpochs := ps.ProcessPersistersToClose()
-	assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
-	assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())
-	assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
+	t.Run("normal operations", func(t *testing.T) {
+		ps := pruning.NewEmptyPruningStorer()
+		ps.SetNumActivePersistersParameter(3)
+		ps.AddMockActivePersisters([]uint32{6, 7, 8, 9, 10}, true, false)
+		persistersToCloseEpochs := ps.ProcessPersistersToClose()
+		assert.Equal(t, []uint32{7, 6}, persistersToCloseEpochs)
+		assert.Equal(t, []uint32{10, 9, 8}, ps.GetActivePersistersEpochs())
+		assert.Equal(t, []uint32{6, 7}, ps.PersistersMapByEpochToSlice())
+	})
+
 }
 
 func TestPruningStorer_ConcurrentOperations(t *testing.T) {
