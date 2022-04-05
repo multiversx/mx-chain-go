@@ -10,7 +10,6 @@ import (
 )
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
-// TODO: add an implementation and integrate it
 type GuardianSigVerifier interface {
 	VerifyGuardianSignature(account data.UserAccountHandler, inTx processor.InterceptedTransactionHandler) error
 	IsInterfaceNil() bool
@@ -19,23 +18,41 @@ type GuardianSigVerifier interface {
 type guardedTxSigVerifier struct {
 	sigVerifier     crypto.SingleSigner
 	guardianChecker core.GuardianChecker
-	encoder         data.Encoder
+	encoder         core.PubkeyConverter
 	marshaller      data.Marshaller
 	keyGen          crypto.KeyGenerator
 }
 
 // NewGuardedTxSigVerifier creates a new instance of a guarded transaction signature verifier
-func NewGuardedTxSigVerifier(sigVerifier crypto.SingleSigner, guardianChecker core.GuardianChecker) (*guardedTxSigVerifier, error) {
+func NewGuardedTxSigVerifier(
+	sigVerifier crypto.SingleSigner,
+	guardianChecker core.GuardianChecker,
+	pubKeyConverter core.PubkeyConverter,
+	marshaller data.Marshaller,
+	keyGen crypto.KeyGenerator,
+) (*guardedTxSigVerifier, error) {
 	if check.IfNil(sigVerifier) {
-		return nil, process.ErrNilGuardianSigVerifier
+		return nil, process.ErrNilSingleSigner
 	}
 	if check.IfNil(guardianChecker) {
 		return nil, process.ErrNilGuardianChecker
+	}
+	if check.IfNil(pubKeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(keyGen) {
+		return nil, process.ErrNilKeyGen
 	}
 
 	return &guardedTxSigVerifier{
 		sigVerifier:     sigVerifier,
 		guardianChecker: guardianChecker,
+		encoder:         pubKeyConverter,
+		marshaller:      marshaller,
+		keyGen:          keyGen,
 	}, nil
 }
 

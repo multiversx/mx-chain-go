@@ -19,8 +19,7 @@ var _ process.TxValidator = (*txValidator)(nil)
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 // TODO: add an implementation and integrate it
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(guardianPubKey []byte, tx data.TransactionHandler) error // todo: through crypto.SingleSigner
-	GetActiveGuardian(handler data.UserAccountHandler) ([]byte, error)               // todo: through core.GuardianChecker
+	VerifyGuardianSignature(account data.UserAccountHandler, inTx processor.InterceptedTransactionHandler) error // todo: through crypto.SingleSigner
 	IsInterfaceNil() bool
 }
 
@@ -56,7 +55,7 @@ func NewTxValidator(
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(guardianSigVerifier) {
-		return nil, process.ErrNilGuardianSigVerifier
+		return nil, process.ErrNilSingleSigner
 	}
 
 	return &txValidator{
@@ -153,12 +152,7 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTxHandl
 			return state.ErrOperationNotPermitted
 		}
 
-		guardianPubKey, errGuardian := txv.guardianSigVerifier.GetActiveGuardian(account)
-		if errGuardian != nil {
-			return fmt.Errorf("%w due to error in getting the active guardian %s", state.ErrOperationNotPermitted, errGuardian.Error())
-		}
-
-		errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(guardianPubKey, interceptedTx.Transaction())
+		errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(account, interceptedTx)
 		if errGuardianSignature != nil {
 			return fmt.Errorf("%w due to error in signature verification %s", state.ErrOperationNotPermitted, errGuardianSignature.Error())
 		}
