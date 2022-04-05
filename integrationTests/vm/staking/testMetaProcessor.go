@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
@@ -62,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	"github.com/stretchr/testify/require"
 )
 
 const stakingV4EnableEpoch = 1
@@ -79,6 +81,7 @@ type TestMetaProcessor struct {
 	BlockChain          data.ChainHandler
 	ValidatorStatistics process.ValidatorStatisticsProcessor
 	EpochStartTrigger   integrationTests.TestEpochStartTrigger
+	BlockChainHandler   data.ChainHandler
 	GenesisHeader       *HeaderInfo
 	CoreComponents      factory2.CoreComponentsHolder
 	AllPubKeys          [][]byte
@@ -111,7 +114,78 @@ func NewTestMetaProcessor(
 		EpochStartTrigger:   epochStartTrigger,
 		CoreComponents:      coreComponents,
 		AllPubKeys:          pubKeys,
+		BlockChainHandler:   dataComponents.Blockchain(),
 	}
+}
+
+func createMetaBlockHeader2(epoch uint32, round uint64, prevHash []byte) *block.MetaBlock {
+	hdr := block.MetaBlock{
+		Epoch:                  epoch,
+		Nonce:                  round,
+		Round:                  round,
+		PrevHash:               prevHash,
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte("pubKeysBitmap"),
+		RootHash:               []byte("roothash"),
+		ShardInfo:              make([]block.ShardData, 0),
+		TxCount:                1,
+		PrevRandSeed:           []byte("roothash"),
+		RandSeed:               []byte("roothash" + strconv.Itoa(int(round))),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+	}
+
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+	shardMiniBlockHeader := block.MiniBlockHeader{
+		Hash:            []byte("mb_hash" + strconv.Itoa(int(round))),
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxCount:         1,
+	}
+	shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
+	shardData := block.ShardData{
+		Nonce:                 round,
+		ShardID:               0,
+		HeaderHash:            []byte("hdr_hash" + strconv.Itoa(int(round))),
+		TxCount:               1,
+		ShardMiniBlockHeaders: shardMiniBlockHeaders,
+		DeveloperFees:         big.NewInt(0),
+		AccumulatedFees:       big.NewInt(0),
+	}
+	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
+
+	return &hdr
+}
+
+func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint32) {
+	for r := fromRound; r < numOfRounds; r++ {
+		currentHeader := tmp.BlockChainHandler.GetCurrentBlockHeader()
+		currentHash := tmp.BlockChainHandler.GetCurrentBlockHeaderHash()
+		if currentHeader == nil {
+			currentHeader = tmp.GenesisHeader.Header
+			currentHash = tmp.GenesisHeader.Hash
+		}
+
+		prevRandomness := currentHeader.GetRandSeed()
+		fmt.Println(fmt.Sprintf("########################################### CREATEING HEADER FOR EPOCH %v in round %v",
+			tmp.EpochStartTrigger.Epoch(),
+			r,
+		))
+
+		newHdr := createMetaBlockHeader2(tmp.EpochStartTrigger.Epoch(), uint64(r), currentHash)
+		newHdr.PrevRandSeed = prevRandomness
+		_, _ = tmp.MetaBlockProcessor.CreateNewHeader(uint64(r), uint64(r))
+
+		newHdr2, newBodyHandler2, err := tmp.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
+		require.Nil(t, err)
+		err = tmp.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
+		require.Nil(t, err)
+
+		tmp.DisplayNodesConfig(tmp.EpochStartTrigger.Epoch(), 4)
+	}
+
 }
 
 func createEpochStartTrigger(coreComponents factory2.CoreComponentsHolder, dataComponents factory2.DataComponentsHolder) integrationTests.TestEpochStartTrigger {
@@ -371,7 +445,6 @@ func createMockComponentHolders(numOfShards uint32) (
 	}
 
 	blockChain, _ := blockchain.NewMetaChain(statusHandler.NewStatusMetrics())
-	//_ = blockChain.SetCurrentBlockHeaderAndRootHash(createGenesisMetaBlock(), []byte("roothash"))
 	genesisBlock := createGenesisMetaBlock()
 	genesisBlockHash, _ := coreComponents.InternalMarshalizer().Marshal(genesisBlock)
 	genesisBlockHash = coreComponents.Hasher().Compute(string(genesisBlockHash))
