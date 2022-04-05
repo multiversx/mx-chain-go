@@ -150,13 +150,13 @@ func (s *systemSCProcessor) processWithNewFlags(
 
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
-	availableSlots := s.maxNodes - numOfValidators
-	if availableSlots <= 0 {
+	availableSlots, err := safeSub(s.maxNodes, numOfValidators)
+	if err != nil {
 		log.Info("not enough available slots for auction nodes; skip selecting nodes from auction list")
 		return nil
 	}
 
-	err := s.sortAuctionList(auctionList, randomness)
+	err = s.sortAuctionList(auctionList, randomness)
 	if err != nil {
 		return err
 	}
@@ -175,6 +175,13 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 	}
 
 	return nil
+}
+
+func safeSub(a, b uint32) (uint32, error) {
+	if a < b {
+		return 0, core.ErrSubtractionOverflow
+	}
+	return a - b, nil
 }
 
 func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, uint32) {

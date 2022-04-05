@@ -66,7 +66,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const stakingV4EnableEpoch = 1
+const stakingV4InitEpoch = 1
+const stakingV4EnableEpoch = 2
 
 type HeaderInfo struct {
 	Hash   []byte
@@ -174,6 +175,12 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint3
 			r,
 		))
 
+		fmt.Println("#######################DISPLAYING VALIDAOTRS BEFOOOOOOOOOOOOREEEEEEE ")
+		rootHash, _ := tmp.ValidatorStatistics.RootHash()
+		allValidatorsInfo, err := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
+		require.Nil(t, err)
+		displayValidatorsInfo(allValidatorsInfo, rootHash)
+
 		newHdr := createMetaBlockHeader2(tmp.EpochStartTrigger.Epoch(), uint64(r), currentHash)
 		newHdr.PrevRandSeed = prevRandomness
 		_, _ = tmp.MetaBlockProcessor.CreateNewHeader(uint64(r), uint64(r))
@@ -184,8 +191,21 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint3
 		require.Nil(t, err)
 
 		tmp.DisplayNodesConfig(tmp.EpochStartTrigger.Epoch(), 4)
+
+		fmt.Println("#######################DISPLAYING VALIDAOTRS AFTEEEEEEEEEEEEEEEEER ")
+		rootHash, _ = tmp.ValidatorStatistics.RootHash()
+		allValidatorsInfo, err = tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
+		require.Nil(t, err)
+		displayValidatorsInfo(allValidatorsInfo, rootHash)
 	}
 
+}
+
+func displayValidatorsInfo(validatorsInfoMap state.ShardValidatorsInfoMapHandler, rootHash []byte) {
+	fmt.Println("#######################DISPLAYING VALIDAOTRS INFO for root hash ")
+	for _, validators := range validatorsInfoMap.GetAllValidatorsInfo() {
+		fmt.Println("PUBKEY: ", string(validators.GetPublicKey()), " SHARDID: ", validators.GetShardId(), " LIST: ", validators.GetList())
+	}
 }
 
 func createEpochStartTrigger(coreComponents factory2.CoreComponentsHolder, dataComponents factory2.DataComponentsHolder) integrationTests.TestEpochStartTrigger {
@@ -313,7 +333,7 @@ func createNodesCoordinator(
 	}
 
 	for idx, pubKey := range allPubKeys {
-		registerValidatorKeys(stateComponents.AccountsAdapter(), []byte(string(pubKey)+strconv.Itoa(idx)), []byte(string(pubKey)+strconv.Itoa(idx)), [][]byte{pubKey}, big.NewInt(20000), coreComponents.InternalMarshalizer())
+		registerValidatorKeys(stateComponents.AccountsAdapter(), []byte(string(pubKey)+strconv.Itoa(idx)), []byte(string(pubKey)+strconv.Itoa(idx)), [][]byte{pubKey}, big.NewInt(2000), coreComponents.InternalMarshalizer())
 	}
 
 	rootHash, _ := stateComponents.PeerAccounts().RootHash()
@@ -748,7 +768,7 @@ func createFullArgumentsForSystemSCProcessing(
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
 				StakeLimitsEnableEpoch:             10,
-				StakingV4InitEnableEpoch:           444,
+				StakingV4InitEnableEpoch:           stakingV4InitEpoch,
 				StakingV4EnableEpoch:               stakingV4EnableEpoch,
 			},
 		},
@@ -760,6 +780,11 @@ func createFullArgumentsForSystemSCProcessing(
 	vmContainer, _ := metaVmFactory.Create()
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 	stakingSCprovider, _ := metachain.NewStakingDataProvider(systemVM, "1000")
+
+	maxNodesConfig := make([]config.MaxNodesChangeConfig, 0)
+	for i := 0; i < 444; i++ {
+		maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{MaxNumNodes: 18})
+	}
 
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
@@ -781,10 +806,11 @@ func createFullArgumentsForSystemSCProcessing(
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:     0,
 				ESDTEnableEpoch:          1000000,
-				StakingV4InitEnableEpoch: 444,
+				StakingV4InitEnableEpoch: stakingV4InitEpoch,
 				StakingV4EnableEpoch:     stakingV4EnableEpoch,
 			},
 		},
+		MaxNodesEnableConfig: maxNodesConfig,
 	}
 
 	return args, blockChainHookImpl, vCreator, metaVmFactory
