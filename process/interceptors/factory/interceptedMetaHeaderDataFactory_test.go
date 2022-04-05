@@ -102,6 +102,7 @@ func createMockArgument(
 		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerID:                       "pid",
+		HardforkTriggerPubKey:        []byte("provided hardfork pub key"),
 	}
 }
 
