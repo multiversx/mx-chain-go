@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
@@ -68,6 +70,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	InterceptorsContainer     process.InterceptorsContainer
 	AntifloodHandler          process.P2PAntifloodHandler
 	EnableSignTxWithHashEpoch uint32
+	HardforkTriggerPubKey     []byte
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -121,6 +124,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if len(args.HardforkTriggerPubKey) == 0 {
+		return nil, fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:            args.CoreComponents,
@@ -135,6 +141,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		ArgsParser:                smartContract.NewArgumentParser(),
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		HardforkTriggerPubKey:     args.HardforkTriggerPubKey,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

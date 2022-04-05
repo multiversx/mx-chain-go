@@ -53,6 +53,9 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 					Shards:   1,
 				},
 			},
+			Hardfork: config.HardforkConfig{
+				PublicKeyToListenFrom: dummyPk,
+			},
 		},
 		Prefs: config.Preferences{
 			Preferences: config.PreferencesConfig{

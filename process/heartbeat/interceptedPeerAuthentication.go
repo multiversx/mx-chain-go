@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -16,21 +17,23 @@ import (
 // ArgInterceptedPeerAuthentication is the argument used in the intercepted peer authentication constructor
 type ArgInterceptedPeerAuthentication struct {
 	ArgBaseInterceptedHeartbeat
-	NodesCoordinator     NodesCoordinator
-	SignaturesHandler    SignaturesHandler
-	PeerSignatureHandler crypto.PeerSignatureHandler
-	ExpiryTimespanInSec  int64
+	NodesCoordinator      NodesCoordinator
+	SignaturesHandler     SignaturesHandler
+	PeerSignatureHandler  crypto.PeerSignatureHandler
+	ExpiryTimespanInSec   int64
+	HardforkTriggerPubKey []byte
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
 type interceptedPeerAuthentication struct {
-	peerAuthentication   heartbeat.PeerAuthentication
-	payload              heartbeat.Payload
-	peerId               core.PeerID
-	nodesCoordinator     NodesCoordinator
-	signaturesHandler    SignaturesHandler
-	peerSignatureHandler crypto.PeerSignatureHandler
-	expiryTimespanInSec  int64
+	peerAuthentication    heartbeat.PeerAuthentication
+	payload               heartbeat.Payload
+	peerId                core.PeerID
+	nodesCoordinator      NodesCoordinator
+	signaturesHandler     SignaturesHandler
+	peerSignatureHandler  crypto.PeerSignatureHandler
+	expiryTimespanInSec   int64
+	hardforkTriggerPubKey []byte
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
@@ -46,12 +49,13 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 	}
 
 	intercepted := &interceptedPeerAuthentication{
-		peerAuthentication:   *peerAuthentication,
-		payload:              *payload,
-		nodesCoordinator:     arg.NodesCoordinator,
-		signaturesHandler:    arg.SignaturesHandler,
-		peerSignatureHandler: arg.PeerSignatureHandler,
-		expiryTimespanInSec:  arg.ExpiryTimespanInSec,
+		peerAuthentication:    *peerAuthentication,
+		payload:               *payload,
+		nodesCoordinator:      arg.NodesCoordinator,
+		signaturesHandler:     arg.SignaturesHandler,
+		peerSignatureHandler:  arg.PeerSignatureHandler,
+		expiryTimespanInSec:   arg.ExpiryTimespanInSec,
+		hardforkTriggerPubKey: arg.HardforkTriggerPubKey,
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
@@ -75,6 +79,10 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	if check.IfNil(arg.PeerSignatureHandler) {
 		return process.ErrNilPeerSignatureHandler
 	}
+	if len(arg.HardforkTriggerPubKey) == 0 {
+		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
+	}
+
 	return nil
 }
 
@@ -117,10 +125,13 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		return err
 	}
 
-	// Verify validator
-	_, _, err = ipa.nodesCoordinator.GetValidatorWithPublicKey(ipa.peerAuthentication.Pubkey)
-	if err != nil {
-		return err
+	// If the message is hardfork trigger, it should be from the expected source
+	if !ipa.isHardforkFromSource() {
+		// Verify validator
+		_, _, err = ipa.nodesCoordinator.GetValidatorWithPublicKey(ipa.peerAuthentication.Pubkey)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Verify payload signature
@@ -130,7 +141,7 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	}
 
 	// Verify payload
-	err = ipa.verifyPayload()
+	err = ipa.verifyPayloadTimestamp()
 	if err != nil {
 		return err
 	}
@@ -205,7 +216,7 @@ func (ipa *interceptedPeerAuthentication) String() string {
 	)
 }
 
-func (ipa *interceptedPeerAuthentication) verifyPayload() error {
+func (ipa *interceptedPeerAuthentication) verifyPayloadTimestamp() error {
 	currentTimeStamp := time.Now().Unix()
 	messageTimeStamp := ipa.payload.Timestamp
 	minTimestampAllowed := currentTimeStamp - ipa.expiryTimespanInSec
@@ -215,6 +226,14 @@ func (ipa *interceptedPeerAuthentication) verifyPayload() error {
 	}
 
 	return nil
+}
+
+func (ipa *interceptedPeerAuthentication) isHardforkFromSource() bool {
+	if len(ipa.payload.HardforkMessage) == 0 {
+		return false
+	}
+
+	return bytes.Equal(ipa.peerAuthentication.Pubkey, ipa.hardforkTriggerPubKey)
 }
 
 // SizeInBytes returns the size in bytes held by this instance

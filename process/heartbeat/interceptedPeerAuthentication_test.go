@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -19,11 +20,12 @@ import (
 )
 
 var expectedErr = errors.New("expected error")
+var providedHardforkPubKey = []byte("provided pub key")
 
 func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication {
 	payload := &heartbeat.Payload{
 		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "hardfork message",
+		HardforkMessage: "",
 	}
 	marshalizer := testscommon.MarshalizerMock{}
 	payloadBytes, err := marshalizer.Marshal(payload)
@@ -51,10 +53,11 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		ArgBaseInterceptedHeartbeat: ArgBaseInterceptedHeartbeat{
 			Marshalizer: &testscommon.MarshalizerMock{},
 		},
-		NodesCoordinator:     &shardingMocks.NodesCoordinatorStub{},
-		SignaturesHandler:    &processMocks.SignaturesHandlerStub{},
-		PeerSignatureHandler: &cryptoMocks.PeerSignatureHandlerStub{},
-		ExpiryTimespanInSec:  30,
+		NodesCoordinator:      &shardingMocks.NodesCoordinatorStub{},
+		SignaturesHandler:     &processMocks.SignaturesHandlerStub{},
+		PeerSignatureHandler:  &cryptoMocks.PeerSignatureHandlerStub{},
+		ExpiryTimespanInSec:   30,
+		HardforkTriggerPubKey: providedHardforkPubKey,
 	}
 	arg.DataBuff, _ = arg.Marshalizer.Marshal(interceptedData)
 
@@ -71,7 +74,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg.DataBuff = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilBuffer, err)
 	})
 	t.Run("nil marshalizer should error", func(t *testing.T) {
@@ -81,7 +84,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg.Marshalizer = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 	})
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {
@@ -91,7 +94,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg.NodesCoordinator = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil signatures handler should error", func(t *testing.T) {
@@ -101,7 +104,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg.SignaturesHandler = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilSignaturesHandler, err)
 	})
 	t.Run("invalid expiry timespan should error", func(t *testing.T) {
@@ -111,7 +114,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg.ExpiryTimespanInSec = 1
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrInvalidExpiryTimespan, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
@@ -121,7 +124,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg.PeerSignatureHandler = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilPeerSignatureHandler, err)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
@@ -135,7 +138,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		}
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ipa)
+		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("unmarshalable payload returns error", func(t *testing.T) {
@@ -145,9 +148,20 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		interceptedData.Payload = []byte("invalid data")
 		arg := createMockInterceptedPeerAuthenticationArg(interceptedData)
 
-		ihb, err := NewInterceptedPeerAuthentication(arg)
-		assert.Nil(t, ihb)
+		ipa, err := NewInterceptedPeerAuthentication(arg)
+		assert.True(t, check.IfNil(ipa))
 		assert.NotNil(t, err)
+	})
+	t.Run("invalid hardfork pub key should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
+		args.HardforkTriggerPubKey = make([]byte, 0)
+		ipa, err := NewInterceptedPeerAuthentication(args)
+
+		assert.True(t, check.IfNil(ipa))
+		assert.True(t, errors.Is(err, process.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "hardfork"))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -155,7 +169,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
-		assert.False(t, ipa.IsInterfaceNil())
+		assert.False(t, check.IfNil(ipa))
 		assert.Nil(t, err)
 	})
 }
@@ -243,6 +257,24 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
+		ipa, _ := NewInterceptedPeerAuthentication(arg)
+		err := ipa.CheckValidity()
+		assert.Nil(t, err)
+	})
+	t.Run("should work - hardfork from source", func(t *testing.T) {
+		t.Parallel()
+
+		peerAuth := createDefaultInterceptedPeerAuthentication()
+		peerAuth.Pubkey = providedHardforkPubKey
+		payload := &heartbeat.Payload{
+			Timestamp:       time.Now().Unix(),
+			HardforkMessage: "hardfork message",
+		}
+		marshalizer := testscommon.MarshalizerMock{}
+		payloadBytes, _ := marshalizer.Marshal(payload)
+		peerAuth.Payload = payloadBytes
+
+		arg := createMockInterceptedPeerAuthenticationArg(peerAuth)
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
 		assert.Nil(t, err)

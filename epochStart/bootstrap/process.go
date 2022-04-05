@@ -517,7 +517,11 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 }
 
 func (e *epochStartBootstrap) createSyncers() error {
-	var err error
+	hardforkPubKey := e.generalConfig.Hardfork.PublicKeyToListenFrom
+	hardforkPubKeyBytes, err := e.coreComponentsHolder.ValidatorPubKeyConverter().Decode(hardforkPubKey)
+	if err != nil {
+		return fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
 		CoreComponents:            e.coreComponentsHolder,
@@ -534,6 +538,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		EpochNotifier:             e.epochNotifier,
 		RequestHandler:            e.requestHandler,
 		SignaturesHandler:         e.messenger,
+		HardforkTriggerPubKey:     hardforkPubKeyBytes,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

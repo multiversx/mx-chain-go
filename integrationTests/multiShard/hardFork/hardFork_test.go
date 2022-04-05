@@ -618,6 +618,7 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
+			HardforkTriggerPubKey:     []byte("provided hardfork pub key"),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

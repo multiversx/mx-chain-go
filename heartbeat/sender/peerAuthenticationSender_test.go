@@ -26,6 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var providedHardforkPubKey = []byte("provided hardfork pub key")
+
 func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthenticationSender {
 	return argPeerAuthenticationSender{
 		argBaseSender:            argBase,
@@ -35,6 +37,7 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 		redundancyHandler:        &mock.RedundancyHandlerStub{},
 		hardforkTrigger:          &mock.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
+		hardforkTriggerPubKey:    providedHardforkPubKey,
 	}
 }
 
@@ -62,6 +65,7 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseS
 		redundancyHandler:        &mock.RedundancyHandlerStub{},
 		hardforkTrigger:          &mock.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
+		hardforkTriggerPubKey:    providedHardforkPubKey,
 	}
 }
 

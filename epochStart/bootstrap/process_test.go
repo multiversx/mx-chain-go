@@ -73,6 +73,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			EpochNotifierField:    &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+			ValPubKeyConv:         &testscommon.PubkeyConverterMock{},
 		}, &mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
 			BlockSig:        &cryptoMocks.SignerStub{},
@@ -117,6 +118,7 @@ func createMockEpochStartBootstrapArgs(
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
 			Heartbeat:                          generalCfg.Heartbeat,
 			HeartbeatV2:                        generalCfg.HeartbeatV2,
+			Hardfork:                           generalCfg.Hardfork,
 			TrieSnapshotDB: config.DBConfig{
 				FilePath:          "TrieSnapshot",
 				Type:              "MemoryDB",

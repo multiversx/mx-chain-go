@@ -54,10 +54,11 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			Marshalizer: &mock.MarshalizerMock{},
 		},
-		NodesCoordinator:     &mock.NodesCoordinatorStub{},
-		SignaturesHandler:    &mock.SignaturesHandlerStub{},
-		PeerSignatureHandler: &mock.PeerSignatureHandlerStub{},
-		ExpiryTimespanInSec:  30,
+		NodesCoordinator:      &mock.NodesCoordinatorStub{},
+		SignaturesHandler:     &mock.SignaturesHandlerStub{},
+		PeerSignatureHandler:  &mock.PeerSignatureHandlerStub{},
+		ExpiryTimespanInSec:   30,
+		HardforkTriggerPubKey: []byte("provided hardfork pub key"),
 	}
 	arg.DataBuff, _ = arg.Marshalizer.Marshal(createInterceptedPeerAuthentication())
 	ipa, _ := heartbeat.NewInterceptedPeerAuthentication(arg)

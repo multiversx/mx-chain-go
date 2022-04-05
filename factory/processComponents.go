@@ -1132,6 +1132,12 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
+	hardforkPubKey := pcf.config.Hardfork.PublicKeyToListenFrom
+	hardforkPubKeyBytes, err := pcf.coreData.ValidatorPubKeyConverter().Decode(hardforkPubKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
 			headerSigVerifier,
@@ -1141,6 +1147,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			requestHandler,
 			peerShardMapper,
 			hardforkTrigger,
+			hardforkPubKeyBytes,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1152,6 +1159,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			requestHandler,
 			peerShardMapper,
 			hardforkTrigger,
+			hardforkPubKeyBytes,
 		)
 	}
 
@@ -1290,6 +1298,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	requestHandler process.RequestHandler,
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
+	hardforkPubKeyBytes []byte,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1321,6 +1330,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		HardforkTriggerPubKey:        hardforkPubKeyBytes,
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1340,6 +1350,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	requestHandler process.RequestHandler,
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger HardforkTrigger,
+	hardforkPubKeyBytes []byte,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1371,6 +1382,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		HeartbeatExpiryTimespanInSec: pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		HardforkTriggerPubKey:        hardforkPubKeyBytes,
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1435,6 +1447,11 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 ) (update.ExportFactoryHandler, error) {
 
 	hardforkConfig := pcf.config.Hardfork
+	triggerPubKeyBytes, err := pcf.coreData.ValidatorPubKeyConverter().Decode(hardforkConfig.PublicKeyToListenFrom)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
 	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
@@ -1470,6 +1487,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		MaxHardCapForMissingNodes: pcf.config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
+		HardforkTriggerPubKey:     triggerPubKeyBytes,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }

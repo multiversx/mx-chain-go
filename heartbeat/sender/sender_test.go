@@ -40,6 +40,7 @@ func createMockSenderArgs() ArgSender {
 		NodesCoordinator:                            &shardingMocks.NodesCoordinatorStub{},
 		HardforkTrigger:                             &mock.HardforkTriggerStub{},
 		HardforkTimeBetweenSends:                    time.Second,
+		HardforkTriggerPubKey:                       providedHardforkPubKey,
 	}
 }
 
@@ -212,6 +213,17 @@ func TestNewSender(t *testing.T) {
 		assert.Nil(t, sender)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
+	})
+	t.Run("invalid hardfork pub key should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.HardforkTriggerPubKey = make([]byte, 0)
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "hardfork"))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

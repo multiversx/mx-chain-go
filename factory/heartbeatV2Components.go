@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -109,6 +110,12 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		}
 	}
 
+	hardforkPubKey := hcf.config.Hardfork.PublicKeyToListenFrom
+	hardforkPubKeyBytes, err := hcf.coreComponents.ValidatorPubKeyConverter().Decode(hardforkPubKey)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
 	peerSubType := core.RegularPeer
 	if hcf.prefs.Preferences.FullArchive {
 		peerSubType = core.FullHistoryObserver
@@ -138,6 +145,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		NodesCoordinator:                            hcf.processComponents.NodesCoordinator(),
 		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
+		HardforkTriggerPubKey:                       hardforkPubKeyBytes,
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {

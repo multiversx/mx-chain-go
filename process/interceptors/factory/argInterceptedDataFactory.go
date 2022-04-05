@@ -56,4 +56,5 @@ type ArgInterceptedDataFactory struct {
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
 	PeerID                       core.PeerID
+	HardforkTriggerPubKey        []byte
 }

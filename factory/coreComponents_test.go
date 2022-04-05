@@ -323,6 +323,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 					Shards:   1,
 				},
 			},
+			Hardfork: config.HardforkConfig{
+				PublicKeyToListenFrom: dummyPk,
+			},
 		},
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../cmd/node/config/gasSchedules",

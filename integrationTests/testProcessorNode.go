@@ -525,6 +525,7 @@ func NewTestProcessorNodeWithFullGenesis(
 			MaximumInflation: 0.01,
 		},
 	)
+
 	tpn.initEconomicsData(economicsConfig)
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
@@ -1224,7 +1225,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		tpn.createHardforkTrigger(heartbeatPk)
+		providedHardforkPk := tpn.createHardforkTrigger(heartbeatPk)
 
 		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:               coreComponents,
@@ -1254,6 +1255,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
+			HardforkTriggerPubKey:        providedHardforkPk,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1286,7 +1288,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		tpn.createHardforkTrigger(heartbeatPk)
+		providedHardforkPk := tpn.createHardforkTrigger(heartbeatPk)
 
 		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:               coreComponents,
@@ -1316,6 +1318,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
+			HardforkTriggerPubKey:        providedHardforkPk,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -1326,7 +1329,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	}
 }
 
-func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) {
+func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
 	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        pkBytes,
@@ -1350,6 +1353,8 @@ func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) {
 	}
 	tpn.HardforkTrigger, err = trigger.NewTrigger(argHardforkTrigger)
 	log.LogIfError(err)
+
+	return argHardforkTrigger.TriggerPubKeyBytes
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
@@ -2888,7 +2893,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	// TODO: remove it with heartbeat v1 cleanup
 	// =============== Heartbeat ============== //
-	redundancyHandler := &mock.RedundancyHandlerStub{}
+	/*redundancyHandler := &mock.RedundancyHandlerStub{}
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
@@ -2924,7 +2929,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	err = tpn.Node.ApplyOptions(
 		node.WithHeartbeatComponents(managedHeartbeatComponents),
 	)
-	log.LogIfError(err)
+	log.LogIfError(err)*/
 
 	// ============== HeartbeatV2 ============= //
 	hbv2Config := config.HeartbeatV2Config{
@@ -2958,6 +2963,9 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	hbv2FactoryArgs := mainFactory.ArgHeartbeatV2ComponentsFactory{
 		Config: config.Config{
 			HeartbeatV2: hbv2Config,
+			Hardfork: config.HardforkConfig{
+				PublicKeyToListenFrom: "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307",
+			},
 		},
 		BoostrapComponents: tpn.Node.GetBootstrapComponents(),
 		CoreComponents:     tpn.Node.GetCoreComponents(),

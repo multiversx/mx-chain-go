@@ -67,6 +67,7 @@ type ArgsExporter struct {
 	MaxHardCapForMissingNodes int
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
+	HardforkTriggerPubKey     []byte
 }
 
 type exportHandlerFactory struct {
@@ -103,6 +104,7 @@ type exportHandlerFactory struct {
 	maxHardCapForMissingNodes int
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
+	hardforkTriggerPubKey     []byte
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -216,6 +218,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(args.HardforkTriggerPubKey) == 0 {
+		return nil, fmt.Errorf("%w hardfork trigger public key bytes length is 0", update.ErrInvalidValue)
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
@@ -249,6 +254,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:         args.TrieSyncerVersion,
+		hardforkTriggerPubKey:     args.HardforkTriggerPubKey,
 	}
 	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
@@ -531,6 +537,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		InterceptorsContainer:     e.interceptorsContainer,
 		AntifloodHandler:          e.inputAntifloodHandler,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
+		HardforkTriggerPubKey:     e.hardforkTriggerPubKey,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

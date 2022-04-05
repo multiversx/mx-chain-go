@@ -60,6 +60,7 @@ const (
 	delayBetweenRequests    = time.Second * 5
 	maxTimeout              = time.Minute
 	maxMissingKeysInRequest = 1
+	providedHardforkPubKey  = "provided pub key"
 )
 
 // TestMarshaller represents the main marshaller
@@ -404,6 +405,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
 		HardforkTrigger:         &mock.HardforkTriggerStub{},
+		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
@@ -505,6 +507,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 60,
 		PeerID:                       thn.Messenger.ID(),
+		HardforkTriggerPubKey:        []byte(providedHardforkPubKey),
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

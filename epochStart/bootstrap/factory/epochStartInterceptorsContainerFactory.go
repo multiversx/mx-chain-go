@@ -42,6 +42,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	EpochNotifier             process.EpochNotifier
 	RequestHandler            process.RequestHandler
 	SignaturesHandler         process.SignaturesHandler
+	HardforkTriggerPubKey     []byte
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -106,6 +107,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		HardforkTriggerPubKey:        args.HardforkTriggerPubKey,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

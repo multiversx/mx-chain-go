@@ -1,5 +1,6 @@
 package mock
 
+// HardforkHandlerStub -
 type HardforkHandlerStub struct {
 	ShouldTriggerHardforkCalled func() <-chan struct{}
 	ExecuteCalled               func()

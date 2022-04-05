@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -19,6 +20,7 @@ type argPeerAuthenticationSender struct {
 	redundancyHandler        heartbeat.NodeRedundancyHandler
 	hardforkTrigger          heartbeat.HardforkTrigger
 	hardforkTimeBetweenSends time.Duration
+	hardforkTriggerPubKey    []byte
 }
 
 type peerAuthenticationSender struct {
@@ -31,6 +33,7 @@ type peerAuthenticationSender struct {
 	observerPublicKey        crypto.PublicKey
 	hardforkTrigger          heartbeat.HardforkTrigger
 	hardforkTimeBetweenSends time.Duration
+	hardforkTriggerPubKey    []byte
 }
 
 // newPeerAuthenticationSender will create a new instance of type peerAuthenticationSender
@@ -51,6 +54,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		observerPublicKey:        redundancyHandler.ObserverPrivateKey().GeneratePublic(),
 		hardforkTrigger:          args.hardforkTrigger,
 		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
+		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
 	}
 
 	return sender, nil
@@ -79,6 +83,9 @@ func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {
 	if args.hardforkTimeBetweenSends < minTimeBetweenSends {
 		return fmt.Errorf("%w for hardforkTimeBetweenSends", heartbeat.ErrInvalidTimeDuration)
 	}
+	if len(args.hardforkTriggerPubKey) == 0 {
+		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", heartbeat.ErrInvalidValue)
+	}
 
 	return nil
 }
@@ -90,7 +97,14 @@ func (sender *peerAuthenticationSender) Execute() {
 		sender.CreateNewTimer(duration)
 	}()
 
-	if !sender.isValidator() {
+	_, pk := sender.getCurrentPrivateAndPublicKeys()
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		duration = sender.timeBetweenSendsWhenError
+		return
+	}
+
+	if !sender.isValidator(pkBytes) && !sender.isHardforkSource(pkBytes) {
 		duration = sender.timeBetweenSendsWhenError
 		return
 	}
@@ -175,15 +189,13 @@ func (sender *peerAuthenticationSender) getCurrentPrivateAndPublicKeys() (crypto
 	return sender.redundancy.ObserverPrivateKey(), sender.observerPublicKey
 }
 
-func (sender *peerAuthenticationSender) isValidator() bool {
-	_, pk := sender.getCurrentPrivateAndPublicKeys()
-	pkBytes, err := pk.ToByteArray()
-	if err != nil {
-		return false
-	}
-
-	_, _, err = sender.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
+func (sender *peerAuthenticationSender) isValidator(pkBytes []byte) bool {
+	_, _, err := sender.nodesCoordinator.GetValidatorWithPublicKey(pkBytes)
 	return err == nil
+}
+
+func (sender *peerAuthenticationSender) isHardforkSource(pkBytes []byte) bool {
+	return bytes.Equal(pkBytes, sender.hardforkTriggerPubKey)
 }
 
 func (sender *peerAuthenticationSender) getHardforkPayload() ([]byte, bool) {

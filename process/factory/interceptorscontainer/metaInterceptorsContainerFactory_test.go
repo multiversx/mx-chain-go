@@ -27,6 +27,7 @@ const maxTxNonceDeltaAllowed = 100
 
 var chainID = "chain ID"
 var errExpected = errors.New("expected error")
+var providedHardforkPubKey = []byte("provided hardfork pub key")
 
 func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
@@ -443,6 +444,18 @@ func TestNewMetaInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *test
 	assert.Equal(t, process.ErrNilHardforkTrigger, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_InvalidHardforkTriggerPubKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.HardforkTriggerPubKey = make([]byte, 0)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.True(t, errors.Is(err, process.ErrInvalidValue))
+}
+
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -647,5 +660,6 @@ func getArgumentsMeta(
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &heartbeatMock.HardforkTriggerStub{},
+		HardforkTriggerPubKey:        providedHardforkPubKey,
 	}
 }
