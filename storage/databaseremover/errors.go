@@ -8,4 +8,4 @@ var errInvalidPatternArgument = errors.New("invalid pattern argument. try %x")
 
 var errCannotDecodeEpochNumber = errors.New("cannot decode epoch number")
 
-var errEpochCannotBeZero = errors.New("epoch divisible by cannot be 0")
+var errEpochCannotBeZero = errors.New("epoch divisor cannot be 0")

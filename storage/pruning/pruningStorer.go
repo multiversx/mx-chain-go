@@ -769,7 +769,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	err = ps.closePersisters(epoch)
+	err = ps.closeAndDestroyPersisters(epoch)
 	if err != nil {
 		log.Warn("closing persisters", "error", err.Error())
 		return err
@@ -899,7 +899,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 }
 
 // should be called under mutex protection
-func (ps *PruningStorer) closePersisters(epoch uint32) error {
+func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := ps.processPersistersToClose()
 

@@ -134,7 +134,7 @@ func (ps *PruningStorer) GetNumActivePersisters() int {
 
 // ClosePersisters -
 func (ps *PruningStorer) ClosePersisters(epoch uint32) error {
-	return ps.closePersisters(epoch)
+	return ps.closeAndDestroyPersisters(epoch)
 }
 
 // GetOldEpochsActivePersisters -
