@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
@@ -59,8 +60,11 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 )
+
+const stakingV4EnableEpoch = 1
 
 type HeaderInfo struct {
 	Hash   []byte
@@ -77,6 +81,7 @@ type TestMetaProcessor struct {
 	EpochStartTrigger   integrationTests.TestEpochStartTrigger
 	GenesisHeader       *HeaderInfo
 	CoreComponents      factory2.CoreComponentsHolder
+	AllPubKeys          [][]byte
 }
 
 // NewTestMetaProcessor -
@@ -90,7 +95,7 @@ func NewTestMetaProcessor(
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, genesisHeader := createMockComponentHolders(uint32(numOfShards))
 	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents)
 
-	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents, stateComponents)
+	nc, pubKeys := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents, stateComponents)
 	scp, blockChainHook, validatorsInfoCreator, metaVMFactory := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, dataComponents)
 
 	rootHash, _ := stateComponents.PeerAccounts().RootHash()
@@ -105,6 +110,7 @@ func NewTestMetaProcessor(
 		GenesisHeader:       genesisHeader,
 		EpochStartTrigger:   epochStartTrigger,
 		CoreComponents:      coreComponents,
+		AllPubKeys:          pubKeys,
 	}
 }
 
@@ -172,7 +178,7 @@ func createSystemSCProcessor(
 	dataComponents factory2.DataComponentsHolder,
 ) (process.EpochStartSystemSCProcessor, process.BlockChainHookHandler, process.ValidatorStatisticsProcessor, process.VirtualMachinesContainerFactory) {
 	args, blockChainHook, validatorsInfOCreator, metaVMFactory := createFullArgumentsForSystemSCProcessing(nc,
-		1000,
+		0, // 1000
 		coreComponents,
 		stateComponents,
 		bootstrapComponents,
@@ -180,6 +186,12 @@ func createSystemSCProcessor(
 	)
 	s, _ := metachain.NewSystemSCProcessor(args)
 	return s, blockChainHook, validatorsInfOCreator, metaVMFactory
+}
+
+func generateUniqueKey(identifier int) []byte {
+	neededLength := 12 //192
+	uniqueIdentifier := fmt.Sprintf("address-%d", identifier)
+	return []byte(strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier)
 }
 
 // TODO: MAYBE USE factory from mainFactory.CreateNodesCoordinator
@@ -192,7 +204,7 @@ func createNodesCoordinator(
 	coreComponents factory2.CoreComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
 	stateComponents factory2.StateComponentsHandler,
-) nodesCoordinator.NodesCoordinator {
+) (nodesCoordinator.NodesCoordinator, [][]byte) {
 	validatorsMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, 0)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
@@ -200,6 +212,7 @@ func createNodesCoordinator(
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
 	// TODO: HERE SAVE ALL ACCOUNTS
+	var allPubKeys [][]byte
 
 	for shardID, vals := range validatorsMap {
 		for _, val := range vals {
@@ -209,6 +222,7 @@ func createNodesCoordinator(
 			peerAccount.BLSPublicKey = val.PubKeyBytes()
 			peerAccount.List = string(common.EligibleList)
 			stateComponents.PeerAccounts().SaveAccount(peerAccount)
+			allPubKeys = append(allPubKeys, val.PubKeyBytes())
 		}
 	}
 
@@ -220,7 +234,12 @@ func createNodesCoordinator(
 			peerAccount.BLSPublicKey = val.PubKeyBytes()
 			peerAccount.List = string(common.WaitingList)
 			stateComponents.PeerAccounts().SaveAccount(peerAccount)
+			allPubKeys = append(allPubKeys, val.PubKeyBytes())
 		}
+	}
+
+	for idx, pubKey := range allPubKeys {
+		registerValidatorKeys(stateComponents.AccountsAdapter(), []byte(string(pubKey)+strconv.Itoa(idx)), []byte(string(pubKey)+strconv.Itoa(idx)), [][]byte{pubKey}, big.NewInt(20000), coreComponents.InternalMarshalizer())
 	}
 
 	rootHash, _ := stateComponents.PeerAccounts().RootHash()
@@ -240,12 +259,12 @@ func createNodesCoordinator(
 		MaxNodesEnableConfig:           nil,
 		WaitingListFixEnableEpoch:      0,
 		BalanceWaitingListsEnableEpoch: 0,
-		StakingV4EnableEpoch:           4444,
+		StakingV4EnableEpoch:           stakingV4EnableEpoch,
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 
 	cache, _ := lrucache.NewCache(10000)
-	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(coreComponents.InternalMarshalizer(), coreComponents.EpochNotifier(), 4444)
+	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(coreComponents.InternalMarshalizer(), coreComponents.EpochNotifier(), stakingV4EnableEpoch)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         shardConsensusGroupSize,
 		MetaConsensusGroupSize:          metaConsensusGroupSize,
@@ -264,7 +283,7 @@ func createNodesCoordinator(
 		Shuffler:                        nodeShuffler,
 		BootStorer:                      dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
-		StakingV4EnableEpoch:            444,
+		StakingV4EnableEpoch:            stakingV4EnableEpoch,
 		NodesCoordinatorRegistryFactory: ncrf,
 		NodeTypeProvider:                nodetype.NewNodeTypeProvider(core.NodeTypeValidator),
 	}
@@ -279,7 +298,7 @@ func createNodesCoordinator(
 		fmt.Println("error creating node coordinator")
 	}
 
-	return nodesCoord
+	return nodesCoord, allPubKeys
 }
 
 func generateGenesisNodeInfoMap(
@@ -292,7 +311,7 @@ func generateGenesisNodeInfoMap(
 	id := startIdx
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		for n := 0; n < numOfNodesPerShard; n++ {
-			addr := []byte("addr" + strconv.Itoa(id))
+			addr := generateUniqueKey(id) //[]byte("addr" + strconv.Itoa(id))
 			validator := mock2.NewNodeInfo(addr, addr, uint32(shardId), 5)
 			validatorsMap[uint32(shardId)] = append(validatorsMap[uint32(shardId)], validator)
 			id++
@@ -300,7 +319,7 @@ func generateGenesisNodeInfoMap(
 	}
 
 	for n := 0; n < numOfMetaNodes; n++ {
-		addr := []byte("addr" + strconv.Itoa(id))
+		addr := generateUniqueKey(id)
 		validator := mock2.NewNodeInfo(addr, addr, uint32(core.MetachainShardId), 5)
 		validatorsMap[core.MetachainShardId] = append(validatorsMap[core.MetachainShardId], validator)
 		id++
@@ -560,7 +579,7 @@ func createFullArgumentsForSystemSCProcessing(
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		EpochNotifier:                        coreComponents.EpochNotifier(),
 		StakingV2EnableEpoch:                 stakingV2EnableEpoch,
-		StakingV4EnableEpoch:                 444,
+		StakingV4EnableEpoch:                 stakingV4EnableEpoch,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -657,7 +676,7 @@ func createFullArgumentsForSystemSCProcessing(
 				DelegationSmartContractEnableEpoch: 0,
 				StakeLimitsEnableEpoch:             10,
 				StakingV4InitEnableEpoch:           444,
-				StakingV4EnableEpoch:               445,
+				StakingV4EnableEpoch:               stakingV4EnableEpoch,
 			},
 		},
 		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
@@ -687,10 +706,10 @@ func createFullArgumentsForSystemSCProcessing(
 		ESDTOwnerAddressBytes:   bytes.Repeat([]byte{1}, 32),
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:     1000000,
+				StakingV2EnableEpoch:     0,
 				ESDTEnableEpoch:          1000000,
 				StakingV4InitEnableEpoch: 444,
-				StakingV4EnableEpoch:     445,
+				StakingV4EnableEpoch:     stakingV4EnableEpoch,
 			},
 		},
 	}
@@ -762,4 +781,78 @@ func createEconomicsData() process.EconomicsDataHandler {
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
+}
+
+// ######
+
+func registerValidatorKeys(
+	accountsDB state.AccountsAdapter,
+	ownerAddress []byte,
+	rewardAddress []byte,
+	stakedKeys [][]byte,
+	totalStake *big.Int,
+	marshaller marshal.Marshalizer,
+) {
+	addValidatorData(accountsDB, ownerAddress, stakedKeys, totalStake, marshaller)
+	addStakingData(accountsDB, ownerAddress, rewardAddress, stakedKeys, marshaller)
+	_, err := accountsDB.Commit()
+	if err != nil {
+		fmt.Println("ERROR REGISTERING VALIDATORS ", err)
+	}
+	//log.LogIfError(err)
+}
+
+func addValidatorData(
+	accountsDB state.AccountsAdapter,
+	ownerKey []byte,
+	registeredKeys [][]byte,
+	totalStake *big.Int,
+	marshaller marshal.Marshalizer,
+) {
+	validatorSC := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
+	validatorData := &systemSmartContracts.ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   ownerKey,
+		TotalStakeValue: totalStake,
+		LockedStake:     big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		BlsPubKeys:      registeredKeys,
+		NumRegistered:   uint32(len(registeredKeys)),
+	}
+
+	marshaledData, _ := marshaller.Marshal(validatorData)
+	_ = validatorSC.DataTrieTracker().SaveKeyValue(ownerKey, marshaledData)
+
+	_ = accountsDB.SaveAccount(validatorSC)
+}
+
+func addStakingData(
+	accountsDB state.AccountsAdapter,
+	ownerAddress []byte,
+	rewardAddress []byte,
+	stakedKeys [][]byte,
+	marshaller marshal.Marshalizer,
+) {
+	stakedData := &systemSmartContracts.StakedDataV2_0{
+		Staked:        true,
+		RewardAddress: rewardAddress,
+		OwnerAddress:  ownerAddress,
+		StakeValue:    big.NewInt(100),
+	}
+	marshaledData, _ := marshaller.Marshal(stakedData)
+
+	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
+	for _, key := range stakedKeys {
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
+	}
+
+	_ = accountsDB.SaveAccount(stakingSCAcc)
+}
+
+func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
+	acc, _ := accountsDB.LoadAccount(address)
+	stakingSCAcc := acc.(state.UserAccountHandler)
+
+	return stakingSCAcc
 }

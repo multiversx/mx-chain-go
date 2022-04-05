@@ -55,6 +55,7 @@ type legacySystemSCProcessor struct {
 	esdtEnableEpoch             uint32
 	saveJailedAlwaysEnableEpoch uint32
 	stakingV4InitEnableEpoch    uint32
+	stakingV4EnableEpoch        uint32
 
 	flagSwitchJailedWaiting        atomic.Flag
 	flagHystNodesEnabled           atomic.Flag
@@ -100,6 +101,7 @@ func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*lega
 		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
 		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
 		stakingV4InitEnableEpoch:    args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
+		stakingV4EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	log.Debug("legacySystemSC: enable epoch for switch jail waiting", "epoch", legacy.switchEnableEpoch)
@@ -110,6 +112,7 @@ func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*lega
 	log.Debug("legacySystemSC: enable epoch for correct last unjailed", "epoch", legacy.correctLastUnJailEpoch)
 	log.Debug("legacySystemSC: enable epoch for save jailed always", "epoch", legacy.saveJailedAlwaysEnableEpoch)
 	log.Debug("legacySystemSC: enable epoch for initializing staking v4", "epoch", legacy.stakingV4InitEnableEpoch)
+	log.Debug("legacySystemSC: enable epoch for staking v4", "epoch", legacy.stakingV4EnableEpoch)
 
 	legacy.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(legacy.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -1385,7 +1388,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	s.flagCorrectLastUnjailedEnabled.SetValue(epoch == s.correctLastUnJailEpoch)
 	log.Debug("legacySystemSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
 
-	s.flagCorrectNumNodesToStake.SetValue(epoch >= s.correctLastUnJailEpoch)
+	s.flagCorrectNumNodesToStake.SetValue(epoch >= s.correctLastUnJailEpoch && epoch < s.stakingV4EnableEpoch)
 	log.Debug("legacySystemSC: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
 	s.flagESDTEnabled.SetValue(epoch == s.esdtEnableEpoch)

@@ -54,7 +54,6 @@ type systemSCProcessor struct {
 
 	governanceEnableEpoch    uint32
 	builtInOnMetaEnableEpoch uint32
-	stakingV4EnableEpoch     uint32
 
 	flagGovernanceEnabled    atomic.Flag
 	flagBuiltInOnMetaEnabled atomic.Flag
@@ -77,7 +76,6 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		legacySystemSCProcessor:  legacy,
 		governanceEnableEpoch:    args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
