@@ -58,7 +58,7 @@ type StorageManager interface {
 	Close() error
 	IsInterfaceNil() bool
 
-	//TODO remove Put() when removing increaseNumCheckpoints()
+	// TODO remove Put() when removing increaseNumCheckpoints()
 
 	Put(key []byte, val []byte) error
 }
@@ -121,4 +121,13 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	NewDataTrie()
 	WaitForSnapshotsToFinish()
+}
+
+// ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
+// able to tell if the node is idle or processing/committing a block
+type ProcessStatusHandler interface {
+	SetToBusy(reason string)
+	SetToIdle()
+	IsIdle() bool
+	IsInterfaceNil() bool
 }

@@ -46,6 +46,7 @@ type metaProcessor struct {
 	rewardsV2EnableEpoch         uint32
 	userStatePruningQueue        core.Queue
 	peerStatePruningQueue        core.Queue
+	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -137,6 +138,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
+		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
@@ -177,10 +179,12 @@ func (mp *metaProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
+
+	mp.processStatusHandler.SetToBusy("metaProcessor.ProcessBlock")
+	defer mp.processStatusHandler.SetToIdle()
 
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -745,6 +749,9 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	mp.processStatusHandler.SetToBusy("metaProcessor.CreateBlock")
+	defer mp.processStatusHandler.SetToIdle()
+
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr)
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
@@ -1174,11 +1181,13 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	mp.processStatusHandler.SetToBusy("metaProcessor.CommitBlock")
 	var err error
 	defer func() {
 		if err != nil {
 			mp.RevertCurrentBlock()
 		}
+		mp.processStatusHandler.SetToIdle()
 	}()
 
 	err = checkForNils(headerHandler, bodyHandler)

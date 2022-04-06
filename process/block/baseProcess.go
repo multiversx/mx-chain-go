@@ -532,7 +532,7 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
-//TODO: remove bool parameter and give instead the set to sort
+// TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 

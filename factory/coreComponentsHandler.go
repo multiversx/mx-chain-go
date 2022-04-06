@@ -142,6 +142,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.epochNotifier) {
 		return errors.ErrNilEpochNotifier
 	}
+	if check.IfNil(mcc.processStatusHandler) {
+		return errors.ErrNilProcessStatusHandler
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -548,6 +551,18 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 	}
 
 	return mcc.coreComponents.arwenChangeLocker
+}
+
+// ProcessStatusHandler returns the process status handler
+func (mcc *managedCoreComponents) ProcessStatusHandler() common.ProcessStatusHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.processStatusHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

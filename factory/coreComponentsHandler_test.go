@@ -59,6 +59,8 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	require.NotEqual(t, "", managedCoreComponents.ChainID())
 	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.NotNil(t, managedCoreComponents.RoundNotifier())
+	require.NotNil(t, managedCoreComponents.ArwenChangeLocker())
+	require.NotNil(t, managedCoreComponents.ProcessStatusHandler())
 }
 
 func TestManagedCoreComponents_Close(t *testing.T) {

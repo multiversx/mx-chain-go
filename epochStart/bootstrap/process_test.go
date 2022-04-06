@@ -61,17 +61,19 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
 	return &mock.CoreComponentsMock{
-			IntMarsh:              &mock.MarshalizerMock{},
-			Marsh:                 &mock.MarshalizerMock{},
-			Hash:                  &hashingMocks.HasherMock{},
-			TxSignHasherField:     &hashingMocks.HasherMock{},
-			UInt64ByteSliceConv:   &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:        &mock.PubkeyConverterMock{},
-			PathHdl:               &testscommon.PathManagerStub{},
-			EpochNotifierField:    &epochNotifier.EpochNotifierStub{},
-			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
-			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
-		}, &mock.CryptoComponentsMock{
+			IntMarsh:                     &mock.MarshalizerMock{},
+			Marsh:                        &mock.MarshalizerMock{},
+			Hash:                         &hashingMocks.HasherMock{},
+			TxSignHasherField:            &hashingMocks.HasherMock{},
+			UInt64ByteSliceConv:          &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:               &mock.PubkeyConverterMock{},
+			PathHdl:                      &testscommon.PathManagerStub{},
+			EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
+			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
+			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
+		},
+		&mock.CryptoComponentsMock{
 			PubKey:   &cryptoMocks.PublicKeyStub{},
 			BlockSig: &cryptoMocks.SignerStub{},
 			TxSig:    &cryptoMocks.SignerStub{},

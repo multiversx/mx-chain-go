@@ -63,14 +63,14 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 
 	for range leavesChannel1 {
 	}
-	time.Sleep(time.Second) //wait for go routine to finish
+	time.Sleep(time.Second) // wait for go routine to finish
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
 
 	for range leavesChannel2 {
 	}
-	time.Sleep(time.Second) //wait for go routine to finish
+	time.Sleep(time.Second) // wait for go routine to finish
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 2, len(diff), fmt.Sprintf("%v", diff))
@@ -100,6 +100,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -137,6 +138,7 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 		CheckpointHashesHolder:     hashesHolder.NewCheckpointHashesHolder(10, 32),
 		DisableOldTrieStorageEpoch: 1,
 		EpochNotifier:              &epochNotifier.EpochNotifierStub{},
+		IdleProvider:               &testscommon.ProcessStatusHandlerStub{},
 	}
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
