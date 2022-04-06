@@ -723,7 +723,7 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	d.createAndAddLogEntryForDelegate(args, callValue, globalFund, delegator, dStatus, isNew)
+	d.createAndAddLogEntryForDelegate(args, delegationValue, globalFund, delegator, dStatus, isNew)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus,
 		callerAddr, args.RecipientAddr, delegationValue, callValue, isNew, true)
@@ -1736,7 +1736,8 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), globalFund.TotalActive.Bytes())
+	zeroValueByteSlice := make([]byte, 0)
+	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes())
 
 	return vmcommon.Ok
 }
