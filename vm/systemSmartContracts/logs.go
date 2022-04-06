@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -47,7 +48,25 @@ func (d *delegation) createAndAddLogEntryForDelegate(
 	numActiveWithCurrentValue := big.NewInt(0).Add(globalFund.TotalActive, delegationValue)
 	delegatorActiveWithCurrent := big.NewInt(0).Add(activeFund, delegationValue)
 
-	d.createAndAddLogEntry(contractCallInput, delegationValue.Bytes(), delegatorActiveWithCurrent.Bytes(), numUsers.Bytes(), numActiveWithCurrentValue.Bytes())
+	topics := [][]byte{delegationValue.Bytes(), delegatorActiveWithCurrent.Bytes(), numUsers.Bytes(), numActiveWithCurrentValue.Bytes()}
+
+	address := contractCallInput.CallerAddr
+	function := contractCallInput.Function
+	if function == initFromValidatorData ||
+		function == mergeValidatorDataToDelegation ||
+		function == core.SCDeployInitFunctionName {
+		address = contractCallInput.Arguments[0]
+
+		topics = append(topics, contractCallInput.RecipientAddr)
+	}
+
+	entry := &vmcommon.LogEntry{
+		Identifier: []byte("delegate"),
+		Address:    address,
+		Topics:     topics,
+	}
+
+	d.eei.AddLogEntry(entry)
 }
 
 func (d *delegation) getFundForLogEntry(activeFund []byte) *big.Int {
