@@ -197,6 +197,58 @@ func (ssh *shardStorageHandler) getCrossProcessedMiniBlockHeadersDestMe(shardHea
 	return crossMbsProcessed
 }
 
+func getProcessedMiniBlocksForFinishedMeta(
+	referencedMetaBlockHashes [][]byte,
+	headers map[string]data.HeaderHandler,
+	selfShardID uint32,
+) ([]bootstrapStorage.MiniBlocksInMeta, error) {
+
+	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+
+	for i := 0; i < len(referencedMetaBlockHashes)-1; i++ {
+		header, ok := headers[string(referencedMetaBlockHashes[i])]
+		if !ok {
+			return nil, fmt.Errorf("%w in getProcessedMiniBlocksForFinishedMeta: hash: %s",
+				epochStart.ErrMissingHeader,
+				hex.EncodeToString(referencedMetaBlockHashes[i]))
+		}
+
+		neededMeta, ok := header.(*block.MetaBlock)
+		if !ok {
+			return nil, epochStart.ErrWrongTypeAssertion
+		}
+		if check.IfNil(neededMeta) {
+			return nil, epochStart.ErrNilMetaBlock
+		}
+
+		log.Debug("getProcessedMiniBlocksForFinishedMeta", "meta block hash", referencedMetaBlockHashes[i])
+
+		miniBlockHashes := make([][]byte, 0)
+		isFullyProcessed := make([]bool, 0)
+		indexOfLastTxProcessed := make([]int32, 0)
+
+		miniBlockHeadersDestMe := getMiniBlockHeadersForDest(neededMeta, selfShardID)
+		for mbHash, mbHeader := range miniBlockHeadersDestMe {
+			log.Debug("getProcessedMiniBlocksForFinishedMeta", "mb hash", mbHash)
+
+			miniBlockHashes = append(miniBlockHashes, []byte(mbHash))
+			isFullyProcessed = append(isFullyProcessed, mbHeader.IsFinal())
+			indexOfLastTxProcessed = append(indexOfLastTxProcessed, mbHeader.GetIndexOfLastTxProcessed())
+		}
+
+		if len(miniBlockHashes) > 0 {
+			processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
+				MetaHash:               referencedMetaBlockHashes[i],
+				MiniBlocksHashes:       miniBlockHashes,
+				IsFullyProcessed:       isFullyProcessed,
+				IndexOfLastTxProcessed: indexOfLastTxProcessed,
+			})
+		}
+	}
+
+	return processedMiniBlocks, nil
+}
+
 func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	meta data.MetaHeaderHandler,
 	headers map[string]data.HeaderHandler,
@@ -223,14 +275,20 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 
 	mapHashMiniBlockHeaders := ssh.getCrossProcessedMiniBlockHeadersDestMe(shardHeader)
 
-	processedMiniBlocks, err = updateProcessedMiniBlocksForScheduled(processedMiniBlocks, mapHashMiniBlockHeaders)
+	referencedMetaBlocks := shardHeader.GetMetaBlockHashes()
+	if len(referencedMetaBlocks) == 0 {
+		referencedMetaBlocks = append(referencedMetaBlocks, firstPendingMetaBlockHash)
+	}
+
+	processedMiniBlockForFinishedMeta, err := getProcessedMiniBlocksForFinishedMeta(referencedMetaBlocks, headers, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	referencedMetaBlocks := shardHeader.GetMetaBlockHashes()
-	if len(referencedMetaBlocks) == 0 {
-		referencedMetaBlocks = append(referencedMetaBlocks, firstPendingMetaBlockHash)
+	processedMiniBlocks = append(processedMiniBlockForFinishedMeta, processedMiniBlocks...)
+	processedMiniBlocks, err = updateProcessedMiniBlocksForScheduled(processedMiniBlocks, mapHashMiniBlockHeaders)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	pendingMiniBlocks = addMiniBlocksToPending(pendingMiniBlocks, mapHashMiniBlockHeaders)
@@ -531,7 +589,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 func getProcessedMiniBlockHeaders(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
 	processedMiniBlockHeaders := make(map[string]block.MiniBlockHeader)
-	miniBlockHeadersDestMe := getNewPendingMiniBlockHeadersForDest(metaBlock, destShardID)
+	miniBlockHeadersDestMe := getMiniBlockHeadersForDest(metaBlock, destShardID)
 	for hash, mbh := range miniBlockHeadersDestMe {
 		if _, hashExists := pendingMBsMap[hash]; hashExists {
 			continue
@@ -692,7 +750,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	return bootstrapKey, nil
 }
 
-func getNewPendingMiniBlockHeadersForDest(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+func getMiniBlockHeadersForDest(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		if metaBlock.ShardInfo[i].ShardID == destId {

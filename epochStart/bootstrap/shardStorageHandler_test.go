@@ -120,7 +120,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func Test_getNewPendingMiniBlockHeadersForDst(t *testing.T) {
+func Test_getMiniBlockHeadersForDest(t *testing.T) {
 	t.Parallel()
 
 	hash1 := []byte("hash1")
@@ -144,7 +144,7 @@ func Test_getNewPendingMiniBlockHeadersForDst(t *testing.T) {
 		},
 	}
 
-	shardMbHeaders := getNewPendingMiniBlockHeadersForDest(metablock, 0)
+	shardMbHeaders := getMiniBlockHeadersForDest(metablock, 0)
 	assert.Equal(t, shardMbHeaders[string(hash1)], shardMiniBlockHeader)
 	assert.NotNil(t, shardMbHeaders[string(hash2)])
 }
