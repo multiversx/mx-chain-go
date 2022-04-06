@@ -113,7 +113,8 @@ func (tp *tokensProcessor) extractEsdtData(
 		return err
 	}
 
-	if len(topics) > idxReceiverAddressInTopics {
+	eventShouldContainReceiverAddress := string(event.GetIdentifier()) != core.BuiltInFunctionESDTNFTCreate
+	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]
 		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts)
 		if err != nil {

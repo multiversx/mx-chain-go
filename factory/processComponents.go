@@ -296,14 +296,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = pcf.indexGenesisAccounts()
+	genesisAccounts, err := pcf.indexAndReturnGenesisAccounts()
 	if err != nil {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
 		if err != nil {
 			return nil, err
 		}
@@ -790,20 +790,20 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	return genesisBlocks, indexingData, nil
 }
 
-func (pcf *processComponentsFactory) indexGenesisAccounts() error {
+func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*indexer.AlteredAccount, error) {
 	if !pcf.statusComponents.OutportHandler().HasDrivers() {
-		return nil
+		return map[string]*indexer.AlteredAccount{}, nil
 	}
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	genesisAccounts := make(map[string]*indexer.AlteredAccount, 0)
@@ -824,7 +824,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 	}
 
 	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
-	return nil
+	return genesisAccounts, nil
 }
 
 func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
@@ -928,7 +928,11 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	return genesisMiniBlocks
 }
 
-func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, initialIndexingData map[uint32]*genesis.IndexingData) error {
+func (pcf *processComponentsFactory) indexGenesisBlocks(
+	genesisBlocks map[uint32]data.HeaderHandler,
+	initialIndexingData map[uint32]*genesis.IndexingData,
+	alteredAccounts map[string]*indexer.AlteredAccount,
+) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	originalGenesisBlockHeader := genesisBlocks[currentShardId]
 	genesisBlockHeader := originalGenesisBlockHeader.ShallowClone()
@@ -961,6 +965,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
 			},
 			TransactionsPool: txsPoolPerShard[currentShardId],
+			AlteredAccounts:  alteredAccounts,
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}

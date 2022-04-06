@@ -101,6 +101,7 @@ func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Run("should error when casting to vm common user account handler", testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUserAccountHandler)
 	t.Run("should include esdt data", testExtractAlteredAccountsFromPoolShouldIncludeESDT)
 	t.Run("should include nft data", testExtractAlteredAccountsFromPoolShouldIncludeNFT)
+	t.Run("should not include receiver if log if nft create", testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreateLog)
 	t.Run("should include receiver from tokens logs", testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTopics)
 	t.Run("should work when an address has balance changes, esdt and nft", testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft)
 	t.Run("should work when an address has multiple nfts with different nonces", testExtractAlteredAccountsFromPoolAddressHasMultipleNfts)
@@ -512,6 +513,58 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 		Nonce:      expectedToken.TokenMetaData.Nonce,
 		MetaData:   expectedToken.TokenMetaData,
 	}, res[encodedAddr].Tokens[0])
+}
+
+func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreateLog(t *testing.T) {
+	t.Parallel()
+
+	receiverOnDestination := []byte("receiver on destination shard")
+	expectedToken := esdt.ESDigitalToken{
+		Value: big.NewInt(37),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: 38,
+		},
+	}
+	args := getMockArgs()
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			return &expectedToken, false, nil
+		},
+	}
+	args.AccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &state.UserAccountStub{}, nil
+		},
+	}
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	res, err := aap.ExtractAlteredAccountsFromPool(&indexer.Pool{
+		Logs: []*data.LogData{
+			{
+				LogHandler: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(38).Bytes(),
+								nil,
+								receiverOnDestination,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	require.Len(t, res, 1)
+
+	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
+	require.Nil(t, res[mapKeyToSearch])
 }
 
 func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTopics(t *testing.T) {
