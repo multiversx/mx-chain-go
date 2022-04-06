@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const epochZero = uint32(0)
@@ -137,28 +136,6 @@ func TestPeerShardMapper_UpdatePeerIDInfoShouldWork(t *testing.T) {
 			PkBytes:  pk,
 		},
 		peerInfo)
-}
-
-func TestPeerShardMapper_UpdatePeerIDInfoShouldAddInPreferredPeers(t *testing.T) {
-	t.Parallel()
-
-	expectedPid := core.PeerID("dummy peer ID")
-	expectedPk := []byte("dummy pk")
-	expectedShardID := uint32(3737)
-	putWasCalled := false
-	arg := createMockArgumentForPeerShardMapper()
-	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
-		PutCalled: func(publicKey []byte, peerID core.PeerID, shardID uint32) {
-			putWasCalled = true
-			require.Equal(t, expectedPid, peerID)
-			require.Equal(t, expectedPk, publicKey)
-			require.Equal(t, expectedShardID, shardID)
-		},
-	}
-	psm, _ := networksharding.NewPeerShardMapper(arg)
-
-	psm.UpdatePeerIDInfo(expectedPid, expectedPk, expectedShardID)
-	require.True(t, putWasCalled)
 }
 
 func TestPeerShardMapper_UpdatePeerIDInfoMorePidsThanAllowedShouldTrim(t *testing.T) {
@@ -642,4 +619,25 @@ func TestPeerShardMapper_GetLastKnownPeerID(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, &pid2, pid)
 	})
+}
+
+func TestPeerShardMapper_PutPeerIdShardId(t *testing.T) {
+	t.Parallel()
+
+	providedPid := core.PeerID("provided pid")
+	providedShardID := uint32(123)
+	wasCalled := false
+	args := createMockArgumentForPeerShardMapper()
+	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		PutShardIDCalled: func(peerID core.PeerID, shardID uint32) {
+			wasCalled = true
+			assert.Equal(t, providedPid, peerID)
+			assert.Equal(t, providedShardID, shardID)
+		},
+	}
+	psm, _ := networksharding.NewPeerShardMapper(args)
+	assert.False(t, check.IfNil(psm))
+
+	psm.PutPeerIdShardId(providedPid, providedShardID)
+	assert.True(t, wasCalled)
 }

@@ -4,17 +4,25 @@ import "github.com/ElrondNetwork/elrond-go-core/core"
 
 // PeersHolderStub -
 type PeersHolderStub struct {
-	PutCalled      func(publicKey []byte, peerID core.PeerID, shardID uint32)
-	GetCalled      func() map[uint32][]core.PeerID
-	ContainsCalled func(peerID core.PeerID) bool
-	RemoveCalled   func(peerID core.PeerID)
-	ClearCalled    func()
+	PutConnectionAddressCalled func(peerID core.PeerID, addressSlice []byte)
+	PutShardIDCalled           func(peerID core.PeerID, shardID uint32)
+	GetCalled                  func() map[uint32][]core.PeerID
+	ContainsCalled             func(peerID core.PeerID) bool
+	RemoveCalled               func(peerID core.PeerID)
+	ClearCalled                func()
 }
 
-// Put -
-func (p *PeersHolderStub) Put(publicKey []byte, peerID core.PeerID, shardID uint32) {
-	if p.PutCalled != nil {
-		p.PutCalled(publicKey, peerID, shardID)
+// PutConnectionAddress -
+func (p *PeersHolderStub) PutConnectionAddress(peerID core.PeerID, addressSlice []byte) {
+	if p.PutConnectionAddressCalled != nil {
+		p.PutConnectionAddressCalled(peerID, addressSlice)
+	}
+}
+
+// PutShardID -
+func (p *PeersHolderStub) PutShardID(peerID core.PeerID, shardID uint32) {
+	if p.PutShardIDCalled != nil {
+		p.PutShardIDCalled(peerID, shardID)
 	}
 }
 

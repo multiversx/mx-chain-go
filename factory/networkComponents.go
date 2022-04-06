@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	peersHolder "github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
@@ -93,13 +93,13 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	peersHolder := peersholder.NewPeersHolder(ncf.preferredPublicKeys)
+	ph := peersHolder.NewPeersHolder(ncf.preferredPublicKeys)
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          ncf.marshalizer,
 		ListenAddress:        ncf.listenAddress,
 		P2pConfig:            ncf.p2pConfig,
 		SyncTimer:            ncf.syncer,
-		PreferredPeersHolder: peersHolder,
+		PreferredPeersHolder: ph,
 		NodeOperationMode:    ncf.nodeOperationMode,
 	}
 
@@ -180,7 +180,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		pubKeyTimeCacher:       antiFloodComponents.PubKeysCacher,
 		antifloodConfig:        ncf.mainConfig.Antiflood,
 		peerHonestyHandler:     peerHonestyHandler,
-		peersHolder:            peersHolder,
+		peersHolder:            ph,
 		closeFunc:              cancelFunc,
 	}, nil
 }

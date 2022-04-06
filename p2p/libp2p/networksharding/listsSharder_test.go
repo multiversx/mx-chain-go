@@ -9,10 +9,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
@@ -445,10 +445,12 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 		prefP2PkBytes,
 	}
 
-	arg.PreferredPeersHolder = peersholder.NewPeersHolder(prefPeers)
+	arg.PreferredPeersHolder = peersHolder.NewPeersHolder(prefPeers)
 	for _, prefPk := range prefPeers {
 		pid := strings.Replace(hex.EncodeToString(prefPk), pubKeyHexSuffix, "", 1)
-		arg.PreferredPeersHolder.Put(prefPk, core.PeerID(pid), 0)
+		peerId := core.PeerID(pid)
+		arg.PreferredPeersHolder.PutConnectionAddress(peerId, prefPk)
+		arg.PreferredPeersHolder.PutShardID(peerId, 0)
 	}
 
 	arg.PeerResolver = &mock.PeerShardResolverStub{
