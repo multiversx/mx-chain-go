@@ -34,6 +34,7 @@ type CoreComponentsMock struct {
 	ChanStopNode                chan endProcess.ArgEndProcess
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	EconomicsDataField          process.EconomicsDataHandler
+	HardforkTriggerPubKeyField  []byte
 }
 
 // ChanStopNodeProcess -
@@ -147,6 +148,11 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	}
 
 	return &economicsmocks.EconomicsHandlerStub{}
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

@@ -1,8 +1,6 @@
 package interceptorscontainer
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
@@ -81,9 +79,6 @@ func NewShardInterceptorsContainerFactory(
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
-	if len(args.HardforkTriggerPubKey) == 0 {
-		return nil, fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:               args.CoreComponents,
@@ -102,7 +97,6 @@ func NewShardInterceptorsContainerFactory(
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
 		PeerID:                       args.Messenger.ID(),
-		HardforkTriggerPubKey:        args.HardforkTriggerPubKey,
 	}
 
 	container := containers.NewInterceptorsContainer()

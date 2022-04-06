@@ -551,6 +551,18 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 	return mcc.coreComponents.arwenChangeLocker
 }
 
+// HardforkTriggerPubKey returns the hardfork source public key
+func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.hardforkTriggerPubKey
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

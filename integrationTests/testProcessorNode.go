@@ -525,7 +525,6 @@ func NewTestProcessorNodeWithFullGenesis(
 			MaximumInflation: 0.01,
 		},
 	)
-
 	tpn.initEconomicsData(economicsConfig)
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
@@ -1226,6 +1225,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 		providedHardforkPk := tpn.createHardforkTrigger(heartbeatPk)
+		coreComponents.HardforkTriggerPubKeyField = providedHardforkPk
 
 		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:               coreComponents,
@@ -1255,7 +1255,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
-			HardforkTriggerPubKey:        providedHardforkPk,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1289,6 +1288,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 		providedHardforkPk := tpn.createHardforkTrigger(heartbeatPk)
+		coreComponents.HardforkTriggerPubKeyField = providedHardforkPk
 
 		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:               coreComponents,
@@ -1318,7 +1318,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
-			HardforkTriggerPubKey:        providedHardforkPk,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -2893,7 +2892,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	// TODO: remove it with heartbeat v1 cleanup
 	// =============== Heartbeat ============== //
-	/*redundancyHandler := &mock.RedundancyHandlerStub{}
+	redundancyHandler := &mock.RedundancyHandlerStub{}
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
@@ -2929,7 +2928,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	err = tpn.Node.ApplyOptions(
 		node.WithHeartbeatComponents(managedHeartbeatComponents),
 	)
-	log.LogIfError(err)*/
+	log.LogIfError(err)
 
 	// ============== HeartbeatV2 ============= //
 	hbv2Config := config.HeartbeatV2Config{

@@ -52,6 +52,7 @@ type CoreComponentsMock struct {
 	StartTime                   time.Time
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal   common.Locker
+	HardforkTriggerPubKeyField  []byte
 }
 
 // Create -
@@ -245,6 +246,11 @@ func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 // String -
 func (ccm *CoreComponentsMock) String() string {
 	return "CoreComponentsMock"
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

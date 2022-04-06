@@ -44,6 +44,7 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	require.Equal(t, "", managedCoreComponents.ChainID())
 	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.Nil(t, managedCoreComponents.RoundNotifier())
+	require.True(t, len(managedCoreComponents.HardforkTriggerPubKey()) == 0)
 
 	err = managedCoreComponents.Create()
 	require.NoError(t, err)
@@ -59,6 +60,8 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	require.NotEqual(t, "", managedCoreComponents.ChainID())
 	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.NotNil(t, managedCoreComponents.RoundNotifier())
+	expectedBytes, _ := managedCoreComponents.ValidatorPubKeyConverter().Decode(dummyPk)
+	require.Equal(t, expectedBytes, managedCoreComponents.HardforkTriggerPubKey())
 }
 
 func TestManagedCoreComponents_Close(t *testing.T) {

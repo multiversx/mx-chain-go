@@ -40,5 +40,4 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	HeartbeatExpiryTimespanInSec int64
 	PeerShardMapper              process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
-	HardforkTriggerPubKey        []byte
 }

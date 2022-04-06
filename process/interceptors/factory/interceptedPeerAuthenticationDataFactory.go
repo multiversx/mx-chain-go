@@ -34,7 +34,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		signaturesHandler:     arg.SignaturesHandler,
 		peerSignatureHandler:  arg.PeerSignatureHandler,
 		expiryTimespanInSec:   arg.HeartbeatExpiryTimespanInSec,
-		hardforkTriggerPubKey: arg.HardforkTriggerPubKey,
+		hardforkTriggerPubKey: arg.CoreComponents.HardforkTriggerPubKey(),
 	}, nil
 }
 
@@ -57,7 +57,7 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 	if args.HeartbeatExpiryTimespanInSec < minDurationInSec {
 		return process.ErrInvalidExpiryTimespan
 	}
-	if len(args.HardforkTriggerPubKey) == 0 {
+	if len(args.CoreComponents.HardforkTriggerPubKey()) == 0 {
 		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
 	}
 

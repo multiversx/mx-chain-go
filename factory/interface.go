@@ -128,6 +128,7 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
+	HardforkTriggerPubKey() []byte
 	IsInterfaceNil() bool
 }
 

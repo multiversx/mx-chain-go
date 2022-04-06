@@ -1,7 +1,6 @@
 package interceptorscontainer_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -25,6 +24,8 @@ import (
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
+
+var providedHardforkPubKey = []byte("provided hardfork pub key")
 
 func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
@@ -401,18 +402,6 @@ func TestNewShardInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *tes
 	assert.Equal(t, process.ErrNilHardforkTrigger, err)
 }
 
-func TestNewShardInterceptorsContainerFactory_HardforkTriggerPubKeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsShard(coreComp, cryptoComp)
-	args.HardforkTriggerPubKey = nil
-	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -693,8 +682,9 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckField: versioning.NewTxVersionChecker(1),
+		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
+		HardforkTriggerPubKeyField: providedHardforkPubKey,
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},
@@ -739,6 +729,5 @@ func getArgumentsShard(
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &heartbeatMock.HardforkTriggerStub{},
-		HardforkTriggerPubKey:        providedHardforkPubKey,
 	}
 }

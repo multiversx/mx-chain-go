@@ -499,7 +499,8 @@ func (thn *TestHeartbeatNode) initRequestedItemsHandler() {
 func (thn *TestHeartbeatNode) initInterceptors() {
 	argsFactory := interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents: &processMock.CoreComponentsMock{
-			IntMarsh: TestMarshaller,
+			IntMarsh:                   TestMarshaller,
+			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
 		},
 		ShardCoordinator:             thn.ShardCoordinator,
 		NodesCoordinator:             thn.NodesCoordinator,
@@ -507,7 +508,6 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 60,
 		PeerID:                       thn.Messenger.ID(),
-		HardforkTriggerPubKey:        []byte(providedHardforkPubKey),
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

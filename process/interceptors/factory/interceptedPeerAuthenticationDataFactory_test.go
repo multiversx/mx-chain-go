@@ -86,8 +86,8 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createMockComponentHolders()
+		coreComp.HardforkTriggerPubKeyField = make([]byte, 0)
 		arg := createMockArgument(coreComp, cryptoComp)
-		arg.HardforkTriggerPubKey = make([]byte, 0)
 
 		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
