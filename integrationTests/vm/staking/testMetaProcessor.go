@@ -17,22 +17,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	mock3 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	factory2 "github.com/ElrondNetwork/elrond-go/factory"
 	mock4 "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	factory3 "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -47,17 +42,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -83,7 +74,6 @@ type TestMetaProcessor struct {
 	ValidatorStatistics process.ValidatorStatisticsProcessor
 	EpochStartTrigger   integrationTests.TestEpochStartTrigger
 	BlockChainHandler   data.ChainHandler
-	GenesisHeader       *HeaderInfo
 	CoreComponents      factory2.CoreComponentsHolder
 	AllPubKeys          [][]byte
 }
@@ -98,18 +88,8 @@ func NewTestMetaProcessor(
 	numOfNodesInStakingQueue int,
 	t *testing.T,
 ) *TestMetaProcessor {
-	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, genesisHeader := createMockComponentHolders(uint32(numOfShards))
+	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createComponentHolders(uint32(numOfShards))
 	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents)
-
-	/*
-		stakingScAcc := loadSCAccount(stateComponents.AccountsAdapter(), vm.StakingSCAddress)
-		_ = createWaitingNodes(t, numOfNodesInStakingQueue, stakingScAcc, stateComponents.AccountsAdapter(), coreComponents.InternalMarshalizer())
-
-		err := stateComponents.AccountsAdapter().SaveAccount(stakingScAcc)
-		require.Nil(t, err)
-		_, err = stateComponents.AccountsAdapter().Commit()
-		require.Nil(t, err)
-	*/
 
 	owner := generateUniqueKey(50)
 	var ownerWaitingNodes [][]byte
@@ -122,11 +102,6 @@ func NewTestMetaProcessor(
 		coreComponents.InternalMarshalizer(),
 		owner,
 		owner)
-	addValidatorData(stateComponents.AccountsAdapter(),
-		owner,
-		[][]byte{ownerWaitingNodes[0]},
-		big.NewInt(10000000000),
-		coreComponents.InternalMarshalizer())
 
 	_, _ = stateComponents.PeerAccounts().Commit()
 
@@ -134,7 +109,7 @@ func NewTestMetaProcessor(
 		ownerWaitingNodes[1:],
 		coreComponents.InternalMarshalizer(),
 		owner, owner)
-	addValidatorData(stateComponents.AccountsAdapter(), owner, ownerWaitingNodes[1:], big.NewInt(500000), coreComponents.InternalMarshalizer())
+	addValidatorData(stateComponents.AccountsAdapter(), owner, ownerWaitingNodes, big.NewInt(500000), coreComponents.InternalMarshalizer())
 
 	_, _ = stateComponents.AccountsAdapter().Commit()
 
@@ -150,76 +125,11 @@ func NewTestMetaProcessor(
 		NodesCoordinator:    nc,
 		BlockChain:          dataComponents.Blockchain(),
 		ValidatorStatistics: validatorsInfoCreator,
-		GenesisHeader:       genesisHeader,
 		EpochStartTrigger:   epochStartTrigger,
 		CoreComponents:      coreComponents,
 		AllPubKeys:          pubKeys,
 		BlockChainHandler:   dataComponents.Blockchain(),
 	}
-}
-
-func createWaitingNodes(t *testing.T, numNodes int, stakingSCAcc state.UserAccountHandler, userAccounts state.AccountsAdapter, marshalizer marshal.Marshalizer) []*state.ValidatorInfo {
-	validatorInfos := make([]*state.ValidatorInfo, 0)
-	waitingKeyInList := []byte("waiting")
-	id := 40 // TODO: UGLY ; KEYS LENGTH TAKE CARE
-	id2 := 70
-	for i := 0; i < numNodes; i++ {
-		id++
-		id2++
-		addValidatorData(userAccounts, generateUniqueKey(id), [][]byte{generateUniqueKey(id)}, big.NewInt(3333), marshalizer)
-
-		stakedData := &systemSmartContracts.StakedDataV2_0{
-			Waiting:       true,
-			RewardAddress: generateUniqueKey(id),
-			OwnerAddress:  generateUniqueKey(id),
-			StakeValue:    big.NewInt(3333),
-		}
-		marshaledData, _ := marshalizer.Marshal(stakedData)
-		err := stakingSCAcc.DataTrieTracker().SaveKeyValue(generateUniqueKey(id), marshaledData)
-		require.Nil(t, err)
-		previousKey := string(waitingKeyInList)
-		waitingKeyInList = append([]byte("w_"), generateUniqueKey(id)...)
-		waitingListHead := &systemSmartContracts.WaitingList{
-			FirstKey: append([]byte("w_"), generateUniqueKey(40)...),
-			LastKey:  append([]byte("w_"), generateUniqueKey(40+numNodes)...),
-			Length:   uint32(numNodes),
-		}
-		marshaledData, _ = marshalizer.Marshal(waitingListHead)
-		err = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
-		require.Nil(t, err)
-		waitingListElement := &systemSmartContracts.ElementInList{
-			BLSPublicKey: append([]byte("w_"), generateUniqueKey(id)...),
-			PreviousKey:  waitingKeyInList,
-			NextKey:      append([]byte("w_"), generateUniqueKey(id+1)...),
-		}
-		if i == numNodes-1 {
-			waitingListElement.NextKey = make([]byte, 0)
-		}
-		if i > 0 {
-			waitingListElement.PreviousKey = []byte(previousKey)
-		}
-
-		marshaledData, err = marshalizer.Marshal(waitingListElement)
-		require.Nil(t, err)
-		err = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
-		require.Nil(t, err)
-
-		vInfo := &state.ValidatorInfo{
-			PublicKey:       generateUniqueKey(id),
-			ShardId:         0,
-			List:            string(common.WaitingList),
-			TempRating:      1,
-			RewardAddress:   generateUniqueKey(id),
-			AccumulatedFees: big.NewInt(0),
-		}
-
-		validatorInfos = append(validatorInfos, vInfo)
-	}
-
-	err := userAccounts.SaveAccount(stakingSCAcc)
-	require.Nil(t, err)
-
-	return validatorInfos
 }
 
 func createMetaBlockHeader2(epoch uint32, round uint64, prevHash []byte) *block.MetaBlock {
@@ -268,8 +178,8 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint3
 		currentHeader := tmp.BlockChainHandler.GetCurrentBlockHeader()
 		currentHash := tmp.BlockChainHandler.GetCurrentBlockHeaderHash()
 		if currentHeader == nil {
-			currentHeader = tmp.GenesisHeader.Header
-			currentHash = tmp.GenesisHeader.Hash
+			currentHeader = tmp.BlockChain.GetGenesisHeader()
+			currentHash = tmp.BlockChain.GetGenesisHeaderHash()
 		}
 
 		prevRandomness := currentHeader.GetRandSeed()
@@ -277,12 +187,6 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint3
 			tmp.EpochStartTrigger.Epoch(),
 			r,
 		))
-
-		//fmt.Println("#######################DISPLAYING VALIDAOTRS BEFOOOOOOOOOOOOREEEEEEE ")
-		//rootHash, _ := tmp.ValidatorStatistics.RootHash()
-		//allValidatorsInfo, err := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
-		//require.Nil(t, err)
-		//displayValidatorsInfo(allValidatorsInfo, rootHash)
 
 		newHdr := createMetaBlockHeader2(tmp.EpochStartTrigger.Epoch(), uint64(r), currentHash)
 		newHdr.PrevRandSeed = prevRandomness
@@ -360,12 +264,9 @@ func (tmp *TestMetaProcessor) DisplayNodesConfig(epoch uint32, numOfShards int) 
 
 // shuffler constants
 const (
-	shuffleBetweenShards    = false
-	adaptivity              = false
-	hysteresis              = float32(0.2)
-	maxTrieLevelInMemory    = uint(5)
-	delegationManagementKey = "delegationManagement"
-	delegationContractsList = "delegationContracts"
+	shuffleBetweenShards = false
+	adaptivity           = false
+	hysteresis           = float32(0.2)
 )
 
 // TODO: Pass epoch config
@@ -441,14 +342,6 @@ func createNodesCoordinator(
 	for idx, pubKey := range allPubKeys {
 		registerValidatorKeys(stateComponents.AccountsAdapter(), []byte(string(pubKey)+strconv.Itoa(idx)), []byte(string(pubKey)+strconv.Itoa(idx)), [][]byte{pubKey}, big.NewInt(2000), coreComponents.InternalMarshalizer())
 	}
-
-	rootHash, _ := stateComponents.PeerAccounts().RootHash()
-	fmt.Println("ROOT HASh FOR PEER ACCOUNTS " + hex.EncodeToString(rootHash))
-
-	//acc,_ = stateComponents.PeerAccounts().LoadAccount(waitingMap[0][0].PubKeyBytes())
-	//peerAcc = acc.(state.PeerAccountHandler)
-	//peerAcc.SetTempRating(5)
-	//stateComponents.PeerAccounts().SaveAccount(peerAcc)
 
 	maxNodesConfig := make([]config.MaxNodesChangeConfig, 0)
 	for i := 0; i < 444; i++ {
@@ -539,7 +432,7 @@ func createMetaBlockProcessor(
 	coreComponents factory2.CoreComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
-	statusComponents *mock.StatusComponentsMock,
+	statusComponents factory2.StatusComponentsHolder,
 	stateComponents factory2.StateComponentsHandler,
 	validatorsInfoCreator process.ValidatorStatisticsProcessor,
 	blockChainHook process.BlockChainHookHandler,
@@ -552,88 +445,11 @@ func createMetaBlockProcessor(
 	return metaProc
 }
 
-func createMockComponentHolders(numOfShards uint32) (
-	factory2.CoreComponentsHolder,
-	factory2.DataComponentsHolder,
-	factory2.BootstrapComponentsHolder,
-	*mock.StatusComponentsMock,
-	factory2.StateComponentsHandler,
-	*HeaderInfo,
-) {
-	//hasher := sha256.NewSha256()
-	//marshalizer := &marshal.GogoProtoMarshalizer{}
-	coreComponents := &mock2.CoreComponentsStub{
-		InternalMarshalizerField:           &mock.MarshalizerMock{},
-		HasherField:                        sha256.NewSha256(),
-		Uint64ByteSliceConverterField:      &mock.Uint64ByteSliceConverterMock{},
-		StatusHandlerField:                 &statusHandlerMock.AppStatusHandlerStub{},
-		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
-		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
-		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
-		RaterField:                         &testscommon.RaterMock{Chance: 5}, //mock.GetNewMockRater(),
-		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
-		EconomicsDataField:                 createEconomicsData(),
-	}
-
-	blockChain, _ := blockchain.NewMetaChain(statusHandler.NewStatusMetrics())
-	genesisBlock := createGenesisMetaBlock()
-	genesisBlockHash, _ := coreComponents.InternalMarshalizer().Marshal(genesisBlock)
-	genesisBlockHash = coreComponents.Hasher().Compute(string(genesisBlockHash))
-	_ = blockChain.SetGenesisHeader(createGenesisMetaBlock())
-	blockChain.SetGenesisHeaderHash(genesisBlockHash)
-	fmt.Println("GENESIS BLOCK HASH: " + hex.EncodeToString(genesisBlockHash))
-
-	chainStorer := dataRetriever.NewChainStorer()
-	chainStorer.AddStorer(dataRetriever.BootstrapUnit, integrationTests.CreateMemUnit())
-	chainStorer.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, integrationTests.CreateMemUnit())
-	chainStorer.AddStorer(dataRetriever.MetaBlockUnit, integrationTests.CreateMemUnit())
-	dataComponents := &factory3.DataComponentsMock{ //&mock.DataComponentsMock{
-		Store:      chainStorer,
-		DataPool:   dataRetrieverMock.NewPoolsHolderMock(),
-		BlockChain: blockChain,
-	}
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numOfShards, core.MetachainShardId)
-
-	//cacheHeaderVersion:=
-	//headerVersionHandler, _ := block2.NewHeaderVersionHandler(nil,nil, testscommon.NewCacherMock())
-	//metaHeaderFactory, _ := block2.NewMetaHeaderFactory()
-
-	boostrapComponents := &mainFactoryMocks.BootstrapComponentsStub{
-		ShCoordinator:        shardCoordinator,
-		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
-				return &block.MetaBlock{Epoch: epoch}
-			},
-		},
-	}
-
-	statusComponents := &mock.StatusComponentsMock{
-		Outport: &testscommon.OutportStub{},
-	}
-
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
-	userAccountsDB := createAccountsDB(coreComponents.Hasher(), coreComponents.InternalMarshalizer(), factory.NewAccountCreator(), trieFactoryManager)
-	peerAccountsDB := createAccountsDB(coreComponents.Hasher(), coreComponents.InternalMarshalizer(), factory.NewPeerAccountCreator(), trieFactoryManager)
-	stateComponents := &testscommon.StateComponentsMock{
-		PeersAcc:        peerAccountsDB,
-		Accounts:        userAccountsDB,
-		AccountsAPI:     nil,
-		Tries:           nil,
-		StorageManagers: nil,
-	}
-
-	return coreComponents, dataComponents, boostrapComponents, statusComponents, stateComponents, &HeaderInfo{
-		Hash:   genesisBlockHash,
-		Header: genesisBlock,
-	}
-}
-
 func createMockMetaArguments(
 	coreComponents factory2.CoreComponentsHolder,
 	dataComponents factory2.DataComponentsHolder,
 	bootstrapComponents factory2.BootstrapComponentsHolder,
-	statusComponents *mock.StatusComponentsMock,
+	statusComponents factory2.StatusComponentsHolder,
 	nodesCoord nodesCoordinator.NodesCoordinator,
 	systemSCProcessor process.EpochStartSystemSCProcessor,
 	stateComponents factory2.StateComponentsHandler,
