@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -150,8 +149,16 @@ func (s *systemSCProcessor) processWithNewFlags(
 
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
+	numOfValidators -= 2 * 4
 	availableSlots, err := safeSub(s.maxNodes, numOfValidators)
-	if err != nil {
+	log.Info("systemSCProcessor.selectNodesFromAuctionList",
+		"max nodes", s.maxNodes,
+		"num of validators", numOfValidators,
+		"auction list size", len(auctionList),
+		"available slots", availableSlots,
+	) // todo: change to log.debug
+
+	if availableSlots == 0 || err != nil {
 		log.Info("not enough available slots for auction nodes; skip selecting nodes from auction list")
 		return nil
 	}
@@ -255,9 +262,9 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 }
 
 func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfoHandler, numOfSelectedNodes uint32) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
+	//if log.GetLevel() > logger.LogDebug {
+	//	return
+	//}
 
 	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
@@ -273,8 +280,8 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 
 		horizontalLine = uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
-			hex.EncodeToString([]byte(owner)),
-			hex.EncodeToString(pubKey),
+			string([]byte(owner)),
+			string(pubKey),
 			topUp.String(),
 		})
 		lines = append(lines, line)
@@ -287,7 +294,7 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 	}
 
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Debug(message)
+	log.Error(message)
 }
 
 func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {

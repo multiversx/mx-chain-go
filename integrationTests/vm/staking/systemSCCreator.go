@@ -1,23 +1,91 @@
 package staking
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	mock3 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	factory2 "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
+
+// TODO: Pass epoch config
+func createSystemSCProcessor(
+	nc nodesCoordinator.NodesCoordinator,
+	coreComponents factory2.CoreComponentsHolder,
+	stateComponents factory2.StateComponentsHandler,
+	bootstrapComponents factory2.BootstrapComponentsHolder,
+	maxNodesConfig []config.MaxNodesChangeConfig,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	vmContainer process.VirtualMachinesContainer,
+) process.EpochStartSystemSCProcessor {
+	args := createFullArgumentsForSystemSCProcessing(nc,
+		coreComponents,
+		stateComponents,
+		bootstrapComponents,
+		maxNodesConfig,
+		validatorStatisticsProcessor,
+		vmContainer,
+	)
+	s, _ := metachain.NewSystemSCProcessor(args)
+	return s
+}
+
+func createFullArgumentsForSystemSCProcessing(
+	nc nodesCoordinator.NodesCoordinator,
+	coreComponents factory2.CoreComponentsHolder,
+	stateComponents factory2.StateComponentsHandler,
+	bootstrapComponents factory2.BootstrapComponentsHolder,
+	maxNodesConfig []config.MaxNodesChangeConfig,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	vmContainer process.VirtualMachinesContainer,
+) metachain.ArgsNewEpochStartSystemSCProcessing {
+	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
+	stakingSCprovider, _ := metachain.NewStakingDataProvider(systemVM, "1000")
+
+	args := metachain.ArgsNewEpochStartSystemSCProcessing{
+		SystemVM:                systemVM,
+		UserAccountsDB:          stateComponents.AccountsAdapter(),
+		PeerAccountsDB:          stateComponents.PeerAccounts(),
+		Marshalizer:             coreComponents.InternalMarshalizer(),
+		StartRating:             initialRating,
+		ValidatorInfoCreator:    validatorStatisticsProcessor,
+		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
+		StakingSCAddress:        vm.StakingSCAddress,
+		ChanceComputer:          &mock3.ChanceComputerStub{},
+		EpochNotifier:           coreComponents.EpochNotifier(),
+		GenesisNodesConfig:      &mock.NodesSetupStub{},
+		StakingDataProvider:     stakingSCprovider,
+		NodesConfigProvider:     nc,
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
+		ESDTOwnerAddressBytes:   bytes.Repeat([]byte{1}, 32),
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV4InitEnableEpoch:  stakingV4InitEpoch,
+				StakingV4EnableEpoch:      stakingV4EnableEpoch,
+				MaxNodesChangeEnableEpoch: maxNodesConfig,
+			},
+		},
+		MaxNodesEnableConfig: maxNodesConfig,
+	}
+
+	return args
+}
 
 func createValidatorStatisticsProcessor(
 	dataComponents factory2.DataComponentsHolder,
@@ -52,8 +120,18 @@ func createBlockChainHook(
 	coreComponents factory2.CoreComponentsHolder,
 	accountsAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	builtInFunctionsContainer vmcommon.BuiltInFunctionContainer,
+	gasScheduleNotifier core.GasScheduleNotifier,
 ) process.BlockChainHookHandler {
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:      gasScheduleNotifier,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      coreComponents.InternalMarshalizer(),
+		Accounts:         accountsAdapter,
+		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    coreComponents.EpochNotifier(),
+	}
+	builtInFunctionsContainer, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           accountsAdapter,
 		PubkeyConv:         coreComponents.AddressPubKeyConverter(),
@@ -138,13 +216,8 @@ func createVMContainerFactory(
 		EpochNotifier:       coreComponents.EpochNotifier(),
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               0,
-				StakeEnableEpoch:                   0,
-				DelegationManagerEnableEpoch:       0,
-				DelegationSmartContractEnableEpoch: 0,
-				StakeLimitsEnableEpoch:             10,
-				StakingV4InitEnableEpoch:           stakingV4InitEpoch,
-				StakingV4EnableEpoch:               stakingV4EnableEpoch,
+				StakingV4InitEnableEpoch: stakingV4InitEpoch,
+				StakingV4EnableEpoch:     stakingV4EnableEpoch,
 			},
 		},
 		ShardCoordinator: shardCoordinator,
