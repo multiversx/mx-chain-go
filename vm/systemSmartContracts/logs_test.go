@@ -50,7 +50,7 @@ func TestCreateLogEntryForDelegate(t *testing.T) {
 	)
 
 	require.Equal(t, &vmcommon.LogEntry{
-		Identifier: []byte("identifier"),
+		Identifier: []byte("delegate"),
 		Address:    []byte("caller"),
 		Topics:     [][]byte{delegationValue.Bytes(), big.NewInt(6000).Bytes(), big.NewInt(1).Bytes(), big.NewInt(1001000).Bytes()},
 	}, res)
