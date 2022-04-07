@@ -35,6 +35,7 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 
 		handler.peerAuthenticationSender.Close()
 		handler.heartbeatSender.Close()
+		handler.hardforkSender.Close()
 	}()
 
 	handler.peerAuthenticationSender.Execute()

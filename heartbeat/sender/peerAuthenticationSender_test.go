@@ -35,7 +35,7 @@ func createMockPeerAuthenticationSenderArgs(argBase argBaseSender) argPeerAuthen
 		peerSignatureHandler:     &cryptoMocks.PeerSignatureHandlerStub{},
 		privKey:                  &cryptoMocks.PrivateKeyStub{},
 		redundancyHandler:        &mock.RedundancyHandlerStub{},
-		hardforkTrigger:          &mock.HardforkTriggerStub{},
+		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
 	}
@@ -63,7 +63,7 @@ func createMockPeerAuthenticationSenderArgsSemiIntegrationTests(baseArg argBaseS
 		},
 		privKey:                  sk,
 		redundancyHandler:        &mock.RedundancyHandlerStub{},
-		hardforkTrigger:          &mock.HardforkTriggerStub{},
+		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
 		hardforkTimeBetweenSends: time.Second,
 		hardforkTriggerPubKey:    providedHardforkPubKey,
 	}
@@ -295,7 +295,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 		assert.False(t, isHardforkTriggered)
 	})
-	t.Run("marshaller fails fot the second time, should return error", func(t *testing.T) {
+	t.Run("marshaller fails for the second time, should return error", func(t *testing.T) {
 		t.Parallel()
 
 		numCalls := 0
@@ -525,7 +525,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		argsBase := createMockBaseArgs()
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
 		args.hardforkTimeBetweenSends = time.Second * 3
-		args.hardforkTrigger = &mock.HardforkTriggerStub{
+		args.hardforkTrigger = &testscommon.HardforkTriggerStub{
 			RecordedTriggerMessageCalled: func() ([]byte, bool) {
 				return make([]byte, 0), true
 			},
@@ -643,7 +643,7 @@ func TestPeerAuthenticationSender_getHardforkPayload(t *testing.T) {
 
 		providedPayload := make([]byte, 0)
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
-		args.hardforkTrigger = &mock.HardforkTriggerStub{
+		args.hardforkTrigger = &testscommon.HardforkTriggerStub{
 			RecordedTriggerMessageCalled: func() ([]byte, bool) {
 				return nil, false
 			},
@@ -660,7 +660,7 @@ func TestPeerAuthenticationSender_getHardforkPayload(t *testing.T) {
 
 		providedPayload := []byte("provided payload")
 		args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
-		args.hardforkTrigger = &mock.HardforkTriggerStub{
+		args.hardforkTrigger = &testscommon.HardforkTriggerStub{
 			RecordedTriggerMessageCalled: func() ([]byte, bool) {
 				return nil, true
 			},
@@ -689,7 +689,7 @@ func TestPeerAuthenticationSender_ShouldTriggerHardfork(t *testing.T) {
 
 	ch := make(chan struct{})
 	args := createMockPeerAuthenticationSenderArgs(createMockBaseArgs())
-	args.hardforkTrigger = &mock.HardforkTriggerStub{
+	args.hardforkTrigger = &testscommon.HardforkTriggerStub{
 		NotifyTriggerReceivedV2Called: func() <-chan struct{} {
 			return ch
 		},

@@ -337,7 +337,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		StatusHandler:        &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:        version,
 		NodeDisplayName:      nodeName,
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		HardforkTrigger:      &testscommon.HardforkTriggerStub{},
 		CurrentBlockProvider: &testscommon.ChainHandlerStub{},
 		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{
@@ -394,7 +394,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 				return nil
 			},
 		},
-		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		HardforkTrigger:                    &testscommon.HardforkTriggerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,

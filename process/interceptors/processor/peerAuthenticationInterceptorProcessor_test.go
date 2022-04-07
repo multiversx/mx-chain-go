@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
-	heartbeatMocks "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
@@ -28,7 +27,7 @@ func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthentica
 		PeerAuthenticationCacher: testscommon.NewCacherStub(),
 		PeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
 		Marshaller:               testscommon.MarshalizerMock{},
-		HardforkTrigger:          &heartbeatMocks.HardforkTriggerStub{},
+		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
 }
 
@@ -165,7 +164,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 
 		expectedError := errors.New("expected error")
 		args := createPeerAuthenticationInterceptorProcessArg()
-		args.HardforkTrigger = &heartbeatMocks.HardforkTriggerStub{
+		args.HardforkTrigger = &testscommon.HardforkTriggerStub{
 			TriggerReceivedCalled: func(payload []byte, data []byte, pkBytes []byte) (bool, error) {
 				return true, expectedError
 			},

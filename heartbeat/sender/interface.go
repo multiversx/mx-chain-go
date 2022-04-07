@@ -12,6 +12,7 @@ type senderHandler interface {
 type hardforkHandler interface {
 	ShouldTriggerHardfork() <-chan struct{}
 	Execute()
+	Close()
 }
 
 type timerHandler interface {

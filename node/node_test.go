@@ -2961,7 +2961,7 @@ func TestNode_DirectTrigger(t *testing.T) {
 	epoch := uint32(47839)
 	recoveredEpoch := uint32(0)
 	recoveredWithEarlyEndOfEpoch := atomicCore.Flag{}
-	hardforkTrigger := &mock.HardforkTriggerStub{
+	hardforkTrigger := &testscommon.HardforkTriggerStub{
 		TriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
 			wasCalled = true
 			atomic.StoreUint32(&recoveredEpoch, epoch)
@@ -2991,7 +2991,7 @@ func TestNode_IsSelfTrigger(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	hardforkTrigger := &mock.HardforkTriggerStub{
+	hardforkTrigger := &testscommon.HardforkTriggerStub{
 		IsSelfTriggerCalled: func() bool {
 			wasCalled = true
 
