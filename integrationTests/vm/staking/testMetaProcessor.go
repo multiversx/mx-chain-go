@@ -11,7 +11,6 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/nodetype"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -22,17 +21,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	mock3 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	factory2 "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -40,7 +35,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -61,7 +55,6 @@ type HeaderInfo struct {
 type TestMetaProcessor struct {
 	MetaBlockProcessor  process.BlockProcessor
 	NodesCoordinator    nodesCoordinator.NodesCoordinator
-	BlockChain          data.ChainHandler
 	ValidatorStatistics process.ValidatorStatisticsProcessor
 	EpochStartTrigger   integrationTests.TestEpochStartTrigger
 	BlockChainHandler   data.ChainHandler
@@ -88,7 +81,6 @@ func NewTestMetaProcessor(
 	return &TestMetaProcessor{
 		MetaBlockProcessor:  createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory, epochStartTrigger),
 		NodesCoordinator:    nc,
-		BlockChain:          dataComponents.Blockchain(),
 		ValidatorStatistics: validatorsInfoCreator,
 		EpochStartTrigger:   epochStartTrigger,
 		BlockChainHandler:   dataComponents.Blockchain(),
@@ -169,8 +161,8 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint3
 		currentHeader := tmp.BlockChainHandler.GetCurrentBlockHeader()
 		currentHash := tmp.BlockChainHandler.GetCurrentBlockHeaderHash()
 		if currentHeader == nil {
-			currentHeader = tmp.BlockChain.GetGenesisHeader()
-			currentHash = tmp.BlockChain.GetGenesisHeaderHash()
+			currentHeader = tmp.BlockChainHandler.GetGenesisHeader()
+			currentHash = tmp.BlockChainHandler.GetGenesisHeaderHash()
 		}
 
 		prevRandomness := currentHeader.GetRandSeed()
@@ -371,7 +363,7 @@ func createNodesCoordinator(
 		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
 		StakingV4EnableEpoch:            stakingV4EnableEpoch,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		NodeTypeProvider:                nodetype.NewNodeTypeProvider(core.NodeTypeValidator),
+		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -468,24 +460,8 @@ func createFullArgumentsForSystemSCProcessing(
 	dataComponents factory2.DataComponentsHolder,
 ) (metachain.ArgsNewEpochStartSystemSCProcessing, process.BlockChainHookHandler, process.ValidatorStatisticsProcessor, process.VirtualMachinesContainerFactory) {
 	nodesSetup := &mock.NodesSetupStub{}
-	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:                          coreComponents.InternalMarshalizer(),
-		NodesCoordinator:                     nc,
-		ShardCoordinator:                     bootstrapComponents.ShardCoordinator(),
-		DataPool:                             dataComponents.Datapool(),
-		StorageService:                       dataComponents.StorageService(),
-		PubkeyConv:                           coreComponents.AddressPubKeyConverter(),
-		PeerAdapter:                          stateComponents.PeerAccounts(),
-		Rater:                                coreComponents.Rater(),
-		RewardsHandler:                       &mock3.RewardsHandlerStub{},
-		NodesSetup:                           nodesSetup,
-		MaxComputableRounds:                  1,
-		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EpochNotifier:                        coreComponents.EpochNotifier(),
-		StakingV2EnableEpoch:                 0,
-		StakingV4EnableEpoch:                 stakingV4EnableEpoch,
-	}
-	validatorStatisticsProcessor, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
+
+	validatorStatisticsProcessor := createValidatorStatisticsProcessor(dataComponents, coreComponents, nc, bootstrapComponents.ShardCoordinator(), stateComponents.PeerAccounts())
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
@@ -499,93 +475,10 @@ func createFullArgumentsForSystemSCProcessing(
 	}
 	builtInFuncs, _, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           stateComponents.AccountsAdapter(),
-		PubkeyConv:         coreComponents.AddressPubKeyConverter(),
-		StorageService:     dataComponents.StorageService(),
-		BlockChain:         dataComponents.Blockchain(),
-		ShardCoordinator:   bootstrapComponents.ShardCoordinator(),
-		Marshalizer:        coreComponents.InternalMarshalizer(),
-		Uint64Converter:    coreComponents.Uint64ByteSliceConverter(),
-		NFTStorageHandler:  &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           dataComponents.Datapool(),
-		CompiledSCPool:     dataComponents.Datapool().SmartContracts(),
-		EpochNotifier:      coreComponents.EpochNotifier(),
-		NilCompiledSCStore: true,
-	}
-
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
-	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
-	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
-		PubkeyConv:          argsHook.PubkeyConv,
-		Economics:           coreComponents.EconomicsData(),
-		MessageSignVerifier: signVerifer,
-		GasSchedule:         gasScheduleNotifier,
-		NodesConfigProvider: nodesSetup,
-		Hasher:              coreComponents.Hasher(),
-		Marshalizer:         coreComponents.InternalMarshalizer(),
-		SystemSCConfig: &config.SystemSmartContractsConfig{
-			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
-			},
-			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				Active: config.GovernanceSystemSCConfigActive{
-					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
-				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
-			},
-			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "1000",
-				UnJailValue:                          "10",
-				MinStepValue:                         "10",
-				MinStakeValue:                        "1",
-				UnBondPeriod:                         1,
-				NumRoundsWithoutBleed:                1,
-				MaximumPercentageToBleed:             1,
-				BleedPercentagePerRound:              1,
-				MaxNumberOfNodesForStake:             24, // TODO HERE ADD MAX NUM NODES
-				ActivateBLSPubKeyMessageVerification: false,
-				MinUnstakeTokensValue:                "1",
-				StakeLimitPercentage:                 100.0,
-				NodeLimitPercentage:                  100.0,
-			},
-			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				MinCreationDeposit:  "100",
-				MinStakeAmount:      "100",
-				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
-			},
-			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinServiceFee: 0,
-				MaxServiceFee: 100,
-			},
-		},
-		ValidatorAccountsDB: stateComponents.PeerAccounts(),
-		ChanceComputer:      &mock3.ChanceComputerStub{},
-		EpochNotifier:       coreComponents.EpochNotifier(),
-		EpochConfig: &config.EpochConfig{
-			EnableEpochs: config.EnableEpochs{
-				StakingV2EnableEpoch:               0,
-				StakeEnableEpoch:                   0,
-				DelegationManagerEnableEpoch:       0,
-				DelegationSmartContractEnableEpoch: 0,
-				StakeLimitsEnableEpoch:             10,
-				StakingV4InitEnableEpoch:           stakingV4InitEpoch,
-				StakingV4EnableEpoch:               stakingV4EnableEpoch,
-			},
-		},
-		ShardCoordinator: bootstrapComponents.ShardCoordinator(),
-		NodesCoordinator: nc,
-	}
+	blockChainHookImpl := createBlockChainHook(dataComponents, coreComponents, stateComponents.AccountsAdapter(), bootstrapComponents.ShardCoordinator(), builtInFuncs)
 
-	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
+	metaVmFactory := createVMContainerFactory(coreComponents, gasScheduleNotifier, blockChainHookImpl, stateComponents.PeerAccounts(), bootstrapComponents.ShardCoordinator(), nc)
 	vmContainer, _ := metaVmFactory.Create()
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 	stakingSCprovider, _ := metachain.NewStakingDataProvider(systemVM, "1000")

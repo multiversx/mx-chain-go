@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/nodetype"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
@@ -58,6 +59,7 @@ func createCoreComponents() factory2.CoreComponentsHolder {
 		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
 		EconomicsDataField:                 createEconomicsData(),
 		ChanStopNodeProcessField:           endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProviderField:              nodetype.NewNodeTypeProvider(core.NodeTypeValidator),
 	}
 }
 

@@ -3666,7 +3666,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	feeHandler, err := economics.NewEconomicsData(*args)
 	require.Nil(t, err)
 	require.NotNil(t, feeHandler)
-	arguments.TxFeeHandler, _ = postprocess.NewFeeAccumulator()
+	arguments.TxFeeHandler = postprocess.NewFeeAccumulator()
 
 	arguments.EconomicsFee = feeHandler
 	arguments.ShardCoordinator = shardCoordinator
@@ -3755,9 +3755,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			arguments.EconomicsFee, err = economics.NewEconomicsData(*args)
 			require.Nil(t, err)
 
-			arguments.TxFeeHandler, err = postprocess.NewFeeAccumulator()
-			require.Nil(t, err)
-
+			arguments.TxFeeHandler = postprocess.NewFeeAccumulator()
 			arguments.ShardCoordinator = shardCoordinator
 			arguments.AccountsDB = &stateMock.AccountsStub{
 				RevertToSnapshotCalled: func(snapshot int) error {
