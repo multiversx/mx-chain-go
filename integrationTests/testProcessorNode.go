@@ -1492,7 +1492,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	mockVM.GasForOperation = OpGasValueForMockVm
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
-	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
+	tpn.FeeAccumulator = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -1748,7 +1748,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.SystemSCFactory = vmFactory.SystemSmartContractContainerFactory()
 	tpn.addMockVm(tpn.BlockchainHook)
 
-	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
+	tpn.FeeAccumulator = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = smartContract.NewArgumentParser()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{

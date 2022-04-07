@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
@@ -18,11 +19,13 @@ import (
 	factory3 "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 )
 
@@ -35,9 +38,9 @@ func createComponentHolders(numOfShards uint32) (
 ) {
 	coreComponents := createCoreComponents()
 	statusComponents := createStatusComponents()
-	dataComponents := createDataComponents(coreComponents)
 	stateComponents := createStateComponents(coreComponents)
-	boostrapComponents := createBootstrapComponents(numOfShards)
+	dataComponents := createDataComponents(coreComponents, numOfShards)
+	boostrapComponents := createBootstrapComponents(coreComponents, numOfShards)
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents, stateComponents
 }
@@ -54,10 +57,11 @@ func createCoreComponents() factory2.CoreComponentsHolder {
 		RaterField:                         &testscommon.RaterMock{Chance: 5},
 		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
 		EconomicsDataField:                 createEconomicsData(),
+		ChanStopNodeProcessField:           endProcess.GetDummyEndProcessChannel(),
 	}
 }
 
-func createDataComponents(coreComponents factory2.CoreComponentsHolder) factory2.DataComponentsHolder {
+func createDataComponents(coreComponents factory2.CoreComponentsHolder, numOfShards uint32) factory2.DataComponentsHolder {
 	blockChain, _ := blockchain.NewMetaChain(coreComponents.StatusHandler())
 	genesisBlock := createGenesisMetaBlock()
 	genesisBlockHash, _ := coreComponents.InternalMarshalizer().Marshal(genesisBlock)
@@ -69,16 +73,23 @@ func createDataComponents(coreComponents factory2.CoreComponentsHolder) factory2
 	chainStorer.AddStorer(dataRetriever.BootstrapUnit, integrationTests.CreateMemUnit())
 	chainStorer.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, integrationTests.CreateMemUnit())
 	chainStorer.AddStorer(dataRetriever.MetaBlockUnit, integrationTests.CreateMemUnit())
+	chainStorer.AddStorer(dataRetriever.MiniBlockUnit, integrationTests.CreateMemUnit())
+	chainStorer.AddStorer(dataRetriever.BlockHeaderUnit, integrationTests.CreateMemUnit())
+	for i := uint32(0); i < numOfShards; i++ {
+		chainStorer.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), integrationTests.CreateMemUnit())
+	}
+
 	return &factory3.DataComponentsMock{
 		Store:         chainStorer,
 		DataPool:      dataRetrieverMock.NewPoolsHolderMock(),
 		BlockChain:    blockChain,
-		EconomicsData: createEconomicsData(),
+		EconomicsData: coreComponents.EconomicsData(),
 	}
 }
 
-func createBootstrapComponents(numOfShards uint32) factory2.BootstrapComponentsHolder {
+func createBootstrapComponents(coreComponents factory2.CoreComponentsHolder, numOfShards uint32) factory2.BootstrapComponentsHolder {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numOfShards, core.MetachainShardId)
+	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(coreComponents.InternalMarshalizer(), coreComponents.EpochNotifier(), stakingV4EnableEpoch)
 
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		ShCoordinator:        shardCoordinator,
@@ -88,6 +99,7 @@ func createBootstrapComponents(numOfShards uint32) factory2.BootstrapComponentsH
 				return &block.MetaBlock{Epoch: epoch}
 			},
 		},
+		NodesCoordinatorRegistryFactoryField: ncrf,
 	}
 }
 
@@ -103,6 +115,7 @@ func createStateComponents(coreComponents factory2.CoreComponentsHolder) factory
 
 func createStatusComponents() factory2.StatusComponentsHolder {
 	return &mock2.StatusComponentsStub{
-		Outport: &testscommon.OutportStub{},
+		Outport:          &testscommon.OutportStub{},
+		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }

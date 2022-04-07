@@ -13,15 +13,14 @@ import (
 func TestNewFeeAccumulator(t *testing.T) {
 	t.Parallel()
 
-	feeHandler, err := postprocess.NewFeeAccumulator()
-	require.Nil(t, err)
+	feeHandler := postprocess.NewFeeAccumulator()
 	require.NotNil(t, feeHandler)
 }
 
 func TestFeeHandler_CreateBlockStarted(t *testing.T) {
 	t.Parallel()
 
-	feeHandler, _ := postprocess.NewFeeAccumulator()
+	feeHandler := postprocess.NewFeeAccumulator()
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(50), []byte("txhash"))
 
 	zeroGasAndFees := process.GetZeroGasAndFees()
@@ -37,7 +36,7 @@ func TestFeeHandler_CreateBlockStarted(t *testing.T) {
 func TestFeeHandler_GetAccumulatedFees(t *testing.T) {
 	t.Parallel()
 
-	feeHandler, _ := postprocess.NewFeeAccumulator()
+	feeHandler := postprocess.NewFeeAccumulator()
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(50), []byte("txhash"))
 
 	accumulatedFees := feeHandler.GetAccumulatedFees()
@@ -47,7 +46,7 @@ func TestFeeHandler_GetAccumulatedFees(t *testing.T) {
 func TestFeeHandler_GetDeveloperFees(t *testing.T) {
 	t.Parallel()
 
-	feeHandler, _ := postprocess.NewFeeAccumulator()
+	feeHandler := postprocess.NewFeeAccumulator()
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(50), []byte("txhash"))
 
 	devFees := feeHandler.GetDeveloperFees()
@@ -57,7 +56,7 @@ func TestFeeHandler_GetDeveloperFees(t *testing.T) {
 func TestFeeHandler_ProcessTransactionFee(t *testing.T) {
 	t.Parallel()
 
-	feeHandler, _ := postprocess.NewFeeAccumulator()
+	feeHandler := postprocess.NewFeeAccumulator()
 
 	feeHandler.ProcessTransactionFee(big.NewInt(1000), big.NewInt(100), []byte("txhash1"))
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(10), []byte("txhash2"))
@@ -72,7 +71,7 @@ func TestFeeHandler_ProcessTransactionFee(t *testing.T) {
 func TestFeeHandler_RevertFees(t *testing.T) {
 	t.Parallel()
 
-	feeHandler, _ := postprocess.NewFeeAccumulator()
+	feeHandler := postprocess.NewFeeAccumulator()
 
 	feeHandler.ProcessTransactionFee(big.NewInt(1000), big.NewInt(100), []byte("txhash1"))
 	feeHandler.ProcessTransactionFee(big.NewInt(100), big.NewInt(10), []byte("txhash2"))
@@ -89,6 +88,6 @@ func TestFeeHandler_RevertFees(t *testing.T) {
 func TestFeeHandler_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	fee, _ := postprocess.NewFeeAccumulator()
+	fee := postprocess.NewFeeAccumulator()
 	require.False(t, check.IfNil(fee))
 }

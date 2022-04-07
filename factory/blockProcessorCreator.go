@@ -195,11 +195,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
+	txFeeHandler := postprocess.NewFeeAccumulator()
 	enableEpochs := pcf.epochConfig.EnableEpochs
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -508,11 +504,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
+	txFeeHandler := postprocess.NewFeeAccumulator()
 	enableEpochs := pcf.epochConfig.EnableEpochs
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
