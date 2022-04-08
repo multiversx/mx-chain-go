@@ -35,39 +35,31 @@ func createMetaBlockProcessor(
 	blockChainHook process.BlockChainHookHandler,
 	metaVMFactory process.VirtualMachinesContainerFactory,
 	epochStartHandler process.EpochStartTriggerHandler,
+	vmContainer process.VirtualMachinesContainer,
 ) process.BlockProcessor {
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents, nc, systemSCProcessor, stateComponents, validatorsInfoCreator, blockChainHook, metaVMFactory, epochStartHandler)
-
-	metaProc, _ := blproc.NewMetaProcessor(arguments)
-	return metaProc
-}
-
-func createMockMetaArguments(
-	coreComponents factory2.CoreComponentsHolder,
-	dataComponents factory2.DataComponentsHolder,
-	bootstrapComponents factory2.BootstrapComponentsHolder,
-	statusComponents factory2.StatusComponentsHolder,
-	nodesCoord nodesCoordinator.NodesCoordinator,
-	systemSCProcessor process.EpochStartSystemSCProcessor,
-	stateComponents factory2.StateComponentsHandler,
-	validatorsInfoCreator process.ValidatorStatisticsProcessor,
-	blockChainHook process.BlockChainHookHandler,
-	metaVMFactory process.VirtualMachinesContainerFactory,
-	epochStartHandler process.EpochStartTriggerHandler,
-) blproc.ArgMetaProcessor {
 	shardCoordiantor := bootstrapComponents.ShardCoordinator()
-	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, shardCoordiantor)
+
 	blockTracker := createBlockTracker(dataComponents.Blockchain().GetGenesisHeader(), shardCoordiantor)
-	epochStartDataCreator := createEpochStartDataCreator(coreComponents, dataComponents, shardCoordiantor, epochStartHandler, blockTracker)
+	epochStartDataCreator := createEpochStartDataCreator(
+		coreComponents,
+		dataComponents,
+		shardCoordiantor,
+		epochStartHandler,
+		blockTracker,
+	)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts()
 
-	bootStorer, _ := bootstrapStorage.NewBootstrapStorer(coreComponents.InternalMarshalizer(), dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit))
+	bootStorer, _ := bootstrapStorage.NewBootstrapStorer(
+		coreComponents.InternalMarshalizer(),
+		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+	)
+
 	headerValidator := createHeaderValidator(coreComponents)
-	vmContainer, _ := metaVMFactory.Create()
-	return blproc.ArgMetaProcessor{
+	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, shardCoordiantor)
+	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:                 coreComponents,
 			DataComponents:                 dataComponents,
@@ -75,7 +67,7 @@ func createMockMetaArguments(
 			StatusComponents:               statusComponents,
 			AccountsDB:                     accountsDb,
 			ForkDetector:                   &mock2.ForkDetectorStub{},
-			NodesCoordinator:               nodesCoord,
+			NodesCoordinator:               nc,
 			FeeHandler:                     postprocess.NewFeeAccumulator(),
 			RequestHandler:                 &testscommon.RequestHandlerStub{},
 			BlockChainHook:                 blockChainHook,
@@ -103,6 +95,9 @@ func createMockMetaArguments(
 		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
 	}
+
+	metaProc, _ := blproc.NewMetaProcessor(args)
+	return metaProc
 }
 
 func createValidatorInfoCreator(
@@ -144,7 +139,10 @@ func createEpochStartDataCreator(
 	return epochStartDataCreator
 }
 
-func createBlockTracker(genesisMetaHeader data.HeaderHandler, shardCoordinator sharding.Coordinator) process.BlockTracker {
+func createBlockTracker(
+	genesisMetaHeader data.HeaderHandler,
+	shardCoordinator sharding.Coordinator,
+) process.BlockTracker {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
 		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
@@ -154,7 +152,7 @@ func createBlockTracker(genesisMetaHeader data.HeaderHandler, shardCoordinator s
 	return mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks)
 }
 
-func createGenesisBlock(ShardID uint32) *block.Header {
+func createGenesisBlock(shardID uint32) *block.Header {
 	rootHash := []byte("roothash")
 	return &block.Header{
 		Nonce:           0,
@@ -162,7 +160,7 @@ func createGenesisBlock(ShardID uint32) *block.Header {
 		Signature:       rootHash,
 		RandSeed:        rootHash,
 		PrevRandSeed:    rootHash,
-		ShardID:         ShardID,
+		ShardID:         shardID,
 		PubKeysBitmap:   rootHash,
 		RootHash:        rootHash,
 		PrevHash:        rootHash,

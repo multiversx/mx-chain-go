@@ -24,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-// TODO: Pass epoch config
 func createSystemSCProcessor(
 	nc nodesCoordinator.NodesCoordinator,
 	coreComponents factory2.CoreComponentsHolder,

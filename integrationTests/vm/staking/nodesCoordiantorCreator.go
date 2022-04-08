@@ -1,7 +1,6 @@
 package staking
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -81,15 +80,8 @@ func createNodesCoordinator(
 		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
 	}
 
-	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-	if err != nil {
-		fmt.Println("error creating node coordinator")
-	}
-
-	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, coreComponents.Rater())
-	if err != nil {
-		fmt.Println("error creating node coordinator")
-	}
+	baseNodesCoordinator, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, coreComponents.Rater())
 
 	return nodesCoord
 }

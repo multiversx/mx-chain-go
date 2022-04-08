@@ -31,11 +31,6 @@ import (
 const stakingV4InitEpoch = 1
 const stakingV4EnableEpoch = 2
 
-type HeaderInfo struct {
-	Hash   []byte
-	Header data.HeaderHandler
-}
-
 // TestMetaProcessor -
 type TestMetaProcessor struct {
 	MetaBlockProcessor  process.BlockProcessor
@@ -66,7 +61,11 @@ func NewTestMetaProcessor(
 		numOfNodesToShufflePerShard,
 	)
 
-	createStakingQueue(numOfNodesInStakingQueue, coreComponents.InternalMarshalizer(), stateComponents.AccountsAdapter())
+	createStakingQueue(
+		numOfNodesInStakingQueue,
+		coreComponents.InternalMarshalizer(),
+		stateComponents.AccountsAdapter(),
+	)
 
 	nc := createNodesCoordinator(
 		numOfMetaNodes,
@@ -132,6 +131,7 @@ func NewTestMetaProcessor(
 			blockChainHook,
 			metaVmFactory,
 			epochStartTrigger,
+			vmContainer,
 		),
 		NodesCoordinator:    nc,
 		ValidatorStatistics: validatorStatisticsProcessor,
@@ -200,92 +200,10 @@ func createStakingQueue(
 	)
 }
 
-func createMetaBlockHeader2(epoch uint32, round uint64, prevHash []byte) *block.MetaBlock {
-	hdr := block.MetaBlock{
-		Epoch:                  epoch,
-		Nonce:                  round,
-		Round:                  round,
-		PrevHash:               prevHash,
-		Signature:              []byte("signature"),
-		PubKeysBitmap:          []byte("pubKeysBitmap"),
-		RootHash:               []byte("roothash"),
-		ShardInfo:              make([]block.ShardData, 0),
-		TxCount:                1,
-		PrevRandSeed:           []byte("roothash"),
-		RandSeed:               []byte("roothash" + strconv.Itoa(int(round))),
-		AccumulatedFeesInEpoch: big.NewInt(0),
-		AccumulatedFees:        big.NewInt(0),
-		DevFeesInEpoch:         big.NewInt(0),
-		DeveloperFees:          big.NewInt(0),
-	}
-
-	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
-	shardMiniBlockHeader := block.MiniBlockHeader{
-		Hash:            []byte("mb_hash" + strconv.Itoa(int(round))),
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxCount:         1,
-	}
-	shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
-	shardData := block.ShardData{
-		Nonce:                 round,
-		ShardID:               0,
-		HeaderHash:            []byte("hdr_hash" + strconv.Itoa(int(round))),
-		TxCount:               1,
-		ShardMiniBlockHeaders: shardMiniBlockHeaders,
-		DeveloperFees:         big.NewInt(0),
-		AccumulatedFees:       big.NewInt(0),
-	}
-	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
-
-	return &hdr
-}
-
-func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint32) {
-	for r := fromRound; r < fromRound+numOfRounds; r++ {
-		currentHeader := tmp.BlockChainHandler.GetCurrentBlockHeader()
-		currentHash := tmp.BlockChainHandler.GetCurrentBlockHeaderHash()
-		if currentHeader == nil {
-			currentHeader = tmp.BlockChainHandler.GetGenesisHeader()
-			currentHash = tmp.BlockChainHandler.GetGenesisHeaderHash()
-		}
-
-		prevRandomness := currentHeader.GetRandSeed()
-		fmt.Println(fmt.Sprintf("########################################### CREATEING HEADER FOR EPOCH %v in round %v",
-			tmp.EpochStartTrigger.Epoch(),
-			r,
-		))
-
-		newHdr := createMetaBlockHeader2(tmp.EpochStartTrigger.Epoch(), uint64(r), currentHash)
-		newHdr.PrevRandSeed = prevRandomness
-		createdHdr, _ := tmp.MetaBlockProcessor.CreateNewHeader(uint64(r), uint64(r))
-		_ = newHdr.SetEpoch(createdHdr.GetEpoch())
-
-		newHdr2, newBodyHandler2, err := tmp.MetaBlockProcessor.CreateBlock(newHdr, func() bool { return true })
-		require.Nil(t, err)
-		err = tmp.MetaBlockProcessor.CommitBlock(newHdr2, newBodyHandler2)
-		require.Nil(t, err)
-
-		time.Sleep(time.Millisecond * 100)
-
-		tmp.DisplayNodesConfig(tmp.EpochStartTrigger.Epoch())
-
-		rootHash, _ := tmp.ValidatorStatistics.RootHash()
-		allValidatorsInfo, err := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
-		require.Nil(t, err)
-		displayValidatorsInfo(allValidatorsInfo)
-	}
-
-}
-
-func displayValidatorsInfo(validatorsInfoMap state.ShardValidatorsInfoMapHandler) {
-	fmt.Println("#######################DISPLAYING VALIDATORS INFO")
-	for _, validators := range validatorsInfoMap.GetAllValidatorsInfo() {
-		fmt.Println("PUBKEY: ", string(validators.GetPublicKey()), " SHARDID: ", validators.GetShardId(), " LIST: ", validators.GetList())
-	}
-}
-
-func createEpochStartTrigger(coreComponents factory2.CoreComponentsHolder, storageService dataRetriever.StorageService) integrationTests.TestEpochStartTrigger {
+func createEpochStartTrigger(
+	coreComponents factory2.CoreComponentsHolder,
+	storageService dataRetriever.StorageService,
+) integrationTests.TestEpochStartTrigger {
 	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime: time.Now(),
 		Settings: &config.EpochStartConfig{
@@ -299,13 +217,109 @@ func createEpochStartTrigger(coreComponents factory2.CoreComponentsHolder, stora
 		Hasher:             coreComponents.Hasher(),
 		AppStatusHandler:   coreComponents.StatusHandler(),
 	}
+
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 	testTrigger := &metachain.TestTrigger{}
 	testTrigger.SetTrigger(epochStartTrigger)
+
 	return testTrigger
 }
 
-func (tmp *TestMetaProcessor) DisplayNodesConfig(epoch uint32) {
+func (tmp *TestMetaProcessor) Process(t *testing.T, fromRound, numOfRounds uint64) {
+	for r := fromRound; r < fromRound+numOfRounds; r++ {
+		currentHeader, currentHash := tmp.getCurrentHeaderInfo()
+
+		fmt.Println(fmt.Sprintf("########################################### CREATING HEADER FOR EPOCH %v in round %v",
+			tmp.EpochStartTrigger.Epoch(),
+			r,
+		))
+
+		_, err := tmp.MetaBlockProcessor.CreateNewHeader(r, r)
+		require.Nil(t, err)
+
+		header := createMetaBlockToCommit(tmp.EpochStartTrigger.Epoch(), r, currentHash, currentHeader.GetRandSeed())
+		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, func() bool { return true })
+		require.Nil(t, err)
+
+		err = tmp.MetaBlockProcessor.CommitBlock(newHeader, blockBody)
+		require.Nil(t, err)
+
+		time.Sleep(time.Millisecond * 40)
+
+		tmp.displayNodesConfig(tmp.EpochStartTrigger.Epoch())
+		tmp.displayValidatorsInfo()
+	}
+}
+
+func (tmp *TestMetaProcessor) getCurrentHeaderInfo() (data.HeaderHandler, []byte) {
+	currentHeader := tmp.BlockChainHandler.GetCurrentBlockHeader()
+	currentHash := tmp.BlockChainHandler.GetCurrentBlockHeaderHash()
+	if currentHeader == nil {
+		currentHeader = tmp.BlockChainHandler.GetGenesisHeader()
+		currentHash = tmp.BlockChainHandler.GetGenesisHeaderHash()
+	}
+
+	return currentHeader, currentHash
+}
+
+func createMetaBlockToCommit(
+	epoch uint32,
+	round uint64,
+	prevHash []byte,
+	prevRandSeed []byte,
+) *block.MetaBlock {
+	roundStr := strconv.Itoa(int(round))
+	hdr := block.MetaBlock{
+		Epoch:                  epoch,
+		Nonce:                  round,
+		Round:                  round,
+		PrevHash:               prevHash,
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte("pubKeysBitmap"),
+		RootHash:               []byte("roothash"),
+		ShardInfo:              make([]block.ShardData, 0),
+		TxCount:                1,
+		PrevRandSeed:           prevRandSeed,
+		RandSeed:               []byte("roothash" + roundStr),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+	}
+
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+	shardMiniBlockHeader := block.MiniBlockHeader{
+		Hash:            []byte("mb_hash" + roundStr),
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxCount:         1,
+	}
+	shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
+	shardData := block.ShardData{
+		Nonce:                 round,
+		ShardID:               0,
+		HeaderHash:            []byte("hdr_hash" + roundStr),
+		TxCount:               1,
+		ShardMiniBlockHeaders: shardMiniBlockHeaders,
+		DeveloperFees:         big.NewInt(0),
+		AccumulatedFees:       big.NewInt(0),
+	}
+	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
+
+	return &hdr
+}
+
+func (tmp *TestMetaProcessor) displayValidatorsInfo() {
+	rootHash, _ := tmp.ValidatorStatistics.RootHash()
+	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
+
+	fmt.Println("#######################DISPLAYING VALIDATORS INFO")
+	for _, validators := range validatorsInfoMap.GetAllValidatorsInfo() {
+		fmt.Println("PUBKEY: ", string(validators.GetPublicKey()), " SHARDID: ", validators.GetShardId(), " LIST: ", validators.GetList())
+	}
+}
+
+func (tmp *TestMetaProcessor) displayNodesConfig(epoch uint32) {
 	eligible, _ := tmp.NodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	waiting, _ := tmp.NodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	leaving, _ := tmp.NodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
