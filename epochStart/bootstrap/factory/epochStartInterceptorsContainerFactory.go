@@ -14,6 +14,8 @@ import (
 	disabledGenesis "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
+	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
+	guardianChecker2 "github.com/ElrondNetwork/elrond-go/process/guardianChecker"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -61,6 +63,23 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, err
 	}
 
+	guardianChecker, err := guardianChecker2.NewAccountGuardianChecker(args.CoreComponents.InternalMarshalizer(), args.CoreComponents.EpochNotifier())
+	if err != nil {
+		return nil, err
+	}
+
+	argsGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
+		SigVerifier:     cryptoComponents.TxSingleSigner(),
+		GuardianChecker: guardianChecker,
+		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+		Marshaller:      args.CoreComponents.InternalMarshalizer(),
+		KeyGen:          args.CryptoComponents.TxSignKeyGen(),
+	}
+	guardianSigVerifier, err := guardedtx.NewGuardedTxSigVerifier(argsGuardianSigVerifier)
+	if err != nil {
+		return nil, err
+	}
+
 	nodesCoordinator := disabled.NewNodesCoordinator()
 	storer := disabled.NewChainStorer()
 	antiFloodHandler := disabled.NewAntiFloodHandler()
@@ -96,6 +115,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		EnableEpochs:            args.EnableEpochs,
 		PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
 		RequestHandler:          args.RequestHandler,
+		GuardianSigVerifier:     guardianSigVerifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

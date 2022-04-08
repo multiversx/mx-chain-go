@@ -52,4 +52,5 @@ type ArgInterceptedDataFactory struct {
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	ArgsParser              process.ArgumentsParser
 	EnableEpochs            config.EnableEpochs
+	GuardianSigVerifier     process.GuardianSigVerifier
 }

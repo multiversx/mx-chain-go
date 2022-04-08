@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -655,5 +656,6 @@ func getArgumentsShard(
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		RequestHandler:          &testscommon.RequestHandlerStub{},
+		GuardianSigVerifier:     &guardianMocks.GuardianSigVerifierStub{},
 	}
 }

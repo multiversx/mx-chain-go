@@ -532,6 +532,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		EnableEpochs:            e.enableEpochs,
 		EpochNotifier:           e.epochNotifier,
 		RequestHandler:          e.requestHandler,
+
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

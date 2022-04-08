@@ -33,4 +33,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	SizeCheckDelta          uint32
 	EnableEpochs            config.EnableEpochs
 	RequestHandler          process.RequestHandler
+	GuardianSigVerifier     process.GuardianSigVerifier
 }

@@ -610,6 +610,7 @@ func (n *Node) commonTransactionValidation(
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
+		n.processComponents.GuardianSigVerifier(),
 		common.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {

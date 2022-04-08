@@ -39,6 +39,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
+		args.GuardianSigVerifier,
 	)
 	if err != nil {
 		return nil, err
@@ -83,6 +84,7 @@ func NewMetaInterceptorsContainerFactory(
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              args.ArgumentsParser,
 		EnableEpochs:            args.EnableEpochs,
+		GuardianSigVerifier:     args.GuardianSigVerifier,
 	}
 
 	container := containers.NewInterceptorsContainer()
