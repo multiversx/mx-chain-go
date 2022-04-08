@@ -1482,13 +1482,12 @@ func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger upd
 		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
 	}
 
-	atArgumentParser := smartContract.NewArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        triggerPubKeyBytes,
 		SelfPubKeyBytes:           selfPubKeyBytes,
 		Enabled:                   hardforkConfig.EnableTrigger,
 		EnabledAuthenticated:      hardforkConfig.EnableTriggerFromP2P,
-		ArgumentParser:            atArgumentParser,
+		ArgumentParser:            smartContract.NewArgumentParser(),
 		EpochProvider:             epochStartTrigger,
 		ExportFactoryHandler:      &updateDisabled.ExportFactoryHandler{},
 		ChanStopNodeProcess:       pcf.coreData.ChanStopNodeProcess(),

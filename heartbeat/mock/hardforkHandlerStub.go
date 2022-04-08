@@ -4,6 +4,7 @@ package mock
 type HardforkHandlerStub struct {
 	ShouldTriggerHardforkCalled func() <-chan struct{}
 	ExecuteCalled               func()
+	CloseCalled                 func()
 }
 
 // ShouldTriggerHardfork -
@@ -19,5 +20,12 @@ func (stub *HardforkHandlerStub) ShouldTriggerHardfork() <-chan struct{} {
 func (stub *HardforkHandlerStub) Execute() {
 	if stub.ExecuteCalled != nil {
 		stub.ExecuteCalled()
+	}
+}
+
+// Close -
+func (stub *HardforkHandlerStub) Close() {
+	if stub.CloseCalled != nil {
+		stub.CloseCalled()
 	}
 }

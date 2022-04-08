@@ -38,7 +38,7 @@ func createMockSenderArgs() ArgSender {
 		PrivateKey:                                  &cryptoMocks.PrivateKeyStub{},
 		RedundancyHandler:                           &mock.RedundancyHandlerStub{},
 		NodesCoordinator:                            &shardingMocks.NodesCoordinatorStub{},
-		HardforkTrigger:                             &mock.HardforkTriggerStub{},
+		HardforkTrigger:                             &testscommon.HardforkTriggerStub{},
 		HardforkTimeBetweenSends:                    time.Second,
 		HardforkTriggerPubKey:                       providedHardforkPubKey,
 	}

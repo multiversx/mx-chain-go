@@ -404,7 +404,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		PrivateKey:              thn.NodeKeys.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
-		HardforkTrigger:         &mock.HardforkTriggerStub{},
+		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
 		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
@@ -520,7 +520,7 @@ func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorF
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
 		PeerShardMapper:          thn.PeerShardMapper,
 		Marshaller:               TestMarshaller,
-		HardforkTrigger:          &mock.HardforkTriggerStub{},
+		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
 	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(args)
 	paFactory, _ := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(argsFactory)

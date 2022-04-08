@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	heartbeatMock "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -728,6 +727,6 @@ func getArgumentsShard(
 		SignaturesHandler:            &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
-		HardforkTrigger:              &heartbeatMock.HardforkTriggerStub{},
+		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
 	}
 }

@@ -39,7 +39,7 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		StatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
 		VersionNumber:         "v0.1",
 		NodeDisplayName:       "undefined",
-		HardforkTrigger:       &mock.HardforkTriggerStub{},
+		HardforkTrigger:       &testscommon.HardforkTriggerStub{},
 		CurrentBlockProvider:  &mock.CurrentBlockProviderStub{},
 		RedundancyHandler:     &mock.RedundancyHandlerStub{},
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
@@ -593,7 +593,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 			return nil, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &testscommon.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return nil, true
 		},
@@ -676,7 +676,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 			return nil, nil
 		},
 	}
-	arg.HardforkTrigger = &mock.HardforkTriggerStub{
+	arg.HardforkTrigger = &testscommon.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return originalTriggerPayload, true
 		},
