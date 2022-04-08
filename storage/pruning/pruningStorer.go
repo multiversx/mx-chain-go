@@ -923,7 +923,8 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		}
 	}
 
-	shouldRemoveFromMap := ps.oldDataCleanerProvider.ShouldClean()
+	shouldRemoveFromMapDueToOldData := ps.oldDataCleanerProvider.ShouldClean()
+
 	for _, epochToRemove := range epochsToRemove {
 		persisterToRemove := ps.persistersMapByEpoch[epochToRemove]
 		if ps.customDatabaseRemover.ShouldRemove(persisterToRemove.path, epochToRemove) {
@@ -932,9 +933,12 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 			if err != nil {
 				return err
 			}
+
+			// destroyed persisters have to be removed from the map, regardless on the shouldRemoveFromMapDueToOldData value
+			delete(ps.persistersMapByEpoch, epochToRemove)
 		}
 
-		if shouldRemoveFromMap {
+		if shouldRemoveFromMapDueToOldData {
 			delete(ps.persistersMapByEpoch, epochToRemove)
 		}
 	}

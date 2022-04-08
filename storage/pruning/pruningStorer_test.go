@@ -920,7 +920,6 @@ func TestPruningStorer_ClosePersisters(t *testing.T) {
 		require.False(t, destroyClosedWasCalled2)
 		require.False(t, destroyClosedWasCalled3)
 	})
-
 }
 
 func TestPruningStorer_CleanCustomDatabase(t *testing.T) {
