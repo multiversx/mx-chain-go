@@ -63,16 +63,17 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
 	return &mock.CoreComponentsMock{
-			IntMarsh:              &mock.MarshalizerMock{},
-			Marsh:                 &mock.MarshalizerMock{},
-			Hash:                  &hashingMocks.HasherMock{},
-			TxSignHasherField:     &hashingMocks.HasherMock{},
-			UInt64ByteSliceConv:   &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:        &mock.PubkeyConverterMock{},
-			PathHdl:               &testscommon.PathManagerStub{},
-			EpochNotifierField:    &epochNotifier.EpochNotifierStub{},
-			TxVersionCheckField:   versioning.NewTxVersionChecker(1),
-			NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IntMarsh:                   &mock.MarshalizerMock{},
+			Marsh:                      &mock.MarshalizerMock{},
+			Hash:                       &hashingMocks.HasherMock{},
+			TxSignHasherField:          &hashingMocks.HasherMock{},
+			UInt64ByteSliceConv:        &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:             &mock.PubkeyConverterMock{},
+			PathHdl:                    &testscommon.PathManagerStub{},
+			EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
+			TxVersionCheckField:        versioning.NewTxVersionChecker(1),
+			NodeTypeProviderField:      &nodeTypeProviderMock.NodeTypeProviderStub{},
+			HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
 		}, &mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
 			BlockSig:        &cryptoMocks.SignerStub{},
@@ -117,6 +118,7 @@ func createMockEpochStartBootstrapArgs(
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
 			Heartbeat:                          generalCfg.Heartbeat,
 			HeartbeatV2:                        generalCfg.HeartbeatV2,
+			Hardfork:                           generalCfg.Hardfork,
 			TrieSnapshotDB: config.DBConfig{
 				FilePath:          "TrieSnapshot",
 				Type:              "MemoryDB",

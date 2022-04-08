@@ -3,6 +3,7 @@ package interceptorscontainer
 import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -38,4 +39,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
 	PeerShardMapper              process.PeerShardMapper
+	HardforkTrigger              heartbeat.HardforkTrigger
 }

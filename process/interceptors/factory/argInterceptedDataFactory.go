@@ -24,6 +24,7 @@ type interceptedDataCoreComponentsHolder interface {
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
 	EpochNotifier() process.EpochNotifier
+	HardforkTriggerPubKey() []byte
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory

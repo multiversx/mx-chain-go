@@ -68,8 +68,9 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		ChainIdCalled: func() string {
 			return "chainID"
 		},
-		TxVersionCheckField: versioning.NewTxVersionChecker(1),
-		EpochNotifierField:  &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
+		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
+		HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),

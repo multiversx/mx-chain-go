@@ -30,6 +30,9 @@ type ArgSender struct {
 	PrivateKey                                  crypto.PrivateKey
 	RedundancyHandler                           heartbeat.NodeRedundancyHandler
 	NodesCoordinator                            heartbeat.NodesCoordinator
+	HardforkTrigger                             heartbeat.HardforkTrigger
+	HardforkTimeBetweenSends                    time.Duration
+	HardforkTriggerPubKey                       []byte
 }
 
 // sender defines the component which sends authentication and heartbeat messages
@@ -53,10 +56,13 @@ func NewSender(args ArgSender) (*sender, error) {
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
-		nodesCoordinator:     args.NodesCoordinator,
-		peerSignatureHandler: args.PeerSignatureHandler,
-		privKey:              args.PrivateKey,
-		redundancyHandler:    args.RedundancyHandler,
+		nodesCoordinator:         args.NodesCoordinator,
+		peerSignatureHandler:     args.PeerSignatureHandler,
+		privKey:                  args.PrivateKey,
+		redundancyHandler:        args.RedundancyHandler,
+		hardforkTrigger:          args.HardforkTrigger,
+		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
+		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
 	})
 	if err != nil {
 		return nil, err
@@ -82,7 +88,7 @@ func NewSender(args ArgSender) (*sender, error) {
 	}
 
 	return &sender{
-		routineHandler: newRoutineHandler(pas, hbs),
+		routineHandler: newRoutineHandler(pas, hbs, pas),
 	}, nil
 }
 
@@ -96,10 +102,13 @@ func checkSenderArgs(args ArgSender) error {
 			timeBetweenSendsWhenError: args.PeerAuthenticationTimeBetweenSendsWhenError,
 			thresholdBetweenSends:     args.PeerAuthenticationThresholdBetweenSends,
 		},
-		nodesCoordinator:     args.NodesCoordinator,
-		peerSignatureHandler: args.PeerSignatureHandler,
-		privKey:              args.PrivateKey,
-		redundancyHandler:    args.RedundancyHandler,
+		nodesCoordinator:         args.NodesCoordinator,
+		peerSignatureHandler:     args.PeerSignatureHandler,
+		privKey:                  args.PrivateKey,
+		redundancyHandler:        args.RedundancyHandler,
+		hardforkTrigger:          args.HardforkTrigger,
+		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
+		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
 	}
 	err := checkPeerAuthenticationSenderArgs(pasArg)
 	if err != nil {

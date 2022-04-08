@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
+	disabledFactory "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	disabledGenesis "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
@@ -74,6 +75,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 	// TODO: move the peerShardMapper creation before boostrapComponents
 	peerShardMapper := disabled.NewPeerShardMapper()
+	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:               args.CoreComponents,
@@ -103,6 +105,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
 		PeerShardMapper:              peerShardMapper,
+		HardforkTrigger:              hardforkTrigger,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

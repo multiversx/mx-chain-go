@@ -128,6 +128,7 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
+	HardforkTriggerPubKey() []byte
 	IsInterfaceNil() bool
 }
 
@@ -263,6 +264,7 @@ type ProcessComponentsHolder interface {
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
+	HardforkTrigger() HardforkTrigger
 	IsInterfaceNil() bool
 }
 
@@ -391,12 +393,14 @@ type ConsensusWorker interface {
 
 // HardforkTrigger defines the hard-fork trigger functionality
 type HardforkTrigger interface {
+	SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
+	NotifyTriggerReceivedV2() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
@@ -407,7 +411,6 @@ type ConsensusComponentsHolder interface {
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
 	ConsensusGroupSize() (int, error)
-	HardforkTrigger() HardforkTrigger
 	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }

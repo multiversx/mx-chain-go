@@ -42,6 +42,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 				MaxMissingKeysInRequest:                          100,
 				MaxDurationPeerUnresponsiveInSec:                 10,
 				HideInactiveValidatorIntervalInSec:               60,
+				HardforkTimeBetweenSendsInSec:                    5,
 				PeerAuthenticationPool: config.PeerAuthenticationPoolConfig{
 					DefaultSpanInSec: 30,
 					CacheExpiryInSec: 30,
@@ -51,6 +52,9 @@ func createMockHeartbeatV2ComponentsFactoryArgs() factory.ArgHeartbeatV2Componen
 					Capacity: 1000,
 					Shards:   1,
 				},
+			},
+			Hardfork: config.HardforkConfig{
+				PublicKeyToListenFrom: dummyPk,
 			},
 		},
 		Prefs: config.Preferences{

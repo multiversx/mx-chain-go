@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -80,6 +81,17 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrInvalidExpiryTimespan, err)
+	})
+	t.Run("invalid hardfork pub key should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createMockComponentHolders()
+		coreComp.HardforkTriggerPubKeyField = make([]byte, 0)
+		arg := createMockArgument(coreComp, cryptoComp)
+
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
+		assert.Nil(t, ipadf)
+		assert.True(t, errors.Is(err, process.ErrInvalidValue))
 	})
 	t.Run("should work and create", func(t *testing.T) {
 		t.Parallel()

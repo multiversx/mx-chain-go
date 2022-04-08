@@ -86,6 +86,10 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	if check.IfNil(args.ProcessComponents) {
 		return errors.ErrNilProcessComponentsHolder
 	}
+	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
+	if check.IfNil(hardforkTrigger) {
+		return errors.ErrNilHardforkTrigger
+	}
 
 	return nil
 }
@@ -132,6 +136,9 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PrivateKey:                                  hcf.cryptoComponents.PrivateKey(),
 		RedundancyHandler:                           hcf.processComponents.NodeRedundancyHandler(),
 		NodesCoordinator:                            hcf.processComponents.NodesCoordinator(),
+		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
+		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
+		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {

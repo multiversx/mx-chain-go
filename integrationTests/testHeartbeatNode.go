@@ -53,12 +53,14 @@ const (
 	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
 	thresholdBetweenSends     = 0.2
+	timeBetweenHardforks      = 2 * time.Second
 
 	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
 	delayBetweenRequests    = time.Second * 5
 	maxTimeout              = time.Minute
 	maxMissingKeysInRequest = 1
+	providedHardforkPubKey  = "provided pub key"
 )
 
 // TestMarshaller represents the main marshaller
@@ -402,6 +404,8 @@ func (thn *TestHeartbeatNode) initSender() {
 		PrivateKey:              thn.NodeKeys.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
+		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
+		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
@@ -409,6 +413,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatThresholdBetweenSends:              thresholdBetweenSends,
+		HardforkTimeBetweenSends:                    timeBetweenHardforks,
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
@@ -494,7 +499,8 @@ func (thn *TestHeartbeatNode) initRequestedItemsHandler() {
 func (thn *TestHeartbeatNode) initInterceptors() {
 	argsFactory := interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents: &processMock.CoreComponentsMock{
-			IntMarsh: TestMarshaller,
+			IntMarsh:                   TestMarshaller,
+			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
 		},
 		ShardCoordinator:             thn.ShardCoordinator,
 		NodesCoordinator:             thn.NodesCoordinator,
@@ -513,6 +519,8 @@ func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorF
 	args := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
 		PeerShardMapper:          thn.PeerShardMapper,
+		Marshaller:               TestMarshaller,
+		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
 	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(args)
 	paFactory, _ := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(argsFactory)

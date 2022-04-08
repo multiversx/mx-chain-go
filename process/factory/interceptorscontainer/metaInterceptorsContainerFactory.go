@@ -40,6 +40,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.PreferredPeersHolder,
 		args.RequestHandler,
 		args.PeerShardMapper,
+		args.HardforkTrigger,
 	)
 	if err != nil {
 		return nil, err
@@ -118,6 +119,7 @@ func NewMetaInterceptorsContainerFactory(
 		hasher:                 args.CoreComponents.Hasher(),
 		requestHandler:         args.RequestHandler,
 		peerShardMapper:        args.PeerShardMapper,
+		hardforkTrigger:        args.HardforkTrigger,
 	}
 
 	icf := &metaInterceptorsContainerFactory{

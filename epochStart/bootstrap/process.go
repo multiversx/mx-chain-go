@@ -518,7 +518,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
-
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
 		CoreComponents:            e.coreComponentsHolder,
 		CryptoComponents:          e.cryptoComponentsHolder,

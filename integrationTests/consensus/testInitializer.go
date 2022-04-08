@@ -477,7 +477,6 @@ func createConsensusOnlyNode(
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	if err != nil {

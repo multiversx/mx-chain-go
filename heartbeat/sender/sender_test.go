@@ -38,6 +38,9 @@ func createMockSenderArgs() ArgSender {
 		PrivateKey:                                  &cryptoMocks.PrivateKeyStub{},
 		RedundancyHandler:                           &mock.RedundancyHandlerStub{},
 		NodesCoordinator:                            &shardingMocks.NodesCoordinatorStub{},
+		HardforkTrigger:                             &testscommon.HardforkTriggerStub{},
+		HardforkTimeBetweenSends:                    time.Second,
+		HardforkTriggerPubKey:                       providedHardforkPubKey,
 	}
 }
 
@@ -189,6 +192,38 @@ func TestNewSender(t *testing.T) {
 
 		assert.Nil(t, sender)
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
+	})
+	t.Run("nil hardfork trigger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.HardforkTrigger = nil
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
+	})
+	t.Run("invalid time between hardforks should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.HardforkTimeBetweenSends = time.Second - time.Nanosecond
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
+	})
+	t.Run("invalid hardfork pub key should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.HardforkTriggerPubKey = make([]byte, 0)
+		sender, err := NewSender(args)
+
+		assert.Nil(t, sender)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "hardfork"))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

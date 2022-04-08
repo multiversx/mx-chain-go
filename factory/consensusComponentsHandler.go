@@ -133,18 +133,6 @@ func (mcc *managedConsensusComponents) CheckSubcomponents() error {
 	return nil
 }
 
-// HardforkTrigger returns the hardfork trigger
-func (mcc *managedConsensusComponents) HardforkTrigger() HardforkTrigger {
-	mcc.mutConsensusComponents.RLock()
-	defer mcc.mutConsensusComponents.RUnlock()
-
-	if mcc.consensusComponents == nil {
-		return nil
-	}
-
-	return mcc.consensusComponents.hardforkTrigger
-}
-
 // Bootstrapper returns the bootstrapper instance
 func (mcc *managedConsensusComponents) Bootstrapper() process.Bootstrapper {
 	mcc.mutConsensusComponents.RLock()

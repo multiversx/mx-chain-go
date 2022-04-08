@@ -52,6 +52,7 @@ type CoreComponentsStub struct {
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal          common.Locker
+	HardforkTriggerPubKeyField         []byte
 }
 
 // Create -
@@ -245,6 +246,11 @@ func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
 // String -
 func (ccs *CoreComponentsStub) String() string {
 	return "CoreComponentsStub"
+}
+
+// HardforkTriggerPubKey -
+func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
+	return ccs.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

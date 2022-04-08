@@ -1,16 +1,27 @@
-package mock
+package testscommon
 
 import "github.com/ElrondNetwork/elrond-go/update"
 
 // HardforkTriggerStub -
 type HardforkTriggerStub struct {
-	TriggerCalled                func(epoch uint32, withEarlyEndOfEpoch bool) error
-	IsSelfTriggerCalled          func() bool
-	TriggerReceivedCalled        func(payload []byte, data []byte, pkBytes []byte) (bool, error)
-	RecordedTriggerMessageCalled func() ([]byte, bool)
-	CreateDataCalled             func() []byte
-	AddCloserCalled              func(closer update.Closer) error
-	NotifyTriggerReceivedCalled  func() <-chan struct{}
+	SetExportFactoryHandlerCalled func(exportFactoryHandler update.ExportFactoryHandler) error
+	TriggerCalled                 func(epoch uint32, withEarlyEndOfEpoch bool) error
+	IsSelfTriggerCalled           func() bool
+	TriggerReceivedCalled         func(payload []byte, data []byte, pkBytes []byte) (bool, error)
+	RecordedTriggerMessageCalled  func() ([]byte, bool)
+	CreateDataCalled              func() []byte
+	AddCloserCalled               func(closer update.Closer) error
+	NotifyTriggerReceivedCalled   func() <-chan struct{}
+	NotifyTriggerReceivedV2Called func() <-chan struct{}
+}
+
+// SetExportFactoryHandler -
+func (hts *HardforkTriggerStub) SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error {
+	if hts.SetExportFactoryHandlerCalled != nil {
+		return hts.SetExportFactoryHandlerCalled(exportFactoryHandler)
+	}
+
+	return nil
 }
 
 // Trigger -
@@ -71,6 +82,15 @@ func (hts *HardforkTriggerStub) AddCloser(closer update.Closer) error {
 func (hts *HardforkTriggerStub) NotifyTriggerReceived() <-chan struct{} {
 	if hts.NotifyTriggerReceivedCalled != nil {
 		return hts.NotifyTriggerReceivedCalled()
+	}
+
+	return make(chan struct{})
+}
+
+// NotifyTriggerReceivedV2 -
+func (hts *HardforkTriggerStub) NotifyTriggerReceivedV2() <-chan struct{} {
+	if hts.NotifyTriggerReceivedV2Called != nil {
+		return hts.NotifyTriggerReceivedV2Called()
 	}
 
 	return make(chan struct{})

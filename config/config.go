@@ -121,6 +121,7 @@ type HeartbeatV2Config struct {
 	HideInactiveValidatorIntervalInSec               int64
 	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
 	HeartbeatPool                                    CacheConfig
+	HardforkTimeBetweenSendsInSec                    int64
 }
 
 // PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool

@@ -542,6 +542,18 @@ func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
 	return m.processComponents.txsSender
 }
 
+// HardforkTrigger returns the hardfork trigger
+func (m *managedProcessComponents) HardforkTrigger() HardforkTrigger {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.hardforkTrigger
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

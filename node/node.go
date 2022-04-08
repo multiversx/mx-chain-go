@@ -62,7 +62,6 @@ type Node struct {
 	consensusGroupSize  int
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
-	hardforkTrigger     HardforkTrigger
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
 
 	consensusType       string
@@ -890,12 +889,12 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return n.hardforkTrigger.Trigger(epoch, withEarlyEndOfEpoch)
+	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key
 func (n *Node) IsSelfTrigger() bool {
-	return n.hardforkTrigger.IsSelfTrigger()
+	return n.processComponents.HardforkTrigger().IsSelfTrigger()
 }
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
@@ -976,11 +975,6 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return peerInfoSlice, nil
-}
-
-// GetHardforkTrigger returns the hardfork trigger
-func (n *Node) GetHardforkTrigger() HardforkTrigger {
-	return n.hardforkTrigger
 }
 
 // GetCoreComponents returns the core components

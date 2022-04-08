@@ -31,6 +31,7 @@ type CoreComponentsMock struct {
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
 	NodeTypeProviderField       core.NodeTypeProviderHandler
+	HardforkTriggerPubKeyField  []byte
 	mutCore                     sync.RWMutex
 }
 
@@ -143,6 +144,11 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 		return ccm.GenesisNodesSetupCalled()
 	}
 	return nil
+}
+
+// HardforkTriggerPubKey -
+func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
+	return ccm.HardforkTriggerPubKeyField
 }
 
 // IsInterfaceNil -

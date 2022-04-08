@@ -43,7 +43,6 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
 )
@@ -376,6 +375,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	hardforkTrigger := managedProcessComponents.HardforkTrigger()
+	err = hardforkTrigger.AddCloser(nodesShufflerOut)
+	if err != nil {
+		return true, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
+	}
+
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 	if err != nil {
@@ -388,13 +393,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedCryptoComponents,
-		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
-		nodesCoordinator,
-		nodesShufflerOut,
 	)
 	if err != nil {
 		return true, err
@@ -406,7 +408,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCryptoComponents,
 		managedDataComponents,
 		managedProcessComponents,
-		managedConsensusComponents.HardforkTrigger(),
 		managedProcessComponents.NodeRedundancyHandler(),
 	)
 
@@ -631,34 +632,11 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
-	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
 	stateComponents mainFactory.StateComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
-	hardForkTrigger, err := CreateHardForkTrigger(
-		nr.configs.GeneralConfig,
-		nr.configs.EpochConfig,
-		bootstrapComponents.ShardCoordinator(),
-		nodesCoordinator,
-		nodesShuffledOut,
-		coreComponents,
-		stateComponents,
-		dataComponents,
-		cryptoComponents,
-		processComponents,
-		networkComponents,
-		coreComponents.EpochStartNotifierWithConfirm(),
-		processComponents.ImportStartHandler(),
-		nr.configs.FlagsConfig.WorkingDir,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
 		Processor:                processComponents.BlockProcessor(),
@@ -673,7 +651,6 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
 		Config:              *nr.configs.GeneralConfig,
 		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
-		HardforkTrigger:     hardForkTrigger,
 		CoreComponents:      coreComponents,
 		NetworkComponents:   networkComponents,
 		CryptoComponents:    cryptoComponents,
@@ -709,7 +686,6 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	hardforkTrigger HardforkTrigger,
 	redundancyHandler consensus.NodeRedundancyHandler,
 ) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
@@ -719,7 +695,6 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 		Prefs:                 *nr.configs.PreferencesConfig,
 		AppVersion:            nr.configs.FlagsConfig.Version,
 		GenesisTime:           genesisTime,
-		HardforkTrigger:       hardforkTrigger,
 		RedundancyHandler:     redundancyHandler,
 		CoreComponents:        coreComponents,
 		DataComponents:        dataComponents,
