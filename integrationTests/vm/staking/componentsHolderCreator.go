@@ -9,7 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
@@ -21,7 +24,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
@@ -64,10 +70,11 @@ func createCoreComponents() factory2.CoreComponentsHolder {
 }
 
 func createDataComponents(coreComponents factory2.CoreComponentsHolder, numOfShards uint32) factory2.DataComponentsHolder {
-	blockChain, _ := blockchain.NewMetaChain(coreComponents.StatusHandler())
 	genesisBlock := createGenesisMetaBlock()
 	genesisBlockHash, _ := coreComponents.InternalMarshalizer().Marshal(genesisBlock)
 	genesisBlockHash = coreComponents.Hasher().Compute(string(genesisBlockHash))
+
+	blockChain, _ := blockchain.NewMetaChain(coreComponents.StatusHandler())
 	_ = blockChain.SetGenesisHeader(createGenesisMetaBlock())
 	blockChain.SetGenesisHeaderHash(genesisBlockHash)
 
@@ -78,7 +85,8 @@ func createDataComponents(coreComponents factory2.CoreComponentsHolder, numOfSha
 	chainStorer.AddStorer(dataRetriever.MiniBlockUnit, integrationTests.CreateMemUnit())
 	chainStorer.AddStorer(dataRetriever.BlockHeaderUnit, integrationTests.CreateMemUnit())
 	for i := uint32(0); i < numOfShards; i++ {
-		chainStorer.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), integrationTests.CreateMemUnit())
+		unit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		chainStorer.AddStorer(unit, integrationTests.CreateMemUnit())
 	}
 
 	return &factory3.DataComponentsMock{
@@ -89,9 +97,16 @@ func createDataComponents(coreComponents factory2.CoreComponentsHolder, numOfSha
 	}
 }
 
-func createBootstrapComponents(coreComponents factory2.CoreComponentsHolder, numOfShards uint32) factory2.BootstrapComponentsHolder {
+func createBootstrapComponents(
+	coreComponents factory2.CoreComponentsHolder,
+	numOfShards uint32,
+) factory2.BootstrapComponentsHolder {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numOfShards, core.MetachainShardId)
-	ncrf, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(coreComponents.InternalMarshalizer(), coreComponents.EpochNotifier(), stakingV4EnableEpoch)
+	ncr, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		coreComponents.InternalMarshalizer(),
+		coreComponents.EpochNotifier(),
+		stakingV4EnableEpoch,
+	)
 
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		ShCoordinator:        shardCoordinator,
@@ -101,17 +116,7 @@ func createBootstrapComponents(coreComponents factory2.CoreComponentsHolder, num
 				return &block.MetaBlock{Epoch: epoch}
 			},
 		},
-		NodesCoordinatorRegistryFactoryField: ncrf,
-	}
-}
-
-func createStateComponents(coreComponents factory2.CoreComponentsHolder) factory2.StateComponentsHandler {
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
-	userAccountsDB := createAccountsDB(coreComponents.Hasher(), coreComponents.InternalMarshalizer(), factory.NewAccountCreator(), trieFactoryManager)
-	peerAccountsDB := createAccountsDB(coreComponents.Hasher(), coreComponents.InternalMarshalizer(), factory.NewPeerAccountCreator(), trieFactoryManager)
-	return &testscommon.StateComponentsMock{
-		PeersAcc: peerAccountsDB,
-		Accounts: userAccountsDB,
+		NodesCoordinatorRegistryFactoryField: ncr,
 	}
 }
 
@@ -120,4 +125,30 @@ func createStatusComponents() factory2.StatusComponentsHolder {
 		Outport:          &testscommon.OutportStub{},
 		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 	}
+}
+
+func createStateComponents(coreComponents factory2.CoreComponentsHolder) factory2.StateComponentsHandler {
+	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
+	hasher := coreComponents.Hasher()
+	marshaller := coreComponents.InternalMarshalizer()
+	userAccountsDB := createAccountsDB(hasher, marshaller, factory.NewAccountCreator(), trieFactoryManager)
+	peerAccountsDB := createAccountsDB(hasher, marshaller, factory.NewPeerAccountCreator(), trieFactoryManager)
+
+	return &testscommon.StateComponentsMock{
+		PeersAcc: peerAccountsDB,
+		Accounts: userAccountsDB,
+	}
+}
+
+func createAccountsDB(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	accountFactory state.AccountFactory,
+	trieStorageManager common.StorageManager,
+) *state.AccountsDB {
+	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal)
+	return adb
 }

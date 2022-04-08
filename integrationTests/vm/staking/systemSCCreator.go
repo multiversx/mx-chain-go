@@ -29,34 +29,13 @@ func createSystemSCProcessor(
 	nc nodesCoordinator.NodesCoordinator,
 	coreComponents factory2.CoreComponentsHolder,
 	stateComponents factory2.StateComponentsHandler,
-	bootstrapComponents factory2.BootstrapComponentsHolder,
+	shardCoordinator sharding.Coordinator,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	vmContainer process.VirtualMachinesContainer,
 ) process.EpochStartSystemSCProcessor {
-	args := createFullArgumentsForSystemSCProcessing(nc,
-		coreComponents,
-		stateComponents,
-		bootstrapComponents,
-		maxNodesConfig,
-		validatorStatisticsProcessor,
-		vmContainer,
-	)
-	s, _ := metachain.NewSystemSCProcessor(args)
-	return s
-}
-
-func createFullArgumentsForSystemSCProcessing(
-	nc nodesCoordinator.NodesCoordinator,
-	coreComponents factory2.CoreComponentsHolder,
-	stateComponents factory2.StateComponentsHandler,
-	bootstrapComponents factory2.BootstrapComponentsHolder,
-	maxNodesConfig []config.MaxNodesChangeConfig,
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	vmContainer process.VirtualMachinesContainer,
-) metachain.ArgsNewEpochStartSystemSCProcessing {
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
-	stakingSCprovider, _ := metachain.NewStakingDataProvider(systemVM, "1000")
+	stakingSCProvider, _ := metachain.NewStakingDataProvider(systemVM, "1000")
 
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
@@ -70,9 +49,9 @@ func createFullArgumentsForSystemSCProcessing(
 		ChanceComputer:          &mock3.ChanceComputerStub{},
 		EpochNotifier:           coreComponents.EpochNotifier(),
 		GenesisNodesConfig:      &mock.NodesSetupStub{},
-		StakingDataProvider:     stakingSCprovider,
+		StakingDataProvider:     stakingSCProvider,
 		NodesConfigProvider:     nc,
-		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:        shardCoordinator,
 		ESDTOwnerAddressBytes:   bytes.Repeat([]byte{1}, 32),
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
@@ -84,7 +63,8 @@ func createFullArgumentsForSystemSCProcessing(
 		MaxNodesEnableConfig: maxNodesConfig,
 	}
 
-	return args
+	systemSCProcessor, _ := metachain.NewSystemSCProcessor(args)
+	return systemSCProcessor
 }
 
 func createValidatorStatisticsProcessor(

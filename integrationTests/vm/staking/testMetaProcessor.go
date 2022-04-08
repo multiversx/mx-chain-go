@@ -1,5 +1,6 @@
 package staking
 
+// nomindated proof of stake - polkadot
 import (
 	"fmt"
 	"math/big"
@@ -12,27 +13,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	factory2 "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -60,28 +53,41 @@ type TestMetaProcessor struct {
 func NewTestMetaProcessor(
 	numOfMetaNodes uint32,
 	numOfShards uint32,
-	numOfNodesPerShard uint32,
+	numOfEligibleNodesPerShard uint32,
+	numOfWaitingNodesPerShard uint32,
+	numOfNodesToShufflePerShard uint32,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	numOfNodesInStakingQueue uint32,
 	t *testing.T,
 ) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createComponentHolders(numOfShards)
-	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents.StorageService())
 
-	maxNodesConfig := make([]config.MaxNodesChangeConfig, 0)
-	maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{MaxNumNodes: 2 * (numOfMetaNodes + numOfShards*numOfNodesPerShard), NodesToShufflePerShard: 2})
+	maxNodesConfig := createMaxNodesConfig(
+		numOfMetaNodes,
+		numOfShards,
+		numOfEligibleNodesPerShard,
+		numOfWaitingNodesPerShard,
+		numOfNodesToShufflePerShard,
+	)
 
 	createStakingQueue(numOfNodesInStakingQueue, coreComponents, stateComponents)
 
-	nc := createNodesCoordinator(numOfMetaNodes, numOfShards, numOfNodesPerShard, shardConsensusGroupSize, metaConsensusGroupSize, coreComponents, dataComponents, stateComponents, bootstrapComponents.NodesCoordinatorRegistryFactory(), maxNodesConfig)
+	nc := createNodesCoordinator(
+		numOfMetaNodes,
+		numOfShards,
+		numOfEligibleNodesPerShard,
+		numOfWaitingNodesPerShard,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		coreComponents,
+		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		stateComponents,
+		bootstrapComponents.NodesCoordinatorRegistryFactory(),
+		maxNodesConfig,
+	)
 
-	validatorStatisticsProcessor := createValidatorStatisticsProcessor(dataComponents, coreComponents, nc, bootstrapComponents.ShardCoordinator(), stateComponents.PeerAccounts())
-
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasSchedule, 1)
-	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
-
+	gasScheduleNotifier := createGasScheduleNotifier()
 	blockChainHook := createBlockChainHook(
 		dataComponents, coreComponents,
 		stateComponents.AccountsAdapter(),
@@ -89,18 +95,80 @@ func NewTestMetaProcessor(
 		gasScheduleNotifier,
 	)
 
-	metaVmFactory := createVMContainerFactory(coreComponents, gasScheduleNotifier, blockChainHook, stateComponents.PeerAccounts(), bootstrapComponents.ShardCoordinator(), nc)
+	metaVmFactory := createVMContainerFactory(
+		coreComponents,
+		gasScheduleNotifier,
+		blockChainHook,
+		stateComponents.PeerAccounts(),
+		bootstrapComponents.ShardCoordinator(),
+		nc,
+	)
 	vmContainer, _ := metaVmFactory.Create()
 
-	scp := createSystemSCProcessor(nc, coreComponents, stateComponents, bootstrapComponents, maxNodesConfig, validatorStatisticsProcessor, vmContainer)
+	validatorStatisticsProcessor := createValidatorStatisticsProcessor(
+		dataComponents,
+		coreComponents,
+		nc,
+		bootstrapComponents.ShardCoordinator(),
+		stateComponents.PeerAccounts(),
+	)
+	scp := createSystemSCProcessor(
+		nc,
+		coreComponents,
+		stateComponents,
+		bootstrapComponents.ShardCoordinator(),
+		maxNodesConfig,
+		validatorStatisticsProcessor,
+		vmContainer,
+	)
+
+	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents.StorageService())
 
 	return &TestMetaProcessor{
-		MetaBlockProcessor:  createMetaBlockProcessor(nc, scp, coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents, validatorStatisticsProcessor, blockChainHook, metaVmFactory, epochStartTrigger),
+		MetaBlockProcessor: createMetaBlockProcessor(
+			nc,
+			scp,
+			coreComponents,
+			dataComponents,
+			bootstrapComponents,
+			statusComponents,
+			stateComponents,
+			validatorStatisticsProcessor,
+			blockChainHook,
+			metaVmFactory,
+			epochStartTrigger,
+		),
 		NodesCoordinator:    nc,
 		ValidatorStatistics: validatorStatisticsProcessor,
 		EpochStartTrigger:   epochStartTrigger,
 		BlockChainHandler:   dataComponents.Blockchain(),
 	}
+}
+
+func createMaxNodesConfig(
+	numOfMetaNodes uint32,
+	numOfShards uint32,
+	numOfEligibleNodesPerShard uint32,
+	numOfWaitingNodesPerShard uint32,
+	numOfNodesToShufflePerShard uint32,
+) []config.MaxNodesChangeConfig {
+	totalEligible := numOfMetaNodes + numOfShards*numOfEligibleNodesPerShard
+	totalWaiting := (numOfShards + 1) * numOfWaitingNodesPerShard
+
+	maxNodesConfig := make([]config.MaxNodesChangeConfig, 0)
+	maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{
+		MaxNumNodes:            totalEligible + totalWaiting,
+		NodesToShufflePerShard: numOfNodesToShufflePerShard,
+	},
+	)
+
+	return maxNodesConfig
+}
+
+func createGasScheduleNotifier() core.GasScheduleNotifier {
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
+	return mock.NewGasScheduleNotifierMock(gasSchedule)
 }
 
 func createStakingQueue(
@@ -119,8 +187,6 @@ func createStakingQueue(
 		coreComponents.InternalMarshalizer(),
 		owner,
 		owner)
-
-	_, _ = stateComponents.PeerAccounts().Commit()
 
 	addKeysToWaitingList(stateComponents.AccountsAdapter(),
 		ownerWaitingNodes[1:],
@@ -274,132 +340,6 @@ func generateUniqueKey(identifier uint32) []byte {
 	return []byte(strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier)
 }
 
-// TODO: MAYBE USE factory from mainFactory.CreateNodesCoordinator
-func createNodesCoordinator(
-	numOfMetaNodes uint32,
-	numOfShards uint32,
-	numOfNodesPerShard uint32,
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	coreComponents factory2.CoreComponentsHolder,
-	dataComponents factory2.DataComponentsHolder,
-	stateComponents factory2.StateComponentsHandler,
-	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
-	maxNodesConfig []config.MaxNodesChangeConfig,
-) nodesCoordinator.NodesCoordinator {
-	validatorsMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, 0)
-	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
-
-	waitingMap := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, numOfMetaNodes+numOfShards*numOfNodesPerShard)
-	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
-
-	// TODO: HERE SAVE ALL ACCOUNTS
-	var allPubKeys [][]byte
-
-	for shardID, vals := range validatorsMapForNodesCoordinator {
-		for _, val := range vals {
-			peerAccount, _ := state.NewPeerAccount(val.PubKey())
-			peerAccount.SetTempRating(initialRating)
-			peerAccount.ShardId = shardID
-			peerAccount.BLSPublicKey = val.PubKey()
-			peerAccount.List = string(common.EligibleList)
-			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
-			allPubKeys = append(allPubKeys, val.PubKey())
-		}
-	}
-
-	for shardID, vals := range waitingMapForNodesCoordinator {
-		for _, val := range vals {
-			peerAccount, _ := state.NewPeerAccount(val.PubKey())
-			peerAccount.SetTempRating(initialRating)
-			peerAccount.ShardId = shardID
-			peerAccount.BLSPublicKey = val.PubKey()
-			peerAccount.List = string(common.WaitingList)
-			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
-			allPubKeys = append(allPubKeys, val.PubKey())
-		}
-	}
-
-	for idx, pubKey := range allPubKeys {
-		registerValidatorKeys(stateComponents.AccountsAdapter(), []byte(string(pubKey)+strconv.Itoa(idx)), []byte(string(pubKey)+strconv.Itoa(idx)), [][]byte{pubKey}, big.NewInt(2000), coreComponents.InternalMarshalizer())
-	}
-
-	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     numOfNodesPerShard,
-		NodesMeta:                      numOfMetaNodes,
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           maxNodesConfig,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
-		StakingV4EnableEpoch:           stakingV4EnableEpoch,
-	}
-	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
-
-	cache, _ := lrucache.NewCache(10000)
-	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:         shardConsensusGroupSize,
-		MetaConsensusGroupSize:          metaConsensusGroupSize,
-		Marshalizer:                     coreComponents.InternalMarshalizer(),
-		Hasher:                          coreComponents.Hasher(),
-		ShardIDAsObserver:               core.MetachainShardId,
-		NbShards:                        numOfShards,
-		EligibleNodes:                   validatorsMapForNodesCoordinator,
-		WaitingNodes:                    waitingMapForNodesCoordinator,
-		SelfPublicKey:                   validatorsMap[core.MetachainShardId][0].PubKeyBytes(),
-		ConsensusGroupCache:             cache,
-		ShuffledOutHandler:              &mock2.ShuffledOutHandlerStub{},
-		ChanStopNode:                    coreComponents.ChanStopNodeProcess(),
-		IsFullArchive:                   false,
-		Shuffler:                        nodeShuffler,
-		BootStorer:                      dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
-		StakingV4EnableEpoch:            stakingV4EnableEpoch,
-		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
-	}
-
-	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-	if err != nil {
-		fmt.Println("error creating node coordinator")
-	}
-
-	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, coreComponents.Rater())
-	if err != nil {
-		fmt.Println("error creating node coordinator")
-	}
-
-	return nodesCoord
-}
-
-func generateGenesisNodeInfoMap(
-	numOfMetaNodes uint32,
-	numOfShards uint32,
-	numOfNodesPerShard uint32,
-	startIdx uint32,
-) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
-	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
-	id := startIdx
-	for shardId := uint32(0); shardId < numOfShards; shardId++ {
-		for n := uint32(0); n < numOfNodesPerShard; n++ {
-			addr := generateUniqueKey(id)
-			validator := mock2.NewNodeInfo(addr, addr, shardId, initialRating)
-			validatorsMap[shardId] = append(validatorsMap[shardId], validator)
-			id++
-		}
-	}
-
-	for n := uint32(0); n < numOfMetaNodes; n++ {
-		addr := generateUniqueKey(id)
-		validator := mock2.NewNodeInfo(addr, addr, core.MetachainShardId, initialRating)
-		validatorsMap[core.MetachainShardId] = append(validatorsMap[core.MetachainShardId], validator)
-		id++
-	}
-
-	return validatorsMap
-}
-
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
@@ -444,19 +384,6 @@ func createGenesisMetaBlock() *block.MetaBlock {
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
 	}
-}
-
-func createAccountsDB(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accountFactory state.AccountFactory,
-	trieStorageManager common.StorageManager,
-) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal)
-	return adb
 }
 
 func createEconomicsData() process.EconomicsDataHandler {

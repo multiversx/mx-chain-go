@@ -1,0 +1,162 @@
+package staking
+
+import (
+	"fmt"
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
+	factory2 "github.com/ElrondNetwork/elrond-go/factory"
+	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+)
+
+func createNodesCoordinator(
+	numOfMetaNodes uint32,
+	numOfShards uint32,
+	numOfEligibleNodesPerShard uint32,
+	numOfWaitingNodesPerShard uint32,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	coreComponents factory2.CoreComponentsHolder,
+	bootStorer storage.Storer,
+	stateComponents factory2.StateComponentsHandler,
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
+	maxNodesConfig []config.MaxNodesChangeConfig,
+) nodesCoordinator.NodesCoordinator {
+	eligibleMap, waitingMap := createGenesisNodes(
+		numOfMetaNodes,
+		numOfShards,
+		numOfEligibleNodesPerShard,
+		numOfWaitingNodesPerShard,
+		coreComponents.InternalMarshalizer(),
+		stateComponents,
+	)
+
+	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
+		NodesShard:           numOfEligibleNodesPerShard,
+		NodesMeta:            numOfMetaNodes,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: maxNodesConfig,
+		StakingV4EnableEpoch: stakingV4EnableEpoch,
+	}
+	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
+
+	cache, _ := lrucache.NewCache(10000)
+	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
+		ShardConsensusGroupSize:         shardConsensusGroupSize,
+		MetaConsensusGroupSize:          metaConsensusGroupSize,
+		Marshalizer:                     coreComponents.InternalMarshalizer(),
+		Hasher:                          coreComponents.Hasher(),
+		ShardIDAsObserver:               core.MetachainShardId,
+		NbShards:                        numOfShards,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   eligibleMap[core.MetachainShardId][0].PubKey(),
+		ConsensusGroupCache:             cache,
+		ShuffledOutHandler:              &mock2.ShuffledOutHandlerStub{},
+		ChanStopNode:                    coreComponents.ChanStopNodeProcess(),
+		IsFullArchive:                   false,
+		Shuffler:                        nodeShuffler,
+		BootStorer:                      bootStorer,
+		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
+		StakingV4EnableEpoch:            stakingV4EnableEpoch,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
+	}
+
+	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	if err != nil {
+		fmt.Println("error creating node coordinator")
+	}
+
+	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, coreComponents.Rater())
+	if err != nil {
+		fmt.Println("error creating node coordinator")
+	}
+
+	return nodesCoord
+}
+
+func createGenesisNodes(
+	numOfMetaNodes uint32,
+	numOfShards uint32,
+	numOfNodesPerShard uint32,
+	numOfWaitingNodesPerShard uint32,
+	marshaller marshal.Marshalizer,
+	stateComponents factory2.StateComponentsHandler,
+) (map[uint32][]nodesCoordinator.Validator, map[uint32][]nodesCoordinator.Validator) {
+	addressStartIdx := uint32(0)
+	eligibleGenesisNodes := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, addressStartIdx)
+	eligibleValidators, _ := nodesCoordinator.NodesInfoToValidators(eligibleGenesisNodes)
+
+	addressStartIdx = numOfMetaNodes + numOfShards*numOfNodesPerShard
+	waitingGenesisNodes := generateGenesisNodeInfoMap(numOfWaitingNodesPerShard, numOfShards, numOfWaitingNodesPerShard, addressStartIdx)
+	waitingValidators, _ := nodesCoordinator.NodesInfoToValidators(waitingGenesisNodes)
+
+	registerValidators(eligibleValidators, stateComponents, marshaller, common.EligibleList)
+	registerValidators(waitingValidators, stateComponents, marshaller, common.WaitingList)
+
+	return eligibleValidators, waitingValidators
+}
+
+func generateGenesisNodeInfoMap(
+	numOfMetaNodes uint32,
+	numOfShards uint32,
+	numOfNodesPerShard uint32,
+	addressStartIdx uint32,
+) map[uint32][]nodesCoordinator.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	id := addressStartIdx
+	for shardId := uint32(0); shardId < numOfShards; shardId++ {
+		for n := uint32(0); n < numOfNodesPerShard; n++ {
+			addr := generateUniqueKey(id)
+			validator := mock2.NewNodeInfo(addr, addr, shardId, initialRating)
+			validatorsMap[shardId] = append(validatorsMap[shardId], validator)
+			id++
+		}
+	}
+
+	for n := uint32(0); n < numOfMetaNodes; n++ {
+		addr := generateUniqueKey(id)
+		validator := mock2.NewNodeInfo(addr, addr, core.MetachainShardId, initialRating)
+		validatorsMap[core.MetachainShardId] = append(validatorsMap[core.MetachainShardId], validator)
+		id++
+	}
+
+	return validatorsMap
+}
+
+func registerValidators(
+	validators map[uint32][]nodesCoordinator.Validator,
+	stateComponents factory2.StateComponentsHolder,
+	marshaller marshal.Marshalizer,
+	list common.PeerType,
+) {
+	for shardID, validatorsInShard := range validators {
+		for _, val := range validatorsInShard {
+			pubKey := val.PubKey()
+			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount.SetTempRating(initialRating)
+			peerAccount.ShardId = shardID
+			peerAccount.BLSPublicKey = pubKey
+			peerAccount.List = string(list)
+			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
+			registerValidatorKeys(
+				stateComponents.AccountsAdapter(),
+				pubKey,
+				pubKey,
+				[][]byte{pubKey},
+				big.NewInt(2000),
+				marshaller,
+			)
+		}
+	}
+}
