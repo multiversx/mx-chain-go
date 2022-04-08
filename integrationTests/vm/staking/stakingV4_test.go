@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewTestMetaProcessor(t *testing.T) {
-	node := NewTestMetaProcessor(3, 3, 3, 3, 2, 2, 2, 10, t)
+	node := NewTestMetaProcessor(3, 3, 3, 3, 2, 2, 2, 10)
 
 	//logger.SetLogLevel("*:DEBUG,process:TRACE")
 	//logger.SetLogLevel("*:DEBUG")

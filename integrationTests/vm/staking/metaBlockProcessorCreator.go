@@ -1,6 +1,11 @@
 package staking
 
 import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -52,7 +57,7 @@ func createMockMetaArguments(
 ) blproc.ArgMetaProcessor {
 	shardCoordiantor := bootstrapComponents.ShardCoordinator()
 	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, shardCoordiantor)
-	blockTracker := createBlockTracker(shardCoordiantor)
+	blockTracker := createBlockTracker(dataComponents.Blockchain().GetGenesisHeader(), shardCoordiantor)
 	epochStartDataCreator := createEpochStartDataCreator(coreComponents, dataComponents, shardCoordiantor, epochStartHandler, blockTracker)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -139,9 +144,49 @@ func createEpochStartDataCreator(
 	return epochStartDataCreator
 }
 
-func createBlockTracker(shardCoordinator sharding.Coordinator) process.BlockTracker {
-	startHeaders := createGenesisBlocks(shardCoordinator)
-	return mock.NewBlockTrackerMock(shardCoordinator, startHeaders)
+func createBlockTracker(genesisMetaHeader data.HeaderHandler, shardCoordinator sharding.Coordinator) process.BlockTracker {
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
+		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
+	}
+
+	genesisBlocks[core.MetachainShardId] = genesisMetaHeader
+	return mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks)
+}
+
+func createGenesisBlock(ShardID uint32) *block.Header {
+	rootHash := []byte("roothash")
+	return &block.Header{
+		Nonce:           0,
+		Round:           0,
+		Signature:       rootHash,
+		RandSeed:        rootHash,
+		PrevRandSeed:    rootHash,
+		ShardID:         ShardID,
+		PubKeysBitmap:   rootHash,
+		RootHash:        rootHash,
+		PrevHash:        rootHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
+}
+
+func createGenesisMetaBlock() *block.MetaBlock {
+	rootHash := []byte("roothash")
+	return &block.MetaBlock{
+		Nonce:                  0,
+		Round:                  0,
+		Signature:              rootHash,
+		RandSeed:               rootHash,
+		PrevRandSeed:           rootHash,
+		PubKeysBitmap:          rootHash,
+		RootHash:               rootHash,
+		PrevHash:               rootHash,
+		AccumulatedFees:        big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
 }
 
 func createHeaderValidator(coreComponents factory2.CoreComponentsHolder) epochStart.HeaderValidator {

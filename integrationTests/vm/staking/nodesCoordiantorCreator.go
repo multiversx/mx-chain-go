@@ -14,6 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+)
+
+// shuffler constants
+const (
+	shuffleBetweenShards = false
+	adaptivity           = false
+	hysteresis           = float32(0.2)
+	initialRating        = 5
 )
 
 func createNodesCoordinator(
@@ -149,7 +158,7 @@ func registerValidators(
 			peerAccount.BLSPublicKey = pubKey
 			peerAccount.List = string(list)
 			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
-			registerValidatorKeys(
+			testscommon.RegisterValidatorKeys(
 				stateComponents.AccountsAdapter(),
 				pubKey,
 				pubKey,

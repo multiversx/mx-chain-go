@@ -20,14 +20,10 @@ import (
 	factory2 "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +55,6 @@ func NewTestMetaProcessor(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	numOfNodesInStakingQueue uint32,
-	t *testing.T,
 ) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createComponentHolders(numOfShards)
 
@@ -71,7 +66,7 @@ func NewTestMetaProcessor(
 		numOfNodesToShufflePerShard,
 	)
 
-	createStakingQueue(numOfNodesInStakingQueue, coreComponents, stateComponents)
+	createStakingQueue(numOfNodesInStakingQueue, coreComponents.InternalMarshalizer(), stateComponents.AccountsAdapter())
 
 	nc := createNodesCoordinator(
 		numOfMetaNodes,
@@ -173,8 +168,8 @@ func createGasScheduleNotifier() core.GasScheduleNotifier {
 
 func createStakingQueue(
 	numOfNodesInStakingQueue uint32,
-	coreComponents factory2.CoreComponentsHolder,
-	stateComponents factory2.StateComponentsHolder,
+	marshaller marshal.Marshalizer,
+	accountsAdapter state.AccountsAdapter,
 ) {
 	owner := generateUniqueKey(50)
 	ownerWaitingNodes := make([][]byte, 0)
@@ -182,19 +177,27 @@ func createStakingQueue(
 		ownerWaitingNodes = append(ownerWaitingNodes, generateUniqueKey(i))
 	}
 
-	saveOneKeyToWaitingList(stateComponents.AccountsAdapter(),
+	testscommon.SaveOneKeyToWaitingList(
+		accountsAdapter,
 		ownerWaitingNodes[0],
-		coreComponents.InternalMarshalizer(),
+		marshaller,
 		owner,
-		owner)
-
-	addKeysToWaitingList(stateComponents.AccountsAdapter(),
+		owner,
+	)
+	testscommon.AddKeysToWaitingList(
+		accountsAdapter,
 		ownerWaitingNodes[1:],
-		coreComponents.InternalMarshalizer(),
-		owner, owner)
-	addValidatorData(stateComponents.AccountsAdapter(), owner, ownerWaitingNodes, big.NewInt(500000), coreComponents.InternalMarshalizer())
-
-	_, _ = stateComponents.AccountsAdapter().Commit()
+		marshaller,
+		owner,
+		owner,
+	)
+	testscommon.AddValidatorData(
+		accountsAdapter,
+		owner,
+		ownerWaitingNodes,
+		big.NewInt(50000),
+		marshaller,
+	)
 }
 
 func createMetaBlockHeader2(epoch uint32, round uint64, prevHash []byte) *block.MetaBlock {
@@ -326,302 +329,8 @@ func (tmp *TestMetaProcessor) DisplayNodesConfig(epoch uint32) {
 	}
 }
 
-// shuffler constants
-const (
-	shuffleBetweenShards = false
-	adaptivity           = false
-	hysteresis           = float32(0.2)
-	initialRating        = 5
-)
-
 func generateUniqueKey(identifier uint32) []byte {
 	neededLength := 15 //192
 	uniqueIdentifier := fmt.Sprintf("address-%d", identifier)
 	return []byte(strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier)
-}
-
-func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
-	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	for ShardID := uint32(0); ShardID < shardCoordinator.NumberOfShards(); ShardID++ {
-		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
-	}
-
-	genesisBlocks[core.MetachainShardId] = createGenesisMetaBlock()
-
-	return genesisBlocks
-}
-
-func createGenesisBlock(ShardID uint32) *block.Header {
-	rootHash := []byte("roothash")
-	return &block.Header{
-		Nonce:           0,
-		Round:           0,
-		Signature:       rootHash,
-		RandSeed:        rootHash,
-		PrevRandSeed:    rootHash,
-		ShardID:         ShardID,
-		PubKeysBitmap:   rootHash,
-		RootHash:        rootHash,
-		PrevHash:        rootHash,
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-	}
-}
-
-func createGenesisMetaBlock() *block.MetaBlock {
-	rootHash := []byte("roothash")
-	return &block.MetaBlock{
-		Nonce:                  0,
-		Round:                  0,
-		Signature:              rootHash,
-		RandSeed:               rootHash,
-		PrevRandSeed:           rootHash,
-		PubKeysBitmap:          rootHash,
-		RootHash:               rootHash,
-		PrevHash:               rootHash,
-		AccumulatedFees:        big.NewInt(0),
-		DeveloperFees:          big.NewInt(0),
-		AccumulatedFeesInEpoch: big.NewInt(0),
-		DevFeesInEpoch:         big.NewInt(0),
-	}
-}
-
-func createEconomicsData() process.EconomicsDataHandler {
-	maxGasLimitPerBlock := strconv.FormatUint(1500000000, 10)
-	minGasPrice := strconv.FormatUint(10, 10)
-	minGasLimit := strconv.FormatUint(10, 10)
-
-	argsNewEconomicsData := economicsHandler.ArgsNewEconomicsData{
-		Economics: &config.EconomicsConfig{
-			GlobalSettings: config.GlobalSettings{
-				GenesisTotalSupply: "2000000000000000000000",
-				MinimumInflation:   0,
-				YearSettings: []*config.YearSetting{
-					{
-						Year:             0,
-						MaximumInflation: 0.01,
-					},
-				},
-			},
-			RewardsSettings: config.RewardsSettings{
-				RewardsConfigByEpoch: []config.EpochRewardSettings{
-					{
-						LeaderPercentage:                 0.1,
-						DeveloperPercentage:              0.1,
-						ProtocolSustainabilityPercentage: 0.1,
-						ProtocolSustainabilityAddress:    "protocol",
-						TopUpGradientPoint:               "300000000000000000000",
-						TopUpFactor:                      0.25,
-					},
-				},
-			},
-			FeeSettings: config.FeeSettings{
-				GasLimitSettings: []config.GasLimitSetting{
-					{
-						MaxGasLimitPerBlock:         maxGasLimitPerBlock,
-						MaxGasLimitPerMiniBlock:     maxGasLimitPerBlock,
-						MaxGasLimitPerMetaBlock:     maxGasLimitPerBlock,
-						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
-						MaxGasLimitPerTx:            maxGasLimitPerBlock,
-						MinGasLimit:                 minGasLimit,
-					},
-				},
-				MinGasPrice:      minGasPrice,
-				GasPerDataByte:   "1",
-				GasPriceModifier: 1.0,
-			},
-		},
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
-	}
-	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
-	return economicsData
-}
-
-// ######
-
-func registerValidatorKeys(
-	accountsDB state.AccountsAdapter,
-	ownerAddress []byte,
-	rewardAddress []byte,
-	stakedKeys [][]byte,
-	totalStake *big.Int,
-	marshaller marshal.Marshalizer,
-) {
-	addValidatorData(accountsDB, ownerAddress, stakedKeys, totalStake, marshaller)
-	addStakingData(accountsDB, ownerAddress, rewardAddress, stakedKeys, marshaller)
-	_, err := accountsDB.Commit()
-	if err != nil {
-		fmt.Println("ERROR REGISTERING VALIDATORS ", err)
-	}
-	//log.LogIfError(err)
-}
-
-func addValidatorData(
-	accountsDB state.AccountsAdapter,
-	ownerKey []byte,
-	registeredKeys [][]byte,
-	totalStake *big.Int,
-	marshaller marshal.Marshalizer,
-) {
-	validatorSC := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
-	validatorData := &systemSmartContracts.ValidatorDataV2{
-		RegisterNonce:   0,
-		Epoch:           0,
-		RewardAddress:   ownerKey,
-		TotalStakeValue: totalStake,
-		LockedStake:     big.NewInt(0),
-		TotalUnstaked:   big.NewInt(0),
-		BlsPubKeys:      registeredKeys,
-		NumRegistered:   uint32(len(registeredKeys)),
-	}
-
-	marshaledData, _ := marshaller.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(ownerKey, marshaledData)
-
-	_ = accountsDB.SaveAccount(validatorSC)
-}
-
-func addStakingData(
-	accountsDB state.AccountsAdapter,
-	ownerAddress []byte,
-	rewardAddress []byte,
-	stakedKeys [][]byte,
-	marshaller marshal.Marshalizer,
-) {
-	stakedData := &systemSmartContracts.StakedDataV2_0{
-		Staked:        true,
-		RewardAddress: rewardAddress,
-		OwnerAddress:  ownerAddress,
-		StakeValue:    big.NewInt(100),
-	}
-	marshaledData, _ := marshaller.Marshal(stakedData)
-
-	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
-	for _, key := range stakedKeys {
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
-	}
-
-	_ = accountsDB.SaveAccount(stakingSCAcc)
-}
-
-func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	acc, _ := accountsDB.LoadAccount(address)
-	stakingSCAcc := acc.(state.UserAccountHandler)
-
-	return stakingSCAcc
-}
-
-func saveOneKeyToWaitingList(
-	accountsDB state.AccountsAdapter,
-	waitingKey []byte,
-	marshalizer marshal.Marshalizer,
-	rewardAddress []byte,
-	ownerAddress []byte,
-) {
-	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
-	stakedData := &systemSmartContracts.StakedDataV2_0{
-		Waiting:       true,
-		RewardAddress: rewardAddress,
-		OwnerAddress:  ownerAddress,
-		StakeValue:    big.NewInt(100),
-	}
-	marshaledData, _ := marshalizer.Marshal(stakedData)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
-
-	waitingKeyInList := []byte("w_" + string(waitingKey))
-	waitingListHead := &systemSmartContracts.WaitingList{
-		FirstKey: waitingKeyInList,
-		LastKey:  waitingKeyInList,
-		Length:   1,
-	}
-	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
-
-	waitingListElement := &systemSmartContracts.ElementInList{
-		BLSPublicKey: waitingKey,
-		PreviousKey:  waitingKeyInList,
-		NextKey:      make([]byte, 0),
-	}
-	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
-
-	_ = accountsDB.SaveAccount(stakingSCAcc)
-}
-
-func addKeysToWaitingList(
-	accountsDB state.AccountsAdapter,
-	waitingKeys [][]byte,
-	marshalizer marshal.Marshalizer,
-	rewardAddress []byte,
-	ownerAddress []byte,
-) {
-	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
-
-	for _, waitingKey := range waitingKeys {
-		stakedData := &systemSmartContracts.StakedDataV2_0{
-			Waiting:       true,
-			RewardAddress: rewardAddress,
-			OwnerAddress:  ownerAddress,
-			StakeValue:    big.NewInt(100),
-		}
-		marshaledData, _ := marshalizer.Marshal(stakedData)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
-	}
-
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
-	waitingListHead := &systemSmartContracts.WaitingList{}
-	_ = marshalizer.Unmarshal(waitingListHead, marshaledData)
-
-	waitingListAlreadyHasElements := waitingListHead.Length > 0
-	waitingListLastKeyBeforeAddingNewKeys := waitingListHead.LastKey
-
-	waitingListHead.Length += uint32(len(waitingKeys))
-	lastKeyInList := []byte("w_" + string(waitingKeys[len(waitingKeys)-1]))
-	waitingListHead.LastKey = lastKeyInList
-
-	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
-
-	numWaitingKeys := len(waitingKeys)
-	previousKey := waitingListHead.LastKey
-	for i, waitingKey := range waitingKeys {
-
-		waitingKeyInList := []byte("w_" + string(waitingKey))
-		waitingListElement := &systemSmartContracts.ElementInList{
-			BLSPublicKey: waitingKey,
-			PreviousKey:  previousKey,
-			NextKey:      make([]byte, 0),
-		}
-
-		if i < numWaitingKeys-1 {
-			nextKey := []byte("w_" + string(waitingKeys[i+1]))
-			waitingListElement.NextKey = nextKey
-		}
-
-		marshaledData, _ = marshalizer.Marshal(waitingListElement)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
-
-		previousKey = waitingKeyInList
-	}
-
-	if waitingListAlreadyHasElements {
-		marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListLastKeyBeforeAddingNewKeys)
-	} else {
-		marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListHead.FirstKey)
-	}
-
-	waitingListElement := &systemSmartContracts.ElementInList{}
-	_ = marshalizer.Unmarshal(waitingListElement, marshaledData)
-	waitingListElement.NextKey = []byte("w_" + string(waitingKeys[0]))
-	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-
-	if waitingListAlreadyHasElements {
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListLastKeyBeforeAddingNewKeys, marshaledData)
-	} else {
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListHead.FirstKey, marshaledData)
-	}
-
-	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
