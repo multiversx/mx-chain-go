@@ -25,32 +25,37 @@ import (
 )
 
 func TestNewGuardedTxSigVerifier(t *testing.T) {
-	signer := &cryptoMocks.SingleSignerStub{}
-	guardianChecker := &guardianMocks.GuardianCheckerStub{}
-	keyGen := &cryptoMocks.KeyGenStub{}
-	marshaller := &testscommon.MarshalizerMock{}
-	converter := &testscommon.PubkeyConverterMock{}
+	args := GuardedTxSigVerifierArgs{
+		SigVerifier:     &cryptoMocks.SingleSignerStub{},
+		GuardianChecker: &guardianMocks.GuardianCheckerStub{},
+		PubKeyConverter: &testscommon.PubkeyConverterMock{},
+		Marshaller:      &testscommon.MarshalizerMock{},
+		KeyGen:          &cryptoMocks.KeyGenStub{},
+	}
 
 	t.Run("nil guardian sig verifier ", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(nil, guardianChecker, converter, marshaller, keyGen)
+		changedArgs := *&args
+		changedArgs.SigVerifier = nil
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilSingleSigner, err)
 		require.Nil(t, gtxSigVerifier)
 	})
-
 	t.Run("nil guardian checker", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(signer, nil, converter, marshaller, keyGen)
+		changedArgs := *&args
+		changedArgs.GuardianChecker = nil
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilGuardianChecker, err)
 		require.Nil(t, gtxSigVerifier)
 	})
-
 	t.Run("nil public key converter", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(signer, guardianChecker, nil, marshaller, keyGen)
-		require.Equal(t, process.ErrNilGuardianChecker, err)
+		changedArgs := *&args
+		changedArgs.PubKeyConverter = nil
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
+		require.Equal(t, process.ErrNilPubkeyConverter, err)
 		require.Nil(t, gtxSigVerifier)
 	})
-
 	t.Run("ok params", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(signer, guardianChecker, converter, marshaller, keyGen)
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)
 		require.NotNil(t, gtxSigVerifier)
 	})
@@ -106,16 +111,23 @@ func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 	marshaller := &marshal.JsonMarshalizer{}
 	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
 	inTx := createSignedInterceptedTx(tx, signer, privateKeyOwner, privateKeyGuardian, converter, marshaller)
+	args := GuardedTxSigVerifierArgs{
+		SigVerifier:     signer,
+		GuardianChecker: guardianChecker,
+		PubKeyConverter: converter,
+		Marshaller:      marshaller,
+		KeyGen:          keyGenerator,
+	}
 
 	t.Run("verify OK", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(signer, guardianChecker, converter, marshaller, keyGenerator)
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)
 
 		err = gtxSigVerifier.VerifyGuardianSignature(acc, inTx)
 		require.Nil(t, err)
 	})
 	t.Run("invalid guardian signature", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(signer, guardianChecker, converter, marshaller, keyGenerator)
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)
 
 		// owner signs for guardian
@@ -124,7 +136,7 @@ func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 		require.NotNil(t, err)
 	})
 	t.Run("nil guardian signature", func(t *testing.T) {
-		gtxSigVerifier, err := NewGuardedTxSigVerifier(signer, guardianChecker, converter, marshaller, keyGenerator)
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)
 
 		// owner signs for guardian

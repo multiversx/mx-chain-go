@@ -45,6 +45,7 @@ type ProcessComponentsStub struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
+	GuardianSigVerifierField             process.GuardianSigVerifier
 }
 
 // Create -
@@ -225,6 +226,11 @@ func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
 	return pcs.TxsSenderHandlerField
+}
+
+// GuardianSigVerifier -
+func (pcs *ProcessComponentsStub) GuardianSigVerifier() process.GuardianSigVerifier {
+	return pcs.GuardianSigVerifierField
 }
 
 // IsInterfaceNil -

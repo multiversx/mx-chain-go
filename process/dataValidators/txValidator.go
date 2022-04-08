@@ -6,9 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
+	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -16,20 +15,13 @@ import (
 
 var _ process.TxValidator = (*txValidator)(nil)
 
-// GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
-// TODO: add an implementation and integrate it
-type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account data.UserAccountHandler, inTx processor.InterceptedTransactionHandler) error // todo: through crypto.SingleSigner
-	IsInterfaceNil() bool
-}
-
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
-	guardianSigVerifier  GuardianSigVerifier
+	guardianSigVerifier  guardedtx.GuardianSigVerifier
 	maxNonceDeltaAllowed int
 }
 
@@ -39,7 +31,7 @@ func NewTxValidator(
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
-	guardianSigVerifier GuardianSigVerifier,
+	guardianSigVerifier guardedtx.GuardianSigVerifier,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {
@@ -55,7 +47,7 @@ func NewTxValidator(
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(guardianSigVerifier) {
-		return nil, process.ErrNilSingleSigner
+		return nil, process.ErrNilGuardianSigVerifier
 	}
 
 	return &txValidator{
@@ -219,7 +211,7 @@ func isBuiltinFuncCallWithParam(txData []byte, function string) bool {
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
 func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {
-	interceptedTx, ok := data.(processor.InterceptedTransactionHandler)
+	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

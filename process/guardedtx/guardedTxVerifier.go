@@ -6,13 +6,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 )
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account data.UserAccountHandler, inTx processor.InterceptedTransactionHandler) error
+	VerifyGuardianSignature(account data.UserAccountHandler, inTx process.InterceptedTransactionHandler) error
 	IsInterfaceNil() bool
+}
+
+// GuardedTxSigVerifierArgs holds the argument to instantiate a guarded tx signature verifier
+type GuardedTxSigVerifierArgs struct {
+	SigVerifier     crypto.SingleSigner
+	GuardianChecker core.GuardianChecker
+	PubKeyConverter core.PubkeyConverter
+	Marshaller      data.Marshaller
+	KeyGen          crypto.KeyGenerator
 }
 
 type guardedTxSigVerifier struct {
@@ -24,47 +32,37 @@ type guardedTxSigVerifier struct {
 }
 
 // NewGuardedTxSigVerifier creates a new instance of a guarded transaction signature verifier
-func NewGuardedTxSigVerifier(
-	sigVerifier crypto.SingleSigner,
-	guardianChecker core.GuardianChecker,
-	pubKeyConverter core.PubkeyConverter,
-	marshaller data.Marshaller,
-	keyGen crypto.KeyGenerator,
-) (*guardedTxSigVerifier, error) {
-	if check.IfNil(sigVerifier) {
+func NewGuardedTxSigVerifier(args GuardedTxSigVerifierArgs) (*guardedTxSigVerifier, error) {
+	if check.IfNil(args.SigVerifier) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(guardianChecker) {
+	if check.IfNil(args.GuardianChecker) {
 		return nil, process.ErrNilGuardianChecker
 	}
-	if check.IfNil(pubKeyConverter) {
+	if check.IfNil(args.PubKeyConverter) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(marshaller) {
+	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(keyGen) {
+	if check.IfNil(args.KeyGen) {
 		return nil, process.ErrNilKeyGen
 	}
 
 	return &guardedTxSigVerifier{
-		sigVerifier:     sigVerifier,
-		guardianChecker: guardianChecker,
-		encoder:         pubKeyConverter,
-		marshaller:      marshaller,
-		keyGen:          keyGen,
+		sigVerifier:     args.SigVerifier,
+		guardianChecker: args.GuardianChecker,
+		encoder:         args.PubKeyConverter,
+		marshaller:      args.Marshaller,
+		keyGen:          args.KeyGen,
 	}, nil
 }
 
 // VerifyGuardianSignature verifies the guardian signature over the guarded transaction
-func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account data.UserAccountHandler, inTx processor.InterceptedTransactionHandler) error {
-	guardianPubKeyBytes, err := gtx.guardianChecker.GetActiveGuardian(account)
+func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account data.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
+	guardianPubKey, err := gtx.GetGuardianPublicKey(account)
 	if err != nil {
 		return err
-	}
-
-	if len(guardianPubKeyBytes) == 0 {
-		return process.ErrNilGuardianPublicKey
 	}
 
 	txHandler := inTx.Transaction()
@@ -82,12 +80,21 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account data.UserAccoun
 		return err
 	}
 
-	guardianPubKey, err := gtx.keyGen.PublicKeyFromByteArray(guardianPubKeyBytes)
+	return gtx.sigVerifier.Verify(guardianPubKey, msgForSigVerification, guardedTxHandler.GetGuardianSignature())
+}
+
+// GetGuardianPublicKey returns the guardian public key for the given account
+func (gtx *guardedTxSigVerifier) GetGuardianPublicKey(account data.UserAccountHandler) (crypto.PublicKey, error) {
+	guardianPubKeyBytes, err := gtx.guardianChecker.GetActiveGuardian(account)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return gtx.sigVerifier.Verify(guardianPubKey, msgForSigVerification, guardedTxHandler.GetGuardianSignature())
+	if len(guardianPubKeyBytes) == 0 {
+		return nil, process.ErrNilGuardianPublicKey
+	}
+
+	return gtx.keyGen.PublicKeyFromByteArray(guardianPubKeyBytes)
 }
 
 // IsInterfaceNil returns nil if the receiver is nil

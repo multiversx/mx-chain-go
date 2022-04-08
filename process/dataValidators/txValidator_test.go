@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -82,6 +83,7 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -99,6 +101,7 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -117,6 +120,7 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		shardCoordinator,
 		nil,
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -135,11 +139,30 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		nil,
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, txValidator)
 	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+}
+
+func TestNewTxValidator_NilGuardianSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb := getAccAdapter(0, big.NewInt(0))
+	shardCoordinator := createMockCoordinator("_", 0)
+	maxNonceDeltaAllowed := 100
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		&testscommon.WhiteListHandlerStub{},
+		mock.NewPubkeyConverterMock(32),
+		nil,
+		maxNonceDeltaAllowed,
+	)
+	assert.Nil(t, txValidator)
+	assert.True(t, errors.Is(err, process.ErrNilGuardianSigVerifier))
 }
 
 func TestNewTxValidator_ShouldWork(t *testing.T) {
@@ -153,6 +176,7 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -175,6 +199,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -200,6 +225,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -226,6 +252,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -254,6 +281,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -281,6 +309,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -310,6 +339,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 			},
 		},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -344,6 +374,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -368,6 +399,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -391,6 +423,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
 		100,
 	)
 	_ = txValidator

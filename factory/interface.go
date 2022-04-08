@@ -262,6 +262,7 @@ type ProcessComponentsHolder interface {
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
+	GuardianSigVerifier() process.GuardianSigVerifier
 	IsInterfaceNil() bool
 }
 

@@ -1199,6 +1199,28 @@ type ScheduledTxsExecutionHandler interface {
 	IsInterfaceNil() bool
 }
 
+// InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
+// receiver and sender shard getters
+type InterceptedTransactionHandler interface {
+	SenderShardId() uint32
+	ReceiverShardId() uint32
+	Nonce() uint64
+	SenderAddress() []byte
+	Fee() *big.Int
+	Transaction() data.TransactionHandler
+}
+
+// ShardedPool is a perspective of the sharded data pool
+type ShardedPool interface {
+	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
+}
+
+// GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
+type GuardianSigVerifier interface {
+	VerifyGuardianSignature(account data.UserAccountHandler, inTx InterceptedTransactionHandler) error
+	IsInterfaceNil() bool
+}
+
 // DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
 type DoubleTransactionDetector interface {
 	ProcessBlockBody(body *block.Body)

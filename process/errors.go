@@ -1082,3 +1082,12 @@ var ErrNilGuardianChecker = errors.New("nil guardian checker")
 
 // ErrNilGuardianPublicKey signals that a nil guardian public key was provided
 var ErrNilGuardianPublicKey = errors.New("nil guardian public key")
+
+// ErrNilGuardianSigVerifier signals that a nil signature verifier was provided
+var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")
+
+// ErrAccountHasNoGuardianSet signals that the account has no guardians set
+var ErrAccountHasNoGuardianSet = errors.New("account has no guardian set")
+
+// ErrActiveHasNoActiveGuardian signals that the account has no active guardian
+var ErrActiveHasNoActiveGuardian = errors.New("account has no active guardian")
