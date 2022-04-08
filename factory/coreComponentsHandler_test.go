@@ -25,7 +25,7 @@ func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	require.Nil(t, managedCoreComponents.StatusHandler())
 }
 
-func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedCoreComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreArgs := getCoreArgs()
@@ -44,6 +44,8 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	require.Equal(t, "", managedCoreComponents.ChainID())
 	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
 	require.Nil(t, managedCoreComponents.RoundNotifier())
+	require.Nil(t, managedCoreComponents.ArwenChangeLocker())
+	require.Nil(t, managedCoreComponents.ProcessStatusHandler())
 
 	err = managedCoreComponents.Create()
 	require.NoError(t, err)

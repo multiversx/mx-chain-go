@@ -762,7 +762,7 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	sp.processStatusHandler.SetToBusy("shardProcessor.ProcessBlock")
+	sp.processStatusHandler.SetToBusy("shardProcessor.CreateBlock")
 	defer sp.processStatusHandler.SetToIdle()
 
 	err := sp.createBlockStarted()
