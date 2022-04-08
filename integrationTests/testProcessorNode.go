@@ -92,6 +92,7 @@ import (
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -1195,6 +1196,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
+	processComponents := GetDefaultProcessComponents()
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: tpn.RoundHandler.TimeStamp(),
@@ -1236,6 +1239,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			RequestHandler:          tpn.RequestHandler,
+			GuardianSigVerifier:     processComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1292,6 +1296,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			RequestHandler:          tpn.RequestHandler,
+			GuardianSigVerifier:     processComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -2969,6 +2974,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
+		GuardianSigVerifierField:     &guardianMocks.GuardianSigVerifierStub{},
 	}
 }
 

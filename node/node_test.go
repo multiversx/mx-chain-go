@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -3547,6 +3548,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
 		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
+		GuardianSigVerifierField:       &guardianMocks.GuardianSigVerifierStub{},
 	}
 }
 
