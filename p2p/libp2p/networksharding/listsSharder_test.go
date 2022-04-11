@@ -422,34 +422,30 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testing.T) {
 	arg := createMockListSharderArguments()
 
-	prefP0 := hex.EncodeToString([]byte("preferredPeer0"))
-	prefP1 := hex.EncodeToString([]byte("preferredPeer1"))
-	prefP2 := hex.EncodeToString([]byte("preferredPeer2"))
-	preferredHexPrefix := hex.EncodeToString([]byte("preferred"))
+	preferredHexPrefix := "preferred"
+	prefP0 := preferredHexPrefix + "preferredPeer0"
+	prefP1 := preferredHexPrefix + "preferredPeer1"
+	prefP2 := preferredHexPrefix + "preferredPeer2"
 	pubKeyHexSuffix := hex.EncodeToString([]byte("pubKey"))
 	pids := []peer.ID{
-		peer.ID(prefP0),
+		peer.ID(core.PeerID(prefP0).Pretty()),
 		"peer0",
 		"peer1",
-		peer.ID(prefP1),
+		peer.ID(core.PeerID(prefP1).Pretty()),
 		"peer2",
-		peer.ID(prefP2),
+		peer.ID(core.PeerID(prefP2).Pretty()),
 	}
 
-	prefP0PkBytes, _ := hex.DecodeString(prefP0 + pubKeyHexSuffix)
-	prefP1PkBytes, _ := hex.DecodeString(prefP1 + pubKeyHexSuffix)
-	prefP2PkBytes, _ := hex.DecodeString(prefP2 + pubKeyHexSuffix)
 	prefPeers := []string{
-		string(prefP0PkBytes),
-		string(prefP1PkBytes),
-		string(prefP2PkBytes),
+		core.PeerID(prefP0).Pretty(),
+		core.PeerID(prefP1).Pretty(),
+		core.PeerID(prefP2).Pretty(),
 	}
 
-	arg.PreferredPeersHolder = peersHolder.NewPeersHolder(prefPeers)
-	for _, prefPk := range prefPeers {
-		pid := strings.Replace(hex.EncodeToString([]byte(prefPk)), pubKeyHexSuffix, "", 1)
-		peerId := core.PeerID(pid)
-		arg.PreferredPeersHolder.PutConnectionAddress(peerId, prefPk)
+	arg.PreferredPeersHolder, _ = peersHolder.NewPeersHolder(prefPeers)
+	for _, prefPid := range prefPeers {
+		peerId := core.PeerID(prefPid)
+		arg.PreferredPeersHolder.PutConnectionAddress(peerId, prefPid)
 		arg.PreferredPeersHolder.PutShardID(peerId, 0)
 	}
 
@@ -478,21 +474,21 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 		require.False(t, strings.HasPrefix(string(peerID), preferredHexPrefix))
 	}
 
-	found := arg.PreferredPeersHolder.Contains(core.PeerID(prefP0))
+	found := arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP0).Pretty()))
 	require.True(t, found)
 
-	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP1))
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP1).Pretty()))
 	require.True(t, found)
 
-	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP2))
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(peer.ID(prefP2).Pretty()))
 	require.True(t, found)
 
 	peers := arg.PreferredPeersHolder.Get()
 	expectedMap := map[uint32][]core.PeerID{
 		0: {
-			core.PeerID(prefP0),
-			core.PeerID(prefP1),
-			core.PeerID(prefP2),
+			core.PeerID(peer.ID(prefP0).Pretty()),
+			core.PeerID(peer.ID(prefP1).Pretty()),
+			core.PeerID(peer.ID(prefP2).Pretty()),
 		},
 	}
 	require.Equal(t, expectedMap, peers)

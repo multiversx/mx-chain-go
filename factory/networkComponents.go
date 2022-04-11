@@ -93,7 +93,11 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	ph := peersHolder.NewPeersHolder(ncf.preferredPeersSlices)
+	ph, err := peersHolder.NewPeersHolder(ncf.preferredPeersSlices)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          ncf.marshalizer,
 		ListenAddress:        ncf.listenAddress,

@@ -1,18 +1,32 @@
 package peersHolder
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewPeersHolder(t *testing.T) {
 	t.Parallel()
 
-	ph := NewPeersHolder(nil)
-	assert.False(t, check.IfNil(ph))
+	t.Run("invalid addresses should error", func(t *testing.T) {
+		t.Parallel()
+
+		preferredPeers := []string{"10.100.100", "invalid string"}
+		ph, err := NewPeersHolder(preferredPeers)
+		assert.True(t, check.IfNil(ph))
+		assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ph, _ := NewPeersHolder([]string{"10.100.100.100"})
+		assert.False(t, check.IfNil(ph))
+	})
 }
 
 func TestPeersHolder_PutConnectionAddress(t *testing.T) {
@@ -21,8 +35,8 @@ func TestPeersHolder_PutConnectionAddress(t *testing.T) {
 	t.Run("not preferred should not add", func(t *testing.T) {
 		t.Parallel()
 
-		preferredPeers := []string{"/ip4/10.100.100.100"}
-		ph := NewPeersHolder(preferredPeers)
+		preferredPeers := []string{"10.100.100.100"}
+		ph, _ := NewPeersHolder(preferredPeers)
 		assert.False(t, check.IfNil(ph))
 
 		unknownConnection := "/ip4/20.200.200.200/tcp/8080/p2p/some-random-pid" // preferredPeers[0]
@@ -38,8 +52,8 @@ func TestPeersHolder_PutConnectionAddress(t *testing.T) {
 	t.Run("new connection should add to intermediate maps", func(t *testing.T) {
 		t.Parallel()
 
-		preferredPeers := []string{"/ip4/10.100.100.100", "10.100.100.101"}
-		ph := NewPeersHolder(preferredPeers)
+		preferredPeers := []string{"10.100.100.100", "10.100.100.101"}
+		ph, _ := NewPeersHolder(preferredPeers)
 		assert.False(t, check.IfNil(ph))
 
 		newConnection := "/ip4/10.100.100.100/tcp/38191/p2p/some-random-pid" // preferredPeers[0]
@@ -62,8 +76,8 @@ func TestPeersHolder_PutConnectionAddress(t *testing.T) {
 	t.Run("should save second pid on same address", func(t *testing.T) {
 		t.Parallel()
 
-		preferredPeers := []string{"/ip4/10.100.100.100", "10.100.100.101", "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"}
-		ph := NewPeersHolder(preferredPeers)
+		preferredPeers := []string{"10.100.100.100", "10.100.100.101", "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"}
+		ph, _ := NewPeersHolder(preferredPeers)
 		assert.False(t, check.IfNil(ph))
 
 		newConnection := "/ip4/10.100.100.102/tcp/38191/p2p/16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ" // preferredPeers[2]
@@ -104,8 +118,8 @@ func TestPeersHolder_PutShardID(t *testing.T) {
 	t.Run("peer not added in the waiting list should be skipped", func(t *testing.T) {
 		t.Parallel()
 
-		preferredPeers := []string{"/ip4/10.100.100.100"}
-		ph := NewPeersHolder(preferredPeers)
+		preferredPeers := []string{"10.100.100.100"}
+		ph, _ := NewPeersHolder(preferredPeers)
 		assert.False(t, check.IfNil(ph))
 
 		providedPid := core.PeerID("provided pid")
@@ -118,8 +132,8 @@ func TestPeersHolder_PutShardID(t *testing.T) {
 	t.Run("peer not added in map should be skipped", func(t *testing.T) {
 		t.Parallel()
 
-		preferredPeers := []string{"/ip4/10.100.100.100"}
-		ph := NewPeersHolder(preferredPeers)
+		preferredPeers := []string{"10.100.100.100"}
+		ph, _ := NewPeersHolder(preferredPeers)
 		assert.False(t, check.IfNil(ph))
 
 		providedPid := core.PeerID("provided pid")
@@ -133,8 +147,8 @@ func TestPeersHolder_PutShardID(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		preferredPeers := []string{"/ip4/10.100.100.100", "10.100.100.101", "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"}
-		ph := NewPeersHolder(preferredPeers)
+		preferredPeers := []string{"10.100.100.100", "10.100.100.101", "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"}
+		ph, _ := NewPeersHolder(preferredPeers)
 		assert.False(t, check.IfNil(ph))
 
 		newConnection := "/ip4/10.100.100.101/tcp/38191/p2p/some-random-pid" // preferredPeers[1]
@@ -163,8 +177,8 @@ func TestPeersHolder_PutShardID(t *testing.T) {
 func TestPeersHolder_Contains(t *testing.T) {
 	t.Parallel()
 
-	preferredPeers := []string{"/ip4/10.100.100.100", "10.100.100.101"}
-	ph := NewPeersHolder(preferredPeers)
+	preferredPeers := []string{"10.100.100.100", "10.100.100.101"}
+	ph, _ := NewPeersHolder(preferredPeers)
 	assert.False(t, check.IfNil(ph))
 
 	newConnection := "/ip4/10.100.100.101/tcp/38191/p2p/some-random-pid" // preferredPeers[1]
@@ -186,8 +200,8 @@ func TestPeersHolder_Contains(t *testing.T) {
 func TestPeersHolder_Clear(t *testing.T) {
 	t.Parallel()
 
-	preferredPeers := []string{"/ip4/10.100.100.100", "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"}
-	ph := NewPeersHolder(preferredPeers)
+	preferredPeers := []string{"10.100.100.100", "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"}
+	ph, _ := NewPeersHolder(preferredPeers)
 	assert.False(t, check.IfNil(ph))
 
 	newConnection1 := "/ip4/10.100.100.100/tcp/38191/p2p/some-random-pid" // preferredPeers[0]

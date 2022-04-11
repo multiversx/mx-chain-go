@@ -1,10 +1,12 @@
 package peersHolder
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/peersHolder/connectionStringValidator"
 )
 
@@ -29,7 +31,7 @@ type peersHolder struct {
 }
 
 // NewPeersHolder returns a new instance of peersHolder
-func NewPeersHolder(preferredConnectionAddresses []string) *peersHolder {
+func NewPeersHolder(preferredConnectionAddresses []string) (*peersHolder, error) {
 	preferredConnections := make([]string, 0)
 	connAddrToPeerIDs := make(map[string][]*peerInfo)
 
@@ -37,7 +39,7 @@ func NewPeersHolder(preferredConnectionAddresses []string) *peersHolder {
 
 	for _, connAddr := range preferredConnectionAddresses {
 		if !connectionValidator.IsValid(connAddr) {
-			continue
+			return nil, fmt.Errorf("%w for preferred connection address %s", p2p.ErrInvalidValue, connAddr)
 		}
 
 		preferredConnections = append(preferredConnections, connAddr)
@@ -50,7 +52,7 @@ func NewPeersHolder(preferredConnectionAddresses []string) *peersHolder {
 		tempPeerIDsWaitingForShard: make(map[core.PeerID]string),
 		peerIDsPerShard:            make(map[uint32][]core.PeerID),
 		peerIDs:                    make(map[core.PeerID]*peerIDData),
-	}
+	}, nil
 }
 
 // PutConnectionAddress will perform the insert or the upgrade operation if the provided peerID is inside the preferred peers list

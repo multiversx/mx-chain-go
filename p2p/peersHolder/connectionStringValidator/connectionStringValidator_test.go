@@ -6,17 +6,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_connectionStringValidator_IsValid(t *testing.T) {
+func TestConnectionStringValidator_IsValid(t *testing.T) {
 	t.Parallel()
 
 	csv := NewConnectionStringValidator()
 	assert.False(t, csv.IsValid("invalid string"))
+	assert.False(t, csv.IsValid(""))
 
 	assert.True(t, csv.IsValid("5.22.219.242"))
 	assert.True(t, csv.IsValid("2031:0:130F:0:0:9C0:876A:130B"))
 	assert.True(t, csv.IsValid("16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdojvJ"))
 }
-func Test_connectionStringValidator_isValidIP(t *testing.T) {
+func TestConnectionStringValidator_isValidIP(t *testing.T) {
 	t.Parallel()
 
 	csv := NewConnectionStringValidator()
@@ -39,7 +40,7 @@ func Test_connectionStringValidator_isValidIP(t *testing.T) {
 	assert.True(t, csv.isValidIP("2031:0:130F:0:0:9C0:876A:130B"))
 }
 
-func Test_connectionStringValidator_isValidPeerID(t *testing.T) {
+func TestConnectionStringValidator_isValidPeerID(t *testing.T) {
 	t.Parallel()
 
 	csv := NewConnectionStringValidator()
