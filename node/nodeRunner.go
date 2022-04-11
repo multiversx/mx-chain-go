@@ -1193,21 +1193,21 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
-	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
+	decodedPreferredPeers, err := decodePreferredPeers(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
 	if err != nil {
 		return nil, err
 	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:           *nr.configs.P2pConfig,
-		MainConfig:          *nr.configs.GeneralConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		StatusHandler:       coreComponents.StatusHandler(),
-		Marshalizer:         coreComponents.InternalMarshalizer(),
-		Syncer:              coreComponents.SyncTimer(),
-		PreferredPublicKeys: decodedPreferredPubKeys,
-		BootstrapWaitTime:   common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:   p2p.NormalOperation,
+		P2pConfig:            *nr.configs.P2pConfig,
+		MainConfig:           *nr.configs.GeneralConfig,
+		RatingsConfig:        *nr.configs.RatingsConfig,
+		StatusHandler:        coreComponents.StatusHandler(),
+		Marshalizer:          coreComponents.InternalMarshalizer(),
+		Syncer:               coreComponents.SyncTimer(),
+		PreferredPeersSlices: decodedPreferredPeers,
+		BootstrapWaitTime:    common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:    p2p.NormalOperation,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
@@ -1472,18 +1472,18 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
-func decodeValidatorPubKeys(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
-	decodedPublicKeys := make([][]byte, 0)
-	for _, pubKey := range prefConfig.Preferences.PreferredConnections {
-		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
+func decodePreferredPeers(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([]string, error) {
+	decodedPeers := make([]string, 0)
+	for _, connectionSlice := range prefConfig.Preferences.PreferredConnections {
+		peerBytes, err := validatorPubKeyConverter.Decode(connectionSlice)
 		if err != nil {
-			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
+			return nil, fmt.Errorf("cannot decode preferred peer(%s) : %w", connectionSlice, err)
 		}
 
-		decodedPublicKeys = append(decodedPublicKeys, pubKeyBytes)
+		decodedPeers = append(decodedPeers, string(peerBytes))
 	}
 
-	return decodedPublicKeys, nil
+	return decodedPeers, nil
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

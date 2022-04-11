@@ -134,7 +134,7 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 	}
 	putConnectionAddressCalled := false
 	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
-		PutConnectionAddressCalled: func(peerID core.PeerID, addressSlice []byte) {
+		PutConnectionAddressCalled: func(peerID core.PeerID, addressSlice string) {
 			putConnectionAddressCalled = true
 		},
 	}

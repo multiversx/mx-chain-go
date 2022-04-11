@@ -90,7 +90,7 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn 
 	peerId := core.PeerID(conn.RemotePeer())
 	connectionStr := conn.RemoteMultiaddr().String()
 	lcms.connectionsWatcher.NewKnownConnection(peerId, connectionStr)
-	lcms.preferredPeersHolder.PutConnectionAddress(peerId, []byte(connectionStr))
+	lcms.preferredPeersHolder.PutConnectionAddress(peerId, connectionStr)
 
 	evicted := lcms.sharder.ComputeEvictionList(allPeers)
 	for _, pid := range evicted {

@@ -13,7 +13,7 @@ func NewPreferredPeersHolder() *disabledPreferredPeersHolder {
 }
 
 // PutConnectionAddress does nothing as it is disabled
-func (d *disabledPreferredPeersHolder) PutConnectionAddress(_ core.PeerID, _ []byte) {
+func (d *disabledPreferredPeersHolder) PutConnectionAddress(_ core.PeerID, _ string) {
 }
 
 // PutShardID does nothing as it is disabled

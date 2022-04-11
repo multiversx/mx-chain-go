@@ -439,15 +439,15 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 	prefP0PkBytes, _ := hex.DecodeString(prefP0 + pubKeyHexSuffix)
 	prefP1PkBytes, _ := hex.DecodeString(prefP1 + pubKeyHexSuffix)
 	prefP2PkBytes, _ := hex.DecodeString(prefP2 + pubKeyHexSuffix)
-	prefPeers := [][]byte{
-		prefP0PkBytes,
-		prefP1PkBytes,
-		prefP2PkBytes,
+	prefPeers := []string{
+		string(prefP0PkBytes),
+		string(prefP1PkBytes),
+		string(prefP2PkBytes),
 	}
 
 	arg.PreferredPeersHolder = peersHolder.NewPeersHolder(prefPeers)
 	for _, prefPk := range prefPeers {
-		pid := strings.Replace(hex.EncodeToString(prefPk), pubKeyHexSuffix, "", 1)
+		pid := strings.Replace(hex.EncodeToString([]byte(prefPk)), pubKeyHexSuffix, "", 1)
 		peerId := core.PeerID(pid)
 		arg.PreferredPeersHolder.PutConnectionAddress(peerId, prefPk)
 		arg.PreferredPeersHolder.PutShardID(peerId, 0)
