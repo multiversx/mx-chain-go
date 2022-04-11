@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package roles
@@ -58,7 +59,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// /////////------- send token issue
+	// ------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
 	esdt.IssueTestToken(nodes, initialSupply.Int64(), "FTT")
@@ -71,7 +72,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
 
-	// /////// ----- set special role
+	// ----- set special role
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalBurn))
 
@@ -164,7 +165,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// /////////------- send token issue
+	// ------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
 	esdt.IssueTestToken(nodes, initialSupply.Int64(), "FTT")
@@ -177,7 +178,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
 
-	// /////// ----- set special role
+	// ----- set special role
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
 
 	time.Sleep(time.Second)

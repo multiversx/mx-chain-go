@@ -183,8 +183,8 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	mp.processStatusHandler.SetToBusy("metaProcessor.ProcessBlock")
-	defer mp.processStatusHandler.SetToIdle()
+	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlock")
+	defer mp.processStatusHandler.SetIdle()
 
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -749,8 +749,8 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mp.processStatusHandler.SetToBusy("metaProcessor.CreateBlock")
-	defer mp.processStatusHandler.SetToIdle()
+	mp.processStatusHandler.SetBusy("metaProcessor.CreateBlock")
+	defer mp.processStatusHandler.SetIdle()
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr)
@@ -1181,13 +1181,13 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	mp.processStatusHandler.SetToBusy("metaProcessor.CommitBlock")
+	mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
 	var err error
 	defer func() {
 		if err != nil {
 			mp.RevertCurrentBlock()
 		}
-		mp.processStatusHandler.SetToIdle()
+		mp.processStatusHandler.SetIdle()
 	}()
 
 	err = checkForNils(headerHandler, bodyHandler)

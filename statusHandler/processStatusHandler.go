@@ -20,18 +20,18 @@ func NewProcessStatusHandler() *processStatusHandler {
 	}
 }
 
-// SetToBusy will set the internal state to "busy"
-func (psh *processStatusHandler) SetToBusy(reason string) {
-	log.Debug("processStatusHandler.SetToBusy", "reason", reason)
+// SetBusy will set the internal state to "busy"
+func (psh *processStatusHandler) SetBusy(reason string) {
+	log.Debug("processStatusHandler.SetBusy", "reason", reason)
 
 	psh.mutStatus.Lock()
 	psh.isIdle = false
 	psh.mutStatus.Unlock()
 }
 
-// SetToIdle will set the internal state to "idle"
-func (psh *processStatusHandler) SetToIdle() {
-	log.Debug("processStatusHandler.SetToIdle")
+// SetIdle will set the internal state to "idle"
+func (psh *processStatusHandler) SetIdle() {
+	log.Debug("processStatusHandler.SetIdle")
 
 	psh.mutStatus.Lock()
 	psh.isIdle = true

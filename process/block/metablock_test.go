@@ -889,10 +889,10 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
 	statusBusySet := false
 	statusIdleSet := false
-	mockProcessHandler.SetToIdleCalled = func() {
+	mockProcessHandler.SetIdleCalled = func() {
 		statusIdleSet = true
 	}
-	mockProcessHandler.SetToBusyCalled = func(reason string) {
+	mockProcessHandler.SetBusyCalled = func(reason string) {
 		statusBusySet = true
 	}
 
@@ -2965,10 +2965,10 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
 	statusBusySet := false
 	statusIdleSet := false
-	mockProcessHandler.SetToIdleCalled = func() {
+	mockProcessHandler.SetIdleCalled = func() {
 		statusIdleSet = true
 	}
-	mockProcessHandler.SetToBusyCalled = func(reason string) {
+	mockProcessHandler.SetBusyCalled = func(reason string) {
 		statusBusySet = true
 	}
 

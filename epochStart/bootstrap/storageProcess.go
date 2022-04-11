@@ -460,7 +460,7 @@ func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(meta
 
 	for i := range originalMiniblocksHeaders {
 		mb := originalMiniblocksHeaders[i].ShallowClone()
-		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) // it is safe to modify here as mbh is passed by value
+		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) // it is safe to modify here as mb is a shallow clone
 		if err != nil {
 			return err
 		}

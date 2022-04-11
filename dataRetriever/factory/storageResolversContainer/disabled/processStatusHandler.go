@@ -5,11 +5,11 @@ package disabled
 type ProcessStatusHandler struct {
 }
 
-// SetToBusy does nothing
-func (psh *ProcessStatusHandler) SetToBusy(_ string) {}
+// SetBusy does nothing
+func (psh *ProcessStatusHandler) SetBusy(_ string) {}
 
-// SetToIdle does nothing
-func (psh *ProcessStatusHandler) SetToIdle() {}
+// SetIdle does nothing
+func (psh *ProcessStatusHandler) SetIdle() {}
 
 // IsIdle returns true
 func (psh *ProcessStatusHandler) IsIdle() bool {

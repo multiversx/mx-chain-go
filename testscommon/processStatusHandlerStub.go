@@ -2,22 +2,22 @@ package testscommon
 
 // ProcessStatusHandlerStub -
 type ProcessStatusHandlerStub struct {
-	SetToBusyCalled func(reason string)
-	SetToIdleCalled func()
-	IsIdleCalled    func() bool
+	SetBusyCalled func(reason string)
+	SetIdleCalled func()
+	IsIdleCalled  func() bool
 }
 
-// SetToBusy -
-func (stub *ProcessStatusHandlerStub) SetToBusy(reason string) {
-	if stub.SetToBusyCalled != nil {
-		stub.SetToBusyCalled(reason)
+// SetBusy -
+func (stub *ProcessStatusHandlerStub) SetBusy(reason string) {
+	if stub.SetBusyCalled != nil {
+		stub.SetBusyCalled(reason)
 	}
 }
 
-// SetToIdle -
-func (stub *ProcessStatusHandlerStub) SetToIdle() {
-	if stub.SetToIdleCalled != nil {
-		stub.SetToIdleCalled()
+// SetIdle -
+func (stub *ProcessStatusHandlerStub) SetIdle() {
+	if stub.SetIdleCalled != nil {
+		stub.SetIdleCalled()
 	}
 }
 

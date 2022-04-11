@@ -391,10 +391,10 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
 	statusBusySet := false
 	statusIdleSet := false
-	mockProcessHandler.SetToIdleCalled = func() {
+	mockProcessHandler.SetIdleCalled = func() {
 		statusIdleSet = true
 	}
-	mockProcessHandler.SetToBusyCalled = func(reason string) {
+	mockProcessHandler.SetBusyCalled = func(reason string) {
 		statusBusySet = true
 	}
 
@@ -1721,10 +1721,10 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
 	statusBusySet := false
 	statusIdleSet := false
-	mockProcessHandler.SetToIdleCalled = func() {
+	mockProcessHandler.SetIdleCalled = func() {
 		statusIdleSet = true
 	}
-	mockProcessHandler.SetToBusyCalled = func(reason string) {
+	mockProcessHandler.SetBusyCalled = func(reason string) {
 		statusBusySet = true
 	}
 

@@ -21,16 +21,16 @@ func TestProcessStatusHandler_AllMethods(t *testing.T) {
 	psh := NewProcessStatusHandler()
 	assert.True(t, psh.IsIdle())
 
-	psh.SetToBusy("reason 1")
+	psh.SetBusy("reason 1")
 	assert.False(t, psh.IsIdle())
 
-	psh.SetToIdle()
+	psh.SetIdle()
 	assert.True(t, psh.IsIdle())
 
-	psh.SetToBusy("reason 2")
+	psh.SetBusy("reason 2")
 	assert.False(t, psh.IsIdle())
 
-	psh.SetToIdle()
+	psh.SetIdle()
 	assert.True(t, psh.IsIdle())
 }
 
@@ -48,9 +48,9 @@ func TestNewProcessStatusHandler_ParallelCalls(t *testing.T) {
 		go func() {
 			switch operationIndex {
 			case 0:
-				psh.SetToBusy("reason")
+				psh.SetBusy("reason")
 			case 1:
-				psh.SetToIdle()
+				psh.SetIdle()
 			case 2:
 				psh.IsIdle()
 			}
