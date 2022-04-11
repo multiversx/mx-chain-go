@@ -610,9 +610,10 @@ func (n *Node) commonTransactionValidation(
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
-		n.processComponents.GuardianSigVerifier(),
+		n.bootstrapComponents.GuardianSigVerifier(),
 		common.MaxTxNonceDeltaAllowed,
 	)
+
 	if err != nil {
 		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
 			"error", err)

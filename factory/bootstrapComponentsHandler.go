@@ -117,6 +117,18 @@ func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundAct
 	return mbf.bootstrapComponents.roundActivationHandler
 }
 
+// GuardianSigVerifier returns the guardian signature verifier
+func (mbf *managedBootstrapComponents) GuardianSigVerifier() process.GuardianSigVerifier {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.guardianSigVerifier == nil {
+		return nil
+	}
+
+	return mbf.bootstrapComponents.guardianSigVerifier
+}
+
 // IsInterfaceNil returns true if the underlying object is nil
 func (mbf *managedBootstrapComponents) IsInterfaceNil() bool {
 	return mbf == nil

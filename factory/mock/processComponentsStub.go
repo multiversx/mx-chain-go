@@ -45,7 +45,6 @@ type ProcessComponentsMock struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
-	GuardianSigVerifierField             process.GuardianSigVerifier
 }
 
 // Create -
@@ -226,11 +225,6 @@ func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
 	return pcm.TxsSenderHandlerField
-}
-
-// GuardianSigVerifier -
-func (pcm *ProcessComponentsMock) GuardianSigVerifier() process.GuardianSigVerifier {
-	return pcm.GuardianSigVerifierField
 }
 
 // IsInterfaceNil -

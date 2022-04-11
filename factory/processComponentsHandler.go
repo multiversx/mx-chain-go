@@ -541,18 +541,6 @@ func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
 	return m.processComponents.txsSender
 }
 
-// GuardianSigVerifier returns the guardian signature verifier
-func (m *managedProcessComponents) GuardianSigVerifier() process.GuardianSigVerifier {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
-
-	if m.processComponents == nil {
-		return nil
-	}
-
-	return m.processComponents.guardianSigVerifier
-}
-
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

@@ -101,6 +101,7 @@ type epochStartBootstrap struct {
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
+	guardianSigVerifier        process.GuardianSigVerifier
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -164,6 +165,7 @@ type ArgsEpochStartBootstrap struct {
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
+	GuardianSigVerifier        process.GuardianSigVerifier
 }
 
 type dataToSync struct {
@@ -208,6 +210,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		dataSyncerFactory:          args.DataSyncerCreator,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
+		guardianSigVerifier:        args.GuardianSigVerifier,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableEpochs.TransactionSignedWithTxHashEnableEpoch)
@@ -532,7 +535,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		EnableEpochs:            e.enableEpochs,
 		EpochNotifier:           e.epochNotifier,
 		RequestHandler:          e.requestHandler,
-
+		GuardianSigVerifier:     e.guardianSigVerifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

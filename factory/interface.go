@@ -262,7 +262,7 @@ type ProcessComponentsHolder interface {
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
-	GuardianSigVerifier() process.GuardianSigVerifier
+	//GuardianSigVerifier() process.GuardianSigVerifier
 	IsInterfaceNil() bool
 }
 
@@ -426,6 +426,7 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	GuardianSigVerifier() process.GuardianSigVerifier
 	IsInterfaceNil() bool
 }
 

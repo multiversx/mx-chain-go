@@ -3548,7 +3548,6 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
 		TxsSenderHandlerField:          &txsSenderMock.TxsSenderHandlerMock{},
-		GuardianSigVerifierField:       &guardianMocks.GuardianSigVerifierStub{},
 	}
 }
 
@@ -3572,9 +3571,10 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
-		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
-		NodeRole:             "",
-		ShCoordinator:        &mock.ShardCoordinatorMock{},
-		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		BootstrapParams:          &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:                 "",
+		ShCoordinator:            &mock.ShardCoordinatorMock{},
+		HdrIntegrityVerifier:     &mock.HeaderIntegrityVerifierStub{},
+		GuardianSigVerifierField: &guardianMocks.GuardianSigVerifierStub{},
 	}
 }

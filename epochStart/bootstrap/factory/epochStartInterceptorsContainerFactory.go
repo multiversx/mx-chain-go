@@ -14,8 +14,6 @@ import (
 	disabledGenesis "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
-	guardianChecker2 "github.com/ElrondNetwork/elrond-go/process/guardianChecker"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -42,6 +40,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	EnableEpochs            config.EnableEpochs
 	EpochNotifier           process.EpochNotifier
 	RequestHandler          process.RequestHandler
+	GuardianSigVerifier     process.GuardianSigVerifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -52,30 +51,15 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	if check.IfNil(args.CryptoComponents) {
 		return nil, epochStart.ErrNilCryptoComponentsHolder
 	}
-
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.GuardianSigVerifier) {
+		return nil, epochStart.ErrNilGuardianSigVerifier
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
 	err := cryptoComponents.SetMultiSigner(disabled.NewMultiSigner())
-	if err != nil {
-		return nil, err
-	}
-
-	guardianChecker, err := guardianChecker2.NewAccountGuardianChecker(args.CoreComponents.InternalMarshalizer(), args.CoreComponents.EpochNotifier())
-	if err != nil {
-		return nil, err
-	}
-
-	argsGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
-		SigVerifier:     cryptoComponents.TxSingleSigner(),
-		GuardianChecker: guardianChecker,
-		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-		Marshaller:      args.CoreComponents.InternalMarshalizer(),
-		KeyGen:          args.CryptoComponents.TxSignKeyGen(),
-	}
-	guardianSigVerifier, err := guardedtx.NewGuardedTxSigVerifier(argsGuardianSigVerifier)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +99,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		EnableEpochs:            args.EnableEpochs,
 		PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
 		RequestHandler:          args.RequestHandler,
-		GuardianSigVerifier:     guardianSigVerifier,
+		GuardianSigVerifier:     args.GuardianSigVerifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

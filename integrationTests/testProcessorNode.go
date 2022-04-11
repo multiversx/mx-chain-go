@@ -1196,7 +1196,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
-	processComponents := GetDefaultProcessComponents()
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
@@ -1239,7 +1239,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			RequestHandler:          tpn.RequestHandler,
-			GuardianSigVerifier:     processComponents.GuardianSigVerifierField,
+			GuardianSigVerifier:     bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1296,7 +1296,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			RequestHandler:          tpn.RequestHandler,
-			GuardianSigVerifier:     processComponents.GuardianSigVerifierField,
+			GuardianSigVerifier:     bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -2974,7 +2974,6 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
-		GuardianSigVerifierField:     &guardianMocks.GuardianSigVerifierStub{},
 	}
 }
 
@@ -3055,12 +3054,13 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
-		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
-		NodeRole:             "",
-		ShCoordinator:        shardCoordinator,
-		HdrVersionHandler:    headerVersionHandler,
-		VersionedHdrFactory:  versionedHeaderFactory,
-		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		BootstrapParams:          &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:                 "",
+		ShCoordinator:            shardCoordinator,
+		HdrVersionHandler:        headerVersionHandler,
+		VersionedHdrFactory:      versionedHeaderFactory,
+		HdrIntegrityVerifier:     &mock.HeaderIntegrityVerifierStub{},
+		GuardianSigVerifierField: &guardianMocks.GuardianSigVerifierStub{},
 	}
 }
 

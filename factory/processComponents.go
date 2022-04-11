@@ -41,8 +41,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
-	"github.com/ElrondNetwork/elrond-go/process/guardianChecker"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -106,7 +104,6 @@ type processComponents struct {
 	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
-	guardianSigVerifier          process.GuardianSigVerifier
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -240,11 +237,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		FallbackHeaderValidator: fallbackHeaderValidator,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
-	if err != nil {
-		return nil, err
-	}
-
-	guardianSigVerifier, err := pcf.newGuardianSigVerifier()
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +430,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		epochStartTrigger,
 		requestHandler,
-		guardianSigVerifier,
+		pcf.bootstrapComponents.GuardianSigVerifier(),
 	)
 	if err != nil {
 		return nil, err
@@ -615,25 +607,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
-		guardianSigVerifier:          guardianSigVerifier,
 	}, nil
-}
-
-func (pcf *processComponentsFactory) newGuardianSigVerifier() (process.GuardianSigVerifier, error) {
-	gTxChecker, err := guardianChecker.NewAccountGuardianChecker(pcf.coreData.InternalMarshalizer(), pcf.coreData.EpochNotifier())
-	if err != nil {
-		return nil, err
-	}
-
-	argGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
-		SigVerifier:     pcf.crypto.TxSingleSigner(),
-		GuardianChecker: gTxChecker,
-		PubKeyConverter: pcf.coreData.AddressPubKeyConverter(),
-		Marshaller:      pcf.coreData.InternalMarshalizer(),
-		KeyGen:          pcf.crypto.TxSignKeyGen(),
-	}
-
-	return guardedtx.NewGuardedTxSigVerifier(argGuardianSigVerifier)
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
