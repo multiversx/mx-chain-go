@@ -38,6 +38,7 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		chainID:                      arguments.ChainID,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
+		epochNotifier:                arguments.EpochNotifier,
 	}
 
 	boot := metaStorageBootstrapper{
