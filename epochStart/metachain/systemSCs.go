@@ -147,9 +147,20 @@ func (s *systemSCProcessor) processWithNewFlags(
 	return nil
 }
 
+func (s *systemSCProcessor) calcShuffledOutNodes() uint32 {
+	maxNodesConfigLen := len(s.maxNodesEnableConfig)
+	if maxNodesConfigLen == 0 {
+		return 0
+	}
+
+	nodesToShufflePerShard := s.maxNodesEnableConfig[maxNodesConfigLen-1].NodesToShufflePerShard
+	return nodesToShufflePerShard * s.shardCoordinator.NumberOfShards()
+}
+
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
-	numOfValidators -= 2 * 4
+	numOfShuffledNodes := s.calcShuffledOutNodes()
+	numOfValidators -= numOfShuffledNodes
 	availableSlots, err := safeSub(s.maxNodes, numOfValidators)
 	log.Info("systemSCProcessor.selectNodesFromAuctionList",
 		"max nodes", s.maxNodes,

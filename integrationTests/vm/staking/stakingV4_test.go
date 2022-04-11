@@ -28,9 +28,9 @@ func searchInMap(validatorMap map[uint32][][]byte, pk []byte) bool {
 
 func requireMapContains(t *testing.T, m map[uint32][][]byte, s [][]byte) {
 	for _, elemInSlice := range s {
-		found := searchInMap(m, elemInSlice)
-		require.True(t, found)
+		require.True(t, searchInMap(m, elemInSlice))
 	}
+
 }
 
 func getAllPubKeys(validatorsMap map[uint32][][]byte) [][]byte {
@@ -43,20 +43,55 @@ func getAllPubKeys(validatorsMap map[uint32][][]byte) [][]byte {
 }
 
 func TestNewTestMetaProcessor(t *testing.T) {
-	node := NewTestMetaProcessor(3, 3, 3, 3, 2, 2, 2, 2)
-	initialNodes := node.NodesConfig
-	//logger.SetLogLevel("*:DEBUG,process:TRACE")
-	//logger.SetLogLevel("*:DEBUG")
+	numOfMetaNodes := uint32(10)
+	numOfShards := uint32(3)
+	numOfEligibleNodesPerShard := uint32(10)
+	numOfWaitingNodesPerShard := uint32(10)
+	numOfNodesToShufflePerShard := uint32(3)
+	shardConsensusGroupSize := 3
+	metaConsensusGroupSize := 3
+	numOfNodesInStakingQueue := uint32(4)
+
+	totalEligible := int(numOfEligibleNodesPerShard*numOfShards) + int(numOfMetaNodes)
+	totalWaiting := int(numOfWaitingNodesPerShard*numOfShards) + int(numOfMetaNodes)
+
+	node := NewTestMetaProcessor(
+		numOfMetaNodes,
+		numOfShards,
+		numOfEligibleNodesPerShard,
+		numOfWaitingNodesPerShard,
+		numOfNodesToShufflePerShard,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		numOfNodesInStakingQueue,
+	)
 	node.EpochStartTrigger.SetRoundsPerEpoch(4)
 
-	node.Process(t, 5)
+	initialNodes := node.NodesConfig
+	require.Len(t, getAllPubKeys(initialNodes.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(initialNodes.waiting), totalWaiting)
+	require.Len(t, initialNodes.queue, int(numOfNodesInStakingQueue))
+	require.Empty(t, initialNodes.shuffledOut)
+	require.Empty(t, initialNodes.auction)
 
-	eligibleAfterStakingV4Init := node.NodesConfig.eligible
-	require.Empty(t, node.NodesConfig.queue)
-	requireSameSliceDifferentOrder(t, initialNodes.queue, node.NodesConfig.auction)
+	node.Process(t, 5)
+	nodesConfigStakingV4Init := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)
+	require.Empty(t, nodesConfigStakingV4Init.queue)
+	require.Empty(t, nodesConfigStakingV4Init.shuffledOut)
+	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Init.auction)
 
 	node.Process(t, 6)
-	requireMapContains(t, node.NodesConfig.shuffledOut, node.NodesConfig.auction)
-	requireMapContains(t, node.NodesConfig.waiting, initialNodes.queue)
-	requireMapContains(t, eligibleAfterStakingV4Init, node.NodesConfig.auction) //todo: check size
+	nodesConfigStakingV4 := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.waiting), totalWaiting-int((numOfShards+1)*numOfNodesToShufflePerShard)+len(nodesConfigStakingV4Init.auction))
+
+	requireMapContains(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)  // all current waiting are from the previous auction
+	requireMapContains(t, nodesConfigStakingV4Init.eligible, nodesConfigStakingV4.auction) // all current auction are from previous eligible
+
+	//requireMapContains(t, node.NodesConfig.shuffledOut, node.NodesConfig.auction, uint32(len(node.NodesConfig.shuffledOut)))
+	//requireMapContains(t, eligibleAfterStakingV4Init, node.NodesConfig.auction, 8) //todo: check size
+
+	//node.Process(t, 20)
 }
