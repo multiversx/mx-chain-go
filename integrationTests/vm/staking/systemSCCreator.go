@@ -2,6 +2,7 @@ package staking
 
 import (
 	"bytes"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -34,7 +35,7 @@ func createSystemSCProcessor(
 	vmContainer process.VirtualMachinesContainer,
 ) process.EpochStartSystemSCProcessor {
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
-	stakingSCProvider, _ := metachain.NewStakingDataProvider(systemVM, "1000")
+	stakingSCProvider, _ := metachain.NewStakingDataProvider(systemVM, strconv.Itoa(nodePrice))
 
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
@@ -166,7 +167,7 @@ func createVMContainerFactory(
 				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "1000",
+				GenesisNodePrice:                     strconv.Itoa(nodePrice),
 				UnJailValue:                          "10",
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
@@ -191,7 +192,7 @@ func createVMContainerFactory(
 			},
 		},
 		ValidatorAccountsDB: peerAccounts,
-		ChanceComputer:      &mock3.ChanceComputerStub{},
+		ChanceComputer:      coreComponents.Rater(),
 		EpochNotifier:       coreComponents.EpochNotifier(),
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{

@@ -118,7 +118,7 @@ func generateGenesisNodeInfoMap(
 	id := addressStartIdx
 	for shardId := uint32(0); shardId < numOfShards; shardId++ {
 		for n := uint32(0); n < numOfNodesPerShard; n++ {
-			addr := generateUniqueKey(id)
+			addr := generateAddress(id)
 			validator := mock2.NewNodeInfo(addr, addr, shardId, initialRating)
 			validatorsMap[shardId] = append(validatorsMap[shardId], validator)
 			id++
@@ -126,7 +126,7 @@ func generateGenesisNodeInfoMap(
 	}
 
 	for n := uint32(0); n < numOfMetaNodes; n++ {
-		addr := generateUniqueKey(id)
+		addr := generateAddress(id)
 		validator := mock2.NewNodeInfo(addr, addr, core.MetachainShardId, initialRating)
 		validatorsMap[core.MetachainShardId] = append(validatorsMap[core.MetachainShardId], validator)
 		id++
@@ -155,7 +155,7 @@ func registerValidators(
 				pubKey,
 				pubKey,
 				[][]byte{pubKey},
-				big.NewInt(2000),
+				big.NewInt(2*nodePrice),
 				marshaller,
 			)
 		}
