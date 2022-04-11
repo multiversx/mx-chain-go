@@ -1756,7 +1756,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Readable:    true,
 		}
 
-		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted := bh.ApplyFiltersOnSCCodeMetadata(provided)
 
 		expected := vmcommon.CodeMetadata{
 			Payable:     true,
@@ -1780,7 +1780,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Readable:    true,
 		}
 
-		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted := bh.ApplyFiltersOnSCCodeMetadata(provided)
 		expected := vmcommon.CodeMetadata{
 			Payable:     true,
 			PayableBySC: true,
@@ -1795,7 +1795,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Upgradeable: true,
 			Readable:    true,
 		}
-		resulted = bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted = bh.ApplyFiltersOnSCCodeMetadata(provided)
 		expected = vmcommon.CodeMetadata{
 			Payable:     true,
 			PayableBySC: false,

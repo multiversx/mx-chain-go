@@ -30,7 +30,8 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		config.EnableEpochs{
-			IsPayableBySCEnableEpoch: 1,
+			IsPayableBySCEnableEpoch:        1,
+			FreezeAccountFeatureEnableEpoch: 1,
 		},
 	)
 	require.Nil(t, err)
@@ -46,6 +47,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 			PayableBySC: false,
 			Upgradeable: true,
 			Readable:    true,
+			Frozen:      false,
 		}
 
 		assert.Equal(t, expectedCodeMetadata.ToBytes(), getCodeMetadata(t, testContext.Accounts, contractAddress))
@@ -60,6 +62,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 			PayableBySC: true,
 			Upgradeable: true,
 			Readable:    true,
+			Frozen:      false,
 		}
 
 		assert.Equal(t, expectedCodeMetadata.ToBytes(), getCodeMetadata(t, testContext.Accounts, contractAddress))

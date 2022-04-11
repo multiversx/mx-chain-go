@@ -509,7 +509,7 @@ type BlockChainHookHandler interface {
 	RevertToSnapshot(snapshot int) error
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
-	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
 }
 
