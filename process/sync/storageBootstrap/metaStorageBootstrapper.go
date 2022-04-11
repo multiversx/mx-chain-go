@@ -180,7 +180,7 @@ func (msb *metaStorageBootstrapper) getRootHash(metaBlockHash []byte) []byte {
 }
 
 func checkMetaStorageBootstrapperArgs(args ArgsMetaStorageBootstrapper) error {
-	err := checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+	err := checkBaseStorageBootstrapperArguments(args.ArgsBaseStorageBootstrapper)
 	if err != nil {
 		return err
 	}

@@ -183,5 +183,5 @@ func (ssb *shardStorageBootstrapper) getRootHash(shardHeaderHash []byte) []byte 
 }
 
 func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {
-	return checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+	return checkBaseStorageBootstrapperArguments(args.ArgsBaseStorageBootstrapper)
 }
