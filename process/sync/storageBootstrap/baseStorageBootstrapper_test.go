@@ -347,9 +347,3 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBody, body)
 }
-
-// TODO continue unit test
-func TestStorageBootstrapper_loadBlocksShouldWork(t *testing.T) {
-	t.Parallel()
-
-}
