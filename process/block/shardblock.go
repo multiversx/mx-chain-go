@@ -743,7 +743,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 
 	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
 		for _, miniBlockHash := range miniBlockHashes {
-			//TODO: Check how to set the correct index
+			//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
 			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
 			sp.processedMiniBlocks.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
 				IsFullyProcessed:       true,

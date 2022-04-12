@@ -5044,3 +5044,46 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, called.IsSet())
 }
+
+func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	metaHash := []byte("meta_hash")
+	mbHash := []byte("mb_hash")
+	mbInfo := &processedMb.ProcessedMiniBlockInfo{
+		IsFullyProcessed:       true,
+		IndexOfLastTxProcessed: 69,
+	}
+	miniBlockHeader := &block.MiniBlockHeader{}
+
+	sp.GetProcessedMiniBlocks().SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
+	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+
+	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
+	assert.Equal(t, 0, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+
+	sp.GetProcessedMiniBlocks().SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
+	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+
+	_ = miniBlockHeader.SetIndexOfFirstTxProcessed(2)
+
+	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, []byte("mb_hash_missing"))
+	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+
+	processedMbInfo, processedMetaHash := sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.Equal(t, mbInfo.IsFullyProcessed, processedMbInfo.IsFullyProcessed)
+	assert.Equal(t, mbInfo.IndexOfLastTxProcessed, processedMbInfo.IndexOfLastTxProcessed)
+
+	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
+	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+
+	processedMbInfo, processedMetaHash = sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.Equal(t, int32(1), processedMbInfo.IndexOfLastTxProcessed)
+}

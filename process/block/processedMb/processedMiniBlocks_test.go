@@ -81,3 +81,26 @@ func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) 
 	convertedData := pmb.ConvertProcessedMiniBlocksMapToSlice()
 	assert.Equal(t, miniBlocksInMeta, convertedData)
 }
+
+func TestProcessedMiniBlocks_GetProcessedMiniBlockInfo(t *testing.T) {
+	t.Parallel()
+
+	mbHash := []byte("mb_hash")
+	metaHash := []byte("meta_hash")
+	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
+		IsFullyProcessed:       true,
+		IndexOfLastTxProcessed: 69,
+	}
+	pmb := processedMb.NewProcessedMiniBlocks()
+	pmb.SetProcessedMiniBlockInfo(metaHash, mbHash, processedMbInfo)
+
+	processedMiniBlockInfo, processedMetaHash := pmb.GetProcessedMiniBlockInfo(nil)
+	assert.Nil(t, processedMetaHash)
+	assert.False(t, processedMiniBlockInfo.IsFullyProcessed)
+	assert.Equal(t, int32(-1), processedMiniBlockInfo.IndexOfLastTxProcessed)
+
+	processedMiniBlockInfo, processedMetaHash = pmb.GetProcessedMiniBlockInfo(mbHash)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.True(t, processedMiniBlockInfo.IsFullyProcessed)
+	assert.Equal(t, int32(69), processedMiniBlockInfo.IndexOfLastTxProcessed)
+}

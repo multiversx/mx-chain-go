@@ -491,3 +491,63 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	err = epoch.VerifyEpochStartDataForMetablock(&block.MetaBlock{EpochStart: *epStart})
 	assert.Nil(t, err)
 }
+
+func TestEpochStartCreator_computeStillPending(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	epoch, _ := NewEpochStartData(arguments)
+
+	shardHdrs := make([]data.HeaderHandler, 0)
+	miniBlockHeaders := make(map[string]block.MiniBlockHeader)
+	mbHash1 := []byte("miniBlock_hash1")
+	mbHash2 := []byte("miniBlock_hash2")
+	mbHash3 := []byte("miniBlock_hash3")
+	mbHeader1 := block.MiniBlockHeader{Hash: mbHash1, TxCount: 3}
+	mbHeader2 := block.MiniBlockHeader{Hash: mbHash2}
+	mbHeader3 := block.MiniBlockHeader{Hash: mbHash3, TxCount: 10}
+
+	_ = mbHeader1.SetConstructionState(int32(block.Final))
+	_ = mbHeader1.SetIndexOfFirstTxProcessed(0)
+	_ = mbHeader1.SetIndexOfLastTxProcessed(2)
+
+	_ = mbHeader3.SetConstructionState(int32(block.PartialExecuted))
+	_ = mbHeader3.SetIndexOfFirstTxProcessed(1)
+	_ = mbHeader3.SetIndexOfLastTxProcessed(3)
+
+	miniBlockHeaders[string(mbHash1)] = mbHeader1
+	miniBlockHeaders[string(mbHash2)] = mbHeader2
+	miniBlockHeaders[string(mbHash3)] = mbHeader3
+
+	mbh1 := block.MiniBlockHeader{
+		Hash: mbHash1,
+	}
+	mbh2 := block.MiniBlockHeader{
+		Hash: []byte("miniBlock_hash_missing"),
+	}
+	mbh3 := block.MiniBlockHeader{
+		Hash: mbHash3,
+	}
+
+	_ = mbh3.SetConstructionState(int32(block.PartialExecuted))
+	_ = mbh3.SetIndexOfFirstTxProcessed(4)
+	_ = mbh3.SetIndexOfLastTxProcessed(8)
+
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh1, mbh2, mbh3},
+	}
+
+	shardHdrs = append(shardHdrs, header)
+
+	stillPending := epoch.computeStillPending(0, shardHdrs, miniBlockHeaders)
+	require.Equal(t, 2, len(stillPending))
+
+	assert.Equal(t, mbHash2, stillPending[0].Hash)
+	assert.Equal(t, mbHash3, stillPending[1].Hash)
+
+	assert.Equal(t, int32(-1), stillPending[0].GetIndexOfFirstTxProcessed())
+	assert.Equal(t, int32(-1), stillPending[0].GetIndexOfLastTxProcessed())
+
+	assert.Equal(t, int32(4), stillPending[1].GetIndexOfFirstTxProcessed())
+	assert.Equal(t, int32(8), stillPending[1].GetIndexOfLastTxProcessed())
+}

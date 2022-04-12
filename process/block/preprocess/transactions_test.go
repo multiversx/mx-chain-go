@@ -2030,6 +2030,26 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 	})
 }
 
+func TestTransactions_getMiniBlockHeaderOfMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	mbHash := []byte("mb_hash")
+	mbHeader := block.MiniBlockHeader{
+		Hash: mbHash,
+	}
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbHeader},
+	}
+
+	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(header, []byte("mb_hash_missing"))
+	assert.Nil(t, miniBlockHeader)
+	assert.Equal(t, process.ErrMissingMiniBlockHeader, err)
+
+	miniBlockHeader, err = getMiniBlockHeaderOfMiniBlock(header, mbHash)
+	assert.Nil(t, err)
+	assert.Equal(t, &mbHeader, miniBlockHeader)
+}
+
 func createMockBlockBody() (*block.Body, []*txInfoHolder) {
 	txsShard1 := createMockTransactions(2, 1, 1, 1000)
 	txsShard2to1 := createMockTransactions(2, 2, 1, 2000)

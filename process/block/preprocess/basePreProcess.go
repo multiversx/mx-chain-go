@@ -500,7 +500,7 @@ func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandle
 	postProcessorInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
 }
 
-func (bpp *basePreProcess) getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
+func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
 	for _, miniBlockHeader := range headerHandler.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
 			return miniBlockHeader, nil

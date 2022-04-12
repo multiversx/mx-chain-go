@@ -364,9 +364,9 @@ func updatePendingMiniBlocksForScheduled(
 	remainingPendingMiniBlocks := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
 	for index, metaBlockHash := range referencedMetaBlockHashes {
 		if index == 0 {
-			//TODO: There could be situations when even first meta block referenced in one shard block was started and finalized there
-			//and the pending mini blocks could be removed at all with the code below, as the roll back will go before this meta block
-			//Anyway, even if they will remain as pending here, this is not critical yet, as they count only for isShardStuck analysis
+			//TODO: There could be situations when even first meta block referenced in one shard block was started
+			//and finalized here, so the pending mini blocks could be removed at all. Anyway, even if they will remain
+			//as pending here, this is not critical, as they count only for isShardStuck analysis
 			continue
 		}
 		mbHashes, err := getProcessedMiniBlockHashesForMetaBlockHash(selfShardID, metaBlockHash, headers)

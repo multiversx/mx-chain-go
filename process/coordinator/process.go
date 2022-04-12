@@ -34,6 +34,14 @@ var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
 
 var log = logger.GetOrCreate("process/coordinator")
 
+type createMiniBlockDestMeExecutionInfo struct {
+	processedTxHashes             [][]byte
+	miniBlocks                    block.MiniBlockSlice
+	numTxAdded                    uint32
+	numNewMiniBlocksProcessed     int
+	numAlreadyMiniBlocksProcessed int
+}
+
 // ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
 type ArgTransactionCoordinator struct {
 	Hasher                               hashing.Hasher
@@ -554,14 +562,6 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	}
 
 	return mbIndex, nil
-}
-
-type createMiniBlockDestMeExecutionInfo struct {
-	processedTxHashes             [][]byte
-	miniBlocks                    block.MiniBlockSlice
-	numTxAdded                    uint32
-	numNewMiniBlocksProcessed     int
-	numAlreadyMiniBlocksProcessed int
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction

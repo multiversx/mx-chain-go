@@ -2048,13 +2048,6 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			shardMiniBlockHeader.TxCount = shardHdr.GetMiniBlockHeaderHandlers()[i].GetTxCount()
 			shardMiniBlockHeader.Type = block.Type(shardHdr.GetMiniBlockHeaderHandlers()[i].GetTypeInt32())
 
-			//TODO: This should be set only when shardData.ShardID != shardMiniBlockHeader.SenderShardID
-			//reserved := shardHdr.GetMiniBlockHeaderHandlers()[i].GetReserved()
-			//if len(reserved) > 0 {
-			//	shardMiniBlockHeader.Reserved = make([]byte, len(reserved))
-			//	copy(shardMiniBlockHeader.Reserved, reserved)
-			//}
-
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}
 
