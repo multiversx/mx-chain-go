@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
-// shuffler constants
 const (
 	shuffleBetweenShards = false
 	adaptivity           = false

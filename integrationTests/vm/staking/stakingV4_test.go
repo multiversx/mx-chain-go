@@ -76,7 +76,7 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	require.Empty(t, initialNodes.auction)
 
 	// 2. Check config after staking v4 initialization
-	node.Process(t, 5)
+	node.Process(t, 6)
 	nodesConfigStakingV4Init := node.NodesConfig
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)
@@ -102,10 +102,10 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	// All current auction are from previous eligible
 	requireMapContains(t, nodesConfigStakingV4Init.eligible, nodesConfigStakingV4.auction)
 
-	rounds := 0
+	epochs := 0
 	prevConfig := nodesConfigStakingV4
 	prevNumOfWaiting := newWaiting
-	for rounds < 10 {
+	for epochs < 10 {
 		node.Process(t, 5)
 		newNodeConfig := node.NodesConfig
 
@@ -121,6 +121,6 @@ func TestNewTestMetaProcessor(t *testing.T) {
 
 		prevConfig = newNodeConfig
 		prevNumOfWaiting = newWaiting
-		rounds++
+		epochs++
 	}
 }

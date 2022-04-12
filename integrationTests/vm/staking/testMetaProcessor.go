@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -23,9 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +35,7 @@ const (
 	nodePrice            = 1000
 )
 
-type NodesConfig struct {
+type nodesConfig struct {
 	eligible    map[uint32][][]byte
 	waiting     map[uint32][][]byte
 	leaving     map[uint32][][]byte
@@ -53,12 +51,10 @@ type TestMetaProcessor struct {
 	ValidatorStatistics process.ValidatorStatisticsProcessor
 	EpochStartTrigger   integrationTests.TestEpochStartTrigger
 	BlockChainHandler   data.ChainHandler
-	NodesConfig         NodesConfig
+	NodesConfig         nodesConfig
 	CurrentRound        uint64
 	AccountsAdapter     state.AccountsAdapter
 	Marshaller          marshal.Marshalizer
-
-	metaConsensusGroupSize uint32
 }
 
 // NewTestMetaProcessor -
@@ -147,7 +143,7 @@ func NewTestMetaProcessor(
 	return &TestMetaProcessor{
 		AccountsAdapter: stateComponents.AccountsAdapter(),
 		Marshaller:      coreComponents.InternalMarshalizer(),
-		NodesConfig: NodesConfig{
+		NodesConfig: nodesConfig{
 			eligible:    eligible,
 			waiting:     waiting,
 			shuffledOut: shuffledOut,
@@ -168,12 +164,11 @@ func NewTestMetaProcessor(
 			epochStartTrigger,
 			vmContainer,
 		),
-		CurrentRound:           1,
-		NodesCoordinator:       nc,
-		metaConsensusGroupSize: uint32(metaConsensusGroupSize),
-		ValidatorStatistics:    validatorStatisticsProcessor,
-		EpochStartTrigger:      epochStartTrigger,
-		BlockChainHandler:      dataComponents.Blockchain(),
+		CurrentRound:        1,
+		NodesCoordinator:    nc,
+		ValidatorStatistics: validatorStatisticsProcessor,
+		EpochStartTrigger:   epochStartTrigger,
+		BlockChainHandler:   dataComponents.Blockchain(),
 	}
 }
 
@@ -203,44 +198,6 @@ func createGasScheduleNotifier() core.GasScheduleNotifier {
 	return mock.NewGasScheduleNotifierMock(gasSchedule)
 }
 
-func createStakingQueue(
-	numOfNodesInStakingQueue uint32,
-	totalNumOfNodes uint32,
-	marshaller marshal.Marshalizer,
-	accountsAdapter state.AccountsAdapter,
-) [][]byte {
-	owner := generateAddress(totalNumOfNodes)
-	totalNumOfNodes += 1
-	ownerWaitingNodes := make([][]byte, 0)
-	for i := totalNumOfNodes; i < totalNumOfNodes+numOfNodesInStakingQueue; i++ {
-		ownerWaitingNodes = append(ownerWaitingNodes, generateAddress(i))
-	}
-
-	testscommon.SaveOneKeyToWaitingList(
-		accountsAdapter,
-		ownerWaitingNodes[0],
-		marshaller,
-		owner,
-		owner,
-	)
-	testscommon.AddKeysToWaitingList(
-		accountsAdapter,
-		ownerWaitingNodes[1:],
-		marshaller,
-		owner,
-		owner,
-	)
-	testscommon.AddValidatorData(
-		accountsAdapter,
-		owner,
-		ownerWaitingNodes,
-		big.NewInt(int64(2*nodePrice*numOfNodesInStakingQueue)),
-		marshaller,
-	)
-
-	return ownerWaitingNodes
-}
-
 func createEpochStartTrigger(
 	coreComponents factory2.CoreComponentsHolder,
 	storageService dataRetriever.StorageService,
@@ -266,24 +223,22 @@ func createEpochStartTrigger(
 	return testTrigger
 }
 
+// Process -
 func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 	for r := tmp.CurrentRound; r < tmp.CurrentRound+numOfRounds; r++ {
 		currentHeader, currentHash := tmp.getCurrentHeaderInfo()
-
 		_, err := tmp.MetaBlockProcessor.CreateNewHeader(r, r)
 		require.Nil(t, err)
 
-		fmt.Println(fmt.Sprintf("############## CREATING HEADER FOR EPOCH %v in round %v ##############",
-			tmp.EpochStartTrigger.Epoch(),
-			r,
-		))
+		epoch := tmp.EpochStartTrigger.Epoch()
+		printNewHeaderRoundEpoch(r, epoch)
 
 		header := createMetaBlockToCommit(
-			tmp.EpochStartTrigger.Epoch(),
+			epoch,
 			r,
 			currentHash,
 			currentHeader.GetRandSeed(),
-			tmp.metaConsensusGroupSize/8+1,
+			tmp.NodesCoordinator.ConsensusGroupSize(core.MetachainShardId),
 		)
 		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, func() bool { return true })
 		require.Nil(t, err)
@@ -292,25 +247,20 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		require.Nil(t, err)
 
 		time.Sleep(time.Millisecond * 40)
-
-		tmp.updateNodesConfig(tmp.EpochStartTrigger.Epoch())
+		tmp.updateNodesConfig(epoch)
+		displayConfig(tmp.NodesConfig)
 	}
 
 	tmp.CurrentRound += numOfRounds
 }
 
-func displayValidators(list string, pubKeys [][]byte, shardID uint32) {
-	pubKeysToDisplay := pubKeys
-	if len(pubKeys) > 6 {
-		pubKeysToDisplay = make([][]byte, 0)
-		pubKeysToDisplay = append(pubKeysToDisplay, pubKeys[:3]...)
-		pubKeysToDisplay = append(pubKeysToDisplay, [][]byte{[]byte("...")}...)
-		pubKeysToDisplay = append(pubKeysToDisplay, pubKeys[len(pubKeys)-3:]...)
-	}
-
-	for _, pk := range pubKeysToDisplay {
-		fmt.Println(list, "pk", string(pk), "shardID", shardID)
-	}
+func printNewHeaderRoundEpoch(round uint64, epoch uint32) {
+	headline := display.Headline(
+		fmt.Sprintf("Commiting header in epoch %v round %v", epoch, round),
+		"",
+		delimiter,
+	)
+	fmt.Println(headline)
 }
 
 func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
@@ -319,100 +269,22 @@ func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	leaving, _ := tmp.NodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
 	shuffledOut, _ := tmp.NodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
 
-	for shard := range eligible {
-		displayValidators("eligible", eligible[shard], shard)
-		displayValidators("waiting", waiting[shard], shard)
-		displayValidators("leaving", leaving[shard], shard)
-		displayValidators("shuffled", shuffledOut[shard], shard)
-	}
-
 	rootHash, _ := tmp.ValidatorStatistics.RootHash()
 	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
 
 	auction := make([][]byte, 0)
-	fmt.Println("####### Auction list")
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
 		if validator.GetList() == string(common.AuctionList) {
 			auction = append(auction, validator.GetPublicKey())
 		}
 	}
-	displayValidators("auction", auction, 0)
-	queue := tmp.searchPreviousFromHead()
-	fmt.Println("##### STAKING QUEUE")
-	displayValidators("queue", queue, 0)
 
 	tmp.NodesConfig.eligible = eligible
 	tmp.NodesConfig.waiting = waiting
 	tmp.NodesConfig.shuffledOut = shuffledOut
 	tmp.NodesConfig.leaving = leaving
 	tmp.NodesConfig.auction = auction
-	tmp.NodesConfig.queue = queue
-}
-
-func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	acc, _ := accountsDB.LoadAccount(address)
-	stakingSCAcc := acc.(state.UserAccountHandler)
-
-	return stakingSCAcc
-}
-
-func (tmp *TestMetaProcessor) searchPreviousFromHead() [][]byte {
-	stakingSCAcc := loadSCAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
-
-	waitingList := &systemSmartContracts.WaitingList{
-		FirstKey:      make([]byte, 0),
-		LastKey:       make([]byte, 0),
-		Length:        0,
-		LastJailedKey: make([]byte, 0),
-	}
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
-	if len(marshaledData) == 0 {
-		return nil
-	}
-
-	err := tmp.Marshaller.Unmarshal(waitingList, marshaledData)
-	if err != nil {
-		return nil
-	}
-
-	index := uint32(1)
-	nextKey := make([]byte, len(waitingList.FirstKey))
-	copy(nextKey, waitingList.FirstKey)
-
-	allPubKeys := make([][]byte, 0)
-	for len(nextKey) != 0 && index <= waitingList.Length {
-		allPubKeys = append(allPubKeys, nextKey)
-
-		element, errGet := tmp.getWaitingListElement(nextKey)
-		if errGet != nil {
-			return nil
-		}
-
-		nextKey = make([]byte, len(element.NextKey))
-		if len(element.NextKey) == 0 {
-			break
-		}
-		index++
-		copy(nextKey, element.NextKey)
-	}
-	return allPubKeys
-}
-
-func (tmp *TestMetaProcessor) getWaitingListElement(key []byte) (*systemSmartContracts.ElementInList, error) {
-	stakingSCAcc := loadSCAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
-
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue(key)
-	if len(marshaledData) == 0 {
-		return nil, vm.ErrElementNotFound
-	}
-
-	element := &systemSmartContracts.ElementInList{}
-	err := tmp.Marshaller.Unmarshal(element, marshaledData)
-	if err != nil {
-		return nil, err
-	}
-
-	return element, nil
+	tmp.NodesConfig.queue = tmp.getWaitingListKeys()
 }
 
 func (tmp *TestMetaProcessor) getCurrentHeaderInfo() (data.HeaderHandler, []byte) {
@@ -431,7 +303,7 @@ func createMetaBlockToCommit(
 	round uint64,
 	prevHash []byte,
 	prevRandSeed []byte,
-	consensusSize uint32,
+	consensusSize int,
 ) *block.MetaBlock {
 	roundStr := strconv.Itoa(int(round))
 	hdr := block.MetaBlock{
@@ -440,7 +312,7 @@ func createMetaBlockToCommit(
 		Round:                  round,
 		PrevHash:               prevHash,
 		Signature:              []byte("signature"),
-		PubKeysBitmap:          []byte(strings.Repeat("f", int(consensusSize))),
+		PubKeysBitmap:          []byte(strings.Repeat("f", consensusSize)),
 		RootHash:               []byte("roothash"),
 		ShardInfo:              make([]block.ShardData, 0),
 		TxCount:                1,

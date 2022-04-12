@@ -148,24 +148,22 @@ func (s *systemSCProcessor) processWithNewFlags(
 }
 
 func (s *systemSCProcessor) calcShuffledOutNodes() uint32 {
-	maxNodesConfigLen := len(s.maxNodesEnableConfig)
-	if maxNodesConfigLen == 0 {
-		return 0
-	}
-
-	nodesToShufflePerShard := s.maxNodesEnableConfig[maxNodesConfigLen-1].NodesToShufflePerShard
-	return nodesToShufflePerShard * s.shardCoordinator.NumberOfShards()
+	nodesToShufflePerShard := s.currentNodesEnableConfig.NodesToShufflePerShard
+	return nodesToShufflePerShard * (s.shardCoordinator.NumberOfShards() + 1) // TODO: THIS IS NOT OK; meta does not shuffle the sam num of nodes
 }
 
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
-	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
+	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
 	numOfShuffledNodes := s.calcShuffledOutNodes()
-	numOfValidators -= numOfShuffledNodes
+	numOfValidators := currNumOfValidators - numOfShuffledNodes
 	availableSlots, err := safeSub(s.maxNodes, numOfValidators)
+	auctionListSize := uint32(len(auctionList))
 	log.Info("systemSCProcessor.selectNodesFromAuctionList",
 		"max nodes", s.maxNodes,
-		"num of validators", numOfValidators,
-		"auction list size", len(auctionList),
+		"current number of validators", currNumOfValidators,
+		"num of nodes which will be shuffled", numOfShuffledNodes,
+		"num of validators after shuffling", numOfValidators,
+		"auction list size", auctionListSize,
 		"available slots", availableSlots,
 	) // todo: change to log.debug
 
@@ -179,7 +177,6 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 		return err
 	}
 
-	auctionListSize := uint32(len(auctionList))
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 

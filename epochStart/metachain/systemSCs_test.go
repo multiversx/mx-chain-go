@@ -215,7 +215,7 @@ func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, s
 	numEligible := 9
 	numWaiting := 5
 	numJailed := 8
-	stakingScAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
+	stakingScAcc := testscommon.LoadUserAccount(args.UserAccountsDB, vm.StakingSCAddress)
 	createEligibleNodes(numEligible, stakingScAcc, args.Marshalizer)
 	_ = createWaitingNodes(numWaiting, stakingScAcc, args.UserAccountsDB, args.Marshalizer)
 	jailed := createJailedNodes(numJailed, stakingScAcc, args.UserAccountsDB, args.PeerAccountsDB, args.Marshalizer)
@@ -512,13 +512,6 @@ func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB st
 	saveOutputAccounts(t, accountsDB, vmOutput)
 }
 
-func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	acc, _ := accountsDB.LoadAccount(address)
-	stakingSCAcc := acc.(state.UserAccountHandler)
-
-	return stakingSCAcc
-}
-
 func createEligibleNodes(numNodes int, stakingSCAcc state.UserAccountHandler, marshalizer marshal.Marshalizer) {
 	for i := 0; i < numNodes; i++ {
 		stakedData := &systemSmartContracts.StakedDataV2_0{
@@ -574,8 +567,8 @@ func addValidatorDataWithUnStakedKey(
 	nodePrice *big.Int,
 	marshalizer marshal.Marshalizer,
 ) {
-	stakingAccount := loadSCAccount(accountsDB, vm.StakingSCAddress)
-	validatorAccount := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
+	stakingAccount := testscommon.LoadUserAccount(accountsDB, vm.StakingSCAddress)
+	validatorAccount := testscommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
 
 	validatorData := &systemSmartContracts.ValidatorDataV2{
 		RegisterNonce:   0,
@@ -1239,7 +1232,7 @@ func addDelegationData(
 	stakedKeys [][]byte,
 	marshalizer marshal.Marshalizer,
 ) {
-	delegatorSC := loadSCAccount(accountsDB, delegation)
+	delegatorSC := testscommon.LoadUserAccount(accountsDB, delegation)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
 		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
@@ -1332,7 +1325,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	assert.Len(t, validatorsInfo.GetShardValidatorsInfoMap()[0], 4)
 
-	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
+	delegationSC := testscommon.LoadUserAccount(args.UserAccountsDB, delegationAddr)
 	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
@@ -1417,7 +1410,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 		assert.Equal(t, string(common.EligibleList), vInfo.GetList())
 	}
 
-	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
+	delegationSC := testscommon.LoadUserAccount(args.UserAccountsDB, delegationAddr)
 	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
@@ -1510,7 +1503,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
 
-	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr2)
+	delegationSC := testscommon.LoadUserAccount(args.UserAccountsDB, delegationAddr2)
 	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
@@ -1526,7 +1519,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	assert.Equal(t, []byte("waitingPubKe4"), dStatus.UnStakedKeys[0].BLSKey)
 	assert.Equal(t, []byte("waitingPubKe3"), dStatus.UnStakedKeys[1].BLSKey)
 
-	stakingSCAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
+	stakingSCAcc := testscommon.LoadUserAccount(args.UserAccountsDB, vm.StakingSCAddress)
 	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
 	waitingListHead := &systemSmartContracts.WaitingList{}
 	_ = args.Marshalizer.Unmarshal(waitingListHead, marshaledData)
@@ -1597,14 +1590,14 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	err := s.ToggleUnStakeUnBond(true)
 	assert.Nil(t, err)
 
-	validatorSC := loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
+	validatorSC := testscommon.LoadUserAccount(s.userAccountsDB, vm.ValidatorSCAddress)
 	value, _ := validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 1)
 
 	err = s.ToggleUnStakeUnBond(false)
 	assert.Nil(t, err)
 
-	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
+	validatorSC = testscommon.LoadUserAccount(s.userAccountsDB, vm.ValidatorSCAddress)
 	value, _ = validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 0)
 }

@@ -36,7 +36,7 @@ func AddValidatorData(
 	totalStake *big.Int,
 	marshaller marshal.Marshalizer,
 ) {
-	validatorSC := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
+	validatorSC := LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
 	validatorData := &systemSmartContracts.ValidatorDataV2{
 		RegisterNonce:   0,
 		Epoch:           0,
@@ -69,7 +69,7 @@ func AddStakingData(
 	}
 	marshaledData, _ := marshaller.Marshal(stakedData)
 
-	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
+	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
 	for _, key := range stakedKeys {
 		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
 	}
@@ -84,7 +84,7 @@ func AddKeysToWaitingList(
 	rewardAddress []byte,
 	ownerAddress []byte,
 ) {
-	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
+	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
 
 	for _, waitingKey := range waitingKeys {
 		stakedData := &systemSmartContracts.StakedDataV2_0{
@@ -160,7 +160,7 @@ func SaveOneKeyToWaitingList(
 	rewardAddress []byte,
 	ownerAddress []byte,
 ) {
-	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
+	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
 	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
 		RewardAddress: rewardAddress,
@@ -190,11 +190,9 @@ func SaveOneKeyToWaitingList(
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
 
-func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
+func LoadUserAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	acc, _ := accountsDB.LoadAccount(address)
-	stakingSCAcc := acc.(state.UserAccountHandler)
-
-	return stakingSCAcc
+	return acc.(state.UserAccountHandler)
 }
 
 func CreateEconomicsData() process.EconomicsDataHandler {
