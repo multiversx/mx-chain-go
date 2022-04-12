@@ -57,6 +57,8 @@ type TestMetaProcessor struct {
 	CurrentRound        uint64
 	AccountsAdapter     state.AccountsAdapter
 	Marshaller          marshal.Marshalizer
+
+	metaConsensusGroupSize uint32
 }
 
 // NewTestMetaProcessor -
@@ -166,11 +168,12 @@ func NewTestMetaProcessor(
 			epochStartTrigger,
 			vmContainer,
 		),
-		CurrentRound:        1,
-		NodesCoordinator:    nc,
-		ValidatorStatistics: validatorStatisticsProcessor,
-		EpochStartTrigger:   epochStartTrigger,
-		BlockChainHandler:   dataComponents.Blockchain(),
+		CurrentRound:           1,
+		NodesCoordinator:       nc,
+		metaConsensusGroupSize: uint32(metaConsensusGroupSize),
+		ValidatorStatistics:    validatorStatisticsProcessor,
+		EpochStartTrigger:      epochStartTrigger,
+		BlockChainHandler:      dataComponents.Blockchain(),
 	}
 }
 
@@ -275,7 +278,13 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 			r,
 		))
 
-		header := createMetaBlockToCommit(tmp.EpochStartTrigger.Epoch(), r, currentHash, currentHeader.GetRandSeed())
+		header := createMetaBlockToCommit(
+			tmp.EpochStartTrigger.Epoch(),
+			r,
+			currentHash,
+			currentHeader.GetRandSeed(),
+			tmp.metaConsensusGroupSize/8+1,
+		)
 		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, func() bool { return true })
 		require.Nil(t, err)
 
@@ -290,44 +299,47 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 	tmp.CurrentRound += numOfRounds
 }
 
+func displayValidators(list string, pubKeys [][]byte, shardID uint32) {
+	pubKeysToDisplay := pubKeys
+	if len(pubKeys) > 6 {
+		pubKeysToDisplay = make([][]byte, 0)
+		pubKeysToDisplay = append(pubKeysToDisplay, pubKeys[:3]...)
+		pubKeysToDisplay = append(pubKeysToDisplay, [][]byte{[]byte("...")}...)
+		pubKeysToDisplay = append(pubKeysToDisplay, pubKeys[len(pubKeys)-3:]...)
+	}
+
+	for _, pk := range pubKeysToDisplay {
+		fmt.Println(list, "pk", string(pk), "shardID", shardID)
+	}
+}
+
 func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	eligible, _ := tmp.NodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	waiting, _ := tmp.NodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	leaving, _ := tmp.NodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
 	shuffledOut, _ := tmp.NodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
-	auction := make([][]byte, 0)
 
 	for shard := range eligible {
-		for _, pk := range eligible[shard] {
-			fmt.Println("eligible", "pk", string(pk), "shardID", shard)
-		}
-		for _, pk := range waiting[shard] {
-			fmt.Println("waiting", "pk", string(pk), "shardID", shard)
-		}
-		for _, pk := range leaving[shard] {
-			fmt.Println("leaving", "pk", string(pk), "shardID", shard)
-		}
-		for _, pk := range shuffledOut[shard] {
-			fmt.Println("shuffled out", "pk", string(pk), "shardID", shard)
-		}
+		displayValidators("eligible", eligible[shard], shard)
+		displayValidators("waiting", waiting[shard], shard)
+		displayValidators("leaving", leaving[shard], shard)
+		displayValidators("shuffled", shuffledOut[shard], shard)
 	}
 
 	rootHash, _ := tmp.ValidatorStatistics.RootHash()
 	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
 
+	auction := make([][]byte, 0)
 	fmt.Println("####### Auction list")
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
 		if validator.GetList() == string(common.AuctionList) {
 			auction = append(auction, validator.GetPublicKey())
-			fmt.Println("auction pk", string(validator.GetPublicKey()))
 		}
 	}
-
+	displayValidators("auction", auction, 0)
 	queue := tmp.searchPreviousFromHead()
 	fmt.Println("##### STAKING QUEUE")
-	for _, nodeInQueue := range queue {
-		fmt.Println(string(nodeInQueue))
-	}
+	displayValidators("queue", queue, 0)
 
 	tmp.NodesConfig.eligible = eligible
 	tmp.NodesConfig.waiting = waiting
@@ -419,6 +431,7 @@ func createMetaBlockToCommit(
 	round uint64,
 	prevHash []byte,
 	prevRandSeed []byte,
+	consensusSize uint32,
 ) *block.MetaBlock {
 	roundStr := strconv.Itoa(int(round))
 	hdr := block.MetaBlock{
@@ -427,7 +440,7 @@ func createMetaBlockToCommit(
 		Round:                  round,
 		PrevHash:               prevHash,
 		Signature:              []byte("signature"),
-		PubKeysBitmap:          []byte("pubKeysBitmap"),
+		PubKeysBitmap:          []byte(strings.Repeat("f", int(consensusSize))),
 		RootHash:               []byte("roothash"),
 		ShardInfo:              make([]block.ShardData, 0),
 		TxCount:                1,

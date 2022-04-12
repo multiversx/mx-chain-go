@@ -43,14 +43,14 @@ func getAllPubKeys(validatorsMap map[uint32][][]byte) [][]byte {
 }
 
 func TestNewTestMetaProcessor(t *testing.T) {
-	numOfMetaNodes := uint32(10)
+	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
-	numOfEligibleNodesPerShard := uint32(10)
-	numOfWaitingNodesPerShard := uint32(10)
-	numOfNodesToShufflePerShard := uint32(3)
-	shardConsensusGroupSize := 3
-	metaConsensusGroupSize := 3
-	numOfNodesInStakingQueue := uint32(4)
+	numOfEligibleNodesPerShard := uint32(400)
+	numOfWaitingNodesPerShard := uint32(400)
+	numOfNodesToShufflePerShard := uint32(80)
+	shardConsensusGroupSize := 266
+	metaConsensusGroupSize := 266
+	numOfNodesInStakingQueue := uint32(60)
 
 	totalEligible := int(numOfEligibleNodesPerShard*numOfShards) + int(numOfMetaNodes)
 	totalWaiting := int(numOfWaitingNodesPerShard*numOfShards) + int(numOfMetaNodes)
@@ -67,6 +67,7 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	)
 	node.EpochStartTrigger.SetRoundsPerEpoch(4)
 
+	// 1. Check initial config is correct
 	initialNodes := node.NodesConfig
 	require.Len(t, getAllPubKeys(initialNodes.eligible), totalEligible)
 	require.Len(t, getAllPubKeys(initialNodes.waiting), totalWaiting)
@@ -74,6 +75,7 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	require.Empty(t, initialNodes.shuffledOut)
 	require.Empty(t, initialNodes.auction)
 
+	// 2. Check config after staking v4 initialization
 	node.Process(t, 5)
 	nodesConfigStakingV4Init := node.NodesConfig
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
@@ -82,16 +84,43 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	require.Empty(t, nodesConfigStakingV4Init.shuffledOut)
 	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Init.auction)
 
+	// 3. Check config after first staking v4 epoch
 	node.Process(t, 6)
 	nodesConfigStakingV4 := node.NodesConfig
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4.eligible), totalEligible)
-	require.Len(t, getAllPubKeys(nodesConfigStakingV4.waiting), totalWaiting-int((numOfShards+1)*numOfNodesToShufflePerShard)+len(nodesConfigStakingV4Init.auction))
 
-	requireMapContains(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)  // all current waiting are from the previous auction
-	requireMapContains(t, nodesConfigStakingV4Init.eligible, nodesConfigStakingV4.auction) // all current auction are from previous eligible
+	numOfShuffledOut := int((numOfShards + 1) * numOfNodesToShufflePerShard)
+	newWaiting := totalWaiting - numOfShuffledOut + len(nodesConfigStakingV4Init.auction)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.waiting), newWaiting)
 
-	//requireMapContains(t, node.NodesConfig.shuffledOut, node.NodesConfig.auction, uint32(len(node.NodesConfig.shuffledOut)))
-	//requireMapContains(t, eligibleAfterStakingV4Init, node.NodesConfig.auction, 8) //todo: check size
+	// All shuffled out are in auction
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.shuffledOut), numOfShuffledOut)
+	requireSameSliceDifferentOrder(t, getAllPubKeys(nodesConfigStakingV4.shuffledOut), nodesConfigStakingV4.auction)
 
-	//node.Process(t, 20)
+	// All current waiting are from the previous auction
+	requireMapContains(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)
+	// All current auction are from previous eligible
+	requireMapContains(t, nodesConfigStakingV4Init.eligible, nodesConfigStakingV4.auction)
+
+	rounds := 0
+	prevConfig := nodesConfigStakingV4
+	prevNumOfWaiting := newWaiting
+	for rounds < 10 {
+		node.Process(t, 5)
+		newNodeConfig := node.NodesConfig
+
+		newWaiting = prevNumOfWaiting - numOfShuffledOut + len(prevConfig.auction)
+		require.Len(t, getAllPubKeys(newNodeConfig.waiting), newWaiting)
+		require.Len(t, getAllPubKeys(newNodeConfig.eligible), totalEligible)
+
+		require.Len(t, getAllPubKeys(newNodeConfig.shuffledOut), numOfShuffledOut)
+		requireSameSliceDifferentOrder(t, getAllPubKeys(newNodeConfig.shuffledOut), newNodeConfig.auction)
+
+		requireMapContains(t, newNodeConfig.waiting, prevConfig.auction)
+		requireMapContains(t, prevConfig.eligible, newNodeConfig.auction)
+
+		prevConfig = newNodeConfig
+		prevNumOfWaiting = newWaiting
+		rounds++
+	}
 }
