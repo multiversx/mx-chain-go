@@ -189,10 +189,14 @@ func (ph *peersHolder) removePeerInfoAtConnectionAddress(peerID core.PeerID, con
 	var pInfo *peerInfo
 	for index, pInfo = range peersInfo {
 		if peerID == pInfo.pid {
-			break
+			ph.removePeerFromPeersInfoAtIndex(peersInfo, index, connAddr)
+			return
 		}
 	}
 
+}
+
+func (ph *peersHolder) removePeerFromPeersInfoAtIndex(peersInfo []*peerInfo, index int, connAddr string) {
 	peersInfo = append(peersInfo[:index], peersInfo[index+1:]...)
 	if len(peersInfo) == 0 {
 		peersInfo = nil
