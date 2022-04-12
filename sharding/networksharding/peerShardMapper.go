@@ -283,7 +283,6 @@ func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID
 	}
 	psm.putPublicKeyShardId(pk, shardID)
 	psm.PutPeerIdShardId(pid, shardID)
-	psm.preferredPeersHolder.Put(pk, pid, shardID)
 }
 
 func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
@@ -293,6 +292,7 @@ func (psm *PeerShardMapper) putPublicKeyShardId(pk []byte, shardId uint32) {
 // PutPeerIdShardId puts the peer ID and shard ID into fallback cache in case it does not exists
 func (psm *PeerShardMapper) PutPeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.Put([]byte(pid), shardId, uint32Size)
+	psm.preferredPeersHolder.PutShardID(pid, shardId)
 }
 
 // updatePeerIDPublicKey will update the pid <-> pk mapping, returning true if the pair is a new known pair

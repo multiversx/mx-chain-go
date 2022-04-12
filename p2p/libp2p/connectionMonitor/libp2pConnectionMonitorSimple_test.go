@@ -132,6 +132,12 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 			knownConnectionCalled = true
 		},
 	}
+	putConnectionAddressCalled := false
+	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		PutConnectionAddressCalled: func(peerID core.PeerID, addressSlice string) {
+			putConnectionAddressCalled = true
+		},
+	}
 	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
 
 	lcms.Connected(
@@ -154,6 +160,7 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 	assert.Equal(t, 1, numClosedWasCalled)
 	assert.Equal(t, 1, numComputeWasCalled)
 	assert.True(t, knownConnectionCalled)
+	assert.True(t, putConnectionAddressCalled)
 }
 
 func TestNewLibp2pConnectionMonitorSimple_DisconnectedShouldRemovePeerFromPreferredPeers(t *testing.T) {
