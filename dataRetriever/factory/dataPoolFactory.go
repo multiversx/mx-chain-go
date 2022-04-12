@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
