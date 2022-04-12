@@ -54,14 +54,8 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 							Nonce:   hdr.Nonce,
 							Hash:    hdrHash,
 						},
-						LastCrossNotarizedHeaders:  nil,
-						LastSelfNotarizedHeaders:   nil,
-						ProcessedMiniBlocks:        nil,
-						PendingMiniBlocks:          nil,
-						NodesCoordinatorConfigKey:  nil,
-						EpochStartTriggerConfigKey: nil,
-						HighestFinalBlockNonce:     3999,
-						LastRound:                  round - 1,
+						HighestFinalBlockNonce: 3999,
+						LastRound:              round - 1,
 					}, nil
 				},
 				SaveLastRoundCalled: func(round int64) error {
