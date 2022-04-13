@@ -131,8 +131,8 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 		Nonce:   userAccount.GetNonce(),
 	}
 
-	for tokenKey, tokenData := range markedAccountTokens {
-		err = aap.addTokensDataForMarkedAccount([]byte(tokenKey), encodedAddress, userAccount, tokenData, alteredAccounts)
+	for _, tokenData := range markedAccountTokens {
+		err = aap.addTokensDataForMarkedAccount(encodedAddress, userAccount, tokenData, alteredAccounts)
 		if err != nil {
 			return fmt.Errorf("%w while fetching token data when computing altered accounts", err)
 		}
@@ -142,7 +142,6 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 }
 
 func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
-	tokenKey []byte,
 	encodedAddress string,
 	userAccount state.UserAccountHandler,
 	markedAccountToken *markedAlteredAccountToken,
@@ -152,7 +151,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	tokenID := markedAccountToken.identifier
 
 	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
-	storageKey = append(storageKey, tokenKey...)
+	storageKey = append(storageKey, []byte(tokenID)...)
 
 	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
 	if !ok {
@@ -162,6 +161,9 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	esdtToken, _, err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)
 	if err != nil {
 		return err
+	}
+	if esdtToken.Value.Cmp(big.NewInt(0)) == 0 {
+		log.Warn("alteredAccountsProvider: esdt/nft value 0 for address", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
 	}
 
 	alteredAccount := alteredAccounts[encodedAddress]

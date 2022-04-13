@@ -13,6 +13,13 @@ const (
 	idxTokenIDInTopics         = 0
 	idxTokenNonceInTopics      = 1
 	idxReceiverAddressInTopics = 3
+	issueFungibleESDTFunc      = "issue"
+	issueSemiFungibleESDTFunc  = "issueSemiFungible"
+	issueNonFungibleESDTFunc   = "issueNonFungible"
+	registerMetaESDTFunc       = "registerMetaESDT"
+	changeSFTToMetaESDTFunc    = "changeSFTToMetaESDT"
+	transferOwnershipFunc      = "transferOwnership"
+	registerAndSetRolesFunc    = "registerAndSetAllRoles"
 )
 
 type tokensProcessor struct {
@@ -30,6 +37,9 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 			core.BuiltInFunctionESDTLocalBurn:        {},
 			core.BuiltInFunctionESDTWipe:             {},
 			core.BuiltInFunctionMultiESDTNFTTransfer: {},
+			transferOwnershipFunc:                    {},
+			issueFungibleESDTFunc:                    {},
+			registerAndSetRolesFunc:                  {},
 		},
 		nonFungibleTokensIdentifier: map[string]struct{}{
 			core.BuiltInFunctionESDTNFTTransfer:      {},
@@ -37,6 +47,12 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 			core.BuiltInFunctionESDTNFTAddQuantity:   {},
 			core.BuiltInFunctionESDTNFTCreate:        {},
 			core.BuiltInFunctionMultiESDTNFTTransfer: {},
+			issueSemiFungibleESDTFunc:                {},
+			issueNonFungibleESDTFunc:                 {},
+			registerMetaESDTFunc:                     {},
+			changeSFTToMetaESDTFunc:                  {},
+			transferOwnershipFunc:                    {},
+			registerAndSetRolesFunc:                  {},
 		},
 		shardCoordinator: shardCoordinator,
 	}
