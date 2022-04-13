@@ -476,3 +476,40 @@ func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
 	return checkProcessorNilParameters(arguments)
 }
+
+func (bp *baseProcessor) SetIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
+	return bp.setIndexOfFirstTxProcessed(miniBlockHeaderHandler)
+}
+
+func (bp *baseProcessor) SetIndexOfLastTxProcessed(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	return bp.setIndexOfLastTxProcessed(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) GetProcessedMiniBlocks() *processedMb.ProcessedMiniBlockTracker {
+	return bp.processedMiniBlocks
+}
+
+func (bp *baseProcessor) SetProcessingTypeAndConstructionStateForScheduledMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	return bp.setProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (bp *baseProcessor) SetProcessingTypeAndConstructionStateForNormalMb(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) error {
+	return bp.setProcessingTypeAndConstructionStateForNormalMb(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
+}
+
+func (sp *shardProcessor) RollBackProcessedMiniBlockInfo(miniBlockHeader data.MiniBlockHeaderHandler, miniBlockHash []byte) {
+	sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, miniBlockHash)
+}
+
+func (sp *shardProcessor) GetProcessedMiniBlocks() *processedMb.ProcessedMiniBlockTracker {
+	return sp.processedMiniBlocks
+}

@@ -1149,63 +1149,95 @@ func Test_updatePendingMiniBlocksForScheduled(t *testing.T) {
 	assert.Equal(t, hash2, remainingPendingMiniBlocks[0].MiniBlocksHashes[0])
 }
 
+func Test_getProcessedMiniBlocksForFinishedMeta(t *testing.T) {
+	t.Parallel()
+
+	metaHash1 := []byte("metaBlock_hash1")
+	metaHash2 := []byte("metaBlock_hash2")
+	miniBlockHash := []byte("miniBlock_hash1")
+	referencedMetaBlockHashes := [][]byte{metaHash1, metaHash2}
+
+	headers := make(map[string]data.HeaderHandler)
+
+	_, err := getProcessedMiniBlocksForFinishedMeta(referencedMetaBlockHashes, headers, 0)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+
+	headers[string(metaHash1)] = &block.Header{}
+
+	_, err = getProcessedMiniBlocksForFinishedMeta(referencedMetaBlockHashes, headers, 0)
+	assert.Equal(t, epochStart.ErrWrongTypeAssertion, err)
+
+	headers[string(metaHash1)] = &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						TxCount:         100,
+						SenderShardID:   1,
+						ReceiverShardID: 0,
+						Hash:            miniBlockHash,
+					},
+				},
+			},
+		},
+	}
+
+	miniBlocksInMeta, err := getProcessedMiniBlocksForFinishedMeta(referencedMetaBlockHashes, headers, 0)
+	assert.Nil(t, err)
+
+	require.Equal(t, 1, len(miniBlocksInMeta))
+	assert.Equal(t, metaHash1, miniBlocksInMeta[0].MetaHash)
+
+	require.Equal(t, 1, len(miniBlocksInMeta[0].MiniBlocksHashes))
+	assert.Equal(t, miniBlockHash, miniBlocksInMeta[0].MiniBlocksHashes[0])
+
+	require.Equal(t, 1, len(miniBlocksInMeta[0].IndexOfLastTxProcessed))
+	assert.Equal(t, int32(99), miniBlocksInMeta[0].IndexOfLastTxProcessed[0])
+
+	require.Equal(t, 1, len(miniBlocksInMeta[0].IsFullyProcessed))
+	assert.True(t, miniBlocksInMeta[0].IsFullyProcessed[0])
+}
+
 func Test_updateProcessedMiniBlocksForScheduled(t *testing.T) {
 	t.Parallel()
 
-	//TODO: Rewrite unit test
+	mbHash1 := []byte("miniBlock_hash1")
 
-	//hash1 := []byte("hash1")
-	//hash2 := []byte("hash2")
-	//hash3 := []byte("hash3")
-	//hash4 := []byte("hash4")
-	//hashMeta := []byte("metaHash1")
-	//hashPrevMeta := []byte("metaHash2")
-	//shardMiniBlockHeaders := []block.MiniBlockHeader{
-	//	{SenderShardID: 0, ReceiverShardID: 1, Hash: hash3},
-	//	{SenderShardID: 0, ReceiverShardID: 1, Hash: hash4},
-	//}
-	//shardMiniBlockHeadersPrevMeta := []block.MiniBlockHeader{
-	//	{SenderShardID: 0, ReceiverShardID: 1, Hash: hash1},
-	//	{SenderShardID: 1, ReceiverShardID: 0, Hash: hash2},
-	//}
-	//
-	//metaBlock := &block.MetaBlock{
-	//	ShardInfo: []block.ShardData{
-	//		{
-	//			ShardID:               0,
-	//			ShardMiniBlockHeaders: shardMiniBlockHeaders,
-	//		},
-	//	},
-	//}
-	//
-	//prevMetaBlock := &block.MetaBlock{
-	//	ShardInfo: []block.ShardData{
-	//		{
-	//			ShardID:               0,
-	//			ShardMiniBlockHeaders: shardMiniBlockHeadersPrevMeta,
-	//		},
-	//	},
-	//}
-	//
-	//referencedMetaBlockHashes := [][]byte{hashPrevMeta, hashMeta}
-	//pendingMiniBlocks := [][]byte{hash4}
-	//headers := make(map[string]data.HeaderHandler)
-	//headers[string(hashMeta)] = metaBlock
-	//headers[string(hashPrevMeta)] = prevMetaBlock
-	//expectedProcessedMbs := []bootstrapStorage.MiniBlocksInMeta{
-	//	{
-	//		MetaHash:         hashPrevMeta,
-	//		MiniBlocksHashes: [][]byte{hash1},
-	//	},
-	//	{
-	//		MetaHash:         hashMeta,
-	//		MiniBlocksHashes: [][]byte{hash3},
-	//	},
-	//}
-	//
-	//updatedProcessed, err := updateProcessedMiniBlocksForScheduled(referencedMetaBlockHashes, pendingMiniBlocks, headers, 1)
-	//assert.Nil(t, err)
-	//require.Equal(t, expectedProcessedMbs, updatedProcessed)
+	mbHash2 := []byte("miniBlock_hash2")
+	mbHeader2 := &block.MiniBlockHeader{}
+	_ = mbHeader2.SetIndexOfFirstTxProcessed(10)
+
+	metaBlockHash := []byte("metaBlock_hash1")
+	processedMiniBlocks := []bootstrapStorage.MiniBlocksInMeta{
+		{
+			MetaHash:               metaBlockHash,
+			MiniBlocksHashes:       [][]byte{mbHash1, mbHash2},
+			IsFullyProcessed:       []bool{true, false},
+			IndexOfLastTxProcessed: []int32{100, 50},
+		},
+	}
+
+	mapHashMiniBlockHeaders := make(map[string]data.MiniBlockHeaderHandler)
+	mapHashMiniBlockHeaders[string(mbHash2)] = mbHeader2
+
+	miniBlocksInMeta, err := updateProcessedMiniBlocksForScheduled(processedMiniBlocks, mapHashMiniBlockHeaders)
+	assert.Nil(t, err)
+
+	require.Equal(t, 1, len(miniBlocksInMeta))
+	assert.Equal(t, metaBlockHash, miniBlocksInMeta[0].MetaHash)
+
+	require.Equal(t, 2, len(miniBlocksInMeta[0].MiniBlocksHashes))
+	assert.Equal(t, mbHash1, miniBlocksInMeta[0].MiniBlocksHashes[0])
+	assert.Equal(t, mbHash2, miniBlocksInMeta[0].MiniBlocksHashes[1])
+
+	require.Equal(t, 2, len(miniBlocksInMeta[0].IsFullyProcessed))
+	assert.True(t, miniBlocksInMeta[0].IsFullyProcessed[0])
+	assert.False(t, miniBlocksInMeta[0].IsFullyProcessed[1])
+
+	require.Equal(t, 2, len(miniBlocksInMeta[0].IndexOfLastTxProcessed))
+	assert.Equal(t, int32(100), miniBlocksInMeta[0].IndexOfLastTxProcessed[0])
+	assert.Equal(t, int32(9), miniBlocksInMeta[0].IndexOfLastTxProcessed[1])
 }
 
 func Test_getPendingMiniBlocksHashes(t *testing.T) {

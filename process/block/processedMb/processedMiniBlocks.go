@@ -172,7 +172,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 				isFullyProcessed = miniBlocksInMeta.IsFullyProcessed[index]
 			}
 
-			//TODO: Check how to set the correct index
+			//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
 			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
 			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
 				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]

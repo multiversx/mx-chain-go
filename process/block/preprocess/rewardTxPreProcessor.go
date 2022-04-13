@@ -235,7 +235,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
 		}
 
-		miniBlockHeader, err := rtp.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
+		miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
 		if err != nil {
 			return err
 		}

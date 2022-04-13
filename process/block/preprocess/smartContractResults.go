@@ -287,7 +287,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
 		}
 
-		miniBlockHeader, err := scr.getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
+		miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
 		if err != nil {
 			return err
 		}
