@@ -560,14 +560,17 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		Hash: hashMb1,
 	}
 	_ = mbHeaderScheduled1.SetProcessingType(int32(block.Scheduled))
+	_ = mbHeaderScheduled1.SetIndexOfLastTxProcessed(1)
 	mbHeaderScheduled2 := block.MiniBlockHeader{
 		Hash: hashMb2,
 	}
 	_ = mbHeaderScheduled2.SetProcessingType(int32(block.Scheduled))
+	_ = mbHeaderScheduled2.SetIndexOfLastTxProcessed(1)
 	mbHeaderScheduled3 := block.MiniBlockHeader{
 		Hash: hashMb3,
 	}
 	_ = mbHeaderScheduled3.SetProcessingType(int32(block.Scheduled))
+	_ = mbHeaderScheduled3.SetIndexOfLastTxProcessed(1)
 	mbHeader := block.MiniBlockHeader{
 		Hash: hashMb4,
 	}
@@ -585,7 +588,7 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		scheduledMiniBlocksSyncer: &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 				for i := range miniBlockHeaders {
-					require.Len(t, miniBlockHeaders[i].GetReserved(), 2)
+					require.Len(t, miniBlockHeaders[i].GetReserved(), 4)
 				}
 				return nil
 			},
@@ -746,17 +749,15 @@ func TestGetScheduledMiniBlocks(t *testing.T) {
 		},
 	}
 
-	schedulesTxHashes := map[string]uint32{
-		txHash1: 1,
-		txHash2: 2,
-	}
+	_ = header.MiniBlockHeaders[0].SetProcessingType(int32(block.Processed))
+	_ = header.MiniBlockHeaders[1].SetProcessingType(int32(block.Processed))
 
 	expectedMiniBlocks := block.MiniBlockSlice{
 		mb1,
 		mb2,
 	}
 
-	mbs := getScheduledMiniBlocks(header, miniBlocks, schedulesTxHashes)
+	mbs := getScheduledMiniBlocks(header, miniBlocks)
 	assert.Equal(t, expectedMiniBlocks, mbs)
 }
 
