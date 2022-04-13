@@ -1,4 +1,4 @@
-package mock
+package genesisMocks
 
 import (
 	"math/big"
