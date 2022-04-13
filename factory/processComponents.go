@@ -945,6 +945,13 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
+		// manually add the genesis minting address as it is not exist in the trie
+		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+		alteredAccounts[genesisAddress] = &indexer.AlteredAccount{
+			Address: genesisAddress,
+			Balance: "0",
+		}
+
 		miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
 		if errGenerate != nil {
 			return errGenerate

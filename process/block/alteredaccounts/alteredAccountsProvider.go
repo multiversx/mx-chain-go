@@ -162,6 +162,10 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	if err != nil {
 		return err
 	}
+	if esdtToken == nil {
+		log.Warn("alteredAccountsProvider: nil esdt/nft token", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
+		return nil
+	}
 	if esdtToken.Value.Cmp(big.NewInt(0)) == 0 {
 		log.Warn("alteredAccountsProvider: esdt/nft value 0 for address", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
 	}

@@ -713,13 +713,11 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				return &expectedToken0, false, nil
 			}
 
-			firstNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(5).Bytes()))
-			if strings.Contains(string(esdtTokenKey), firstNftKey) {
+			if strings.Contains(string(esdtTokenKey), "nft-0") && nonce == 5 {
 				return &expectedToken1, false, nil
 			}
 
-			secondNftKey := fmt.Sprintf("%s%s", "nft-0", string(big.NewInt(6).Bytes()))
-			if strings.Contains(string(esdtTokenKey), secondNftKey) {
+			if strings.Contains(string(esdtTokenKey), "nft-0") && nonce == 6 {
 				return &expectedToken2, false, nil
 			}
 

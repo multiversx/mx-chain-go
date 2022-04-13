@@ -17,6 +17,7 @@ type AccountsParserStub struct {
 	GetTotalStakedForDelegationAddressCalled              func(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegatedCalled                  func(addressBytes []byte) []genesis.InitialAccountHandler
 	GenerateInitialTransactionsCalled                     func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
+	GenesisMintingAddressCalled                           func() string
 }
 
 // GetTotalStakedForDelegationAddress -
@@ -44,6 +45,15 @@ func (aps *AccountsParserStub) InitialAccountsSplitOnAddressesShards(shardCoordi
 	}
 
 	return make(map[uint32][]genesis.InitialAccountHandler), nil
+}
+
+// GenesisMintingAddress -
+func (aps *AccountsParserStub) GenesisMintingAddress() string {
+	if aps.GenesisMintingAddressCalled != nil {
+		return aps.GenesisMintingAddressCalled()
+	}
+
+	return ""
 }
 
 // InitialAccountsSplitOnDelegationAddressesShards -
