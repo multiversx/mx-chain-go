@@ -36,56 +36,57 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
 		EpochNotifier:          &mock.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 }
 
-func TestNewTrieStorageManagerNilDb(t *testing.T) {
+func TestNewTrieStorageManager(t *testing.T) {
 	t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	args.DB = nil
-	ts, err := trie.NewTrieStorageManager(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilDatabase, err)
-}
+	t.Run("nil DB", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewTrieStorageManagerNilMarshalizer(t *testing.T) {
-	t.Parallel()
+		args := getNewTrieStorageManagerArgs()
+		args.DB = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Equal(t, trie.ErrNilDatabase, err)
+	})
+	t.Run("nil marshaller", func(t *testing.T) {
+		t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	args.Marshalizer = nil
-	ts, err := trie.NewTrieStorageManager(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilMarshalizer, err)
-}
+		args := getNewTrieStorageManagerArgs()
+		args.Marshalizer = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Equal(t, trie.ErrNilMarshalizer, err)
+	})
+	t.Run("nil hasher", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewTrieStorageManagerNilHasher(t *testing.T) {
-	t.Parallel()
+		args := getNewTrieStorageManagerArgs()
+		args.Hasher = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Equal(t, trie.ErrNilHasher, err)
+	})
+	t.Run("nil checkpoint hashes holder", func(t *testing.T) {
+		t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	args.Hasher = nil
-	ts, err := trie.NewTrieStorageManager(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilHasher, err)
-}
+		args := getNewTrieStorageManagerArgs()
+		args.CheckpointHashesHolder = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Equal(t, trie.ErrNilCheckpointHashesHolder, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewTrieStorageManagerNilCheckpointHashesHolder(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	args.CheckpointHashesHolder = nil
-	ts, err := trie.NewTrieStorageManager(args)
-	assert.Nil(t, ts)
-	assert.Equal(t, trie.ErrNilCheckpointHashesHolder, err)
-}
-
-func TestNewTrieStorageManagerOkVals(t *testing.T) {
-	t.Parallel()
-
-	args := getNewTrieStorageManagerArgs()
-	ts, err := trie.NewTrieStorageManager(args)
-	assert.Nil(t, err)
-	assert.NotNil(t, ts)
+		args := getNewTrieStorageManagerArgs()
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, err)
+		assert.NotNil(t, ts)
+	})
 }
 
 func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {

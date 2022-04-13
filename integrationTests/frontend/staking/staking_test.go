@@ -89,7 +89,7 @@ func TestSignatureOnStaking(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send stake tx and check sender's balance
+	// ------- send stake tx and check sender's balance
 	var txData string
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
