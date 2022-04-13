@@ -2,8 +2,9 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-core/data"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
@@ -13,6 +14,7 @@ import (
 
 type headersCounter struct {
 	shardMBHeaderCounterMutex           sync.RWMutex
+	peakTPSMutex                        sync.RWMutex
 	shardMBHeadersCurrentBlockProcessed uint64
 	shardMBHeadersTotalProcessed        uint64
 	peakTPS                             uint64
@@ -23,6 +25,7 @@ type headersCounter struct {
 func NewHeaderCounter() *headersCounter {
 	return &headersCounter{
 		shardMBHeaderCounterMutex:           sync.RWMutex{},
+		peakTPSMutex:                        sync.RWMutex{},
 		shardMBHeadersCurrentBlockProcessed: 0,
 		shardMBHeadersTotalProcessed:        0,
 		peakTPS:                             0,
@@ -90,6 +93,8 @@ func (hc *headersCounter) displayLogInfo(
 
 	numTxs := getNumTxs(header, body)
 	tps := numTxs / roundDuration
+
+	hc.peakTPSMutex.Lock()
 	if tps > hc.peakTPS {
 		hc.peakTPS = tps
 	}
@@ -101,6 +106,7 @@ func (hc *headersCounter) displayLogInfo(
 		"num txs", numTxs,
 		"tps", tps,
 		"peak tps", hc.peakTPS)
+	hc.peakTPSMutex.Unlock()
 
 	blockTracker.DisplayTrackedHeaders()
 }

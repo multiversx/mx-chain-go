@@ -203,6 +203,9 @@
     # StakingV4EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4InitEnableEpoch
     StakingV4EnableEpoch = 5
 
+    # StakingV4DistributeAuctionToWaiting represents the epoch in which selected nodes from auction will be distributed to waiting list
+    StakingV4DistributeAuctionToWaiting = 6
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

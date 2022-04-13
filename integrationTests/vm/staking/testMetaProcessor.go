@@ -1,6 +1,7 @@
 package staking
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -29,10 +30,11 @@ import (
 )
 
 const (
-	stakingV4InitEpoch   = 1
-	stakingV4EnableEpoch = 2
-	addressLength        = 15
-	nodePrice            = 1000
+	stakingV4InitEpoch                  = 1
+	stakingV4EnableEpoch                = 2
+	stakingV4DistributeAuctionToWaiting = 3
+	addressLength                       = 15
+	nodePrice                           = 1000
 )
 
 type nodesConfig struct {
@@ -181,10 +183,19 @@ func createMaxNodesConfig(
 ) []config.MaxNodesChangeConfig {
 	totalEligible := numOfMetaNodes + numOfShards*numOfEligibleNodesPerShard
 	totalWaiting := (numOfShards + 1) * numOfWaitingNodesPerShard
+	totalNodes := totalEligible + totalWaiting
 
 	maxNodesConfig := make([]config.MaxNodesChangeConfig, 0)
 	maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{
-		MaxNumNodes:            totalEligible + totalWaiting,
+		EpochEnable:            0,
+		MaxNumNodes:            totalNodes,
+		NodesToShufflePerShard: numOfNodesToShufflePerShard,
+	},
+	)
+
+	maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{
+		EpochEnable:            stakingV4DistributeAuctionToWaiting,
+		MaxNumNodes:            totalNodes - numOfNodesToShufflePerShard*(numOfShards+1),
 		NodesToShufflePerShard: numOfNodesToShufflePerShard,
 	},
 	)
@@ -246,9 +257,12 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		err = tmp.MetaBlockProcessor.CommitBlock(newHeader, blockBody)
 		require.Nil(t, err)
 
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 50)
 		tmp.updateNodesConfig(epoch)
 		displayConfig(tmp.NodesConfig)
+
+		rootHash, _ := tmp.ValidatorStatistics.RootHash()
+		fmt.Println("##########################################ROOOT HASH", hex.EncodeToString(rootHash))
 	}
 
 	tmp.CurrentRound += numOfRounds

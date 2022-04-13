@@ -186,13 +186,14 @@ func testShuffledOut(
 
 func createHashShufflerInter() (*randHashShuffler, error) {
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: nil,
-		StakingV4EnableEpoch: 444,
+		NodesShard:                          eligiblePerShard,
+		NodesMeta:                           eligiblePerShard,
+		Hysteresis:                          hysteresis,
+		Adaptivity:                          adaptivity,
+		ShuffleBetweenShards:                true,
+		MaxNodesEnableConfig:                nil,
+		StakingV4EnableEpoch:                443,
+		StakingV4DistributeAuctionToWaiting: 444,
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -202,13 +203,14 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 
 func createHashShufflerIntraShards() (*randHashShuffler, error) {
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-		StakingV4EnableEpoch: 444,
+		NodesShard:                          eligiblePerShard,
+		NodesMeta:                           eligiblePerShard,
+		Hysteresis:                          hysteresis,
+		Adaptivity:                          adaptivity,
+		ShuffleBetweenShards:                shuffleBetweenShards,
+		MaxNodesEnableConfig:                nil,
+		StakingV4EnableEpoch:                443,
+		StakingV4DistributeAuctionToWaiting: 444,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -1184,15 +1186,16 @@ func TestRandHashShuffler_UpdateParams(t *testing.T) {
 	require.Nil(t, err)
 
 	shuffler2 := &randHashShuffler{
-		nodesShard:            200,
-		nodesMeta:             200,
-		shardHysteresis:       0,
-		metaHysteresis:        0,
-		adaptivity:            true,
-		shuffleBetweenShards:  true,
-		validatorDistributor:  &CrossShardValidatorDistributor{},
-		availableNodesConfigs: nil,
-		stakingV4EnableEpoch:  444,
+		nodesShard:                          200,
+		nodesMeta:                           200,
+		shardHysteresis:                     0,
+		metaHysteresis:                      0,
+		adaptivity:                          true,
+		shuffleBetweenShards:                true,
+		validatorDistributor:                &CrossShardValidatorDistributor{},
+		availableNodesConfigs:               nil,
+		stakingV4EnableEpoch:                443,
+		stakingV4DistributeAuctionToWaiting: 444,
 	}
 
 	shuffler.UpdateParams(
@@ -2376,13 +2379,14 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-		StakingV4EnableEpoch: 444,
+		NodesShard:                          uint32(eligiblePerShard),
+		NodesMeta:                           uint32(eligiblePerShard),
+		Hysteresis:                          hysteresis,
+		Adaptivity:                          adaptivity,
+		ShuffleBetweenShards:                shuffleBetweenShards,
+		MaxNodesEnableConfig:                nil,
+		StakingV4EnableEpoch:                443,
+		StakingV4DistributeAuctionToWaiting: 444,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2724,13 +2728,14 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(numEligiblePerShard),
-		NodesMeta:            uint32(numEligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-		StakingV4EnableEpoch: 444,
+		NodesShard:                          uint32(numEligiblePerShard),
+		NodesMeta:                           uint32(numEligiblePerShard),
+		Hysteresis:                          hysteresis,
+		Adaptivity:                          adaptivity,
+		ShuffleBetweenShards:                shuffleBetweenShards,
+		MaxNodesEnableConfig:                nil,
+		StakingV4EnableEpoch:                443,
+		StakingV4DistributeAuctionToWaiting: 444,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
