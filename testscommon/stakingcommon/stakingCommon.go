@@ -1,4 +1,4 @@
-package testscommon
+package stakingcommon
 
 import (
 	"math/big"
@@ -25,8 +25,7 @@ func RegisterValidatorKeys(
 ) {
 	AddValidatorData(accountsDB, ownerAddress, stakedKeys, totalStake, marshaller)
 	AddStakingData(accountsDB, ownerAddress, rewardAddress, stakedKeys, marshaller)
-	_, err := accountsDB.Commit()
-	log.LogIfError(err)
+	_, _ = accountsDB.Commit()
 }
 
 func AddValidatorData(

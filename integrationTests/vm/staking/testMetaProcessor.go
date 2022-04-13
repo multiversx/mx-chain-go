@@ -246,7 +246,7 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		err = tmp.MetaBlockProcessor.CommitBlock(newHeader, blockBody)
 		require.Nil(t, err)
 
-		time.Sleep(time.Millisecond * 40)
+		time.Sleep(time.Millisecond * 500)
 		tmp.updateNodesConfig(epoch)
 		displayConfig(tmp.NodesConfig)
 	}

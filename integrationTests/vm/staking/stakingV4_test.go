@@ -76,7 +76,7 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	require.Empty(t, initialNodes.auction)
 
 	// 2. Check config after staking v4 initialization
-	node.Process(t, 6)
+	node.Process(t, 5)
 	nodesConfigStakingV4Init := node.NodesConfig
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)

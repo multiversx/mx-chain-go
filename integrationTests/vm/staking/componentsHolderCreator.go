@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
 )
@@ -63,7 +64,7 @@ func createCoreComponents() factory2.CoreComponentsHolder {
 		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
 		RaterField:                         &testscommon.RaterMock{Chance: 5},
 		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
-		EconomicsDataField:                 testscommon.CreateEconomicsData(),
+		EconomicsDataField:                 stakingcommon.CreateEconomicsData(),
 		ChanStopNodeProcessField:           endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProviderField:              nodetype.NewNodeTypeProvider(core.NodeTypeValidator),
 	}

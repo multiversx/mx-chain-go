@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 )
 
 const (
@@ -149,7 +149,7 @@ func registerValidators(
 			peerAccount.BLSPublicKey = pubKey
 			peerAccount.List = string(list)
 			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
-			testscommon.RegisterValidatorKeys(
+			stakingcommon.RegisterValidatorKeys(
 				stateComponents.AccountsAdapter(),
 				pubKey,
 				pubKey,

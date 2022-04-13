@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
@@ -25,21 +25,21 @@ func createStakingQueue(
 
 	// We need to save one key and then add keys to waiting list because there is a bug in those functions
 	// TODO: FIX bug in testscommon.AddKeysToWaitingList to also init staking queue if there are no keys in list
-	testscommon.SaveOneKeyToWaitingList(
+	stakingcommon.SaveOneKeyToWaitingList(
 		accountsAdapter,
 		ownerWaitingNodes[0],
 		marshaller,
 		owner,
 		owner,
 	)
-	testscommon.AddKeysToWaitingList(
+	stakingcommon.AddKeysToWaitingList(
 		accountsAdapter,
 		ownerWaitingNodes[1:],
 		marshaller,
 		owner,
 		owner,
 	)
-	testscommon.AddValidatorData(
+	stakingcommon.AddValidatorData(
 		accountsAdapter,
 		owner,
 		ownerWaitingNodes,
@@ -51,7 +51,7 @@ func createStakingQueue(
 }
 
 func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
-	stakingSCAcc := testscommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
+	stakingSCAcc := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
 
 	waitingList := &systemSmartContracts.WaitingList{
 		FirstKey:      make([]byte, 0),
@@ -93,7 +93,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 }
 
 func (tmp *TestMetaProcessor) getWaitingListElement(key []byte) (*systemSmartContracts.ElementInList, error) {
-	stakingSCAcc := testscommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
+	stakingSCAcc := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
 
 	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue(key)
 	if len(marshaledData) == 0 {
