@@ -743,7 +743,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if err != nil {
 			return err
 		}
-		if !revertUsingForkNonce && currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
+
+		allowRollBack := boot.shouldAllowRollback(currHeader)
+		if !revertUsingForkNonce && !allowRollBack {
 			return ErrRollBackBehindFinalHeader
 		}
 
@@ -824,6 +826,24 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler) bool {
+	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
+	isRollBackBehindFinal := currHeader.GetNonce() <= finalBlockNonce
+	isFinalBlockRollBack := currHeader.GetNonce() == finalBlockNonce
+
+	headerWithScheduledMiniBlocks := currHeader.HasScheduledMiniBlocks()
+	allowFinalBlockRollBack := headerWithScheduledMiniBlocks && isFinalBlockRollBack
+	allowRollBack := !isRollBackBehindFinal || allowFinalBlockRollBack
+
+	log.Debug("baseBootstrap.shouldAllowRollback",
+		"isRollBackBehindFinal", isRollBackBehindFinal,
+		"allowFinalBlockRollBack", allowFinalBlockRollBack,
+		"allowRollBack", allowRollBack,
+	)
+
+	return allowRollBack
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
