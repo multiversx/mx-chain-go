@@ -863,6 +863,7 @@ func Test_setProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
 	assert.Equal(t, int32(block.Scheduled), miniBlockHeader.GetProcessingType())
 
 	miniBlockHeader.SenderShardID = 1
+
 	err = bp.SetProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
 	assert.Nil(t, err)
 	assert.Equal(t, int32(block.Final), miniBlockHeader.GetConstructionState())
@@ -870,7 +871,6 @@ func Test_setProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
 
 	processedMiniBlocksDestMeInfo[string(mbHash)] = processedMbInfo
 
-	miniBlockHeader.SenderShardID = 1
 	err = bp.SetProcessingTypeAndConstructionStateForScheduledMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
 	assert.Nil(t, err)
 	assert.Equal(t, int32(block.PartialExecuted), miniBlockHeader.GetConstructionState())

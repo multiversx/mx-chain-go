@@ -5048,8 +5048,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 	t.Parallel()
 
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments := CreateMockArguments(createComponentHolderMocks())
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	metaHash := []byte("meta_hash")
