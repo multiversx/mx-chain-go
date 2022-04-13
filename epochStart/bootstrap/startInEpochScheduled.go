@@ -437,7 +437,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(he
 		return nil, err
 	}
 
-	scheduledTxs := make(map[string]uint32)
+	scheduledTxsForShard := make(map[string]uint32)
 	for _, miniBlockHeader := range miniBlockHeaders {
 		miniBlockHash := miniBlockHeader.GetHash()
 		miniBlock, ok := miniBlocks[string(miniBlockHash)]
@@ -448,6 +448,17 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(he
 
 		firstIndex := miniBlockHeader.GetIndexOfFirstTxProcessed()
 		lastIndex := miniBlockHeader.GetIndexOfLastTxProcessed()
+
+		if firstIndex > lastIndex {
+			log.Warn("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashes: wrong first/last index",
+				"mb hash", miniBlockHash,
+				"index of first tx processed", firstIndex,
+				"index of last tx processed", lastIndex,
+				"num txs", len(miniBlock.TxHashes),
+			)
+			continue
+		}
+
 		for index := firstIndex; index <= lastIndex; index++ {
 			if index >= int32(len(miniBlock.TxHashes)) {
 				log.Warn("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashes: index out of bound",
@@ -455,16 +466,16 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(he
 					"index", index,
 					"num txs", len(miniBlock.TxHashes),
 				)
-				continue
+				break
 			}
 
 			txHash := miniBlock.TxHashes[index]
-			scheduledTxs[string(txHash)] = miniBlock.GetReceiverShardID()
+			scheduledTxsForShard[string(txHash)] = miniBlock.GetReceiverShardID()
 			log.Debug("startInEpochWithScheduledDataSyncer.getScheduledTransactionHashes", "hash", txHash)
 		}
 	}
 
-	return scheduledTxs, nil
+	return scheduledTxsForShard, nil
 }
 
 func getNumScheduledIntermediateTxs(mapScheduledIntermediateTxs map[block.Type][]data.TransactionHandler) int {
