@@ -97,11 +97,11 @@ func TestDisplayBlock_GetConstructionStateAsString(t *testing.T) {
 	str := getConstructionStateAsString(miniBlockHeader)
 	assert.Equal(t, "Proposed_", str)
 
-	_ = miniBlockHeader.SetConstructionState(int32((block.PartialExecuted)))
+	_ = miniBlockHeader.SetConstructionState(int32(block.PartialExecuted))
 	str = getConstructionStateAsString(miniBlockHeader)
 	assert.Equal(t, "Partial_", str)
 
-	_ = miniBlockHeader.SetConstructionState(int32((block.Final)))
+	_ = miniBlockHeader.SetConstructionState(int32(block.Final))
 	str = getConstructionStateAsString(miniBlockHeader)
 	assert.Equal(t, "", str)
 }

@@ -101,6 +101,6 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlockInfo(t *testing.T) {
 
 	processedMiniBlockInfo, processedMetaHash = pmb.GetProcessedMiniBlockInfo(mbHash)
 	assert.Equal(t, metaHash, processedMetaHash)
-	assert.True(t, processedMiniBlockInfo.IsFullyProcessed)
-	assert.Equal(t, int32(69), processedMiniBlockInfo.IndexOfLastTxProcessed)
+	assert.Equal(t, processedMbInfo.IsFullyProcessed, processedMiniBlockInfo.IsFullyProcessed)
+	assert.Equal(t, processedMbInfo.IndexOfLastTxProcessed, processedMiniBlockInfo.IndexOfLastTxProcessed)
 }

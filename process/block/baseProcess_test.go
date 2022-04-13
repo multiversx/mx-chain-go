@@ -880,9 +880,10 @@ func Test_setProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
 func Test_setProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments(createComponentHolderMocks())
+	t.Run("set processing/construction for normal mini blocks not processed, should work", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("execute all scheduled txs fail", func(t *testing.T) {
+		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		mbHash := []byte("mb_hash")
@@ -908,7 +909,10 @@ func Test_setProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
 		assert.Equal(t, int32(block.Normal), miniBlockHeader.GetProcessingType())
 	})
 
-	t.Run("execute all scheduled txs fail", func(t *testing.T) {
+	t.Run("set processing/construction for normal mini blocks already processed, should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 			IsMiniBlockExecutedCalled: func(i []byte) bool {
 				return true
