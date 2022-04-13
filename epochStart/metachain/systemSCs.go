@@ -147,30 +147,40 @@ func (s *systemSCProcessor) processWithNewFlags(
 	return nil
 }
 
-func (s *systemSCProcessor) calcShuffledOutNodes() uint32 {
-	nodesToShufflePerShard := s.currentNodesEnableConfig.NodesToShufflePerShard
-	return nodesToShufflePerShard * (s.shardCoordinator.NumberOfShards() + 1) // TODO: THIS IS NOT OK; meta does not shuffle the sam num of nodes
-}
-
+// TODO: Staking v4: perhaps create a subcomponent which handles selection, which would be also very useful in tests
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
-	numOfShuffledNodes := s.calcShuffledOutNodes()
-	numOfValidators := currNumOfValidators - numOfShuffledNodes
-	availableSlots, err := safeSub(s.maxNodes, numOfValidators)
+	numOfShuffledNodes := s.currentNodesEnableConfig.NodesToShufflePerShard * (s.shardCoordinator.NumberOfShards() + 1)
+
+	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
+	if err != nil {
+		log.Warn(fmt.Sprintf("%v error when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes); skip selecting nodes from auction list",
+			err,
+			currNumOfValidators,
+			numOfShuffledNodes,
+		))
+		numOfValidatorsAfterShuffling = 0
+	}
+
+	availableSlots, err := safeSub(s.maxNodes, numOfValidatorsAfterShuffling)
+	if availableSlots == 0 || err != nil {
+		log.Info(fmt.Sprintf("%v error or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
+			err,
+			s.maxNodes,
+			numOfValidatorsAfterShuffling,
+		))
+		return nil
+	}
+
 	auctionListSize := uint32(len(auctionList))
 	log.Info("systemSCProcessor.selectNodesFromAuctionList",
 		"max nodes", s.maxNodes,
 		"current number of validators", currNumOfValidators,
 		"num of nodes which will be shuffled", numOfShuffledNodes,
-		"num of validators after shuffling", numOfValidators,
+		"num of validators after shuffling", numOfValidatorsAfterShuffling,
 		"auction list size", auctionListSize,
 		"available slots", availableSlots,
 	) // todo: change to log.debug
-
-	if availableSlots == 0 || err != nil {
-		log.Info("not enough available slots for auction nodes; skip selecting nodes from auction list")
-		return nil
-	}
 
 	err = s.sortAuctionList(auctionList, randomness)
 	if err != nil {

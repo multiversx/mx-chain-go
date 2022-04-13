@@ -14,6 +14,15 @@ const (
 
 // TODO: Make a subcomponent which will register to epoch notifier to display config only upon epoch change
 
+func getAllPubKeys(validatorsMap map[uint32][][]byte) [][]byte {
+	allValidators := make([][]byte, 0)
+	for _, validatorsInShard := range validatorsMap {
+		allValidators = append(allValidators, validatorsInShard...)
+	}
+
+	return allValidators
+}
+
 func getShortPubKeysList(pubKeys [][]byte) [][]byte {
 	pubKeysToDisplay := pubKeys
 	if len(pubKeys) > maxPubKeysListLen {
@@ -36,6 +45,10 @@ func displayConfig(config nodesConfig) {
 		lines = append(lines, getDisplayableValidatorsInShard("shuffled", config.shuffledOut[shard], shard)...)
 		lines = append(lines, display.NewLineData(true, []string{}))
 	}
+	lines = append(lines, display.NewLineData(true, []string{"eligible", fmt.Sprintf("Total: %d", len(getAllPubKeys(config.eligible))), "All shards"}))
+	lines = append(lines, display.NewLineData(true, []string{"waiting", fmt.Sprintf("Total: %d", len(getAllPubKeys(config.waiting))), "All shards"}))
+	lines = append(lines, display.NewLineData(true, []string{"leaving", fmt.Sprintf("Total: %d", len(getAllPubKeys(config.leaving))), "All shards"}))
+	lines = append(lines, display.NewLineData(true, []string{"shuffled", fmt.Sprintf("Total: %d", len(getAllPubKeys(config.shuffledOut))), "All shards"}))
 
 	tableHeader := []string{"List", "Pub key", "Shard ID"}
 	table, _ := display.CreateTableString(tableHeader, lines)
@@ -51,10 +64,11 @@ func getDisplayableValidatorsInShard(list string, pubKeys [][]byte, shardID uint
 
 	lines := make([]*display.LineData, 0)
 	for idx, pk := range pubKeysToDisplay {
-		horizontalLine := idx == len(pubKeysToDisplay)-1
-		line := display.NewLineData(horizontalLine, []string{list, string(pk), strconv.Itoa(int(shardID))})
+		horizontalLineAfter := idx == len(pubKeysToDisplay)-1
+		line := display.NewLineData(horizontalLineAfter, []string{list, string(pk), strconv.Itoa(int(shardID))})
 		lines = append(lines, line)
 	}
+	lines = append(lines, display.NewLineData(true, []string{list, fmt.Sprintf("Total: %d", len(pubKeys)), strconv.Itoa(int(shardID))}))
 
 	return lines
 }
@@ -64,9 +78,11 @@ func displayValidators(list string, pubKeys [][]byte) {
 
 	lines := make([]*display.LineData, 0)
 	tableHeader := []string{"List", "Pub key"}
-	for _, pk := range pubKeysToDisplay {
-		lines = append(lines, display.NewLineData(false, []string{list, string(pk)}))
+	for idx, pk := range pubKeysToDisplay {
+		horizontalLineAfter := idx == len(pubKeysToDisplay)-1
+		lines = append(lines, display.NewLineData(horizontalLineAfter, []string{list, string(pk)}))
 	}
+	lines = append(lines, display.NewLineData(true, []string{list, fmt.Sprintf("Total: %d", len(pubKeys))}))
 
 	headline := display.Headline(fmt.Sprintf("%s list", list), "", delimiter)
 	table, _ := display.CreateTableString(tableHeader, lines)

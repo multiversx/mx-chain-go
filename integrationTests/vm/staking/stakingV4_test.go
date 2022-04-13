@@ -7,12 +7,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func requireSliceContains(t *testing.T, s1, s2 [][]byte) {
+	for _, elemInS2 := range s2 {
+		require.Contains(t, s1, elemInS2)
+	}
+}
+
+func requireSliceContainsNumOfElements(t *testing.T, s1, s2 [][]byte, numOfElements int) {
+	foundCt := 0
+	for _, elemInS2 := range s2 {
+		if searchInSlice(s1, elemInS2) {
+			foundCt++
+		}
+	}
+
+	require.Equal(t, numOfElements, foundCt)
+}
+
 func requireSameSliceDifferentOrder(t *testing.T, s1, s2 [][]byte) {
 	require.Equal(t, len(s1), len(s2))
 
 	for _, elemInS1 := range s1 {
 		require.Contains(t, s2, elemInS1)
 	}
+}
+
+func searchInSlice(s1 [][]byte, s2 []byte) bool {
+	for _, elemInS1 := range s1 {
+		if bytes.Equal(elemInS1, s2) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func searchInMap(validatorMap map[uint32][][]byte, pk []byte) bool {
@@ -30,17 +57,15 @@ func requireMapContains(t *testing.T, m map[uint32][][]byte, s [][]byte) {
 	for _, elemInSlice := range s {
 		require.True(t, searchInMap(m, elemInSlice))
 	}
-
 }
 
-func getAllPubKeys(validatorsMap map[uint32][][]byte) [][]byte {
-	allValidators := make([][]byte, 0)
-	for _, validatorsInShard := range validatorsMap {
-		allValidators = append(allValidators, validatorsInShard...)
+func requireMapDoesNotContain(t *testing.T, m map[uint32][][]byte, s [][]byte) {
+	for _, elemInSlice := range s {
+		require.False(t, searchInMap(m, elemInSlice))
 	}
-
-	return allValidators
 }
+
+// TODO: Staking v4: more tests to check exactly which nodes have been selected/unselected from previous nodes config auction
 
 func TestNewTestMetaProcessor(t *testing.T) {
 	numOfMetaNodes := uint32(400)
@@ -52,8 +77,8 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	metaConsensusGroupSize := 266
 	numOfNodesInStakingQueue := uint32(60)
 
-	totalEligible := int(numOfEligibleNodesPerShard*numOfShards) + int(numOfMetaNodes)
-	totalWaiting := int(numOfWaitingNodesPerShard*numOfShards) + int(numOfMetaNodes)
+	totalEligible := int(numOfEligibleNodesPerShard*numOfShards) + int(numOfMetaNodes) // 1600
+	totalWaiting := int(numOfWaitingNodesPerShard*numOfShards) + int(numOfMetaNodes)   // 1600
 
 	node := NewTestMetaProcessor(
 		numOfMetaNodes,
@@ -76,51 +101,76 @@ func TestNewTestMetaProcessor(t *testing.T) {
 	require.Empty(t, initialNodes.auction)
 
 	// 2. Check config after staking v4 initialization
-	node.Process(t, 35)
-	//nodesConfigStakingV4Init := node.NodesConfig
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)
-	//require.Empty(t, nodesConfigStakingV4Init.queue)
-	//require.Empty(t, nodesConfigStakingV4Init.shuffledOut)
-	//requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Init.auction)
-	//
-	//// 3. Check config after first staking v4 epoch
-	//node.Process(t, 6)
-	//nodesConfigStakingV4 := node.NodesConfig
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4.eligible), totalEligible)
-	//
-	//numOfShuffledOut := int((numOfShards + 1) * numOfNodesToShufflePerShard)
-	//newWaiting := totalWaiting - numOfShuffledOut + len(nodesConfigStakingV4Init.auction)
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4.waiting), newWaiting)
-	//
-	//// All shuffled out are in auction
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4.shuffledOut), numOfShuffledOut)
-	//requireSameSliceDifferentOrder(t, getAllPubKeys(nodesConfigStakingV4.shuffledOut), nodesConfigStakingV4.auction)
-	//
-	//// All current waiting are from the previous auction
-	//requireMapContains(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)
-	//// All current auction are from previous eligible
-	//requireMapContains(t, nodesConfigStakingV4Init.eligible, nodesConfigStakingV4.auction)
-	//
-	//epochs := 0
-	//prevConfig := nodesConfigStakingV4
-	//prevNumOfWaiting := newWaiting
-	//for epochs < 10 {
-	//	node.Process(t, 5)
-	//	newNodeConfig := node.NodesConfig
-	//
-	//	newWaiting = prevNumOfWaiting - numOfShuffledOut + len(prevConfig.auction)
-	//	require.Len(t, getAllPubKeys(newNodeConfig.waiting), newWaiting)
-	//	require.Len(t, getAllPubKeys(newNodeConfig.eligible), totalEligible)
-	//
-	//	require.Len(t, getAllPubKeys(newNodeConfig.shuffledOut), numOfShuffledOut)
-	//	requireSameSliceDifferentOrder(t, getAllPubKeys(newNodeConfig.shuffledOut), newNodeConfig.auction)
-	//
-	//	requireMapContains(t, newNodeConfig.waiting, prevConfig.auction)
-	//	requireMapContains(t, prevConfig.eligible, newNodeConfig.auction)
-	//
-	//	prevConfig = newNodeConfig
-	//	prevNumOfWaiting = newWaiting
-	//	epochs++
-	//}
+	node.Process(t, 5)
+	nodesConfigStakingV4Init := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)
+	require.Empty(t, nodesConfigStakingV4Init.queue)
+	require.Empty(t, nodesConfigStakingV4Init.shuffledOut)
+	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Init.auction)
+
+	// 3. Check config after first staking v4 epoch, WITHOUT distribution from auction -> waiting
+	node.Process(t, 6)
+	nodesConfigStakingV4 := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.eligible), totalEligible) // 1600
+
+	numOfShuffledOut := int((numOfShards + 1) * numOfNodesToShufflePerShard) // 320
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.shuffledOut), numOfShuffledOut)
+
+	newWaiting := totalWaiting - numOfShuffledOut // 1280 (1600 - 320)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4.waiting), newWaiting)
+
+	// 380 (320 from shuffled out + 60 from initial staking queue -> auction from stakingV4 init)
+	auctionListSize := numOfShuffledOut + len(nodesConfigStakingV4Init.auction)
+	require.Len(t, nodesConfigStakingV4.auction, auctionListSize)
+	requireSliceContains(t, nodesConfigStakingV4.auction, nodesConfigStakingV4Init.auction)
+
+	require.Empty(t, nodesConfigStakingV4.queue)
+	require.Empty(t, nodesConfigStakingV4.leaving)
+
+	// 320 nodes which are now in eligible are from previous waiting list
+	requireSliceContainsNumOfElements(t, getAllPubKeys(nodesConfigStakingV4.eligible), getAllPubKeys(nodesConfigStakingV4Init.waiting), numOfShuffledOut)
+
+	// All shuffled out are from previous staking v4 init eligible
+	requireMapContains(t, nodesConfigStakingV4Init.eligible, getAllPubKeys(nodesConfigStakingV4.shuffledOut))
+
+	// All shuffled out are in auction
+	requireSliceContains(t, nodesConfigStakingV4.auction, getAllPubKeys(nodesConfigStakingV4.shuffledOut))
+
+	// No auction node from previous epoch have been moved to waiting
+	requireMapDoesNotContain(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)
+
+	epochs := 0
+	prevConfig := nodesConfigStakingV4
+	numOfSelectedNodesFromAuction := numOfShuffledOut                     // 320, since we will always fill shuffled out nodes with this config
+	numOfUnselectedNodesFromAuction := auctionListSize - numOfShuffledOut // 60 = 380 - 320
+	for epochs < 10 {
+		node.Process(t, 5)
+		newNodeConfig := node.NodesConfig
+
+		require.Len(t, getAllPubKeys(newNodeConfig.eligible), totalEligible)       // 1600
+		require.Len(t, getAllPubKeys(newNodeConfig.waiting), newWaiting)           // 1280
+		require.Len(t, getAllPubKeys(newNodeConfig.shuffledOut), numOfShuffledOut) // 320
+		require.Len(t, newNodeConfig.auction, auctionListSize)                     // 380
+		require.Empty(t, newNodeConfig.queue)
+		require.Empty(t, newNodeConfig.leaving)
+
+		// 320 nodes which are now in eligible are from previous waiting list
+		requireSliceContainsNumOfElements(t, getAllPubKeys(newNodeConfig.eligible), getAllPubKeys(prevConfig.waiting), numOfShuffledOut)
+
+		// New auction list also contains unselected nodes from previous auction list
+		requireSliceContainsNumOfElements(t, newNodeConfig.auction, prevConfig.auction, numOfUnselectedNodesFromAuction)
+
+		// All shuffled out are from previous config
+		requireMapContains(t, prevConfig.eligible, getAllPubKeys(newNodeConfig.shuffledOut))
+
+		// All shuffled out are from previous config are now in auction
+		requireSliceContains(t, newNodeConfig.auction, getAllPubKeys(newNodeConfig.shuffledOut))
+
+		// 320 nodes which have been selected from previous auction list are now in waiting
+		requireSliceContainsNumOfElements(t, getAllPubKeys(newNodeConfig.waiting), prevConfig.auction, numOfSelectedNodesFromAuction)
+
+		prevConfig = newNodeConfig
+		epochs++
+	}
 }
