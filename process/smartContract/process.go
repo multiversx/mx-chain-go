@@ -2469,14 +2469,15 @@ func (sc *scProcessor) processSCOutputAccounts(
 		}
 
 		for _, storeUpdate := range outAcc.StorageUpdates {
-			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
-				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
-				if sc.flagSaveKeyValueUnderProtectedError.IsSet() {
-					return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
-				}
+			// TODO remove this, keep only storage protection from Arwen ?
+			// if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
+			// 	log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
+			// 	if sc.flagSaveKeyValueUnderProtectedError.IsSet() {
+			// 		return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
+			// 	}
 
-				continue
-			}
+			// 	continue
+			// }
 
 			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {

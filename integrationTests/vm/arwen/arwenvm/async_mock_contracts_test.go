@@ -1,0 +1,142 @@
+package arwenvm
+
+import (
+	"math/big"
+	"testing"
+
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/mock/contracts"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/testcommon"
+	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/testcommon"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-vm-common/txDataBuilder"
+	"github.com/stretchr/testify/require"
+)
+
+var LegacyAsyncCallType = []byte{0}
+var NewAsyncCallType = []byte{1}
+
+func TestMockContract_AsyncLegacy_InShard(t *testing.T) {
+
+	testConfig := &testcommon.TestConfig{
+		GasProvided:     2000,
+		GasUsedByParent: 400,
+	}
+
+	transferEGLD := big.NewInt(42)
+
+	net := integrationTests.NewTestNetworkSized(t, 1, 1, 1)
+	net.Start()
+	net.Step()
+
+	net.CreateWallets(1)
+	net.MintWalletsUint64(100000000000)
+	owner := net.Wallets[0]
+
+	parentAddress := GetAddressForNewAccount(t, net, 0)
+
+	InitializeMockContracts(
+		t, net,
+		test.CreateMockContract(parentAddress).
+			WithConfig(testConfig).
+			WithMethods(contracts.WasteGasParentMock),
+	)
+
+	txData := txDataBuilder.NewBuilder().Func("wasteGas").ToBytes()
+	tx := net.CreateTx(owner, parentAddress, transferEGLD, txData)
+	tx.GasLimit = testConfig.GasProvided
+
+	_ = net.SignAndSendTx(owner, tx)
+
+	net.Steps(2)
+
+	parentHandler := net.GetAccountHandler(parentAddress)
+	expectedEgld := big.NewInt(0)
+	expectedEgld.Add(MockInitialBalance, transferEGLD)
+	require.Equal(t, expectedEgld, parentHandler.GetBalance())
+}
+
+func TestMockContract_AsyncLegacy_CrossShard(t *testing.T) {
+	testMockContract_CrossShard(t, LegacyAsyncCallType)
+}
+
+func TestMockContract_NewAsync_CrossShard(t *testing.T) {
+	testMockContract_CrossShard(t, NewAsyncCallType)
+}
+
+func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
+
+	transferEGLD := big.NewInt(42)
+
+	numberOfShards := 2
+	net := integrationTests.NewTestNetworkSized(t, numberOfShards, 1, 1)
+	net.Start()
+	net.Step()
+
+	net.CreateWallets(2)
+	net.MintWalletsUint64(100000000000)
+	ownerOfParent := net.Wallets[0]
+
+	parentAddress := GetAddressForNewAccount(t, net, 0)
+	childAddress := GetAddressForNewAccount(t, net, 1)
+
+	thirdPartyAddress := arwen.MakeTestWalletAddress("thirdPartyAddress")
+	vaultAddress := arwen.MakeTestWalletAddress("vaultAddress")
+
+	testConfig := &testcommon.TestConfig{
+		GasProvided:        2_000_000,
+		GasProvidedToChild: 1_000_000,
+		GasUsedByParent:    400,
+
+		ChildAddress:      childAddress,
+		ThirdPartyAddress: thirdPartyAddress,
+		VaultAddress:      vaultAddress,
+	}
+
+	InitializeMockContracts(
+		t, net,
+		test.CreateMockContractOnShard(parentAddress, 0).
+			WithBalance(testConfig.ParentBalance).
+			WithConfig(testConfig).
+			WithMethods(contracts.PerformAsyncCallParentMock, contracts.CallBackParentMock),
+		test.CreateMockContractOnShard(childAddress, 1).
+			WithBalance(testConfig.ChildBalance).
+			WithConfig(testConfig).
+			WithMethods(contracts.TransferToThirdPartyAsyncChildMock),
+	)
+
+	txData := txDataBuilder.
+		NewBuilder().
+		Func("performAsyncCall").
+		Bytes([]byte{0}).
+		Bytes(asyncCallType).
+		ToBytes()
+	tx := net.CreateTx(ownerOfParent, parentAddress, transferEGLD, txData)
+	tx.GasLimit = testConfig.GasProvided
+
+	_ = net.SignAndSendTx(ownerOfParent, tx)
+
+	net.Steps(16)
+
+	parentHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(parentAddress)
+	require.Nil(t, err)
+
+	parentValueA, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyA)
+	require.Nil(t, err)
+	require.Equal(t, test.ParentDataA, parentValueA)
+
+	parentValueB, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyB)
+	require.Nil(t, err)
+	require.Equal(t, test.ParentDataB, parentValueB)
+
+	callbackValue, err := parentHandler.AccountDataHandler().RetrieveValue(test.CallbackKey)
+	require.Nil(t, err)
+	require.Equal(t, test.CallbackData, callbackValue)
+
+	childHandler, err := net.NodesSharded[1][0].BlockchainHook.GetUserAccount(childAddress)
+	require.Nil(t, err)
+
+	childValue, err := childHandler.AccountDataHandler().RetrieveValue(test.ChildKey)
+	require.Nil(t, err)
+	require.Equal(t, test.ChildData, childValue)
+}

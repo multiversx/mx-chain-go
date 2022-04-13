@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 	"math"
 	"math/big"
 	"sort"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -646,16 +647,17 @@ func DisplayProcessTxDetails(
 		"receiver", receiver)
 }
 
+// TODO remove this, keep only storage protection from Arwen ?
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
-func IsAllowedToSaveUnderKey(key []byte) bool {
-	prefixLen := len(core.ElrondProtectedKeyPrefix)
-	if len(key) < prefixLen {
-		return true
-	}
+// func IsAllowedToSaveUnderKey(key []byte) bool {
+// 	prefixLen := len(core.ElrondProtectedKeyPrefix)
+// 	if len(key) < prefixLen {
+// 		return true
+// 	}
 
-	trimmedKey := key[:prefixLen]
-	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
-}
+// 	trimmedKey := key[:prefixLen]
+// 	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
+// }
 
 // SortVMOutputInsideData returns the output accounts as a sorted list
 func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
