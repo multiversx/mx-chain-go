@@ -29,18 +29,35 @@ func InitializeMockContracts(
 	}
 }
 
-func GetAddressForNewAccount(
+func GetAddressForNewAccountOnWalletAndNode(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
-	shardID uint32) []byte {
-	address := net.NewAddress(net.Wallets[shardID])
+	wallet *integrationTests.TestWalletAccount,
+	node *integrationTests.TestProcessorNode,
+) []byte {
+	address := net.NewAddress(wallet)
 	account, _ := state.NewUserAccount(address)
 	account.Balance = MockInitialBalance
 	account.SetCode(address)
 	account.SetCodeHash(address)
-	err := net.NodesSharded[shardID][0].AccntState.SaveAccount(account)
+	err := node.AccntState.SaveAccount(account)
 	require.Nil(t, err)
 	return address
+}
+
+func GetAddressForNewAccount(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	shardID uint32, node uint32) []byte {
+	return GetAddressForNewAccountOnWalletAndNode(t, net, net.Wallets[shardID], net.NodesSharded[shardID][node])
+	// address := net.NewAddress(net.Wallets[shardID])
+	// account, _ := state.NewUserAccount(address)
+	// account.Balance = MockInitialBalance
+	// account.SetCode(address)
+	// account.SetCodeHash(address)
+	// err := net.NodesSharded[shardID][node].AccntState.SaveAccount(account)
+	// require.Nil(t, err)
+	// return address
 }
 
 func CreateHostAndInstanceBuilder(t *testing.T, net *integrationTests.TestNetwork, vmKey []byte) (map[uint32]arwen.VMHost, map[uint32]*contextmock.InstanceBuilderMock) {

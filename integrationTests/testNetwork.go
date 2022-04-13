@@ -142,13 +142,21 @@ func (net *TestNetwork) MintNodeAccountsUint64(value uint64) {
 
 // CreateWallets initializes the internal test wallets
 func (net *TestNetwork) CreateWallets(count int) {
-	net.Wallets = make([]*TestWalletAccount, count)
-
+	net.CreateUninitializedWallets(count)
 	for i := 0; i < count; i++ {
 		shardID := ShardIdentifier(i % net.NumShards)
 		node := net.firstNodeInShard(shardID)
 		net.Wallets[i] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
 	}
+}
+
+func (net *TestNetwork) CreateUninitializedWallets(count int) {
+	net.Wallets = make([]*TestWalletAccount, count)
+}
+
+func (net *TestNetwork) CreateWalletOnShardAndNode(shardID uint32, nodeIndex int) *TestWalletAccount {
+	node := net.NodesSharded[shardID][nodeIndex]
+	return CreateTestWalletAccount(node.ShardCoordinator, shardID)
 }
 
 // MintWallets adds the specified value to the test wallets.
