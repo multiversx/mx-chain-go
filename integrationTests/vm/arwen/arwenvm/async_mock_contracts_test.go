@@ -17,7 +17,6 @@ var LegacyAsyncCallType = []byte{0}
 var NewAsyncCallType = []byte{1}
 
 func TestMockContract_AsyncLegacy_InShard(t *testing.T) {
-
 	testConfig := &testcommon.TestConfig{
 		GasProvided:     2000,
 		GasUsedByParent: 400,
@@ -65,7 +64,6 @@ func TestMockContract_NewAsync_CrossShard(t *testing.T) {
 }
 
 func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
-
 	transferEGLD := big.NewInt(42)
 
 	numberOfShards := 2
