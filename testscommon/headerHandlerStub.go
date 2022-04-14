@@ -353,3 +353,8 @@ func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
 func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 	panic("implement me")
 }
+
+// HasScheduledMiniBlocks -
+func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
+	return false
+}
