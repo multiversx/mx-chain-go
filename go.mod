@@ -11,9 +11,9 @@ require (
 	github.com/ElrondNetwork/elastic-indexer-go v1.1.37
 	github.com/ElrondNetwork/elrond-go-core v1.1.14
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
-	github.com/ElrondNetwork/elrond-go-logger v1.0.5
+	github.com/ElrondNetwork/elrond-go-logger v1.0.7
 	github.com/ElrondNetwork/elrond-vm-common v1.2.12
-	github.com/ElrondNetwork/notifier-go v1.0.3
+	github.com/ElrondNetwork/notifier-go v1.0.4-0.20220414084451-434fc65483a4
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
