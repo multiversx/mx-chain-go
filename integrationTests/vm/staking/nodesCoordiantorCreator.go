@@ -144,12 +144,14 @@ func registerValidators(
 	for shardID, validatorsInShard := range validators {
 		for _, val := range validatorsInShard {
 			pubKey := val.PubKey()
+
 			peerAccount, _ := state.NewPeerAccount(pubKey)
 			peerAccount.SetTempRating(initialRating)
 			peerAccount.ShardId = shardID
 			peerAccount.BLSPublicKey = pubKey
 			peerAccount.List = string(list)
 			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
+
 			stakingcommon.RegisterValidatorKeys(
 				stateComponents.AccountsAdapter(),
 				pubKey,

@@ -55,7 +55,7 @@ func createComponentHolders(numOfShards uint32) (
 
 func createCoreComponents() factory2.CoreComponentsHolder {
 	return &mock2.CoreComponentsStub{
-		InternalMarshalizerField:           &testscommon.MarshalizerMock{},
+		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),
 		Uint64ByteSliceConverterField:      uint64ByteSlice.NewBigEndianConverter(),
 		StatusHandlerField:                 statusHandler.NewStatusMetrics(),

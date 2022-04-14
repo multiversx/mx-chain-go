@@ -83,7 +83,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 	for len(nextKey) != 0 && index <= waitingList.Length {
 		allPubKeys = append(allPubKeys, nextKey)
 
-		element, errGet := tmp.getWaitingListElement(nextKey)
+		element, errGet := tmp.getWaitingListElement(stakingSCAcc, nextKey)
 		if errGet != nil {
 			return nil
 		}
@@ -98,9 +98,7 @@ func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
 	return allPubKeys
 }
 
-func (tmp *TestMetaProcessor) getWaitingListElement(key []byte) (*systemSmartContracts.ElementInList, error) {
-	stakingSCAcc := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
-
+func (tmp *TestMetaProcessor) getWaitingListElement(stakingSCAcc state.UserAccountHandler, key []byte) (*systemSmartContracts.ElementInList, error) {
 	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue(key)
 	if len(marshaledData) == 0 {
 		return nil, vm.ErrElementNotFound

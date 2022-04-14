@@ -137,7 +137,7 @@ func TestStakingV4(t *testing.T) {
 	// All shuffled out are in auction
 	requireSliceContains(t, nodesConfigStakingV4.auction, getAllPubKeys(nodesConfigStakingV4.shuffledOut))
 
-	// No auction node from previous epoch have been moved to waiting
+	// No auction node from previous epoch has been moved to waiting
 	requireMapDoesNotContain(t, nodesConfigStakingV4.waiting, nodesConfigStakingV4Init.auction)
 
 	epochs := 0
@@ -161,10 +161,10 @@ func TestStakingV4(t *testing.T) {
 		// New auction list also contains unselected nodes from previous auction list
 		requireSliceContainsNumOfElements(t, newNodeConfig.auction, prevConfig.auction, numOfUnselectedNodesFromAuction)
 
-		// All shuffled out are from previous config
+		// All shuffled out are from previous eligible config
 		requireMapContains(t, prevConfig.eligible, getAllPubKeys(newNodeConfig.shuffledOut))
 
-		// All shuffled out are from previous config are now in auction
+		// All shuffled out are now in auction
 		requireSliceContains(t, newNodeConfig.auction, getAllPubKeys(newNodeConfig.shuffledOut))
 
 		// 320 nodes which have been selected from previous auction list are now in waiting

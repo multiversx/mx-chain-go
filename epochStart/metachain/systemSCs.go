@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -154,7 +155,7 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
-		log.Warn(fmt.Sprintf("%v error when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes); skip selecting nodes from auction list",
+		log.Warn(fmt.Sprintf("%v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
 			err,
 			currNumOfValidators,
 			numOfShuffledNodes,
@@ -164,7 +165,7 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 
 	availableSlots, err := safeSub(s.maxNodes, numOfValidatorsAfterShuffling)
 	if availableSlots == 0 || err != nil {
-		log.Info(fmt.Sprintf("%v error or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
+		log.Info(fmt.Sprintf("%v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
 			err,
 			s.maxNodes,
 			numOfValidatorsAfterShuffling,
@@ -176,11 +177,11 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 	log.Info("systemSCProcessor.selectNodesFromAuctionList",
 		"max nodes", s.maxNodes,
 		"current number of validators", currNumOfValidators,
-		"num of nodes which will be shuffled", numOfShuffledNodes,
+		"num of nodes which will be shuffled out", numOfShuffledNodes,
 		"num of validators after shuffling", numOfValidatorsAfterShuffling,
 		"auction list size", auctionListSize,
-		"available slots", availableSlots,
-	) // todo: change to log.debug
+		fmt.Sprintf("available slots (%v -%v)", s.maxNodes, numOfValidatorsAfterShuffling), availableSlots,
+	)
 
 	err = s.sortAuctionList(auctionList, randomness)
 	if err != nil {
@@ -202,6 +203,7 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 	return nil
 }
 
+// TODO: Move this in elrond-go-core
 func safeSub(a, b uint32) (uint32, error) {
 	if a < b {
 		return 0, core.ErrSubtractionOverflow
@@ -300,9 +302,9 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 }
 
 func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfoHandler, numOfSelectedNodes uint32) {
-	//if log.GetLevel() > logger.LogDebug {
-	//	return
-	//}
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
 
 	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
@@ -318,8 +320,8 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 
 		horizontalLine = uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
-			string([]byte(owner)),
-			string(pubKey),
+			hex.EncodeToString([]byte(owner)),
+			hex.EncodeToString(pubKey),
 			topUp.String(),
 		})
 		lines = append(lines, line)
@@ -332,7 +334,7 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 	}
 
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Error(message)
+	log.Debug(message)
 }
 
 func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {

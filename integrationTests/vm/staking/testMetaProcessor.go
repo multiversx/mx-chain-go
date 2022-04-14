@@ -53,9 +53,10 @@ type TestMetaProcessor struct {
 	EpochStartTrigger   integrationTests.TestEpochStartTrigger
 	BlockChainHandler   data.ChainHandler
 	NodesConfig         nodesConfig
-	CurrentRound        uint64
 	AccountsAdapter     state.AccountsAdapter
 	Marshaller          marshal.Marshalizer
+
+	currentRound uint64
 }
 
 // NewTestMetaProcessor -
@@ -165,7 +166,7 @@ func NewTestMetaProcessor(
 			epochStartTrigger,
 			vmContainer,
 		),
-		CurrentRound:        1,
+		currentRound:        1,
 		NodesCoordinator:    nc,
 		ValidatorStatistics: validatorStatisticsProcessor,
 		EpochStartTrigger:   epochStartTrigger,
@@ -234,14 +235,14 @@ func createEpochStartTrigger(
 
 // Process -
 func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
-	for r := tmp.CurrentRound; r < tmp.CurrentRound+numOfRounds; r++ {
-		currentHeader, currentHash := tmp.getCurrentHeaderInfo()
+	for r := tmp.currentRound; r < tmp.currentRound+numOfRounds; r++ {
 		_, err := tmp.MetaBlockProcessor.CreateNewHeader(r, r)
 		require.Nil(t, err)
 
 		epoch := tmp.EpochStartTrigger.Epoch()
 		printNewHeaderRoundEpoch(r, epoch)
 
+		currentHeader, currentHash := tmp.getCurrentHeaderInfo()
 		header := createMetaBlockToCommit(
 			epoch,
 			r,
@@ -249,6 +250,7 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 			currentHeader.GetRandSeed(),
 			tmp.NodesCoordinator.ConsensusGroupSize(core.MetachainShardId),
 		)
+
 		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, func() bool { return true })
 		require.Nil(t, err)
 
@@ -260,7 +262,7 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		displayConfig(tmp.NodesConfig)
 	}
 
-	tmp.CurrentRound += numOfRounds
+	tmp.currentRound += numOfRounds
 }
 
 func printNewHeaderRoundEpoch(round uint64, epoch uint32) {
@@ -270,30 +272,6 @@ func printNewHeaderRoundEpoch(round uint64, epoch uint32) {
 		delimiter,
 	)
 	fmt.Println(headline)
-}
-
-func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
-	eligible, _ := tmp.NodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
-	waiting, _ := tmp.NodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
-	leaving, _ := tmp.NodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
-	shuffledOut, _ := tmp.NodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
-
-	rootHash, _ := tmp.ValidatorStatistics.RootHash()
-	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
-
-	auction := make([][]byte, 0)
-	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
-		if validator.GetList() == string(common.AuctionList) {
-			auction = append(auction, validator.GetPublicKey())
-		}
-	}
-
-	tmp.NodesConfig.eligible = eligible
-	tmp.NodesConfig.waiting = waiting
-	tmp.NodesConfig.shuffledOut = shuffledOut
-	tmp.NodesConfig.leaving = leaving
-	tmp.NodesConfig.auction = auction
-	tmp.NodesConfig.queue = tmp.getWaitingListKeys()
 }
 
 func (tmp *TestMetaProcessor) getCurrentHeaderInfo() (data.HeaderHandler, []byte) {
@@ -322,11 +300,11 @@ func createMetaBlockToCommit(
 		PrevHash:               prevHash,
 		Signature:              []byte("signature"),
 		PubKeysBitmap:          []byte(strings.Repeat("f", consensusSize)),
-		RootHash:               []byte("roothash"),
+		RootHash:               []byte("roothash" + roundStr),
 		ShardInfo:              make([]block.ShardData, 0),
 		TxCount:                1,
 		PrevRandSeed:           prevRandSeed,
-		RandSeed:               []byte("roothash" + roundStr),
+		RandSeed:               []byte("randseed" + roundStr),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		AccumulatedFees:        big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
@@ -353,6 +331,30 @@ func createMetaBlockToCommit(
 	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
 
 	return &hdr
+}
+
+func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
+	eligible, _ := tmp.NodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	waiting, _ := tmp.NodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
+	leaving, _ := tmp.NodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
+	shuffledOut, _ := tmp.NodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
+
+	rootHash, _ := tmp.ValidatorStatistics.RootHash()
+	validatorsInfoMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
+
+	auction := make([][]byte, 0)
+	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
+		if validator.GetList() == string(common.AuctionList) {
+			auction = append(auction, validator.GetPublicKey())
+		}
+	}
+
+	tmp.NodesConfig.eligible = eligible
+	tmp.NodesConfig.waiting = waiting
+	tmp.NodesConfig.shuffledOut = shuffledOut
+	tmp.NodesConfig.leaving = leaving
+	tmp.NodesConfig.auction = auction
+	tmp.NodesConfig.queue = tmp.getWaitingListKeys()
 }
 
 func generateAddress(identifier uint32) []byte {
