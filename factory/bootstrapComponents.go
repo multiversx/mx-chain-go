@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
-	"github.com/ElrondNetwork/elrond-go/process/guardianChecker"
+	"github.com/ElrondNetwork/elrond-go/process/guardian"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-// BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
+// BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	EpochConfig       config.EpochConfig
@@ -259,7 +259,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 }
 
 func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier() (process.GuardianSigVerifier, error) {
-	gTxChecker, err := guardianChecker.NewAccountGuardianChecker(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier())
+	gTxChecker, err := guardian.NewGuardedAccount(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier())
 	if err != nil {
 		return nil, err
 	}

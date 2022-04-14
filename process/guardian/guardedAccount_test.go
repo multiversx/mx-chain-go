@@ -1,4 +1,4 @@
-package guardianChecker
+package guardian
 
 import "testing"
 
