@@ -397,6 +397,7 @@ func CreateTrieStorageManagerWithPruningStorer(store storage.Storer, coordinator
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -430,6 +431,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -467,6 +469,7 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 		NumOfActivePersisters:  4,
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 	}
 
@@ -1074,6 +1077,7 @@ func CreateNewDefaultTrie() common.Trie {
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 

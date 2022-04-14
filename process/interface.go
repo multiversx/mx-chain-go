@@ -151,7 +151,7 @@ type TransactionCoordinator interface {
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler, blockType block.Type)
+	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 }
 
@@ -219,7 +219,7 @@ type PreProcessor interface {
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
-	AddTransactions (txHandlers []data.TransactionHandler)
+	AddTransactions(txHandlers []data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -814,6 +814,7 @@ type BlockTracker interface {
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
+	ShouldSkipMiniBlocksCreationFromSelf() bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -1116,6 +1117,7 @@ type CoreComponentsHolder interface {
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
+	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
 }
 
