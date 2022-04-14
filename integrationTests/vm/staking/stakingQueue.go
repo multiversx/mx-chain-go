@@ -16,9 +16,13 @@ func createStakingQueue(
 	marshaller marshal.Marshalizer,
 	accountsAdapter state.AccountsAdapter,
 ) [][]byte {
+	ownerWaitingNodes := make([][]byte, 0)
+	if numOfNodesInStakingQueue == 0 {
+		return ownerWaitingNodes
+	}
+
 	owner := generateAddress(totalNumOfNodes)
 	totalNumOfNodes += 1
-	ownerWaitingNodes := make([][]byte, 0)
 	for i := totalNumOfNodes; i < totalNumOfNodes+numOfNodesInStakingQueue; i++ {
 		ownerWaitingNodes = append(ownerWaitingNodes, generateAddress(i))
 	}
@@ -32,13 +36,15 @@ func createStakingQueue(
 		owner,
 		owner,
 	)
-	stakingcommon.AddKeysToWaitingList(
-		accountsAdapter,
-		ownerWaitingNodes[1:],
-		marshaller,
-		owner,
-		owner,
-	)
+	if numOfNodesInStakingQueue > 1 {
+		stakingcommon.AddKeysToWaitingList(
+			accountsAdapter,
+			ownerWaitingNodes[1:],
+			marshaller,
+			owner,
+			owner,
+		)
+	}
 	stakingcommon.AddValidatorData(
 		accountsAdapter,
 		owner,

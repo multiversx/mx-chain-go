@@ -266,14 +266,34 @@ func (s *systemSCProcessor) getValidatorTopUpMap(validators []state.ValidatorInf
 }
 
 func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
-	minLen := core.MinInt(len(pubKey1), len(randomness))
+	lenPubKey := len(pubKey1)
+	lenRand := len(randomness)
 
-	key1Xor := make([]byte, minLen)
-	key2Xor := make([]byte, minLen)
+	minLen := core.MinInt(lenPubKey, lenRand)
+	maxLen := core.MaxInt(lenPubKey, lenRand)
+	repeatedCt := maxLen/minLen + 1
 
-	for idx := 0; idx < minLen; idx++ {
-		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
-		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
+	rnd := randomness
+	pk1 := pubKey1
+	pk2 := pubKey2
+
+	if lenPubKey > lenRand {
+		rnd = bytes.Repeat(randomness, repeatedCt)
+		rnd = rnd[:maxLen]
+	} else {
+		pk1 = bytes.Repeat(pk1, repeatedCt)
+		pk2 = bytes.Repeat(pk2, repeatedCt)
+
+		pk1 = pk1[:maxLen]
+		pk2 = pk2[:maxLen]
+	}
+
+	key1Xor := make([]byte, maxLen)
+	key2Xor := make([]byte, maxLen)
+
+	for idx := 0; idx < maxLen; idx++ {
+		key1Xor[idx] = pk1[idx] ^ rnd[idx]
+		key2Xor[idx] = pk2[idx] ^ rnd[idx]
 	}
 
 	return bytes.Compare(key1Xor, key2Xor) == 1

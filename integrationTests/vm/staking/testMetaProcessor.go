@@ -1,7 +1,6 @@
 package staking
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -214,7 +213,6 @@ func createEpochStartTrigger(
 	storageService dataRetriever.StorageService,
 ) integrationTests.TestEpochStartTrigger {
 	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		GenesisTime: time.Unix(0, 0),
 		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 10,
 			RoundsPerEpoch:         10,
@@ -260,9 +258,6 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		time.Sleep(time.Millisecond * 50)
 		tmp.updateNodesConfig(epoch)
 		displayConfig(tmp.NodesConfig)
-
-		rootHash, _ := tmp.ValidatorStatistics.RootHash()
-		fmt.Println("##########################################ROOOT HASH", hex.EncodeToString(rootHash))
 	}
 
 	tmp.CurrentRound += numOfRounds

@@ -67,7 +67,7 @@ func requireMapDoesNotContain(t *testing.T, m map[uint32][][]byte, s [][]byte) {
 
 // TODO: Staking v4: more tests to check exactly which nodes have been selected/unselected from previous nodes config auction
 
-func TestNewTestMetaProcessor(t *testing.T) {
+func TestStakingV4(t *testing.T) {
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
 	numOfEligibleNodesPerShard := uint32(400)
@@ -172,5 +172,50 @@ func TestNewTestMetaProcessor(t *testing.T) {
 
 		prevConfig = newNodeConfig
 		epochs++
+	}
+}
+
+func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootHash(t *testing.T) {
+	numOfMetaNodes := uint32(6)
+	numOfShards := uint32(3)
+	numOfEligibleNodesPerShard := uint32(6)
+	numOfWaitingNodesPerShard := uint32(6)
+	numOfNodesToShufflePerShard := uint32(2)
+	shardConsensusGroupSize := 2
+	metaConsensusGroupSize := 2
+	numOfNodesInStakingQueue := uint32(2)
+
+	nodes := make([]*TestMetaProcessor, 0, numOfMetaNodes)
+	for i := uint32(0); i < numOfMetaNodes; i++ {
+		nodes = append(nodes, NewTestMetaProcessor(
+			numOfMetaNodes,
+			numOfShards,
+			numOfEligibleNodesPerShard,
+			numOfWaitingNodesPerShard,
+			numOfNodesToShufflePerShard,
+			shardConsensusGroupSize,
+			metaConsensusGroupSize,
+			numOfNodesInStakingQueue,
+		))
+		nodes[i].EpochStartTrigger.SetRoundsPerEpoch(4)
+	}
+
+	numOfEpochs := uint32(15)
+	rootHashes := make(map[uint32][][]byte)
+	for currEpoch := uint32(1); currEpoch <= numOfEpochs; currEpoch++ {
+		for _, node := range nodes {
+			rootHash, _ := node.ValidatorStatistics.RootHash()
+			rootHashes[currEpoch] = append(rootHashes[currEpoch], rootHash)
+
+			node.Process(t, 5)
+			require.Equal(t, currEpoch, node.EpochStartTrigger.Epoch())
+		}
+	}
+
+	for _, rootHashesInEpoch := range rootHashes {
+		firstNodeRootHashInEpoch := rootHashesInEpoch[0]
+		for _, rootHash := range rootHashesInEpoch {
+			require.Equal(t, firstNodeRootHashInEpoch, rootHash)
+		}
 	}
 }
