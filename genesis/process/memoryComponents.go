@@ -30,7 +30,7 @@ func createAccountAdapter(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &commonDisabled.ProcessStatusHandler{},
+		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 	}
 
 	adb, err := state.NewAccountsDB(args)

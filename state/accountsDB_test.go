@@ -60,8 +60,8 @@ func generateAccountDBFromTrie(trie common.Trie) *state.AccountsDB {
 	args := createMockAccountsDBArgs()
 	args.Trie = trie
 
-	accnt, _ := state.NewAccountsDB(args)
-	return accnt
+	accounts, _ := state.NewAccountsDB(args)
+	return accounts
 }
 
 func generateAccount() *stateMock.AccountWrapMock {
@@ -1593,15 +1593,12 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
-	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
-		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-	}
+	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.Trie = tr
+	argsAccountsDB.Hasher = hasher
+	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.StoragePruningManager = spm
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -1683,15 +1680,13 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
-	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
-		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-	}
+	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.Trie = tr
+	argsAccountsDB.Hasher = hasher
+	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.StoragePruningManager = spm
+
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	addr := make([]byte, 32)
@@ -2115,15 +2110,13 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
-	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
-		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-	}
+	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.Trie = tr
+	argsAccountsDB.Hasher = hasher
+	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.StoragePruningManager = spm
+
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	address := make([]byte, 32)
@@ -2232,15 +2225,14 @@ func TestAccountsDB_Close(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
-		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-	}
+
+	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.Trie = tr
+	argsAccountsDB.Hasher = hasher
+	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.StoragePruningManager = spm
+
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	err := adb.Close()
@@ -2356,15 +2348,14 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
-	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
-		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-	}
+
+	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.Trie = tr
+	argsAccountsDB.Hasher = hasher
+	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.AccountFactory = factory.NewAccountCreator()
+	argsAccountsDB.StoragePruningManager = spm
+
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	address := make([]byte, 32)
