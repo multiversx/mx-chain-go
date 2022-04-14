@@ -2,9 +2,11 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// NewEmptyBaseAccount -
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	return &baseAccount{
 		address:         address,
@@ -12,26 +14,37 @@ func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	}
 }
 
+// LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
+// LoadDataTrie -
 func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
 	return adb.loadDataTrie(accountHandler)
 }
 
+// GetAccount -
 func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return adb.getAccount(address)
 }
 
+// GetObsoleteHashes -
 func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
 }
 
+// GetObsoleteHashes -
+func (adb *AccountsDB) WaitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
+	adb.waitForCompletionIfRunningInImportDB(stats)
+}
+
+// GetCode -
 func GetCode(account baseAccountHandler) []byte {
 	return account.GetCodeHash()
 }
 
+// GetCodeEntry -
 func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
 	return getCodeEntry(codeHash, trie, marshalizer)
 }
