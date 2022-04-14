@@ -40,16 +40,6 @@ func TestNewPeerAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilHasher, err)
 	})
-	t.Run("nil hasher should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockAccountsDBArgs()
-		args.Hasher = nil
-
-		adb, err := state.NewPeerAccountsDB(args)
-		assert.True(t, check.IfNil(adb))
-		assert.Equal(t, state.ErrNilHasher, err)
-	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
