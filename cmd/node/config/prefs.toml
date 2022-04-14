@@ -18,12 +18,11 @@
    # It is highly recommended to enable this flag on an observer (not on a validator node)
    FullArchive = false
 
-   # PreferredConnections holds an array containing a relevant part(eg. ip) of the connection strings from nodes to connect with (in top of other connections)
+   # PreferredConnections holds an array containing valid ips or peer ids from nodes to connect with (in top of other connections)
    # Example:
-   # full connection string: ""/ip4/127.0.0.1/tcp/8080/p2p/16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
    # PreferredConnections = [
-   #    "/ip4/127.0.0.10",
-   #    "/p2p/16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
+   #    "127.0.0.10",
+   #    "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
    # ]
 
    PreferredConnections = []
