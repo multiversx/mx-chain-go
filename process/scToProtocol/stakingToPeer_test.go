@@ -696,7 +696,8 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
 	stp.EpochConfirmed(arguments.StakingV4InitEpoch, 0)
-	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
+	err = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
+	assert.NoError(t, err)
 	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
 	stp.EpochConfirmed(0, 0)
 
