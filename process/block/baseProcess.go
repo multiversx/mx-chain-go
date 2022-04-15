@@ -523,16 +523,18 @@ func (bp *baseProcessor) createBlockStarted() error {
 
 func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
-		return process.ErrAccumulatedFeesDoNotMatch
+		return fmt.Errorf("%w, header: %s, computed: %s", process.ErrAccumulatedFeesDoNotMatch,
+			header.GetAccumulatedFees().String(), bp.feeHandler.GetAccumulatedFees().String())
 	}
 	if header.GetDeveloperFees().Cmp(bp.feeHandler.GetDeveloperFees()) != 0 {
-		return process.ErrDeveloperFeesDoNotMatch
+		return fmt.Errorf("%w, header: %s, computed: %s", process.ErrDeveloperFeesDoNotMatch,
+			header.GetDeveloperFees().String(), bp.feeHandler.GetDeveloperFees().String())
 	}
 
 	return nil
 }
 
-//TODO: remove bool parameter and give instead the set to sort
+// TODO: remove bool parameter and give instead the set to sort
 func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 

@@ -93,6 +93,17 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHas
 	f.mapHashFee[string(txHash)] = fee
 	f.accumulatedFees.Add(f.accumulatedFees, cost)
 	f.developerFees.Add(f.developerFees, devFee)
+
+	log.Debug("feeHandler.ProcessTransactionFee",
+		"accumulated fees", f.accumulatedFees.String(),
+		"accumulated dev fees", f.developerFees.String(),
+		"fee", cost.String(),
+		"dev fee", devFee.String(),
+		"tx hash", txHash,
+		"txhash fee", fee.cost.String(),
+		"txhash dev fee", fee.devFee.String(),
+	)
+
 	f.mut.Unlock()
 }
 
