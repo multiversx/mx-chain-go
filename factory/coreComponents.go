@@ -310,16 +310,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                          genesisNodesConfig.MinNumberOfShardNodes(),
-		NodesMeta:                           genesisNodesConfig.MinNumberOfMetaNodes(),
-		Hysteresis:                          genesisNodesConfig.GetHysteresis(),
-		Adaptivity:                          genesisNodesConfig.GetAdaptivity(),
-		ShuffleBetweenShards:                true,
-		MaxNodesEnableConfig:                ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		BalanceWaitingListsEnableEpoch:      ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
-		WaitingListFixEnableEpoch:           ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
-		StakingV4EnableEpoch:                ccf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
-		StakingV4DistributeAuctionToWaiting: ccf.epochConfig.EnableEpochs.StakingV4DistributeAuctionToWaiting,
+		NodesShard:                               genesisNodesConfig.MinNumberOfShardNodes(),
+		NodesMeta:                                genesisNodesConfig.MinNumberOfMetaNodes(),
+		Hysteresis:                               genesisNodesConfig.GetHysteresis(),
+		Adaptivity:                               genesisNodesConfig.GetAdaptivity(),
+		ShuffleBetweenShards:                     true,
+		MaxNodesEnableConfig:                     ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		BalanceWaitingListsEnableEpoch:           ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
+		WaitingListFixEnableEpoch:                ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		StakingV4EnableEpoch:                     ccf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+		StakingV4DistributeAuctionToWaitingEpoch: ccf.epochConfig.EnableEpochs.StakingV4DistributeAuctionToWaiting,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

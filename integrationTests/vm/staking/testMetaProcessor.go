@@ -29,11 +29,11 @@ import (
 )
 
 const (
-	stakingV4InitEpoch                  = 1
-	stakingV4EnableEpoch                = 2
-	stakingV4DistributeAuctionToWaiting = 3
-	addressLength                       = 15
-	nodePrice                           = 1000
+	stakingV4InitEpoch                       = 1
+	stakingV4EnableEpoch                     = 2
+	stakingV4DistributeAuctionToWaitingEpoch = 3
+	addressLength                            = 15
+	nodePrice                                = 1000
 )
 
 type nodesConfig struct {
@@ -194,7 +194,7 @@ func createMaxNodesConfig(
 	)
 
 	maxNodesConfig = append(maxNodesConfig, config.MaxNodesChangeConfig{
-		EpochEnable:            stakingV4DistributeAuctionToWaiting,
+		EpochEnable:            stakingV4DistributeAuctionToWaitingEpoch,
 		MaxNumNodes:            totalNodes - numOfNodesToShufflePerShard*(numOfShards+1),
 		NodesToShufflePerShard: numOfNodesToShufflePerShard,
 	},
