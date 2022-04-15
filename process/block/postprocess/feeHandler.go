@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"math/big"
+	"runtime/debug"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
@@ -102,6 +103,7 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHas
 		"txhash", txHash,
 		"txhash fee", fee.cost.String(),
 		"txhash dev fee", fee.devFee.String(),
+		"stack", string(debug.Stack()),
 	)
 
 	f.mut.Unlock()
@@ -115,7 +117,8 @@ func (f *feeHandler) RevertFees(txHashes [][]byte) {
 	for _, txHash := range txHashes {
 		fee, ok := f.mapHashFee[string(txHash)]
 		if !ok {
-			log.Debug("can not revert fee, txhash not found", "tx hash", txHash)
+			log.Debug("can not revert fee, txhash not found",
+				"tx hash", txHash, "stack", string(debug.Stack()))
 			continue
 		}
 		f.developerFees.Sub(f.developerFees, fee.devFee)
