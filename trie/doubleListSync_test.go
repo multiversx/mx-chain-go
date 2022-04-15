@@ -62,6 +62,7 @@ func createTrieStorageManager(t *testing.T, store storage.Storer) (common.Storag
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasherMock.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	tsm, _ := NewTrieStorageManager(args)
 

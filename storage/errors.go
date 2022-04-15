@@ -61,6 +61,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 
+// ErrNilCustomDatabaseRemover signals that a nil custom database remover has been provided
+var ErrNilCustomDatabaseRemover = errors.New("custom database remover")
+
 // ErrNilStorageListProvider signals that a nil storage list provided has been provided
 var ErrNilStorageListProvider = errors.New("nil storage list provider")
 
@@ -139,7 +142,7 @@ var ErrCannotComputeStorageOldestEpoch = errors.New("could not compute the oldes
 // ErrNilNodeTypeProvider signals that a nil node type provider has been provided
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 
-// ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been given
+// ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been provided
 var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
 
 // ErrNilStoredDataFactory signals that a nil stored data factory has been provided

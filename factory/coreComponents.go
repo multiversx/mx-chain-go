@@ -101,6 +101,7 @@ type coreComponents struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
+	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 }
 
@@ -369,6 +370,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
+		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 	}, nil
 }

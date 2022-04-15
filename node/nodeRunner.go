@@ -292,7 +292,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("creating metrics")
+	log.Debug("creating metrics")
 	// this should be called before setting the storer (done in the managedDataComponents creation)
 	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 	if err != nil {
@@ -334,7 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("starting status pooling components")
+	log.Debug("starting status pooling components")
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
@@ -359,7 +359,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("creating process components")
+	log.Debug("creating process components")
 	managedProcessComponents, err := nr.CreateManagedProcessComponents(
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -428,7 +428,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Trace("creating node structure")
+	log.Debug("creating node structure")
 	currentNode, err := CreateNode(
 		configs.GeneralConfig,
 		managedBootstrapComponents,
@@ -451,7 +451,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		log.Trace("activating nodesCoordinator's validators indexing")
+		log.Debug("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
 			managedStatusComponents.OutportHandler(),
 			nodesCoordinator,

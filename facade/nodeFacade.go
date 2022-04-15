@@ -568,12 +568,12 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			logAddress = ""
 		}
 
-		logs[i] = &vm.LogEntryApi{
+		logs = append(logs, &vm.LogEntryApi{
 			Identifier: originalLog.Identifier,
 			Address:    logAddress,
 			Topics:     originalLog.Topics,
 			Data:       originalLog.Data,
-		}
+		})
 	}
 
 	return &vm.VMOutputApi{
