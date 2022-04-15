@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	mock3 "github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	factory2 "github.com/ElrondNetwork/elrond-go/factory"
+	epochStartMock "github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
@@ -27,8 +27,8 @@ import (
 
 func createSystemSCProcessor(
 	nc nodesCoordinator.NodesCoordinator,
-	coreComponents factory2.CoreComponentsHolder,
-	stateComponents factory2.StateComponentsHandler,
+	coreComponents factory.CoreComponentsHolder,
+	stateComponents factory.StateComponentsHandler,
 	shardCoordinator sharding.Coordinator,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
@@ -46,7 +46,7 @@ func createSystemSCProcessor(
 		ValidatorInfoCreator:    validatorStatisticsProcessor,
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
-		ChanceComputer:          &mock3.ChanceComputerStub{},
+		ChanceComputer:          &epochStartMock.ChanceComputerStub{},
 		EpochNotifier:           coreComponents.EpochNotifier(),
 		GenesisNodesConfig:      &mock.NodesSetupStub{},
 		StakingDataProvider:     stakingSCProvider,
@@ -68,8 +68,8 @@ func createSystemSCProcessor(
 }
 
 func createValidatorStatisticsProcessor(
-	dataComponents factory2.DataComponentsHolder,
-	coreComponents factory2.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	nc nodesCoordinator.NodesCoordinator,
 	shardCoordinator sharding.Coordinator,
 	peerAccounts state.AccountsAdapter,
@@ -83,7 +83,7 @@ func createValidatorStatisticsProcessor(
 		PubkeyConv:                           coreComponents.AddressPubKeyConverter(),
 		PeerAdapter:                          peerAccounts,
 		Rater:                                coreComponents.Rater(),
-		RewardsHandler:                       &mock3.RewardsHandlerStub{},
+		RewardsHandler:                       &epochStartMock.RewardsHandlerStub{},
 		NodesSetup:                           &mock.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
@@ -96,8 +96,8 @@ func createValidatorStatisticsProcessor(
 }
 
 func createBlockChainHook(
-	dataComponents factory2.DataComponentsHolder,
-	coreComponents factory2.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	accountsAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	gasScheduleNotifier core.GasScheduleNotifier,
@@ -133,7 +133,7 @@ func createBlockChainHook(
 }
 
 func createVMContainerFactory(
-	coreComponents factory2.CoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	blockChainHook process.BlockChainHookHandler,
 	peerAccounts state.AccountsAdapter,

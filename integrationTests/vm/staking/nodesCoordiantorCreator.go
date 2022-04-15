@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	factory2 "github.com/ElrondNetwork/elrond-go/factory"
-	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/factory"
+	integrationMocks "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -30,9 +30,9 @@ func createNodesCoordinator(
 	numOfWaitingNodesPerShard uint32,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
-	coreComponents factory2.CoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	bootStorer storage.Storer,
-	stateComponents factory2.StateComponentsHandler,
+	stateComponents factory.StateComponentsHandler,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 ) nodesCoordinator.NodesCoordinator {
@@ -69,7 +69,7 @@ func createNodesCoordinator(
 		WaitingNodes:                    waitingMap,
 		SelfPublicKey:                   eligibleMap[core.MetachainShardId][0].PubKey(),
 		ConsensusGroupCache:             cache,
-		ShuffledOutHandler:              &mock2.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:              &integrationMocks.ShuffledOutHandlerStub{},
 		ChanStopNode:                    coreComponents.ChanStopNodeProcess(),
 		IsFullArchive:                   false,
 		Shuffler:                        nodeShuffler,
@@ -92,7 +92,7 @@ func createGenesisNodes(
 	numOfNodesPerShard uint32,
 	numOfWaitingNodesPerShard uint32,
 	marshaller marshal.Marshalizer,
-	stateComponents factory2.StateComponentsHandler,
+	stateComponents factory.StateComponentsHandler,
 ) (map[uint32][]nodesCoordinator.Validator, map[uint32][]nodesCoordinator.Validator) {
 	addressStartIdx := uint32(0)
 	eligibleGenesisNodes := generateGenesisNodeInfoMap(numOfMetaNodes, numOfShards, numOfNodesPerShard, addressStartIdx)
@@ -119,7 +119,7 @@ func generateGenesisNodeInfoMap(
 	for shardId := uint32(0); shardId < numOfShards; shardId++ {
 		for n := uint32(0); n < numOfNodesPerShard; n++ {
 			addr := generateAddress(id)
-			validator := mock2.NewNodeInfo(addr, addr, shardId, initialRating)
+			validator := integrationMocks.NewNodeInfo(addr, addr, shardId, initialRating)
 			validatorsMap[shardId] = append(validatorsMap[shardId], validator)
 			id++
 		}
@@ -127,7 +127,7 @@ func generateGenesisNodeInfoMap(
 
 	for n := uint32(0); n < numOfMetaNodes; n++ {
 		addr := generateAddress(id)
-		validator := mock2.NewNodeInfo(addr, addr, core.MetachainShardId, initialRating)
+		validator := integrationMocks.NewNodeInfo(addr, addr, core.MetachainShardId, initialRating)
 		validatorsMap[core.MetachainShardId] = append(validatorsMap[core.MetachainShardId], validator)
 		id++
 	}
@@ -137,7 +137,7 @@ func generateGenesisNodeInfoMap(
 
 func registerValidators(
 	validators map[uint32][]nodesCoordinator.Validator,
-	stateComponents factory2.StateComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
 	marshaller marshal.Marshalizer,
 	list common.PeerType,
 ) {

@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	factory2 "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -210,7 +210,7 @@ func createGasScheduleNotifier() core.GasScheduleNotifier {
 }
 
 func createEpochStartTrigger(
-	coreComponents factory2.CoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	storageService dataRetriever.StorageService,
 ) integrationTests.TestEpochStartTrigger {
 	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{

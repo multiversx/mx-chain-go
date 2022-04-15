@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	factory2 "github.com/ElrondNetwork/elrond-go/factory"
-	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/factory"
+	integrationMocks "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -26,11 +26,11 @@ import (
 func createMetaBlockProcessor(
 	nc nodesCoordinator.NodesCoordinator,
 	systemSCProcessor process.EpochStartSystemSCProcessor,
-	coreComponents factory2.CoreComponentsHolder,
-	dataComponents factory2.DataComponentsHolder,
-	bootstrapComponents factory2.BootstrapComponentsHolder,
-	statusComponents factory2.StatusComponentsHolder,
-	stateComponents factory2.StateComponentsHandler,
+	coreComponents factory.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
+	statusComponents factory.StatusComponentsHolder,
+	stateComponents factory.StateComponentsHandler,
 	validatorsInfoCreator process.ValidatorStatisticsProcessor,
 	blockChainHook process.BlockChainHookHandler,
 	metaVMFactory process.VirtualMachinesContainerFactory,
@@ -66,7 +66,7 @@ func createMetaBlockProcessor(
 			BootstrapComponents:            bootstrapComponents,
 			StatusComponents:               statusComponents,
 			AccountsDB:                     accountsDb,
-			ForkDetector:                   &mock2.ForkDetectorStub{},
+			ForkDetector:                   &integrationMocks.ForkDetectorStub{},
 			NodesCoordinator:               nc,
 			FeeHandler:                     postprocess.NewFeeAccumulator(),
 			RequestHandler:                 &testscommon.RequestHandlerStub{},
@@ -101,8 +101,8 @@ func createMetaBlockProcessor(
 }
 
 func createValidatorInfoCreator(
-	coreComponents factory2.CoreComponentsHolder,
-	dataComponents factory2.DataComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 ) process.EpochStartValidatorInfoCreator {
 	args := metachain.ArgsNewValidatorInfoCreator{
@@ -118,8 +118,8 @@ func createValidatorInfoCreator(
 }
 
 func createEpochStartDataCreator(
-	coreComponents factory2.CoreComponentsHolder,
-	dataComponents factory2.DataComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	blockTracker process.BlockTracker,
@@ -187,7 +187,7 @@ func createGenesisMetaBlock() *block.MetaBlock {
 	}
 }
 
-func createHeaderValidator(coreComponents factory2.CoreComponentsHolder) epochStart.HeaderValidator {
+func createHeaderValidator(coreComponents factory.CoreComponentsHolder) epochStart.HeaderValidator {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      coreComponents.Hasher(),
 		Marshalizer: coreComponents.InternalMarshalizer(),
