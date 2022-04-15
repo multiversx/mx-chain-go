@@ -2126,15 +2126,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:    TestValidatorPubkeyConverter,
-			Hasher:        TestHasher,
-			Marshalizer:   TestMarshalizer,
-			PeerState:     tpn.PeerState,
-			BaseState:     tpn.AccntState,
-			ArgParser:     tpn.ArgsParser,
-			CurrTxs:       tpn.DataPool.CurrentBlockTxs(),
-			RatingsData:   tpn.RatingsData,
-			EpochNotifier: &epochNotifier.EpochNotifierStub{},
+			PubkeyConv:         TestValidatorPubkeyConverter,
+			Hasher:             TestHasher,
+			Marshalizer:        TestMarshalizer,
+			PeerState:          tpn.PeerState,
+			BaseState:          tpn.AccntState,
+			ArgParser:          tpn.ArgsParser,
+			CurrTxs:            tpn.DataPool.CurrentBlockTxs(),
+			RatingsData:        tpn.RatingsData,
+			StakingV4InitEpoch: StakingV4Epoch - 1,
+			EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 

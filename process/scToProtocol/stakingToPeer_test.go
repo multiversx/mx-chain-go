@@ -18,9 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -29,15 +29,16 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:    mock.NewPubkeyConverterMock(32),
-		Hasher:        &hashingMocks.HasherMock{},
-		Marshalizer:   &mock.MarshalizerStub{},
-		PeerState:     &stateMock.AccountsStub{},
-		BaseState:     &stateMock.AccountsStub{},
-		ArgParser:     &mock.ArgumentParserMock{},
-		CurrTxs:       &mock.TxForCurrentBlockStub{},
-		RatingsData:   &mock.RatingsInfoMock{},
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		PubkeyConv:         mock.NewPubkeyConverterMock(32),
+		Hasher:             &hashingMocks.HasherMock{},
+		Marshalizer:        &mock.MarshalizerStub{},
+		PeerState:          &stateMock.AccountsStub{},
+		BaseState:          &stateMock.AccountsStub{},
+		ArgParser:          &mock.ArgumentParserMock{},
+		CurrTxs:            &mock.TxForCurrentBlockStub{},
+		RatingsData:        &mock.RatingsInfoMock{},
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		StakingV4InitEpoch: 444,
 	}
 }
 
@@ -668,6 +669,14 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
+	stp.EpochConfirmed(arguments.StakingV4InitEpoch, 0)
+	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
+	assert.NoError(t, err)
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
+	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
+	stp.EpochConfirmed(0, 0)
+
 	stakingData.UnStakedNonce = 11
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
@@ -685,6 +694,11 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
+
+	stp.EpochConfirmed(arguments.StakingV4InitEpoch, 0)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
+	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
+	stp.EpochConfirmed(0, 0)
 
 	stakingData.UnStakedNonce = 15
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
