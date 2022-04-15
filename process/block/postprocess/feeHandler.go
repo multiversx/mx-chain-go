@@ -99,7 +99,7 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHas
 		"accumulated dev fees", f.developerFees.String(),
 		"fee", cost.String(),
 		"dev fee", devFee.String(),
-		"tx hash", txHash,
+		"txhash", txHash,
 		"txhash fee", fee.cost.String(),
 		"txhash dev fee", fee.devFee.String(),
 	)
@@ -115,11 +115,20 @@ func (f *feeHandler) RevertFees(txHashes [][]byte) {
 	for _, txHash := range txHashes {
 		fee, ok := f.mapHashFee[string(txHash)]
 		if !ok {
+			log.Debug("can not revert fee, txhash not found", "tx hash", txHash)
 			continue
 		}
 		f.developerFees.Sub(f.developerFees, fee.devFee)
 		f.accumulatedFees.Sub(f.accumulatedFees, fee.cost)
 		delete(f.mapHashFee, string(txHash))
+
+		log.Debug("reverted fee",
+			"accumulated fees", f.accumulatedFees.String(),
+			"accumulated dev fees", f.developerFees.String(),
+			"txhash", txHash,
+			"txhash fee", fee.cost.String(),
+			"txhash dev fee", fee.devFee.String(),
+		)
 	}
 }
 
