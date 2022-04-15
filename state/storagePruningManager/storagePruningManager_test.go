@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -20,23 +19,17 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := &hashingMocks.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                testscommon.NewMemDbMock(),
-		MainStorer:        testscommon.CreateMemUnit(),
-		CheckpointsStorer: testscommon.CreateMemUnit(),
-		Marshalizer:       marshalizer,
-		Hasher:            hsh,
-		SnapshotDbConfig: config.DBConfig{
-			Type: "MemoryDB",
-		},
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hsh,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
