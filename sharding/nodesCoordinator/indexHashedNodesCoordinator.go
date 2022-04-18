@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -776,6 +777,9 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 				currentValidator,
 				validatorInfo.ShardId)
 		case string(common.NewList):
+			if ihnc.flagStakingV4.IsSet() {
+				return nil, epochStart.ErrReceivedNewListNodeInStakingV4
+			}
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
 			newNodesList = append(newNodesList, currentValidator)
 		case string(common.InactiveList):

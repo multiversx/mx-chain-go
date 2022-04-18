@@ -72,9 +72,12 @@ func (vi *shardValidatorsInfoMap) Add(validator ValidatorInfoHandler) error {
 // GetValidator returns a ValidatorInfoHandler copy with the provided blsKey,
 // if it is present in the map, otherwise returns nil
 func (vi *shardValidatorsInfoMap) GetValidator(blsKey []byte) ValidatorInfoHandler {
+	vi.mutex.RLock()
+	defer vi.mutex.RUnlock()
+
 	for _, validator := range vi.GetAllValidatorsInfo() {
 		if bytes.Equal(validator.GetPublicKey(), blsKey) {
-			return validator
+			return validator.ShallowClone()
 		}
 	}
 

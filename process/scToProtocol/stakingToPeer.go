@@ -61,7 +61,7 @@ type stakingToPeer struct {
 	validatorToDelegationEnableEpoch uint32
 	flagValidatorToDelegation        atomic.Flag
 	stakingV4InitEpoch               uint32
-	flagStakingV4Init                atomic.Flag
+	flagStakingV4                    atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -339,7 +339,7 @@ func (stp *stakingToPeer) updatePeerState(
 	}
 
 	newNodesList := common.NewList
-	if stp.flagStakingV4Init.IsSet() {
+	if stp.flagStakingV4.IsSet() {
 		newNodesList = common.AuctionList
 	}
 
@@ -440,8 +440,8 @@ func (stp *stakingToPeer) EpochConfirmed(epoch uint32, _ uint64) {
 	stp.flagValidatorToDelegation.SetValue(epoch >= stp.validatorToDelegationEnableEpoch)
 	log.Debug("stakingToPeer: validator to delegation", "enabled", stp.flagValidatorToDelegation.IsSet())
 
-	stp.flagStakingV4Init.SetValue(epoch >= stp.stakingV4InitEpoch)
-	log.Debug("stakingToPeer: staking v4 init", "enabled", stp.flagStakingV4Init.IsSet())
+	stp.flagStakingV4.SetValue(epoch >= stp.stakingV4InitEpoch)
+	log.Debug("stakingToPeer: staking v4 init", "enabled", stp.flagStakingV4.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

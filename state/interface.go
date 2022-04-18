@@ -242,5 +242,6 @@ type ValidatorInfoHandler interface {
 	SetTotalValidatorFailure(totalValidatorFailure uint32)
 	SetTotalValidatorIgnoredSignatures(totalValidatorIgnoredSignatures uint32)
 
+	ShallowClone() ValidatorInfoHandler
 	String() string
 }

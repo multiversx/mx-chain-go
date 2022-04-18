@@ -58,6 +58,7 @@ type systemSCProcessor struct {
 	flagGovernanceEnabled    atomic.Flag
 	flagBuiltInOnMetaEnabled atomic.Flag
 	flagInitStakingV4Enabled atomic.Flag
+	flagStakingV4Enabled     atomic.Flag
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -133,7 +134,12 @@ func (s *systemSCProcessor) processWithNewFlags(
 			return err
 		}
 
-		_, err = s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, header.GetEpoch())
+		err = s.fillStakingDataForNonEligible(validatorsInfoMap)
+		if err != nil {
+			return err
+		}
+
+		err = s.unStakeNodesWithNotEnoughFundsWithStakingV4(validatorsInfoMap, header.GetEpoch())
 		if err != nil {
 			return err
 		}
@@ -145,6 +151,41 @@ func (s *systemSCProcessor) processWithNewFlags(
 	}
 
 	return nil
+}
+
+func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	epoch uint32,
+) error {
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfoMap)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
+	for _, blsKey := range nodesToUnStake {
+		log.Debug("unStake at end of epoch for node", "blsKey", blsKey)
+		err = s.unStakeOneNode(blsKey, epoch)
+		if err != nil {
+			return err
+		}
+
+		validatorInfo := validatorsInfoMap.GetValidator(blsKey)
+		if validatorInfo == nil {
+			return fmt.Errorf(
+				"%w in systemSCProcessor.unStakeNodesWithNotEnoughFundsWithStakingV4 because validator might be in additional queue after staking v4",
+				epochStart.ErrNilValidatorInfo)
+		}
+
+		validatorLeaving := validatorInfo.ShallowClone()
+		validatorLeaving.SetList(string(common.LeavingList))
+		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
+		if err != nil {
+			return err
+		}
+	}
+
+	return s.updateDelegationContracts(mapOwnersKeys)
 }
 
 // TODO: Staking v4: perhaps create a subcomponent which handles selection, which would be also very useful in tests
@@ -466,4 +507,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagInitStakingV4Enabled.SetValue(epoch == s.stakingV4InitEnableEpoch)
 	log.Debug("systemProcessor: init staking v4", "enabled", s.flagInitStakingV4Enabled.IsSet())
+
+	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
+	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
 }

@@ -69,7 +69,6 @@ type legacySystemSCProcessor struct {
 	flagESDTEnabled                atomic.Flag
 	flagSaveJailedAlwaysEnabled    atomic.Flag
 	flagStakingQueueEnabled        atomic.Flag
-	flagStakingV4Enabled           atomic.Flag
 }
 
 func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*legacySystemSCProcessor, error) {
@@ -234,7 +233,12 @@ func (s *legacySystemSCProcessor) processLegacy(
 			return err
 		}
 
-		numUnStaked, err := s.unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
+		err = s.fillStakingDataForNonEligible(validatorsInfoMap)
+		if err != nil {
+			return err
+		}
+
+		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
 		if err != nil {
 			return err
 		}
@@ -316,17 +320,17 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := validatorsInfoMap.GetValidator(blsKey)
 		if validatorInfo == nil {
-			if s.flagStakingV4Enabled.IsSet() {
-				return 0, fmt.Errorf(
-					"%w in legacySystemSCProcessor.unStakeNodesWithNotEnoughFunds because validator might be in additional queue after staking v4",
-					epochStart.ErrNilValidatorInfo)
-			}
 			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
 			continue
 		}
 
-		validatorInfo.SetList(string(common.LeavingList))
+		validatorLeaving := validatorInfo.ShallowClone()
+		validatorLeaving.SetList(string(common.LeavingList))
+		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	err = s.updateDelegationContracts(mapOwnersKeys)
@@ -335,9 +339,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	if s.flagCorrectNumNodesToStake.IsSet() {
-		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
-	}
+	nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 
 	log.Debug("stake nodes from waiting list", "num", nodesToStakeFromQueue)
 	return nodesToStakeFromQueue, nil
@@ -476,15 +478,6 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 func (s *legacySystemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
 	eligibleNodes := s.getEligibleNodeKeys(validatorsInfoMap)
 	return s.prepareStakingData(eligibleNodes)
-}
-
-func (s *legacySystemSCProcessor) unStakeNonEligibleNodesWithNotEnoughFunds(validatorsInfoMap state.ShardValidatorsInfoMapHandler, epoch uint32) (uint32, error) {
-	err := s.fillStakingDataForNonEligible(validatorsInfoMap)
-	if err != nil {
-		return 0, err
-	}
-
-	return s.unStakeNodesWithNotEnoughFunds(validatorsInfoMap, epoch)
 }
 
 func (s *legacySystemSCProcessor) prepareStakingData(nodeKeys map[uint32][][]byte) error {
@@ -1385,7 +1378,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
 	s.flagSetOwnerEnabled.SetValue(epoch == s.stakingV2EnableEpoch)
-	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch < s.stakingV4InitEnableEpoch)
+	s.flagStakingV2Enabled.SetValue(epoch >= s.stakingV2EnableEpoch && epoch <= s.stakingV4InitEnableEpoch)
 	log.Debug("legacySystemSC: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
 	log.Debug("legacySystemSC: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
@@ -1407,7 +1400,4 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 
 	s.flagStakingQueueEnabled.SetValue(epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("legacySystemSC: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
-
-	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
-	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
 }
