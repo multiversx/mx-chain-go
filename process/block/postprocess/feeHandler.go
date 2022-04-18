@@ -85,6 +85,19 @@ func (f *feeHandler) ProcessTransactionFeeRelayedUserTx(cost *big.Int, devFee *b
 	f.mut.Unlock()
 }
 
+// RevertFees reverts the accumulated fees for txHashes
+func (f *feeHandler) RevertFees(txHashes [][]byte) {
+	f.mut.Lock()
+	defer f.mut.Unlock()
+
+	for _, txHash := range txHashes {
+		f.revertFeesForDependentTxHash(txHash)
+	}
+	for _, txHash := range txHashes {
+		f.revertFee(txHash)
+	}
+}
+
 func (f *feeHandler) linkRelayedUserTxToOriginalTx(userTxHash []byte, originalTxHash []byte) {
 	f.mapDependentHashes[string(originalTxHash)] = userTxHash
 }
@@ -95,17 +108,7 @@ func (f *feeHandler) revertFeesForDependentTxHash(txHash []byte) {
 		return
 	}
 	f.revertFee(linkedTxHash)
-}
-
-// RevertFees reverts the accumulated fees for txHashes
-func (f *feeHandler) RevertFees(txHashes [][]byte) {
-	f.mut.Lock()
-	defer f.mut.Unlock()
-
-	for _, txHash := range txHashes {
-		f.revertFeesForDependentTxHash(txHash)
-		f.revertFee(txHash)
-	}
+	delete(f.mapDependentHashes, string(txHash))
 }
 
 func (f *feeHandler) revertFee(txHash []byte) {
