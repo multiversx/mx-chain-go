@@ -92,8 +92,6 @@ func (f *feeHandler) RevertFees(txHashes [][]byte) {
 
 	for _, txHash := range txHashes {
 		f.revertFeesForDependentTxHash(txHash)
-	}
-	for _, txHash := range txHashes {
 		f.revertFee(txHash)
 	}
 }
