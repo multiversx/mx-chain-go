@@ -165,6 +165,8 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
 	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Blocks accepted:  %d", countLeader, countAcceptedBlocks)}
 
+	rows[5] = []string{computeRedundancyStr(wr.presenter.GetRedundancyLevel(), wr.presenter.GetRedundancyIsMainActive())}
+
 	// TODO: repair the rewards estimation or replace these 2 rows with rating details
 	//switch instanceType {
 	//case string(common.NodeTypeValidator):
@@ -188,7 +190,6 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	//	rows[6] = []string{""}
 	//}
 
-	rows[5] = []string{""}
 	rows[6] = []string{""}
 
 	wr.instanceInfo.Title = "Elrond instance info"
@@ -266,6 +267,26 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	wr.chainInfo.Title = "Chain info"
 	wr.chainInfo.RowSeparator = false
 	wr.chainInfo.Rows = rows
+}
+
+func computeRedundancyStr(redundancyLevel uint64, redundancyIsMainActive string) string {
+	if redundancyIsMainActive == statusNotApplicable {
+		return ""
+	}
+
+	redundancyStr := "Redundancy: "
+	if redundancyLevel < 0 {
+		redundancyStr += "inactive"
+	} else {
+		if redundancyLevel == 0 {
+			redundancyStr += "Main machine"
+		} else {
+			redundancyStr += fmt.Sprintf("back-up #%d", redundancyLevel)
+			redundancyStr += fmt.Sprintf(" (is main active: %s)", redundancyIsMainActive)
+		}
+	}
+
+	return redundancyStr
 }
 
 func (wr *WidgetsRender) prepareBlockInfo() {
