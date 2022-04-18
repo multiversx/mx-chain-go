@@ -339,11 +339,16 @@ func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.Shard
 	mapBLSKeyStatus := make(map[string]string)
 	for _, validatorInfo := range validatorsInfo.GetAllValidatorsInfo() {
 		list := validatorInfo.GetList()
+		pubKey := validatorInfo.GetPublicKey()
+
 		if sdp.flagStakingV4Enable.IsSet() && list == string(common.NewList) {
-			return nil, epochStart.ErrReceivedNewListNodeInStakingV4
+			return nil, fmt.Errorf("%w, bls key = %s",
+				epochStart.ErrReceivedNewListNodeInStakingV4,
+				hex.EncodeToString(pubKey),
+			)
 		}
 
-		mapBLSKeyStatus[string(validatorInfo.GetPublicKey())] = list
+		mapBLSKeyStatus[string(pubKey)] = list
 	}
 
 	return mapBLSKeyStatus, nil

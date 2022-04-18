@@ -237,6 +237,71 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 	require.Zero(t, len(ownersWithNotEnoughFunds))
 }
 
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithStakingV4(t *testing.T) {
+	valInfo := state.NewShardValidatorsInfoMap()
+	v0 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey0"),
+		List:          string(common.EligibleList),
+		RewardAddress: []byte("address0"),
+	}
+	v1 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey1"),
+		List:          string(common.NewList),
+		RewardAddress: []byte("address0"),
+	}
+	v2 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey2"),
+		List:          string(common.AuctionList),
+		RewardAddress: []byte("address1"),
+	}
+	_ = valInfo.Add(v0)
+	_ = valInfo.Add(v1)
+	_ = valInfo.Add(v2)
+
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), epochStart.ErrReceivedNewListNodeInStakingV4.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(v1.PublicKey)))
+	require.Empty(t, keysToUnStake)
+	require.Empty(t, ownersWithNotEnoughFunds)
+}
+
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFundsWithStakingV4(t *testing.T) {
+	valInfo := state.NewShardValidatorsInfoMap()
+
+	owner := "address0"
+	v0 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey0"),
+		List:          string(common.EligibleList),
+		RewardAddress: []byte(owner),
+	}
+	v1 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey1"),
+		List:          string(common.AuctionList),
+		RewardAddress: []byte(owner),
+	}
+	_ = valInfo.Add(v0)
+	_ = valInfo.Add(v1)
+
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+
+	sdp.cache[owner].blsKeys = append(sdp.cache[owner].blsKeys, []byte("newKey"))
+	sdp.cache[owner].totalStaked = big.NewInt(2500)
+	sdp.cache[owner].numStakedNodes++
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Nil(t, err)
+
+	expectedUnStakedKeys := [][]byte{[]byte("blsKey1"), []byte("newKey")}
+	expectedOwnerWithNotEnoughFunds := map[string][][]byte{owner: expectedUnStakedKeys}
+	require.Equal(t, expectedUnStakedKeys, keysToUnStake)
+	require.Equal(t, expectedOwnerWithNotEnoughFunds, ownersWithNotEnoughFunds)
+}
+
 func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *testing.T) {
 	nbShards := uint32(3)
 	nbEligible := make(map[uint32]uint32)
