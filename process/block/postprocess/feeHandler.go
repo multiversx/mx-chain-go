@@ -158,7 +158,7 @@ func (f *feeHandler) processTransactionFee(cost *big.Int, devFee *big.Int, txHas
 	f.accumulatedFees.Add(f.accumulatedFees, cost)
 	f.developerFees.Add(f.developerFees, devFee)
 
-	log.Debug("feeHandler.ProcessTransactionFee",
+	log.Debug("feeHandler.processTransactionFee",
 		"accumulated fees", f.accumulatedFees.String(),
 		"accumulated dev fees", f.developerFees.String(),
 		"fee", cost.String(),
