@@ -11,9 +11,12 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-const statusSyncing = "currently syncing"
-const statusSynchronized = "synchronized"
-const invalidKey = "invalid key"
+const (
+	statusSyncing       = "currently syncing"
+	statusSynchronized  = "synchronized"
+	statusNotApplicable = "N/A"
+	invalidKey          = "invalid key"
+)
 
 // WidgetsRender will define termui widgets that need to display a termui console
 type WidgetsRender struct {
@@ -211,6 +214,8 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
+	case synchronizedRound == currentRound && currentRound == 0:
+		syncingStr = statusNotApplicable
 	default:
 		syncingStr = statusSynchronized
 	}
