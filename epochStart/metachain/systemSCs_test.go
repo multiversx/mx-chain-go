@@ -835,7 +835,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	vmContainer, _ := metaVmFactory.Create()
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 
-	stakingSCprovider, _ := NewStakingDataProvider(systemVM, "1000")
+	stakingSCProvider, _ := NewStakingDataProvider(systemVM, "1000", stakingV4EnableEpoch, &epochNotifier.EpochNotifierStub{})
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
 	args := ArgsNewEpochStartSystemSCProcessing{
@@ -850,7 +850,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           en,
 		GenesisNodesConfig:      nodesSetup,
-		StakingDataProvider:     stakingSCprovider,
+		StakingDataProvider:     stakingSCProvider,
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {

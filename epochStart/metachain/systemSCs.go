@@ -57,7 +57,6 @@ type systemSCProcessor struct {
 
 	flagGovernanceEnabled    atomic.Flag
 	flagBuiltInOnMetaEnabled atomic.Flag
-	flagStakingV4Enabled     atomic.Flag
 	flagInitStakingV4Enabled atomic.Flag
 }
 
@@ -464,9 +463,6 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagBuiltInOnMetaEnabled.SetValue(epoch == s.builtInOnMetaEnableEpoch)
 	log.Debug("systemProcessor: create NFT on meta", "enabled", s.flagBuiltInOnMetaEnabled.IsSet())
-
-	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
-	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
 
 	s.flagInitStakingV4Enabled.SetValue(epoch == s.stakingV4InitEnableEpoch)
 	log.Debug("systemProcessor: init staking v4", "enabled", s.flagInitStakingV4Enabled.IsSet())

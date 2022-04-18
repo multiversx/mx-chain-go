@@ -69,6 +69,7 @@ type legacySystemSCProcessor struct {
 	flagESDTEnabled                atomic.Flag
 	flagSaveJailedAlwaysEnabled    atomic.Flag
 	flagStakingQueueEnabled        atomic.Flag
+	flagStakingV4Enabled           atomic.Flag
 }
 
 func newLegacySystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*legacySystemSCProcessor, error) {
@@ -315,6 +316,11 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := validatorsInfoMap.GetValidator(blsKey)
 		if validatorInfo == nil {
+			if s.flagStakingV4Enabled.IsSet() {
+				return 0, fmt.Errorf(
+					"%w in legacySystemSCProcessor.unStakeNodesWithNotEnoughFunds because validator might be in additional queue after staking v4",
+					epochStart.ErrNilValidatorInfo)
+			}
 			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
 			continue
@@ -1401,4 +1407,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 
 	s.flagStakingQueueEnabled.SetValue(epoch < s.stakingV4InitEnableEpoch)
 	log.Debug("legacySystemSC: staking queue on meta", "enabled", s.flagStakingQueueEnabled.IsSet())
+
+	s.flagStakingV4Enabled.SetValue(epoch >= s.stakingV4EnableEpoch)
+	log.Debug("systemProcessor: staking v4", "enabled", s.flagStakingV4Enabled.IsSet())
 }

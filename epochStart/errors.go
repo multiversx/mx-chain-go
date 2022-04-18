@@ -337,3 +337,6 @@ var ErrCouldNotInitLiquidStakingSystemSC = errors.New("could not init liquid sta
 
 // ErrSortAuctionList signals that an error occurred while trying to sort auction list
 var ErrSortAuctionList = errors.New("error while trying to sort auction list")
+
+// ErrReceivedNewListNodeInStakingV4 signals that a new node has been assigned in common.NewList instead of common.AuctionList after staking v4
+var ErrReceivedNewListNodeInStakingV4 = errors.New("new node has been assigned in common.NewList instead of common.AuctionList after staking v4")
