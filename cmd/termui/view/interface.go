@@ -5,6 +5,8 @@ type Presenter interface {
 	GetAppVersion() string
 	GetNodeName() string
 	GetPublicKeyBlockSign() string
+	GetRedundancyLevel() uint64
+	GetRedundancyIsMainActive() string
 	GetShardId() uint64
 	GetNodeType() string
 	GetPeerType() string

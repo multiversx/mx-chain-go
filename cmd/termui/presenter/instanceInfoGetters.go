@@ -34,6 +34,16 @@ func (psh *PresenterStatusHandler) GetPublicKeyBlockSign() string {
 	return psh.getFromCacheAsString(common.MetricPublicKeyBlockSign)
 }
 
+// GetRedundancyLevel will return the redundancy level of the node
+func (psh *PresenterStatusHandler) GetRedundancyLevel() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricRedundancyLevel)
+}
+
+// GetRedundancyIsMainActive will return the info about redundancy main machine
+func (psh *PresenterStatusHandler) GetRedundancyIsMainActive() string {
+	return psh.getFromCacheAsString(common.MetricRedundancyIsMainActive)
+}
+
 // GetShardId will return shard Id of node
 func (psh *PresenterStatusHandler) GetShardId() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricShardId)
