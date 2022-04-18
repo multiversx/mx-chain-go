@@ -35,9 +35,10 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	DB          DBConfig
 	Capacity    uint32
 	SizeInBytes uint64
+	EnableDB    bool
+	DB          DBConfig
 }
 
 // PubkeyConfig will map the public key configuration
@@ -191,16 +192,19 @@ type Config struct {
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
 	LogFileLifeSpanInSec int
+	LogFileLifeSpanInMB  int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled                        bool
-	ValidatorCleanOldEpochsData    bool
-	ObserverCleanOldEpochsData     bool
-	NumEpochsToKeep                uint64
-	NumActivePersisters            uint64
-	FullArchiveNumActivePersisters uint32
+	Enabled                              bool
+	ValidatorCleanOldEpochsData          bool
+	ObserverCleanOldEpochsData           bool
+	AccountsTrieCleanOldEpochsData       bool
+	AccountsTrieSkipRemovalCustomPattern string
+	NumEpochsToKeep                      uint64
+	NumActivePersisters                  uint64
+	FullArchiveNumActivePersisters       uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings

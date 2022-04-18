@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,9 +33,141 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 		ChainID:                      "1",
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
+		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
 	}
 
 	return argsBaseBootstrapper
+}
+
+func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil bootstorer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.BootStorer = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilBootStorer, err)
+	})
+	t.Run("nil fork detector should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.ForkDetector = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilForkDetector, err)
+	})
+	t.Run("nil block processor should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.BlockProcessor = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilBlockProcessor, err)
+	})
+	t.Run("nil chain handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.ChainHandler = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilBlockChain, err)
+	})
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.Marshalizer = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+	})
+	t.Run("nil store should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.Store = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilStore, err)
+	})
+	t.Run("nil uint64 converter should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.Uint64Converter = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilUint64Converter, err)
+	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.ShardCoordinator = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilShardCoordinator, err)
+	})
+	t.Run("nil nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.NodesCoordinator = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilNodesCoordinator, err)
+	})
+	t.Run("nil epoch start trigger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.EpochStartTrigger = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilEpochStartTrigger, err)
+	})
+	t.Run("nil block tracker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.BlockTracker = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilBlockTracker, err)
+	})
+	t.Run("nil scheduled txs execution should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.ScheduledTxsExecutionHandler = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	})
+	t.Run("nil miniblocks provider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.MiniblocksProvider = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
+	})
+	t.Run("nil epoch notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBoostrapperArgs()
+		args.EpochNotifier = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilEpochNotifier, err)
+	})
 }
 
 func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader(t *testing.T) {

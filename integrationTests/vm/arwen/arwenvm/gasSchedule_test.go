@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
@@ -140,7 +141,7 @@ func Benchmark_TestEllipticCurveInitialVariablesAndCalls(b *testing.B) {
 	runWASMVMBenchmark(b, "../testdata/c-api-tests/ecBenchmark/output/ecBenchmark.wasm", 0, "initialVariablesAndCallsTest", nil, b.N, nil)
 }
 
-/// ELLIPTIC CURVES
+// elliptic curves
 
 func Benchmark_TestEllipticCurveAddP224(b *testing.B) {
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
