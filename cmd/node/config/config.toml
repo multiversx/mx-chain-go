@@ -289,32 +289,6 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[AccountsTrieStorageOld]
-    [AccountsTrieStorageOld.Cache]
-        Name = "AccountsTrieStorage"
-        Capacity = 500000
-        Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
-    [AccountsTrieStorageOld.DB]
-        FilePath = "AccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 45000
-        MaxOpenFiles = 10
-
-[PeerAccountsTrieStorageOld]
-    [PeerAccountsTrieStorageOld.Cache]
-        Name = "PeerAccountsTrieStorage"
-        Capacity = 5000
-        Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
-    [PeerAccountsTrieStorageOld.DB]
-        FilePath = "PeerAccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 1000
-        MaxOpenFiles = 10
-
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"
@@ -378,19 +352,10 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[TrieSnapshotDB]
-    FilePath = "TrieSnapshot"
-    Type = "LvlDBSerial"
-    BatchDelaySeconds = 2
-    MaxBatchSize = 40000
-    MaxOpenFiles = 10
-
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     SnapshotsGoroutineNum = 200
-    MaxSnapshots = 3
-    KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [HeadersPoolConfig]

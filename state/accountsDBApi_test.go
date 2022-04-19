@@ -208,7 +208,6 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 	accountsApi.SetStateCheckpoint(nil)
 
 	assert.Equal(t, 0, accountsApi.JournalLen())
-	assert.Equal(t, uint32(0), accountsApi.GetNumCheckpoints())
 }
 
 func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {

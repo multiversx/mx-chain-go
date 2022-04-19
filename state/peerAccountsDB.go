@@ -40,8 +40,6 @@ func NewPeerAccountsDB(
 		return nil, ErrNilStoragePruningManager
 	}
 
-	trieStorageManager := trie.GetStorageManager()
-	numCheckpoints := getNumCheckpoints(trieStorageManager)
 	adb := &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
@@ -51,7 +49,6 @@ func NewPeerAccountsDB(
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
 			mutOp:          sync.RWMutex{},
-			numCheckpoints: numCheckpoints,
 			loadCodeMeasurements: &loadingMeasurements{
 				identifier: "load code",
 			},
@@ -60,6 +57,7 @@ func NewPeerAccountsDB(
 		},
 	}
 
+	trieStorageManager := trie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
@@ -130,8 +128,6 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	if adb.processingMode == common.ImportDb {
 		stats.WaitForSnapshotsToFinish()
 	}
-
-	adb.increaseNumCheckpoints()
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
@@ -151,8 +147,6 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	if adb.processingMode == common.ImportDb {
 		stats.WaitForSnapshotsToFinish()
 	}
-
-	adb.increaseNumCheckpoints()
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
