@@ -106,6 +106,7 @@ func CreateNodesCoordinator(
 	chanNodeStop chan endProcess.ArgEndProcess,
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
+	stakingV4EnableEpoch uint32,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
@@ -196,6 +197,7 @@ func CreateNodesCoordinator(
 		NodeTypeProvider:                nodeTypeProvider,
 		IsFullArchive:                   prefsConfig.FullArchive,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		StakingV4EnableEpoch:            stakingV4EnableEpoch,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

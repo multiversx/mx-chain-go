@@ -44,6 +44,7 @@ type ArgsNewSyncValidatorStatus struct {
 	PubKey                          []byte
 	ShardIdAsObserver               uint32
 	WaitingListFixEnableEpoch       uint32
+	StakingV4EnableEpoch            uint32
 	ChanNodeStop                    chan endProcess.ArgEndProcess
 	NodeTypeProvider                NodeTypeProviderHandler
 	IsFullArchive                   bool
@@ -113,6 +114,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		NodeTypeProvider:                args.NodeTypeProvider,
 		IsFullArchive:                   args.IsFullArchive,
 		NodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		StakingV4EnableEpoch:            args.StakingV4EnableEpoch,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

@@ -714,6 +714,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                   e.prefsConfig.FullArchive,
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
+		StakingV4EnableEpoch:            e.enableEpochs.StakingV4EnableEpoch,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

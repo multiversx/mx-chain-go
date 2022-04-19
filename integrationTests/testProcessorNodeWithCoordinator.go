@@ -92,6 +92,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				WaitingListFixEnabledEpoch: 0,
 				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:              false,
+				StakingV4EnableEpoch:       StakingV4Epoch,
 			}
 
 			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

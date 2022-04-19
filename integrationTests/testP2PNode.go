@@ -357,6 +357,7 @@ func CreateNodesWithTestP2PNodes(
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
 			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+			StakingV4EnableEpoch:            StakingV4Epoch,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)

@@ -334,6 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
+		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	)
 	if err != nil {
 		return true, err
