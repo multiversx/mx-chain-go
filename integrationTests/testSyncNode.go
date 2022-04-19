@@ -118,7 +118,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRoundHandler()
 	tpn.initStorage()
 	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
+	tpn.initAccountDBsWithPruningStorer()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
@@ -291,6 +291,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -335,6 +336,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

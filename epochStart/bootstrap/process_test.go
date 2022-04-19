@@ -114,20 +114,11 @@ func createMockEpochStartBootstrapArgs(
 			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
 			BootstrapStorage:                   generalCfg.BootstrapStorage,
 			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
-			AccountsTrieStorageOld:             generalCfg.AccountsTrieStorageOld,
-			PeerAccountsTrieStorageOld:         generalCfg.PeerAccountsTrieStorageOld,
 			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
 			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
 			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
 			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
 			Heartbeat:                          generalCfg.Heartbeat,
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "TrieSnapshot",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -149,7 +140,6 @@ func createMockEpochStartBootstrapArgs(
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 				PruningBufferLen:      1000,
 				SnapshotsBufferLen:    10,
-				MaxSnapshots:          2,
 				SnapshotsGoroutineNum: 1,
 			},
 			WhiteListPool: config.CacheConfig{
@@ -976,10 +966,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		args.GeneralConfig,
 		coreComp,
-		args.GenesisShardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -998,10 +985,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		args.GeneralConfig,
 		coreComp,
-		1,
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(triesContainer.GetAll()))
@@ -1027,10 +1011,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		args.GeneralConfig,
 		coreComp,
-		args.GenesisShardCoordinator.SelfId(),
 		disabled.NewChainStorer(),
-		0,
-		coreComp.EpochNotifier(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer

@@ -286,10 +286,10 @@ func (ses *startInEpochWithScheduledDataSyncer) filterScheduledIntermediateTxs(
 		if isScheduledIntermediateTx(miniBlocks, scheduledTxHashes, []byte(txHash), txHandler, selfShardID) {
 			scheduledIntermediateTxs[txHash] = txHandler
 			log.Debug("startInEpochWithScheduledDataSyncer.filterScheduledIntermediateTxs",
-				"intermediate tx hash", txHash,
+				"intermediate tx hash", []byte(txHash),
 				"intermediate tx nonce", txHandler.GetNonce(),
-				"intermediate tx sender address", string(txHandler.GetSndAddr()),
-				"intermediate tx receiver address", string(txHandler.GetRcvAddr()),
+				"intermediate tx sender address", txHandler.GetSndAddr(),
+				"intermediate tx receiver address", txHandler.GetRcvAddr(),
 				"intermediate tx data", string(txHandler.GetData()),
 			)
 		}
@@ -307,6 +307,7 @@ func isScheduledIntermediateTx(
 ) bool {
 	blockType := getBlockTypeOfTx(txHash, miniBlocks)
 	if blockType != block.SmartContractResultBlock && blockType != block.InvalidBlock {
+		log.Debug("isScheduledIntermediateTx", "blockType", blockType, "txHash", txHash, "ret", false)
 		return false
 	}
 
@@ -323,8 +324,15 @@ func isScheduledIntermediateTx(
 		scheduledTxHash = txHash
 	}
 
-	receiverShardID, isScheduledIntermediateTx := scheduledTxHashes[string(scheduledTxHash)]
-	return isScheduledIntermediateTx && receiverShardID == selfShardID
+	receiverShardID, isScheduledIntermediateTransaction := scheduledTxHashes[string(scheduledTxHash)]
+	isTxExecutedInSelfShard := receiverShardID == selfShardID || blockType == block.InvalidBlock
+	log.Debug("isScheduledIntermediateTx",
+		"blockType", blockType,
+		"txHash", txHash,
+		"isScheduledIntermediateTransaction", isScheduledIntermediateTransaction,
+		"isTxExecutedInSelfShard", isTxExecutedInSelfShard)
+
+	return isScheduledIntermediateTransaction && isTxExecutedInSelfShard
 }
 
 func getScheduledIntermediateTxsMap(

@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -14,9 +16,9 @@ type ApiResolverStub struct {
 	ExecuteSCQueryHandler                  func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler                   func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler      func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	GetTotalStakedValueHandler             func() (*api.StakeValues, error)
-	GetDirectStakedListHandler             func() ([]*api.DirectStakedValue, error)
-	GetDelegatorsListHandler               func() ([]*api.Delegator, error)
+	GetTotalStakedValueHandler             func(ctx context.Context) (*api.StakeValues, error)
+	GetDirectStakedListHandler             func(ctx context.Context) ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler               func(ctx context.Context) ([]*api.Delegator, error)
 	GetBlockByHashCalled                   func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                  func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRoundCalled                  func(round uint64, withTxs bool) (*api.Block, error)
@@ -96,27 +98,27 @@ func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transacti
 }
 
 // GetTotalStakedValue -
-func (ars *ApiResolverStub) GetTotalStakedValue() (*api.StakeValues, error) {
+func (ars *ApiResolverStub) GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error) {
 	if ars.GetTotalStakedValueHandler != nil {
-		return ars.GetTotalStakedValueHandler()
+		return ars.GetTotalStakedValueHandler(ctx)
 	}
 
 	return nil, nil
 }
 
 // GetDirectStakedList -
-func (ars *ApiResolverStub) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+func (ars *ApiResolverStub) GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error) {
 	if ars.GetDirectStakedListHandler != nil {
-		return ars.GetDirectStakedListHandler()
+		return ars.GetDirectStakedListHandler(ctx)
 	}
 
 	return nil, nil
 }
 
 // GetDelegatorsList -
-func (ars *ApiResolverStub) GetDelegatorsList() ([]*api.Delegator, error) {
+func (ars *ApiResolverStub) GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error) {
 	if ars.GetDelegatorsListHandler != nil {
-		return ars.GetDelegatorsListHandler()
+		return ars.GetDelegatorsListHandler(ctx)
 	}
 
 	return nil, nil

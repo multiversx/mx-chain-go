@@ -97,7 +97,7 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 
 		listTopicsToBeRefreshed := make([]string, 0)
 
-		//build required topic list
+		// build required topic list
 		poc.mutPeers.RLock()
 		for topic, lastRefreshed := range poc.lastUpdated {
 			needsToBeRefreshed := poc.getTimeHandler().Sub(lastRefreshed) > poc.ttlInterval

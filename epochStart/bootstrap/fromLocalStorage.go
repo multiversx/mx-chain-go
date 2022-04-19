@@ -112,10 +112,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
-		newShardId,
 		e.storageService,
-		e.enableEpochs.DisableOldTrieStorageEpoch,
-		e.epochNotifier,
 	)
 	if err != nil {
 		return Parameters{}, err
@@ -195,6 +192,9 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 ) (uint32, bool) {
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
 	epochConfig := nodesConfig.GetEpochsConfig()[epochIDasString]
+	if epochConfig == nil {
+		return e.baseData.shardId, false
+	}
 
 	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.GetWaitingValidators())
 	if isWaitingForShard {

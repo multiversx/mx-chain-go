@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -110,7 +111,6 @@ type AccountsAdapter interface {
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
-	GetNumCheckpoints() uint32
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
@@ -119,7 +119,7 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeaves(leavesChannel chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
