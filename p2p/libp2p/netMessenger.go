@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/factory"
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+	pubsub "github.com/ElrondNetwork/go-libp2p-pubsub"
+	pubsubPb "github.com/ElrondNetwork/go-libp2p-pubsub/pb"
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
@@ -34,10 +36,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
+
+	stream "github.com/libp2p/go-libp2p-transport-upgrader"
 )
 
 const (
@@ -120,7 +121,6 @@ type networkMessenger struct {
 	outgoingPLB          p2p.ChannelLoadBalancer
 	poc                  *peersOnChannel
 	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
-	ip                   *identityProvider
 	connectionsMetric    *metrics.Connections
 	debugger             p2p.Debugger
 	marshalizer          p2p.Marshalizer
@@ -583,17 +583,6 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 
 		setupExternalP2PLoggers()
 	}
-}
-
-// ApplyOptions can set up different configurable options of a networkMessenger instance
-func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
-	for _, opt := range opts {
-		err := opt(netMes)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Close closes the host, connections and streams

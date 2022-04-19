@@ -49,6 +49,7 @@ func GetGeneralConfig() config.Config {
 			GenesisMaxNumberOfShards:             100,
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
+			SyncProcessTimeInMillis:              6000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -76,23 +77,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          AddTimestampSuffix("TrieSnapshot"),
-			Type:              string(storageUnit.MemoryDB),
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorageOld: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("AccountsTrie/MainDB"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -107,16 +91,6 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorageOld: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("PeerAccountsTrie/MainDB"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -153,7 +127,6 @@ func GetGeneralConfig() config.Config {
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:   1000,
 			SnapshotsBufferLen: 10,
-			MaxSnapshots:       2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,

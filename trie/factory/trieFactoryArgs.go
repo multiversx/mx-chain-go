@@ -15,7 +15,6 @@ const PeerAccountTrie = "peerAccount"
 
 // TrieFactoryArgs holds the arguments for creating a trie factory
 type TrieFactoryArgs struct {
-	SnapshotDbCfg            config.DBConfig
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	PathManager              storage.PathManagerHandler

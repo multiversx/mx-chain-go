@@ -32,7 +32,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, process.ErrNilTxBlockBody
 	}
 
-	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
+	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +65,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		isInImportMode:               arguments.IsInImportMode,
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+		processWaitTime:              arguments.ProcessWaitTime,
 	}
 
 	if base.isInImportMode {

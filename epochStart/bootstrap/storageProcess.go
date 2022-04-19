@@ -150,10 +150,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
-		core.MetachainShardId,
 		sesb.storageService,
-		sesb.enableEpochs.DisableOldTrieStorageEpoch,
-		sesb.epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -240,21 +237,19 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:              sesb.generalConfig,
-		ShardIDForTries:            sesb.importDbConfig.ImportDBTargetShardID,
-		ChainID:                    sesb.chainID,
-		WorkingDirectory:           sesb.importDbConfig.ImportDBWorkingDir,
-		Hasher:                     sesb.coreComponentsHolder.Hasher(),
-		ShardCoordinator:           shardCoordinator,
-		Messenger:                  sesb.messenger,
-		Store:                      sesb.store,
-		Marshalizer:                sesb.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter:   sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		ManualEpochStartNotifier:   mesn,
-		ChanGracefullyClose:        sesb.chanGracefullyClose,
-		DisableOldTrieStorageEpoch: sesb.enableEpochs.DisableOldTrieStorageEpoch,
-		EpochNotifier:              sesb.epochNotifier,
+		GeneralConfig:            sesb.generalConfig,
+		ShardIDForTries:          sesb.importDbConfig.ImportDBTargetShardID,
+		ChainID:                  sesb.chainID,
+		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
+		Hasher:                   sesb.coreComponentsHolder.Hasher(),
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                sesb.messenger,
+		Store:                    sesb.store,
+		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: mesn,
+		ChanGracefullyClose:      sesb.chanGracefullyClose,
 	}
 
 	var resolversContainerFactory dataRetriever.ResolversContainerFactory
