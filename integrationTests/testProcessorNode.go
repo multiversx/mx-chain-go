@@ -602,6 +602,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -712,7 +713,6 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	tpn.GuardedAccountHandler = &guardianMocks.GuardedAccountHandlerStub{}
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()

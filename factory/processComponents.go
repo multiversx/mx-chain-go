@@ -430,7 +430,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		epochStartTrigger,
 		requestHandler,
-		pcf.bootstrapComponents.GuardianSigVerifier(),
 	)
 	if err != nil {
 		return nil, err
@@ -1088,7 +1087,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
-	guardianSigVerifier process.GuardianSigVerifier,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
@@ -1097,7 +1095,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			requestHandler,
-			guardianSigVerifier,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1107,7 +1104,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			requestHandler,
-			guardianSigVerifier,
 		)
 	}
 
@@ -1244,7 +1240,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
-	guardianSigVerifier process.GuardianSigVerifier,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1271,7 +1266,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		EnableEpochs:            pcf.epochConfig.EnableEpochs,
 		PreferredPeersHolder:    pcf.network.PreferredPeersHolderHandler(),
 		RequestHandler:          requestHandler,
-		GuardianSigVerifier:     guardianSigVerifier,
+		GuardianSigVerifier:     pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1288,7 +1283,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	requestHandler process.RequestHandler,
-	guardianSigVerifier process.GuardianSigVerifier,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1315,7 +1309,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		EnableEpochs:            pcf.epochConfig.EnableEpochs,
 		PreferredPeersHolder:    pcf.network.PreferredPeersHolderHandler(),
 		RequestHandler:          requestHandler,
-		GuardianSigVerifier:     guardianSigVerifier,
+		GuardianSigVerifier:     pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1487,6 +1481,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusComponentsHolder)
+	}
+	if check.IfNil(args.BootstrapComponents.GuardianSigVerifier()){
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGuardianSigVerifier)
 	}
 
 	return nil
