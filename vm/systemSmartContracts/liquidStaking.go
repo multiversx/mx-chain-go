@@ -25,6 +25,7 @@ const attributesNoncePrefix = "a"
 type liquidStaking struct {
 	eei                      vm.SystemEI
 	sigVerifier              vm.MessageSignVerifier
+	unusedPubKeyConverter    core.PubkeyConverter
 	liquidStakingSCAddress   []byte
 	gasCost                  vm.GasCost
 	marshalizer              marshal.Marshalizer
