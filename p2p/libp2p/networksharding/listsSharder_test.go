@@ -226,7 +226,7 @@ func TestNewListsSharder_FullArchiveShouldWork(t *testing.T) {
 	assert.Equal(t, 5, ls.maxUnknown)
 }
 
-//------- ComputeEvictionList
+// ------- ComputeEvictionList
 
 func TestListsSharder_ComputeEvictionListNotReachedValidatorsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
@@ -496,7 +496,7 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 	require.Equal(t, expectedMap, peers)
 }
 
-//------- Has
+// ------- Has
 
 func TestListsSharder_HasNotFound(t *testing.T) {
 	t.Parallel()
@@ -525,12 +525,12 @@ func TestListsSharder_HasFound(t *testing.T) {
 	assert.True(t, lks.Has("pid2", list))
 }
 
-//------- computeDistance
+// ------- computeDistance
 
 func TestComputeDistanceByCountingBits(t *testing.T) {
 	t.Parallel()
 
-	//compute will be done on hashes. Impossible to predict the outcome in this test
+	// compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistanceByCountingBits("", "").Uint64())
 	assert.Equal(t, uint64(0), computeDistanceByCountingBits("a", "a").Uint64())
 	assert.Equal(t, uint64(139), computeDistanceByCountingBits(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
@@ -541,7 +541,7 @@ func TestComputeDistanceByCountingBits(t *testing.T) {
 func TestComputeDistanceLog2Based(t *testing.T) {
 	t.Parallel()
 
-	//compute will be done on hashes. Impossible to predict the outcome in this test
+	// compute will be done on hashes. Impossible to predict the outcome in this test
 	assert.Equal(t, uint64(0), computeDistanceLog2Based("", "").Uint64())
 	assert.Equal(t, uint64(0), computeDistanceLog2Based("a", "a").Uint64())
 	assert.Equal(t, uint64(254), computeDistanceLog2Based(peer.ID([]byte{0}), peer.ID([]byte{1})).Uint64())
@@ -568,7 +568,7 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
 	err := lks.SetPeerShardResolver(newPeerShardResolver)
 
-	//pointer testing
+	// pointer testing
 	assert.True(t, lks.peerShardResolver == newPeerShardResolver)
 	assert.Nil(t, err)
 }

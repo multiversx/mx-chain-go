@@ -296,16 +296,6 @@ func (inf *initialNodeFacade) Close() error {
 	return errNodeStarting
 }
 
-// GetNumCheckpointsFromAccountState returns 0
-func (inf *initialNodeFacade) GetNumCheckpointsFromAccountState() uint32 {
-	return uint32(0)
-}
-
-// GetNumCheckpointsFromPeerState returns 0
-func (inf *initialNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
-	return uint32(0)
-}
-
 // GetKeyValuePairs nil map
 func (inf *initialNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
 	return nil, errNodeStarting

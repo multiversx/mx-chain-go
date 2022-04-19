@@ -2,8 +2,8 @@ package state_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"strings"
@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
@@ -77,24 +76,18 @@ func getDefaultStateComponents(
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	marshalizer := &testscommon.MarshalizerMock{}
 	hsh := &hashingMocks.HasherMock{}
 
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                testscommon.NewMemDbMock(),
-		MainStorer:        testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer: testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:       marshalizer,
-		Hasher:            hsh,
-		SnapshotDbConfig: config.DBConfig{
-			Type: "MemoryDB",
-		},
+		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
+		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hsh,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder,
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
@@ -205,37 +198,6 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
-}
-
-func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
-	t.Parallel()
-
-	numCheckpointsKey := []byte("state checkpoint")
-	numCheckpoints := uint32(121)
-	db := testscommon.NewMemDbMock()
-
-	numCheckpointsVal := make([]byte, 4)
-	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
-	_ = db.Put(numCheckpointsKey, numCheckpointsVal)
-
-	adb, _ := state.NewAccountsDB(
-		&trieMock.TrieStub{
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return db.Get(key)
-					},
-				}
-			},
-		},
-		&hashingMocks.HasherMock{},
-		&testscommon.MarshalizerMock{},
-		&stateMock.AccountsFactoryStub{},
-		disabled.NewDisabledStoragePruningManager(),
-		common.Normal,
-	)
-
-	assert.Equal(t, numCheckpoints, adb.GetNumCheckpoints())
 }
 
 //------- SaveAccount
@@ -1304,13 +1266,11 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	getAllLeavesCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+		GetAllLeavesOnChannelCalled: func(ch chan core.KeyValueHolder, ctx context.Context, rootHash []byte) error {
 			getAllLeavesCalled = true
-
-			ch := make(chan core.KeyValueHolder)
 			close(ch)
 
-			return ch, nil
+			return nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{}
@@ -1318,7 +1278,9 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
-	_, err := adb.GetAllLeaves([]byte("root hash"))
+
+	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
+	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
 }
@@ -1607,15 +1569,12 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	hsh := &hashingMocks.HasherMock{}
 	ewl := stateMock.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     testscommon.NewMemDbMock(),
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hsh,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -1686,15 +1645,12 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 
 	ewl := stateMock.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     testscommon.NewMemDbMock(),
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hsh,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
@@ -2108,15 +2064,12 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     testscommon.NewMemDbMock(),
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
@@ -2243,6 +2196,7 @@ func TestAccountsDB_GetAccountFromBytesInvalidAddress(t *testing.T) {
 
 	acc, err := adb.GetAccountFromBytes([]byte{}, []byte{})
 	assert.Nil(t, acc)
+	assert.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), state.ErrNilAddress.Error()))
 }
 
@@ -2330,15 +2284,12 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	hasher := &hashingMocks.HasherMock{}
 
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                     testscommon.NewMemDbMock(),
 		MainStorer:             testscommon.CreateMemUnit(),
 		CheckpointsStorer:      testscommon.CreateMemUnit(),
 		Marshalizer:            marshalizer,
 		Hasher:                 hasher,
-		SnapshotDbConfig:       config.DBConfig{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 	}
 	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)

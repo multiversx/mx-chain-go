@@ -32,5 +32,5 @@ var ErrNilBlockchain = errors.New("nil blockchain")
 // ErrEmptyRootHash signals that the current root hash is empty
 var ErrEmptyRootHash = errors.New("empty current root hash")
 
-// ErrNilGenesiNodes signals that the provided genesis nodes configuration is nil
-var ErrNilGenesiNodes = errors.New("nil genesis nodes")
+// ErrNilGenesisNodes signals that the provided genesis nodes configuration is nil
+var ErrNilGenesisNodes = errors.New("nil genesis nodes")

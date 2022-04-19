@@ -35,9 +35,10 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	DB          DBConfig
 	Capacity    uint32
 	SizeInBytes uint64
+	EnableDB    bool
+	DB          DBConfig
 }
 
 // PubkeyConfig will map the public key configuration
@@ -123,13 +124,10 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorageOld             StorageConfig
-	PeerAccountsTrieStorageOld         StorageConfig
 	AccountsTrieStorage                StorageConfig
 	PeerAccountsTrieStorage            StorageConfig
 	AccountsTrieCheckpointsStorage     StorageConfig
 	PeerAccountsTrieCheckpointsStorage StorageConfig
-	TrieSnapshotDB                     DBConfig
 	EvictionWaitingList                EvictionWaitingListConfig
 	StateTriesConfig                   StateTriesConfig
 	TrieStorageManagerConfig           TrieStorageManagerConfig
@@ -241,6 +239,7 @@ type GeneralSettingsConfig struct {
 	MinTransactionVersion                uint32
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
+	SyncProcessTimeInMillis              uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -266,8 +265,6 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen              uint32
 	SnapshotsBufferLen            uint32
 	SnapshotsGoroutineNum         uint32
-	MaxSnapshots                  uint32
-	KeepSnapshots                 bool
 	CheckpointHashesHolderMaxSize uint64
 }
 
@@ -279,10 +276,11 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
-	SimultaneousRequests         uint32
-	SameSourceRequests           uint32
-	SameSourceResetIntervalInSec uint32
-	EndpointsThrottlers          []EndpointsThrottlersConfig
+	SimultaneousRequests               uint32
+	SameSourceRequests                 uint32
+	SameSourceResetIntervalInSec       uint32
+	TrieOperationsDeadlineMilliseconds uint32
+	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
 // BlackListConfig will hold the p2p peer black list threshold values
@@ -355,7 +353,9 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions []ArwenVersionByEpoch
+	ArwenVersions                       []ArwenVersionByEpoch
+	TimeOutForSCExecutionInMilliseconds uint32
+	WasmerSIGSEGVPassthrough            bool
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch

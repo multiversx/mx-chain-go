@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -29,25 +30,25 @@ type NodeHandler interface {
 	GetValueForKey(address string, key string) (string, error)
 
 	// GetKeyValuePairs returns the key-value pairs under a given address
-	GetKeyValuePairs(address string) (map[string]string, error)
+	GetKeyValuePairs(address string, ctx context.Context) (map[string]string, error)
 
 	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
-	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error)
 
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
 	// GetESDTsRoles returns the the token identifiers and the roles for a given address
-	GetESDTsRoles(address string) (map[string][]string, error)
+	GetESDTsRoles(address string, ctx context.Context) (map[string][]string, error)
 
 	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
-	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
+	GetNFTTokenIDsRegisteredByAddress(address string, ctx context.Context) ([]string, error)
 
 	// GetESDTsWithRole returns the token identifiers where the specified address has the given role
-	GetESDTsWithRole(address string, role string) ([]string, error)
+	GetESDTsWithRole(address string, role string, ctx context.Context) ([]string, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
-	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
+	GetAllESDTTokens(address string, ctx context.Context) (map[string]*esdt.ESDigitalToken, error)
 
 	// GetTokenSupply returns the provided token supply from current shard
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
@@ -103,9 +104,9 @@ type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetTotalStakedValue() (*api.StakeValues, error)
-	GetDirectStakedList() ([]*api.DirectStakedValue, error)
-	GetDelegatorsList() ([]*api.Delegator, error)
+	GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error)
+	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
+	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)

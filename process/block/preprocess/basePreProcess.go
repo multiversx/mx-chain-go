@@ -105,6 +105,9 @@ type txsForBlock struct {
 	txHashAndInfo  map[string]*txInfo
 }
 
+// basePreProcess is the base struct for all pre-processors
+// beware of calling basePreProcess.epochConfirmed in all extensions of this struct if the flags from the basePreProcess are
+// used in those extensions instances
 type basePreProcess struct {
 	gasTracker
 	hasher                                      hashing.Hasher
@@ -245,7 +248,7 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 	forBlock.mutTxsForBlock.RUnlock()
 
 	if txInfoFromMap == nil || txInfoFromMap.tx == nil {
-		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash,"error", process.ErrMissingTransaction.Error())
+		log.Warn("basePreProcess.saveTransactionToStorage", "type", dataUnit, "txHash", txHash, "error", process.ErrMissingTransaction.Error())
 		return
 	}
 
@@ -478,8 +481,8 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (bpp *basePreProcess) EpochConfirmed(epoch uint32, _ uint64) {
+// epochConfirmed is called whenever a new epoch is confirmed from the structs that extend this instance
+func (bpp *basePreProcess) epochConfirmed(epoch uint32, _ uint64) {
 	bpp.flagOptimizeGasUsedInCrossMiniBlocks.SetValue(epoch >= bpp.optimizeGasUsedInCrossMiniBlocksEnableEpoch)
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
