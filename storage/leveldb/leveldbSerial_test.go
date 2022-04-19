@@ -2,6 +2,7 @@ package leveldb_test
 
 import (
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
@@ -11,10 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
-	lvdb, err := leveldb.NewSerialDB(t.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
+func createSerialLevelDb(tb testing.TB, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
+	lvdb, err := leveldb.NewSerialDB(tb.TempDir(), batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
-	assert.Nil(t, err, "Failed creating leveldb database file")
+	assert.Nil(tb, err, "Failed creating leveldb database file")
 	return lvdb
 }
 
@@ -218,4 +219,99 @@ func TestSerialDB_Destroy(t *testing.T) {
 	err := ldb.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
+}
+
+func TestSerialDB_SpecialValueTest(t *testing.T) {
+	t.Parallel()
+
+	ldb := createSerialLevelDb(t, 100, 100, 10)
+	key := []byte("key")
+	removedValue := []byte("removed") // in old implementations we had a check against this value
+	randomValue := []byte("random")
+	t.Run("operations: put -> get of 'removed' value", func(t *testing.T) {
+		err := ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Nil(t, err)
+		assert.Equal(t, removedValue, recovered)
+	})
+	t.Run("operations: put -> remove -> get of 'removed' value", func(t *testing.T) {
+		err := ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		err = ldb.Remove(key)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Equal(t, storage.ErrKeyNotFound, err)
+		assert.Nil(t, recovered)
+	})
+	t.Run("operations: put -> remove -> put -> get of 'removed' value", func(t *testing.T) {
+		err := ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		err = ldb.Remove(key)
+		require.Nil(t, err)
+
+		err = ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Nil(t, err)
+		assert.Equal(t, removedValue, recovered)
+	})
+	t.Run("operations: put -> remove -> put -> get of random value", func(t *testing.T) {
+		err := ldb.Put(key, randomValue)
+		require.Nil(t, err)
+
+		err = ldb.Remove(key)
+		require.Nil(t, err)
+
+		err = ldb.Put(key, randomValue)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Nil(t, err)
+		assert.Equal(t, randomValue, recovered)
+	})
+
+	_ = ldb.Close()
+}
+
+func BenchmarkSerialDB_SpecialValueTest(b *testing.B) {
+	ldb := createSerialLevelDb(b, 10000, 10000000, 10)
+	key := []byte("key")
+	removedValue := []byte("removed") // in old implementations we had a check against this value
+
+	b.Run("put -> remove -> get", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = ldb.Put(key, removedValue)
+			_ = ldb.Remove(key)
+			_, _ = ldb.Get(key)
+		}
+	})
+	b.Run("put -> get", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = ldb.Put(key, removedValue)
+			_, _ = ldb.Get(key)
+		}
+	})
+	b.Run("put -> remove -> get with different keys", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			testKey := append(key, big.NewInt(int64(i)).Bytes()...)
+
+			_ = ldb.Put(testKey, removedValue)
+			_ = ldb.Remove(testKey)
+			_, _ = ldb.Get(testKey)
+		}
+	})
+	b.Run("put -> get with different keys", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			testKey := append(key, big.NewInt(int64(i)).Bytes()...)
+
+			_ = ldb.Put(testKey, removedValue)
+			_, _ = ldb.Get(testKey)
+		}
+	})
 }

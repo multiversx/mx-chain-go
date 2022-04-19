@@ -28,12 +28,15 @@
     # than this value, then the validators rating decrease should stop so they won't get jailed
     MaxConsecutiveRoundsOfRatingDecrease = 600
 
+   # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
+   SyncProcessTimeInMillis = 12000
+
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
         { StartEpoch = 0, Version = "*" },
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-        { StartEpoch = 2, Version = "2" },
+        { StartEpoch = 1, Version = "2" },
     ]
     [Versions.Cache]
         Name = "VersionsCache"
@@ -286,32 +289,6 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[AccountsTrieStorageOld]
-    [AccountsTrieStorageOld.Cache]
-        Name = "AccountsTrieStorage"
-        Capacity = 500000
-        Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
-    [AccountsTrieStorageOld.DB]
-        FilePath = "AccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 45000
-        MaxOpenFiles = 10
-
-[PeerAccountsTrieStorageOld]
-    [PeerAccountsTrieStorageOld.Cache]
-        Name = "PeerAccountsTrieStorage"
-        Capacity = 5000
-        Type = "SizeLRU"
-        SizeInBytes = 52428800 #50MB
-    [PeerAccountsTrieStorageOld.DB]
-        FilePath = "PeerAccountsTrie/MainDB"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 1000
-        MaxOpenFiles = 10
-
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"
@@ -375,19 +352,10 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[TrieSnapshotDB]
-    FilePath = "TrieSnapshot"
-    Type = "LvlDBSerial"
-    BatchDelaySeconds = 2
-    MaxBatchSize = 40000
-    MaxOpenFiles = 10
-
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     SnapshotsGoroutineNum = 200
-    MaxSnapshots = 3
-    KeepSnapshots = false
     CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [HeadersPoolConfig]
@@ -402,7 +370,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 1000
+    Capacity = 100000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
@@ -495,6 +463,7 @@
 [TrieSyncStorage]
     Capacity = 300000
     SizeInBytes = 104857600 #100MB
+    EnableDB = false
     [TrieSyncStorage.DB]
         FilePath = "TrieSyncStorageDB"
         Type = "LvlDBSerial"
@@ -573,6 +542,9 @@
         SameSourceRequests = 10000
         # SameSourceResetIntervalInSec time frame between counter reset, in seconds
         SameSourceResetIntervalInSec = 1
+        # TrieOperationsDeadlineMilliseconds represents the maximum duration that an API call targeting a trie operation
+        # can take.
+        TrieOperationsDeadlineMilliseconds = 10000
         # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
         EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                                { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -696,6 +668,8 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
@@ -703,6 +677,8 @@
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
+        TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
+        WasmerSIGSEGVPassthrough            = false # must be false for release
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },

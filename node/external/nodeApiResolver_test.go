@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"context"
 	"encoding/hex"
 	"testing"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ import (
 func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
 		SCQueryService:           &mock.SCQueryServiceStub{},
-		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
 		TxCostHandler:            &mock.TransactionCostEstimatorMock{},
 		TotalStakedValueHandler:  &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler:  &mock.DirectStakedListProcessorStub{},
@@ -156,14 +156,14 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 
 	arg := createMockArgs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
-		StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
+	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
+		StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
 			wasCalled = true
-			return nil
+			return nil, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
-	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
+	_, _ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
 
 	assert.True(t, wasCalled)
 }
@@ -173,14 +173,14 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 
 	arg := createMockArgs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
-		StatusP2pMetricsMapCalled: func() map[string]interface{} {
+	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
+		StatusP2pMetricsMapCalled: func() (map[string]interface{}, error) {
 			wasCalled = true
-			return nil
+			return nil, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
-	_ = nar.StatusMetrics().StatusP2pMetricsMap()
+	_, _ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
 }
@@ -190,14 +190,14 @@ func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 
 	arg := createMockArgs()
 	wasCalled := false
-	arg.StatusMetricsHandler = &statusHandler.StatusMetricsStub{
-		NetworkMetricsCalled: func() map[string]interface{} {
+	arg.StatusMetricsHandler = &testscommon.StatusMetricsStub{
+		NetworkMetricsCalled: func() (map[string]interface{}, error) {
 			wasCalled = true
-			return nil
+			return nil, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
-	_ = nar.StatusMetrics().NetworkMetrics()
+	_, _ = nar.StatusMetrics().NetworkMetrics()
 
 	assert.True(t, wasCalled)
 }
@@ -209,14 +209,14 @@ func TestNodeApiResolver_GetTotalStakedValue(t *testing.T) {
 	arg := createMockArgs()
 	stakeValue := &api.StakeValues{}
 	arg.TotalStakedValueHandler = &mock.StakeValuesProcessorStub{
-		GetTotalStakedValueCalled: func() (*api.StakeValues, error) {
+		GetTotalStakedValueCalled: func(_ context.Context) (*api.StakeValues, error) {
 			wasCalled = true
 			return stakeValue, nil
 		},
 	}
 
 	nar, _ := external.NewNodeApiResolver(arg)
-	recoveredStakeValue, err := nar.GetTotalStakedValue()
+	recoveredStakeValue, err := nar.GetTotalStakedValue(context.Background())
 	assert.Nil(t, err)
 	assert.True(t, recoveredStakeValue == stakeValue) //pointer testing
 	assert.True(t, wasCalled)
@@ -229,14 +229,14 @@ func TestNodeApiResolver_GetDelegatorsList(t *testing.T) {
 	arg := createMockArgs()
 	delegators := make([]*api.Delegator, 1)
 	arg.DelegatedListHandler = &mock.DelegatedListProcessorStub{
-		GetDelegatorsListCalled: func() ([]*api.Delegator, error) {
+		GetDelegatorsListCalled: func(_ context.Context) ([]*api.Delegator, error) {
 			wasCalled = true
 			return delegators, nil
 		},
 	}
 
 	nar, _ := external.NewNodeApiResolver(arg)
-	recoveredDelegatorsList, err := nar.GetDelegatorsList()
+	recoveredDelegatorsList, err := nar.GetDelegatorsList(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, recoveredDelegatorsList, delegators)
 	assert.True(t, wasCalled)
@@ -249,14 +249,14 @@ func TestNodeApiResolver_GetDirectStakedList(t *testing.T) {
 	arg := createMockArgs()
 	directStakedValueList := make([]*api.DirectStakedValue, 1)
 	arg.DirectStakedListHandler = &mock.DirectStakedListProcessorStub{
-		GetDirectStakedListCalled: func() ([]*api.DirectStakedValue, error) {
+		GetDirectStakedListCalled: func(ctx context.Context) ([]*api.DirectStakedValue, error) {
 			wasCalled = true
 			return directStakedValueList, nil
 		},
 	}
 
 	nar, _ := external.NewNodeApiResolver(arg)
-	recoveredDirectStakedValueList, err := nar.GetDirectStakedList()
+	recoveredDirectStakedValueList, err := nar.GetDirectStakedList(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, recoveredDirectStakedValueList, directStakedValueList)
 	assert.True(t, wasCalled)

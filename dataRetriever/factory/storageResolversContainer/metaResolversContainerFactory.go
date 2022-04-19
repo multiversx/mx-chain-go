@@ -22,22 +22,20 @@ func NewMetaResolversContainerFactory(
 ) (*metaResolversContainerFactory, error) {
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                  container,
-		shardCoordinator:           args.ShardCoordinator,
-		messenger:                  args.Messenger,
-		store:                      args.Store,
-		marshalizer:                args.Marshalizer,
-		hasher:                     args.Hasher,
-		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
-		dataPacker:                 args.DataPacker,
-		manualEpochStartNotifier:   args.ManualEpochStartNotifier,
-		chanGracefullyClose:        args.ChanGracefullyClose,
-		generalConfig:              args.GeneralConfig,
-		shardIDForTries:            args.ShardIDForTries,
-		chainID:                    args.ChainID,
-		workingDir:                 args.WorkingDirectory,
-		disableOldTrieStorageEpoch: args.DisableOldTrieStorageEpoch,
-		epochNotifier:              args.EpochNotifier,
+		container:                container,
+		shardCoordinator:         args.ShardCoordinator,
+		messenger:                args.Messenger,
+		store:                    args.Store,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
+		dataPacker:               args.DataPacker,
+		manualEpochStartNotifier: args.ManualEpochStartNotifier,
+		chanGracefullyClose:      args.ChanGracefullyClose,
+		generalConfig:            args.GeneralConfig,
+		shardIDForTries:          args.ShardIDForTries,
+		chainID:                  args.ChainID,
+		workingDir:               args.WorkingDirectory,
 	}
 
 	err := base.checkParams()
@@ -189,7 +187,6 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
-		mrcf.generalConfig.AccountsTrieStorageOld,
 		mrcf.store.GetStorer(dataRetriever.UserAccountsUnit),
 		mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
 	)
@@ -216,7 +213,6 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
-		mrcf.generalConfig.PeerAccountsTrieStorageOld,
 		mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit),
 		mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit),
 	)

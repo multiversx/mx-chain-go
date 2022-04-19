@@ -24,7 +24,6 @@ import (
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/gin-contrib/cors"
@@ -83,10 +82,11 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 		TxSimulatorProcessor:   txSimulator,
 		RestAPIServerDebugMode: false,
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
-			SimultaneousRequests:         1000,
-			SameSourceRequests:           1000,
-			SameSourceResetIntervalInSec: 1,
-			EndpointsThrottlers:          []config.EndpointsThrottlersConfig{},
+			SimultaneousRequests:               1000,
+			SameSourceRequests:                 1000,
+			SameSourceResetIntervalInSec:       1,
+			TrieOperationsDeadlineMilliseconds: 1,
+			EndpointsThrottlers:                []config.EndpointsThrottlersConfig{},
 		},
 		FacadeConfig:    config.FacadeConfig{},
 		ApiRoutesConfig: createTestApiConfig(),
@@ -224,7 +224,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           tpn.SCQueryService,
-		StatusMetricsHandler:     &statusHandler.StatusMetricsStub{},
+		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
 		TxCostHandler:            txCostHandler,
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
