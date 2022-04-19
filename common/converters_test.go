@@ -329,19 +329,3 @@ func TestShardAssignment(t *testing.T) {
 		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
 	}
 }
-
-func TestBoolToString(t *testing.T) {
-	t.Parallel()
-
-	t.Run("true", func(t *testing.T) {
-		t.Parallel()
-
-		require.Equal(t, "true", common.BoolToString(true))
-	})
-
-	t.Run("false", func(t *testing.T) {
-		t.Parallel()
-
-		require.Equal(t, "false", common.BoolToString(false))
-	})
-}

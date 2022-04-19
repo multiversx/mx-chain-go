@@ -46,12 +46,3 @@ func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint3
 
 	return randomShardID
 }
-
-// BoolToString converts a boolean value into it's string representation
-func BoolToString(value bool) string {
-	if value {
-		return "true"
-	}
-
-	return "false"
-}
