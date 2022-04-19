@@ -319,7 +319,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		BalanceWaitingListsEnableEpoch:           ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
 		WaitingListFixEnableEpoch:                ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		StakingV4EnableEpoch:                     ccf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
-		StakingV4DistributeAuctionToWaitingEpoch: ccf.epochConfig.EnableEpochs.StakingV4DistributeAuctionToWaiting,
+		StakingV4DistributeAuctionToWaitingEpoch: ccf.epochConfig.EnableEpochs.StakingV4DistributeAuctionToWaitingEpoch,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)
