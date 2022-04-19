@@ -166,30 +166,6 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Blocks accepted:  %d", countLeader, countAcceptedBlocks)}
 
 	rows[5] = []string{computeRedundancyStr(wr.presenter.GetRedundancyLevel(), wr.presenter.GetRedundancyIsMainActive())}
-
-	// TODO: repair the rewards estimation or replace these 2 rows with rating details
-	//switch instanceType {
-	//case string(common.NodeTypeValidator):
-	//	rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-	//	rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
-	//
-	//	var rewardsInfo []string
-	//	totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
-	//	zeroString := "0" + wr.presenter.GetZeros()
-	//	if diffRewards != zeroString {
-	//		wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
-	//		rewardsInfo = []string{fmt.Sprintf("Total rewards %s + %s ERD (without fees)", totalRewardsValue, diffRewards)}
-	//	} else {
-	//		wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
-	//		rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
-	//	}
-	//	rows[6] = rewardsInfo
-	//
-	//default:
-	//	rows[5] = []string{""}
-	//	rows[6] = []string{""}
-	//}
-
 	rows[6] = []string{""}
 
 	wr.instanceInfo.Title = "Elrond instance info"
@@ -215,7 +191,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
-	case synchronizedRound == currentRound && currentRound == 0:
+	case currentRound == 0:
 		syncingStr = statusNotApplicable
 	default:
 		syncingStr = statusSynchronized
@@ -279,7 +255,7 @@ func computeRedundancyStr(redundancyLevel uint64, redundancyIsMainActive string)
 		redundancyStr += "inactive"
 	} else {
 		if redundancyLevel == 0 {
-			redundancyStr += "Main machine"
+			redundancyStr += "main machine"
 		} else {
 			redundancyStr += fmt.Sprintf("back-up #%d", redundancyLevel)
 			redundancyStr += fmt.Sprintf(" (is main active: %s)", redundancyIsMainActive)

@@ -57,10 +57,6 @@ type Presenter interface {
 	GetNetworkSentBytesInEpoch() uint64
 	GetNetworkReceivedBytesInEpoch() uint64
 
-	GetTotalRewardsValue() (string, string)
-	CalculateRewardsPerHour() string
-	GetZeros() string
-
 	InvalidateCache()
 	IsInterfaceNil() bool
 }
