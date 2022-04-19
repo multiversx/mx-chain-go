@@ -1091,3 +1091,12 @@ var ErrAccountHasNoGuardianSet = errors.New("account has no guardian set")
 
 // ErrActiveHasNoActiveGuardian signals that the account has no active guardian
 var ErrActiveHasNoActiveGuardian = errors.New("account has no active guardian")
+
+// ErrWrongGuardianPubKeyLen signals that the provided public key has an invalid length
+var ErrWrongGuardianPubKeyLen = errors.New("provided guardian public key has wrong length")
+
+// ErrTransactionTypeDoesNotSupportGuardians is thrown when guardian operations are done on transactions that do not support for guardians
+var ErrTransactionTypeDoesNotSupportGuardians = errors.New("this transaction type does not support guardians")
+
+// GuardedAccountHandler signals that a nil guarded account handler was provided
+var GuardedAccountHandler = errors.New("nil guardian account handler")

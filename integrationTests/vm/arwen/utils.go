@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -229,12 +230,13 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses:  DNSAddresses,
-		Marshalizer:      marshalizer,
-		Accounts:         context.Accounts,
-		ShardCoordinator: oneShardCoordinator,
-		EpochNotifier:    context.EpochNotifier,
+		GasSchedule:           mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:       DNSAddresses,
+		Marshalizer:           marshalizer,
+		Accounts:              context.Accounts,
+		ShardCoordinator:      oneShardCoordinator,
+		EpochNotifier:         context.EpochNotifier,
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)

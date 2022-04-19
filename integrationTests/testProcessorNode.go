@@ -295,6 +295,7 @@ type TestProcessorNode struct {
 	MultiSigner             crypto.MultiSigner
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	GuardedAccountHandler   core.GuardedAccountHandler
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
@@ -416,6 +417,7 @@ func newBaseTestProcessorNode(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -710,6 +712,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.GuardedAccountHandler = &guardianMocks.GuardedAccountHandlerStub{}
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -831,6 +834,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		GuardedAccountHandler:      tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1423,6 +1427,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		GuardedAccountHandler:      tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1640,6 +1645,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		GuardedAccountHandler:      tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
@@ -2917,19 +2923,20 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		StatusHandlerField:     &statusHandlerMock.AppStatusHandlerStub{},
-		WatchdogField:          &testscommon.WatchdogMock{},
-		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
-		SyncTimerField:         &testscommon.SyncTimerStub{},
-		RoundHandlerField:      &testscommon.RoundHandlerMock{},
-		EconomicsDataField:     &economicsmocks.EconomicsHandlerStub{},
-		RatingsDataField:       &testscommon.RatingsInfoMock{},
-		RaterField:             &testscommon.RaterMock{},
-		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
-		GenesisTimeField:       time.Time{},
-		EpochNotifierField:     &epochNotifier.EpochNotifierStub{},
-		RoundNotifierField:     &processMock.RoundNotifierStub{},
-		TxVersionCheckField:    versioning.NewTxVersionChecker(MinTransactionVersion),
+		StatusHandlerField:         &statusHandlerMock.AppStatusHandlerStub{},
+		WatchdogField:              &testscommon.WatchdogMock{},
+		AlarmSchedulerField:        &testscommon.AlarmSchedulerStub{},
+		SyncTimerField:             &testscommon.SyncTimerStub{},
+		RoundHandlerField:          &testscommon.RoundHandlerMock{},
+		EconomicsDataField:         &economicsmocks.EconomicsHandlerStub{},
+		RatingsDataField:           &testscommon.RatingsInfoMock{},
+		RaterField:                 &testscommon.RaterMock{},
+		GenesisNodesSetupField:     &testscommon.NodesSetupStub{},
+		GenesisTimeField:           time.Time{},
+		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
+		RoundNotifierField:         &processMock.RoundNotifierStub{},
+		TxVersionCheckField:        versioning.NewTxVersionChecker(MinTransactionVersion),
+		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }
 

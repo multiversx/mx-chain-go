@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -553,10 +554,11 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:      testMarshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    epochNotifierInstance,
+		Marshalizer:           testMarshalizer,
+		Accounts:              accnts,
+		ShardCoordinator:      shardCoordinator,
+		EpochNotifier:         epochNotifierInstance,
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -627,10 +629,11 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer:      testMarshalizer,
-		Accounts:         accnts,
-		ShardCoordinator: shardCoordinator,
-		EpochNotifier:    globalEpochNotifier,
+		Marshalizer:           testMarshalizer,
+		Accounts:              accnts,
+		ShardCoordinator:      shardCoordinator,
+		EpochNotifier:         globalEpochNotifier,
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 

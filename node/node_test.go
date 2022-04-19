@@ -3503,19 +3503,20 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
-		WDTimer:               &testscommon.WatchdogMock{},
-		Alarm:                 &testscommon.AlarmSchedulerStub{},
-		NtpTimer:              &testscommon.SyncTimerStub{},
-		RoundHandlerField:     &testscommon.RoundHandlerMock{},
-		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:         &testscommon.RatingsInfoMock{},
-		RatingHandler:         &testscommon.RaterMock{},
-		NodesConfig:           &testscommon.NodesSetupStub{},
-		StartTime:             time.Time{},
-		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
+		AppStatusHdl:               &statusHandler.AppStatusHandlerStub{},
+		WDTimer:                    &testscommon.WatchdogMock{},
+		Alarm:                      &testscommon.AlarmSchedulerStub{},
+		NtpTimer:                   &testscommon.SyncTimerStub{},
+		RoundHandlerField:          &testscommon.RoundHandlerMock{},
+		EconomicsHandler:           &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:        &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:              &testscommon.RatingsInfoMock{},
+		RatingHandler:              &testscommon.RaterMock{},
+		NodesConfig:                &testscommon.NodesSetupStub{},
+		StartTime:                  time.Time{},
+		EpochChangeNotifier:        &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler:      versioning.NewTxVersionChecker(0),
+		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }
 

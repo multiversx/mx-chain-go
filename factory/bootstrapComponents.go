@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
-	"github.com/ElrondNetwork/elrond-go/process/guardian"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -259,14 +258,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 }
 
 func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier() (process.GuardianSigVerifier, error) {
-	gTxChecker, err := guardian.NewGuardedAccount(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier())
-	if err != nil {
-		return nil, err
-	}
-
 	argGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
 		SigVerifier:     bcf.cryptoComponents.TxSingleSigner(),
-		GuardianChecker: gTxChecker,
+		GuardianChecker: bcf.coreComponents.GuardedAccountHandler(),
 		PubKeyConverter: bcf.coreComponents.AddressPubKeyConverter(),
 		Marshaller:      bcf.coreComponents.InternalMarshalizer(),
 		KeyGen:          bcf.cryptoComponents.TxSignKeyGen(),

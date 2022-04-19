@@ -211,7 +211,7 @@ func isBuiltinFuncCallWithParam(txData []byte, function string) bool {
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
 func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {
-	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
+	interceptedTx, ok := data.(process.InterceptedTxHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

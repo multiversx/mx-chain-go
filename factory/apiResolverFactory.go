@@ -110,6 +110,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.StateComponents.AccountsAdapterAPI(),
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
+		args.CoreComponents.GuardedAccountHandler(),
 		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
@@ -269,6 +270,7 @@ func createScQueryElement(
 		args.stateComponents.AccountsAdapterAPI(),
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
+		args.coreComponents.GuardedAccountHandler(),
 		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
@@ -395,6 +397,7 @@ func createBuiltinFuncs(
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
+	guardedAccountHandler core.GuardedAccountHandler,
 	esdtMultiTransferEnableEpoch uint32,
 	esdtGlobalMintBurnDisableEpoch uint32,
 	esdtTransferRoleEnableEpoch uint32,
@@ -413,6 +416,7 @@ func createBuiltinFuncs(
 		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
+		GuardedAccountHandler:        guardedAccountHandler,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

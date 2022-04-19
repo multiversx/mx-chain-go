@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 )
 
 // NewTestSyncNode returns a new TestProcessorNode instance with sync capabilities
@@ -91,6 +92,7 @@ func NewTestSyncNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	kg := &mock.KeyGenMock{}

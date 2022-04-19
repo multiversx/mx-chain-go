@@ -133,12 +133,13 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:      gasScheduleNotifier,
-		MapDNSAddresses:  make(map[string]struct{}),
-		Marshalizer:      TestMarshalizer,
-		Accounts:         tpn.AccntState,
-		ShardCoordinator: tpn.ShardCoordinator,
-		EpochNotifier:    tpn.EpochNotifier,
+		GasSchedule:           gasScheduleNotifier,
+		MapDNSAddresses:       make(map[string]struct{}),
+		Marshalizer:           TestMarshalizer,
+		Accounts:              tpn.AccntState,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		EpochNotifier:         tpn.EpochNotifier,
+		GuardedAccountHandler: tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, _, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	log.LogIfError(err)

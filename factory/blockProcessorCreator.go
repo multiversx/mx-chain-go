@@ -1150,6 +1150,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:  pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		GuardedAccountHandler:        pcf.coreData.GuardedAccountHandler(),
 	}
 
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)

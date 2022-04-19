@@ -80,6 +80,8 @@ type TxValidatorHandler interface {
 // InterceptedTxHandler defines an intercepted data wrapper over transaction handler that has
 // receiver and sender shard getters
 type InterceptedTxHandler interface {
+	GetInterceptorUsedGuardianPubKey() []byte
+	SetInterceptorUsedGuardianPubKey([]byte) error
 	SenderShardId() uint32
 	ReceiverShardId() uint32
 	Nonce() uint64
@@ -1199,17 +1201,6 @@ type ScheduledTxsExecutionHandler interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
-// receiver and sender shard getters
-type InterceptedTransactionHandler interface {
-	SenderShardId() uint32
-	ReceiverShardId() uint32
-	Nonce() uint64
-	SenderAddress() []byte
-	Fee() *big.Int
-	Transaction() data.TransactionHandler
-}
-
 // ShardedPool is a perspective of the sharded data pool
 type ShardedPool interface {
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
@@ -1217,7 +1208,7 @@ type ShardedPool interface {
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account data.UserAccountHandler, inTx InterceptedTransactionHandler) error
+	VerifyGuardianSignature(account data.UserAccountHandler, inTx InterceptedTxHandler) error
 	IsInterfaceNil() bool
 }
 

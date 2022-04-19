@@ -8,12 +8,14 @@ import (
 
 // InterceptedTxHandlerStub -
 type InterceptedTxHandlerStub struct {
-	SenderShardIdCalled   func() uint32
-	ReceiverShardIdCalled func() uint32
-	NonceCalled           func() uint64
-	SenderAddressCalled   func() []byte
-	FeeCalled             func() *big.Int
-	TransactionCalled     func() data.TransactionHandler
+	SenderShardIdCalled                    func() uint32
+	ReceiverShardIdCalled                  func() uint32
+	NonceCalled                            func() uint64
+	SenderAddressCalled                    func() []byte
+	FeeCalled                              func() *big.Int
+	TransactionCalled                      func() data.TransactionHandler
+	GetInterceptorUsedGuardianPubKeyCalled func() []byte
+	SetInterceptorUsedGuardianPubKeyCalled func([]byte) error
 }
 
 // SenderShardId -
@@ -52,6 +54,22 @@ func (iths *InterceptedTxHandlerStub) SenderAddress() []byte {
 func (iths *InterceptedTxHandlerStub) Fee() *big.Int {
 	if iths.FeeCalled != nil {
 		return iths.FeeCalled()
+	}
+	return nil
+}
+
+// GetInterceptorUsedGuardianPubKey -
+func (iths *InterceptedTxHandlerStub) GetInterceptorUsedGuardianPubKey() []byte {
+	if iths.GetInterceptorUsedGuardianPubKeyCalled != nil {
+		return iths.GetInterceptorUsedGuardianPubKeyCalled()
+	}
+	return nil
+}
+
+// SetInterceptorUsedGuardianPubKey -
+func (iths *InterceptedTxHandlerStub) SetInterceptorUsedGuardianPubKey(guardianPubKey []byte) error {
+	if iths.SetInterceptorUsedGuardianPubKeyCalled != nil {
+		return iths.SetInterceptorUsedGuardianPubKeyCalled(guardianPubKey)
 	}
 	return nil
 }

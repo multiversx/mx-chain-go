@@ -550,6 +550,18 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 	return mcc.coreComponents.arwenChangeLocker
 }
 
+// GuardedAccountHandler returns the guarded account handler
+func (mcc *managedCoreComponents) GuardedAccountHandler() core.GuardedAccountHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.guardedAccountHandler
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
@@ -19,13 +20,14 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:          gasScheduleNotifier,
-		MapDNSAddresses:      make(map[string]struct{}),
-		EnableUserNameChange: false,
-		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &stateMock.AccountsStub{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		GasSchedule:           gasScheduleNotifier,
+		MapDNSAddresses:       make(map[string]struct{}),
+		EnableUserNameChange:  false,
+		Marshalizer:           &mock.MarshalizerMock{},
+		Accounts:              &stateMock.AccountsStub{},
+		ShardCoordinator:      mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return args

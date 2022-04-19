@@ -127,6 +127,7 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
+	GuardedAccountHandler() core.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 
@@ -262,7 +263,6 @@ type ProcessComponentsHolder interface {
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
-	//GuardianSigVerifier() process.GuardianSigVerifier
 	IsInterfaceNil() bool
 }
 

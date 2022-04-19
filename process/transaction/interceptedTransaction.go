@@ -42,6 +42,7 @@ type InterceptedTransaction struct {
 	sndShard               uint32
 	isForCurrentShard      bool
 	enableSignedTxWithHash bool
+	guardianPubKey         []byte
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -409,6 +410,22 @@ func (inTx *InterceptedTransaction) String() string {
 // Identifiers returns the identifiers used in requests
 func (inTx *InterceptedTransaction) Identifiers() [][]byte {
 	return [][]byte{inTx.hash}
+}
+
+// GetInterceptorUsedGuardianPubKey returns the guardian public key used to verify the guardian signature
+func (inTx *InterceptedTransaction) GetInterceptorUsedGuardianPubKey() []byte {
+	return inTx.guardianPubKey
+}
+
+// SetInterceptorUsedGuardianPubKey sets the sender account's active guardian at the moment of transaction validation on the interceptor
+func (inTx *InterceptedTransaction) SetInterceptorUsedGuardianPubKey(guardianPubKey []byte) error {
+	if len(guardianPubKey) != inTx.pubkeyConv.Len() {
+		return process.ErrWrongGuardianPubKeyLen
+	}
+
+	inTx.guardianPubKey = guardianPubKey
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

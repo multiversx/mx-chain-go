@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	disabledGuardian "github.com/ElrondNetwork/elrond-go/process/guardian/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -360,6 +361,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ESDTTransferRoleEnableEpoch:  enableEpochs.ESDTTransferRoleEnableEpoch,
 		GlobalMintBurnDisableEpoch:   enableEpochs.GlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		GuardedAccountHandler:        disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {

@@ -171,6 +171,16 @@ func (inUTx *InterceptedUnsignedTransaction) Identifiers() [][]byte {
 	return [][]byte{inUTx.hash}
 }
 
+// GetInterceptorUsedGuardianPubKey returns nil as guardians are not supported for unsigned transactions
+func (inUTx *InterceptedUnsignedTransaction) GetInterceptorUsedGuardianPubKey() []byte {
+	return nil
+}
+
+// SetInterceptorUsedGuardianPubKey returns error as the operation is not supported for unsigned transacitions
+func (inUTx *InterceptedUnsignedTransaction) SetInterceptorUsedGuardianPubKey([]byte) error {
+	return process.ErrTransactionTypeDoesNotSupportGuardians
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inUTx *InterceptedUnsignedTransaction) IsInterfaceNil() bool {
 	return inUTx == nil

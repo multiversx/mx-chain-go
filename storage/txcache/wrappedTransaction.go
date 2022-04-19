@@ -12,6 +12,7 @@ const processFeeFactor = float64(0.8) // 80%
 type WrappedTransaction struct {
 	Tx                   data.TransactionHandler
 	TxHash               []byte
+	GuardianPubKey       []byte
 	SenderShardID        uint32
 	ReceiverShardID      uint32
 	Size                 int64
