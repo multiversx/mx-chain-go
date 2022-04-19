@@ -1333,6 +1333,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	var err error
@@ -3024,10 +3025,11 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 // GetDefaultNetworkComponents -
 func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 	return &mock.NetworkComponentsStub{
-		Messenger:       &p2pmocks.MessengerStub{},
-		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
-		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
-		PeerBlackList:   &mock.PeerBlackListCacherStub{},
+		Messenger:               &p2pmocks.MessengerStub{},
+		InputAntiFlood:          &mock.P2PAntifloodHandlerStub{},
+		OutputAntiFlood:         &mock.P2PAntifloodHandlerStub{},
+		PeerBlackList:           &mock.PeerBlackListCacherStub{},
+		PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
 

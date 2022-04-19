@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -19,7 +18,6 @@ const (
 	// topicRequestSuffix represents the topic name suffix
 	topicRequestSuffix = "_REQUEST"
 	minPeersToQuery    = 2
-	preferredPeerIndex = -1
 )
 
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
@@ -39,6 +37,7 @@ type ArgTopicResolverSender struct {
 	CurrentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	PreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	SelfShardIdProvider         dataRetriever.SelfShardIDProvider
+	PeersRatingHandler          dataRetriever.PeersRatingHandler
 	TargetShardId               uint32
 }
 
@@ -57,57 +56,23 @@ type topicResolverSender struct {
 	resolverDebugHandler               dataRetriever.ResolverDebugHandler
 	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler
 	preferredPeersHolderHandler        dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler                 dataRetriever.PeersRatingHandler
 	selfShardId                        uint32
 	targetShardId                      uint32
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
 func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, error) {
-	if check.IfNil(arg.Messenger) {
-		return nil, dataRetriever.ErrNilMessenger
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.Randomizer) {
-		return nil, dataRetriever.ErrNilRandomizer
-	}
-	if check.IfNil(arg.PeerListCreator) {
-		return nil, dataRetriever.ErrNilPeerListCreator
-	}
-	if check.IfNil(arg.OutputAntiflooder) {
-		return nil, dataRetriever.ErrNilAntifloodHandler
-	}
-	if check.IfNil(arg.CurrentNetworkEpochProvider) {
-		return nil, dataRetriever.ErrNilCurrentNetworkEpochProvider
-	}
-	if check.IfNil(arg.PreferredPeersHolder) {
-		return nil, dataRetriever.ErrNilPreferredPeersHolder
-	}
-	if check.IfNil(arg.SelfShardIdProvider) {
-		return nil, dataRetriever.ErrNilSelfShardIDProvider
-	}
-	if arg.NumIntraShardPeers < 0 {
-		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
-			dataRetriever.ErrInvalidValue)
-	}
-	if arg.NumCrossShardPeers < 0 {
-		return nil, fmt.Errorf("%w for NumCrossShardPeers as the value should be greater or equal than 0",
-			dataRetriever.ErrInvalidValue)
-	}
-	if arg.NumFullHistoryPeers < 0 {
-		return nil, fmt.Errorf("%w for NumFullHistoryPeers as the value should be greater or equal than 0",
-			dataRetriever.ErrInvalidValue)
-	}
-	if arg.NumCrossShardPeers+arg.NumIntraShardPeers < minPeersToQuery {
-		return nil, fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater or equal than %d",
-			dataRetriever.ErrInvalidValue, minPeersToQuery)
+	err := checkArgs(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	resolver := &topicResolverSender{
 		messenger:                          arg.Messenger,
 		topicName:                          arg.TopicName,
 		peerListCreator:                    arg.PeerListCreator,
+		peersRatingHandler:                 arg.PeersRatingHandler,
 		marshalizer:                        arg.Marshalizer,
 		randomizer:                         arg.Randomizer,
 		targetShardId:                      arg.TargetShardId,
@@ -122,6 +87,56 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	resolver.resolverDebugHandler = resolverDebug.NewDisabledInterceptorResolver()
 
 	return resolver, nil
+}
+
+func checkArgs(args ArgTopicResolverSender) error {
+	if check.IfNil(args.Messenger) {
+		return dataRetriever.ErrNilMessenger
+	}
+	if check.IfNil(args.Marshalizer) {
+		return dataRetriever.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Randomizer) {
+		return dataRetriever.ErrNilRandomizer
+	}
+	if check.IfNil(args.PeerListCreator) {
+		return dataRetriever.ErrNilPeerListCreator
+	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return dataRetriever.ErrNilPeersRatingHandler
+	}
+	if check.IfNil(args.OutputAntiflooder) {
+		return dataRetriever.ErrNilAntifloodHandler
+	}
+	if check.IfNil(args.CurrentNetworkEpochProvider) {
+		return dataRetriever.ErrNilCurrentNetworkEpochProvider
+	}
+	if check.IfNil(args.PreferredPeersHolder) {
+		return dataRetriever.ErrNilPreferredPeersHolder
+	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return dataRetriever.ErrNilPeersRatingHandler
+	}
+	if check.IfNil(args.SelfShardIdProvider) {
+		return dataRetriever.ErrNilSelfShardIDProvider
+	}
+	if args.NumIntraShardPeers < 0 {
+		return fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
+			dataRetriever.ErrInvalidValue)
+	}
+	if args.NumCrossShardPeers < 0 {
+		return fmt.Errorf("%w for NumCrossShardPeers as the value should be greater or equal than 0",
+			dataRetriever.ErrInvalidValue)
+	}
+	if args.NumFullHistoryPeers < 0 {
+		return fmt.Errorf("%w for NumFullHistoryPeers as the value should be greater or equal than 0",
+			dataRetriever.ErrInvalidValue)
+	}
+	if args.NumCrossShardPeers+args.NumIntraShardPeers < minPeersToQuery {
+		return fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater or equal than %d",
+			dataRetriever.ErrInvalidValue, minPeersToQuery)
+	}
+	return nil
 }
 
 // SendOnRequestTopic is used to send request data over channels (topics) to other peers
@@ -143,8 +158,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		numSentCross = trs.sendOnTopic(crossPeers, preferredPeer, topicToSendRequest, buff, trs.numCrossShardPeers, core.CrossShardPeer.String())
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
-		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
-		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
+		numSentIntra = trs.sendOnTopic(intraPeers, "", topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
 	} else {
 		// TODO: select preferred peers of type full history as well.
 		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
@@ -172,15 +186,6 @@ func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSen
 	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
-func createIndexList(listLength int) []int {
-	indexes := make([]int, listLength)
-	for i := 0; i < listLength; i++ {
-		indexes[i] = i
-	}
-
-	return indexes
-}
-
 func (trs *topicResolverSender) sendOnTopic(
 	peerList []core.PeerID,
 	preferredPeer core.PeerID,
@@ -195,22 +200,30 @@ func (trs *topicResolverSender) sendOnTopic(
 
 	histogramMap := make(map[string]int)
 
-	indexes := createIndexList(len(peerList))
-	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
-	logData := make([]interface{}, 0)
-	msgSentCounter := 0
+	peersToSend := make([]core.PeerID, 0)
+
+	// first add preferred peer if exists
 	shouldSendToPreferredPeer := preferredPeer != "" && maxToSend > 1
 	if shouldSendToPreferredPeer {
-		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
+		peersToSend = append(peersToSend, preferredPeer)
 	}
 
-	for idx := 0; idx < len(shuffledIndexes); idx++ {
-		peer := getPeerID(shuffledIndexes[idx], peerList, preferredPeer, peerType, topicToSendRequest, histogramMap)
+	topRatedPeers := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, maxToSend)
+	peersToSend = append(peersToSend, topRatedPeers...)
+
+	logData := make([]interface{}, 0)
+	msgSentCounter := 0
+
+	for idx := 0; idx < len(peersToSend); idx++ {
+		peer := peersToSend[idx]
+		updateHistogramMap(peer, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
 			continue
 		}
+
+		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
 		logData = append(logData, peer.Pretty())
@@ -225,16 +238,13 @@ func (trs *topicResolverSender) sendOnTopic(
 	return msgSentCounter
 }
 
-func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) core.PeerID {
-	if index == preferredPeerIndex {
+func updateHistogramMap(peer core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) {
+	if peer == preferredPeer {
 		histogramMap["preferred"]++
 		log.Trace("sending request to preferred peer", "peer", preferredPeer.Pretty(), "topic", topic, "peer type", peerType)
-
-		return preferredPeer
 	}
 
 	histogramMap[peerType]++
-	return peersList[index]
 }
 
 func (trs *topicResolverSender) getPreferredPeer(shardID uint32) core.PeerID {

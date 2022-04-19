@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
@@ -60,6 +62,7 @@ type networkComponents struct {
 	antifloodConfig        config.AntifloodConfig
 	peerHonestyHandler     consensus.PeerHonestyHandler
 	peersHolder            PreferredPeersHolderHandler
+	peersRatingHandler     p2p.PeersRatingHandler
 	closeFunc              context.CancelFunc
 }
 
@@ -93,6 +96,14 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
+	argsPeersRatingHandler := rating.ArgPeersRatingHandler{
+		Randomizer: &random.ConcurrentSafeIntRandomizer{},
+	}
+	peersRatingHandler, err := rating.NewPeersRatingHandler(argsPeersRatingHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	peersHolder := peersholder.NewPeersHolder(ncf.preferredPublicKeys)
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          ncf.marshalizer,
@@ -101,6 +112,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		SyncTimer:            ncf.syncer,
 		PreferredPeersHolder: peersHolder,
 		NodeOperationMode:    ncf.nodeOperationMode,
+		PeersRatingHandler:   peersRatingHandler,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
@@ -181,6 +193,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		antifloodConfig:        ncf.mainConfig.Antiflood,
 		peerHonestyHandler:     peerHonestyHandler,
 		peersHolder:            peersHolder,
+		peersRatingHandler:     peersRatingHandler,
 		closeFunc:              cancelFunc,
 	}, nil
 }

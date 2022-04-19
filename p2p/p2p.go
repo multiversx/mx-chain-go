@@ -331,3 +331,18 @@ type ConnectionsWatcher interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// PeersRatingHandler represent an entity able to handle peers ratings
+type PeersRatingHandler interface {
+	AddPeer(pid core.PeerID)
+	IncreaseRating(pid core.PeerID)
+	DecreaseRating(pid core.PeerID)
+	GetTopRatedPeersFromList(peers []core.PeerID, numOfPeers int) []core.PeerID
+	IsInterfaceNil() bool
+}
+
+// IntRandomizer interface provides functionality over generating integer numbers
+type IntRandomizer interface {
+	Intn(n int) int
+	IsInterfaceNil() bool
+}

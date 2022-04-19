@@ -23,6 +23,7 @@ type libp2pConnectionMonitorSimple struct {
 	thresholdMinConnectedPeers int
 	sharder                    Sharder
 	preferredPeersHolder       p2p.PreferredPeersHolderHandler
+	peersRatingHandler         p2p.PeersRatingHandler
 	cancelFunc                 context.CancelFunc
 	connectionsWatcher         p2p.ConnectionsWatcher
 }
@@ -33,6 +34,7 @@ type ArgsConnectionMonitorSimple struct {
 	ThresholdMinConnectedPeers uint32
 	Sharder                    Sharder
 	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
+	PeersRatingHandler         p2p.PeersRatingHandler
 	ConnectionsWatcher         p2p.ConnectionsWatcher
 }
 
@@ -48,6 +50,9 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, p2p.ErrNilPreferredPeersHolder
 	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, p2p.ErrNilPeersRatingHandler
+	}
 	if check.IfNil(args.ConnectionsWatcher) {
 		return nil, p2p.ErrNilConnectionsWatcher
 	}
@@ -61,6 +66,7 @@ func NewLibp2pConnectionMonitorSimple(args ArgsConnectionMonitorSimple) (*libp2p
 		sharder:                    args.Sharder,
 		cancelFunc:                 cancelFunc,
 		preferredPeersHolder:       args.PreferredPeersHolder,
+		peersRatingHandler:         args.PeersRatingHandler,
 		connectionsWatcher:         args.ConnectionsWatcher,
 	}
 
@@ -86,6 +92,9 @@ func (lcms *libp2pConnectionMonitorSimple) doReconn() {
 // Connected is called when a connection opened
 func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, conn network.Conn) {
 	allPeers := netw.Peers()
+
+	newPeer := core.PeerID(conn.RemotePeer())
+	lcms.peersRatingHandler.AddPeer(newPeer)
 
 	lcms.connectionsWatcher.NewKnownConnection(core.PeerID(conn.RemotePeer()), conn.RemoteMultiaddr().String())
 	evicted := lcms.sharder.ComputeEvictionList(allPeers)
