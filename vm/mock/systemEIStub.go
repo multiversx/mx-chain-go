@@ -196,7 +196,6 @@ func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.In
 	if s.TransferCalled != nil {
 		s.TransferCalled(destination, sender, value, input, gasLimit)
 	}
-	return
 }
 
 // GetBalance -

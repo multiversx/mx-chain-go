@@ -223,6 +223,7 @@ func TestShardValidatorsInfoMap_GettersShouldReturnCopiesOfInternalData(t *testi
 
 	require.Equal(t, []ValidatorInfoHandler{v0}, vi.GetShardValidatorsInfoMap()[0])
 	require.Equal(t, []ValidatorInfoHandler{v1}, vi.GetShardValidatorsInfoMap()[1])
+	require.NotEqual(t, vi.GetAllValidatorsInfo(), validators)
 }
 
 func TestShardValidatorsInfoMap_Concurrency(t *testing.T) {
