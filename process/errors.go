@@ -1098,5 +1098,5 @@ var ErrWrongGuardianPubKeyLen = errors.New("provided guardian public key has wro
 // ErrTransactionTypeDoesNotSupportGuardians is thrown when guardian operations are done on transactions that do not support for guardians
 var ErrTransactionTypeDoesNotSupportGuardians = errors.New("this transaction type does not support guardians")
 
-// GuardedAccountHandler signals that a nil guarded account handler was provided
-var GuardedAccountHandler = errors.New("nil guardian account handler")
+// ErrNilGuardedAccountHandler signals that a nil guarded account handler was provided
+var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")

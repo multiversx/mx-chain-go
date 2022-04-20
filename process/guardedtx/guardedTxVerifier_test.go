@@ -20,7 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/interceptedTxMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/vmcommonMocks"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,9 +83,9 @@ func TestGuardedTxSigVerifier_VerifyGuardianSignature(t *testing.T) {
 
 	signer := &singlesig.Ed25519Signer{}
 
-	acc := &state.UserAccountStub{}
+	acc := &vmcommonMocks.UserAccountStub{}
 	guardianChecker := &guardianMocks.GuardianCheckerStub{
-		GetActiveGuardianCalled: func(handler data.UserAccountHandler) ([]byte, error) {
+		GetActiveGuardianCalled: func(handler vmcommon.UserAccountHandler) ([]byte, error) {
 			return pubKeyGuardianBytes, nil
 		},
 	}

@@ -1,14 +1,16 @@
 package guardianMocks
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import (
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // GuardianCheckerStub -
 type GuardianCheckerStub struct {
-	GetActiveGuardianCalled func(handler data.UserAccountHandler) ([]byte, error)
+	GetActiveGuardianCalled func(handler vmcommon.UserAccountHandler) ([]byte, error)
 }
 
 // GetActiveGuardian -
-func (gcs *GuardianCheckerStub) GetActiveGuardian(handler data.UserAccountHandler) ([]byte, error) {
+func (gcs *GuardianCheckerStub) GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error) {
 	if gcs.GetActiveGuardianCalled != nil {
 		return gcs.GetActiveGuardianCalled(handler)
 	}

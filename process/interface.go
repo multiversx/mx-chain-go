@@ -1208,7 +1208,20 @@ type ShardedPool interface {
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account data.UserAccountHandler, inTx InterceptedTxHandler) error
+	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTxHandler) error
+	IsInterfaceNil() bool
+}
+
+// GuardianChecker can check an account guardian
+type GuardianChecker interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// GuardedAccountHandler allows setting and getting the configured account guardian
+type GuardedAccountHandler interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error
 	IsInterfaceNil() bool
 }
 

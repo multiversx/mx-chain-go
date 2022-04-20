@@ -295,7 +295,7 @@ type TestProcessorNode struct {
 	MultiSigner             crypto.MultiSigner
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
-	GuardedAccountHandler   core.GuardedAccountHandler
+	GuardedAccountHandler   process.GuardedAccountHandler
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler

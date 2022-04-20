@@ -144,7 +144,11 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTxHandl
 			return state.ErrOperationNotPermitted
 		}
 
-		errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(account, interceptedTx)
+		vmUserAccount, ok := account.(vmcommon.UserAccountHandler)
+		if !ok {
+			return state.ErrWrongTypeAssertion
+		}
+		errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(vmUserAccount, interceptedTx)
 		if errGuardianSignature != nil {
 			return fmt.Errorf("%w due to error in signature verification %s", state.ErrOperationNotPermitted, errGuardianSignature.Error())
 		}

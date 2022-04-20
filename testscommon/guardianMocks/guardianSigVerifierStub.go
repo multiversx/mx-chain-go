@@ -1,17 +1,17 @@
 package guardianMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // GuardianSigVerifierStub -
 type GuardianSigVerifierStub struct {
-	VerifyGuardianSignatureCalled func(account data.UserAccountHandler, inTx process.InterceptedTxHandler) error
+	VerifyGuardianSignatureCalled func(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error
 }
 
 // VerifyGuardianSignature -
-func (gsvs *GuardianSigVerifierStub) VerifyGuardianSignature(account data.UserAccountHandler, inTx process.InterceptedTxHandler) error {
+func (gsvs *GuardianSigVerifierStub) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error {
 	if gsvs.VerifyGuardianSignatureCalled != nil {
 		return gsvs.VerifyGuardianSignatureCalled(account, inTx)
 	}

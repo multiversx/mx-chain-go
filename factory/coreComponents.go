@@ -101,7 +101,7 @@ type coreComponents struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
-	guardedAccountHandler         core.GuardedAccountHandler
+	guardedAccountHandler         process.GuardedAccountHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components

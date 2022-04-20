@@ -127,7 +127,7 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
-	GuardedAccountHandler() core.GuardedAccountHandler
+	GuardedAccountHandler() process.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 

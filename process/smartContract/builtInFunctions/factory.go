@@ -20,7 +20,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	Accounts                     state.AccountsAdapter
 	ShardCoordinator             sharding.Coordinator
 	EpochNotifier                vmcommon.EpochNotifier
-	GuardedAccountHandler        core.GuardedAccountHandler
+	GuardedAccountHandler        vmcommon.GuardedAccountHandler
 	ESDTMultiTransferEnableEpoch uint32
 	ESDTTransferRoleEnableEpoch  uint32
 	GlobalMintBurnDisableEpoch   uint32
@@ -49,7 +49,7 @@ func CreateBuiltInFuncContainerAndNFTStorageHandler(args ArgsCreateBuiltInFuncti
 		return nil, nil, process.ErrNilEpochNotifier
 	}
 	if check.IfNil(args.GuardedAccountHandler) {
-		return nil, nil, process.GuardedAccountHandler
+		return nil, nil, process.ErrNilGuardedAccountHandler
 	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)

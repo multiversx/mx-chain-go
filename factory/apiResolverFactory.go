@@ -397,7 +397,7 @@ func createBuiltinFuncs(
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
-	guardedAccountHandler core.GuardedAccountHandler,
+	guardedAccountHandler vmcommon.GuardedAccountHandler,
 	esdtMultiTransferEnableEpoch uint32,
 	esdtGlobalMintBurnDisableEpoch uint32,
 	esdtTransferRoleEnableEpoch uint32,

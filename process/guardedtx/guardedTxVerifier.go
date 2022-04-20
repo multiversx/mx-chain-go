@@ -6,18 +6,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account data.UserAccountHandler, inTx process.InterceptedTxHandler) error
+	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error
 	IsInterfaceNil() bool
 }
 
 // GuardedTxSigVerifierArgs holds the argument to instantiate a guarded tx signature verifier
 type GuardedTxSigVerifierArgs struct {
 	SigVerifier     crypto.SingleSigner
-	GuardianChecker core.GuardianChecker
+	GuardianChecker process.GuardianChecker
 	PubKeyConverter core.PubkeyConverter
 	Marshaller      data.Marshaller
 	KeyGen          crypto.KeyGenerator
@@ -25,7 +26,7 @@ type GuardedTxSigVerifierArgs struct {
 
 type guardedTxSigVerifier struct {
 	sigVerifier     crypto.SingleSigner
-	guardianChecker core.GuardianChecker
+	guardianChecker process.GuardianChecker
 	encoder         core.PubkeyConverter
 	marshaller      data.Marshaller
 	keyGen          crypto.KeyGenerator
@@ -59,7 +60,7 @@ func NewGuardedTxSigVerifier(args GuardedTxSigVerifierArgs) (*guardedTxSigVerifi
 }
 
 // VerifyGuardianSignature verifies the guardian signature over the guarded transaction
-func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account data.UserAccountHandler, inTx process.InterceptedTxHandler) error {
+func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error {
 	guardianPubKey, err := gtx.GetGuardianPublicKey(account)
 	if err != nil {
 		return err
@@ -84,7 +85,7 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account data.UserAccoun
 }
 
 // GetGuardianPublicKey returns the guardian public key for the given account
-func (gtx *guardedTxSigVerifier) GetGuardianPublicKey(account data.UserAccountHandler) (crypto.PublicKey, error) {
+func (gtx *guardedTxSigVerifier) GetGuardianPublicKey(account vmcommon.UserAccountHandler) (crypto.PublicKey, error) {
 	guardianPubKeyBytes, err := gtx.guardianChecker.GetActiveGuardian(account)
 	if err != nil {
 		return nil, err

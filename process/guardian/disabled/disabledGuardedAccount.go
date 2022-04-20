@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type disabledGuardedAccount struct{}
@@ -12,12 +12,12 @@ func NewDisabledGuardedAccountHandler() *disabledGuardedAccount {
 }
 
 // GetActiveGuardian returns nil, nil as this is a disabled implementation
-func (dga *disabledGuardedAccount) GetActiveGuardian(uah data.UserAccountHandler) ([]byte, error) {
+func (dga *disabledGuardedAccount) GetActiveGuardian(_ vmcommon.UserAccountHandler) ([]byte, error) {
 	return nil, nil
 }
 
 // SetGuardian returns nil as this is a disabled implementation
-func (dga *disabledGuardedAccount) SetGuardian(_ data.UserAccountHandler, _ []byte) error {
+func (dga *disabledGuardedAccount) SetGuardian(_ vmcommon.UserAccountHandler, _ []byte) error {
 	return nil
 }
 

@@ -6,10 +6,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/guardians"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -46,8 +46,13 @@ func NewGuardedAccount(marshaller marshal.Marshalizer, epochNotifier vmcommon.Ep
 }
 
 // GetActiveGuardian returns the active guardian
-func (agc *guardedAccount) GetActiveGuardian(uah data.UserAccountHandler) ([]byte, error) {
-	configuredGuardians, err := agc.getConfiguredGuardians(uah)
+func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([]byte, error) {
+	stateUserAccount, ok := uah.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	configuredGuardians, err := agc.getConfiguredGuardians(stateUserAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -64,16 +69,21 @@ func (agc *guardedAccount) GetActiveGuardian(uah data.UserAccountHandler) ([]byt
 }
 
 // SetGuardian sets a guardian for an account
-func (agc *guardedAccount) SetGuardian(uah data.UserAccountHandler, guardianAddress []byte) error {
+func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error {
 	guardian := &guardians.Guardian{
 		Address:         guardianAddress,
 		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochs,
 	}
 
-	return agc.setAccountGuardian(uah, guardian)
+	stateUserAccount, ok := uah.(state.UserAccountHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	return agc.setAccountGuardian(stateUserAccount, guardian)
 }
 
-func (agc *guardedAccount) setAccountGuardian(uah data.UserAccountHandler, guardian *guardians.Guardian) error {
+func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guardian *guardians.Guardian) error {
 	configuredGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
 		return err
@@ -123,7 +133,7 @@ func (agc *guardedAccount) saveAccountGuardians(account vmcommon.UserAccountHand
 	return account.AccountDataHandler().SaveKeyValue(guardianKey, marshalledData)
 }
 
-func (agc *guardedAccount) getConfiguredGuardians(uah data.UserAccountHandler) (*guardians.Guardians, error) {
+func (agc *guardedAccount) getConfiguredGuardians(uah state.UserAccountHandler) (*guardians.Guardians, error) {
 	guardiansMarshalled, err := uah.RetrieveValueFromDataTrieTracker(guardianKey)
 	if err != nil {
 		return nil, err

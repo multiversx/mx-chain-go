@@ -551,7 +551,7 @@ func (mcc *managedCoreComponents) ArwenChangeLocker() common.Locker {
 }
 
 // GuardedAccountHandler returns the guarded account handler
-func (mcc *managedCoreComponents) GuardedAccountHandler() core.GuardedAccountHandler {
+func (mcc *managedCoreComponents) GuardedAccountHandler() process.GuardedAccountHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

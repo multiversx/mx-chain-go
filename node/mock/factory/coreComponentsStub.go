@@ -51,7 +51,7 @@ type CoreComponentsMock struct {
 	StartTime                   time.Time
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal   common.Locker
-	GuardedAccountHandlerField  core.GuardedAccountHandler
+	GuardedAccountHandlerField  process.GuardedAccountHandler
 }
 
 // Create -
@@ -243,7 +243,7 @@ func (ccm *CoreComponentsMock) ArwenChangeLocker() common.Locker {
 }
 
 // GuardedAccountHandler -
-func (ccm *CoreComponentsMock) GuardedAccountHandler() core.GuardedAccountHandler {
+func (ccm *CoreComponentsMock) GuardedAccountHandler() process.GuardedAccountHandler {
 	return ccm.GuardedAccountHandlerField
 }
 
