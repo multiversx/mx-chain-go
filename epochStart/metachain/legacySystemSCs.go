@@ -619,10 +619,6 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 		return err
 	}
 
-	if maxNumberOfNodes < prevMaxNumberOfNodes {
-		return epochStart.ErrInvalidMaxNumberOfNodes
-	}
-
 	if s.flagStakingQueueEnabled.IsSet() {
 		sw.Start("stakeNodesFromQueue")
 		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)

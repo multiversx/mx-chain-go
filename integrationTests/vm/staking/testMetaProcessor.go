@@ -116,6 +116,7 @@ func NewTestMetaProcessor(
 		stateComponents.PeerAccounts(),
 		bootstrapComponents.ShardCoordinator(),
 		nc,
+		maxNodesConfig[0].MaxNumNodes,
 	)
 	vmContainer, _ := metaVmFactory.Create()
 
