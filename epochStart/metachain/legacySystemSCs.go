@@ -937,6 +937,7 @@ func (s *legacySystemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) (uint3
 
 	log.Debug("setMaxNumberOfNodes called with",
 		"maxNumNodes", maxNumNodes,
+		"current maxNumNodes in legacySystemSCProcessor", s.maxNodes,
 		"returnMessage", vmOutput.ReturnMessage)
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -1358,6 +1359,9 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.SetValue(epoch == s.hystNodesEnableEpoch)
 
+	// TODO: There is a bug: in case of node restart, state in legacySystemSC
+	// will be with epoch = startInEpoch after restart; these values are correctly
+	// stored only in sc state, so values printed and used here are obsolete
 	s.flagChangeMaxNodesEnabled.SetValue(false)
 	for _, maxNodesConfig := range s.maxNodesEnableConfig {
 		if epoch == maxNodesConfig.EpochEnable {
