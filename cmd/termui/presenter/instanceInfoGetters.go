@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -32,8 +33,15 @@ func (psh *PresenterStatusHandler) GetPublicKeyBlockSign() string {
 }
 
 // GetRedundancyLevel will return the redundancy level of the node
-func (psh *PresenterStatusHandler) GetRedundancyLevel() uint64 {
-	return psh.getFromCacheAsUint64(common.MetricRedundancyLevel)
+func (psh *PresenterStatusHandler) GetRedundancyLevel() int64 {
+	// redundancy level is sent as string as JSON unmarshal doesn't treat well the casting from interface{} to int64
+	redundancyLevelStr := psh.getFromCacheAsString(common.MetricRedundancyLevel)
+	i64Val, err := strconv.ParseInt(redundancyLevelStr, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return i64Val
 }
 
 // GetRedundancyIsMainActive will return the info about redundancy main machine

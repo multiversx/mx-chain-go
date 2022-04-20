@@ -245,7 +245,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	wr.chainInfo.Rows = rows
 }
 
-func computeRedundancyStr(redundancyLevel uint64, redundancyIsMainActive string) string {
+func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) string {
 	if redundancyIsMainActive == statusNotApplicable {
 		return ""
 	}
