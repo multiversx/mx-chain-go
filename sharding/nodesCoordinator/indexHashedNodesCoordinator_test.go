@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -2107,13 +2108,21 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
 	require.Nil(t, newNodesConfig)
 
-	nc.flagStakingV4.SetValue(true)
+	nc.updateEpochFlags(stakingV4Epoch)
 
 	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
 	require.Nil(t, err)
 	v1, _ := NewValidator([]byte("pk2"), 1, 2)
 	v2, _ := NewValidator([]byte("pk1"), 1, 3)
 	require.Equal(t, []Validator{v1, v2}, newNodesConfig.auctionList)
+
+	validatorInfos = append(validatorInfos, &state.ShardValidatorInfo{
+		PublicKey: []byte("pk3"),
+		List:      string(common.NewList),
+	})
+	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	require.Equal(t, epochStart.ErrReceivedNewListNodeInStakingV4, err)
+	require.Nil(t, newNodesConfig)
 }
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix(t *testing.T) {
