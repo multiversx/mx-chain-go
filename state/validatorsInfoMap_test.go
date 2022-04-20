@@ -222,8 +222,10 @@ func TestShardValidatorsInfoMap_GettersShouldReturnCopiesOfInternalData(t *testi
 	require.False(t, validator == v0) // require not same pointer
 	validator.SetShardId(2)
 
+	require.Len(t, vi.GetAllValidatorsInfo(), 2)
 	require.True(t, vi.GetShardValidatorsInfoMap()[0][0] == v0) // check by pointer
 	require.True(t, vi.GetShardValidatorsInfoMap()[1][0] == v1) // check by pointer
+	require.NotEqual(t, vi.GetAllValidatorsInfo(), validators)
 }
 
 func TestShardValidatorsInfoMap_Concurrency(t *testing.T) {

@@ -53,7 +53,7 @@ func displayConfig(config nodesConfig) {
 	tableHeader := []string{"List", "Pub key", "Shard ID"}
 	table, _ := display.CreateTableString(tableHeader, lines)
 	headline := display.Headline("Nodes config", "", delimiter)
-	fmt.Println(fmt.Sprintf("%s\n%s", headline, table))
+	fmt.Printf("%s\n%s\n", headline, table)
 
 	displayValidators("Auction", config.auction)
 	displayValidators("Queue", config.queue)
@@ -86,5 +86,5 @@ func displayValidators(list string, pubKeys [][]byte) {
 
 	headline := display.Headline(fmt.Sprintf("%s list", list), "", delimiter)
 	table, _ := display.CreateTableString(tableHeader, lines)
-	fmt.Println(fmt.Sprintf("%s \n%s", headline, table))
+	fmt.Printf("%s \n%s\n", headline, table)
 }
