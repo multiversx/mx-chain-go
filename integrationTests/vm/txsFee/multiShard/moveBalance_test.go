@@ -84,7 +84,7 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
-	require.Equal(t, errors.New("sending value to non payable contract: sending value to non payable contract"), testContext.GetCompositeTestError())
+	require.Equal(t, errors.New("sending value to non payable contract"), testContext.GetCompositeTestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

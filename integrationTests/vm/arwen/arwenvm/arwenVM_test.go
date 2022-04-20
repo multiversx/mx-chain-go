@@ -182,7 +182,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 
 	require.Equal(t, process.ErrFailedTransaction, err)
-	require.Equal(t, fmt.Errorf("%s: %s", process.ErrAccountNotPayable.Error(), "sending value to non payable contract"), testContext.GetCompositeTestError())
+	require.Equal(t, process.ErrAccountNotPayable, testContext.GetCompositeTestError())
 	vm.TestAccount(
 		t,
 		testContext.Accounts,

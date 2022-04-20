@@ -30,7 +30,7 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
 				if string(event.GetIdentifier()) == signalError {
-					returnError = wrapError(returnError, string(event.GetTopics()[1]))
+					returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 				}
 			}
 		}
@@ -67,10 +67,10 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 			if returnCodeAsString == "ok" || returnCodeAsString == "" {
 				return returnError
 			}
-			return wrapError(returnError, returnCodeAsString)
+			return wrapErrorIfNotContains(returnError, returnCodeAsString)
 		}
 
-		return wrapError(returnError, returnCodeHex)
+		return wrapErrorIfNotContains(returnError, returnCodeHex)
 	}
 
 	tsp.txLogsProcessor.Clean()
@@ -79,9 +79,14 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 	return returnError
 }
 
-func wrapError(originalError error, msg string) error {
+func wrapErrorIfNotContains(originalError error, msg string) error {
 	if originalError == nil {
 		return fmt.Errorf(msg)
+	}
+
+	alreadyContainsMessage := strings.Contains(originalError.Error(), msg)
+	if alreadyContainsMessage {
+		return originalError
 	}
 
 	return fmt.Errorf("%s: %s", originalError.Error(), msg)
