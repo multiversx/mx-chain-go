@@ -21,15 +21,16 @@ func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 	return &TestScProcessor{internalData}
 }
 
-// GetLatestTestError locates the latest error in the collection of smart contracts results
-func (tsp *TestScProcessor) GetLatestTestError() error {
+// GetCompositeTestError composes all errors found in the logs or by parsing the scr forwarder's contents
+func (tsp *TestScProcessor) GetCompositeTestError() error {
+	var returnError error
 
 	if tsp.flagCleanUpInformativeSCRs.IsSet() {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {
 				if string(event.GetIdentifier()) == signalError {
-					return fmt.Errorf(string(event.GetTopics()[1]))
+					returnError = wrapError(returnError, string(event.GetTopics()[1]))
 				}
 			}
 		}
@@ -39,7 +40,7 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 		GetIntermediateTransactions() []data.TransactionHandler
 	})
 	if !ok {
-		return nil
+		return returnError
 	}
 
 	scResults := scrProvider.GetIntermediateTransactions()
@@ -64,17 +65,26 @@ func (tsp *TestScProcessor) GetLatestTestError() error {
 		if err == nil {
 			returnCodeAsString := string(returnCode)
 			if returnCodeAsString == "ok" || returnCodeAsString == "" {
-				return nil
+				return returnError
 			}
-			return fmt.Errorf(returnCodeAsString)
+			return wrapError(returnError, returnCodeAsString)
 		}
 
-		return fmt.Errorf(returnCodeHex)
+		return wrapError(returnError, returnCodeHex)
 	}
 
+	tsp.txLogsProcessor.Clean()
 	tsp.scrForwarder.CreateBlockStarted()
 
-	return nil
+	return returnError
+}
+
+func wrapError(originalError error, msg string) error {
+	if originalError == nil {
+		return fmt.Errorf(msg)
+	}
+
+	return fmt.Errorf("%s: %s", originalError.Error(), msg)
 }
 
 // GetGasRemaining returns the remaining gas from the last transaction
