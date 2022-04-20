@@ -587,7 +587,7 @@ func (nr *nodeRunner) createMetrics(
 	}
 
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricRedundancyLevel, uint64(nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
+	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
 	metrics.SaveStringMetric(coreComponents.StatusHandler(), common.MetricChainId, coreComponents.ChainID())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
