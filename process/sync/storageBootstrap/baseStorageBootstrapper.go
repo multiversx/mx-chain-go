@@ -38,6 +38,7 @@ type ArgsBaseStorageBootstrapper struct {
 	ChainID                      string
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	MiniblocksProvider           process.MiniBlockProvider
+	EpochNotifier                process.EpochNotifier
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -70,6 +71,7 @@ type storageBootstrapper struct {
 	chainID                      string
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	miniBlocksProvider           process.MiniBlockProvider
+	epochNotifier                process.EpochNotifier
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -191,6 +193,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
+	st.epochNotifier.CheckEpoch(st.blkc.GetCurrentBlockHeader())
 
 	return nil
 }
@@ -453,7 +456,7 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	st.blkc.SetCurrentBlockHeaderHash(nil)
 }
 
-func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) error {
+func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) error {
 	if check.IfNil(args.BootStorer) {
 		return process.ErrNilBootStorer
 	}
@@ -492,6 +495,9 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	}
 	if check.IfNil(args.MiniblocksProvider) {
 		return process.ErrNilMiniBlocksProvider
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil

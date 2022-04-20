@@ -28,8 +28,8 @@ type baseStorageHandler struct {
 func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
 	pendingMBsMap := make(map[uint32][][]byte)
 	for hash, miniBlock := range miniBlocks {
-		senderShId := miniBlock.SenderShardID
-		pendingMBsMap[senderShId] = append(pendingMBsMap[senderShId], []byte(hash))
+		receiverShId := miniBlock.ReceiverShardID // we need the receiver only on meta to properly load the pendingMiniBlocks structure
+		pendingMBsMap[receiverShId] = append(pendingMBsMap[receiverShId], []byte(hash))
 	}
 
 	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)

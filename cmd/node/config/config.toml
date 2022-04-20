@@ -52,6 +52,20 @@
     # Applicable only for observers
     ObserverCleanOldEpochsData = false
 
+    # If this flag is set to false, the node won't delete the AccountsTrie database for old epochs
+    # Applicable for both observers and validators
+    # WARNING! Setting this to false will increase each epoch's directory size with the trie snapshot,
+    # which might easily cause the node to run out of disk space.
+    AccountsTrieCleanOldEpochsData = true
+
+    # AccountsTrieSkipRemovalCustomPattern represents the custom pattern that determines when AccountsTrie database
+    # doesn't have to be cleaned
+    # Format: %x,%y - if an epoch is divisible by x or by y, then the AccountsTrie database won't be removed
+    # If empty, then all databases will be removed
+    # If invalid format, then an error will be returned
+    # Applicable only if AccountsTrieCleanOldEpochsData is set to true
+    AccountsTrieSkipRemovalCustomPattern = "%50"
+
     # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
     # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
     NumEpochsToKeep = 4
@@ -588,10 +602,6 @@
         # clutter the network exactly in the same moment
         MaxDeviationTimeInMilliseconds = 25
 
-[Logger]
-    Path = "logs"
-    StackTraceDepth = 2
-
 [AddressPubkeyConverter]
     Length = 32
     Type = "bech32"
@@ -889,7 +899,8 @@
         MaxOpenFiles = 10
 
 [Logs]
-    LogFileLifeSpanInSec = 86400
+    LogFileLifeSpanInMB = 1024 # 1GB
+    LogFileLifeSpanInSec = 86400 # 1 day
 
 [TrieSync]
     NumConcurrentTrieSyncers  = 200
