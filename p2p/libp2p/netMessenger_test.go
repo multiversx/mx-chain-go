@@ -1516,6 +1516,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
