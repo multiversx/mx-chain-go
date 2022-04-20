@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/testcommon"
 	test "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/testcommon"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm/mockcontracts"
 	"github.com/ElrondNetwork/elrond-vm-common/txDataBuilder"
@@ -51,12 +52,16 @@ func TestMockContract_SimpleCall_ChildFail(t *testing.T) {
 			WithMethods(mockcontracts.SimpleCallChildMock),
 	)
 
+	_, _ = node0.AccntState.Commit()
+	_, _ = node1.AccntState.Commit()
+
 	txData := txDataBuilder.NewBuilder().Func("performOnDestCallFail").ToBytes()
 	tx := net.CreateTx(parent, parentAddress, big.NewInt(0), txData)
 	tx.GasLimit = testConfig.GasProvided
 
 	txHash := net.SignAndSendTx(parent, tx)
 
+	_ = logger.SetLogLevel("*:TRACE,arwen:TRACE")
 	net.Steps(2)
 
 	logHandler, err := node0.TransactionLogProcessor.GetLog([]byte(txHash))
