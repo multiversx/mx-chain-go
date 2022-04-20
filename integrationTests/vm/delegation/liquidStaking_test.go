@@ -89,7 +89,7 @@ func TestDelegationSystemSCWithLiquidStaking(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 	finalWait := 20
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, finalWait, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, finalWait, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	for _, node := range nodes {
