@@ -91,7 +91,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	return atp.getTransactionFromStorage(hash)
 }
 
-// GetTransactionsPool will return a slice with all the transactions' hashes in the pool
+// GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
 func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
 	txsPoolResponse := &common.TransactionsPoolAPIResponse{
 		RegularTransactions:  txsHashesBytesToString(atp.dataPool.Transactions().Keys()),

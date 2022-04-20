@@ -294,7 +294,7 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
-// GetTransactionsPool returns a slice containing the hashes of the transaction in pool
+// GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
 func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
 	return nf.apiResolver.GetTransactionsPool()
 }
