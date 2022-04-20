@@ -498,7 +498,16 @@ func CreateAccountsDB(
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm, common.Normal)
+	args := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                sha256.NewSha256(),
+		Marshaller:            TestMarshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(args)
 
 	return adb, tr
 }

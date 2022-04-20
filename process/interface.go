@@ -195,6 +195,7 @@ type TransactionFeeHandler interface {
 	GetAccumulatedFees() *big.Int
 	GetDeveloperFees() *big.Int
 	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
+	ProcessTransactionFeeRelayedUserTx(cost *big.Int, devFee *big.Int, userTxHash []byte, originalTxHash []byte)
 	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }

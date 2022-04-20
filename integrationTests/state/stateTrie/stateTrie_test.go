@@ -1060,7 +1060,17 @@ func createAccounts(
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	addr := make([][]byte, nrOfAccounts)
 	for i := 0; i < nrOfAccounts; i++ {
@@ -2369,7 +2379,17 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return adb
 }
