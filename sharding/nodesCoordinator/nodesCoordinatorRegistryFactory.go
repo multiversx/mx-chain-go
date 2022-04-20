@@ -42,9 +42,15 @@ func NewNodesCoordinatorRegistryFactory(
 // NodesCoordinatorRegistry with a json marshaller; while the new version(from staking v4) uses NodesCoordinatorRegistryWithAuction
 // with proto marshaller
 func (ncf *nodesCoordinatorRegistryFactory) CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error) {
-	if ncf.flagStakingV4.IsSet() {
-		return ncf.createRegistryWithAuction(buff)
+	//if ncf.flagStakingV4.IsSet() {
+	//	return ncf.createRegistryWithAuction(buff)
+	//}
+	//return createOldRegistry(buff)
+	registry, err := ncf.createRegistryWithAuction(buff)
+	if err == nil {
+		return registry, nil
 	}
+
 	return createOldRegistry(buff)
 }
 

@@ -81,7 +81,7 @@ func isStringSubgroup(a []string, b []string) bool {
 
 func createNodesCoordinatorRegistryFactory() NodesCoordinatorRegistryFactory {
 	ncf, _ := NewNodesCoordinatorRegistryFactory(
-		&mock.MarshalizerMock{},
+		&marshal.GogoProtoMarshalizer{},
 		&epochNotifier.EpochNotifierStub{},
 		stakingV4Epoch,
 	)
@@ -109,7 +109,7 @@ func createArguments() ArgNodesCoordinator {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:         1,
 		MetaConsensusGroupSize:          1,
-		Marshalizer:                     &mock.MarshalizerMock{},
+		Marshalizer:                     &marshal.GogoProtoMarshalizer{},
 		Hasher:                          &hashingMocks.HasherMock{},
 		Shuffler:                        nodeShuffler,
 		EpochStartNotifier:              epochStartSubscriber,
