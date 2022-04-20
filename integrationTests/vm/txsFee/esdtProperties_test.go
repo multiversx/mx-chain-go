@@ -1,7 +1,11 @@
 package txsFee
 
 import (
+	"bytes"
 	"encoding/hex"
+	"math/big"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -9,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 func TestESDTPropertiesFromSCShouldWork(t *testing.T) {
@@ -34,7 +36,7 @@ func TestESDTPropertiesFromSCShouldWork(t *testing.T) {
 	// deploy contract
 	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
-	deployGasLimit := uint64(50000)
+	deployGasLimit := uint64(5000000)
 
 	scAddress := utils.DoDeploySecond(t, testContext, "testdata/multi-transfer-esdt.wasm", ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(0))
 
@@ -49,11 +51,30 @@ func TestESDTPropertiesFromSCShouldWork(t *testing.T) {
 		Data:     []byte("amIFrozen@" + hex.EncodeToString(token)),
 	}
 
-	_ = logger.SetLogLevel("*:TRACE,arwen:TRACE,arwen/storage:TRACE,gasTrace:TRACE")
+	testContext.TxsLogsProcessor.Clean()
+	_ = logger.SetLogLevel("arwen:TRACE,arwen/storage:TRACE,gasTrace:TRACE")
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
+
+	checkDataFromTxLog(t, testContext, hex.EncodeToString([]byte("You are warm!")))
+}
+
+func checkDataFromTxLog(t *testing.T, testContext *vm.VMTestContext, logData string) {
+	logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+	testContext.TxsLogsProcessor.Clean()
+
+	found := false
+	for _, log := range logs {
+		for _, event := range log.GetLogEvents() {
+			if bytes.Contains(event.GetData(), []byte(logData)) {
+				found = true
+				break
+			}
+		}
+	}
+	require.True(t, found)
 }
