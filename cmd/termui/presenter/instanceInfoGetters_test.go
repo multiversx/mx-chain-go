@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPresenterStatusHandler_GetAppVersion(t *testing.T) {
@@ -147,4 +148,20 @@ func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
 	result := presenterStatusHandler.GetNodeName()
 
 	assert.Equal(t, nodeName, result)
+}
+
+func TestPresenterStatusHandler_GetRedundancyLevel(t *testing.T) {
+	t.Parallel()
+
+	testRedundancyParsing(t, "-1", -1)
+	testRedundancyParsing(t, "0", 0)
+	testRedundancyParsing(t, "invalid", 0)
+	testRedundancyParsing(t, "1", 1)
+}
+
+func testRedundancyParsing(t *testing.T, input string, desiredOutput int64) {
+	psh := NewPresenterStatusHandler()
+	psh.SetStringValue(common.MetricRedundancyLevel, input)
+	redLev := psh.GetRedundancyLevel()
+	require.Equal(t, desiredOutput, redLev)
 }
