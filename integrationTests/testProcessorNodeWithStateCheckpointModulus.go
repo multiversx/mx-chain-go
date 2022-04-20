@@ -4,11 +4,13 @@ import (
 	"sync"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -68,7 +70,9 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	}
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	messenger := CreateMessengerWithNoDiscovery()
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(p2pRating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -81,6 +85,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeersRatingHandler:      peersRatingHandler,
 	}
 	tpn.NodesSetup = nodesSetup
 

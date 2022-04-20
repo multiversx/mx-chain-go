@@ -1379,6 +1379,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1451,6 +1452,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
