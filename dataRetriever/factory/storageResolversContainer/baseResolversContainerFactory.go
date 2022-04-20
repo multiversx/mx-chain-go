@@ -10,9 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -233,7 +233,7 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 		MaxTrieLevelInMem:          brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		DisableOldTrieStorageEpoch: brcf.disableOldTrieStorageEpoch,
 		EpochStartNotifier:         brcf.epochNotifier,
-		IdleProvider:               &disabled.ProcessStatusHandler{},
+		IdleProvider:               disabled.NewProcessStatusHandler(),
 	}
 	return trieFactoryInstance.Create(args)
 }
