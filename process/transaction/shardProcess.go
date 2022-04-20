@@ -175,10 +175,16 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return 0, err
 	}
 
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return 0, err
+	}
+
 	process.DisplayProcessTxDetails(
 		"ProcessTransaction: sender account details",
 		acntSnd,
 		tx,
+		txHash,
 		txProc.pubkeyConv,
 	)
 
