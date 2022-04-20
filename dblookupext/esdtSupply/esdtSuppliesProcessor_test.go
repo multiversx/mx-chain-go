@@ -24,7 +24,7 @@ const (
 	testBurnValue          = 30
 	testFungibleTokenMint  = 100
 	testFungibleTokenMint2 = 75
-	testFungibleTokenBurn  = 75
+	testFungibleTokenBurn  = 25
 )
 
 func TestNewSuppliesProcessor(t *testing.T) {
@@ -422,7 +422,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 		suppliesStorer,
 		token,
 		marshalizer,
-		testFungibleTokenMint*2-testFungibleTokenMint2,
+		testFungibleTokenMint*2-testFungibleTokenBurn,
 		testFungibleTokenMint*2,
 		testFungibleTokenBurn)
 
