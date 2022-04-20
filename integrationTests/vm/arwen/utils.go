@@ -496,7 +496,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	err = context.GetLatestError()
+	err = context.GetCompositeTestError()
 	if err != nil {
 		return err
 	}
@@ -550,7 +550,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	err = context.GetLatestError()
+	err = context.GetCompositeTestError()
 	if err != nil {
 		return err
 	}
@@ -626,7 +626,7 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		return err
 	}
 
-	err = context.GetLatestError()
+	err = context.GetCompositeTestError()
 	if err != nil {
 		return err
 	}
@@ -698,9 +698,9 @@ func (context *TestContext) GoToEpoch(epoch int) {
 	context.BlockchainHook.SetCurrentHeader(header)
 }
 
-// GetLatestError -
-func (context *TestContext) GetLatestError() error {
-	return context.ScProcessor.GetLatestTestError()
+// GetCompositeTestError -
+func (context *TestContext) GetCompositeTestError() error {
+	return context.ScProcessor.GetCompositeTestError()
 }
 
 // FormatHexNumber -

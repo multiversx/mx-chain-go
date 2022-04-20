@@ -130,9 +130,9 @@ func (vmTestContext *VMTestContext) Close() {
 	_ = vmTestContext.VMContainer.Close()
 }
 
-// GetLatestError -
-func (vmTestContext *VMTestContext) GetLatestError() error {
-	return vmTestContext.ScProcessor.GetLatestTestError()
+// GetCompositeTestError -
+func (vmTestContext *VMTestContext) GetCompositeTestError() error {
+	return vmTestContext.ScProcessor.GetCompositeTestError()
 }
 
 // CreateBlockStarted -
