@@ -1179,21 +1179,19 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:              pcf.config,
-		ShardIDForTries:            pcf.importDBConfig.ImportDBTargetShardID,
-		ChainID:                    pcf.coreData.ChainID(),
-		WorkingDirectory:           pcf.importDBConfig.ImportDBWorkingDir,
-		Hasher:                     pcf.coreData.Hasher(),
-		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      store,
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		ManualEpochStartNotifier:   manualEpochStartNotifier,
-		ChanGracefullyClose:        pcf.coreData.ChanStopNodeProcess(),
-		DisableOldTrieStorageEpoch: pcf.epochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
-		EpochNotifier:              pcf.epochNotifier,
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		ChainID:                  pcf.coreData.ChainID(),
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		Hasher:                   pcf.coreData.Hasher(),
+		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                pcf.network.NetworkMessenger(),
+		Store:                    store,
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1213,21 +1211,19 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 	}
 
 	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
-		GeneralConfig:              pcf.config,
-		ShardIDForTries:            pcf.importDBConfig.ImportDBTargetShardID,
-		ChainID:                    pcf.coreData.ChainID(),
-		WorkingDirectory:           pcf.importDBConfig.ImportDBWorkingDir,
-		Hasher:                     pcf.coreData.Hasher(),
-		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      store,
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		ManualEpochStartNotifier:   manualEpochStartNotifier,
-		ChanGracefullyClose:        pcf.coreData.ChanStopNodeProcess(),
-		DisableOldTrieStorageEpoch: pcf.epochConfig.EnableEpochs.DisableOldTrieStorageEpoch,
-		EpochNotifier:              pcf.epochNotifier,
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		ChainID:                  pcf.coreData.ChainID(),
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		Hasher:                   pcf.coreData.Hasher(),
+		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                pcf.network.NetworkMessenger(),
+		Store:                    store,
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
