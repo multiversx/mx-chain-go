@@ -294,6 +294,11 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
+// GetTransactionsPool returns a slice containing the hashes of the transaction in pool
+func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nf.apiResolver.GetTransactionsPool()
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)

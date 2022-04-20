@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -57,6 +58,7 @@ type DelegatedListHandler interface {
 // APITransactionHandler defines what an API transaction handler should be able to do
 type APITransactionHandler interface {
 	GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	IsInterfaceNil() bool

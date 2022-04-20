@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
@@ -519,7 +520,6 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualH.Type)
 	require.Equal(t, transaction.TxStatusRewardReverted, actualH.Status)
-
 }
 
 func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
@@ -551,6 +551,47 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0d", tx.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 4253, int(tx.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
+}
+
+func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
+	t.Parallel()
+
+	expectedTxs := [][]byte{[]byte("txhash0"), []byte("txhash1")}
+	expectedScrs := [][]byte{[]byte("txhash2")}
+	expectedRwds := [][]byte{[]byte("txhash3")}
+	args := createMockArgAPIBlockProcessor()
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				KeysCalled: func() [][]byte {
+					return expectedTxs
+				},
+			}
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				KeysCalled: func() [][]byte {
+					return expectedScrs
+				},
+			}
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				KeysCalled: func() [][]byte {
+					return expectedRwds
+				},
+			}
+		},
+	}
+	atp, err := NewAPITransactionProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, atp)
+
+	res, err := atp.GetTransactionsPool()
+	require.NoError(t, err)
+	require.Equal(t, []string{"74786861736830", "74786861736831"}, res.RegularTransactions)
+	require.Equal(t, []string{"74786861736832"}, res.SmartContractResults)
+	require.Equal(t, []string{"74786861736833"}, res.Rewards)
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {

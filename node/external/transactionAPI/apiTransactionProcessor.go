@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
@@ -88,6 +89,26 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	return atp.getTransactionFromStorage(hash)
+}
+
+// GetTransactionsPool will return a slice with all the transactions' hashes in the pool
+func (atp *apiTransactionProcessor) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	txsPoolResponse := &common.TransactionsPoolAPIResponse{
+		RegularTransactions:  txsHashesBytesToString(atp.dataPool.Transactions().Keys()),
+		SmartContractResults: txsHashesBytesToString(atp.dataPool.UnsignedTransactions().Keys()),
+		Rewards:              txsHashesBytesToString(atp.dataPool.RewardTransactions().Keys()),
+	}
+
+	return txsPoolResponse, nil
+}
+
+func txsHashesBytesToString(input [][]byte) []string {
+	result := make([]string, 0, len(input))
+	for _, txHashBytes := range input {
+		result = append(result, hex.EncodeToString(txHashBytes))
+	}
+
+	return result
 }
 
 func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {

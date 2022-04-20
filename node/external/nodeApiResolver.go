@@ -137,6 +137,11 @@ func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*tran
 	return nar.apiTransactionHandler.GetTransaction(hash, withResults)
 }
 
+// GetTransactionsPool will return a slice with all the transactions' hashes in the pool
+func (nar *nodeApiResolver) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPool()
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)

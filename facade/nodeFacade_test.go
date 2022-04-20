@@ -1198,3 +1198,45 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, ret, blk)
 }
+
+func TestNodeFacade_GetTransactionsPool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedErr := errors.New("i am the error")
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPool()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		expectedPool := &common.TransactionsPoolAPIResponse{
+			RegularTransactions: []string{"tx0", "tx1"},
+			SmartContractResults: []string{"tx2", "tx3"},
+			Rewards: []string{"tx4"},
+		}
+		arg.ApiResolver = &mock.ApiResolverStub{
+			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+				return expectedPool, nil
+			},
+		}
+
+		nf, _ := NewNodeFacade(arg)
+		res, err := nf.GetTransactionsPool()
+		require.NoError(t, err)
+		require.Equal(t, expectedPool, res)
+	})
+}
