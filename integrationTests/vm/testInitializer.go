@@ -285,9 +285,9 @@ func CreateMemUnit() storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	marsh := &marshal.GogoProtoMarshalizer{}
+	marshaller := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshaller)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
@@ -298,7 +298,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		DB:                store,
 		MainStorer:        CreateMemUnit(),
 		CheckpointsStorer: CreateMemUnit(),
-		Marshalizer:       marsh,
+		Marshalizer:       marshaller,
 		Hasher:            testHasher,
 		SnapshotDbConfig: config.DBConfig{
 			FilePath:          "TrieStorage",
@@ -314,9 +314,19 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, testHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm, common.Normal)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                testHasher,
+		Marshaller:            marshaller,
+		AccountFactory:        &accountFactory{},
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return adb
 }
