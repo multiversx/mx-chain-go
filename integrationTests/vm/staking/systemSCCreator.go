@@ -144,6 +144,7 @@ func createVMContainerFactory(
 	peerAccounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	nc nodesCoordinator.NodesCoordinator,
+	maxNumNodes uint32,
 ) process.VirtualMachinesContainerFactory {
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
 
@@ -180,7 +181,7 @@ func createVMContainerFactory(
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
-				MaxNumberOfNodesForStake:             24, // TODO HERE ADD MAX NUM NODES
+				MaxNumberOfNodesForStake:             uint64(maxNumNodes),
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
 				StakeLimitPercentage:                 100.0,
