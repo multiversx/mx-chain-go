@@ -68,7 +68,7 @@ type snapshotInfo struct {
 type AccountsDB struct {
 	mainTrie               common.Trie
 	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
+	marshaller             marshal.Marshalizer
 	accountFactory         AccountFactory
 	storagePruningManager  StoragePruningManager
 	obsoleteDataTrieHashes map[string][][]byte
@@ -81,43 +81,37 @@ type AccountsDB struct {
 	mutOp                sync.RWMutex
 	processingMode       common.NodeProcessingMode
 	loadCodeMeasurements *loadingMeasurements
+	processStatusHandler common.ProcessStatusHandler
 
 	stackDebug []byte
 }
 
 var log = logger.GetOrCreate("state")
 
+// ArgsAccountsDB is the arguments DTO for the AccountsDB instance
+type ArgsAccountsDB struct {
+	Trie                  common.Trie
+	Hasher                hashing.Hasher
+	Marshaller            marshal.Marshalizer
+	AccountFactory        AccountFactory
+	StoragePruningManager StoragePruningManager
+	ProcessingMode        common.NodeProcessingMode
+	ProcessStatusHandler  common.ProcessStatusHandler
+}
+
 // NewAccountsDB creates a new account manager
-func NewAccountsDB(
-	trie common.Trie,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accountFactory AccountFactory,
-	storagePruningManager StoragePruningManager,
-	processingMode common.NodeProcessingMode,
-) (*AccountsDB, error) {
-	if check.IfNil(trie) {
-		return nil, ErrNilTrie
-	}
-	if check.IfNil(hasher) {
-		return nil, ErrNilHasher
-	}
-	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
-	if check.IfNil(accountFactory) {
-		return nil, ErrNilAccountFactory
-	}
-	if check.IfNil(storagePruningManager) {
-		return nil, ErrNilStoragePruningManager
+func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
+	err := checkArgsAccountsDB(args)
+	if err != nil {
+		return nil, err
 	}
 
 	adb := &AccountsDB{
-		mainTrie:               trie,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
-		accountFactory:         accountFactory,
-		storagePruningManager:  storagePruningManager,
+		mainTrie:               args.Trie,
+		hasher:                 args.Hasher,
+		marshaller:             args.Marshaller,
+		accountFactory:         args.AccountFactory,
+		storagePruningManager:  args.StoragePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
@@ -125,8 +119,9 @@ func NewAccountsDB(
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		processingMode: processingMode,
-		lastSnapshot:   &snapshotInfo{},
+		processingMode:       args.ProcessingMode,
+		lastSnapshot:         &snapshotInfo{},
+		processStatusHandler: args.ProcessStatusHandler,
 	}
 
 	trieStorageManager := trie.GetStorageManager()
@@ -136,6 +131,29 @@ func NewAccountsDB(
 	}
 
 	return adb, nil
+}
+
+func checkArgsAccountsDB(args ArgsAccountsDB) error {
+	if check.IfNil(args.Trie) {
+		return ErrNilTrie
+	}
+	if check.IfNil(args.Hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(args.Marshaller) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(args.AccountFactory) {
+		return ErrNilAccountFactory
+	}
+	if check.IfNil(args.StoragePruningManager) {
+		return ErrNilStoragePruningManager
+	}
+	if check.IfNil(args.ProcessStatusHandler) {
+		return ErrNilProcessStatusHandler
+	}
+
+	return nil
 }
 
 func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
@@ -193,7 +211,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	err = adb.marshalizer.Unmarshal(&codeEntry, val)
+	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return nil
 	}
@@ -304,7 +322,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshalizer)
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -315,7 +333,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 }
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshalizer)
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +357,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	oldCodeEntry.NumReferences--
-	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshalizer)
+	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +370,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		return nil
 	}
 
-	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshalizer)
+	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -364,7 +382,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 	newCodeEntry.NumReferences++
 
-	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshalizer)
+	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -502,8 +520,8 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler)
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
 
-	// pass the reference to marshalizer, otherwise it will fail marshalizing balance
-	buff, err := adb.marshalizer.Marshal(accountHandler)
+	// pass the reference to marshaller, otherwise it will fail marshalling balance
+	buff, err := adb.marshaller.Marshal(accountHandler)
 	if err != nil {
 		return err
 	}
@@ -600,7 +618,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshalizer)
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -655,7 +673,7 @@ func (adb *AccountsDB) getAccount(address []byte) (vmcommon.AccountHandler, erro
 		return nil, err
 	}
 
-	err = adb.marshalizer.Unmarshal(acnt, val)
+	err = adb.marshaller.Unmarshal(acnt, val)
 	if err != nil {
 		return nil, err
 	}
@@ -709,7 +727,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return nil, err
 	}
 
-	err = adb.marshalizer.Unmarshal(acnt, accountBytes)
+	err = adb.marshaller.Unmarshal(acnt, accountBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +757,7 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 	}
 
 	var codeEntry CodeEntry
-	err = adb.marshalizer.Unmarshal(&codeEntry, val)
+	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return err
 	}
@@ -983,7 +1001,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 
 	for leaf := range leavesChannel {
 		account := &userAccount{}
-		err = adb.marshalizer.Unmarshal(account, leaf.Value())
+		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
@@ -1103,9 +1121,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		handleLoggingWhenError("error while putting active DB value into main storer", errPut)
 	}()
 
-	if adb.processingMode == common.ImportDb {
-		stats.WaitForSnapshotsToFinish()
-	}
+	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
 func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
@@ -1133,7 +1149,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 ) {
 	for leaf := range leavesChannel {
 		account := &userAccount{}
-		err := adb.marshalizer.Unmarshal(account, leaf.Value())
+		err := adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
@@ -1181,9 +1197,18 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 	go printStats(stats, "setStateCheckpoint user trie", rootHash)
 
-	if adb.processingMode == common.ImportDb {
-		stats.WaitForSnapshotsToFinish()
+	adb.waitForCompletionIfRunningInImportDB(stats)
+}
+
+func (adb *AccountsDB) waitForCompletionIfRunningInImportDB(stats common.SnapshotStatisticsHandler) {
+	if adb.processingMode != common.ImportDb {
+		return
 	}
+
+	log.Debug("manually setting idle on the process status handler in order to be able to start & complete the snapshotting/checkpointing process")
+	adb.processStatusHandler.SetIdle()
+
+	stats.WaitForSnapshotsToFinish()
 }
 
 // IsPruningEnabled returns true if state pruning is enabled
