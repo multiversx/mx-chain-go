@@ -22,22 +22,20 @@ func NewShardResolversContainerFactory(
 ) (*shardResolversContainerFactory, error) {
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                  container,
-		shardCoordinator:           args.ShardCoordinator,
-		messenger:                  args.Messenger,
-		store:                      args.Store,
-		marshalizer:                args.Marshalizer,
-		hasher:                     args.Hasher,
-		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
-		dataPacker:                 args.DataPacker,
-		manualEpochStartNotifier:   args.ManualEpochStartNotifier,
-		chanGracefullyClose:        args.ChanGracefullyClose,
-		generalConfig:              args.GeneralConfig,
-		shardIDForTries:            args.ShardIDForTries,
-		chainID:                    args.ChainID,
-		workingDir:                 args.WorkingDirectory,
-		disableOldTrieStorageEpoch: args.DisableOldTrieStorageEpoch,
-		epochNotifier:              args.EpochNotifier,
+		container:                container,
+		shardCoordinator:         args.ShardCoordinator,
+		messenger:                args.Messenger,
+		store:                    args.Store,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
+		dataPacker:               args.DataPacker,
+		manualEpochStartNotifier: args.ManualEpochStartNotifier,
+		chanGracefullyClose:      args.ChanGracefullyClose,
+		generalConfig:            args.GeneralConfig,
+		shardIDForTries:          args.ShardIDForTries,
+		chainID:                  args.ChainID,
+		workingDir:               args.WorkingDirectory,
 	}
 
 	err := base.checkParams()
@@ -164,7 +162,6 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
-		srcf.generalConfig.AccountsTrieStorageOld,
 		srcf.store.GetStorer(dataRetriever.UserAccountsUnit),
 		srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit),
 	)
