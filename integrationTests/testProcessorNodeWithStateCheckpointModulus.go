@@ -70,7 +70,12 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	}
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(p2pRating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+			Randomizer:    &random.ConcurrentSafeIntRandomizer{},
+		})
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{

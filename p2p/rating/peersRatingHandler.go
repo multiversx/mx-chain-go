@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -8,57 +9,77 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const (
-	defaultRating      = 0
-	minRating          = -100
-	maxRating          = 100
-	increaseFactor     = 2
-	decreaseFactor     = -1
-	numOfTiers         = 4
-	tierRatingTreshold = 50
-	minNumOfPeers      = 1
+	topRatedTier   = "top rated tier"
+	badRatedTier   = "bad rated tier"
+	defaultRating  = 0
+	minRating      = -100
+	maxRating      = 100
+	increaseFactor = 2
+	decreaseFactor = -1
+	minNumOfPeers  = 1
+	int32Size      = 4
 )
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
-	Randomizer p2p.IntRandomizer
+	TopRatedCache storage.Cacher
+	BadRatedCache storage.Cacher
+	Randomizer    p2p.IntRandomizer
 }
 
 type peersRatingHandler struct {
-	peersRatingMap map[core.PeerID]int32
-	peersTiersMap  map[uint32]map[core.PeerID]struct{}
-	randomizer     dataRetriever.IntRandomizer
-	mut            sync.Mutex
+	topRatedCache storage.Cacher
+	badRatedCache storage.Cacher
+	randomizer    dataRetriever.IntRandomizer
+	mut           sync.Mutex
 }
 
 // NewPeersRatingHandler returns a new peers rating handler
 func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, error) {
-	if check.IfNil(args.Randomizer) {
-		return nil, p2p.ErrNilRandomizer
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	prh := &peersRatingHandler{
-		peersRatingMap: make(map[core.PeerID]int32),
-		randomizer:     args.Randomizer,
+		topRatedCache: args.TopRatedCache,
+		badRatedCache: args.BadRatedCache,
+		randomizer:    args.Randomizer,
 	}
-
-	prh.mut.Lock()
-	prh.createTiersMap()
-	prh.mut.Unlock()
 
 	return prh, nil
 }
 
-// AddPeer adds a new peer to the maps with rating 0
-// this is called when a new peer is connected, so if peer is known, its rating is reset
+func checkArgs(args ArgPeersRatingHandler) error {
+	if check.IfNil(args.Randomizer) {
+		return p2p.ErrNilRandomizer
+	}
+	if check.IfNil(args.TopRatedCache) {
+		return fmt.Errorf("%w for TopRatedCache", p2p.ErrNilCacher)
+	}
+	if check.IfNil(args.BadRatedCache) {
+		return fmt.Errorf("%w for BadRatedCache", p2p.ErrNilCacher)
+	}
+
+	return nil
+}
+
+// AddPeer adds a new peer to the cache with rating 0
+// this is called when a new peer is detected
 func (prh *peersRatingHandler) AddPeer(pid core.PeerID) {
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	oldRating := prh.peersRatingMap[pid]
-	prh.updateRating(pid, oldRating, defaultRating)
+	_, found := prh.getOldRating(pid)
+	if found {
+		return
+	}
+
+	prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
 }
 
 // IncreaseRating increases the rating of a peer with the increase factor
@@ -66,7 +87,13 @@ func (prh *peersRatingHandler) IncreaseRating(pid core.PeerID) {
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	oldRating := prh.peersRatingMap[pid]
+	oldRating, found := prh.getOldRating(pid)
+	if !found {
+		// new pid, add it with default rating
+		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
+		return
+	}
+
 	newRating := oldRating + increaseFactor
 	if newRating > maxRating {
 		return
@@ -80,7 +107,13 @@ func (prh *peersRatingHandler) DecreaseRating(pid core.PeerID) {
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	oldRating := prh.peersRatingMap[pid]
+	oldRating, found := prh.getOldRating(pid)
+	if !found {
+		// new pid, add it with default rating
+		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
+		return
+	}
+
 	newRating := oldRating + decreaseFactor
 	if newRating < minRating {
 		return
@@ -89,49 +122,54 @@ func (prh *peersRatingHandler) DecreaseRating(pid core.PeerID) {
 	prh.updateRating(pid, oldRating, newRating)
 }
 
-// this method must be called under mutex protection
-func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRating int32) {
-	prh.peersRatingMap[pid] = newRating
+func (prh *peersRatingHandler) getOldRating(pid core.PeerID) (int32, bool) {
+	oldRating, found := prh.topRatedCache.Get(pid.Bytes())
+	if found {
+		oldRatingInt, _ := oldRating.(int32)
+		return oldRatingInt, found
+	}
 
+	oldRating, found = prh.badRatedCache.Get(pid.Bytes())
+	if found {
+		oldRatingInt, _ := oldRating.(int32)
+		return oldRatingInt, found
+	}
+
+	return defaultRating, found
+}
+
+func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRating int32) {
 	oldTier := computeRatingTier(oldRating)
 	newTier := computeRatingTier(newRating)
 	if newTier == oldTier {
-		// if pid is not in tier, add it
-		// this happens when a new peer is added
-		_, isInTier := prh.peersTiersMap[newTier][pid]
-		if !isInTier {
-			prh.peersTiersMap[newTier][pid] = struct{}{}
+		if newTier == topRatedTier {
+			prh.topRatedCache.Put(pid.Bytes(), newRating, int32Size)
+		} else {
+			prh.badRatedCache.Put(pid.Bytes(), newRating, int32Size)
 		}
 
 		return
 	}
 
-	prh.movePeerToNewTier(oldTier, newTier, pid)
+	prh.movePeerToNewTier(newRating, pid)
 }
 
-func computeRatingTier(peerRating int32) uint32 {
-	// [100,   51] -> tier 1
-	// [ 50,    1] -> tier 2
-	// [  0,  -49] -> tier 3
-	// [-50, -100] -> tier 4
+func computeRatingTier(peerRating int32) string {
+	if peerRating >= defaultRating {
+		return topRatedTier
+	}
 
-	tempPositiveRating := peerRating + 2*tierRatingTreshold
-	tempTier := (tempPositiveRating - 1) / tierRatingTreshold
-
-	return uint32(numOfTiers - tempTier)
+	return badRatedTier
 }
 
-// this method must be called under mutex protection
-func (prh *peersRatingHandler) movePeerToNewTier(oldTier, newTier uint32, pid core.PeerID) {
-	delete(prh.peersTiersMap[oldTier], pid)
-	prh.peersTiersMap[newTier][pid] = struct{}{}
-}
-
-// this method must be called under mutex protection
-func (prh *peersRatingHandler) createTiersMap() {
-	prh.peersTiersMap = make(map[uint32]map[core.PeerID]struct{})
-	for tier := uint32(numOfTiers); tier > 0; tier-- {
-		prh.peersTiersMap[tier] = make(map[core.PeerID]struct{})
+func (prh *peersRatingHandler) movePeerToNewTier(newRating int32, pid core.PeerID) {
+	newTier := computeRatingTier(newRating)
+	if newTier == topRatedTier {
+		prh.badRatedCache.Remove(pid.Bytes())
+		prh.topRatedCache.Put(pid.Bytes(), newRating, int32Size)
+	} else {
+		prh.topRatedCache.Remove(pid.Bytes())
+		prh.badRatedCache.Put(pid.Bytes(), newRating, int32Size)
 	}
 }
 
@@ -145,47 +183,36 @@ func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, num
 		return make([]core.PeerID, 0)
 	}
 
-	peersForExtraction := make([]core.PeerID, 0)
-	for tier := uint32(numOfTiers); tier > 0; tier-- {
-		peersInCurrentTier, found := prh.extractPeersForTier(tier, peers)
-		if !found {
-			continue
-		}
-
-		peersForExtraction = append(peersForExtraction, peersInCurrentTier...)
-
-		if len(peersForExtraction) > numOfPeers {
-			return prh.extractRandomPeers(peersForExtraction, numOfPeers)
-		}
+	if prh.hasEnoughTopRated(peers, numOfPeers) {
+		return prh.extractRandomPeers(prh.topRatedCache.Keys(), numOfPeers)
 	}
+
+	peersForExtraction := make([][]byte, 0)
+	peersForExtraction = append(peersForExtraction, prh.topRatedCache.Keys()...)
+	peersForExtraction = append(peersForExtraction, prh.badRatedCache.Keys()...)
 
 	return prh.extractRandomPeers(peersForExtraction, numOfPeers)
 }
 
-// this method must be called under mutex protection
-func (prh *peersRatingHandler) extractPeersForTier(tier uint32, peers []core.PeerID) ([]core.PeerID, bool) {
-	peersInTier := make([]core.PeerID, 0)
-	knownPeersInTier, found := prh.peersTiersMap[tier]
-	isListEmpty := len(knownPeersInTier) == 0
-	if !found || isListEmpty {
-		return peersInTier, false
-	}
+func (prh *peersRatingHandler) hasEnoughTopRated(peers []core.PeerID, numOfPeers int) bool {
+	counter := 0
 
 	for _, peer := range peers {
-		_, found = knownPeersInTier[peer]
-		if found {
-			peersInTier = append(peersInTier, peer)
+		if prh.topRatedCache.Has(peer.Bytes()) {
+			counter++
+			if counter >= numOfPeers {
+				return true
+			}
 		}
 	}
 
-	return peersInTier, true
+	return false
 }
 
-// this method must be called under mutex protection
-func (prh *peersRatingHandler) extractRandomPeers(peers []core.PeerID, numOfPeers int) []core.PeerID {
-	peersLen := len(peers)
-	if peersLen < numOfPeers {
-		return peers
+func (prh *peersRatingHandler) extractRandomPeers(peersBytes [][]byte, numOfPeers int) []core.PeerID {
+	peersLen := len(peersBytes)
+	if peersLen <= numOfPeers {
+		return peersBytesToPeerIDs(peersBytes)
 	}
 
 	indexes := createIndexList(peersLen)
@@ -193,10 +220,20 @@ func (prh *peersRatingHandler) extractRandomPeers(peers []core.PeerID, numOfPeer
 
 	randomPeers := make([]core.PeerID, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
-		randomPeers[i] = peers[shuffledIndexes[i]]
+		peerBytes := peersBytes[shuffledIndexes[i]]
+		randomPeers[i] = core.PeerID(peerBytes)
 	}
 
 	return randomPeers
+}
+
+func peersBytesToPeerIDs(peersBytes [][]byte) []core.PeerID {
+	peerIDs := make([]core.PeerID, len(peersBytes))
+	for idx, peerBytes := range peersBytes {
+		peerIDs[idx] = core.PeerID(peerBytes)
+	}
+
+	return peerIDs
 }
 
 func createIndexList(listLength int) []int {

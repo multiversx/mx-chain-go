@@ -56,7 +56,12 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(p2pRating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+			Randomizer:    &random.ConcurrentSafeIntRandomizer{},
+		})
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -245,7 +250,12 @@ func CreateNodeWithBLSAndTxKeys(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(p2pRating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+			Randomizer:    &random.ConcurrentSafeIntRandomizer{},
+		})
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,

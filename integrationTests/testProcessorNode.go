@@ -405,7 +405,12 @@ func newBaseTestProcessorNode(
 		},
 	}
 
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(p2pRating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+			Randomizer:    &random.ConcurrentSafeIntRandomizer{},
+		})
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
@@ -585,7 +590,12 @@ func NewTestProcessorNodeWithFullGenesis(
 func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(p2pRating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+			Randomizer:    &random.ConcurrentSafeIntRandomizer{},
+		})
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)

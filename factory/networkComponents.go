@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -96,8 +97,18 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
+	topRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
+	badRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
 	argsPeersRatingHandler := rating.ArgPeersRatingHandler{
-		Randomizer: &random.ConcurrentSafeIntRandomizer{},
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
+		Randomizer:    &random.ConcurrentSafeIntRandomizer{},
 	}
 	peersRatingHandler, err := rating.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {

@@ -73,7 +73,12 @@ func NewTestSyncNode(
 		},
 	}
 
-	peersRatingHandler, _ := rating.NewPeersRatingHandler(rating.ArgPeersRatingHandler{Randomizer: &random.ConcurrentSafeIntRandomizer{}})
+	peersRatingHandler, _ := rating.NewPeersRatingHandler(
+		rating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+			Randomizer:    &random.ConcurrentSafeIntRandomizer{},
+		})
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 
