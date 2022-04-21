@@ -24,7 +24,6 @@ func createMockArgsConnectionMonitorSimple() ArgsConnectionMonitorSimple {
 		ThresholdMinConnectedPeers: 3,
 		Sharder:                    &mock.KadSharderStub{},
 		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:         &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionsWatcher:         &mock.ConnectionsWatcherStub{},
 	}
 }
@@ -60,16 +59,6 @@ func TestNewLibp2pConnectionMonitorSimple(t *testing.T) {
 		lcms, err := NewLibp2pConnectionMonitorSimple(args)
 
 		assert.Equal(t, p2p.ErrNilPreferredPeersHolder, err)
-		assert.True(t, check.IfNil(lcms))
-	})
-	t.Run("nil peers rating handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsConnectionMonitorSimple()
-		args.PeersRatingHandler = nil
-		lcms, err := NewLibp2pConnectionMonitorSimple(args)
-
-		assert.Equal(t, p2p.ErrNilPeersRatingHandler, err)
 		assert.True(t, check.IfNil(lcms))
 	})
 	t.Run("nil connections watcher should error", func(t *testing.T) {
@@ -143,12 +132,6 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 			knownConnectionCalled = true
 		},
 	}
-	addPeerCalled := false
-	args.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
-		AddPeerCalled: func(pid core.PeerID) {
-			addPeerCalled = true
-		},
-	}
 	lcms, _ := NewLibp2pConnectionMonitorSimple(args)
 
 	lcms.Connected(
@@ -171,7 +154,6 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 	assert.Equal(t, 1, numClosedWasCalled)
 	assert.Equal(t, 1, numComputeWasCalled)
 	assert.True(t, knownConnectionCalled)
-	assert.True(t, addPeerCalled)
 }
 
 func TestNewLibp2pConnectionMonitorSimple_DisconnectedShouldRemovePeerFromPreferredPeers(t *testing.T) {
