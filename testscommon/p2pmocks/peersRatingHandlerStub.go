@@ -11,36 +11,36 @@ type PeersRatingHandlerStub struct {
 }
 
 // AddPeer -
-func (prhs *PeersRatingHandlerStub) AddPeer(pid core.PeerID) {
-	if prhs.AddPeerCalled != nil {
-		prhs.AddPeerCalled(pid)
+func (stub *PeersRatingHandlerStub) AddPeer(pid core.PeerID) {
+	if stub.AddPeerCalled != nil {
+		stub.AddPeerCalled(pid)
 	}
 }
 
 // IncreaseRating -
-func (prhs *PeersRatingHandlerStub) IncreaseRating(pid core.PeerID) {
-	if prhs.IncreaseRatingCalled != nil {
-		prhs.IncreaseRatingCalled(pid)
+func (stub *PeersRatingHandlerStub) IncreaseRating(pid core.PeerID) {
+	if stub.IncreaseRatingCalled != nil {
+		stub.IncreaseRatingCalled(pid)
 	}
 }
 
 // DecreaseRating -
-func (prhs *PeersRatingHandlerStub) DecreaseRating(pid core.PeerID) {
-	if prhs.DecreaseRatingCalled != nil {
-		prhs.DecreaseRatingCalled(pid)
+func (stub *PeersRatingHandlerStub) DecreaseRating(pid core.PeerID) {
+	if stub.DecreaseRatingCalled != nil {
+		stub.DecreaseRatingCalled(pid)
 	}
 }
 
 // GetTopRatedPeersFromList -
-func (prhs *PeersRatingHandlerStub) GetTopRatedPeersFromList(peers []core.PeerID, numOfPeers int) []core.PeerID {
-	if prhs.GetTopRatedPeersFromListCalled != nil {
-		return prhs.GetTopRatedPeersFromListCalled(peers, numOfPeers)
+func (stub *PeersRatingHandlerStub) GetTopRatedPeersFromList(peers []core.PeerID, numOfPeers int) []core.PeerID {
+	if stub.GetTopRatedPeersFromListCalled != nil {
+		return stub.GetTopRatedPeersFromListCalled(peers, numOfPeers)
 	}
 
 	return peers
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (prhs *PeersRatingHandlerStub) IsInterfaceNil() bool {
-	return prhs == nil
+func (stub *PeersRatingHandlerStub) IsInterfaceNil() bool {
+	return stub == nil
 }
