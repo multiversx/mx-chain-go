@@ -1206,7 +1206,7 @@ func TestNodeFacade_GetTransactionsPool(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArguments()
-		expectedErr := errors.New("i am the error")
+		expectedErr := errors.New("expected error")
 		arg.ApiResolver = &mock.ApiResolverStub{
 			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
 				return nil, expectedErr

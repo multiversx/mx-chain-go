@@ -346,7 +346,7 @@ func TestNodeApiResolver_GetTransactionsPool(t *testing.T) {
 	t.Run("should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("i am the error")
+		expectedErr := errors.New("expected error")
 		arg := createMockArgs()
 		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
 			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {

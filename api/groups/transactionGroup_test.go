@@ -837,7 +837,7 @@ func TestSimulateTransaction(t *testing.T) {
 func TestGetTransactionsPoolShouldError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("i am the error")
+	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
 			return nil, expectedErr
