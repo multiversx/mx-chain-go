@@ -124,7 +124,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		processStatusHandler: args.ProcessStatusHandler,
 	}
 
-	trieStorageManager := trie.GetStorageManager()
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		startSnapshotAfterRestart(adb, trieStorageManager)

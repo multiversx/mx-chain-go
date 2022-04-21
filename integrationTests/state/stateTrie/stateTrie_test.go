@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -2129,15 +2130,15 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 		key := hex.EncodeToString(keyBytes)
 		value := []byte("value" + index)
 
-		mainTrieProof, dataTrieProof, err := shardNode.Node.GetProofDataTrie(rootHashHex, encodedAddr, key)
-		assert.Nil(t, err)
+		mainTrieProof, dataTrieProof, errProof := shardNode.Node.GetProofDataTrie(rootHashHex, encodedAddr, key)
+		assert.Nil(t, errProof)
 
-		response, err := mainTrie.VerifyProof(rootHash, address, mainTrieProof.Proof)
-		assert.Nil(t, err)
+		response, errVerify := mainTrie.VerifyProof(rootHash, address, mainTrieProof.Proof)
+		assert.Nil(t, errVerify)
 		assert.True(t, response)
 
-		response, err = mainTrie.VerifyProof(dataTrieRootHashBytes, keyBytes, dataTrieProof.Proof)
-		assert.Nil(t, err)
+		response, errVerify = mainTrie.VerifyProof(dataTrieRootHashBytes, keyBytes, dataTrieProof.Proof)
+		assert.Nil(t, errVerify)
 		assert.True(t, response)
 		assert.Equal(t, value, dataTrieProof.Value)
 	}

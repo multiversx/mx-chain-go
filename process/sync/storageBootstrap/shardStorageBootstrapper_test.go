@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -106,7 +107,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 			Uint64Converter:     testscommon.NewNonceHashConverterMock(),
 			BootstrapRoundIndex: uint64(startRound - 1),
 			ShardCoordinator:    testscommon.NewMultiShardsCoordinatorMock(1),
-			NodesCoordinator:    &mock.NodesCoordinatorMock{},
+			NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 			BlockTracker: &mock.BlockTrackerMock{
 				AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {
