@@ -113,5 +113,6 @@ type FacadeHandler interface {
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error)
+	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	IsInterfaceNil() bool
 }
