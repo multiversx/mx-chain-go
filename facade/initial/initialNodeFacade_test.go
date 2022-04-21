@@ -186,5 +186,9 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, supply)
 	assert.Equal(t, errNodeStarting, err)
 
+	txPool, err := inf.GetTransactionsPool()
+	assert.Nil(t, txPool)
+	assert.Equal(t, errNodeStarting, err)
+
 	assert.False(t, check.IfNil(inf))
 }

@@ -1,10 +1,14 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+import (
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
+)
 
 // TransactionAPIHandlerStub -
 type TransactionAPIHandlerStub struct {
 	GetTransactionCalled       func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetTransactionsPoolCalled  func() (*common.TransactionsPoolAPIResponse, error)
 	UnmarshalTransactionCalled func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled     func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 }
@@ -13,6 +17,15 @@ type TransactionAPIHandlerStub struct {
 func (tas *TransactionAPIHandlerStub) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	if tas.GetTransactionCalled != nil {
 		return tas.GetTransactionCalled(hash, withResults)
+	}
+
+	return nil, nil
+}
+
+// GetTransactionsPool -
+func (tas *TransactionAPIHandlerStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	if tas.GetTransactionsPoolCalled != nil {
+		return tas.GetTransactionsPoolCalled()
 	}
 
 	return nil, nil
