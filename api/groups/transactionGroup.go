@@ -539,7 +539,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 	)
 }
 
-// computeTransactionGasLimit returns how many gas units a transaction wil consume
+// getTransactionsPool returns the transactions hashes in the pool
 func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
 	txsHashes, err := tg.getFacade().GetTransactionsPool()
 	if err != nil {

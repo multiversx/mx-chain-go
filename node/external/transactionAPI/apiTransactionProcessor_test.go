@@ -556,9 +556,10 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 	t.Parallel()
 
-	expectedTxs := [][]byte{[]byte("txhash0"), []byte("txhash1")}
-	expectedScrs := [][]byte{[]byte("txhash2")}
-	expectedRwds := [][]byte{[]byte("txhash3")}
+	txHash0, txHash1, txHash2, txHash3 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2"), []byte("txHash3")
+	expectedTxs := [][]byte{txHash0, txHash1}
+	expectedScrs := [][]byte{txHash2}
+	expectedRwds := [][]byte{txHash3}
 	args := createMockArgAPIBlockProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
@@ -589,9 +590,9 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 
 	res, err := atp.GetTransactionsPool()
 	require.NoError(t, err)
-	require.Equal(t, []string{"74786861736830", "74786861736831"}, res.RegularTransactions)
-	require.Equal(t, []string{"74786861736832"}, res.SmartContractResults)
-	require.Equal(t, []string{"74786861736833"}, res.Rewards)
+	require.Equal(t, []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1)}, res.RegularTransactions)
+	require.Equal(t, []string{hex.EncodeToString(txHash2)}, res.SmartContractResults)
+	require.Equal(t, []string{hex.EncodeToString(txHash3)}, res.Rewards)
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
