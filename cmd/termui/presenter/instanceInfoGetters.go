@@ -1,13 +1,11 @@
 package presenter
 
 import (
-	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 )
-
-const precisionRewards = 2
 
 // GetAppVersion will return application version
 func (psh *PresenterStatusHandler) GetAppVersion() string {
@@ -32,6 +30,23 @@ func (psh *PresenterStatusHandler) GetPeerSubType() string {
 // GetPublicKeyBlockSign will return node public key for sign blocks
 func (psh *PresenterStatusHandler) GetPublicKeyBlockSign() string {
 	return psh.getFromCacheAsString(common.MetricPublicKeyBlockSign)
+}
+
+// GetRedundancyLevel will return the redundancy level of the node
+func (psh *PresenterStatusHandler) GetRedundancyLevel() int64 {
+	// redundancy level is sent as string as JSON unmarshal doesn't treat well the casting from interface{} to int64
+	redundancyLevelStr := psh.getFromCacheAsString(common.MetricRedundancyLevel)
+	i64Val, err := strconv.ParseInt(redundancyLevelStr, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return i64Val
+}
+
+// GetRedundancyIsMainActive will return the info about redundancy main machine
+func (psh *PresenterStatusHandler) GetRedundancyIsMainActive() string {
+	return psh.getFromCacheAsString(common.MetricRedundancyIsMainActive)
 }
 
 // GetShardId will return shard Id of node
@@ -80,49 +95,4 @@ func (psh *PresenterStatusHandler) GetNodeName() string {
 	}
 
 	return nodeName
-}
-
-// GetTotalRewardsValue will return total value of rewards and how the rewards were increased on every second
-// Rewards estimation will be equal with :
-// numSignedBlocks * denomination * Rewards
-func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
-	numSignedBlocks := psh.getFromCacheAsUint64(common.MetricCountConsensusAcceptedBlocks)
-	rewardsInErd := psh.computeRewardsInErd()
-
-	totalRewardsFloat := big.NewFloat(float64(numSignedBlocks))
-	totalRewardsFloat.Mul(totalRewardsFloat, rewardsInErd)
-	difRewards := big.NewFloat(0).Sub(totalRewardsFloat, psh.totalRewardsOld)
-
-	defer func() {
-		psh.totalRewardsOld = totalRewardsFloat
-	}()
-
-	return psh.totalRewardsOld.Text('f', precisionRewards), difRewards.Text('f', precisionRewards)
-}
-
-// CalculateRewardsPerHour will return an approximation of how many ERDs a validator will earn per hour
-// Rewards estimation per hour will be equals with :
-// chanceToBeInConsensus * roundsPerHour * hitRate * denominationCoefficient * Rewards
-func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
-	chanceToBeInConsensus := psh.computeChanceToBeInConsensus()
-	roundsPerHourAccordingToHitRate := psh.computeRoundsPerHourAccordingToHitRate()
-	rewardsInErd := psh.computeRewardsInErd()
-	if chanceToBeInConsensus == 0 || roundsPerHourAccordingToHitRate == 0 || rewardsInErd.Cmp(big.NewFloat(0)) <= 0 {
-		return "0"
-	}
-
-	rewardsPerHourCoefficient := chanceToBeInConsensus * roundsPerHourAccordingToHitRate
-	totalRewardsPerHourFloat := big.NewFloat(rewardsPerHourCoefficient)
-	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, rewardsInErd)
-	return totalRewardsPerHourFloat.Text('f', precisionRewards)
-}
-
-// GetZeros will return a string with a specific number of zeros
-func (psh *PresenterStatusHandler) GetZeros() string {
-	retValue := "." + strings.Repeat("0", precisionRewards)
-	if retValue == "." {
-		return ""
-	}
-
-	return retValue
 }

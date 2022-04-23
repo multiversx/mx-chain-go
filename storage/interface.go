@@ -224,3 +224,9 @@ type SerializedStoredData interface {
 	GetSerialized() []byte
 	SetSerialized([]byte)
 }
+
+// CustomDatabaseRemoverHandler defines the behaviour of a component that should tell if a database is removable or not
+type CustomDatabaseRemoverHandler interface {
+	ShouldRemove(dbIdentifier string, epoch uint32) bool
+	IsInterfaceNil() bool
+}

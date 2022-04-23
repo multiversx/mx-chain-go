@@ -460,3 +460,6 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
 // ErrContextClosing signals that the parent context requested the closing of its children
 var ErrContextClosing = errors.New("context closing")
+
+// ErrNilProcessStatusHandler signals that a nil process status handler was provided
+var ErrNilProcessStatusHandler = errors.New("nil process status handler")
