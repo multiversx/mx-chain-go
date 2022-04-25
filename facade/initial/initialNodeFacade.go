@@ -336,6 +336,11 @@ func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map
 	return nil, nil, errNodeStarting
 }
 
+// GetTransactionsPool returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nil, errNodeStarting
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inf *initialNodeFacade) IsInterfaceNil() bool {
 	return inf == nil
