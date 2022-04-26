@@ -24,6 +24,7 @@ type httpClient struct {
 	baseUrl          string
 }
 
+// HttpClientArgs defines the arguments needed for http client creation
 type HttpClientArgs struct {
 	UseAuthorization bool
 	Username         string

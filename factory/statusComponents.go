@@ -249,6 +249,7 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 		Password:         eventNotifierConfig.Password,
 		Marshalizer:      scf.coreComponents.InternalMarshalizer(),
 		Hasher:           scf.coreComponents.Hasher(),
+		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
 	}
 }
 

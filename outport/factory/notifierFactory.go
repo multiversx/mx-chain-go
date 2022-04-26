@@ -1,22 +1,19 @@
 package factory
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 )
 
-var log = logger.GetOrCreate("outport/eventNotifierFactory")
+var errNilPubKeyConverter = errors.New("nil pub key converter")
 
-const (
-	pubkeyLen = 32
-)
-
+// EventNotifierFactoryArgs defines the args needed for event notifier creation
 type EventNotifierFactoryArgs struct {
 	Enabled          bool
 	UseAuthorization bool
@@ -25,8 +22,10 @@ type EventNotifierFactoryArgs struct {
 	Password         string
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
+	PubKeyConverter  core.PubkeyConverter
 }
 
+// CreateEventNotifier will create a new event notifier client instance
 func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error) {
 	if err := checkInputArgs(args); err != nil {
 		return nil, err
@@ -39,24 +38,14 @@ func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error)
 		BaseUrl:          args.ProxyUrl,
 	})
 
-	pubkeyConv, err := pubkeyConverter.NewBech32PubkeyConverter(pubkeyLen, log)
-	if err != nil {
-		return nil, err
-	}
-
 	notifierArgs := notifier.EventNotifierArgs{
 		HttpClient:      httpClient,
 		Marshalizer:     args.Marshalizer,
 		Hasher:          args.Hasher,
-		PubKeyConverter: pubkeyConv,
+		PubKeyConverter: args.PubKeyConverter,
 	}
 
-	eventNotifier, err := notifier.NewEventNotifier(notifierArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return eventNotifier, nil
+	return notifier.NewEventNotifier(notifierArgs)
 }
 
 func checkInputArgs(args *EventNotifierFactoryArgs) error {
@@ -65,6 +54,9 @@ func checkInputArgs(args *EventNotifierFactoryArgs) error {
 	}
 	if check.IfNil(args.Hasher) {
 		return core.ErrNilHasher
+	}
+	if check.IfNil(args.PubKeyConverter) {
+		return errNilPubKeyConverter
 	}
 
 	return nil
