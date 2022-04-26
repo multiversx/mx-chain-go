@@ -1014,12 +1014,18 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
+	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality + 2)
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
-		log.Warn("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
-			"shard", shardID,
-			"nonces to previous final", noncesToPrevFinal,
-			"error", errSelfNotarized.Error())
+		message := "cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader"
+		errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
+			errSelfNotarized, shardID, noncesToPrevFinal,
+		)
+		if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
+			log.Debug(message, "error", errMessage)
+		} else {
+			log.Warn(message, "error", errMessage)
+		}
 		return
 	}
 
@@ -1029,10 +1035,16 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 		if errCrossNotarized != nil {
-			log.Warn("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
-				"shard", shardID,
-				"nonces to previous final", noncesToPrevFinal,
-				"error", errCrossNotarized.Error())
+			message := "cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader"
+			errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
+				errCrossNotarized, shardID, noncesToPrevFinal,
+			)
+			if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
+				log.Debug(message, "error", errMessage)
+			} else {
+				log.Warn(message, "error", errMessage)
+			}
+
 			return
 		}
 

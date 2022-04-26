@@ -1,10 +1,10 @@
 package processedMb
 
 import (
-	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
@@ -173,7 +173,7 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 			}
 
 			//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
-			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
+			indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
 			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
 				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
 			}
