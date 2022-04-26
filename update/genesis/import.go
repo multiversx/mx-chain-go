@@ -402,7 +402,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 				ProcessingMode:        common.Normal,
 				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-				common.ProcessPriority,
+				StartingPriority:      common.ProcessPriority,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -426,7 +426,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-		common.ProcessPriority,
+		StartingPriority:      common.ProcessPriority,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

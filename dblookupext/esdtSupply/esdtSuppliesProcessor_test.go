@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	testNftCreateValue   = 10
-	testAddQuantityValue = 50
-	testBurnValue        = 30testFungibleTokenMint  = 100
+	testNftCreateValue     = 10
+	testAddQuantityValue   = 50
+	testBurnValue          = 30
+	testFungibleTokenMint  = 100
 	testFungibleTokenMint2 = 75
 	testFungibleTokenBurn  = 25
 )
@@ -313,7 +314,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
 	require.NoError(t, err)
-	err = logsStorer.Put([]byte("txHash3"), mintLogToBeRevertedBytes)
+	err = logsStorer.Put([]byte("txHash3"), mintLogToBeRevertedBytes, common.TestPriority)
 	require.NoError(t, err)
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
@@ -404,7 +405,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
 	require.NoError(t, err)
-	err = logsStorer.Put([]byte("txHash3"), mintLogToBeRevertedBytes)
+	err = logsStorer.Put([]byte("txHash3"), mintLogToBeRevertedBytes, common.TestPriority)
 	require.NoError(t, err)
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound("", 0)
@@ -448,7 +449,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 }
 
 func checkStoredValues(t *testing.T, suppliesStorer storage.Storer, token []byte, marshalizer marshal.Marshalizer, supply uint64, minted uint64, burnt uint64) {
-	storedSupplyBytes, err := suppliesStorer.Get(token)
+	storedSupplyBytes, err := suppliesStorer.Get(token, common.TestPriority)
 	require.NoError(t, err)
 
 	var recoveredSupply SupplyESDT

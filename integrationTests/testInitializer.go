@@ -506,7 +506,7 @@ func CreateAccountsDB(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		common.TestPriority
+		StartingPriority:      common.TestPriority,
 	}
 	adb, _ := state.NewAccountsDB(args)
 

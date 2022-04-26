@@ -52,7 +52,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		common.TestPriority
+		StartingPriority:      common.TestPriority,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

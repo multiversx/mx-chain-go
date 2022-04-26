@@ -102,16 +102,17 @@ type ArgsAccountsDB struct {
 	StoragePruningManager StoragePruningManager
 	ProcessingMode        common.NodeProcessingMode
 	ProcessStatusHandler  common.ProcessStatusHandler
+	StartingPriority      common.StorageAccessType
 }
 
 // NewAccountsDB creates a new account manager
-func NewAccountsDB(args ArgsAccountsDB, startingPriority common.StorageAccessType) (*AccountsDB, error) {
+func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 	err := checkArgsAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}
-	if !common.IsStorageAccessValid(startingPriority) {
-		return nil, fmt.Errorf("%w: %s in NewAccountsDB", ErrInvalidPriorityType, startingPriority)
+	if !common.IsStorageAccessValid(args.StartingPriority) {
+		return nil, fmt.Errorf("%w: %s in NewAccountsDB", ErrInvalidPriorityType, args.StartingPriority)
 	}
 
 	trieStorageManager := args.Trie.GetStorageManager()
@@ -133,7 +134,7 @@ func NewAccountsDB(args ArgsAccountsDB, startingPriority common.StorageAccessTyp
 		processingMode:       args.ProcessingMode,
 		lastSnapshot:         &snapshotInfo{},
 		processStatusHandler: args.ProcessStatusHandler,
-		priority:             startingPriority,
+		priority:             args.StartingPriority,
 	}
 
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey), common.SnapshotPriority)

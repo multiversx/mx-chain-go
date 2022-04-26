@@ -80,7 +80,16 @@ func TestNewPeerAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
 	})
-	// TODO add test
+	t.Run("invalid priority should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+		args.StartingPriority = "invalid priority"
+
+		adb, err := state.NewPeerAccountsDB(args)
+		assert.True(t, check.IfNil(adb))
+		assert.True(t, errors.Is(err, state.ErrInvalidPriorityType))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

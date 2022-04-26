@@ -212,7 +212,7 @@ func createAccountsDB(marshaller marshal.Marshalizer) state.AccountsAdapter {
 		StoragePruningManager: storagePruning,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		common.TestPriority,
+		StartingPriority:      common.TestPriority,
 	}
 
 	adb, _ := state.NewAccountsDB(argsAccountsDB)

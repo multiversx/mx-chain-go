@@ -53,7 +53,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		common.TestPriority,
+		StartingPriority:      common.TestPriority,
 	}
 }
 
@@ -123,6 +123,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		StartingPriority:      common.TestPriority,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -191,6 +192,16 @@ func TestNewAccountsDB(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
+	})
+	t.Run("invalid priority should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+		args.StartingPriority = "invalid priority"
+
+		adb, err := state.NewAccountsDB(args)
+		assert.True(t, check.IfNil(adb))
+		assert.True(t, errors.Is(err, state.ErrInvalidPriorityType))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

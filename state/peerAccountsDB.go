@@ -14,13 +14,13 @@ type PeerAccountsDB struct {
 }
 
 // NewPeerAccountsDB creates a new account manager
-func NewPeerAccountsDB(args ArgsAccountsDB, startingPriority common.StorageAccessType,) (*PeerAccountsDB, error) {
+func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 	err := checkArgsAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}
-	if !common.IsStorageAccessValid(startingPriority) {
-		return nil, fmt.Errorf("%w: %s in NewPeerAccountsDB", ErrInvalidPriorityType, startingPriority)
+	if !common.IsStorageAccessValid(args.StartingPriority) {
+		return nil, fmt.Errorf("%w: %s in NewPeerAccountsDB", ErrInvalidPriorityType, args.StartingPriority)
 	}
 
 	trieStorageManager := args.Trie.GetStorageManager()
@@ -42,7 +42,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB, startingPriority common.StorageAcces
 			processingMode:        args.ProcessingMode,
 			lastSnapshot:          &snapshotInfo{},
 			processStatusHandler:  args.ProcessStatusHandler,
-			priority:              startingPriority,
+			priority:              args.StartingPriority,
 		},
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -38,7 +39,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	hdrHash := []byte("header hash")
 	hdrBytes, _ := marshaller.Marshal(hdr)
 	blockStorerMock := mock.NewStorerMock()
-	_ = blockStorerMock.Put(hdrHash, hdrBytes)
+	_ = blockStorerMock.Put(hdrHash, hdrBytes, common.TestPriority)
 
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper{
