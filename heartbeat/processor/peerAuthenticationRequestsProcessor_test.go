@@ -97,6 +97,17 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "MinPeersThreshold"))
 		assert.True(t, check.IfNil(processor))
 	})
+	t.Run("min peers threshold too big should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerAuthenticationRequestsProcessor()
+		args.MinPeersThreshold = 1.001
+
+		processor, err := NewPeerAuthenticationRequestsProcessor(args)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidValue))
+		assert.True(t, strings.Contains(err.Error(), "MinPeersThreshold"))
+		assert.True(t, check.IfNil(processor))
+	})
 	t.Run("invalid delay between requests should error", func(t *testing.T) {
 		t.Parallel()
 
