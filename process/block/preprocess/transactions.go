@@ -1072,6 +1072,11 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		"time [s]", elapsedTime,
 	)
 
+	if txs.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
+		log.Debug("CreateAndProcessMiniBlocks global stuck")
+		return make(block.MiniBlockSlice, 0), nil
+	}
+
 	startTime = time.Now()
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,

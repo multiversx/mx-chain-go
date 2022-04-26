@@ -75,13 +75,11 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 
 	trieDbFilePath := filepath.Join(trieStoragePath, mainDb)
 	evictionWaitingListDbFilePath := filepath.Join(trieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
-	snapshotsDbFilePath := filepath.Join(trieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
 
 	peerTrieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.PeerAccountsTrieStorage.DB.FilePath))
 
 	peerTrieDbFilePath := filepath.Join(peerTrieStoragePath, mainDb)
 	peerTrieEvictionWaitingListDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
-	peerTrieSnapshotsDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
 
 	stats := []interface{}{
 		"uptime", time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
@@ -93,10 +91,8 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		"num conns", numConns,
 		"accountsTrieDbMem", getDirMemSize(trieDbFilePath),
 		"evictionDbMem", getDirMemSize(evictionWaitingListDbFilePath),
-		"snapshotsDbMem", getDirMemSize(snapshotsDbFilePath),
 		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
 		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
-		"peerTrieSnapshotsDbMem", getDirMemSize(peerTrieSnapshotsDbFilePath),
 	}...,
 	)
 

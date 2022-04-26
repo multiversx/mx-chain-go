@@ -284,9 +284,21 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	require.Nil(t, err)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	statusBusySet := false
+	statusIdleSet := false
+	mockProcessHandler.SetIdleCalled = func() {
+		statusIdleSet = true
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		statusBusySet = true
+	}
+
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
+	assert.True(t, statusIdleSet && statusBusySet)
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -1907,10 +1919,22 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	statusBusySet := false
+	statusIdleSet := false
+	mockProcessHandler.SetIdleCalled = func() {
+		statusIdleSet = true
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		statusBusySet = true
+	}
+
 	err := sp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
+	assert.True(t, statusBusySet && statusIdleSet)
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {

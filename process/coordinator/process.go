@@ -1820,7 +1820,7 @@ func (tc *transactionCoordinator) AddTxsFromMiniBlocks(miniBlocks block.MiniBloc
 			continue
 		}
 
-		preProc.AddTxsFromMiniBlocks(miniBlocks)
+		preProc.AddTxsFromMiniBlocks(block.MiniBlockSlice{mb})
 	}
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
@@ -20,29 +19,34 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
-	marshalizer := &testscommon.MarshalizerMock{}
-	hsh := &hashingMocks.HasherMock{}
+	marshaller := &testscommon.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                testscommon.NewMemDbMock(),
-		MainStorer:        testscommon.CreateMemUnit(),
-		CheckpointsStorer: testscommon.CreateMemUnit(),
-		Marshalizer:       marshalizer,
-		Hasher:            hsh,
-		SnapshotDbConfig: config.DBConfig{
-			Type: "MemoryDB",
-		},
+		MainStorer:             testscommon.CreateMemUnit(),
+		CheckpointsStorer:      testscommon.CreateMemUnit(),
+		Marshalizer:            marshaller,
+		Hasher:                 hasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshalizer)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm, common.Normal)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return tr, adb, spm
 }

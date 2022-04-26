@@ -106,7 +106,6 @@ func createGenesisConfig() config.EnableEpochs {
 		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
 		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
 		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
-		DisableOldTrieStorageEpoch:                        unreachableEpoch,
 		IsPayableBySCEnableEpoch:                          unreachableEpoch,
 		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,

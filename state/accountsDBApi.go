@@ -133,11 +133,6 @@ func (accountsDB *accountsDBApi) RevertToSnapshot(_ int) error {
 	return ErrOperationNotPermitted
 }
 
-// GetNumCheckpoints will always return 0
-func (accountsDB *accountsDBApi) GetNumCheckpoints() uint32 {
-	return 0
-}
-
 // GetCode will call the inner accountsAdapter method after trying to recreate the trie
 func (accountsDB *accountsDBApi) GetCode(codeHash []byte) []byte {
 	err := accountsDB.recreateTrieIfNecessary()

@@ -4073,7 +4073,7 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockInfos(t *testing.T) {
 		tc, _ := NewTransactionCoordinator(args)
 		tc.EpochConfirmed(2, 0)
 
-		crossMiniBlockInfos := make([]*data.MiniBlockInfo, 0)
+		var crossMiniBlockInfos []*data.MiniBlockInfo
 
 		mbInfos := tc.getFinalCrossMiniBlockInfos(crossMiniBlockInfos, &block.Header{})
 		assert.Equal(t, crossMiniBlockInfos, mbInfos)
@@ -4228,7 +4228,56 @@ func TestTransactionCoordinator_GetAllIntermediateTxs(t *testing.T) {
 }
 
 func TestTransactionCoordinator_AddTxsFromMiniBlocks(t *testing.T) {
-	// TODO: create test
+	args := createMockTransactionCoordinatorArguments()
+
+	t.Run("adding txs from miniBlocks", func(t *testing.T) {
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+			ReceiverShardID: 0,
+			SenderShardID:   1,
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+
+		mb2 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx3"), []byte("tx4")},
+			ReceiverShardID: 1,
+			SenderShardID:   0,
+			Type:            block.SmartContractResultBlock,
+			Reserved:        nil,
+		}
+
+		mb3 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx5"), []byte("tx6")},
+			ReceiverShardID: 1,
+			SenderShardID:   0,
+			Type:            block.InvalidBlock,
+			Reserved:        nil,
+		}
+
+		tc, _ := NewTransactionCoordinator(args)
+		tc.keysInterimProcs = []block.Type{block.TxBlock}
+		tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+			AddTxsFromMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
+				require.Equal(t, miniBlocks, block.MiniBlockSlice{mb1})
+			},
+		}
+
+		tc.txPreProcessors[block.SmartContractResultBlock] = &mock.PreProcessorMock{
+			AddTxsFromMiniBlocksCalled: func(miniBlocks block.MiniBlockSlice) {
+				require.Equal(t, miniBlocks, block.MiniBlockSlice{mb2})
+			},
+		}
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				require.Fail(t, fmt.Sprintf("should have not paniced %v", r))
+			}
+		}()
+
+		tc.AddTxsFromMiniBlocks(block.MiniBlockSlice{mb1, mb2, mb3})
+	})
 }
 
 func TestTransactionCoordinator_AddTransactions(t *testing.T) {
