@@ -47,6 +47,7 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		Hasher:                 hasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)

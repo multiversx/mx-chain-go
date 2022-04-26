@@ -1101,7 +1101,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	sfd.RemoveHeader(hdr2.GetNonce(), hash2)
-	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWithLowerHash(t *testing.T) {

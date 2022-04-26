@@ -383,6 +383,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 		Hasher:                 TestHasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -403,6 +404,7 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 		Hasher:                 TestHasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -440,6 +442,7 @@ func createTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.
 		NumOfActivePersisters:  4,
 		Notifier:               notifier,
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 	}
 
@@ -473,7 +476,16 @@ func CreateAccountsDB(
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 	accountFactory := getAccountFactory(accountType)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory, spm, common.Normal)
+	args := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                sha256.NewSha256(),
+		Marshaller:            TestMarshalizer,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(args)
 
 	return adb, tr
 }
@@ -1043,6 +1055,7 @@ func CreateNewDefaultTrie() common.Trie {
 		Hasher:                 TestHasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 

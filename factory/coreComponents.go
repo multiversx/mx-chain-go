@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -101,6 +102,7 @@ type coreComponents struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
+	processStatusHandler          common.ProcessStatusHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -362,6 +364,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
+		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 	}, nil
 }
 
