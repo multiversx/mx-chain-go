@@ -13,7 +13,7 @@ const (
 	contentTypeValue = "application/json"
 )
 
-type HttpClient interface {
+type httpClientHandler interface {
 	Post(route string, payload interface{}, response interface{}) error
 }
 
@@ -62,7 +62,7 @@ func (h *httpClient) Post(
 	req.Header.Set(contentTypeKey, contentTypeValue)
 
 	if h.useAuthorization {
-		h.setAuthorization(req)
+		req.SetBasicAuth(h.username, h.password)
 	}
 
 	resp, err := client.Do(req)
@@ -82,25 +82,4 @@ func (h *httpClient) Post(
 	}
 
 	return json.Unmarshal(resBody, &response)
-}
-
-func (h *httpClient) getErrorFromStatusCode(statusCode int) error {
-	if statusCode == http.StatusBadRequest {
-		return ErrHttpFailedRequest(badRequestMessage, statusCode)
-	}
-	if statusCode == http.StatusUnauthorized {
-		return ErrHttpFailedRequest(unauthorizedMessage, statusCode)
-	}
-	if statusCode == http.StatusInternalServerError {
-		return ErrHttpFailedRequest(internalErrMessage, statusCode)
-	}
-	if statusCode != http.StatusOK {
-		return ErrHttpFailedRequest(genericHttpErrMessage, statusCode)
-	}
-
-	return nil
-}
-
-func (h *httpClient) setAuthorization(req *http.Request) {
-	req.SetBasicAuth(h.username, h.password)
 }

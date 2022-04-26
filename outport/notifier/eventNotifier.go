@@ -51,15 +51,14 @@ type FinalizedBlock struct {
 }
 
 type eventNotifier struct {
-	isNilNotifier   bool
-	httpClient      HttpClient
+	httpClient      httpClientHandler
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
 	pubKeyConverter core.PubkeyConverter
 }
 
 type EventNotifierArgs struct {
-	HttpClient      HttpClient
+	HttpClient      httpClientHandler
 	Marshalizer     marshal.Marshalizer
 	Hasher          hashing.Hasher
 	PubKeyConverter core.PubkeyConverter
@@ -69,7 +68,6 @@ type EventNotifierArgs struct {
 // It implements all methods of process.Indexer
 func NewEventNotifier(args EventNotifierArgs) (*eventNotifier, error) {
 	return &eventNotifier{
-		isNilNotifier:   false,
 		httpClient:      args.HttpClient,
 		marshalizer:     args.Marshalizer,
 		hasher:          args.Hasher,
