@@ -22,6 +22,7 @@ const (
 	minDelayBetweenRequests = time.Second
 	minTimeout              = time.Second
 	minMessagesThreshold    = 0.5
+	maxMessagesThreshold    = 1.0
 	minMissingKeysAllowed   = 1
 )
 
@@ -99,9 +100,9 @@ func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
 		return fmt.Errorf("%w for MessagesInChunk, provided %d, min expected %d",
 			heartbeat.ErrInvalidValue, args.MessagesInChunk, minMessagesInChunk)
 	}
-	if args.MinPeersThreshold < minMessagesThreshold {
-		return fmt.Errorf("%w for MinPeersThreshold, provided %f, min expected %f",
-			heartbeat.ErrInvalidValue, args.MinPeersThreshold, minMessagesThreshold)
+	if args.MinPeersThreshold < minMessagesThreshold || args.MinPeersThreshold > maxMessagesThreshold {
+		return fmt.Errorf("%w for MinPeersThreshold, provided %f, expected min %f, max %f",
+			heartbeat.ErrInvalidValue, args.MinPeersThreshold, minMessagesThreshold, maxMessagesThreshold)
 	}
 	if args.DelayBetweenRequests < minDelayBetweenRequests {
 		return fmt.Errorf("%w for DelayBetweenRequests, provided %d, min expected %d",
