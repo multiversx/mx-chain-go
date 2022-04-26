@@ -32,6 +32,7 @@ type TrieCreateArgs struct {
 	MaxTrieLevelInMem          uint
 	DisableOldTrieStorageEpoch uint32
 	EpochStartNotifier         trie.EpochNotifier
+	IdleProvider               trie.IdleNodeProvider
 	Priority                   common.StorageAccessType
 }
 
@@ -114,6 +115,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		SnapshotDbConfig:           snapshotDbCfg,
 		GeneralConfig:              tc.trieStorageManagerConfig,
 		CheckpointHashesHolder:     checkpointHashesHolder,
+		IdleProvider:               args.IdleProvider,
 	}
 
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
@@ -215,6 +217,7 @@ func CreateTriesComponentsForShardId(
 		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
 		EpochStartNotifier:         notifier,
+		IdleProvider:               coreComponentsHolder.ProcessStatusHandler(),
 		Priority:                   priority,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
@@ -238,6 +241,7 @@ func CreateTriesComponentsForShardId(
 		MaxTrieLevelInMem:          generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		DisableOldTrieStorageEpoch: disableoOldTrieStorageEpoch,
 		EpochStartNotifier:         notifier,
+		IdleProvider:               coreComponentsHolder.ProcessStatusHandler(),
 		Priority:                   priority,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)

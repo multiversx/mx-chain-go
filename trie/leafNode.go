@@ -127,6 +127,7 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.DBWriteCacher, targetDb
 
 	return err
 }
+
 func (ln *leafNode) commitCheckpoint(
 	_ common.DBWriteCacher,
 	targetDb common.DBWriteCacher,
@@ -134,8 +135,9 @@ func (ln *leafNode) commitCheckpoint(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -176,8 +178,9 @@ func (ln *leafNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 

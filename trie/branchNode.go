@@ -294,8 +294,9 @@ func (bn *branchNode) commitCheckpoint(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -324,7 +325,7 @@ func (bn *branchNode) commitCheckpoint(
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}
@@ -339,8 +340,9 @@ func (bn *branchNode) commitSnapshot(
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
+	idleProvider IdleNodeProvider,
 ) error {
-	if shouldStopIfContextDone(ctx) {
+	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -359,7 +361,7 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats)
+		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}

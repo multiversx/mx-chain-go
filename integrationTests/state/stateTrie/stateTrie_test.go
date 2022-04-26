@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -57,6 +58,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 }
 
@@ -1058,7 +1060,18 @@ func createAccounts(
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory, common.TestPriority)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal, common.TestPriority)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		common.TestPriority
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	addr := make([][]byte, nrOfAccounts)
 	for i := 0; i < nrOfAccounts; i++ {
@@ -2367,7 +2380,18 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory, common.TestPriority)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator(), spm, common.Normal, common.TestPriority)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		common.TestPriority
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return adb
 }

@@ -122,3 +122,12 @@ type SnapshotStatisticsHandler interface {
 	NewDataTrie()
 	WaitForSnapshotsToFinish()
 }
+
+// ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
+// able to tell if the node is idle or processing/committing a block
+type ProcessStatusHandler interface {
+	SetBusy(reason string)
+	SetIdle()
+	IsIdle() bool
+	IsInterfaceNil() bool
+}

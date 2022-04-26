@@ -122,5 +122,8 @@ var ErrNilRootHash = errors.New("nil root hash")
 // ErrNilChainHandler signals that a nil chain handler was provided
 var ErrNilChainHandler = errors.New("nil chain handler")
 
+// ErrNilProcessStatusHandler signals that a nil process status handler was provided
+var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
 // ErrInvalidPriorityType signals that an invalid priority type has been provided
 var ErrInvalidPriorityType = errors.New("invalid priority type")

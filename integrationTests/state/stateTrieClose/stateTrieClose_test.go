@@ -101,6 +101,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -138,6 +139,7 @@ func TestTrieStorageManager_CloseErr(t *testing.T) {
 		CheckpointHashesHolder:     hashesHolder.NewCheckpointHashesHolder(10, 32),
 		DisableOldTrieStorageEpoch: 1,
 		EpochNotifier:              &epochNotifier.EpochNotifierStub{},
+		IdleProvider:               &testscommon.ProcessStatusHandlerStub{},
 	}
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()

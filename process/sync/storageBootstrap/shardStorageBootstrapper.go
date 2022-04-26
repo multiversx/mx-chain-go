@@ -39,6 +39,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		chainID:                      arguments.ChainID,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
+		epochNotifier:                arguments.EpochNotifier,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -184,5 +185,5 @@ func (ssb *shardStorageBootstrapper) getRootHash(shardHeaderHash []byte) []byte 
 }
 
 func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {
-	return checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+	return checkBaseStorageBootstrapperArguments(args.ArgsBaseStorageBootstrapper)
 }

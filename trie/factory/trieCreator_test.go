@@ -38,6 +38,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
 		EpochStartNotifier: &epochNotifier.EpochNotifierStub{},
+		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
 		Priority:           common.TestPriority,
 	}
 }
@@ -139,8 +140,8 @@ func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 	createArgs := getCreateArgs()
 	createArgs.PruningEnabled = true
 	_, tr, err := tf.Create(createArgs)
-	require.NotNil(t, tr)
 	require.Nil(t, err)
+	require.NotNil(t, tr)
 }
 
 func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {

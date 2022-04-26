@@ -50,6 +50,7 @@ type trieStorageManager struct {
 	flagDisableOldStorage  atomic.Flag
 	disableOldStorageEpoch uint32
 	oldStorageClosed       bool
+	idleProvider           IdleNodeProvider
 }
 
 type snapshotsQueueEntry struct {
@@ -72,6 +73,7 @@ type NewTrieStorageManagerArgs struct {
 	SnapshotDbConfig           config.DBConfig
 	GeneralConfig              config.TrieStorageManagerConfig
 	CheckpointHashesHolder     CheckpointHashesHolder
+	IdleProvider               IdleNodeProvider
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -97,6 +99,9 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.EpochNotifier) {
 		return nil, ErrNilEpochNotifier
 	}
+	if check.IfNil(args.IdleProvider) {
+		return nil, ErrNilIdleNodeProvider
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -115,6 +120,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		closer:                 closing.NewSafeChanCloser(),
 		disableOldStorageEpoch: args.DisableOldTrieStorageEpoch,
 		oldStorageClosed:       false,
+		idleProvider:           args.IdleProvider,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
@@ -565,7 +571,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats)
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
@@ -594,7 +600,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 		return
 	}
 
-	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, checkpointEntry.stats)
+	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.leavesChan, ctx, checkpointEntry.stats, tsm.idleProvider)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeCheckpoint commit",

@@ -80,6 +80,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hsh.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := NewTrieStorageManager(args)
 	tr := &patriciaMerkleTrie{
@@ -213,6 +214,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage1, _ := NewTrieStorageManager(args)
 	args = NewTrieStorageManagerArgs{
@@ -225,6 +227,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
 		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage2, _ := NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -1056,7 +1059,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
+	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 
 	children, err := collapsedBn.getChildren(db, common.TestPriority)
 	assert.Nil(t, err)
@@ -1256,8 +1259,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
-	_ = collapsedBn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
+	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = collapsedBn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 
 	bn.print(bnWriter, 0, db, common.TestPriority)
 	collapsedBn.print(collapsedBnWriter, 0, db, common.TestPriority)
@@ -1294,7 +1297,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{})
+	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 
 	hashes, err := collapsedBn.getAllHashes(db, common.TestPriority)
 	assert.Nil(t, err)
@@ -1375,10 +1378,10 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{})
+	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{})
+	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

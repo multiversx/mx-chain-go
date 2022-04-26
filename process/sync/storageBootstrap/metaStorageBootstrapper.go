@@ -39,6 +39,7 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		chainID:                      arguments.ChainID,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
+		epochNotifier:                arguments.EpochNotifier,
 	}
 
 	boot := metaStorageBootstrapper{
@@ -181,7 +182,7 @@ func (msb *metaStorageBootstrapper) getRootHash(metaBlockHash []byte) []byte {
 }
 
 func checkMetaStorageBootstrapperArgs(args ArgsMetaStorageBootstrapper) error {
-	err := checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+	err := checkBaseStorageBootstrapperArguments(args.ArgsBaseStorageBootstrapper)
 	if err != nil {
 		return err
 	}

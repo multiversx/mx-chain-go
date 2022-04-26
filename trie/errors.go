@@ -106,5 +106,8 @@ var ErrKeyNotFound = errors.New("key not found")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrNilIdleNodeProvider signals that a nil idle node provider was provided
+var ErrNilIdleNodeProvider = errors.New("nil idle node provider")
+
 // ErrInvalidPriorityType signals that an invalid priority type has been provided
 var ErrInvalidPriorityType = errors.New("invalid priority type")

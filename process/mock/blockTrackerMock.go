@@ -76,6 +76,7 @@ func NewBlockTrackerMock(shardCoordinator sharding.Coordinator, startHeaders map
 func (btm *BlockTrackerMock) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
 	if btm.AddTrackedHeaderCalled != nil {
 		btm.AddTrackedHeaderCalled(header, hash)
+		return
 	}
 
 	if check.IfNil(header) {
