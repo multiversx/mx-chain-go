@@ -94,11 +94,12 @@ func NewShardProcessorEmptyWith3shards(
 	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{}
 
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            &mock.MarshalizerMock{},
-		Hash:                &hashingMocks.HasherMock{},
-		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:          &mock.RoundHandlerMock{},
+		IntMarsh:                  &mock.MarshalizerMock{},
+		Hash:                      &hashingMocks.HasherMock{},
+		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
+		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                &mock.RoundHandlerMock{},
+		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &mock.ChainStorerMock{},

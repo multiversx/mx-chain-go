@@ -120,7 +120,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRoundHandler()
 	tpn.initStorage()
 	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
+	tpn.initAccountDBsWithPruningStorer()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()

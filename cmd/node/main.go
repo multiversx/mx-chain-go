@@ -97,7 +97,10 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	}
 
 	if !check.IfNil(fileLogging) {
-		err := fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfgs.GeneralConfig.Logs.LogFileLifeSpanInSec))
+		timeLogLifeSpan := time.Second * time.Duration(cfgs.GeneralConfig.Logs.LogFileLifeSpanInSec)
+		sizeLogLifeSpanInMB := uint64(cfgs.GeneralConfig.Logs.LogFileLifeSpanInMB)
+
+		err := fileLogging.ChangeFileLifeSpan(timeLogLifeSpan, sizeLogLifeSpanInMB)
 		if err != nil {
 			return err
 		}
@@ -243,7 +246,12 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var fileLogging factory.FileLoggingHandler
 	var err error
 	if flagsConfig.SaveLogFile {
-		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
+		args := logging.ArgsFileLogging{
+			WorkingDir:      flagsConfig.WorkingDir,
+			DefaultLogsPath: defaultLogsPath,
+			LogFilePrefix:   logFilePrefix,
+		}
+		fileLogging, err = logging.NewFileLogging(args)
 		if err != nil {
 			return nil, fmt.Errorf("%w creating a log file", err)
 		}

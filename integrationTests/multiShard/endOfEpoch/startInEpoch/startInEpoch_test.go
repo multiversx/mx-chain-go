@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
@@ -302,6 +303,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ChainID:                      string(integrationTests.ChainID),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
+		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

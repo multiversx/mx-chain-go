@@ -152,13 +152,10 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorageOld             StorageConfig
-	PeerAccountsTrieStorageOld         StorageConfig
 	AccountsTrieStorage                StorageConfig
 	PeerAccountsTrieStorage            StorageConfig
 	AccountsTrieCheckpointsStorage     StorageConfig
 	PeerAccountsTrieCheckpointsStorage StorageConfig
-	TrieSnapshotDB                     DBConfig
 	EvictionWaitingList                EvictionWaitingListConfig
 	StateTriesConfig                   StateTriesConfig
 	TrieStorageManagerConfig           TrieStorageManagerConfig
@@ -221,16 +218,19 @@ type Config struct {
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
 	LogFileLifeSpanInSec int
+	LogFileLifeSpanInMB  int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled                        bool
-	ValidatorCleanOldEpochsData    bool
-	ObserverCleanOldEpochsData     bool
-	NumEpochsToKeep                uint64
-	NumActivePersisters            uint64
-	FullArchiveNumActivePersisters uint32
+	Enabled                              bool
+	ValidatorCleanOldEpochsData          bool
+	ObserverCleanOldEpochsData           bool
+	AccountsTrieCleanOldEpochsData       bool
+	AccountsTrieSkipRemovalCustomPattern string
+	NumEpochsToKeep                      uint64
+	NumActivePersisters                  uint64
+	FullArchiveNumActivePersisters       uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -297,8 +297,6 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen              uint32
 	SnapshotsBufferLen            uint32
 	SnapshotsGoroutineNum         uint32
-	MaxSnapshots                  uint32
-	KeepSnapshots                 bool
 	CheckpointHashesHolderMaxSize uint64
 }
 

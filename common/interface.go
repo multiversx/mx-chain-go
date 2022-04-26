@@ -52,7 +52,6 @@ type StorageManager interface {
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
@@ -60,7 +59,7 @@ type StorageManager interface {
 	Close() error
 	IsInterfaceNil() bool
 
-	//TODO remove Put() when removing increaseNumCheckpoints()
+	// TODO remove Put() when removing increaseNumCheckpoints()
 
 	Put(key []byte, val []byte) error
 }
@@ -123,4 +122,13 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	NewDataTrie()
 	WaitForSnapshotsToFinish()
+}
+
+// ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
+// able to tell if the node is idle or processing/committing a block
+type ProcessStatusHandler interface {
+	SetBusy(reason string)
+	SetIdle()
+	IsIdle() bool
+	IsInterfaceNil() bool
 }

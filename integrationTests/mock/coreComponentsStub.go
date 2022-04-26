@@ -52,6 +52,7 @@ type CoreComponentsStub struct {
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal          common.Locker
+	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
 }
 
@@ -241,6 +242,11 @@ func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 // ArwenChangeLocker -
 func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
 	return ccs.ArwenChangeLockerInternal
+}
+
+// ProcessStatusHandler -
+func (ccs *CoreComponentsStub) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccs.ProcessStatusHandlerInternal
 }
 
 // String -

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -34,6 +35,7 @@ type CoreComponentsMock struct {
 	ChanStopNode                chan endProcess.ArgEndProcess
 	NodeTypeProviderField       core.NodeTypeProviderHandler
 	EconomicsDataField          process.EconomicsDataHandler
+	ProcessStatusHandlerField   common.ProcessStatusHandler
 	HardforkTriggerPubKeyField  []byte
 }
 
@@ -148,6 +150,11 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	}
 
 	return &economicsmocks.EconomicsHandlerStub{}
+}
+
+// ProcessStatusHandler -
+func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccm.ProcessStatusHandlerField
 }
 
 // HardforkTriggerPubKey -

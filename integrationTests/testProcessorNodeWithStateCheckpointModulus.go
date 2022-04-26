@@ -100,7 +100,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	if tpn.EpochStartNotifier == nil {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
-	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
+	tpn.initAccountDBsWithPruningStorer()
 	tpn.initChainHandler()
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
