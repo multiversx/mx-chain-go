@@ -143,27 +143,6 @@ func getGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          "TrieSnapshot",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorageOld: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "AccountsTrie",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10000,
@@ -186,20 +165,6 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "AccountsTrieCheckpoints",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorageOld: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrie",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -237,7 +202,6 @@ func getGeneralConfig() config.Config {
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,
 			SnapshotsBufferLen:    10,
-			MaxSnapshots:          2,
 			SnapshotsGoroutineNum: 1,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{

@@ -272,6 +272,7 @@ type ShardedDataCacherNotifier interface {
 	Clear()
 	ClearShardStore(cacheId string)
 	GetCounts() counting.CountsWithSize
+	Keys() [][]byte
 	IsInterfaceNil() bool
 }
 

@@ -52,7 +52,6 @@ type StorageManager interface {
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
