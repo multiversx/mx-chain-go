@@ -146,30 +146,31 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 }
 
 func (lp *logsProcessor) updateTokenSupply(tokenSupply *SupplyESDT, valueFromEvent *big.Int, eventIdentifier string, isRevert bool) {
-	isBurnOP := eventIdentifier == core.BuiltInFunctionESDTLocalBurn || eventIdentifier == core.BuiltInFunctionESDTNFTBurn ||
+	isBurnOp := eventIdentifier == core.BuiltInFunctionESDTLocalBurn || eventIdentifier == core.BuiltInFunctionESDTNFTBurn ||
 		eventIdentifier == core.BuiltInFunctionESDTWipe
-	xorBooleanVariable := isBurnOP != isRevert
-	// need this because
-	//  negValue | isRevert  => res
-	//   false   |   false   => false
-	//   false   |   true    => true
-	//   true    |   true    => false
-	//   true    |   false   => true
-	bigValue := big.NewInt(0).Set(valueFromEvent)
-	if xorBooleanVariable {
-		bigValue = big.NewInt(0).Neg(valueFromEvent)
-	}
+	isMintOp := eventIdentifier == core.BuiltInFunctionESDTNFTAddQuantity || eventIdentifier == core.BuiltInFunctionESDTLocalMint ||
+		eventIdentifier == core.BuiltInFunctionESDTNFTCreate
+
+	negativeValueFromEvent := big.NewInt(0).Neg(valueFromEvent)
 
 	switch {
-	case isBurnOP:
-		tokenSupply.Burned.Add(tokenSupply.Burned, valueFromEvent)
-	case eventIdentifier == core.BuiltInFunctionESDTNFTAddQuantity ||
-		eventIdentifier == core.BuiltInFunctionESDTLocalMint ||
-		eventIdentifier == core.BuiltInFunctionESDTNFTCreate:
+	case isMintOp && !isRevert:
+		// normal processing mint - add to supply and add to minted
 		tokenSupply.Minted.Add(tokenSupply.Minted, valueFromEvent)
+		tokenSupply.Supply.Add(tokenSupply.Supply, valueFromEvent)
+	case isMintOp && isRevert:
+		// reverted mint - subtract from supply and subtract from minted
+		tokenSupply.Minted.Add(tokenSupply.Minted, negativeValueFromEvent)
+		tokenSupply.Supply.Add(tokenSupply.Supply, negativeValueFromEvent)
+	case isBurnOp && !isRevert:
+		// normal processing burn - subtract from supply and add to burn
+		tokenSupply.Burned.Add(tokenSupply.Burned, valueFromEvent)
+		tokenSupply.Supply.Add(tokenSupply.Supply, negativeValueFromEvent)
+	case isBurnOp && isRevert:
+		// reverted burn - subtract from burned and add to supply
+		tokenSupply.Burned.Add(tokenSupply.Burned, negativeValueFromEvent)
+		tokenSupply.Supply.Add(tokenSupply.Supply, valueFromEvent)
 	}
-
-	tokenSupply.Supply.Add(tokenSupply.Supply, bigValue)
 }
 
 func (lp *logsProcessor) getESDTSupply(tokenIdentifier []byte) (*SupplyESDT, error) {
