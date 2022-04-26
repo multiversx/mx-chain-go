@@ -74,14 +74,14 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
-			HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
+			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 		},
 		&mock.CryptoComponentsMock{
-			PubKey:   &cryptoMocks.PublicKeyStub{},
-			BlockSig: &cryptoMocks.SignerStub{},
-			TxSig:    &cryptoMocks.SignerStub{},
-			BlKeyGen: &cryptoMocks.KeyGenStub{},
-			TxKeyGen: &cryptoMocks.KeyGenStub{},
+			PubKey:          &cryptoMocks.PublicKeyStub{},
+			BlockSig:        &cryptoMocks.SignerStub{},
+			TxSig:           &cryptoMocks.SignerStub{},
+			BlKeyGen:        &cryptoMocks.KeyGenStub{},
+			TxKeyGen:        &cryptoMocks.KeyGenStub{},
 			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
 		}
 }
@@ -119,13 +119,6 @@ func createMockEpochStartBootstrapArgs(
 			Heartbeat:                          generalCfg.Heartbeat,
 			HeartbeatV2:                        generalCfg.HeartbeatV2,
 			Hardfork:                           generalCfg.Hardfork,
-			TrieSnapshotDB: config.DBConfig{
-				FilePath:          "TrieSnapshot",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
