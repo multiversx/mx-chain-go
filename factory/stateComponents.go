@@ -122,26 +122,30 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, err
 	}
 
-	accountsAdapter, err := state.NewAccountsDB(
-		merkleTrie,
-		scf.core.Hasher(),
-		scf.core.InternalMarshalizer(),
-		accountFactory,
-		storagePruning,
-		scf.processingMode,
-	)
+	argsProcessingAccountsDB := state.ArgsAccountsDB{
+		Trie:                  merkleTrie,
+		Hasher:                scf.core.Hasher(),
+		Marshaller:            scf.core.InternalMarshalizer(),
+		AccountFactory:        accountFactory,
+		StoragePruningManager: storagePruning,
+		ProcessingMode:        scf.processingMode,
+		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+	}
+	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterAPI, err := state.NewAccountsDB(
-		merkleTrie,
-		scf.core.Hasher(),
-		scf.core.InternalMarshalizer(),
-		accountFactory,
-		storagePruning,
-		scf.processingMode,
-	)
+	argsAPIAccountsDB := state.ArgsAccountsDB{
+		Trie:                  merkleTrie,
+		Hasher:                scf.core.Hasher(),
+		Marshaller:            scf.core.InternalMarshalizer(),
+		AccountFactory:        accountFactory,
+		StoragePruningManager: storagePruning,
+		ProcessingMode:        scf.processingMode,
+		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+	}
+	accountsAdapterAPI, err := state.NewAccountsDB(argsAPIAccountsDB)
 	if err != nil {
 		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
@@ -162,13 +166,16 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
-	peerAdapter, err := state.NewPeerAccountsDB(
-		merkleTrie,
-		scf.core.Hasher(),
-		scf.core.InternalMarshalizer(),
-		accountFactory,
-		storagePruning,
-	)
+	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
+		Trie:                  merkleTrie,
+		Hasher:                scf.core.Hasher(),
+		Marshaller:            scf.core.InternalMarshalizer(),
+		AccountFactory:        accountFactory,
+		StoragePruningManager: storagePruning,
+		ProcessingMode:        scf.processingMode,
+		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+	}
+	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {
 		return nil, err
 	}
