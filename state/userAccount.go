@@ -120,7 +120,7 @@ func (a *userAccount) SetOwnerAddress(address []byte) {
 	a.OwnerAddress = address
 }
 
-//IncreaseNonce adds the given value to the current nonce
+// IncreaseNonce adds the given value to the current nonce
 func (a *userAccount) IncreaseNonce(value uint64) {
 	a.Nonce = a.Nonce + value
 }

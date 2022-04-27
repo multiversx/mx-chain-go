@@ -14,37 +14,66 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 )
 
-const minFileLifeSpan = time.Second
-const defaultFileLifeSpan = time.Hour * 24
+const (
+	defaultFileLifeSpan     = time.Hour * 24
+	defaultFileSizeInMB     = 1024 // 1GB
+	recheckFileSizeInterval = time.Second * 30
+	oneMegaByte             = 1024 * 1024
+	minFileLifeSpan         = time.Second
+	minSizeInMB             = uint64(1)
+	maxSizeInMB             = uint64(1024 * 1024) // 1TB
+)
 
 var log = logger.GetOrCreate("common/logging")
+var trueCheckHandler = func() bool { return true }
+
+type logLifeSpanner interface {
+	resetDuration(newDuration time.Duration)
+	reset()
+	close()
+}
 
 // fileLogging is able to rotate the log files
 type fileLogging struct {
-	chLifeSpanChanged chan time.Duration
-	mutFile           sync.Mutex
-	currentFile       *os.File
-	workingDir        string
-	defaultLogsPath   string
-	logFilePrefix     string
-	cancelFunc        func()
-	mutIsClosed       sync.Mutex
-	isClosed          bool
+	mutOperation            sync.RWMutex
+	currentFile             *os.File
+	workingDir              string
+	defaultLogsPath         string
+	logFilePrefix           string
+	cancelFunc              func()
+	mutIsClosed             sync.Mutex
+	lifeSpanSize            uint64
+	isClosed                bool
+	timeBasedLogLifeSpanner logLifeSpanner
+	sizeBaseLogLifeSpanner  logLifeSpanner
+	notifyChan              chan struct{}
+}
+
+// ArgsFileLogging is the argument for the file logger
+type ArgsFileLogging struct {
+	WorkingDir      string
+	DefaultLogsPath string
+	LogFilePrefix   string
 }
 
 // NewFileLogging creates a file log watcher used to break the log file into multiple smaller files
-func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix string) (*fileLogging, error) {
+func NewFileLogging(args ArgsFileLogging) (*fileLogging, error) {
 	fl := &fileLogging{
-		workingDir:        workingDir,
-		defaultLogsPath:   defaultLogsPath,
-		logFilePrefix:     logFilePrefix,
-		chLifeSpanChanged: make(chan time.Duration),
-		isClosed:          false,
+		workingDir:      args.WorkingDir,
+		defaultLogsPath: args.DefaultLogsPath,
+		logFilePrefix:   args.LogFilePrefix,
+		isClosed:        false,
+		lifeSpanSize:    defaultFileSizeInMB,
+		notifyChan:      make(chan struct{}),
 	}
+
+	fl.timeBasedLogLifeSpanner = newLifeSpanner(fl.notifyChan, trueCheckHandler, defaultFileLifeSpan)
+	fl.sizeBaseLogLifeSpanner = newLifeSpanner(fl.notifyChan, fl.sizeReached, recheckFileSizeInterval)
+
 	fl.recreateLogFile()
 
-	//we need this function as to call file.Close() when the code panics and the defer func associated
-	//with the file pointer in the main func will never be reached
+	// we need this function as to call file.Close() when the code panics and the deferred function associated
+	// with the file pointer in the main func will never be reached
 	runtime.SetFinalizer(fl, func(fileLogHandler *fileLogging) {
 		_ = fileLogHandler.currentFile.Close()
 	})
@@ -75,8 +104,8 @@ func (fl *fileLogging) recreateLogFile() {
 		return
 	}
 
-	fl.mutFile.Lock()
-	defer fl.mutFile.Unlock()
+	fl.mutOperation.Lock()
+	defer fl.mutOperation.Unlock()
 
 	oldFile := fl.currentFile
 	err = logger.AddLogObserver(newFile, &logger.PlainFormatter{})
@@ -99,38 +128,81 @@ func (fl *fileLogging) recreateLogFile() {
 
 	errNotCritical = logger.RemoveLogObserver(oldFile)
 	log.LogIfError(errNotCritical, "step", "removing old log observer")
+
+	fl.timeBasedLogLifeSpanner.reset()
 }
 
 func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
-	fileLifeSpan := defaultFileLifeSpan
 	for {
 		select {
 		case <-ctx.Done():
 			log.Debug("closing fileLogging.autoRecreateFile go routine")
 			return
-		case <-time.After(fileLifeSpan):
+		case <-fl.notifyChan:
 			fl.recreateLogFile()
-		case fileLifeSpan = <-fl.chLifeSpanChanged:
-			log.Debug("changed log file span", "new value", fileLifeSpan)
 		}
 	}
 }
 
 // ChangeFileLifeSpan changes the log file span
-func (fl *fileLogging) ChangeFileLifeSpan(newDuration time.Duration) error {
-	if newDuration < minFileLifeSpan {
-		return fmt.Errorf("%w, provided %v", core.ErrInvalidLogFileMinLifeSpan, newDuration)
+func (fl *fileLogging) ChangeFileLifeSpan(newDuration time.Duration, sizeInMB uint64) error {
+	err := checkArgs(newDuration, sizeInMB)
+	if err != nil {
+		return err
 	}
 
 	fl.mutIsClosed.Lock()
-	defer fl.mutIsClosed.Unlock()
+	isClosed := fl.isClosed
+	fl.mutIsClosed.Unlock()
 
-	if fl.isClosed {
+	if isClosed {
 		return core.ErrFileLoggingProcessIsClosed
 	}
 
-	fl.chLifeSpanChanged <- newDuration
+	size := sizeInMB * oneMegaByte
+	fl.mutOperation.Lock()
+	fl.lifeSpanSize = size
+	fl.timeBasedLogLifeSpanner.resetDuration(newDuration)
+	fl.mutOperation.Unlock()
+
+	log.Debug("changed the log life span", "new duration", newDuration, "new size", core.ConvertBytes(size))
+
 	return nil
+}
+
+func checkArgs(lifeSpanDuration time.Duration, lifeSpanInMB uint64) error {
+	if lifeSpanDuration < minFileLifeSpan {
+		return fmt.Errorf("%w for the life span duration, minimum: %v, provided: %v",
+			errInvalidParameter, minFileLifeSpan, lifeSpanDuration)
+	}
+	if lifeSpanInMB < minSizeInMB {
+		return fmt.Errorf("%w for the life span in MB, minimum: %v, provided: %v",
+			errInvalidParameter, minSizeInMB, lifeSpanInMB)
+	}
+	if lifeSpanInMB > maxSizeInMB {
+		return fmt.Errorf("%w for the life span in MB, maximum: %v, provided: %v",
+			errInvalidParameter, maxSizeInMB, lifeSpanInMB)
+	}
+
+	return nil
+}
+
+func (fl *fileLogging) sizeReached() bool {
+	fl.mutOperation.RLock()
+	currentFile := fl.currentFile
+	fl.mutOperation.RUnlock()
+
+	if currentFile == nil {
+		return false
+	}
+
+	stats, errNotCritical := currentFile.Stat()
+	if errNotCritical != nil {
+		log.Warn("error retrieving log statistics", "error", errNotCritical)
+		return false
+	}
+
+	return stats.Size() >= int64(fl.lifeSpanSize)
 }
 
 // Close closes the file logging handler
@@ -144,11 +216,13 @@ func (fl *fileLogging) Close() error {
 	fl.isClosed = true
 	fl.mutIsClosed.Unlock()
 
-	fl.mutFile.Lock()
+	fl.mutOperation.Lock()
 	err := fl.currentFile.Close()
-	fl.mutFile.Unlock()
+	fl.mutOperation.Unlock()
 
 	fl.cancelFunc()
+	fl.sizeBaseLogLifeSpanner.close()
+	fl.timeBasedLogLifeSpanner.close()
 
 	return err
 }

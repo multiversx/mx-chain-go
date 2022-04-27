@@ -9,14 +9,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/container"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // StorerMock -
 type StorerMock struct {
-	mutex        sync.RWMutex
-	Name         string
-	DataByEpoch  map[uint32]*container.MutexMap
-	currentEpoch atomic.Uint32
+	mutex                      sync.RWMutex
+	Name                       string
+	DataByEpoch                map[uint32]*container.MutexMap
+	shouldReturnErrKeyNotFound bool
+	currentEpoch               atomic.Uint32
 }
 
 // NewStorerMock -
@@ -27,6 +29,14 @@ func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
 	}
 
 	sm.SetCurrentEpoch(currentEpoch)
+	return sm
+}
+
+// NewStorerMockWithErrKeyNotFound -
+func NewStorerMockWithErrKeyNotFound(name string, currentEpoch uint32) *StorerMock {
+	sm := NewStorerMock(name, currentEpoch)
+	sm.shouldReturnErrKeyNotFound = true
+
 	return sm
 }
 
@@ -210,5 +220,9 @@ func (sm *StorerMock) IsInterfaceNil() bool {
 }
 
 func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
+	if sm.shouldReturnErrKeyNotFound {
+		return storage.ErrKeyNotFound
+	}
+
 	return fmt.Errorf("StorerMock: not found in %s: key = %s, epoch = %d", sm.Name, hex.EncodeToString(key), epoch)
 }

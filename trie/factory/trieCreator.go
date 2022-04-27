@@ -21,6 +21,7 @@ type TrieCreateArgs struct {
 	PruningEnabled     bool
 	CheckpointsEnabled bool
 	MaxTrieLevelInMem  uint
+	IdleProvider       trie.IdleNodeProvider
 }
 
 type trieCreator struct {
@@ -72,6 +73,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		Hasher:                 tc.hasher,
 		GeneralConfig:          tc.trieStorageManagerConfig,
 		CheckpointHashesHolder: checkpointHashesHolder,
+		IdleProvider:               args.IdleProvider,
 	}
 
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)
@@ -161,6 +163,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -179,6 +182,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

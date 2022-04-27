@@ -219,7 +219,6 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 	}
 
 	accnt.SetDataTrie(tr)
-	//accnt, _ := state.NewAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
 	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	acc, err := entry.Revert()
