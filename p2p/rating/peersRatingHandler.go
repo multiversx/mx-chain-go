@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -21,6 +22,8 @@ const (
 	minNumOfPeers  = 1
 	int32Size      = 4
 )
+
+var log = logger.GetOrCreate("p2p/peersRatingHandler")
 
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler struct {
@@ -173,6 +176,9 @@ func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, min
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
+	peersTopRated := make([]core.PeerID, 0)
+	defer prh.displayPeersRating(&peersTopRated, minNumOfPeersExpected)
+
 	isListEmpty := len(peers) == 0
 	if minNumOfPeersExpected < minNumOfPeers || isListEmpty {
 		return make([]core.PeerID, 0)
@@ -184,6 +190,29 @@ func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, min
 	}
 
 	return peersTopRated
+}
+
+func (prh *peersRatingHandler) displayPeersRating(peers *[]core.PeerID, minNumOfPeersExpected int) {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
+	strPeersRatings := ""
+	for _, peer := range *peers {
+		rating, ok := prh.topRatedCache.Get(peer.Bytes())
+		if !ok {
+			rating, _ = prh.badRatedCache.Get(peer.Bytes())
+		}
+
+		ratingInt, ok := rating.(int32)
+		if ok {
+			strPeersRatings += fmt.Sprintf("\n peerID: %s, rating: %d", peer.Pretty(), ratingInt)
+		} else {
+			strPeersRatings += fmt.Sprintf("\n peerID: %s, rating: invalid", peer.Pretty())
+		}
+	}
+
+	log.Info("Top rated peers", "min requested", minNumOfPeersExpected, "peers ratings", strPeersRatings)
 }
 
 func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.PeerID, []core.PeerID) {
