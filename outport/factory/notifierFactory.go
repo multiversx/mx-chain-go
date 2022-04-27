@@ -11,7 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 )
 
-var errNilPubKeyConverter = errors.New("nil pub key converter")
+// ErrNilPubKeyConverter signals that a nil pubkey converter has been provided
+var ErrNilPubKeyConverter = errors.New("nil pub key converter")
 
 // EventNotifierFactoryArgs defines the args needed for event notifier creation
 type EventNotifierFactoryArgs struct {
@@ -38,7 +39,7 @@ func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error)
 		BaseUrl:          args.ProxyUrl,
 	})
 
-	notifierArgs := notifier.EventNotifierArgs{
+	notifierArgs := notifier.ArgsEventNotifier{
 		HttpClient:      httpClient,
 		Marshalizer:     args.Marshalizer,
 		Hasher:          args.Hasher,
@@ -56,7 +57,7 @@ func checkInputArgs(args *EventNotifierFactoryArgs) error {
 		return core.ErrNilHasher
 	}
 	if check.IfNil(args.PubKeyConverter) {
-		return errNilPubKeyConverter
+		return ErrNilPubKeyConverter
 	}
 
 	return nil

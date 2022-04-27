@@ -57,7 +57,8 @@ type eventNotifier struct {
 	pubKeyConverter core.PubkeyConverter
 }
 
-type EventNotifierArgs struct {
+// ArgsEventNotifier defines the arguments needed for event notifier creation
+type ArgsEventNotifier struct {
 	HttpClient      httpClientHandler
 	Marshalizer     marshal.Marshalizer
 	Hasher          hashing.Hasher
@@ -66,7 +67,7 @@ type EventNotifierArgs struct {
 
 // NewEventNotifier creates a new instance of the eventNotifier
 // It implements all methods of process.Indexer
-func NewEventNotifier(args EventNotifierArgs) (*eventNotifier, error) {
+func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
 	return &eventNotifier{
 		httpClient:      args.HttpClient,
 		marshalizer:     args.Marshalizer,
