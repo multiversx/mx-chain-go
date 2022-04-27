@@ -212,7 +212,7 @@ func (prh *peersRatingHandler) displayPeersRating(peers *[]core.PeerID, minNumOf
 		}
 	}
 
-	log.Info("Top rated peers", "min requested", minNumOfPeersExpected, "peers ratings", strPeersRatings)
+	log.Trace("Best peers to request from", "min requested", minNumOfPeersExpected, "peers ratings", strPeersRatings)
 }
 
 func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.PeerID, []core.PeerID) {
