@@ -16,8 +16,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.35 h1:dM8JnTFw9MuHKIuURLyflJzXX63JB9
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.35/go.mod h1:XLdb0Ng7k/BplIfq85MBvcVKpXMOOfn+IIJd6guigpw=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.35 h1:Wz+N0bVidKIi/inO1s55HwqrSqkfcPYpcyAIiBbnL+k=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.35/go.mod h1:hg3s6l5FbRfjWjzrXrt2kqyNNvDoerxWskLa5o3TYzs=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.34-rc7 h1:b8dn0fz9YLOSsvGs1BQo9jwpwAussTze9C1BPCb5vv0=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.34-rc7/go.mod h1:XdxG04hwtyD8jBFeblMR6r8bi7PxuOnuefzs7ptAYIM=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.34-rc9 h1:4EcPQtxjgsIRN5mVw297LSUzhsfvN9r/FQilL8nxwrc=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.34-rc9/go.mod h1:XdxG04hwtyD8jBFeblMR6r8bi7PxuOnuefzs7ptAYIM=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -40,8 +40,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.5 h1:tB/HBvV9IVeCaSrGakX+GLGu7K5U
 github.com/ElrondNetwork/elrond-go-logger v1.0.5/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
-github.com/ElrondNetwork/elrond-vm-common v1.2.12 h1:MHsWE24BJbpmdm9v4apBQo6mz3jsHV+rKZLYllJ1M/E=
-github.com/ElrondNetwork/elrond-vm-common v1.2.12/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
+github.com/ElrondNetwork/elrond-vm-common v1.2.14 h1:wEXghtHU8dgnYpraI7PQENQpeDPP0g9ojdy0CzYYpDM=
+github.com/ElrondNetwork/elrond-vm-common v1.2.14/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-gamma h1:k3Ko5UI2HNZlrU9laVeWx13+jnm79Maame4wIhf6J7Y=
 github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-gamma/go.mod h1:gVOzwebXVdSMDQBTfH8ACO5EJ4SQrvsHqCmYsCZpD0E=
 github.com/ElrondNetwork/notifier-go v1.0.3 h1:LhecyXqKuc/Q4NtIOlb9rw4hfMSj6usmxvYQWvb7Pn4=
