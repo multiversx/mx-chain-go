@@ -277,3 +277,6 @@ var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for mi
 
 // ErrInvalidNumConcurrentTrieSyncers signals that the number of concurrent trie syncers is invalid
 var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie syncers")
+
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")

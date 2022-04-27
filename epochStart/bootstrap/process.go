@@ -1119,6 +1119,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		ResolverConfig:              e.generalConfig.Resolvers,
+		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

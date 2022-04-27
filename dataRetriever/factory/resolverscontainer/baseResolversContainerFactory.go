@@ -39,6 +39,7 @@ type baseResolversContainerFactory struct {
 	isFullHistoryNode           bool
 	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler          dataRetriever.PeersRatingHandler
 	numCrossShardPeers          int
 	numIntraShardPeers          int
 	numFullHistoryPeers         int
@@ -83,6 +84,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.preferredPeersHolder) {
 		return dataRetriever.ErrNilPreferredPeersHolder
+	}
+	if check.IfNil(brcf.peersRatingHandler) {
+		return dataRetriever.ErrNilPeersRatingHandler
 	}
 	if brcf.numCrossShardPeers <= 0 {
 		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
@@ -299,6 +303,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
 		PreferredPeersHolder:        brcf.preferredPeersHolder,
 		SelfShardIdProvider:         brcf.shardCoordinator,
+		PeersRatingHandler:          brcf.peersRatingHandler,
 	}
 	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
