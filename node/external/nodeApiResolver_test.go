@@ -3,11 +3,13 @@ package external_test
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -336,6 +338,48 @@ func TestNodeApiResolver_APITransactionHandler(t *testing.T) {
 
 	_, _ = nar.GetTransaction("0101", true)
 	require.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_GetTransactionsPool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetTransactionsPool()
+		require.Nil(t, res)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedTxsPool := &common.TransactionsPoolAPIResponse{
+			RegularTransactions:  []string{"txhash1"},
+			SmartContractResults: []string{"txhash2"},
+			Rewards:              []string{"txhash3"},
+		}
+		arg := createMockArgs()
+		arg.APITransactionHandler = &mock.TransactionAPIHandlerStub{
+			GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+				return expectedTxsPool, nil
+			},
+		}
+
+		nar, _ := external.NewNodeApiResolver(arg)
+		res, err := nar.GetTransactionsPool()
+		require.NoError(t, err)
+		require.Equal(t, expectedTxsPool, res)
+	})
 }
 
 func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {

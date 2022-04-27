@@ -78,7 +78,7 @@ VERSION:
 			" log level.",
 		Value: "*:" + logger.LogInfo.String(),
 	}
-	//logFile is used when the log output needs to be logged in a file
+	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
@@ -151,12 +151,19 @@ func startNode(ctx *cli.Context) error {
 	var fileLogging factory.FileLoggingHandler
 	if withLogFile {
 		workingDir := getWorkingDir(log)
-		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath, logFilePrefix)
+		args := logging.ArgsFileLogging{
+			WorkingDir:      workingDir,
+			DefaultLogsPath: defaultLogsPath,
+			LogFilePrefix:   logFilePrefix,
+		}
+		fileLogging, err = logging.NewFileLogging(args)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
 
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(generalConfig.Logs.LogFileLifeSpanInSec))
+		timeLogLifeSpan := time.Second * time.Duration(generalConfig.Logs.LogFileLifeSpanInSec)
+		sizeLogLifeSpanInMB := uint64(generalConfig.Logs.LogFileLifeSpanInMB)
+		err = fileLogging.ChangeFileLifeSpan(timeLogLifeSpan, sizeLogLifeSpanInMB)
 		if err != nil {
 			return err
 		}

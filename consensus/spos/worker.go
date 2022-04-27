@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -514,6 +515,7 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
+	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

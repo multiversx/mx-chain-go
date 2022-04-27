@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/gin-gonic/gin"
 )
@@ -28,6 +29,7 @@ const (
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
+	getTransactionsPool              = "/pool"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -42,6 +44,7 @@ type transactionFacadeHandler interface {
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -92,6 +95,11 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Path:    costPath,
 			Method:  http.MethodPost,
 			Handler: tg.computeTransactionGasLimit,
+		},
+		{
+			Path:    getTransactionsPool,
+			Method:  http.MethodGet,
+			Handler: tg.getTransactionsPool,
 		},
 		{
 			Path:    sendMultiplePath,
@@ -525,6 +533,31 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  cost,
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getTransactionsPool returns the transactions hashes in the pool
+func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
+	txsHashes, err := tg.getFacade().GetTransactionsPool()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"txPool": txsHashes},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
