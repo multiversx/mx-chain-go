@@ -834,10 +834,10 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 	if err != nil {
-		log.Warn("cleanupPoolsForCrossShard",
-			"shard", shardID,
-			"nonces to previous final", noncesToPrevFinal,
-			"error", err.Error())
+		displayCleanupErrorMessage("cleanupPoolsForCrossShard",
+			shardID,
+			noncesToPrevFinal,
+			err)
 		return
 	}
 
@@ -964,10 +964,10 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
-		log.Warn("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
-			"shard", shardID,
-			"nonces to previous final", noncesToPrevFinal,
-			"error", errSelfNotarized.Error())
+		displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
+			shardID,
+			noncesToPrevFinal,
+			errSelfNotarized)
 		return
 	}
 
@@ -977,10 +977,10 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 		if errCrossNotarized != nil {
-			log.Warn("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
-				"shard", shardID,
-				"nonces to previous final", noncesToPrevFinal,
-				"error", errCrossNotarized.Error())
+			displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
+				shardID,
+				noncesToPrevFinal,
+				errCrossNotarized)
 			return
 		}
 
@@ -1863,4 +1863,19 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
+}
+
+func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
+	errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
+		err, shardID, noncesToPrevFinal,
+	)
+
+	// 2 blocks on shard + 2 blocks on meta + 1 block to previous final
+	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality+1)*2 + 1
+	if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
+		log.Debug(message, "error", errMessage)
+		return
+	}
+
+	log.Warn(message, "error", errMessage)
 }
