@@ -60,8 +60,9 @@ func (txProc *txProcessor) ProcessMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
 	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
+	originalTxHash []byte,
 ) error {
-	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc)
+	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc, originalTxHash)
 }
 
 func (txProc *txProcessor) ExecuteFailedRelayedTransaction(

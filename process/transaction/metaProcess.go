@@ -112,6 +112,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		"ProcessTransaction: sender account details",
 		acntSnd,
 		tx,
+		txHash,
 		txProc.pubkeyConv,
 	)
 

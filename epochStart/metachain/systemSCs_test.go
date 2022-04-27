@@ -865,14 +865,24 @@ func addKeysToWaitingList(
 
 func createAccountsDB(
 	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
+	marshaller marshal.Marshalizer,
 	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
+	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, 5)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshaller)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal)
+
+	args := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(args)
 	return adb
 }
 
