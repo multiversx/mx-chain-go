@@ -122,14 +122,19 @@ func (tp *tokensProcessor) extractEsdtData(
 		return nil
 	}
 
-	// in case of esdt, nft or multi esdt transfers, the 3rd index of the topics contains the destination address
 	tokenID := topics[idxTokenIDInTopics]
 	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts)
 	if err != nil {
 		return err
 	}
 
-	eventShouldContainReceiverAddress := string(event.GetIdentifier()) != core.BuiltInFunctionESDTNFTCreate
+	// in case of esdt transfer, nft transfer, wipe or multi esdt transfers, the 3rd index of the topics contains the destination address
+	identifier := string(event.GetIdentifier())
+	eventShouldContainReceiverAddress := identifier == core.BuiltInFunctionESDTTransfer ||
+		identifier == core.BuiltInFunctionESDTNFTTransfer ||
+		identifier == core.BuiltInFunctionESDTWipe ||
+		identifier == core.BuiltInFunctionMultiESDTNFTTransfer
+
 	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]
 		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts)
