@@ -728,17 +728,19 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
 
-	storageHandlerComponent, err := NewMetaStorageHandler(
-		e.generalConfig,
-		e.prefsConfig,
-		e.shardCoordinator,
-		e.coreComponentsHolder.PathHandler(),
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		e.epochStartMeta.GetEpoch(),
-		e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		e.coreComponentsHolder.NodeTypeProvider(),
-	)
+	argsStorageHandler := StorageHandlerArgs{
+		GeneralConfig:                   e.generalConfig,
+		PreferencesConfig:               e.prefsConfig,
+		ShardCoordinator:                e.shardCoordinator,
+		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    e.epochStartMeta.GetEpoch(),
+		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
+	}
+	storageHandlerComponent, err := NewMetaStorageHandler(argsStorageHandler)
 	if err != nil {
 		return err
 	}
@@ -862,17 +864,19 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.syncedHeaders[hash] = hdr
 	}
 
-	storageHandlerComponent, err := NewShardStorageHandler(
-		e.generalConfig,
-		e.prefsConfig,
-		e.shardCoordinator,
-		e.coreComponentsHolder.PathHandler(),
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		e.baseData.lastEpoch,
-		e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		e.coreComponentsHolder.NodeTypeProvider(),
-	)
+	argsStorageHandler := StorageHandlerArgs{
+		GeneralConfig:                   e.generalConfig,
+		PreferencesConfig:               e.prefsConfig,
+		ShardCoordinator:                e.shardCoordinator,
+		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    e.epochStartMeta.GetEpoch(),
+		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
+	}
+	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {
 		return err
 	}

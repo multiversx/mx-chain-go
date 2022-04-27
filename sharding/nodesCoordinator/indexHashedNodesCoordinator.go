@@ -122,6 +122,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		auctionList:    make([]Validator, 0),
 	}
 
+	// todo: if not genesis, use previous randomness from start of epoch meta block
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{

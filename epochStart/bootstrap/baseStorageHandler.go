@@ -1,29 +1,67 @@
 package bootstrap
 
 import (
-	"encoding/json"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+// StorageHandlerArgs is a struct placeholder for all arguments required to create either a shard or a meta storage handler
+type StorageHandlerArgs struct {
+	GeneralConfig                   config.Config
+	PreferencesConfig               config.PreferencesConfig
+	ShardCoordinator                sharding.Coordinator
+	PathManagerHandler              storage.PathManagerHandler
+	Marshaller                      marshal.Marshalizer
+	Hasher                          hashing.Hasher
+	CurrentEpoch                    uint32
+	Uint64Converter                 typeConverters.Uint64ByteSliceConverter
+	NodeTypeProvider                NodeTypeProviderHandler
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+}
+
+func checkNilArgs(args StorageHandlerArgs) error {
+	if check.IfNil(args.ShardCoordinator) {
+		return core.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PathManagerHandler) {
+		return dataRetriever.ErrNilPathManager
+	}
+	if check.IfNil(args.Marshaller) {
+		return core.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return core.ErrNilHasher
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return dataRetriever.ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
+		return nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory
+	}
+	return nil
+}
 
 // baseStorageHandler handles the storage functions for saving bootstrap data
 type baseStorageHandler struct {
-	storageService   dataRetriever.StorageService
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	currentEpoch     uint32
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	storageService                  dataRetriever.StorageService
+	shardCoordinator                sharding.Coordinator
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	currentEpoch                    uint32
+	uint64Converter                 typeConverters.Uint64ByteSliceConverter
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
@@ -50,8 +88,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 ) ([]byte, error) {
 	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
 
-	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
-	registryBytes, err := json.Marshal(nodesConfig)
+	registryBytes, err := bsh.nodesCoordinatorRegistryFactory.GetRegistryData(nodesConfig, metaBlock.GetEpoch())
 	if err != nil {
 		return nil, err
 	}

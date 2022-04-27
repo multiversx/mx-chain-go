@@ -1,7 +1,6 @@
 package nodesCoordinator
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -61,7 +60,8 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
-	data, err := ihnc.getRegistryData()
+	registry := ihnc.NodesCoordinatorToRegistry()
+	data, err := ihnc.nodesCoordinatorRegistryFactory.GetRegistryData(registry, ihnc.currentEpoch)
 	if err != nil {
 		return err
 	}
@@ -72,23 +72,9 @@ func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
 	return ihnc.bootStorer.Put(ncInternalKey, data)
 }
 
-func (ihnc *indexHashedNodesCoordinator) getRegistryData() ([]byte, error) {
-	var err error
-	var data []byte
-
-	registry := ihnc.NodesCoordinatorToRegistry()
-	if ihnc.flagStakingV4.IsSet() {
-		data, err = ihnc.marshalizer.Marshal(registry)
-	} else {
-		data, err = json.Marshal(registry)
-	}
-
-	return data, err
-}
-
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
 func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() NodesCoordinatorRegistryHandler {
-	if ihnc.flagStakingV4.IsSet() {
+	if ihnc.currentEpoch >= ihnc.stakingV4EnableEpoch {
 		return ihnc.nodesCoordinatorToRegistryWithAuction()
 	}
 

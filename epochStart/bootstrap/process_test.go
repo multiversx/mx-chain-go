@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -88,7 +89,7 @@ func createMockEpochStartBootstrapArgs(
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		&testscommon.MarshalizerMock{},
+		&marshal.GogoProtoMarshalizer{},
 		&epochNotifier.EpochNotifierStub{},
 		444,
 	)
@@ -189,6 +190,7 @@ func createMockEpochStartBootstrapArgs(
 				return 1
 			},
 		},
+		EnableEpochs:               config.EnableEpochs{StakingV4EnableEpoch: 444},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},

@@ -7,17 +7,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
@@ -26,26 +20,21 @@ type metaStorageHandler struct {
 }
 
 // NewMetaStorageHandler will return a new instance of metaStorageHandler
-func NewMetaStorageHandler(
-	generalConfig config.Config,
-	prefsConfig config.PreferencesConfig,
-	shardCoordinator sharding.Coordinator,
-	pathManagerHandler storage.PathManagerHandler,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	currentEpoch uint32,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	nodeTypeProvider NodeTypeProviderHandler,
-) (*metaStorageHandler, error) {
+func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error) {
+	err := checkNilArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
-		&generalConfig,
-		&prefsConfig,
-		shardCoordinator,
-		pathManagerHandler,
+		&args.GeneralConfig,
+		&args.PreferencesConfig,
+		args.ShardCoordinator,
+		args.PathManagerHandler,
 		epochStartNotifier,
-		nodeTypeProvider,
-		currentEpoch,
+		args.NodeTypeProvider,
+		args.CurrentEpoch,
 		false,
 	)
 	if err != nil {
@@ -58,12 +47,13 @@ func NewMetaStorageHandler(
 	}
 
 	base := &baseStorageHandler{
-		storageService:   storageService,
-		shardCoordinator: shardCoordinator,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		currentEpoch:     currentEpoch,
-		uint64Converter:  uint64Converter,
+		storageService:                  storageService,
+		shardCoordinator:                args.ShardCoordinator,
+		marshalizer:                     args.Marshaller,
+		hasher:                          args.Hasher,
+		currentEpoch:                    args.CurrentEpoch,
+		uint64Converter:                 args.Uint64Converter,
+		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 
 	return &metaStorageHandler{baseStorageHandler: base}, nil

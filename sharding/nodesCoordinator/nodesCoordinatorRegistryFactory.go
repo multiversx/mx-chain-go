@@ -54,6 +54,14 @@ func (ncf *nodesCoordinatorRegistryFactory) CreateNodesCoordinatorRegistry(buff 
 	return createOldRegistry(buff)
 }
 
+func (ncf *nodesCoordinatorRegistryFactory) GetRegistryData(registry NodesCoordinatorRegistryHandler, epoch uint32) ([]byte, error) {
+	if epoch >= ncf.stakingV4EnableEpoch {
+		return ncf.marshaller.Marshal(registry)
+	}
+
+	return json.Marshal(registry)
+}
+
 func createOldRegistry(buff []byte) (*NodesCoordinatorRegistry, error) {
 	registry := &NodesCoordinatorRegistry{}
 	err := json.Unmarshal(buff, registry)

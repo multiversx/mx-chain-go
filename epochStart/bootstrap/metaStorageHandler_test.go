@@ -14,20 +14,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
-	gCfg := config.Config{}
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+func createStorageHandlerArgs() StorageHandlerArgs {
+	return StorageHandlerArgs{
+		GeneralConfig:                   testscommon.GetGeneralConfig(),
+		PreferencesConfig:               config.PreferencesConfig{},
+		ShardCoordinator:                &mock.ShardCoordinatorStub{},
+		PathManagerHandler:              &testscommon.PathManagerStub{},
+		Marshaller:                      &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		CurrentEpoch:                    0,
+		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
+	}
+}
 
-	mtStrHandler, err := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
+	args := createStorageHandlerArgs()
+	args.GeneralConfig = config.Config{}
+
+	mtStrHandler, err := NewMetaStorageHandler(args)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
 }
@@ -37,16 +47,8 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
-	mtStrHandler, err := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+	args := createStorageHandlerArgs()
+	mtStrHandler, err := NewMetaStorageHandler(args)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
 }
@@ -56,20 +58,11 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
-
+	args := createStorageHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 	header := &block.MetaBlock{Nonce: 0}
 
-	headerHash, _ := core.CalculateHash(marshalizer, hasher, header)
+	headerHash, _ := core.CalculateHash(args.Marshaller, args.Hasher, header)
 	expectedBootInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId, Hash: headerHash,
 	}
@@ -84,21 +77,13 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+	args := createStorageHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	hdr1 := &block.Header{Nonce: 1}
 	hdr2 := &block.Header{Nonce: 2}
-	hdrHash1, _ := core.CalculateHash(marshalizer, hasher, hdr1)
-	hdrHash2, _ := core.CalculateHash(marshalizer, hasher, hdr2)
+	hdrHash1, _ := core.CalculateHash(args.Marshaller, args.Hasher, hdr1)
+	hdrHash2, _ := core.CalculateHash(args.Marshaller, args.Hasher, hdr2)
 
 	hdr3 := &block.MetaBlock{
 		Nonce: 3,
@@ -118,16 +103,8 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+	args := createStorageHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
@@ -143,16 +120,8 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
+	args := createStorageHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
