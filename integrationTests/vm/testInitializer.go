@@ -131,9 +131,9 @@ func (vmTestContext *VMTestContext) Close() {
 	_ = vmTestContext.VMContainer.Close()
 }
 
-// GetLatestError -
-func (vmTestContext *VMTestContext) GetLatestError() error {
-	return vmTestContext.ScProcessor.GetLatestTestError()
+// GetCompositeTestError -
+func (vmTestContext *VMTestContext) GetCompositeTestError() error {
+	return vmTestContext.ScProcessor.GetCompositeTestError()
 }
 
 // CreateBlockStarted -
@@ -286,37 +286,37 @@ func CreateMemUnit() storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	marsh := &marshal.GogoProtoMarshalizer{}
-	store := CreateMemUnit()
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshaller)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
 		SnapshotsBufferLen:    10,
-		MaxSnapshots:          2,
 		SnapshotsGoroutineNum: 1,
 	}
 	args := trie.NewTrieStorageManagerArgs{
-		DB:                store,
-		MainStorer:        CreateMemUnit(),
-		CheckpointsStorer: CreateMemUnit(),
-		Marshalizer:       marsh,
-		Hasher:            testHasher,
-		SnapshotDbConfig: config.DBConfig{
-			FilePath:          "TrieStorage",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
+		MainStorer:             CreateMemUnit(),
+		CheckpointsStorer:      CreateMemUnit(),
+		Marshalizer:            marshaller,
+		Hasher:                 testHasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
-		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, testHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, spm, common.Normal)
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                testHasher,
+		Marshaller:            marshaller,
+		AccountFactory:        &accountFactory{},
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return adb
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/groups"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
 	"github.com/stretchr/testify/assert"
@@ -85,6 +86,16 @@ type transactionCostResponse struct {
 	Data  transactionCostResponseData `json:"data"`
 	Error string                      `json:"error"`
 	Code  string                      `json:"code"`
+}
+
+type txsPoolResponseData struct {
+	TxPool common.TransactionsPoolAPIResponse `json:"txPool"`
+}
+
+type txsPoolResponse struct {
+	Data  txsPoolResponseData `json:"data"`
+	Error string              `json:"error"`
+	Code  string              `json:"code"`
 }
 
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
@@ -823,6 +834,63 @@ func TestSimulateTransaction(t *testing.T) {
 	assert.Equal(t, string(shared.ReturnCodeSuccess), simulateResponse.Code)
 }
 
+func TestGetTransactionsPoolShouldError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := mock.FacadeStub{
+		GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+			return nil, expectedErr
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/pool", nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txsPoolResp := generalResponse{}
+	loadResponse(resp.Body, &txsPoolResp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(txsPoolResp.Error, expectedErr.Error()))
+}
+
+func TestGetTransactionsPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedTxPool := &common.TransactionsPoolAPIResponse{
+		RegularTransactions: []string{"tx", "tx2"},
+	}
+	facade := mock.FacadeStub{
+		GetTransactionsPoolCalled: func() (*common.TransactionsPoolAPIResponse, error) {
+			return expectedTxPool, nil
+		},
+	}
+
+	transactionGroup, err := groups.NewTransactionGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/transaction/pool", nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txsPoolResp := txsPoolResponse{}
+	loadResponse(resp.Body, &txsPoolResp)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Empty(t, txsPoolResp.Error)
+	assert.Equal(t, *expectedTxPool, txsPoolResp.Data.TxPool)
+}
+
 func getTransactionRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -831,6 +899,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/send", Open: true},
 					{Name: "/send-multiple", Open: true},
 					{Name: "/cost", Open: true},
+					{Name: "/pool", Open: true},
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},

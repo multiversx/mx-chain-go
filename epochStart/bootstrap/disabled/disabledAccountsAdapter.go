@@ -113,11 +113,6 @@ func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]common.Trie, er
 	return nil, nil
 }
 
-// GetNumCheckpoints -
-func (a *accountsAdapter) GetNumCheckpoints() uint32 {
-	return 0
-}
-
 // CommitInEpoch -
 func (a *accountsAdapter) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
 	return nil, nil

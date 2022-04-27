@@ -44,11 +44,12 @@ func createMockComponentHolders() (
 	mdp := initDataPool([]byte("tx_hash"))
 
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            &mock.MarshalizerMock{},
-		Hash:                &mock.HasherStub{},
-		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:          &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
+		IntMarsh:                  &mock.MarshalizerMock{},
+		Hash:                      &mock.HasherStub{},
+		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
+		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
+		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -885,11 +886,23 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	arguments.BlockTracker = blockTrackerMock
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	statusBusySet := false
+	statusIdleSet := false
+	mockProcessHandler.SetIdleCalled = func() {
+		statusIdleSet = true
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		statusBusySet = true
+	}
+
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
 	err := mp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
+	assert.True(t, statusBusySet && statusIdleSet)
 }
 
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
@@ -2949,12 +2962,23 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 			return nil
 		},
 	}
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	statusBusySet := false
+	statusIdleSet := false
+	mockProcessHandler.SetIdleCalled = func() {
+		statusIdleSet = true
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		statusBusySet = true
+	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	metaHdr := &block.MetaBlock{}
 	headerHandler, bodyHandler, err := mp.CreateBlock(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
+	assert.True(t, statusBusySet && statusIdleSet)
 
 	err = headerHandler.SetRound(uint64(1))
 	assert.Nil(t, err)
@@ -2974,9 +2998,12 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false
+	statusBusySet = false
+	statusIdleSet = false
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
+	assert.True(t, statusBusySet && statusIdleSet)
 }
 
 func TestMetaProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
