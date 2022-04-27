@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/common/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
@@ -17,29 +18,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 )
 
 const defaultBeforeGracefulClose = time.Minute
 
 type baseResolversContainerFactory struct {
-	container                  dataRetriever.ResolversContainer
-	shardCoordinator           sharding.Coordinator
-	messenger                  dataRetriever.TopicMessageHandler
-	store                      dataRetriever.StorageService
-	marshalizer                marshal.Marshalizer
-	hasher                     hashing.Hasher
-	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
-	dataPacker                 dataRetriever.DataPacker
-	manualEpochStartNotifier   dataRetriever.ManualEpochStartNotifier
-	chanGracefullyClose        chan endProcess.ArgEndProcess
-	generalConfig              config.Config
-	shardIDForTries            uint32
-	chainID                    string
-	workingDir                 string
-	disableOldTrieStorageEpoch uint32
-	epochNotifier              trie.EpochNotifier
+	container                dataRetriever.ResolversContainer
+	shardCoordinator         sharding.Coordinator
+	messenger                dataRetriever.TopicMessageHandler
+	store                    dataRetriever.StorageService
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	dataPacker               dataRetriever.DataPacker
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	chanGracefullyClose      chan endProcess.ArgEndProcess
+	generalConfig            config.Config
+	shardIDForTries          uint32
+	chainID                  string
+	workingDir               string
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -69,9 +67,6 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.hasher) {
 		return dataRetriever.ErrNilHasher
-	}
-	if check.IfNil(brcf.epochNotifier) {
-		return dataRetriever.ErrNilEpochNotifier
 	}
 
 	return nil
@@ -196,7 +191,6 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 }
 
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
-	trieStorageConfig config.StorageConfig,
 	mainStorer storage.Storer,
 	checkpointsStorer storage.Storer,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
@@ -211,7 +205,6 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	}
 
 	trieFactoryArgs := trieFactory.TrieFactoryArgs{
-		SnapshotDbCfg:            brcf.generalConfig.TrieSnapshotDB,
 		Marshalizer:              brcf.marshalizer,
 		Hasher:                   brcf.hasher,
 		PathManager:              pathManager,
@@ -223,15 +216,12 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		TrieStorageConfig:          trieStorageConfig,
-		MainStorer:                 mainStorer,
-		CheckpointsStorer:          checkpointsStorer,
-		ShardID:                    core.GetShardIDString(brcf.shardIDForTries),
-		PruningEnabled:             brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:         brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:          brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		DisableOldTrieStorageEpoch: brcf.disableOldTrieStorageEpoch,
-		EpochStartNotifier:         brcf.epochNotifier,
+		MainStorer:         mainStorer,
+		CheckpointsStorer:  checkpointsStorer,
+		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		IdleProvider:       disabled.NewProcessStatusHandler(),
 	}
 	return trieFactoryInstance.Create(args)
 }

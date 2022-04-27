@@ -358,11 +358,12 @@ func createComponentHolderMocks() (
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            &mock.MarshalizerMock{},
-		Hash:                &mock.HasherStub{},
-		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusField:         &statusHandlerMock.AppStatusHandlerStub{},
-		RoundField:          &mock.RoundHandlerMock{},
+		IntMarsh:                  &mock.MarshalizerMock{},
+		Hash:                      &mock.HasherStub{},
+		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
+		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
+		RoundField:                &mock.RoundHandlerMock{},
+		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 	}
 
 	dataComponents := &mock.DataComponentsMock{

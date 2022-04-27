@@ -296,16 +296,6 @@ func (inf *initialNodeFacade) Close() error {
 	return errNodeStarting
 }
 
-// GetNumCheckpointsFromAccountState returns 0
-func (inf *initialNodeFacade) GetNumCheckpointsFromAccountState() uint32 {
-	return uint32(0)
-}
-
-// GetNumCheckpointsFromPeerState returns 0
-func (inf *initialNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
-	return uint32(0)
-}
-
 // GetKeyValuePairs nil map
 func (inf *initialNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
 	return nil, errNodeStarting
@@ -344,6 +334,11 @@ func (inf *initialNodeFacade) GetTokenSupply(_ string) (*api.ESDTSupply, error) 
 // GetGenesisNodesPubKeys returns nil and error
 func (inf *initialNodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
 	return nil, nil, errNodeStarting
+}
+
+// GetTransactionsPool returns a nil structure and error
+func (inf *initialNodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -445,7 +444,7 @@ func printProcessedAndPendingMiniBlocks(processedMiniBlocks []bootstrapStorage.M
 				isFullyProcessed = miniBlocksInMeta.IsFullyProcessed[index]
 			}
 
-			indexOfLastTxProcessed := int32(math.MaxInt32 - 1)
+			indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
 			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
 				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
 			}

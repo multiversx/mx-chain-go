@@ -38,13 +38,13 @@ func (tdaw *TrackableDataTrie) DirtyData() map[string][]byte {
 func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	tailLength := len(key) + len(tdaw.identifier)
 
-	//search in dirty data cache
+	// search in dirty data cache
 	if value, found := tdaw.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", value)
 		return trimValue(value, tailLength)
 	}
 
-	//ok, not in cache, retrieve from trie
+	// ok, not in cache, retrieve from trie
 	if tdaw.tr == nil {
 		return nil, ErrNilTrie
 	}

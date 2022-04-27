@@ -109,7 +109,6 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedAcc := &mock.AccountWrapMock{}
 	expectedJournalLen := 37
 	expectedRootHash := []byte("root")
-	expectedNumCheckpoints := uint32(7)
 
 	accDb := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
@@ -126,9 +125,6 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		},
 		IsPruningEnabledCalled: func() bool {
 			return true
-		},
-		GetNumCheckpointsCalled: func() uint32 {
-			return expectedNumCheckpoints
 		},
 	}
 
@@ -156,7 +152,4 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	allLeaves := make(chan core.KeyValueHolder)
 	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil)
 	require.NoError(t, err)
-
-	actualNumCheckpoints := roAccDb.GetNumCheckpoints()
-	require.Equal(t, expectedNumCheckpoints, actualNumCheckpoints)
 }
