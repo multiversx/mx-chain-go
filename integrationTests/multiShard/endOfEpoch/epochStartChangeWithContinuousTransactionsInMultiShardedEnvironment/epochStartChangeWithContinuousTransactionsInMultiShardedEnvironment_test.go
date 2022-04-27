@@ -55,7 +55,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	time.Sleep(time.Second)
 
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
