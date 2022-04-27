@@ -61,7 +61,7 @@ func NewTxValidator(
 }
 
 // CheckTxValidity will filter transactions that needs to be added in pools
-func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandler) error {
+func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransactionHandler) error {
 	interceptedData, ok := interceptedTx.(process.InterceptedData)
 	if ok {
 		if txv.whiteListHandler.IsWhiteListed(interceptedData) {
@@ -82,7 +82,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTxHandl
 }
 
 func (txv *txValidator) checkAccount(
-	interceptedTx process.InterceptedTxHandler,
+	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
 ) error {
 	err := txv.checkNonce(interceptedTx, accountHandler)
@@ -104,7 +104,7 @@ func (txv *txValidator) checkAccount(
 }
 
 func (txv *txValidator) getSenderUserAccount(
-	interceptedTx process.InterceptedTxHandler,
+	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
 ) (state.UserAccountHandler, error) {
 	senderAddress := interceptedTx.SenderAddress()
@@ -118,7 +118,7 @@ func (txv *txValidator) getSenderUserAccount(
 	return account, nil
 }
 
-func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTxHandler, account state.UserAccountHandler) error {
+func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
@@ -134,7 +134,7 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTxHandler,
 	return nil
 }
 
-func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTxHandler, account state.UserAccountHandler) error {
+func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
 	txData, err := getTxData(interceptedTx)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTxHandl
 	return nil
 }
 
-func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTxHandler, accountHandler vmcommon.AccountHandler) error {
+func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTransactionHandler, accountHandler vmcommon.AccountHandler) error {
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
@@ -172,13 +172,13 @@ func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTxHandler, a
 	return nil
 }
 
-func (txv *txValidator) isSenderInDifferentShard(interceptedTx process.InterceptedTxHandler) bool {
+func (txv *txValidator) isSenderInDifferentShard(interceptedTx process.InterceptedTransactionHandler) bool {
 	shardID := txv.shardCoordinator.SelfId()
 	txShardID := interceptedTx.SenderShardId()
 	return shardID != txShardID
 }
 
-func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTxHandler) (vmcommon.AccountHandler, error) {
+func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTransactionHandler) (vmcommon.AccountHandler, error) {
 	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
@@ -193,7 +193,7 @@ func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTxHand
 	return accountHandler, nil
 }
 
-func getTxData(interceptedTx process.InterceptedTxHandler) ([]byte, error) {
+func getTxData(interceptedTx process.InterceptedTransactionHandler) ([]byte, error) {
 	tx := interceptedTx.Transaction()
 	if tx == nil {
 		return nil, process.ErrNilTransaction
@@ -215,7 +215,7 @@ func isBuiltinFuncCallWithParam(txData []byte, function string) bool {
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
 func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {
-	interceptedTx, ok := data.(process.InterceptedTxHandler)
+	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

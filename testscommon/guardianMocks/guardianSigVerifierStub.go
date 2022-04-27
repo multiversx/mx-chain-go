@@ -7,11 +7,11 @@ import (
 
 // GuardianSigVerifierStub -
 type GuardianSigVerifierStub struct {
-	VerifyGuardianSignatureCalled func(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error
+	VerifyGuardianSignatureCalled func(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error
 }
 
 // VerifyGuardianSignature -
-func (gsvs *GuardianSigVerifierStub) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error {
+func (gsvs *GuardianSigVerifierStub) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
 	if gsvs.VerifyGuardianSignatureCalled != nil {
 		return gsvs.VerifyGuardianSignatureCalled(account, inTx)
 	}

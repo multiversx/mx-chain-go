@@ -50,7 +50,7 @@ func getTxValidatorHandler(
 	nonce uint64,
 	sndAddr []byte,
 	fee *big.Int,
-) process.InterceptedTxHandler {
+) process.InterceptedTransactionHandler {
 	return &mock.InterceptedTxHandlerStub{
 		SenderShardIdCalled: func() uint32 {
 			return sndShardId
@@ -349,10 +349,10 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 
 	interceptedTx := struct {
 		process.InterceptedData
-		process.InterceptedTxHandler
+		process.InterceptedTransactionHandler
 	}{
-		InterceptedData:      nil,
-		InterceptedTxHandler: txValidatorHandler,
+		InterceptedData:               nil,
+		InterceptedTransactionHandler: txValidatorHandler,
 	}
 
 	// interceptedTx needs to be of type InterceptedData & TxValidatorHandler

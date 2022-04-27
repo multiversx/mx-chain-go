@@ -38,7 +38,7 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 
 // Validate checks if the intercepted data can be processed
 func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
-	interceptedTx, ok := data.(process.InterceptedTxHandler)
+	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -48,7 +48,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 
 // Save will save the received data into the cacher
 func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string) error {
-	interceptedTx, ok := data.(process.InterceptedTxHandler)
+	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

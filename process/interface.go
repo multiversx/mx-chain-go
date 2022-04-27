@@ -63,7 +63,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	CheckTxValidity(interceptedTx InterceptedTxHandler) error
+	CheckTxValidity(interceptedTx InterceptedTransactionHandler) error
 	CheckTxWhiteList(data InterceptedData) error
 	IsInterfaceNil() bool
 }
@@ -77,9 +77,9 @@ type TxValidatorHandler interface {
 	Fee() *big.Int
 }
 
-// InterceptedTxHandler defines an intercepted data wrapper over transaction handler that has
+// InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
 // receiver and sender shard getters
-type InterceptedTxHandler interface {
+type InterceptedTransactionHandler interface {
 	GetInterceptorUsedGuardianPubKey() []byte
 	SetInterceptorUsedGuardianPubKey([]byte) error
 	SenderShardId() uint32
@@ -1208,7 +1208,7 @@ type ShardedPool interface {
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTxHandler) error
+	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTransactionHandler) error
 	IsInterfaceNil() bool
 }
 

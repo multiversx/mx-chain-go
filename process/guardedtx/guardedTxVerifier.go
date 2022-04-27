@@ -11,7 +11,7 @@ import (
 
 // GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
 type GuardianSigVerifier interface {
-	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error
+	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -60,7 +60,7 @@ func NewGuardedTxSigVerifier(args GuardedTxSigVerifierArgs) (*guardedTxSigVerifi
 }
 
 // VerifyGuardianSignature verifies the guardian signature over the guarded transaction
-func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTxHandler) error {
+func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx process.InterceptedTransactionHandler) error {
 	guardianPubKey, err := gtx.GetGuardianPublicKey(account)
 	if err != nil {
 		return err
