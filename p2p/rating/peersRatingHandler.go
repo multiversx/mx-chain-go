@@ -178,37 +178,29 @@ func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, min
 		return make([]core.PeerID, 0)
 	}
 
-	peersBytes := make([][]byte, 0)
-	peersBytes = append(peersBytes, prh.topRatedCache.Keys()...)
-	if !prh.hasEnoughTopRated(peers, minNumOfPeersExpected) {
-		peersBytes = append(peersBytes, prh.badRatedCache.Keys()...)
+	peersTopRated, peersBadRated := prh.splitPeersByTiers(peers)
+	if len(peersTopRated) < minNumOfPeersExpected {
+		peersTopRated = append(peersTopRated, peersBadRated...)
 	}
 
-	return peersBytesToPeerIDs(peersBytes)
+	return peersTopRated
 }
 
-func (prh *peersRatingHandler) hasEnoughTopRated(peers []core.PeerID, numOfPeers int) bool {
-	counter := 0
+func (prh *peersRatingHandler) splitPeersByTiers(peers []core.PeerID) ([]core.PeerID, []core.PeerID) {
+	topRated := make([]core.PeerID, 0)
+	badRated := make([]core.PeerID, 0)
 
 	for _, peer := range peers {
 		if prh.topRatedCache.Has(peer.Bytes()) {
-			counter++
-			if counter >= numOfPeers {
-				return true
-			}
+			topRated = append(topRated, peer)
+		}
+
+		if prh.badRatedCache.Has(peer.Bytes()) {
+			badRated = append(badRated, peer)
 		}
 	}
 
-	return false
-}
-
-func peersBytesToPeerIDs(peersBytes [][]byte) []core.PeerID {
-	peerIDs := make([]core.PeerID, len(peersBytes))
-	for idx, peerBytes := range peersBytes {
-		peerIDs[idx] = core.PeerID(peerBytes)
-	}
-
-	return peerIDs
+	return topRated, badRated
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
