@@ -23,7 +23,6 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
@@ -37,7 +36,6 @@ require (
 	github.com/libp2p/go-tcp-transport v0.2.8
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/multiformats/go-multiaddr v0.3.3
-	github.com/onsi/gomega v1.15.0 // indirect
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
