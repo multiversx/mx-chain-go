@@ -209,7 +209,9 @@ func (trs *topicResolverSender) sendOnTopic(
 
 	histogramMap := make(map[string]int)
 
-	indexes := createIndexList(len(peerList))
+	topRatedPeersList := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, maxToSend)
+
+	indexes := createIndexList(len(topRatedPeersList))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 	logData := make([]interface{}, 0)
 	msgSentCounter := 0
@@ -219,7 +221,7 @@ func (trs *topicResolverSender) sendOnTopic(
 	}
 
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
-		peer := getPeerID(shuffledIndexes[idx], peerList, preferredPeer, peerType, topicToSendRequest, histogramMap)
+		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
