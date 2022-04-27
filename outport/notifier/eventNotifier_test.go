@@ -1,6 +1,7 @@
 package notifier_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,6 +116,13 @@ func TestFinalizedBlock(t *testing.T) {
 
 func TestMockFunctions(t *testing.T) {
 	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
 
 	en, err := notifier.NewEventNotifier(createMockEventNotifierArgs())
 	require.Nil(t, err)
