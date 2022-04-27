@@ -39,7 +39,8 @@ func TestPOST(t *testing.T) {
 		wasCalled = true
 
 		dataBytes, _ := json.Marshal(&testStruct{})
-		w.Write(dataBytes)
+		_, err := w.Write(dataBytes)
+		require.Nil(t, err)
 	}))
 
 	args := createMockHTTPClientArgs()
