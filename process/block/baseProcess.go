@@ -1866,16 +1866,15 @@ func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 }
 
 func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
-	errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
-		err, shardID, noncesToPrevFinal,
-	)
-
 	// 2 blocks on shard + 2 blocks on meta + 1 block to previous final
 	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality+1)*2 + 1
+	level := logger.LogWarning
 	if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
-		log.Debug(message, "error", errMessage)
-		return
+		level = logger.LogDebug
 	}
 
-	log.Warn(message, "error", errMessage)
+	log.Log(level, message,
+		"shard", shardID,
+		"nonces to previous final", noncesToPrevFinal,
+		"error", err.Error())
 }

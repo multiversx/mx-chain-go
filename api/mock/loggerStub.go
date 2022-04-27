@@ -4,56 +4,64 @@ import logger "github.com/ElrondNetwork/elrond-go-logger"
 
 // LoggerStub -
 type LoggerStub struct {
-	LogCalled      func(level string, message string, args ...interface{})
+	LogCalled      func(level logger.LogLevel, message string, args ...interface{})
+	LogLineCalled  func(line *logger.LogLine)
 	SetLevelCalled func(logLevel logger.LogLevel)
+}
+
+// Log -
+func (l *LoggerStub) Log(logLevel logger.LogLevel, message string, args ...interface{}) {
+	if l.LogCalled != nil {
+		l.LogCalled(logLevel, message, args...)
+	}
+}
+
+// LogLine -
+func (l *LoggerStub) LogLine(line *logger.LogLine) {
+	if l.LogLineCalled != nil {
+		l.LogLineCalled(line)
+	}
 }
 
 // Trace -
 func (l *LoggerStub) Trace(message string, args ...interface{}) {
 	if l.LogCalled != nil {
-		l.LogCalled("TRACE", message, args...)
+		l.LogCalled(logger.LogTrace, message, args...)
 	}
 }
 
 // Debug -
 func (l *LoggerStub) Debug(message string, args ...interface{}) {
 	if l.LogCalled != nil {
-		l.LogCalled("DEBUG", message, args...)
+		l.LogCalled(logger.LogDebug, message, args...)
 	}
 }
 
 // Info -
 func (l *LoggerStub) Info(message string, args ...interface{}) {
 	if l.LogCalled != nil {
-		l.LogCalled("INFO", message, args...)
+		l.LogCalled(logger.LogInfo, message, args...)
 	}
 }
 
 // Warn -
 func (l *LoggerStub) Warn(message string, args ...interface{}) {
 	if l.LogCalled != nil {
-		l.LogCalled("WARN", message, args...)
+		l.LogCalled(logger.LogWarning, message, args...)
 	}
 }
 
 // Error -
 func (l *LoggerStub) Error(message string, args ...interface{}) {
 	if l.LogCalled != nil {
-		l.LogCalled("ERROR", message, args...)
+		l.LogCalled(logger.LogError, message, args...)
 	}
 }
 
 // LogIfError -
 func (l *LoggerStub) LogIfError(err error, args ...interface{}) {
 	if l.LogCalled != nil && err != nil {
-		l.LogCalled("ERROR", err.Error(), args...)
-	}
-}
-
-// Log -
-func (l *LoggerStub) Log(line *logger.LogLine) {
-	if l.LogCalled != nil {
-		l.LogCalled("Log", "line", line)
+		l.LogCalled(logger.LogError, err.Error(), args...)
 	}
 }
 
