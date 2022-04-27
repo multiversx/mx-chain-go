@@ -89,10 +89,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
 		scf.config,
 		scf.core,
-		scf.shardCoordinator.SelfId(),
 		scf.storageService,
-		scf.enableEpochs.DisableOldTrieStorageEpoch,
-		scf.core.EpochNotifier(),
 	)
 	if err != nil {
 		return nil, err

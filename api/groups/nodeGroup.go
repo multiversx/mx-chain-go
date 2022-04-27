@@ -23,12 +23,6 @@ const (
 	p2pStatusPath       = "/p2pstatus"
 	peerInfoPath        = "/peerinfo"
 	statusPath          = "/status"
-
-	// AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
-	AccStateCheckpointsKey = "erd_num_accounts_state_checkpoints"
-
-	// PeerStateCheckpointsKey is used as a key for the number of peer state checkpoints in the api response
-	PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -37,8 +31,6 @@ type nodeFacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetNumCheckpointsFromAccountState() uint32
-	GetNumCheckpointsFromPeerState() uint32
 	IsInterfaceNil() bool
 }
 
@@ -143,8 +135,6 @@ func (ng *nodeGroup) statusMetrics(c *gin.Context) {
 		return
 	}
 
-	metrics[AccStateCheckpointsKey] = nodeFacade.GetNumCheckpointsFromAccountState()
-	metrics[PeerStateCheckpointsKey] = nodeFacade.GetNumCheckpointsFromPeerState()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

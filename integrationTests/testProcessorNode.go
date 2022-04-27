@@ -511,7 +511,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
-	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
+	tpn.initAccountDBsWithPruningStorer()
 	economicsConfig := tpn.createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
 		economicsConfig.GlobalSettings.YearSettings,
@@ -645,10 +645,8 @@ func (tpn *TestProcessorNode) Close() {
 	_ = tpn.VMContainer.Close()
 }
 
-func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer(
-	store storage.Storer,
-) {
-	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(store, tpn.ShardCoordinator, tpn.EpochStartNotifier)
+func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
+	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(tpn.ShardCoordinator, tpn.EpochStartNotifier)
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
 	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
@@ -720,7 +718,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	if tpn.EpochStartNotifier == nil {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
-	tpn.initAccountDBsWithPruningStorer(CreateMemUnit())
+	tpn.initAccountDBsWithPruningStorer()
 	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()

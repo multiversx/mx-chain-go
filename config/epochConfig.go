@@ -67,7 +67,6 @@ type EnableEpochs struct {
 	CreateNFTThroughExecByCallerEnableEpoch           uint32
 	StopDecreasingValidatorRatingWhenStuckEnableEpoch uint32
 	FrontRunningProtectionEnableEpoch                 uint32
-	DisableOldTrieStorageEpoch                        uint32
 	IsPayableBySCEnableEpoch                          uint32
 	CleanUpInformativeSCRsEnableEpoch                 uint32
 	StorageAPICostOptimizationEnableEpoch             uint32

@@ -294,6 +294,11 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
+// GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nf.apiResolver.GetTransactionsPool()
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
@@ -455,7 +460,7 @@ func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat
 	return nf.apiResolver.GetInternalShardBlockByRound(format, round)
 }
 
-// GetInternalMiniBlock return the miniblock for a given hash
+// GetInternalMiniBlockByHash return the miniblock for a given hash
 func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
 	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
@@ -467,11 +472,6 @@ func (nf *nodeFacade) Close() error {
 	nf.cancelFunc()
 
 	return nil
-}
-
-// GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
-func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
-	return nf.accountsState.GetNumCheckpoints()
 }
 
 // GetProof returns the Merkle proof for the given address and root hash
@@ -500,11 +500,6 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
 	return nf.node.VerifyProof(rootHash, address, proof)
-}
-
-// GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
-func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
-	return nf.peerState.GetNumCheckpoints()
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {

@@ -44,8 +44,6 @@ type FacadeStub struct {
 	GetUsernameCalled                       func(address string) (string, error)
 	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
-	GetNumCheckpointsFromAccountStateCalled func() uint32
-	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
@@ -72,6 +70,7 @@ type FacadeStub struct {
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
 	GetTokenSupplyCalled                    func(token string) (*api.ESDTSupply, error)
 	GetGenesisNodesPubKeysCalled            func() (map[uint32][]string, map[uint32][]string, error)
+	GetTransactionsPoolCalled               func() (*common.TransactionsPoolAPIResponse, error)
 }
 
 // GetTokenSupply -
@@ -343,24 +342,6 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
 }
 
-// GetNumCheckpointsFromAccountState -
-func (f *FacadeStub) GetNumCheckpointsFromAccountState() uint32 {
-	if f.GetNumCheckpointsFromAccountStateCalled != nil {
-		return f.GetNumCheckpointsFromAccountStateCalled()
-	}
-
-	return 0
-}
-
-// GetNumCheckpointsFromPeerState -
-func (f *FacadeStub) GetNumCheckpointsFromPeerState() uint32 {
-	if f.GetNumCheckpointsFromPeerStateCalled != nil {
-		return f.GetNumCheckpointsFromPeerStateCalled()
-	}
-
-	return 0
-}
-
 // GetBlockByNonce -
 func (f *FacadeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByNonceCalled(nonce, withTxs)
@@ -449,6 +430,15 @@ func (f *FacadeStub) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][
 		return f.GetGenesisNodesPubKeysCalled()
 	}
 	return nil, nil, nil
+}
+
+// GetTransactionsPool -
+func (f *FacadeStub) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	if f.GetTransactionsPoolCalled != nil {
+		return f.GetTransactionsPoolCalled()
+	}
+
+	return nil, nil
 }
 
 // Trigger -

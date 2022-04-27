@@ -17,27 +17,27 @@ func NewTrieStorageManagerWithoutPruning(db common.DBWriteCacher) (*trieStorageM
 		return nil, ErrNilDatabase
 	}
 
-	return &trieStorageManagerWithoutPruning{&trieStorageManager{db: db}}, nil
+	return &trieStorageManagerWithoutPruning{&trieStorageManager{mainStorer: db}}, nil
 }
 
 // Put adds only to the db
 func (tsm *trieStorageManagerWithoutPruning) Put(key []byte, val []byte) error {
-	return tsm.db.Put(key, val)
+	return tsm.mainStorer.Put(key, val)
 }
 
 // PutInEpoch adds only to the db
 func (tsm *trieStorageManagerWithoutPruning) PutInEpoch(key []byte, val []byte, _ uint32) error {
-	return tsm.db.Put(key, val)
+	return tsm.mainStorer.Put(key, val)
 }
 
 // Get checks only the db
 func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
-	return tsm.db.Get(key)
+	return tsm.mainStorer.Get(key)
 }
 
 // GetFromCurrentEpoch checks only the db
 func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	return tsm.db.Get(key)
+	return tsm.mainStorer.Get(key)
 }
 
 // TakeSnapshot does nothing if pruning is disabled
@@ -63,7 +63,7 @@ func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, _ []byte, c
 // Close - closes all underlying components
 func (tsm *trieStorageManagerWithoutPruning) Close() error {
 	log.Trace("trieStorageManagerWithoutPruning - Close:trie storage pruning is disabled")
-	return tsm.db.Close()
+	return tsm.mainStorer.Close()
 }
 
 // IsPruningEnabled returns false if the trie pruning is disabled

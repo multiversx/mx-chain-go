@@ -139,12 +139,6 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	err = inf.Close()
 	assert.Equal(t, errNodeStarting, err)
 
-	u32 := inf.GetNumCheckpointsFromAccountState()
-	assert.Equal(t, uint32(0), u32)
-
-	u32 = inf.GetNumCheckpointsFromPeerState()
-	assert.Equal(t, uint32(0), u32)
-
 	proof, err := inf.GetProof("", "")
 	assert.Nil(t, proof)
 	assert.Equal(t, errNodeStarting, err)
@@ -190,6 +184,10 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 
 	supply, err := inf.GetTokenSupply("")
 	assert.Nil(t, supply)
+	assert.Equal(t, errNodeStarting, err)
+
+	txPool, err := inf.GetTransactionsPool()
+	assert.Nil(t, txPool)
 	assert.Equal(t, errNodeStarting, err)
 
 	assert.False(t, check.IfNil(inf))
