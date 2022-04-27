@@ -46,14 +46,16 @@ func createNodesCoordinator(
 	)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                               numOfEligibleNodesPerShard,
-		NodesMeta:                                numOfMetaNodes,
-		Hysteresis:                               hysteresis,
-		Adaptivity:                               adaptivity,
-		ShuffleBetweenShards:                     shuffleBetweenShards,
-		MaxNodesEnableConfig:                     maxNodesConfig,
-		StakingV4EnableEpoch:                     stakingV4EnableEpoch,
-		StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
+		NodesShard:           numOfEligibleNodesPerShard,
+		NodesMeta:            numOfMetaNodes,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: maxNodesConfig,
+		EnableEpochs: config.EnableEpochs{
+			StakingV4EnableEpoch:                     stakingV4EnableEpoch,
+			StakingV4DistributeAuctionToWaitingEpoch: stakingV4DistributeAuctionToWaitingEpoch,
+		},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 

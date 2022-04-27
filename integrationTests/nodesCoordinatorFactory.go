@@ -42,14 +42,12 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(arg.nodesPerShard),
-		NodesMeta:                      uint32(arg.nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
+		NodesShard:           uint32(arg.nodesPerShard),
+		NodesMeta:            uint32(arg.nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
 	}
 
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
@@ -102,14 +100,12 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(arg.nodesPerShard),
-		NodesMeta:                      uint32(arg.nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		BalanceWaitingListsEnableEpoch: 0,
-		WaitingListFixEnableEpoch:      0,
+		NodesShard:           uint32(arg.nodesPerShard),
+		NodesMeta:            uint32(arg.nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
 	}
 
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)

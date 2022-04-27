@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
@@ -15,6 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
+var log = logger.GetOrCreate("testscommon/stakingCommon")
+
+// RegisterValidatorKeys will register validator's staked key in the provided accounts db
 func RegisterValidatorKeys(
 	accountsDB state.AccountsAdapter,
 	ownerAddress []byte,
@@ -25,9 +29,11 @@ func RegisterValidatorKeys(
 ) {
 	AddValidatorData(accountsDB, ownerAddress, stakedKeys, totalStake, marshaller)
 	AddStakingData(accountsDB, ownerAddress, rewardAddress, stakedKeys, marshaller)
-	_, _ = accountsDB.Commit()
+	_, err := accountsDB.Commit()
+	log.LogIfError(err)
 }
 
+// AddValidatorData will add the validator's registered keys in the provided accounts db
 func AddValidatorData(
 	accountsDB state.AccountsAdapter,
 	ownerKey []byte,
@@ -53,6 +59,7 @@ func AddValidatorData(
 	_ = accountsDB.SaveAccount(validatorSC)
 }
 
+// AddStakingData will add the owner's staked keys in the provided accounts db
 func AddStakingData(
 	accountsDB state.AccountsAdapter,
 	ownerAddress []byte,
@@ -76,6 +83,7 @@ func AddStakingData(
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
 
+// AddKeysToWaitingList will add the owner's provided bls keys in the staking queue list
 func AddKeysToWaitingList(
 	accountsDB state.AccountsAdapter,
 	waitingKeys [][]byte,
@@ -152,6 +160,7 @@ func AddKeysToWaitingList(
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
 
+// SaveOneKeyToWaitingList will add one bls key with its associated owner in the staking queue list
 func SaveOneKeyToWaitingList(
 	accountsDB state.AccountsAdapter,
 	waitingKey []byte,
@@ -189,11 +198,13 @@ func SaveOneKeyToWaitingList(
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
 
+// LoadUserAccount returns address's state.UserAccountHandler from the provided db
 func LoadUserAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	acc, _ := accountsDB.LoadAccount(address)
 	return acc.(state.UserAccountHandler)
 }
 
+// CreateEconomicsData returns an initialized process.EconomicsDataHandler
 func CreateEconomicsData() process.EconomicsDataHandler {
 	maxGasLimitPerBlock := strconv.FormatUint(1500000000, 10)
 	minGasPrice := strconv.FormatUint(10, 10)
