@@ -22,7 +22,7 @@ func (dprs *disabledPeersRatingHandler) IncreaseRating(_ core.PeerID) {
 func (dprs *disabledPeersRatingHandler) DecreaseRating(_ core.PeerID) {
 }
 
-// GetTopRatedPeersFromList returns an empty list of peers as it is disabled
+// GetTopRatedPeersFromList returns the provided peers list as it is disabled
 func (dprs *disabledPeersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, _ int) []core.PeerID {
 	return peers
 }

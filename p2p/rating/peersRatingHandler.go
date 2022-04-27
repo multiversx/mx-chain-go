@@ -6,8 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -28,13 +26,11 @@ const (
 type ArgPeersRatingHandler struct {
 	TopRatedCache storage.Cacher
 	BadRatedCache storage.Cacher
-	Randomizer    p2p.IntRandomizer
 }
 
 type peersRatingHandler struct {
 	topRatedCache storage.Cacher
 	badRatedCache storage.Cacher
-	randomizer    dataRetriever.IntRandomizer
 	mut           sync.Mutex
 }
 
@@ -48,16 +44,12 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (*peersRatingHandler, err
 	prh := &peersRatingHandler{
 		topRatedCache: args.TopRatedCache,
 		badRatedCache: args.BadRatedCache,
-		randomizer:    args.Randomizer,
 	}
 
 	return prh, nil
 }
 
 func checkArgs(args ArgPeersRatingHandler) error {
-	if check.IfNil(args.Randomizer) {
-		return p2p.ErrNilRandomizer
-	}
 	if check.IfNil(args.TopRatedCache) {
 		return fmt.Errorf("%w for TopRatedCache", p2p.ErrNilCacher)
 	}
@@ -87,19 +79,7 @@ func (prh *peersRatingHandler) IncreaseRating(pid core.PeerID) {
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	oldRating, found := prh.getOldRating(pid)
-	if !found {
-		// new pid, add it with default rating
-		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
-		return
-	}
-
-	newRating := oldRating + increaseFactor
-	if newRating > maxRating {
-		return
-	}
-
-	prh.updateRating(pid, oldRating, newRating)
+	prh.updateRatingIfNeeded(pid, increaseFactor)
 }
 
 // DecreaseRating decreases the rating of a peer with the decrease factor
@@ -107,19 +87,7 @@ func (prh *peersRatingHandler) DecreaseRating(pid core.PeerID) {
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
-	oldRating, found := prh.getOldRating(pid)
-	if !found {
-		// new pid, add it with default rating
-		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
-		return
-	}
-
-	newRating := oldRating + decreaseFactor
-	if newRating < minRating {
-		return
-	}
-
-	prh.updateRating(pid, oldRating, newRating)
+	prh.updateRatingIfNeeded(pid, decreaseFactor)
 }
 
 func (prh *peersRatingHandler) getOldRating(pid core.PeerID) (int32, bool) {
@@ -136,6 +104,33 @@ func (prh *peersRatingHandler) getOldRating(pid core.PeerID) (int32, bool) {
 	}
 
 	return defaultRating, found
+}
+
+func (prh *peersRatingHandler) updateRatingIfNeeded(pid core.PeerID, updateFactor int32) {
+	oldRating, found := prh.getOldRating(pid)
+	if !found {
+		// new pid, add it with default rating
+		prh.topRatedCache.Put(pid.Bytes(), defaultRating, int32Size)
+		return
+	}
+
+	decreasingUnderMin := oldRating == minRating && updateFactor == decreaseFactor
+	increasingOverMax := oldRating == maxRating && updateFactor == increaseFactor
+	shouldSkipUpdate := decreasingUnderMin || increasingOverMax
+	if shouldSkipUpdate {
+		return
+	}
+
+	newRating := oldRating + updateFactor
+	if newRating > maxRating {
+		newRating = maxRating
+	}
+
+	if newRating < minRating {
+		newRating = minRating
+	}
+
+	prh.updateRating(pid, oldRating, newRating)
 }
 
 func (prh *peersRatingHandler) updateRating(pid core.PeerID, oldRating, newRating int32) {
@@ -173,25 +168,23 @@ func (prh *peersRatingHandler) movePeerToNewTier(newRating int32, pid core.PeerI
 	}
 }
 
-// GetTopRatedPeersFromList returns a list of random peers, searching them in the order of rating tiers
-func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, numOfPeers int) []core.PeerID {
+// GetTopRatedPeersFromList returns a list of peers, searching them in the order of rating tiers
+func (prh *peersRatingHandler) GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID {
 	prh.mut.Lock()
 	defer prh.mut.Unlock()
 
 	isListEmpty := len(peers) == 0
-	if numOfPeers < minNumOfPeers || isListEmpty {
+	if minNumOfPeersExpected < minNumOfPeers || isListEmpty {
 		return make([]core.PeerID, 0)
 	}
 
-	if prh.hasEnoughTopRated(peers, numOfPeers) {
-		return prh.extractRandomPeers(prh.topRatedCache.Keys(), numOfPeers)
+	peersBytes := make([][]byte, 0)
+	peersBytes = append(peersBytes, prh.topRatedCache.Keys()...)
+	if !prh.hasEnoughTopRated(peers, minNumOfPeersExpected) {
+		peersBytes = append(peersBytes, prh.badRatedCache.Keys()...)
 	}
 
-	peersForExtraction := make([][]byte, 0)
-	peersForExtraction = append(peersForExtraction, prh.topRatedCache.Keys()...)
-	peersForExtraction = append(peersForExtraction, prh.badRatedCache.Keys()...)
-
-	return prh.extractRandomPeers(peersForExtraction, numOfPeers)
+	return peersBytesToPeerIDs(peersBytes)
 }
 
 func (prh *peersRatingHandler) hasEnoughTopRated(peers []core.PeerID, numOfPeers int) bool {
@@ -209,24 +202,6 @@ func (prh *peersRatingHandler) hasEnoughTopRated(peers []core.PeerID, numOfPeers
 	return false
 }
 
-func (prh *peersRatingHandler) extractRandomPeers(peersBytes [][]byte, numOfPeers int) []core.PeerID {
-	peersLen := len(peersBytes)
-	if peersLen <= numOfPeers {
-		return peersBytesToPeerIDs(peersBytes)
-	}
-
-	indexes := createIndexList(peersLen)
-	shuffledIndexes := random.FisherYatesShuffle(indexes, prh.randomizer)
-
-	randomPeers := make([]core.PeerID, numOfPeers)
-	for i := 0; i < numOfPeers; i++ {
-		peerBytes := peersBytes[shuffledIndexes[i]]
-		randomPeers[i] = core.PeerID(peerBytes)
-	}
-
-	return randomPeers
-}
-
 func peersBytesToPeerIDs(peersBytes [][]byte) []core.PeerID {
 	peerIDs := make([]core.PeerID, len(peersBytes))
 	for idx, peerBytes := range peersBytes {
@@ -234,15 +209,6 @@ func peersBytesToPeerIDs(peersBytes [][]byte) []core.PeerID {
 	}
 
 	return peerIDs
-}
-
-func createIndexList(listLength int) []int {
-	indexes := make([]int, listLength)
-	for i := 0; i < listLength; i++ {
-		indexes[i] = i
-	}
-
-	return indexes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

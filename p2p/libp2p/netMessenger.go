@@ -1226,6 +1226,10 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		}
 
 		netMes.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
+
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
 	}(msg)
 
 	return nil

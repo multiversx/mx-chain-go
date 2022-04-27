@@ -122,6 +122,17 @@ func TestNewTopicResolverSender_NilPreferredPeersHolderShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 }
 
+func TestNewTopicResolverSender_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.PeersRatingHandler = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
+}
+
 func TestNewTopicResolverSender_NilSelfShardIDProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -415,6 +426,57 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToCrossPreferred
 			return nil
 		},
 	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	assert.Nil(t, err)
+	assert.True(t, sentToPreferredPeer)
+}
+
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToIntraPreferredPeerFirst(t *testing.T) {
+	t.Parallel()
+
+	selfShardID := uint32(37)
+	pIDPreferred := core.PeerID("preferred peer")
+	numTimesSent := 0
+	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+	sentToPreferredPeer := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.TargetShardId = 0
+	arg.NumCrossShardPeers = 5
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		CrossShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{
+				selfShardID: {pIDPreferred},
+			}
+		},
+	}
+
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pIDPreferred.Bytes()) {
+				sentToPreferredPeer = true
+				require.Zero(t, numTimesSent)
+			}
+
+			numTimesSent++
+			return nil
+		},
+	}
+
+	selfShardIDProvider := mock.NewMultipleShardsCoordinatorMock()
+	selfShardIDProvider.CurrentShard = selfShardID
+	arg.SelfShardIdProvider = selfShardIDProvider
+
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)

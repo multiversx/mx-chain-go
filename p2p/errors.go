@@ -153,9 +153,6 @@ var ErrWrongTypeAssertions = errors.New("wrong type assertion")
 // ErrNilConnectionsWatcher signals that a nil connections watcher has been provided
 var ErrNilConnectionsWatcher = errors.New("nil connections watcher")
 
-// ErrNilRandomizer signals that a nil randomizer has been provided
-var ErrNilRandomizer = errors.New("nil randomizer")
-
 // ErrNilPeersRatingHandler signals that a nil peers rating handler has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
 

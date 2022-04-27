@@ -337,12 +337,6 @@ type PeersRatingHandler interface {
 	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
-	GetTopRatedPeersFromList(peers []core.PeerID, numOfPeers int) []core.PeerID
-	IsInterfaceNil() bool
-}
-
-// IntRandomizer interface provides functionality over generating integer numbers
-type IntRandomizer interface {
-	Intn(n int) int
+	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }

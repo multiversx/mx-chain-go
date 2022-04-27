@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -18,6 +19,7 @@ const (
 	// topicRequestSuffix represents the topic name suffix
 	topicRequestSuffix = "_REQUEST"
 	minPeersToQuery    = 2
+	preferredPeerIndex = -1
 )
 
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
@@ -102,9 +104,6 @@ func checkArgs(args ArgTopicResolverSender) error {
 	if check.IfNil(args.PeerListCreator) {
 		return dataRetriever.ErrNilPeerListCreator
 	}
-	if check.IfNil(args.PeersRatingHandler) {
-		return dataRetriever.ErrNilPeersRatingHandler
-	}
 	if check.IfNil(args.OutputAntiflooder) {
 		return dataRetriever.ErrNilAntifloodHandler
 	}
@@ -158,7 +157,8 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		numSentCross = trs.sendOnTopic(crossPeers, preferredPeer, topicToSendRequest, buff, trs.numCrossShardPeers, core.CrossShardPeer.String())
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
-		numSentIntra = trs.sendOnTopic(intraPeers, "", topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
+		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
+		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
 	} else {
 		// TODO: select preferred peers of type full history as well.
 		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
@@ -186,6 +186,15 @@ func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSen
 	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
+func createIndexList(listLength int) []int {
+	indexes := make([]int, listLength)
+	for i := 0; i < listLength; i++ {
+		indexes[i] = i
+	}
+
+	return indexes
+}
+
 func (trs *topicResolverSender) sendOnTopic(
 	peerList []core.PeerID,
 	preferredPeer core.PeerID,
@@ -200,30 +209,22 @@ func (trs *topicResolverSender) sendOnTopic(
 
 	histogramMap := make(map[string]int)
 
-	peersToSend := make([]core.PeerID, 0)
-
-	// first add preferred peer if exists
-	shouldSendToPreferredPeer := preferredPeer != "" && maxToSend > 1
-	if shouldSendToPreferredPeer {
-		peersToSend = append(peersToSend, preferredPeer)
-	}
-
-	topRatedPeers := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, maxToSend)
-	peersToSend = append(peersToSend, topRatedPeers...)
-
+	indexes := createIndexList(len(peerList))
+	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 	logData := make([]interface{}, 0)
 	msgSentCounter := 0
+	shouldSendToPreferredPeer := preferredPeer != "" && maxToSend > 1
+	if shouldSendToPreferredPeer {
+		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
+	}
 
-	for idx := 0; idx < len(peersToSend); idx++ {
-		peer := peersToSend[idx]
-		updateHistogramMap(peer, preferredPeer, peerType, topicToSendRequest, histogramMap)
+	for idx := 0; idx < len(shuffledIndexes); idx++ {
+		peer := getPeerID(shuffledIndexes[idx], peerList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
 			continue
 		}
-
-		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
 		logData = append(logData, peer.Pretty())
@@ -238,13 +239,16 @@ func (trs *topicResolverSender) sendOnTopic(
 	return msgSentCounter
 }
 
-func updateHistogramMap(peer core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) {
-	if peer == preferredPeer {
+func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) core.PeerID {
+	if index == preferredPeerIndex {
 		histogramMap["preferred"]++
 		log.Trace("sending request to preferred peer", "peer", preferredPeer.Pretty(), "topic", topic, "peer type", peerType)
+
+		return preferredPeer
 	}
 
 	histogramMap[peerType]++
+	return peersList[index]
 }
 
 func (trs *topicResolverSender) getPreferredPeer(shardID uint32) core.PeerID {

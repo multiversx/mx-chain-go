@@ -414,7 +414,7 @@ type PeersRatingHandler interface {
 	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
-	GetTopRatedPeersFromList(peers []core.PeerID, numOfPeers int) []core.PeerID
+	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }
 

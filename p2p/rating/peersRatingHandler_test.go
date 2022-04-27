@@ -3,13 +3,11 @@ package rating
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +17,6 @@ func createMockArgs() ArgPeersRatingHandler {
 	return ArgPeersRatingHandler{
 		TopRatedCache: &testscommon.CacherStub{},
 		BadRatedCache: &testscommon.CacherStub{},
-		Randomizer:    &random.ConcurrentSafeIntRandomizer{},
 	}
 }
 
@@ -46,16 +43,6 @@ func TestNewPeersRatingHandler(t *testing.T) {
 		prh, err := NewPeersRatingHandler(args)
 		assert.True(t, errors.Is(err, p2p.ErrNilCacher))
 		assert.True(t, strings.Contains(err.Error(), "BadRatedCache"))
-		assert.True(t, check.IfNil(prh))
-	})
-	t.Run("nil randomizer should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.Randomizer = nil
-
-		prh, err := NewPeersRatingHandler(args)
-		assert.Equal(t, p2p.ErrNilRandomizer, err)
 		assert.True(t, check.IfNil(prh))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -405,10 +392,11 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		assert.False(t, check.IfNil(prh))
 
 		providedListOfPeers := []core.PeerID{providedTopPid, providedBadPid, "another pid"}
+		expectedListOfPeers := []core.PeerID{providedTopPid, providedBadPid}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 2)
-		assert.Equal(t, 2, len(res))
+		assert.Equal(t, expectedListOfPeers, res)
 	})
-	t.Run("should extract random", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		providedPid1, providedPid2, providedPid3 := core.PeerID("provided pid 1"), core.PeerID("provided pid 2"), core.PeerID("provided pid 3")
@@ -431,10 +419,8 @@ func TestPeersRatingHandler_GetTopRatedPeersFromList(t *testing.T) {
 		assert.False(t, check.IfNil(prh))
 
 		providedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3, "another pid 1", "another pid 2"}
+		expectedListOfPeers := []core.PeerID{providedPid1, providedPid2, providedPid3}
 		res := prh.GetTopRatedPeersFromList(providedListOfPeers, 2)
-		assert.Equal(t, 2, len(res))
-		for _, resEntry := range res {
-			println(fmt.Sprintf("got pid: %s", resEntry.Bytes()))
-		}
+		assert.Equal(t, expectedListOfPeers, res)
 	})
 }

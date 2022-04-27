@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/peersholder"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -108,7 +107,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	argsPeersRatingHandler := rating.ArgPeersRatingHandler{
 		TopRatedCache: topRatedCache,
 		BadRatedCache: badRatedCache,
-		Randomizer:    &random.ConcurrentSafeIntRandomizer{},
 	}
 	peersRatingHandler, err := rating.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
