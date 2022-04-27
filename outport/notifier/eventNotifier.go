@@ -78,16 +78,16 @@ func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
 
 // SaveBlock converts block data in order to be pushed to subscribers
 func (en *eventNotifier) SaveBlock(args *indexer.ArgsSaveBlockData) error {
-	log.Debug("SaveBlock called at block", "block hash", args.HeaderHash)
+	log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.HeaderHash)
 	if args.TransactionsPool == nil {
 		return ErrNilTransactionsPool
 	}
 
-	log.Debug("checking if block has logs", "num logs", len(args.TransactionsPool.Logs))
-	log.Debug("checking if block has txs", "num txs", len(args.TransactionsPool.Txs))
+	log.Debug("eventNotifier: checking if block has logs", "num logs", len(args.TransactionsPool.Logs))
+	log.Debug("eventNotifier: checking if block has txs", "num txs", len(args.TransactionsPool.Txs))
 
 	events := en.getLogEventsFromTransactionsPool(args.TransactionsPool.Logs)
-	log.Debug("extracted events from block logs", "num events", len(events))
+	log.Debug("eventNotifier: extracted events from block logs", "num events", len(events))
 
 	blockData := SaveBlockData{
 		Hash:      hex.EncodeToString(args.HeaderHash),
@@ -127,7 +127,7 @@ func (en *eventNotifier) getLogEventsFromTransactionsPool(logs []*nodeData.LogDa
 			bech32Address := en.pubKeyConverter.Encode(eventHandler.GetAddress())
 			eventIdentifier := string(eventHandler.GetIdentifier())
 
-			log.Debug("received event from address",
+			log.Debug("eventNotifier: received event from address",
 				"address", bech32Address,
 				"identifier", eventIdentifier,
 			)
@@ -205,6 +205,7 @@ func (en *eventNotifier) IsInterfaceNil() bool {
 	return en == nil
 }
 
+// Close returns nil
 func (en *eventNotifier) Close() error {
 	return nil
 }

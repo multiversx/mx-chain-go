@@ -111,3 +111,26 @@ func TestFinalizedBlock(t *testing.T) {
 
 	require.True(t, wasCalled)
 }
+
+func TestMockFunctions(t *testing.T) {
+	t.Parallel()
+
+	en, err := notifier.NewEventNotifier(createMockEventNotifierArgs())
+	require.Nil(t, err)
+	require.False(t, en.IsInterfaceNil())
+
+	err = en.SaveRoundsInfo(nil)
+	require.Nil(t, err)
+
+	err = en.SaveValidatorsRating("", nil)
+	require.Nil(t, err)
+
+	err = en.SaveValidatorsPubKeys(nil, 0)
+	require.Nil(t, err)
+
+	err = en.SaveAccounts(0, nil)
+	require.Nil(t, err)
+
+	err = en.Close()
+	require.Nil(t, err)
+}

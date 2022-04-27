@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"errors"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
@@ -11,9 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/notifier"
 )
 
-// ErrNilPubKeyConverter signals that a nil pubkey converter has been provided
-var ErrNilPubKeyConverter = errors.New("nil pub key converter")
-
 // EventNotifierFactoryArgs defines the args needed for event notifier creation
 type EventNotifierFactoryArgs struct {
 	Enabled          bool
@@ -21,7 +16,7 @@ type EventNotifierFactoryArgs struct {
 	ProxyUrl         string
 	Username         string
 	Password         string
-	Marshalizer      marshal.Marshalizer
+	Marshaller       marshal.Marshalizer
 	Hasher           hashing.Hasher
 	PubKeyConverter  core.PubkeyConverter
 }
@@ -41,7 +36,7 @@ func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error)
 
 	notifierArgs := notifier.ArgsEventNotifier{
 		HttpClient:      httpClient,
-		Marshalizer:     args.Marshalizer,
+		Marshalizer:     args.Marshaller,
 		Hasher:          args.Hasher,
 		PubKeyConverter: args.PubKeyConverter,
 	}
@@ -50,14 +45,14 @@ func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error)
 }
 
 func checkInputArgs(args *EventNotifierFactoryArgs) error {
-	if check.IfNil(args.Marshalizer) {
+	if check.IfNil(args.Marshaller) {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Hasher) {
 		return core.ErrNilHasher
 	}
 	if check.IfNil(args.PubKeyConverter) {
-		return ErrNilPubKeyConverter
+		return outport.ErrNilPubKeyConverter
 	}
 
 	return nil

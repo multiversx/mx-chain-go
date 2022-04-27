@@ -71,9 +71,11 @@ func (h *httpClient) Post(
 		return err
 	}
 	defer func() {
-		bodyCloseErr := resp.Body.Close()
-		if bodyCloseErr != nil {
-			log.Warn("error while trying to close response body", "err", bodyCloseErr.Error())
+		if resp != nil && resp.Body != nil {
+			bodyCloseErr := resp.Body.Close()
+			if bodyCloseErr != nil {
+				log.Warn("error while trying to close response body", "err", bodyCloseErr.Error())
+			}
 		}
 	}()
 

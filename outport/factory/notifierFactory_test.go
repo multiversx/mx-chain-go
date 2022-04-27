@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
@@ -17,7 +18,7 @@ func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 		ProxyUrl:         "http://localhost:5000",
 		Username:         "",
 		Password:         "",
-		Marshalizer:      &testscommon.MarshalizerMock{},
+		Marshaller:       &testscommon.MarshalizerMock{},
 		Hasher:           &hashingMocks.HasherMock{},
 		PubKeyConverter:  &testscommon.PubkeyConverterMock{},
 	}
@@ -26,11 +27,11 @@ func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 func TestCreateEventNotifier(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil marshalizer", func(t *testing.T) {
+	t.Run("nil marshaller", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockNotifierFactoryArgs()
-		args.Marshalizer = nil
+		args.Marshaller = nil
 
 		en, err := factory.CreateEventNotifier(args)
 		require.Nil(t, en)
@@ -56,6 +57,14 @@ func TestCreateEventNotifier(t *testing.T) {
 
 		en, err := factory.CreateEventNotifier(args)
 		require.Nil(t, en)
-		require.Equal(t, factory.ErrNilPubKeyConverter, err)
+		require.Equal(t, outport.ErrNilPubKeyConverter, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		en, err := factory.CreateEventNotifier(createMockNotifierFactoryArgs())
+		require.Nil(t, err)
+		require.NotNil(t, en)
 	})
 }

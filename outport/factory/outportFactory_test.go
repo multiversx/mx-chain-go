@@ -124,7 +124,7 @@ func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
 func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	args := createMockArgsOutportHandler(false, true, false)
 
-	args.EventNotifierFactoryArgs.Marshalizer = &mock.MarshalizerMock{}
+	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	args.EventNotifierFactoryArgs.PubKeyConverter = &mock.PubkeyConverterMock{}
 	outPort, err := factory.CreateOutport(args)
