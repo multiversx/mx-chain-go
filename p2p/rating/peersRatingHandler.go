@@ -14,7 +14,7 @@ import (
 const (
 	topRatedTier   = "top rated tier"
 	badRatedTier   = "bad rated tier"
-	defaultRating  = 0
+	defaultRating  = int32(0)
 	minRating      = -100
 	maxRating      = 100
 	increaseFactor = 2
