@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -98,8 +99,9 @@ func createArguments() ArgNodesCoordinator {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-		StakingV4EnableEpoch: stakingV4Epoch,
+		EnableEpochs: config.EnableEpochs{
+			StakingV4EnableEpoch: stakingV4Epoch,
+		},
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 

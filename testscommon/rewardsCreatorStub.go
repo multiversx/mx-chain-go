@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
@@ -66,7 +65,7 @@ func (rcs *RewardsCreatorStub) GetLocalTxCache() epochStart.TransactionCacher {
 	if rcs.GetLocalTxCacheCalled != nil {
 		return rcs.GetLocalTxCacheCalled()
 	}
-	return dataPool.NewCurrentBlockPool()
+	return nil
 }
 
 // CreateMarshalizedData -

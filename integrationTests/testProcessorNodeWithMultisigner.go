@@ -477,14 +477,12 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     uint32(nodesPerShard),
-		NodesMeta:                      uint32(nbMetaNodes),
-		Hysteresis:                     hysteresis,
-		Adaptivity:                     adaptivity,
-		ShuffleBetweenShards:           shuffleBetweenShards,
-		MaxNodesEnableConfig:           nil,
-		WaitingListFixEnableEpoch:      0,
-		BalanceWaitingListsEnableEpoch: 0,
+		NodesShard:           uint32(nodesPerShard),
+		NodesMeta:            uint32(nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()

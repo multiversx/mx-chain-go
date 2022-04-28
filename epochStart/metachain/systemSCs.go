@@ -269,11 +269,17 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInf
 }
 
 func (s *systemSCProcessor) sortAuctionList(auctionList []state.ValidatorInfoHandler, randomness []byte) error {
+	if len(auctionList) == 0 {
+		return nil
+	}
+
 	validatorTopUpMap, err := s.getValidatorTopUpMap(auctionList)
 	if err != nil {
 		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
 	}
 
+	pubKeyLen := len(auctionList[0].GetPublicKey())
+	normRandomness := calcNormRand(randomness, pubKeyLen)
 	sort.SliceStable(auctionList, func(i, j int) bool {
 		pubKey1 := auctionList[i].GetPublicKey()
 		pubKey2 := auctionList[j].GetPublicKey()
@@ -282,7 +288,7 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []state.ValidatorInfoHan
 		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
 
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
-			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
+			return compareByXORWithRandomness(pubKey1, pubKey2, normRandomness)
 		}
 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
@@ -307,35 +313,32 @@ func (s *systemSCProcessor) getValidatorTopUpMap(validators []state.ValidatorInf
 	return ret, nil
 }
 
-func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
-	lenPubKey := len(pubKey1)
+func calcNormRand(randomness []byte, expectedLen int) []byte {
 	lenRand := len(randomness)
-
-	minLen := core.MinInt(lenPubKey, lenRand)
-	maxLen := core.MaxInt(lenPubKey, lenRand)
-	repeatedCt := maxLen/minLen + 1
+	minLen := core.MinInt(expectedLen, lenRand)
+	maxLen := core.MaxInt(expectedLen, lenRand)
 
 	rnd := randomness
-	pk1 := pubKey1
-	pk2 := pubKey2
-
-	if lenPubKey > lenRand {
+	if expectedLen > lenRand {
+		repeatedCt := maxLen/minLen + 1
 		rnd = bytes.Repeat(randomness, repeatedCt)
 		rnd = rnd[:maxLen]
 	} else {
-		pk1 = bytes.Repeat(pk1, repeatedCt)
-		pk2 = bytes.Repeat(pk2, repeatedCt)
-
-		pk1 = pk1[:maxLen]
-		pk2 = pk2[:maxLen]
+		rnd = rnd[:minLen]
 	}
 
-	key1Xor := make([]byte, maxLen)
-	key2Xor := make([]byte, maxLen)
+	return rnd
+}
 
-	for idx := 0; idx < maxLen; idx++ {
-		key1Xor[idx] = pk1[idx] ^ rnd[idx]
-		key2Xor[idx] = pk2[idx] ^ rnd[idx]
+func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
+	xorLen := len(randomness)
+
+	key1Xor := make([]byte, xorLen)
+	key2Xor := make([]byte, xorLen)
+
+	for idx := 0; idx < xorLen; idx++ {
+		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
+		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
 	}
 
 	return bytes.Compare(key1Xor, key2Xor) == 1

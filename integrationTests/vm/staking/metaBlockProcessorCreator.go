@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -86,11 +87,15 @@ func createMetaBlockProcessor(
 			VMContainersFactory:            metaVMFactory,
 			VmContainer:                    vmContainer,
 		},
-		SCToProtocol:                 &mock.SCToProtocolStub{},
-		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
-		EpochStartDataCreator:        epochStartDataCreator,
-		EpochEconomics:               &mock.EpochEconomicsStub{},
-		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
+		SCToProtocol:             &mock.SCToProtocolStub{},
+		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+		EpochStartDataCreator:    epochStartDataCreator,
+		EpochEconomics:           &mock.EpochEconomicsStub{},
+		EpochRewardsCreator: &testscommon.RewardsCreatorStub{
+			GetLocalTxCacheCalled: func() epochStart.TransactionCacher {
+				return dataPool.NewCurrentBlockPool()
+			},
+		},
 		EpochValidatorInfoCreator:    valInfoCreator,
 		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
