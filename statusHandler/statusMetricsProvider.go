@@ -263,7 +263,6 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	sm.mutUint64Operations.RLock()
-	defer sm.mutUint64Operations.RUnlock()
 
 	networkMetrics := make(map[string]interface{})
 
@@ -290,6 +289,14 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 		noncesPassedInEpoch = currentNonce - nonceAtEpochStart
 	}
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
+	sm.mutUint64Operations.RUnlock()
+
+	sm.mutStringOperations.RLock()
+	crossCheckValue := sm.stringMetrics[common.MetricCrossCheckBlockHeight]
+	if len(crossCheckValue) > 0 {
+		networkMetrics[common.MetricCrossCheckBlockHeight] = crossCheckValue
+	}
+	sm.mutStringOperations.RUnlock()
 
 	return networkMetrics
 }
