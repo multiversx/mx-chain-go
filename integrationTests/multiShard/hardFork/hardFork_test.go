@@ -80,7 +80,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 5
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(roundsPerEpoch), nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
@@ -177,7 +177,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 		integrationTests.MinTransactionVersion,
 	)
 	time.Sleep(time.Second)
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {

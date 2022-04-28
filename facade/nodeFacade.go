@@ -294,6 +294,11 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
+// GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nf.apiResolver.GetTransactionsPool()
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
@@ -558,12 +563,12 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			logAddress = ""
 		}
 
-		logs[i] = &vm.LogEntryApi{
+		logs = append(logs, &vm.LogEntryApi{
 			Identifier: originalLog.Identifier,
 			Address:    logAddress,
 			Topics:     originalLog.Topics,
 			Data:       originalLog.Data,
-		}
+		})
 	}
 
 	return &vm.VMOutputApi{
