@@ -48,17 +48,19 @@ func (ncf *nodesCoordinatorRegistryFactory) CreateNodesCoordinatorRegistry(buff 
 	//return createOldRegistry(buff)
 	registry, err := ncf.createRegistryWithAuction(buff)
 	if err == nil {
+		log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created registry with auction")
 		return registry, nil
 	}
-
+	log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created old registry")
 	return createOldRegistry(buff)
 }
 
 func (ncf *nodesCoordinatorRegistryFactory) GetRegistryData(registry NodesCoordinatorRegistryHandler, epoch uint32) ([]byte, error) {
 	if epoch >= ncf.stakingV4EnableEpoch {
+		log.Debug("nodesCoordinatorRegistryFactory.GetRegistryData called with auction", "epoch", epoch)
 		return ncf.marshaller.Marshal(registry)
 	}
-
+	log.Debug("nodesCoordinatorRegistryFactory.GetRegistryData called with old json", "epoch", epoch)
 	return json.Marshal(registry)
 }
 

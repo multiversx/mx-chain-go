@@ -158,7 +158,7 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, err
 	}
 
-	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry()
+	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry(currMetaBlock.GetEpoch())
 	nodesConfig.SetCurrentEpoch(currMetaBlock.GetEpoch())
 	return nodesConfig, selfShardId, nil
 }

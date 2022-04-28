@@ -59,25 +59,27 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	}
 }
 
-func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihnc.NodesCoordinatorToRegistry()
+func (ihnc *indexHashedNodesCoordinator) saveState(key []byte, epoch uint32) error {
+	registry := ihnc.NodesCoordinatorToRegistry(epoch)
 	data, err := ihnc.nodesCoordinatorRegistryFactory.GetRegistryData(registry, ihnc.currentEpoch)
 	if err != nil {
 		return err
 	}
 
 	ncInternalKey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
-	log.Debug("saving nodes coordinator config", "key", ncInternalKey)
+	log.Debug("saving nodes coordinator config", "key", ncInternalKey, "epoch", epoch)
 
 	return ihnc.bootStorer.Put(ncInternalKey, data)
 }
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
-func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() NodesCoordinatorRegistryHandler {
-	if ihnc.currentEpoch >= ihnc.stakingV4EnableEpoch {
+func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry(epoch uint32) NodesCoordinatorRegistryHandler {
+	if epoch >= ihnc.stakingV4EnableEpoch {
+		log.Debug("indexHashedNodesCoordinator.NodesCoordinatorToRegistry called with auction registry", "epoch", epoch)
 		return ihnc.nodesCoordinatorToRegistryWithAuction()
 	}
 
+	log.Debug("indexHashedNodesCoordinator.NodesCoordinatorToRegistry called with old registry", "epoch", epoch)
 	return ihnc.nodesCoordinatorToOldRegistry()
 }
 

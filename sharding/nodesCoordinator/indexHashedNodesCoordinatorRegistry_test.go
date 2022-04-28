@@ -82,7 +82,7 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 	expectedConfig := nodesCoordinator.nodesConfig[0]
 
 	key := []byte("config")
-	err := nodesCoordinator.saveState(key)
+	err := nodesCoordinator.saveState(key, 0)
 	assert.Nil(t, err)
 
 	delete(nodesCoordinator.nodesConfig, 0)
@@ -109,7 +109,7 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSaveWithStakingV4(t *testing.
 	expectedConfig := nodesCoordinator.nodesConfig[stakingV4Epoch]
 
 	key := []byte("config")
-	err := nodesCoordinator.saveState(key)
+	err := nodesCoordinator.saveState(key, stakingV4Epoch)
 	assert.Nil(t, err)
 
 	delete(nodesCoordinator.nodesConfig, 0)
@@ -133,7 +133,7 @@ func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistryWithStakingV4(t *
 	nodesCoordinator.nodesConfig[stakingV4Epoch].leavingMap = createDummyNodesMap(3, 0, string(common.LeavingList))
 	nodesCoordinator.nodesConfig[stakingV4Epoch].shuffledOutMap = createDummyNodesMap(3, 0, string(common.SelectedFromAuctionList))
 
-	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry(stakingV4Epoch)
 	nc := nodesCoordinator.nodesConfig
 
 	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
@@ -152,7 +152,7 @@ func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistry(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
-	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry(args.Epoch)
 	nc := nodesCoordinator.nodesConfig
 
 	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
@@ -167,7 +167,7 @@ func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistry(t *testing.T) {
 func TestIndexHashedNodesCoordinator_registryToNodesCoordinator(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator1, _ := NewIndexHashedNodesCoordinator(args)
-	ncr := nodesCoordinator1.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator1.NodesCoordinatorToRegistry(args.Epoch)
 
 	args = createArguments()
 	nodesCoordinator2, _ := NewIndexHashedNodesCoordinator(args)
@@ -201,7 +201,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 		}
 	}
 
-	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry(args.Epoch)
 	nc := nodesCoordinator.nodesConfig
 
 	require.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())

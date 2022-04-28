@@ -161,7 +161,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihnc.fillPublicKeyToValidatorMap()
-	err = ihnc.saveState(ihnc.savedStateKey)
+	err = ihnc.saveState(ihnc.savedStateKey, arguments.Epoch)
 	if err != nil {
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
@@ -675,7 +675,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	}
 
 	ihnc.fillPublicKeyToValidatorMap()
-	err = ihnc.saveState(randomness)
+	err = ihnc.saveState(randomness, newEpoch)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
@@ -861,7 +861,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	needToRemove := epochToRemove >= 0
 	ihnc.currentEpoch = newEpoch
 
-	err := ihnc.saveState(ihnc.savedStateKey)
+	err := ihnc.saveState(ihnc.savedStateKey, newEpoch)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
