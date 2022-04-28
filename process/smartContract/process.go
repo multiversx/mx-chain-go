@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen"
+	"github.com/ElrondNetwork/arwen-wasm-vm/v1_4/arwen/contexts"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -1209,6 +1211,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		Function:          parsedTransfer.CallFunction,
 		AllowInitFunction: false,
 	}
+	PrependEmptyAsyncContextArgs(newVMInput, false)
 	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
 
 	return true, newVMInput, nil
@@ -1254,8 +1257,18 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(
 		AllowInitFunction: false,
 	}
 	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
+	PrependEmptyAsyncContextArgs(newVMInput, false)
 
 	return newVMInput
+}
+
+func PrependEmptyAsyncContextArgs(vmInput *vmcommon.ContractCallInput, builtInFuncCall bool) {
+	if contexts.IsCallAsync(vmInput.CallType) && !builtInFuncCall {
+		arwen.PrependToArguments(vmInput, []byte{}, []byte{})
+		if contexts.IsCallback(vmInput.CallType) {
+			arwen.PrependToArguments(vmInput, []byte{})
+		}
+	}
 }
 
 // isCrossShardESDTTransfer is called when return is created out of the esdt transfer as of failed transaction
