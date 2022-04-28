@@ -124,7 +124,7 @@ func (sc *scProcessor) createVMCallInput(
 	}
 
 	if contexts.IsCallback(vmCallInput.CallType) && !builtInFuncCall {
-		arwen.PrependToArguments(vmCallInput, []byte{}, []byte{}, []byte{})
+		arwen.PrependToArguments(vmCallInput, []byte{}, []byte{}, []byte{}, []byte{})
 	}
 
 	return vmCallInput, nil

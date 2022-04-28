@@ -149,6 +149,10 @@ func removeAsyncContextArguments(input *vmcommon.ContractCallInput) error {
 			if err != nil {
 				return err
 			}
+			_ /*gasAccumulated*/, err = contexts.PopFirstArgumentFromVMInput(vmInput)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

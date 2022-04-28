@@ -1266,7 +1266,7 @@ func PrependEmptyAsyncContextArgs(vmInput *vmcommon.ContractCallInput, builtInFu
 	if contexts.IsCallAsync(vmInput.CallType) && !builtInFuncCall {
 		arwen.PrependToArguments(vmInput, []byte{}, []byte{})
 		if contexts.IsCallback(vmInput.CallType) {
-			arwen.PrependToArguments(vmInput, []byte{})
+			arwen.PrependToArguments(vmInput, []byte{}, []byte{})
 		}
 	}
 }

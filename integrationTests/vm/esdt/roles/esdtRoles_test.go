@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
@@ -265,7 +264,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -298,7 +297,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	nonce++
 
 	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/egld-esdt-swap.wasm")
-	_ = logger.SetLogLevel("process/smartcontract:TRACE,arwen:TRACE,arwen/storage:TRACE")
+
 	// issue ESDT by calling exec on dest context on child contract
 	ticker := "DSN"
 	name := "DisplayName"
@@ -346,7 +345,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 			integrationTests.AdditionalGasLimit,
 		)
 	}
-	nrRoundsToPropagateMultiShard = 1
+
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
