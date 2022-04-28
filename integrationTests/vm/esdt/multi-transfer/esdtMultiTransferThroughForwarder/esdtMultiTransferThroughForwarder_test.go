@@ -1,4 +1,4 @@
-package multitransfer
+package esdtMultiTransferThroughForwarder
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	multitransfer "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/multi-transfer"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 )
 
@@ -24,17 +25,17 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	senderNode := net.NodesSharded[0][0]
 	owner := senderNode.OwnAccount
-	forwarder := net.DeployPayableSC(owner, "../testdata/forwarder.wasm")
-	vault := net.DeployNonpayableSC(owner, "../testdata/vaultV2.wasm")
-	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../testdata/vaultV2.wasm")
+	forwarder := net.DeployPayableSC(owner, "../../testdata/forwarder.wasm")
+	vault := net.DeployNonpayableSC(owner, "../../testdata/vaultV2.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
 
 	// Create the fungible token
 	supply := int64(1000)
-	tokenID := issueFungibleToken(t, net, senderNode, "FUNG1", supply)
+	tokenID := multitransfer.IssueFungibleToken(t, net, senderNode, "FUNG1", supply)
 
 	// Issue and create an SFT
-	sftID := issueNft(net, senderNode, "SFT1", true)
-	createSFT(t, net, senderNode, sftID, 1, supply)
+	sftID := multitransfer.IssueNft(net, senderNode, "SFT1", true)
+	multitransfer.CreateSFT(t, net, senderNode, sftID, 1, supply)
 
 	// Send the tokens to the forwarder SC
 	txData := txDataBuilder.NewBuilder()
@@ -52,11 +53,11 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 	esdt.CheckAddressHasTokens(t, forwarder, net.Nodes, []byte(tokenID), 0, supply)
 
 	// transfer to a user from another shard
-	transfers := []*esdtTransfer{
+	transfers := []*multitransfer.EsdtTransfer{
 		{
-			tokenIdentifier: tokenID,
-			nonce:           0,
-			amount:          100,
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
 		}}
 	destAddress := net.NodesSharded[1][0].OwnAccount.Address
 	multiTransferThroughForwarder(
@@ -84,16 +85,16 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	// transfer fungible and non-fungible
 	// transfer to vault, same shard
-	transfers = []*esdtTransfer{
+	transfers = []*multitransfer.EsdtTransfer{
 		{
-			tokenIdentifier: tokenID,
-			nonce:           0,
-			amount:          100,
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
 		},
 		{
-			tokenIdentifier: sftID,
-			nonce:           1,
-			amount:          100,
+			TokenIdentifier: sftID,
+			Nonce:           1,
+			Amount:          100,
 		},
 	}
 	multiTransferThroughForwarder(
@@ -112,16 +113,16 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	// transfer fungible and non-fungible
 	// transfer to vault, cross shard via transfer and execute
-	transfers = []*esdtTransfer{
+	transfers = []*multitransfer.EsdtTransfer{
 		{
-			tokenIdentifier: tokenID,
-			nonce:           0,
-			amount:          100,
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
 		},
 		{
-			tokenIdentifier: sftID,
-			nonce:           1,
-			amount:          100,
+			TokenIdentifier: sftID,
+			Nonce:           1,
+			Amount:          100,
 		},
 	}
 	multiTransferThroughForwarder(
@@ -139,16 +140,16 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 	esdt.CheckAddressHasTokens(t, vaultOtherShard, net.Nodes, []byte(sftID), 1, 100)
 
 	// transfer to vault, cross shard, via async call
-	transfers = []*esdtTransfer{
+	transfers = []*multitransfer.EsdtTransfer{
 		{
-			tokenIdentifier: tokenID,
-			nonce:           0,
-			amount:          100,
+			TokenIdentifier: tokenID,
+			Nonce:           0,
+			Amount:          100,
 		},
 		{
-			tokenIdentifier: sftID,
-			nonce:           1,
-			amount:          100,
+			TokenIdentifier: sftID,
+			Nonce:           1,
+			Amount:          100,
 		},
 	}
 	multiTransferThroughForwarder(
@@ -171,14 +172,14 @@ func multiTransferThroughForwarder(
 	ownerWallet *integrationTests.TestWalletAccount,
 	forwarderAddress []byte,
 	function string,
-	transfers []*esdtTransfer,
+	transfers []*multitransfer.EsdtTransfer,
 	destAddress []byte) {
 
 	txData := txDataBuilder.NewBuilder()
 	txData.Func(function).Bytes(destAddress)
 
 	for _, transfer := range transfers {
-		txData.Str(transfer.tokenIdentifier).Int64(transfer.nonce).Int64(transfer.amount)
+		txData.Str(transfer.TokenIdentifier).Int64(transfer.Nonce).Int64(transfer.Amount)
 	}
 
 	tx := net.CreateTxUint64(ownerWallet, forwarderAddress, 0, txData.ToBytes())

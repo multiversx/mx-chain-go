@@ -1,6 +1,7 @@
+//go:build !race
 // +build !race
 
-package nft
+package esdtNFTSCs
 
 import (
 	"encoding/hex"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/nft"
 	"github.com/stretchr/testify/require"
 )
 
@@ -292,7 +294,7 @@ func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.
 	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 2, big.NewInt(1))
 	checkAddressHasNft(t, scAddress, scAddress, nodes, []byte(tokenIdentifier), 1, big.NewInt(1))
 
-	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/nft-receiver.wasm")
+	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../../testdata/nft-receiver.wasm")
 	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationSCAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()) +
 		"@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString([]byte("wrongFunctionToCall")))
@@ -382,7 +384,7 @@ func TestESDTTransferNFTToSCIntraShard(t *testing.T) {
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTRoleNFTBurn),
 	}
-	tokenIdentifier, _ := prepareNFTWithRoles(
+	tokenIdentifier, _ := nft.PrepareNFTWithRoles(
 		t,
 		nodes,
 		idxProposers,
@@ -452,7 +454,7 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTRoleNFTBurn),
 	}
-	tokenIdentifier, _ := prepareNFTWithRoles(
+	tokenIdentifier, _ := nft.PrepareNFTWithRoles(
 		t,
 		nodes,
 		idxProposers,
@@ -528,7 +530,7 @@ func deployAndIssueNFTSFTThroughSC(
 	issueFunc string,
 	rolesEncoded string,
 ) ([]byte, string) {
-	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, nonce, round, "../testdata/local-esdt-and-nft.wasm")
+	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, nonce, round, "../../testdata/local-esdt-and-nft.wasm")
 
 	issuePrice := big.NewInt(1000)
 	txData := []byte(issueFunc + "@" + hex.EncodeToString([]byte("TOKEN")) +
