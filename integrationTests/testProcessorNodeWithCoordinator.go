@@ -132,14 +132,14 @@ func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[u
 	blockSignKeyGen := signing.NewKeyGenerator(suiteBlock)
 	txSignKeyGen := signing.NewKeyGenerator(suiteTx)
 
-	//we need to first precompute the num shard ID
+	// we need to first precompute the num shard ID
 	for shardID := range rewardsAddrsAssignments {
 		foundAHigherShardID := shardID != core.MetachainShardId && shardID > numShards
 		if foundAHigherShardID {
 			numShards = shardID
 		}
 	}
-	//we need to increment this as the numShards is actually the max shard at this moment
+	// we need to increment this as the numShards is actually the max shard at this moment
 	numShards++
 
 	ncp := make(map[uint32][]*nodeKeys)

@@ -459,7 +459,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
@@ -1353,6 +1353,18 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
+	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil)
+}
+
+func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
+	txHash []byte,
+	tx data.TransactionHandler,
+	returnCode string,
+	returnMessage []byte,
+	snapshot int,
+	gasLocked uint64,
+	internalVMLogs []*vmcommon.LogEntry,
+) error {
 	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
 		ReturnCode:    vmcommon.SimulateFailed,
 		ReturnMessage: string(returnMessage),
@@ -1399,6 +1411,9 @@ func (sc *scProcessor) ProcessIfError(
 	processIfErrorLogs = append(processIfErrorLogs, userErrorLog)
 	if relayerLog != nil {
 		processIfErrorLogs = append(processIfErrorLogs, relayerLog)
+	}
+	if len(internalVMLogs) > 0 {
+		processIfErrorLogs = append(processIfErrorLogs, internalVMLogs...)
 	}
 
 	logsTxHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, txHash)
@@ -1710,7 +1725,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
 	}
 
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
@@ -2683,6 +2698,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		"ProcessSmartContractResult: receiver account details",
 		dstAcc,
 		scr,
+		txHash,
 		sc.pubkeyConv,
 	)
 

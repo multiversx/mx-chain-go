@@ -314,20 +314,16 @@ func (s *systemSCProcessor) getValidatorTopUpMap(validators []state.ValidatorInf
 }
 
 func calcNormRand(randomness []byte, expectedLen int) []byte {
-	lenRand := len(randomness)
-	minLen := core.MinInt(expectedLen, lenRand)
-	maxLen := core.MaxInt(expectedLen, lenRand)
+	rand := randomness
+	randLen := len(rand)
 
-	rnd := randomness
-	if expectedLen > lenRand {
-		repeatedCt := maxLen/minLen + 1
-		rnd = bytes.Repeat(randomness, repeatedCt)
-		rnd = rnd[:maxLen]
-	} else {
-		rnd = rnd[:minLen]
+	if expectedLen > randLen {
+		repeatedCt := expectedLen/randLen + 1
+		rand = bytes.Repeat(randomness, repeatedCt)
 	}
 
-	return rnd
+	rand = rand[:expectedLen]
+	return rand
 }
 
 func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {

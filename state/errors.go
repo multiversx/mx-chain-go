@@ -122,6 +122,9 @@ var ErrNilRootHash = errors.New("nil root hash")
 // ErrNilChainHandler signals that a nil chain handler was provided
 var ErrNilChainHandler = errors.New("nil chain handler")
 
+// ErrNilProcessStatusHandler signals that a nil process status handler was provided
+var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
 // ErrNilValidatorInfo signals that a nil value for the validator info has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
 

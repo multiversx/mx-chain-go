@@ -9,14 +9,15 @@ import (
 
 // UnsignedTxHandlerStub -
 type UnsignedTxHandlerStub struct {
-	CleanProcessedUtxsCalled    func()
-	ProcessTransactionFeeCalled func(cost *big.Int, fee *big.Int, hash []byte)
-	CreateAllUTxsCalled         func() []data.TransactionHandler
-	VerifyCreatedUTxsCalled     func() error
-	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
-	GetAccumulatedFeesCalled    func() *big.Int
-	GetDeveloperFeesCalled      func() *big.Int
-	RevertFeesCalled            func(txHashes [][]byte)
+	CleanProcessedUtxsCalled                 func()
+	ProcessTransactionFeeCalled              func(cost *big.Int, fee *big.Int, hash []byte)
+	ProcessTransactionFeeRelayedUserTxCalled func(cost *big.Int, devFee *big.Int, userTxHash []byte, originalTxHash []byte)
+	CreateAllUTxsCalled                      func() []data.TransactionHandler
+	VerifyCreatedUTxsCalled                  func() error
+	AddTxFeeFromBlockCalled                  func(tx data.TransactionHandler)
+	GetAccumulatedFeesCalled                 func() *big.Int
+	GetDeveloperFeesCalled                   func() *big.Int
+	RevertFeesCalled                         func(txHashes [][]byte)
 }
 
 // RevertFees -
@@ -71,6 +72,15 @@ func (ut *UnsignedTxHandlerStub) ProcessTransactionFee(cost *big.Int, devFee *bi
 	}
 
 	ut.ProcessTransactionFeeCalled(cost, devFee, txHash)
+}
+
+// ProcessTransactionFeeRelayedUserTx -
+func (ut *UnsignedTxHandlerStub) ProcessTransactionFeeRelayedUserTx(cost *big.Int, devFee *big.Int, userTxHash []byte, originalTxHash []byte) {
+	if ut.ProcessTransactionFeeRelayedUserTxCalled == nil {
+		return
+	}
+
+	ut.ProcessTransactionFeeRelayedUserTxCalled(cost, devFee, userTxHash, originalTxHash)
 }
 
 // CreateAllUTxs -

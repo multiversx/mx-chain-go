@@ -3004,19 +3004,20 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		StatusHandlerField:     &statusHandlerMock.AppStatusHandlerStub{},
-		WatchdogField:          &testscommon.WatchdogMock{},
-		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
-		SyncTimerField:         &testscommon.SyncTimerStub{},
-		RoundHandlerField:      &testscommon.RoundHandlerMock{},
-		EconomicsDataField:     &economicsmocks.EconomicsHandlerStub{},
-		RatingsDataField:       &testscommon.RatingsInfoMock{},
-		RaterField:             &testscommon.RaterMock{},
-		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
-		GenesisTimeField:       time.Time{},
-		EpochNotifierField:     &epochNotifier.EpochNotifierStub{},
-		RoundNotifierField:     &processMock.RoundNotifierStub{},
-		TxVersionCheckField:    versioning.NewTxVersionChecker(MinTransactionVersion),
+		StatusHandlerField:           &statusHandlerMock.AppStatusHandlerStub{},
+		WatchdogField:                &testscommon.WatchdogMock{},
+		AlarmSchedulerField:          &testscommon.AlarmSchedulerStub{},
+		SyncTimerField:               &testscommon.SyncTimerStub{},
+		RoundHandlerField:            &testscommon.RoundHandlerMock{},
+		EconomicsDataField:           &economicsmocks.EconomicsHandlerStub{},
+		RatingsDataField:             &testscommon.RatingsInfoMock{},
+		RaterField:                   &testscommon.RaterMock{},
+		GenesisNodesSetupField:       &testscommon.NodesSetupStub{},
+		GenesisTimeField:             time.Time{},
+		EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
+		RoundNotifierField:           &processMock.RoundNotifierStub{},
+		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
+		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 	}
 }
 
