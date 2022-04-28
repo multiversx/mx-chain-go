@@ -108,6 +108,7 @@ type ApiResolver interface {
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error)
 	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 	GetBlockByRound(round uint64, withTxs bool) (*api.Block, error)

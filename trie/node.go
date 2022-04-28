@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
@@ -18,7 +19,8 @@ const (
 	nibbleSize           = 4
 	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
-	numNodeInnerPointers = 2 //each trie node contains a marshalizer and a hasher
+	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
+	pollingIdleNode      = time.Millisecond
 )
 
 type baseNode struct {
@@ -87,7 +89,7 @@ func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
 		return 0, err
 	}
 
-	//test point encodeNodeAndCommitToDB
+	// test point encodeNodeAndCommitToDB
 
 	err = db.Put(key, val)
 
@@ -258,11 +260,22 @@ func prefixLen(a, b []byte) int {
 	return i
 }
 
-func shouldStopIfContextDone(ctx context.Context) bool {
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
+func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider) bool {
+	for {
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+		}
+
+		if idleProvider.IsIdle() {
+			return false
+		}
+
+		select {
+		case <-ctx.Done():
+			return true
+		case <-time.After(pollingIdleNode):
+		}
 	}
 }

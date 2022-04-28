@@ -226,3 +226,76 @@ func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 	epoch := boot.getEpochOfCurrentBlock()
 	assert.Equal(t, headerEpoch, epoch)
 }
+
+func TestBaseSync_shouldAllowRollback(t *testing.T) {
+	t.Parallel()
+
+	boot := &baseBootstrap{
+		forkDetector: &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 10
+			},
+		},
+	}
+
+	t.Run("should allow rollback nonces above final", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 11
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return false
+			},
+		}
+		require.True(t, boot.shouldAllowRollback(header))
+
+		header.HasScheduledMiniBlocksCalled = func() bool {
+			return true
+		}
+		require.True(t, boot.shouldAllowRollback(header))
+	})
+
+	t.Run("should not allow rollback of a final header if it doesn't have scheduled miniBlocks", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return false
+			},
+		}
+		header.GetNonceCalled = func() uint64 {
+			return 10
+		}
+		require.False(t, boot.shouldAllowRollback(header))
+	})
+
+	t.Run("should allow rollback of a final header if it holds scheduled miniBlocks", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		require.True(t, boot.shouldAllowRollback(header))
+	})
+
+	t.Run("should not allow any rollBack of a header if nonce is behind final", func(t *testing.T){
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 9
+			},
+			HasScheduledMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header))
+
+		header.HasScheduledMiniBlocksCalled = func() bool {
+			return false
+		}
+		require.False(t, boot.shouldAllowRollback(header))
+	})
+}

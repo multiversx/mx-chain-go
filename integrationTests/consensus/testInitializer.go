@@ -158,7 +158,7 @@ func createTestStore() dataRetriever.StorageService {
 	return store
 }
 
-func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
+func createAccountsDB(marshaller marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := sha256.NewSha256()
 	evictionWaitListSize := uint(100)
@@ -173,10 +173,11 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	args := trie.NewTrieStorageManagerArgs{
 		MainStorer:             createMemUnit(),
 		CheckpointsStorer:      createMemUnit(),
-		Marshalizer:            marshalizer,
+		Marshalizer:            marshaller,
 		Hasher:                 hasher,
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -186,18 +187,22 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		ewl,
 		generalCfg.PruningBufferLen,
 	)
-	adb, _ := state.NewAccountsDB(
-		tr,
-		sha256.NewSha256(),
-		marshalizer,
-		&mock.AccountsFactoryStub{
+
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:       tr,
+		Hasher:     sha256.NewSha256(),
+		Marshaller: marshaller,
+		AccountFactory: &mock.AccountsFactoryStub{
 			CreateAccountCalled: func(address []byte) (wrapper vmcommon.AccountHandler, e error) {
 				return state.NewUserAccount(address)
 			},
 		},
-		storagePruning,
-		common.Normal,
-	)
+		StoragePruningManager: storagePruning,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
 	return adb
 }
 

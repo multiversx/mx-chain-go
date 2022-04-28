@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -15,23 +16,24 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	Marsh                       marshal.Marshalizer
-	Hash                        hashing.Hasher
-	EpochNotifierField          process.EpochNotifier
-	TxSignHasherField           hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	StatusHandlerCalled         func() core.AppStatusHandler
-	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
-	TxVersionCheckField         process.TxVersionCheckerHandler
-	ChanStopNode                chan endProcess.ArgEndProcess
-	NodeTypeProviderField       core.NodeTypeProviderHandler
-	mutCore                     sync.RWMutex
+	IntMarsh                     marshal.Marshalizer
+	Marsh                        marshal.Marshalizer
+	Hash                         hashing.Hasher
+	EpochNotifierField           process.EpochNotifier
+	TxSignHasherField            hashing.Hasher
+	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv               core.PubkeyConverter
+	ValPubKeyConv                core.PubkeyConverter
+	PathHdl                      storage.PathManagerHandler
+	ChainIdCalled                func() string
+	MinTransactionVersionCalled  func() uint32
+	StatusHandlerCalled          func() core.AppStatusHandler
+	GenesisNodesSetupCalled      func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField          process.TxVersionCheckerHandler
+	ChanStopNode                 chan endProcess.ArgEndProcess
+	NodeTypeProviderField        core.NodeTypeProviderHandler
+	ProcessStatusHandlerInstance common.ProcessStatusHandler
+	mutCore                      sync.RWMutex
 }
 
 // ChanStopNodeProcess -
@@ -143,6 +145,11 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 		return ccm.GenesisNodesSetupCalled()
 	}
 	return nil
+}
+
+// ProcessStatusHandler -
+func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
+	return ccm.ProcessStatusHandlerInstance
 }
 
 // IsInterfaceNil -

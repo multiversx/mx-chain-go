@@ -30,6 +30,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		PruningEnabled:     false,
 		CheckpointsEnabled: false,
 		MaxTrieLevelInMem:  5,
+		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
 	}
 }
 
@@ -96,8 +97,8 @@ func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 	createArgs := getCreateArgs()
 	createArgs.PruningEnabled = true
 	_, tr, err := tf.Create(createArgs)
-	require.NotNil(t, tr)
 	require.Nil(t, err)
+	require.NotNil(t, tr)
 }
 
 func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
