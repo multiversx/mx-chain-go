@@ -398,7 +398,7 @@ func TestESDTTransferNFTToSCIntraShard(t *testing.T) {
 
 	nonceArg := hex.EncodeToString(big.NewInt(0).SetUint64(1).Bytes())
 	quantityToTransfer := hex.EncodeToString(big.NewInt(1).Bytes())
-	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/nft-receiver.wasm")
+	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../../testdata/nft-receiver.wasm")
 	txData := core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress) + "@" + hex.EncodeToString([]byte("acceptAndReturnCallData"))
 	integrationTests.CreateAndSendTransaction(
@@ -437,7 +437,7 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/nft-receiver.wasm")
+	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../../testdata/nft-receiver.wasm")
 
 	destinationSCShardID := nodes[0].ShardCoordinator.ComputeId(destinationSCAddress)
 
