@@ -95,6 +95,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		Hasher:                 &hashingMocks.HasherMock{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)

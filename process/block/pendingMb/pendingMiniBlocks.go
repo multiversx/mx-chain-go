@@ -1,12 +1,12 @@
 package pendingMb
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -16,35 +16,39 @@ var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
 var log = logger.GetOrCreate("process/block/pendingMb")
 
 type pendingMiniBlocks struct {
-	mutPendingMbShard sync.RWMutex
-	mapPendingMbShard map[string]uint32
+	mutPendingMbShard          sync.RWMutex
+	mapPendingMbShard          map[string]uint32
+	beforeRevertPendingMbShard map[string]uint32
 }
 
 // NewPendingMiniBlocks will create a new pendingMiniBlocks object
 func NewPendingMiniBlocks() (*pendingMiniBlocks, error) {
 	return &pendingMiniBlocks{
-		mapPendingMbShard: make(map[string]uint32),
+		mapPendingMbShard:          make(map[string]uint32),
+		beforeRevertPendingMbShard: make(map[string]uint32),
 	}, nil
 }
 
-func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock *block.MetaBlock) map[string]uint32 {
+func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.MetaHeaderHandler) map[string]uint32 {
 	crossShardMiniBlocks := make(map[string]uint32)
 
-	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if !shouldConsiderCrossShardMiniBlock(mbHeader.SenderShardID, mbHeader.ReceiverShardID) {
+	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
 			continue
 		}
 
-		crossShardMiniBlocks[string(mbHeader.Hash)] = mbHeader.ReceiverShardID
+		crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
 	}
 
-	for _, shardData := range metaBlock.ShardInfo {
-		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
-			if !shouldConsiderCrossShardMiniBlock(mbHeader.SenderShardID, mbHeader.ReceiverShardID) {
+	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
+	for _, shardData := range shardInfoHandlers {
+		miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
+		for _, mbHeader := range miniblockHandlers {
+			if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
 				continue
 			}
 
-			crossShardMiniBlocks[string(mbHeader.Hash)] = mbHeader.ReceiverShardID
+			crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
 		}
 	}
 
@@ -70,14 +74,24 @@ func (p *pendingMiniBlocks) AddProcessedHeader(headerHandler data.HeaderHandler)
 	if check.IfNil(headerHandler) {
 		return process.ErrNilHeaderHandler
 	}
+	metaHandler, ok := headerHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return fmt.Errorf("%w in pendingMiniBlocks.AddProcessedHeader", process.ErrWrongTypeAssertion)
+	}
 
 	log.Trace("AddProcessedHeader",
-		"shard", headerHandler.GetShardID(),
-		"epoch", headerHandler.GetEpoch(),
-		"round", headerHandler.GetRound(),
-		"nonce", headerHandler.GetNonce())
+		"shard", metaHandler.GetShardID(),
+		"epoch", metaHandler.GetEpoch(),
+		"round", metaHandler.GetRound(),
+		"nonce", metaHandler.GetNonce(),
+		"is start of epoch", metaHandler.IsStartOfEpochBlock(),
+	)
 
-	return p.processHeader(headerHandler)
+	if metaHandler.IsStartOfEpochBlock() {
+		return p.processStartOfEpochMeta(metaHandler)
+	}
+
+	return p.processHeader(metaHandler)
 }
 
 // RevertHeader will remove from pending list all miniblocks hashes from a given metablock
@@ -85,29 +99,36 @@ func (p *pendingMiniBlocks) RevertHeader(headerHandler data.HeaderHandler) error
 	if check.IfNil(headerHandler) {
 		return process.ErrNilHeaderHandler
 	}
-
-	log.Trace("RevertHeader",
-		"shard", headerHandler.GetShardID(),
-		"epoch", headerHandler.GetEpoch(),
-		"round", headerHandler.GetRound(),
-		"nonce", headerHandler.GetNonce())
-
-	return p.processHeader(headerHandler)
-}
-
-func (p *pendingMiniBlocks) processHeader(headerHandler data.HeaderHandler) error {
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaHandler, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return fmt.Errorf("%w in pendingMiniBlocks.RevertHeader", process.ErrWrongTypeAssertion)
 	}
 
-	crossShardMiniBlocksHashes := p.getAllCrossShardMiniBlocksHashes(metaBlock)
+	log.Trace("RevertHeader",
+		"shard", metaHandler.GetShardID(),
+		"epoch", metaHandler.GetEpoch(),
+		"round", metaHandler.GetRound(),
+		"nonce", metaHandler.GetNonce(),
+		"is start of epoch", metaHandler.IsStartOfEpochBlock(),
+	)
+
+	if metaHandler.IsStartOfEpochBlock() {
+		p.revertStartOfEpochMeta()
+		return nil
+	}
+
+	return p.processHeader(metaHandler)
+}
+
+func (p *pendingMiniBlocks) processHeader(metaHandler data.MetaHeaderHandler) error {
+	crossShardMiniBlocksHashes := p.getAllCrossShardMiniBlocksHashes(metaHandler)
 
 	p.mutPendingMbShard.Lock()
 	defer p.mutPendingMbShard.Unlock()
 
 	for mbHash, shardID := range crossShardMiniBlocksHashes {
-		if _, ok = p.mapPendingMbShard[mbHash]; !ok {
+		_, ok := p.mapPendingMbShard[mbHash]
+		if !ok {
 			p.mapPendingMbShard[mbHash] = shardID
 			continue
 		}
@@ -118,6 +139,49 @@ func (p *pendingMiniBlocks) processHeader(headerHandler data.HeaderHandler) erro
 	p.displayPendingMb()
 
 	return nil
+}
+
+func (p *pendingMiniBlocks) processStartOfEpochMeta(metaHandler data.MetaHeaderHandler) error {
+	p.mutPendingMbShard.Lock()
+	defer p.mutPendingMbShard.Unlock()
+
+	p.performBackup()
+	return p.recreateMap(metaHandler)
+}
+
+func (p *pendingMiniBlocks) performBackup() {
+	p.beforeRevertPendingMbShard = make(map[string]uint32)
+	for hash, shardID := range p.mapPendingMbShard {
+		p.beforeRevertPendingMbShard[hash] = shardID
+	}
+}
+
+func (p *pendingMiniBlocks) recreateMap(metaHandler data.MetaHeaderHandler) error {
+	p.mapPendingMbShard = make(map[string]uint32)
+	epochStartHandler := metaHandler.GetEpochStartHandler()
+	lastFinalizedHeaders := epochStartHandler.GetLastFinalizedHeaderHandlers()
+	for _, hdr := range lastFinalizedHeaders {
+		pendingMiniBlocksHeaders := hdr.GetPendingMiniBlockHeaderHandlers()
+		for _, mbh := range pendingMiniBlocksHeaders {
+			if !shouldConsiderCrossShardMiniBlock(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+				continue
+			}
+
+			p.mapPendingMbShard[string(mbh.GetHash())] = mbh.GetReceiverShardID()
+		}
+	}
+
+	return nil
+}
+
+func (p *pendingMiniBlocks) revertStartOfEpochMeta() {
+	p.mutPendingMbShard.Lock()
+	defer p.mutPendingMbShard.Unlock()
+
+	p.mapPendingMbShard = make(map[string]uint32)
+	for hash, shardID := range p.beforeRevertPendingMbShard {
+		p.mapPendingMbShard[hash] = shardID
+	}
 }
 
 // GetPendingMiniBlocks will return the pending miniblocks hashes for a given shard

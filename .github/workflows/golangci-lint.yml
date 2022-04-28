@@ -4,7 +4,8 @@ on:
     branches:
       - master
   pull_request:
-    branches: [ master, development, feat/* ]
+    branches: [ master, development, feat/*, rc/* ]
+
 jobs:
   golangci:
     name: golangci linter
