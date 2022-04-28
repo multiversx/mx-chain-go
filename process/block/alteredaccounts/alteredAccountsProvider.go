@@ -24,7 +24,6 @@ var (
 
 type markedAlteredAccountToken struct {
 	identifier string
-	properties string
 	nonce      uint64
 }
 
