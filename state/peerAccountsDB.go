@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 )
 
@@ -17,47 +14,32 @@ type PeerAccountsDB struct {
 }
 
 // NewPeerAccountsDB creates a new account manager
-func NewPeerAccountsDB(
-	trie common.Trie,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accountFactory AccountFactory,
-	storagePruningManager StoragePruningManager,
-) (*PeerAccountsDB, error) {
-	if check.IfNil(trie) {
-		return nil, ErrNilTrie
-	}
-	if check.IfNil(hasher) {
-		return nil, ErrNilHasher
-	}
-	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
-	if check.IfNil(accountFactory) {
-		return nil, ErrNilAccountFactory
-	}
-	if check.IfNil(storagePruningManager) {
-		return nil, ErrNilStoragePruningManager
+func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
+	err := checkArgsAccountsDB(args)
+	if err != nil {
+		return nil, err
 	}
 
 	adb := &PeerAccountsDB{
 		&AccountsDB{
-			mainTrie:       trie,
-			hasher:         hasher,
-			marshalizer:    marshalizer,
-			accountFactory: accountFactory,
+			mainTrie:       args.Trie,
+			hasher:         args.Hasher,
+			marshaller:     args.Marshaller,
+			accountFactory: args.AccountFactory,
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
 			mutOp:          sync.RWMutex{},
 			loadCodeMeasurements: &loadingMeasurements{
 				identifier: "load code",
 			},
-			storagePruningManager: storagePruningManager,
+			storagePruningManager: args.StoragePruningManager,
+			processingMode:        args.ProcessingMode,
 			lastSnapshot:          &snapshotInfo{},
+			processStatusHandler:  args.ProcessStatusHandler,
 		},
 	}
 
-	trieStorageManager := trie.GetStorageManager()
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
 	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
@@ -125,9 +107,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 		handleLoggingWhenError("error while putting active DB value into main storer", err)
 	}()
 
-	if adb.processingMode == common.ImportDb {
-		stats.WaitForSnapshotsToFinish()
-	}
+	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
@@ -144,9 +124,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 	go printStats(stats, "snapshotState peer trie", rootHash)
 
-	if adb.processingMode == common.ImportDb {
-		stats.WaitForSnapshotsToFinish()
-	}
+	adb.waitForCompletionIfRunningInImportDB(stats)
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB

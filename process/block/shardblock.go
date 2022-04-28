@@ -47,6 +47,7 @@ type shardProcessor struct {
 
 	processedMiniBlocks   *processedMb.ProcessedMiniBlockTracker
 	userStatePruningQueue core.Queue
+	processStatusHandler  common.ProcessStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -111,7 +112,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	}
 
 	sp := shardProcessor{
-		baseProcessor: base,
+		baseProcessor:        base,
+		processStatusHandler: arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
@@ -144,10 +146,12 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
+
+	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
@@ -770,6 +774,9 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	defer sp.processStatusHandler.SetIdle()
+
 	err := sp.createBlockStarted()
 	if err != nil {
 		return nil, nil, err
@@ -838,10 +845,12 @@ func (sp *shardProcessor) CommitBlock(
 	bodyHandler data.BodyHandler,
 ) error {
 	var err error
+	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
 			sp.RevertCurrentBlock()
 		}
+		sp.processStatusHandler.SetIdle()
 	}()
 
 	err = checkForNils(headerHandler, bodyHandler)

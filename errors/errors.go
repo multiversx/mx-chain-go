@@ -464,5 +464,8 @@ var ErrContextClosing = errors.New("context closing")
 // ErrNilTxsSender signals that a nil transactions sender has been provided
 var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 
+// ErrNilProcessStatusHandler signals that a nil process status handler was provided
+var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")

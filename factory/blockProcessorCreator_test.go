@@ -164,17 +164,26 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 }
 
 func createAccountAdapter(
-	marshalizer marshal.Marshalizer,
+	marshaller marshal.Marshalizer,
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 5)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, 5)
 	if err != nil {
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager(), common.Normal)
+	args := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		AccountFactory:        accountFactory,
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, err := state.NewAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}

@@ -49,7 +49,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	/////////----- wait for epoch end period
+	// ----- wait for epoch end period
 	round, nonce = endOfEpoch.CreateAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, idxProposers)
 
 	nrRoundsToPropagateMultiShard := uint64(5)

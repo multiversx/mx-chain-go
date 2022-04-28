@@ -2656,6 +2656,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 	acntSrc, _ := state.NewUserAccount([]byte("address"))
 	acntSrc.Balance = big.NewInt(100)
 
+	originalTxHash := []byte("originalTxHash")
 	userTx := &transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
@@ -2663,7 +2664,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 		GasLimit: 100,
 	}
 
-	err := execTx.ProcessMoveBalanceCostRelayedUserTx(userTx, &smartContractResult.SmartContractResult{}, acntSrc)
+	err := execTx.ProcessMoveBalanceCostRelayedUserTx(userTx, &smartContractResult.SmartContractResult{}, acntSrc, originalTxHash)
 	assert.Nil(t, err)
 	assert.Equal(t, acntSrc.Balance, big.NewInt(99))
 }
