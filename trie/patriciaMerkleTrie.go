@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -14,6 +15,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -266,6 +268,11 @@ func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error)
 
 	newTr, _, err := tr.recreateFromDb(root, tr.trieStorage)
 	if err != nil {
+		if err == storage.ErrDBIsClosed || strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
+			log.Debug("could not recreate", "rootHash", root, "error", err)
+			return nil, err
+		}
+
 		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(root))
 		return nil, err
 	}
