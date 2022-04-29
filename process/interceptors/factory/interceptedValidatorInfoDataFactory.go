@@ -1,0 +1,63 @@
+package factory
+
+import (
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
+)
+
+type interceptedValidatorInfoDataFactory struct {
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
+	nodesCoordinator process.NodesCoordinator
+}
+
+// NewInterceptedValidatorInfoDataFactory creates an instance of interceptedValidatorInfoDataFactory
+func NewInterceptedValidatorInfoDataFactory(args ArgInterceptedDataFactory) (*interceptedValidatorInfoDataFactory, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &interceptedValidatorInfoDataFactory{
+		marshalizer:      args.CoreComponents.InternalMarshalizer(),
+		hasher:           args.CoreComponents.Hasher(),
+		nodesCoordinator: args.NodesCoordinator,
+	}, nil
+}
+
+func checkArgs(args ArgInterceptedDataFactory) error {
+	if check.IfNil(args.CoreComponents) {
+		return process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CoreComponents.InternalMarshalizer()) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.CoreComponents.Hasher()) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(args.NodesCoordinator) {
+		return process.ErrNilNodesCoordinator
+	}
+
+	return nil
+}
+
+// Create creates instances of InterceptedData by unmarshalling provided buffer
+func (ividf *interceptedValidatorInfoDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+	args := peer.ArgInterceptedValidatorInfo{
+		DataBuff:         buff,
+		Marshalizer:      ividf.marshalizer,
+		Hasher:           ividf.hasher,
+		NodesCoordinator: ividf.nodesCoordinator,
+	}
+
+	return peer.NewInterceptedValidatorInfo(args)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ividf *interceptedValidatorInfoDataFactory) IsInterfaceNil() bool {
+	return ividf == nil
+}
