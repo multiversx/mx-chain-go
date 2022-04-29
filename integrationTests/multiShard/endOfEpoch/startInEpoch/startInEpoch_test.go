@@ -211,7 +211,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
-		&epochNotifierMock.EpochNotifierStub{},
 		444,
 	)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{

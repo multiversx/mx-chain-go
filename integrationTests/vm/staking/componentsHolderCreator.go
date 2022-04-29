@@ -47,7 +47,7 @@ func createComponentHolders(numOfShards uint32) (
 	statusComponents := createStatusComponents()
 	stateComponents := createStateComponents(coreComponents)
 	dataComponents := createDataComponents(coreComponents, numOfShards)
-	boostrapComponents := createBootstrapComponents(coreComponents, numOfShards)
+	boostrapComponents := createBootstrapComponents(coreComponents.InternalMarshalizer(), numOfShards)
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents, stateComponents
 }
@@ -99,13 +99,12 @@ func createDataComponents(coreComponents factory.CoreComponentsHolder, numOfShar
 }
 
 func createBootstrapComponents(
-	coreComponents factory.CoreComponentsHolder,
+	marshaller marshal.Marshalizer,
 	numOfShards uint32,
 ) factory.BootstrapComponentsHolder {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numOfShards, core.MetachainShardId)
 	ncr, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		coreComponents.InternalMarshalizer(),
-		coreComponents.EpochNotifier(),
+		marshaller,
 		stakingV4EnableEpoch,
 	)
 

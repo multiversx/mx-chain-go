@@ -2047,7 +2047,7 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	}
 
 	// simulate restart
-	s.EpochConfirmed(0, 0)
+	s.EpochConfirmed(1, 1)
 	s.EpochConfirmed(21, 21)
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 21, 21)

@@ -26,11 +26,6 @@ func (ncr *NodesCoordinatorRegistryFactoryMock) GetRegistryData(registry nodesCo
 	return json.Marshal(registry)
 }
 
-// EpochConfirmed -
-func (ncr *NodesCoordinatorRegistryFactoryMock) EpochConfirmed(_ uint32, _ uint64) {
-
-}
-
 // IsInterfaceNil -
 func (ncr *NodesCoordinatorRegistryFactoryMock) IsInterfaceNil() bool {
 	return ncr == nil

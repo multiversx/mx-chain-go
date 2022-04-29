@@ -157,7 +157,6 @@ type NodesCoordinatorRegistryHandler interface {
 type NodesCoordinatorRegistryFactory interface {
 	CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error)
 	GetRegistryData(registry NodesCoordinatorRegistryHandler, epoch uint32) ([]byte, error)
-	EpochConfirmed(epoch uint32, timestamp uint64)
 	IsInterfaceNil() bool
 }
 

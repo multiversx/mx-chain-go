@@ -19,12 +19,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -83,7 +82,6 @@ func isStringSubgroup(a []string, b []string) bool {
 func createNodesCoordinatorRegistryFactory() NodesCoordinatorRegistryFactory {
 	ncf, _ := NewNodesCoordinatorRegistryFactory(
 		&marshal.GogoProtoMarshalizer{},
-		&epochNotifier.EpochNotifierStub{},
 		stakingV4Epoch,
 	)
 	return ncf

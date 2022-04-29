@@ -238,7 +238,6 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 }
 
 func TestStakingDataProvider_ComputeUnQualifiedNodesWithStakingV4ReceivedNewListNode(t *testing.T) {
-	valInfo := state.NewShardValidatorsInfoMap()
 	v0 := &state.ValidatorInfo{
 		PublicKey:     []byte("blsKey0"),
 		List:          string(common.EligibleList),
@@ -254,6 +253,8 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithStakingV4ReceivedNewList
 		List:          string(common.AuctionList),
 		RewardAddress: []byte("address1"),
 	}
+
+	valInfo := state.NewShardValidatorsInfoMap()
 	_ = valInfo.Add(v0)
 	_ = valInfo.Add(v1)
 	_ = valInfo.Add(v2)
@@ -305,8 +306,6 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *t
 }
 
 func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFundsWithStakingV4(t *testing.T) {
-	valInfo := state.NewShardValidatorsInfoMap()
-
 	owner := "address0"
 	v0 := &state.ValidatorInfo{
 		PublicKey:     []byte("blsKey0"),
@@ -318,6 +317,8 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFundsWithS
 		List:          string(common.AuctionList),
 		RewardAddress: []byte(owner),
 	}
+
+	valInfo := state.NewShardValidatorsInfoMap()
 	_ = valInfo.Add(v0)
 	_ = valInfo.Add(v1)
 

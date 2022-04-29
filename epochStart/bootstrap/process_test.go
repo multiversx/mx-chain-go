@@ -92,7 +92,6 @@ func createMockEpochStartBootstrapArgs(
 	generalCfg := testscommon.GetGeneralConfig()
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&marshal.GogoProtoMarshalizer{},
-		&epochNotifier.EpochNotifierStub{},
 		444,
 	)
 	return ArgsEpochStartBootstrap{
