@@ -32,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 )
@@ -494,7 +493,6 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
-		&epochNotifier.EpochNotifierStub{},
 		StakingV4Epoch,
 	)
 	completeNodesList := make([]Connectable, 0)
@@ -599,7 +597,6 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
-		&epochNotifier.EpochNotifierStub{},
 		StakingV4Epoch,
 	)
 	completeNodesList := make([]Connectable, 0)
