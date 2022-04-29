@@ -953,7 +953,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
+	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed(), metaBlock.GetNonce())
 	if err != nil {
 		return nil, err
 	}
@@ -969,6 +969,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 	randomness []byte,
+	nonce uint64,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
@@ -987,6 +988,12 @@ func (mp *metaProcessor) createMiniBlocks(
 		}
 
 		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+		return &block.Body{MiniBlocks: miniBlocks}, nil
+	}
+
+	if nonce > 1050 {
+		log.Warn("will not include shard blocks on-purpose", "nonce", nonce)
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
