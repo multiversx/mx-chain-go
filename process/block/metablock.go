@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -27,6 +28,15 @@ import (
 const firstHeaderNonce = uint64(1)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
+
+const maxShouldDrop = 600
+const maxShouldProcess = 1200
+
+var (
+	mut        sync.Mutex
+	counter    int
+	shouldDrop bool
+)
 
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
@@ -171,6 +181,27 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
 	return headerHandler.GetEpoch() >= mp.rewardsV2EnableEpoch
+}
+
+func shouldError() bool {
+	mut.Lock()
+	defer mut.Unlock()
+
+	counter++
+
+	if shouldDrop {
+		if counter == maxShouldDrop {
+			counter = 0
+			shouldDrop = false
+		}
+	} else {
+		if counter == maxShouldProcess {
+			counter = 0
+			shouldDrop = true
+		}
+	}
+
+	return shouldDrop
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -386,6 +417,11 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.verifyValidatorStatisticsRootHash(header)
 	if err != nil {
+		return err
+	}
+
+	if shouldError() {
+		err = errors.New("forced error")
 		return err
 	}
 
