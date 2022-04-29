@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,6 +23,7 @@ type txValidator struct {
 	whiteListHandler     process.WhiteListHandler
 	pubKeyConverter      core.PubkeyConverter
 	guardianSigVerifier  guardedtx.GuardianSigVerifier
+	txVersionChecker     process.TxVersionCheckerHandler
 	maxNonceDeltaAllowed int
 }
 
@@ -32,6 +34,7 @@ func NewTxValidator(
 	whiteListHandler process.WhiteListHandler,
 	pubKeyConverter core.PubkeyConverter,
 	guardianSigVerifier guardedtx.GuardianSigVerifier,
+	txVersionChecker process.TxVersionCheckerHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {
@@ -49,6 +52,9 @@ func NewTxValidator(
 	if check.IfNil(guardianSigVerifier) {
 		return nil, process.ErrNilGuardianSigVerifier
 	}
+	if check.IfNil(txVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
 
 	return &txValidator{
 		accounts:             accounts,
@@ -57,6 +63,7 @@ func NewTxValidator(
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubKeyConverter:      pubKeyConverter,
 		guardianSigVerifier:  guardianSigVerifier,
+		txVersionChecker:     txVersionChecker,
 	}, nil
 }
 
@@ -139,19 +146,55 @@ func (txv *txValidator) checkPermission(interceptedTx process.InterceptedTransac
 	if err != nil {
 		return err
 	}
-	if isAccountFrozen(account) {
-		if isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
-			return state.ErrOperationNotPermitted
+
+	if account.IsFrozen() {
+		err = txv.checkGuardedTransaction(interceptedTx, account)
+		if err == nil {
+			return nil
 		}
 
-		vmUserAccount, ok := account.(vmcommon.UserAccountHandler)
-		if !ok {
-			return state.ErrWrongTypeAssertion
+		err = checkOperationAllowedToBypassGuardian(txData)
+		if err != nil {
+			return err
 		}
-		errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(vmUserAccount, interceptedTx)
-		if errGuardianSignature != nil {
-			return fmt.Errorf("%w due to error in signature verification %s", state.ErrOperationNotPermitted, errGuardianSignature.Error())
-		}
+	}
+
+	return nil
+}
+
+// Setting a guardian is allowed with regular transactions on a frozen account
+// but in this case is set with the default epochs delay
+func checkOperationAllowedToBypassGuardian(txData []byte) error {
+	if isBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian) {
+		return nil
+	}
+
+	return process.ErrOperationNotPermitted
+}
+
+func (txv *txValidator) checkGuardedTransaction(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
+	txHandler := interceptedTx.Transaction()
+	if check.IfNil(txHandler) {
+		return process.ErrNilTransaction
+	}
+
+	tx, ok := txHandler.(*transaction.Transaction)
+	if !ok {
+		return fmt.Errorf("%w on transaction handler", process.ErrWrongTypeAssertion)
+	}
+
+	if !txv.txVersionChecker.IsGuardedTransaction(tx) {
+		return fmt.Errorf("%w without guardian signature", process.ErrOperationNotPermitted)
+	}
+
+	vmUserAccount, ok := account.(vmcommon.UserAccountHandler)
+	if !ok {
+		return fmt.Errorf("%w on account", process.ErrWrongTypeAssertion)
+	}
+
+	errGuardianSignature := txv.guardianSigVerifier.VerifyGuardianSignature(vmUserAccount, interceptedTx)
+	if errGuardianSignature != nil {
+		return fmt.Errorf("%w due to error in signature verification %s", process.ErrOperationNotPermitted, errGuardianSignature.Error())
 	}
 
 	return nil
@@ -200,12 +243,6 @@ func getTxData(interceptedTx process.InterceptedTransactionHandler) ([]byte, err
 	}
 
 	return tx.GetData(), nil
-}
-
-func isAccountFrozen(account state.UserAccountHandler) bool {
-	codeMetaDataBytes := account.GetCodeMetadata()
-	codeMetaData := vmcommon.CodeMetadataFromBytes(codeMetaDataBytes)
-	return codeMetaData.Frozen
 }
 
 func isBuiltinFuncCallWithParam(txData []byte, function string) bool {

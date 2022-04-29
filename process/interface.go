@@ -80,8 +80,6 @@ type TxValidatorHandler interface {
 // InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
 // receiver and sender shard getters
 type InterceptedTransactionHandler interface {
-	GetInterceptorUsedGuardianPubKey() []byte
-	SetInterceptorUsedGuardianPubKey([]byte) error
 	SenderShardId() uint32
 	ReceiverShardId() uint32
 	Nonce() uint64

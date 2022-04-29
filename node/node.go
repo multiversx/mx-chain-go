@@ -611,6 +611,7 @@ func (n *Node) commonTransactionValidation(
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.bootstrapComponents.GuardianSigVerifier(),
+		n.coreComponents.TxVersionChecker(),
 		common.MaxTxNonceDeltaAllowed,
 	)
 
@@ -689,6 +690,8 @@ func (n *Node) CreateTransaction(
 	chainID string,
 	version uint32,
 	options uint32,
+	guardian string,
+	guardianSigHex string,
 ) (*transaction.Transaction, []byte, error) {
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
@@ -706,11 +709,18 @@ func (n *Node) CreateTransaction(
 	if len(signatureHex) > n.addressSignatureHexSize {
 		return nil, nil, ErrInvalidSignatureLength
 	}
+	if len(guardianSigHex) > n.addressSignatureHexSize {
+		return nil, nil, fmt.Errorf("%w for guardian signature", ErrInvalidSignatureLength)
+	}
+
 	if uint32(len(receiver)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
 	}
 	if uint32(len(sender)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
+	}
+	if uint32(len(guardian)) > n.coreComponents.EncodedAddressLen() {
+		return nil, nil, fmt.Errorf("%w for guardian", ErrInvalidAddressLength)
 	}
 	if len(senderUsername) > core.MaxUserNameLength {
 		return nil, nil, ErrInvalidSenderUsernameLength
@@ -732,9 +742,19 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
 
+	guardianAddress, err := addrPubKeyConverter.Decode(guardian)
+	if err != nil {
+		return nil, nil, errors.New("could not create guardian address from provided param")
+	}
+
 	signatureBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
 		return nil, nil, errors.New("could not fetch signature bytes")
+	}
+
+	guardianSigBytes, err := hex.DecodeString(guardianSigHex)
+	if err != nil {
+		return nil, nil, errors.New("could not fetch guardian signature bytes")
 	}
 
 	if len(value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
@@ -747,19 +767,21 @@ func (n *Node) CreateTransaction(
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:       nonce,
-		Value:       valAsBigInt,
-		RcvAddr:     receiverAddress,
-		RcvUserName: receiverUsername,
-		SndAddr:     senderAddress,
-		SndUserName: senderUsername,
-		GasPrice:    gasPrice,
-		GasLimit:    gasLimit,
-		Data:        dataField,
-		Signature:   signatureBytes,
-		ChainID:     []byte(chainID),
-		Version:     version,
-		Options:     options,
+		Nonce:             nonce,
+		Value:             valAsBigInt,
+		RcvAddr:           receiverAddress,
+		RcvUserName:       receiverUsername,
+		SndAddr:           senderAddress,
+		SndUserName:       senderUsername,
+		GasPrice:          gasPrice,
+		GasLimit:          gasLimit,
+		Data:              dataField,
+		Signature:         signatureBytes,
+		ChainID:           []byte(chainID),
+		Version:           version,
+		Options:           options,
+		GuardianAddr:      guardianAddress,
+		GuardianSignature: guardianSigBytes,
 	}
 
 	var txHash []byte

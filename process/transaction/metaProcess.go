@@ -38,6 +38,8 @@ type ArgsNewMetaTxProcessor struct {
 	ESDTEnableEpoch                       uint32
 	BuiltInFunctionOnMetachainEnableEpoch uint32
 	EpochNotifier                         process.EpochNotifier
+	TxVersionChecker                      process.TxVersionCheckerHandler
+	GuardianChecker                       process.GuardianChecker
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -64,6 +66,12 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:                args.Accounts,
@@ -74,6 +82,8 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		marshalizer:             args.Marshalizer,
 		scProcessor:             args.ScProcessor,
 		flagPenalizedTooMuchGas: atomic.Flag{},
+		txVersionChecker:        args.TxVersionChecker,
+		guardianChecker:         args.GuardianChecker,
 	}
 	// backwards compatibility
 	baseTxProcess.flagPenalizedTooMuchGas.Reset()
@@ -99,6 +109,11 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	}
 
 	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	err = txProc.verifyGuardian(tx, acntSnd)
 	if err != nil {
 		return 0, err
 	}
