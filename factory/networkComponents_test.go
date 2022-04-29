@@ -118,6 +118,10 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				IntervalAutoPrintInSeconds: 1,
 			},
 		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
+		},
 	}
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
