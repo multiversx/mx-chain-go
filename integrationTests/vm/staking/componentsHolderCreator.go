@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -67,6 +66,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EconomicsDataField:                 stakingcommon.CreateEconomicsData(),
 		ChanStopNodeProcessField:           endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProviderField:              nodetype.NewNodeTypeProvider(core.NodeTypeValidator),
+		ProcessStatusHandlerInternal:       statusHandler.NewProcessStatusHandler(),
 	}
 }
 
@@ -130,10 +130,8 @@ func createStatusComponents() factory.StatusComponentsHolder {
 
 func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHandler {
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
-	hasher := coreComponents.Hasher()
-	marshaller := coreComponents.InternalMarshalizer()
-	userAccountsDB := createAccountsDB(hasher, marshaller, stateFactory.NewAccountCreator(), trieFactoryManager)
-	peerAccountsDB := createAccountsDB(hasher, marshaller, stateFactory.NewPeerAccountCreator(), trieFactoryManager)
+	userAccountsDB := createAccountsDB(coreComponents, stateFactory.NewAccountCreator(), trieFactoryManager)
+	peerAccountsDB := createAccountsDB(coreComponents, stateFactory.NewPeerAccountCreator(), trieFactoryManager)
 
 	return &testscommon.StateComponentsMock{
 		PeersAcc: peerAccountsDB,
@@ -142,14 +140,23 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 }
 
 func createAccountsDB(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
+	coreComponents factory.CoreComponentsHolder,
 	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), marshalizer)
+	tr, _ := trie.NewTrie(trieStorageManager, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, testscommon.NewMemDbMock(), coreComponents.InternalMarshalizer())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, spm, common.Normal)
+
+	argsAccountsDb := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                coreComponents.Hasher(),
+		Marshaller:            coreComponents.InternalMarshalizer(),
+		AccountFactory:        accountFactory,
+		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  coreComponents.ProcessStatusHandler(),
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb
 }
