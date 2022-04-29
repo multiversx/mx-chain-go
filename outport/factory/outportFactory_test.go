@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -108,17 +107,16 @@ func TestCreateOutport_SubscribeCovalentDriver(t *testing.T) {
 	args.CovalentIndexerFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	args.CovalentIndexerFactoryArgs.ShardCoordinator = &mock.ShardCoordinatorStub{}
 	args.CovalentIndexerFactoryArgs.Marshaller = &mock.MarshalizerMock{}
-	args.CovalentIndexerFactoryArgs.Accounts = &stateMock.AccountsStub{}
 	args.CovalentIndexerFactoryArgs.PubKeyConverter = &mock.PubkeyConverterStub{}
 
 	outPort, err := factory.CreateOutport(args)
+	require.Nil(t, err)
 
 	defer func(c outport.OutportHandler) {
 		_ = c.Close()
 	}(outPort)
 
 	require.True(t, outPort.HasDrivers())
-	require.Nil(t, err)
 }
 
 func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
@@ -127,11 +125,11 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	args.EventNotifierFactoryArgs.Marshalizer = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
 	outPort, err := factory.CreateOutport(args)
+	require.Nil(t, err)
 
 	defer func(c outport.OutportHandler) {
 		_ = c.Close()
 	}(outPort)
 
 	require.True(t, outPort.HasDrivers())
-	require.Nil(t, err)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ProcessComponentsMock -
@@ -46,6 +47,7 @@ type ProcessComponentsMock struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 }
 
 // Create -
@@ -226,6 +228,11 @@ func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
 	return pcm.TxsSenderHandlerField
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcm.ESDTDataStorageHandlerForAPIInternal
 }
 
 // IsInterfaceNil -

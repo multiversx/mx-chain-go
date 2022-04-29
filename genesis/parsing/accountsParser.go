@@ -250,6 +250,11 @@ func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 	return accounts
 }
 
+// GenesisMintingAddress returns the encoded genesis minting address
+func (ap *accountsParser) GenesisMintingAddress() string {
+	return ap.pubkeyConverter.Encode(ap.minterAddressBytes)
+}
+
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,

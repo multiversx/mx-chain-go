@@ -1,19 +1,20 @@
 package alteredaccounts
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
 	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var (
@@ -32,19 +33,21 @@ type markedAlteredAccount struct {
 
 // ArgsAlteredAccountsProvider holds the arguments needed for creating a new instance of alteredAccountsProvider
 type ArgsAlteredAccountsProvider struct {
-	ShardCoordinator sharding.Coordinator
-	AddressConverter core.PubkeyConverter
-	AccountsDB       state.AccountsAdapter
-	Marshalizer      marshal.Marshalizer
+	ShardCoordinator       sharding.Coordinator
+	AddressConverter       core.PubkeyConverter
+	AccountsDB             state.AccountsAdapter
+	Marshalizer            marshal.Marshalizer
+	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
 }
 
 type alteredAccountsProvider struct {
-	shardCoordinator   sharding.Coordinator
-	addressConverter   core.PubkeyConverter
-	accountsDB         state.AccountsAdapter
-	marshalizer        marshal.Marshalizer
-	tokensProc         *tokensProcessor
-	mutExtractAccounts sync.Mutex
+	shardCoordinator       sharding.Coordinator
+	addressConverter       core.PubkeyConverter
+	accountsDB             state.AccountsAdapter
+	marshalizer            marshal.Marshalizer
+	tokensProc             *tokensProcessor
+	esdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
+	mutExtractAccounts     sync.Mutex
 }
 
 // NewAlteredAccountsProvider returns a new instance of alteredAccountsProvider
@@ -61,13 +64,17 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 	if check.IfNil(args.Marshalizer) {
 		return nil, errNilMarshalizer
 	}
+	if check.IfNil(args.EsdtDataStorageHandler) {
+		return nil, errNilESDTDataStorageHandler
+	}
 
 	return &alteredAccountsProvider{
-		shardCoordinator: args.ShardCoordinator,
-		addressConverter: args.AddressConverter,
-		accountsDB:       args.AccountsDB,
-		marshalizer:      args.Marshalizer,
-		tokensProc:       newTokensProcessor(args.ShardCoordinator),
+		shardCoordinator:       args.ShardCoordinator,
+		addressConverter:       args.AddressConverter,
+		accountsDB:             args.AccountsDB,
+		marshalizer:            args.Marshalizer,
+		tokensProc:             newTokensProcessor(args.ShardCoordinator),
+		esdtDataStorageHandler: args.EsdtDataStorageHandler,
 	}, nil
 }
 
@@ -109,16 +116,12 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 
 	account, err := aap.accountsDB.LoadAccount(addressBytes)
 	if err != nil {
-		log.Warn("cannot load account when computing altered accounts",
-			"address", encodedAddress,
-			"error", err)
-		return err
+		return fmt.Errorf("%w while loading account when computing altered accounts. address: %s", err, encodedAddress)
 	}
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		log.Warn("cannot cast AccountHandler to UserAccountHandler", "address", encodedAddress)
-		return err
+		return fmt.Errorf("%w when computing altered accounts. address: %s", errCannotCastToUserAccountHandler, encodedAddress)
 	}
 
 	alteredAccounts[encodedAddress] = &indexer.AlteredAccount{
@@ -127,11 +130,10 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 		Nonce:   userAccount.GetNonce(),
 	}
 
-	for tokenKey, tokenData := range markedAccountTokens {
-		err = aap.addTokensDataForMarkedAccount([]byte(tokenKey), encodedAddress, userAccount, tokenData, alteredAccounts)
+	for _, tokenData := range markedAccountTokens {
+		err = aap.addTokensDataForMarkedAccount(encodedAddress, userAccount, tokenData, alteredAccounts)
 		if err != nil {
-			log.Warn("cannot fetch token data for marked account", "error", err)
-			return err
+			return fmt.Errorf("%w while fetching token data when computing altered accounts", err)
 		}
 	}
 
@@ -139,7 +141,6 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 }
 
 func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
-	tokenKey []byte,
 	encodedAddress string,
 	userAccount state.UserAccountHandler,
 	markedAccountToken *markedAlteredAccountToken,
@@ -149,21 +150,23 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	tokenID := markedAccountToken.identifier
 
 	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
-	storageKey = append(storageKey, tokenKey...)
+	storageKey = append(storageKey, []byte(tokenID)...)
 
-	esdtTokenBytes, err := userAccount.RetrieveValueFromDataTrieTracker(storageKey)
-	if err != nil {
-		log.Warn("cannot get ESDT data for address",
-			"address", encodedAddress,
-			"tokenKey", tokenKey,
-			"error", err)
-		return nil
+	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+	if !ok {
+		return fmt.Errorf("%w for address %s", errCannotCastToVmCommonUserAccountHandler, encodedAddress)
 	}
 
-	var esdtToken esdt.ESDigitalToken
-	err = aap.marshalizer.Unmarshal(&esdtToken, esdtTokenBytes)
+	esdtToken, _, err := aap.esdtDataStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, storageKey, nonce)
 	if err != nil {
 		return err
+	}
+	if esdtToken == nil {
+		log.Warn("alteredAccountsProvider: nil esdt/nft token", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
+		return nil
+	}
+	if esdtToken.Value.Cmp(big.NewInt(0)) == 0 {
+		log.Warn("alteredAccountsProvider: esdt/nft value 0 for address", "address", encodedAddress, "token ID", tokenID, "nonce", nonce)
 	}
 
 	alteredAccount := alteredAccounts[encodedAddress]
@@ -172,6 +175,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
+		Properties: string(esdtToken.Properties),
 		MetaData:   esdtToken.TokenMetaData,
 	})
 

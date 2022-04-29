@@ -13,6 +13,13 @@ const (
 	idxTokenIDInTopics         = 0
 	idxTokenNonceInTopics      = 1
 	idxReceiverAddressInTopics = 3
+	issueFungibleESDTFunc      = "issue"
+	issueSemiFungibleESDTFunc  = "issueSemiFungible"
+	issueNonFungibleESDTFunc   = "issueNonFungible"
+	registerMetaESDTFunc       = "registerMetaESDT"
+	changeSFTToMetaESDTFunc    = "changeSFTToMetaESDT"
+	transferOwnershipFunc      = "transferOwnership"
+	registerAndSetRolesFunc    = "registerAndSetAllRoles"
 )
 
 type tokensProcessor struct {
@@ -30,6 +37,9 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 			core.BuiltInFunctionESDTLocalBurn:        {},
 			core.BuiltInFunctionESDTWipe:             {},
 			core.BuiltInFunctionMultiESDTNFTTransfer: {},
+			transferOwnershipFunc:                    {},
+			issueFungibleESDTFunc:                    {},
+			registerAndSetRolesFunc:                  {},
 		},
 		nonFungibleTokensIdentifier: map[string]struct{}{
 			core.BuiltInFunctionESDTNFTTransfer:      {},
@@ -37,6 +47,12 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 			core.BuiltInFunctionESDTNFTAddQuantity:   {},
 			core.BuiltInFunctionESDTNFTCreate:        {},
 			core.BuiltInFunctionMultiESDTNFTTransfer: {},
+			issueSemiFungibleESDTFunc:                {},
+			issueNonFungibleESDTFunc:                 {},
+			registerMetaESDTFunc:                     {},
+			changeSFTToMetaESDTFunc:                  {},
+			transferOwnershipFunc:                    {},
+			registerAndSetRolesFunc:                  {},
 		},
 		shardCoordinator: shardCoordinator,
 	}
@@ -106,14 +122,20 @@ func (tp *tokensProcessor) extractEsdtData(
 		return nil
 	}
 
-	// in case of esdt, nft or multi esdt transfers, the 3rd index of the topics contains the destination address
 	tokenID := topics[idxTokenIDInTopics]
 	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts)
 	if err != nil {
 		return err
 	}
 
-	if len(topics) > idxReceiverAddressInTopics {
+	// in case of esdt transfer, nft transfer, wipe or multi esdt transfers, the 3rd index of the topics contains the destination address
+	identifier := string(event.GetIdentifier())
+	eventShouldContainReceiverAddress := identifier == core.BuiltInFunctionESDTTransfer ||
+		identifier == core.BuiltInFunctionESDTNFTTransfer ||
+		identifier == core.BuiltInFunctionESDTWipe ||
+		identifier == core.BuiltInFunctionMultiESDTNFTTransfer
+
+	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]
 		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts)
 		if err != nil {

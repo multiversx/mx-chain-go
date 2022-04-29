@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -100,5 +101,5 @@ func SetShardCoordinator(shardCoordinator sharding.Coordinator, holder Bootstrap
 
 // IndexGenesisBlocks -
 func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
-	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
+	return pcf.indexGenesisBlocks(genesisBlocks, indexingData, map[string]*indexer.AlteredAccount{})
 }

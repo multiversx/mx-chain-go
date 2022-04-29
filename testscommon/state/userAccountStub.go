@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
@@ -152,6 +153,11 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 	if u.DataTrieTrackerCalled != nil {
 		return u.DataTrieTrackerCalled()
 	}
+	return nil
+}
+
+// AccountDataHandler -
+func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
 	return nil
 }
 

@@ -60,6 +60,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -106,6 +108,7 @@ type processComponents struct {
 	vmFactoryForProcessing       process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txsSender                    process.TxsSenderHandler
+	esdtDataStorageForApi        vmcommon.ESDTNFTStorageHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -158,6 +161,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -292,14 +296,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = pcf.indexGenesisAccounts()
+	genesisAccounts, err := pcf.indexAndReturnGenesisAccounts()
 	if err != nil {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs)
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
 		if err != nil {
 			return nil, err
 		}
@@ -486,6 +490,19 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	esdtDataStorageArgs := vmcommonBuiltInFunctions.ArgsNewESDTDataStorage{
+		Accounts:                pcf.state.AccountsAdapterAPI(),
+		GlobalSettingsHandler:   disabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		SaveToSystemEnableEpoch: pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
+		EpochNotifier:           pcf.coreData.EpochNotifier(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+	}
+	pcf.esdtNftStorage, err = vmcommonBuiltInFunctions.NewESDTDataStorage(esdtDataStorageArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -608,6 +625,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
+		esdtDataStorageForApi:        pcf.esdtNftStorage,
 	}, nil
 }
 
@@ -772,23 +790,23 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	return genesisBlocks, indexingData, nil
 }
 
-func (pcf *processComponentsFactory) indexGenesisAccounts() error {
+func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*indexer.AlteredAccount, error) {
 	if !pcf.statusComponents.OutportHandler().HasDrivers() {
-		return nil
+		return map[string]*indexer.AlteredAccount{}, nil
 	}
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	leavesChannel := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	genesisAccounts := make([]data.UserAccountHandler, 0)
+	genesisAccounts := make(map[string]*indexer.AlteredAccount, 0)
 	for leaf := range leavesChannel {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -796,11 +814,17 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 			continue
 		}
 
-		genesisAccounts = append(genesisAccounts, userAccount)
+		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		genesisAccounts[encodedAddress] = &indexer.AlteredAccount{
+			Address: encodedAddress,
+			Balance: userAccount.GetBalance().String(),
+			Nonce:   userAccount.GetNonce(),
+			Tokens:  nil,
+		}
 	}
 
 	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
-	return nil
+	return genesisAccounts, nil
 }
 
 func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
@@ -904,7 +928,11 @@ func getGenesisBlockForShard(miniBlocks []*dataBlock.MiniBlock, shardId uint32) 
 	return genesisMiniBlocks
 }
 
-func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, initialIndexingData map[uint32]*genesis.IndexingData) error {
+func (pcf *processComponentsFactory) indexGenesisBlocks(
+	genesisBlocks map[uint32]data.HeaderHandler,
+	initialIndexingData map[uint32]*genesis.IndexingData,
+	alteredAccounts map[string]*indexer.AlteredAccount,
+) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	originalGenesisBlockHeader := genesisBlocks[currentShardId]
 	genesisBlockHeader := originalGenesisBlockHeader.ShallowClone()
@@ -916,6 +944,13 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
+
+		// manually add the genesis minting address as it is not exist in the trie
+		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+		alteredAccounts[genesisAddress] = &indexer.AlteredAccount{
+			Address: genesisAddress,
+			Balance: "0",
+		}
 
 		miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
 		if errGenerate != nil {
@@ -937,6 +972,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
 			},
 			TransactionsPool: txsPoolPerShard[currentShardId],
+			AlteredAccounts:  alteredAccounts,
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}

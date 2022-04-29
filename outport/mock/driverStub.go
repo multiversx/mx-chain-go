@@ -12,7 +12,7 @@ type DriverStub struct {
 	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo) error
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error
 	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error
-	SaveAccountsCalled          func(timestamp uint64, acc []data.UserAccountHandler) error
+	SaveAccountsCalled          func(timestamp uint64, acc map[string]*indexer.AlteredAccount) error
 	FinalizedBlockCalled        func(headerHash []byte) error
 	CloseCalled                 func() error
 }
@@ -63,7 +63,7 @@ func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.
 }
 
 // SaveAccounts -
-func (d *DriverStub) SaveAccounts(timestamp uint64, acc []data.UserAccountHandler) error {
+func (d *DriverStub) SaveAccounts(timestamp uint64, acc map[string]*indexer.AlteredAccount) error {
 	if d.SaveAccountsCalled != nil {
 		return d.SaveAccountsCalled(timestamp, acc)
 	}

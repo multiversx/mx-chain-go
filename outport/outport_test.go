@@ -38,7 +38,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveAccountsCalled: func(blockTimestamp uint64, acc []data.UserAccountHandler) error {
+		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*indexer.AlteredAccount) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -48,17 +48,17 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveAccountsCalled: func(blockTimestamp uint64, acc []data.UserAccountHandler) error {
+		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*indexer.AlteredAccount) error {
 			numCalled2++
 			return nil
 		},
 	}
 	outportHandler, _ := NewOutport(minimumRetrialInterval)
-	outportHandler.SaveAccounts(0, []data.UserAccountHandler{})
+	outportHandler.SaveAccounts(0, map[string]*indexer.AlteredAccount{})
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts(0, []data.UserAccountHandler{})
+	outportHandler.SaveAccounts(0, map[string]*indexer.AlteredAccount{})
 	assert.Equal(t, 10, numCalled1)
 	assert.Equal(t, 1, numCalled2)
 }
@@ -324,7 +324,7 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) error {
 			return localErr
 		},
-		SaveAccountsCalled: func(timestamp uint64, acc []data.UserAccountHandler) error {
+		SaveAccountsCalled: func(timestamp uint64, accs map[string]*indexer.AlteredAccount) error {
 			return localErr
 		},
 		FinalizedBlockCalled: func(headerHash []byte) error {
