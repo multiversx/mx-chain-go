@@ -474,6 +474,10 @@
     Capacity = 10000
     Type = "LRU"
 
+[PeersRatingConfig]
+    TopRatedCacheCapacity = 5000
+    BadRatedCacheCapacity = 5000
+
 [TrieSyncStorage]
     Capacity = 300000
     SizeInBytes = 104857600 #100MB
