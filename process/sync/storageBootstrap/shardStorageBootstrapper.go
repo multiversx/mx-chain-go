@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
 )
 
 var _ process.BootstrapperFromStorage = (*shardStorageBootstrapper)(nil)
@@ -137,6 +138,73 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 				"error", err.Error())
 		}
 	}
+}
+
+func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageHigherThanLastCrossNotarized(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) {
+	var numConsecutiveNoncesNotFound int
+
+	nonce, err := getCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	if err != nil {
+		log.Warn("cleanupNotarizedStorageHigherThanLastCrossNotarized", "error", err.Error())
+		return
+	}
+
+	log.Debug("cleanup notarized storage higher than nonce", "nonce", nonce)
+
+	for {
+		nonce++
+
+		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromStorageWithNonce(nonce, ssb.store, ssb.uint64Converter, ssb.marshalizer)
+		if err != nil {
+			log.Debug("meta block is not found in MetaHdrNonceHashDataUnit storage",
+				"nonce", nonce)
+
+			numConsecutiveNoncesNotFound++
+			if numConsecutiveNoncesNotFound > maxNumOfConsecutiveNoncesNotFoundAccepted {
+				break
+			}
+
+			continue
+		}
+
+		numConsecutiveNoncesNotFound = 0
+		nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
+		err = ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		if err != nil {
+			log.Debug("meta block was not removed from MetaHdrNonceHashDataUnit storage",
+				"shardId", metaBlock.GetShardID(),
+				"nonce", metaBlock.GetNonce(),
+				"hash", metaBlockHash,
+				"error", err.Error())
+		}
+
+		err = ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		if err != nil {
+			log.Debug("meta block was not removed from MetaBlockUnit storage",
+				"shardId", metaBlock.GetShardID(),
+				"nonce", metaBlock.GetNonce(),
+				"hash", metaBlockHash,
+				"error", err.Error())
+		}
+	}
+}
+
+func getCrossNotarizedHeaderNonce(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) (uint64, error) {
+	for _, crossNotarizedHeader := range crossNotarizedHeaders {
+		if crossNotarizedHeader.ShardId != core.MetachainShardId {
+			continue
+		}
+
+		log.Debug("cross notarized header",
+			"shard", crossNotarizedHeader.ShardId,
+			"epoch", crossNotarizedHeader.Epoch,
+			"nonce", crossNotarizedHeader.Nonce,
+			"hash", crossNotarizedHeader.Hash)
+
+		return crossNotarizedHeader.Nonce, nil
+	}
+
+	return 0, sync.ErrHeaderNotFound
 }
 
 func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(

@@ -348,3 +348,5 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBody, body)
 }
+
+//TODO: Add unit tests for methods: cleanupNotarizedStorageHigherThanLastCrossNotarized and getCrossNotarizedHeaderNonce

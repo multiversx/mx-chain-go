@@ -22,6 +22,8 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
+const maxNumOfConsecutiveNoncesNotFoundAccepted = 10
+
 // ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
 type ArgsBaseStorageBootstrapper struct {
 	BootStorer                   process.BootStorer
@@ -171,6 +173,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
 	st.cleanupStorageForHigherNonceIfExist()
+	st.bootstrapper.cleanupNotarizedStorageHigherThanLastCrossNotarized(headerInfo.LastCrossNotarizedHeaders)
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].LastHeader)
