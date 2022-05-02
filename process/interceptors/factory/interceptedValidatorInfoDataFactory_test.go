@@ -33,9 +33,8 @@ func TestNewInterceptedValidatorInfoDataFactory(t *testing.T) {
 	t.Run("nil core components should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, cryptoComponents := createMockComponentHolders()
-		coreComponents = nil
-		args := createMockArgument(coreComponents, cryptoComponents)
+		_, cryptoComponents := createMockComponentHolders()
+		args := createMockArgument(nil, cryptoComponents)
 
 		ividf, err := NewInterceptedValidatorInfoDataFactory(*args)
 		assert.Equal(t, process.ErrNilCoreComponentsHolder, err)
