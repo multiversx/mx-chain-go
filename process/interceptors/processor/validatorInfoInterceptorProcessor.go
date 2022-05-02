@@ -63,7 +63,7 @@ func (viip *validatorInfoInterceptorProcessor) Save(data process.InterceptedData
 	validatorInfo := ivi.ValidatorInfo()
 	hash := ivi.Hash()
 
-	viip.validatorInfoPool.Put(hash, validatorInfo, validatorInfo.Size())
+	viip.validatorInfoPool.HasOrAdd(hash, validatorInfo, validatorInfo.Size())
 
 	return nil
 }
