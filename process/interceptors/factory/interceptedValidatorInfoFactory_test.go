@@ -56,7 +56,7 @@ func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(isvif))
 
-		msg := message.ShardValidatorInfo{
+		msg := &message.ShardValidatorInfo{
 			ShardId: 5,
 		}
 		msgBuff, _ := arg.CoreComponents.InternalMarshalizer().Marshal(msg)

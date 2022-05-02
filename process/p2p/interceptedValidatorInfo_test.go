@@ -16,7 +16,7 @@ const providedShard = uint32(5)
 
 func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 	marshaller := testscommon.MarshalizerMock{}
-	msg := message.ShardValidatorInfo{
+	msg := &message.ShardValidatorInfo{
 		ShardId: providedShard,
 	}
 	msgBuff, _ := marshaller.Marshal(msg)
