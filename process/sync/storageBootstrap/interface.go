@@ -13,7 +13,7 @@ type storageBootstrapperHandler interface {
 	applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo)
 	applySelfNotarizedHeaders(selfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) ([]data.HeaderHandler, [][]byte, error)
 	cleanupNotarizedStorage(hash []byte)
-	cleanupNotarizedStorageHigherThanLastCrossNotarized(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo)
+	cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo)
 	getRootHash(hash []byte) []byte
 	IsInterfaceNil() bool
 }

@@ -133,7 +133,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 }
 
-func (msb *metaStorageBootstrapper) cleanupNotarizedStorageHigherThanLastCrossNotarized(_ []bootstrapStorage.BootstrapHeaderInfo) {
+func (msb *metaStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExist(_ []bootstrapStorage.BootstrapHeaderInfo) {
 	return
 }
 

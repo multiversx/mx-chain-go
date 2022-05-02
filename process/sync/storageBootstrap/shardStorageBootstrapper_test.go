@@ -141,3 +141,5 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	assert.Equal(t, int64(3999), savedLastRound)
 	assert.True(t, wasCalledEpochNotifier)
 }
+
+//TODO: Add unit tests for methods: cleanupNotarizedStorageForHigherNoncesIfExist and getCrossNotarizedHeaderNonce

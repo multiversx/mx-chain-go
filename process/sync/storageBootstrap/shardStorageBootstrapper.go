@@ -140,12 +140,14 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 }
 
-func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageHigherThanLastCrossNotarized(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) {
+func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExist(
+	crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
+) {
 	var numConsecutiveNoncesNotFound int
 
 	nonce, err := getCrossNotarizedHeaderNonce(crossNotarizedHeaders)
 	if err != nil {
-		log.Warn("cleanupNotarizedStorageHigherThanLastCrossNotarized", "error", err.Error())
+		log.Warn("cleanupNotarizedStorageForHigherNoncesIfExist", "error", err.Error())
 		return
 	}
 
@@ -154,7 +156,12 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageHigherThanLastCrossN
 	for {
 		nonce++
 
-		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromStorageWithNonce(nonce, ssb.store, ssb.uint64Converter, ssb.marshalizer)
+		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromStorageWithNonce(
+			nonce,
+			ssb.store,
+			ssb.uint64Converter,
+			ssb.marshalizer,
+		)
 		if err != nil {
 			log.Debug("meta block is not found in MetaHdrNonceHashDataUnit storage",
 				"nonce", nonce)

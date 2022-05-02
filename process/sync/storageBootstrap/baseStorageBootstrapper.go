@@ -173,7 +173,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
 	st.cleanupStorageForHigherNonceIfExist()
-	st.bootstrapper.cleanupNotarizedStorageHigherThanLastCrossNotarized(headerInfo.LastCrossNotarizedHeaders)
+	st.bootstrapper.cleanupNotarizedStorageForHigherNoncesIfExist(headerInfo.LastCrossNotarizedHeaders)
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].LastHeader)
