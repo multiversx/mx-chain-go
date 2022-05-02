@@ -91,7 +91,7 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 	t.Run("invalid validator info should error", func(t *testing.T) {
 		t.Parallel()
 
-		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted peer auth
+		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted validator info
 		wasCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
 		args.ValidatorInfoPool = &testscommon.CacherStub{
@@ -150,7 +150,7 @@ func TestValidatorInfoInterceptorProcessor_Validate(t *testing.T) {
 	t.Run("invalid data should error", func(t *testing.T) {
 		t.Parallel()
 
-		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted peer auth
+		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted validator info
 		proc, _ := processor.NewValidatorInfoInterceptorProcessor(createMockArgValidatorInfoInterceptorProcessor())
 		require.False(t, check.IfNil(proc))
 
