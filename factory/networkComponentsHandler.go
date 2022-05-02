@@ -164,7 +164,7 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() PeerHonestyHandler {
 	return mnc.networkComponents.peerHonestyHandler
 }
 
-// PreferredPeersHolder returns the preferred peers holder
+// PreferredPeersHolderHandler returns the preferred peers holder
 func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() PreferredPeersHolderHandler {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
@@ -174,6 +174,18 @@ func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() PreferredPeer
 	}
 
 	return mnc.networkComponents.peersHolder
+}
+
+// PeersRatingHandler returns the peers rating handler
+func (mnc *managedNetworkComponents) PeersRatingHandler() p2p.PeersRatingHandler {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.networkComponents.peersRatingHandler
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil
