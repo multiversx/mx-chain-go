@@ -28,7 +28,10 @@ func (fdm *ForkDetectorStub) RestoreToGenesis() {
 
 // AddHeader -
 func (fdm *ForkDetectorStub) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if fdm.AddHeaderCalled != nil {
+		return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	}
+	return nil
 }
 
 // RemoveHeader -

@@ -153,7 +153,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, arguments.Epoch)
+	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -237,6 +237,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	leaving map[uint32][]Validator,
+	shuffledOut map[uint32][]Validator,
 	epoch uint32,
 ) error {
 	ihnc.mutNodesConfig.Lock()
@@ -276,6 +277,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
+	nodesConfig.shuffledOutMap = shuffledOut
 	nodesConfig.shardID, isValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
 	if err != nil {
@@ -665,7 +667,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		resUpdateNodes.Leaving,
 	)
 
-	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, newEpoch)
+	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, resUpdateNodes.ShuffledOut, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}

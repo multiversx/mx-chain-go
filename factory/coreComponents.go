@@ -312,14 +312,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &nodesCoordinator.NodesShufflerArgs{
-		NodesShard:                     genesisNodesConfig.MinNumberOfShardNodes(),
-		NodesMeta:                      genesisNodesConfig.MinNumberOfMetaNodes(),
-		Hysteresis:                     genesisNodesConfig.GetHysteresis(),
-		Adaptivity:                     genesisNodesConfig.GetAdaptivity(),
-		ShuffleBetweenShards:           true,
-		MaxNodesEnableConfig:           ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		BalanceWaitingListsEnableEpoch: ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
-		WaitingListFixEnableEpoch:      ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
+		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
+		Hysteresis:           genesisNodesConfig.GetHysteresis(),
+		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		EnableEpochs:         ccf.epochConfig.EnableEpochs,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

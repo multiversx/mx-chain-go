@@ -54,7 +54,6 @@ type systemSCProcessor struct {
 
 	governanceEnableEpoch    uint32
 	builtInOnMetaEnableEpoch uint32
-	stakingV4EnableEpoch     uint32
 
 	flagGovernanceEnabled    atomic.Flag
 	flagBuiltInOnMetaEnabled atomic.Flag
@@ -77,7 +76,6 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		legacySystemSCProcessor:  legacy,
 		governanceEnableEpoch:    args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
-		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
@@ -150,20 +148,46 @@ func (s *systemSCProcessor) processWithNewFlags(
 	return nil
 }
 
+// TODO: Staking v4: perhaps create a subcomponent which handles selection, which would be also very useful in tests
 func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
-	auctionList, numOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
-	availableSlots := s.maxNodes - numOfValidators
-	if availableSlots <= 0 {
-		log.Info("not enough available slots for auction nodes; skip selecting nodes from auction list")
+	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
+	numOfShuffledNodes := s.currentNodesEnableConfig.NodesToShufflePerShard * (s.shardCoordinator.NumberOfShards() + 1)
+
+	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
+	if err != nil {
+		log.Warn(fmt.Sprintf("%v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
+			err,
+			currNumOfValidators,
+			numOfShuffledNodes,
+		))
+		numOfValidatorsAfterShuffling = 0
+	}
+
+	availableSlots, err := safeSub(s.maxNodes, numOfValidatorsAfterShuffling)
+	if availableSlots == 0 || err != nil {
+		log.Info(fmt.Sprintf("%v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
+			err,
+			s.maxNodes,
+			numOfValidatorsAfterShuffling,
+		))
 		return nil
 	}
 
-	err := s.sortAuctionList(auctionList, randomness)
+	auctionListSize := uint32(len(auctionList))
+	log.Info("systemSCProcessor.selectNodesFromAuctionList",
+		"max nodes", s.maxNodes,
+		"current number of validators", currNumOfValidators,
+		"num of nodes which will be shuffled out", numOfShuffledNodes,
+		"num of validators after shuffling", numOfValidatorsAfterShuffling,
+		"auction list size", auctionListSize,
+		fmt.Sprintf("available slots (%v -%v)", s.maxNodes, numOfValidatorsAfterShuffling), availableSlots,
+	)
+
+	err = s.sortAuctionList(auctionList, randomness)
 	if err != nil {
 		return err
 	}
 
-	auctionListSize := uint32(len(auctionList))
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 	s.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 
@@ -177,6 +201,14 @@ func (s *systemSCProcessor) selectNodesFromAuctionList(validatorsInfoMap state.S
 	}
 
 	return nil
+}
+
+// TODO: Move this in elrond-go-core
+func safeSub(a, b uint32) (uint32, error) {
+	if a < b {
+		return 0, core.ErrSubtractionOverflow
+	}
+	return a - b, nil
 }
 
 func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, uint32) {
@@ -197,11 +229,17 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInf
 }
 
 func (s *systemSCProcessor) sortAuctionList(auctionList []state.ValidatorInfoHandler, randomness []byte) error {
+	if len(auctionList) == 0 {
+		return nil
+	}
+
 	validatorTopUpMap, err := s.getValidatorTopUpMap(auctionList)
 	if err != nil {
 		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
 	}
 
+	pubKeyLen := len(auctionList[0].GetPublicKey())
+	normRandomness := calcNormRand(randomness, pubKeyLen)
 	sort.SliceStable(auctionList, func(i, j int) bool {
 		pubKey1 := auctionList[i].GetPublicKey()
 		pubKey2 := auctionList[j].GetPublicKey()
@@ -210,7 +248,7 @@ func (s *systemSCProcessor) sortAuctionList(auctionList []state.ValidatorInfoHan
 		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
 
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
-			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
+			return compareByXORWithRandomness(pubKey1, pubKey2, normRandomness)
 		}
 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
@@ -235,13 +273,26 @@ func (s *systemSCProcessor) getValidatorTopUpMap(validators []state.ValidatorInf
 	return ret, nil
 }
 
+func calcNormRand(randomness []byte, expectedLen int) []byte {
+	rand := randomness
+	randLen := len(rand)
+
+	if expectedLen > randLen {
+		repeatedCt := expectedLen/randLen + 1
+		rand = bytes.Repeat(randomness, repeatedCt)
+	}
+
+	rand = rand[:expectedLen]
+	return rand
+}
+
 func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
-	minLen := core.MinInt(len(pubKey1), len(randomness))
+	xorLen := len(randomness)
 
-	key1Xor := make([]byte, minLen)
-	key2Xor := make([]byte, minLen)
+	key1Xor := make([]byte, xorLen)
+	key2Xor := make([]byte, xorLen)
 
-	for idx := 0; idx < minLen; idx++ {
+	for idx := 0; idx < xorLen; idx++ {
 		key1Xor[idx] = pubKey1[idx] ^ randomness[idx]
 		key2Xor[idx] = pubKey2[idx] ^ randomness[idx]
 	}

@@ -1023,7 +1023,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderBalance *big.Int,
 	enableEpochs config.EnableEpochs,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
@@ -1072,7 +1072,7 @@ func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTest
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochs config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmConfig := createDefaultVMConfig()
 	arwenChangeLocker := &sync.RWMutex{}
@@ -1130,7 +1130,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	gasScheduleMap map[string]map[string]uint64,
 	enableEpochs config.EnableEpochs,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
@@ -1180,7 +1180,7 @@ func CreateTxProcessorArwenWithVMConfig(
 	vmConfig *config.VirtualMachineConfig,
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	arwenChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
@@ -1489,7 +1489,7 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs config.EnableEpochs) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 
 	arwenChangeLocker := &sync.RWMutex{}
