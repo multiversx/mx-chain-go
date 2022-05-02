@@ -248,6 +248,7 @@ func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   disabled.NewDisabledPeersRatingHandler(),
 	}
 
 	return libp2p.NewNetworkMessenger(arg)
