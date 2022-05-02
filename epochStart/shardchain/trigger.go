@@ -641,6 +641,8 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
+		delete(t.mapEpochStartHdrs, hash)
+		delete(t.mapHashHdr, hash)
 		return false, 0
 	}
 
@@ -648,6 +650,8 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 	if err != nil {
 		t.addMissingMiniblocks(metaHdr.GetEpoch(), missingMiniblocksHashes)
 		log.Warn("processMetablock failed", "error", err)
+		delete(t.mapEpochStartHdrs, hash)
+		delete(t.mapHashHdr, hash)
 		return false, 0
 	}
 
