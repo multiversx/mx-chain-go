@@ -250,6 +250,12 @@ func verifyPropertyLen(property string, value []byte) error {
 	if len(value) > maxSizeInBytes {
 		return fmt.Errorf("%w for %s", process.ErrPropertyTooLong, property)
 	}
+
+	shouldSkipMinSizeCheck := property == identityProperty || property == nodeDisplayNameProperty
+	if shouldSkipMinSizeCheck {
+		return nil
+	}
+
 	if len(value) < minSizeInBytes {
 		return fmt.Errorf("%w for %s", process.ErrPropertyTooShort, property)
 	}
