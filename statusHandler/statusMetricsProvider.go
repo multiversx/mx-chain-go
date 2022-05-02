@@ -262,10 +262,17 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
+	networkMetrics := make(map[string]interface{})
+
+	sm.saveUint64MetricsInMap(networkMetrics)
+	sm.saveStringMetricsInMap(networkMetrics)
+
+	return networkMetrics
+}
+
+func (sm *statusMetrics) saveUint64MetricsInMap(networkMetrics map[string]interface{}) {
 	sm.mutUint64Operations.RLock()
 	defer sm.mutUint64Operations.RUnlock()
-
-	networkMetrics := make(map[string]interface{})
 
 	currentRound := sm.uint64Metrics[common.MetricCurrentRound]
 	roundNumberAtEpochStart := sm.uint64Metrics[common.MetricRoundAtEpochStart]
@@ -290,6 +297,14 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 		noncesPassedInEpoch = currentNonce - nonceAtEpochStart
 	}
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
+}
 
-	return networkMetrics
+func (sm *statusMetrics) saveStringMetricsInMap(networkMetrics map[string]interface{}) {
+	sm.mutStringOperations.RLock()
+	defer sm.mutStringOperations.RUnlock()
+
+	crossCheckValue := sm.stringMetrics[common.MetricCrossCheckBlockHeight]
+	if len(crossCheckValue) > 0 {
+		networkMetrics[common.MetricCrossCheckBlockHeight] = crossCheckValue
+	}
 }

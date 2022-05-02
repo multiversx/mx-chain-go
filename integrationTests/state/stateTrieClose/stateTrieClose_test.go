@@ -34,6 +34,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idxInitial, _ := gc.Snapshot()
 	rootHash, _ := tr.RootHash()
 	leavesChannel1, _ := tr.GetAllLeavesOnChannel(rootHash)
+	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 1, len(diff), fmt.Sprintf("%v", diff))
@@ -57,6 +58,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel2, _ := tr.GetAllLeavesOnChannel(rootHash)
+	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 4, len(diff), fmt.Sprintf("%v", diff))
