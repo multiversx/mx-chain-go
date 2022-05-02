@@ -15,10 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -60,6 +62,7 @@ type networkComponents struct {
 	antifloodConfig        config.AntifloodConfig
 	peerHonestyHandler     consensus.PeerHonestyHandler
 	peersHolder            PreferredPeersHolderHandler
+	peersRatingHandler     p2p.PeersRatingHandler
 	closeFunc              context.CancelFunc
 }
 
@@ -93,6 +96,23 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
+	topRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
+	badRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
+	argsPeersRatingHandler := rating.ArgPeersRatingHandler{
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
+	}
+	peersRatingHandler, err := rating.NewPeersRatingHandler(argsPeersRatingHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	peersHolder := peersholder.NewPeersHolder(ncf.preferredPublicKeys)
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          ncf.marshalizer,
@@ -101,6 +121,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		SyncTimer:            ncf.syncer,
 		PreferredPeersHolder: peersHolder,
 		NodeOperationMode:    ncf.nodeOperationMode,
+		PeersRatingHandler:   peersRatingHandler,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
@@ -181,6 +202,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		antifloodConfig:        ncf.mainConfig.Antiflood,
 		peerHonestyHandler:     peerHonestyHandler,
 		peersHolder:            peersHolder,
+		peersRatingHandler:     peersRatingHandler,
 		closeFunc:              cancelFunc,
 	}, nil
 }
