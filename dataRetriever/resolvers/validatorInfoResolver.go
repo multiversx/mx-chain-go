@@ -21,6 +21,7 @@ type ArgValidatorInfoResolver struct {
 	Throttler            dataRetriever.ResolverThrottler
 	ValidatorInfoPool    storage.Cacher
 	ValidatorInfoStorage storage.Storer
+	IsFullHistoryNode    bool
 }
 
 // validatorInfoResolver is a wrapper over Resolver that is specialized in resolving validator info requests
@@ -47,6 +48,7 @@ func NewValidatorInfoResolver(args ArgValidatorInfoResolver) (*validatorInfoReso
 			throttler:        args.Throttler,
 			topic:            args.SenderResolver.RequestTopic(),
 		},
+		baseStorageResolver:  createBaseStorageResolver(args.ValidatorInfoStorage, args.IsFullHistoryNode),
 		validatorInfoPool:    args.ValidatorInfoPool,
 		validatorInfoStorage: args.ValidatorInfoStorage,
 	}, nil
