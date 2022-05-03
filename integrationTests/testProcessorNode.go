@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -238,6 +239,7 @@ type Connectable interface {
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator nodesCoordinator.NodesCoordinator
+	PeerShardMapper  process.PeerShardMapper
 	NodesSetup       sharding.GenesisNodesSetupHandler
 	Messenger        p2p.Messenger
 
@@ -1396,7 +1398,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler: tpn.PeersRatingHandler,
+		PeersRatingHandler:                   tpn.PeersRatingHandler,
 		NodesCoordinator:                     tpn.NodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper:                      tpn.PeerShardMapper,
