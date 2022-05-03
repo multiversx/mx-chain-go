@@ -197,6 +197,17 @@ func TestNewShardResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *t
 	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 }
 
+func TestNewShardResolversContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.PeersRatingHandler = nil
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
+}
+
 func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -370,5 +381,6 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
