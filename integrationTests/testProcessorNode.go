@@ -205,8 +205,14 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
+// StakingV4InitEpoch defines the epoch for integration tests when stakingV4 init is enabled
+const StakingV4InitEpoch = 4443
+
 // StakingV4Epoch defines the epoch for integration tests when stakingV4 is enabled; should be greater than StakingV2Epoch
 const StakingV4Epoch = 4444
+
+// StakingV4DistributeAuctionToWaiting defines the epoch for integration tests when nodes distribution from auction to waiting list is enabled in staking v4
+const StakingV4DistributeAuctionToWaiting = 4445
 
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
 const ScheduledMiniBlocksEnableEpoch = 1000
@@ -422,6 +428,11 @@ func newBaseTestProcessorNode(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		EnableEpochs: config.EnableEpochs{
+			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+			StakingV4EnableEpoch:                     StakingV4Epoch,
+			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+		},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -2125,15 +2136,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:    TestValidatorPubkeyConverter,
-			Hasher:        TestHasher,
-			Marshalizer:   TestMarshalizer,
-			PeerState:     tpn.PeerState,
-			BaseState:     tpn.AccntState,
-			ArgParser:     tpn.ArgsParser,
-			CurrTxs:       tpn.DataPool.CurrentBlockTxs(),
-			RatingsData:   tpn.RatingsData,
-			EpochNotifier: &epochNotifier.EpochNotifierStub{},
+			PubkeyConv:         TestValidatorPubkeyConverter,
+			Hasher:             TestHasher,
+			Marshalizer:        TestMarshalizer,
+			PeerState:          tpn.PeerState,
+			BaseState:          tpn.AccntState,
+			ArgParser:          tpn.ArgsParser,
+			CurrTxs:            tpn.DataPool.CurrentBlockTxs(),
+			RatingsData:        tpn.RatingsData,
+			StakingV4InitEpoch: StakingV4Epoch - 1,
+			EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
@@ -2166,7 +2178,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
-		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM, "1000")
+
+		argsStakingDataProvider := metachain.StakingDataProviderArgs{
+			EpochNotifier:        coreComponents.EpochNotifier(),
+			SystemVM:             systemVM,
+			MinNodePrice:         "1000",
+			StakingV4EnableEpoch: StakingV4Epoch,
+		}
+		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(argsStakingDataProvider)
 		if errRsp != nil {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}

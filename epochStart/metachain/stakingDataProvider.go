@@ -7,9 +7,11 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -33,30 +35,43 @@ type stakingDataProvider struct {
 	totalEligibleStake      *big.Int
 	totalEligibleTopUpStake *big.Int
 	minNodePrice            *big.Int
+	stakingV4EnableEpoch    uint32
+	flagStakingV4Enable     atomic.Flag
+}
+
+// StakingDataProviderArgs is a struct placeholder for all arguments required to create a NewStakingDataProvider
+type StakingDataProviderArgs struct {
+	EpochNotifier        process.EpochNotifier
+	SystemVM             vmcommon.VMExecutionHandler
+	MinNodePrice         string
+	StakingV4EnableEpoch uint32
 }
 
 // NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
 // computation as this will retrieve the staking data from the system VM
-func NewStakingDataProvider(
-	systemVM vmcommon.VMExecutionHandler,
-	minNodePrice string,
-) (*stakingDataProvider, error) {
-	if check.IfNil(systemVM) {
+func NewStakingDataProvider(args StakingDataProviderArgs) (*stakingDataProvider, error) {
+	if check.IfNil(args.SystemVM) {
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, epochStart.ErrNilEpochStartNotifier
+	}
 
-	nodePrice, ok := big.NewInt(0).SetString(minNodePrice, 10)
+	nodePrice, ok := big.NewInt(0).SetString(args.MinNodePrice, 10)
 	if !ok || nodePrice.Cmp(big.NewInt(0)) <= 0 {
 		return nil, epochStart.ErrInvalidMinNodePrice
 	}
 
 	sdp := &stakingDataProvider{
-		systemVM:                systemVM,
+		systemVM:                args.SystemVM,
 		cache:                   make(map[string]*ownerStats),
 		minNodePrice:            nodePrice,
 		totalEligibleStake:      big.NewInt(0),
 		totalEligibleTopUpStake: big.NewInt(0),
+		stakingV4EnableEpoch:    args.StakingV4EnableEpoch,
 	}
+	log.Debug("stakingDataProvider: enable epoch for staking v4", "epoch", sdp.stakingV4EnableEpoch)
+	args.EpochNotifier.RegisterNotifyHandler(sdp)
 
 	return sdp, nil
 }
@@ -289,23 +304,27 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
-func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error) {
+func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorsInfo state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error) {
 	sdp.mutStakingData.Lock()
 	defer sdp.mutStakingData.Unlock()
 
 	mapOwnersKeys := make(map[string][][]byte)
 	keysToUnStake := make([][]byte, 0)
-	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
+	mapBLSKeyStatus, err := sdp.createMapBLSKeyStatus(validatorsInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	for ownerAddress, stakingInfo := range sdp.cache {
 		maxQualified := big.NewInt(0).Div(stakingInfo.totalStaked, sdp.minNodePrice)
 		if maxQualified.Int64() >= stakingInfo.numStakedNodes {
 			continue
 		}
 
-		sortedKeys := arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
+		sortedKeys := sdp.arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
 
 		numKeysToUnStake := stakingInfo.numStakedNodes - maxQualified.Int64()
-		selectedKeys := selectKeysToUnStake(sortedKeys, numKeysToUnStake)
+		selectedKeys := sdp.selectKeysToUnStake(sortedKeys, numKeysToUnStake)
 		if len(selectedKeys) == 0 {
 			continue
 		}
@@ -319,19 +338,30 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos state.Sha
 	return keysToUnStake, mapOwnersKeys, nil
 }
 
-func createMapBLSKeyStatus(validatorInfos state.ShardValidatorsInfoMapHandler) map[string]string {
+func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.ShardValidatorsInfoMapHandler) (map[string]string, error) {
 	mapBLSKeyStatus := make(map[string]string)
-	for _, validatorInfo := range validatorInfos.GetAllValidatorsInfo() {
-		mapBLSKeyStatus[string(validatorInfo.GetPublicKey())] = validatorInfo.GetList()
+	for _, validatorInfo := range validatorsInfo.GetAllValidatorsInfo() {
+		list := validatorInfo.GetList()
+		pubKey := validatorInfo.GetPublicKey()
 
+		if sdp.flagStakingV4Enable.IsSet() && list == string(common.NewList) {
+			return nil, fmt.Errorf("%w, bls key = %s",
+				epochStart.ErrReceivedNewListNodeInStakingV4,
+				hex.EncodeToString(pubKey),
+			)
+		}
+
+		mapBLSKeyStatus[string(pubKey)] = list
 	}
 
-	return mapBLSKeyStatus
+	return mapBLSKeyStatus, nil
 }
 
-func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]byte {
+func (sdp *stakingDataProvider) selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]byte {
 	selectedKeys := make([][]byte, 0)
-	newKeys := sortedKeys[string(common.NewList)]
+	newNodesList := sdp.getNewNodesList()
+
+	newKeys := sortedKeys[newNodesList]
 	if len(newKeys) > 0 {
 		selectedKeys = append(selectedKeys, newKeys...)
 	}
@@ -361,12 +391,14 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 	return selectedKeys
 }
 
-func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) map[string][][]byte {
+func (sdp *stakingDataProvider) arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) map[string][][]byte {
 	sortedKeys := make(map[string][][]byte)
+	newNodesList := sdp.getNewNodesList()
+
 	for _, blsKey := range blsKeys {
-		blsKeyStatus, ok := mapBlsKeyStatus[string(blsKey)]
-		if !ok {
-			sortedKeys[string(common.NewList)] = append(sortedKeys[string(common.NewList)], blsKey)
+		blsKeyStatus, found := mapBlsKeyStatus[string(blsKey)]
+		if !found {
+			sortedKeys[newNodesList] = append(sortedKeys[newNodesList], blsKey)
 			continue
 		}
 
@@ -374,6 +406,21 @@ func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte)
 	}
 
 	return sortedKeys
+}
+
+func (sdp *stakingDataProvider) getNewNodesList() string {
+	newNodesList := string(common.NewList)
+	if sdp.flagStakingV4Enable.IsSet() {
+		newNodesList = string(common.AuctionList)
+	}
+
+	return newNodesList
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (sdp *stakingDataProvider) EpochConfirmed(epoch uint32, _ uint64) {
+	sdp.flagStakingV4Enable.SetValue(epoch >= sdp.stakingV4EnableEpoch)
+	log.Debug("stakingDataProvider: staking v4 enable epoch", "enabled", sdp.flagStakingV4Enable.IsSet())
 }
 
 // IsInterfaceNil return true if underlying object is nil

@@ -20,7 +20,7 @@ type NodesCoordinatorStub struct {
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() nodesCoordinator.NodesCoordinatorRegistryHandler {
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry(uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
 	return nil
 }
 

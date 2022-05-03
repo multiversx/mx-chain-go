@@ -25,7 +25,7 @@ type EpochStartMetaBlockInterceptorProcessor interface {
 // StartInEpochNodesCoordinator defines the methods to process and save nodesCoordinator information to storage
 type StartInEpochNodesCoordinator interface {
 	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
-	NodesCoordinatorToRegistry() nodesCoordinator.NodesCoordinatorRegistryHandler
+	NodesCoordinatorToRegistry(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool
 }

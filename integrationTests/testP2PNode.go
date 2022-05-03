@@ -28,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
@@ -332,7 +331,6 @@ func CreateNodesWithTestP2PNodes(
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
-		&epochNotifier.EpochNotifierStub{},
 		StakingV4Epoch,
 	)
 	for shardId, validatorList := range validatorsMap {
@@ -357,6 +355,7 @@ func CreateNodesWithTestP2PNodes(
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
 			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+			StakingV4EnableEpoch:            StakingV4Epoch,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)

@@ -155,9 +155,6 @@ var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
 
-// ErrMissingMiniBlock signals that the searched miniBlock is missing
-var ErrMissingMiniBlock = errors.New("missing miniBlock")
-
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 
@@ -187,9 +184,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
-
-// ErrInvalidWorkingDir signals that an invalid working directory has been provided
-var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
@@ -272,12 +266,6 @@ var ErrNilDataTrie = errors.New("nil data trie")
 // ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
 var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
 
-// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
-var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
-
-// ErrInvalidRewardsTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
-var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
-
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
 var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
 
@@ -337,3 +325,6 @@ var ErrCouldNotInitLiquidStakingSystemSC = errors.New("could not init liquid sta
 
 // ErrSortAuctionList signals that an error occurred while trying to sort auction list
 var ErrSortAuctionList = errors.New("error while trying to sort auction list")
+
+// ErrReceivedNewListNodeInStakingV4 signals that a new node has been assigned in common.NewList instead of common.AuctionList after staking v4
+var ErrReceivedNewListNodeInStakingV4 = errors.New("new node has been assigned in common.NewList instead of common.AuctionList after staking v4")

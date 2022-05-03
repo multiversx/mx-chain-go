@@ -20,10 +20,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -81,8 +81,7 @@ func isStringSubgroup(a []string, b []string) bool {
 
 func createNodesCoordinatorRegistryFactory() NodesCoordinatorRegistryFactory {
 	ncf, _ := NewNodesCoordinatorRegistryFactory(
-		&mock.MarshalizerMock{},
-		&epochNotifier.EpochNotifierStub{},
+		&marshal.GogoProtoMarshalizer{},
 		stakingV4Epoch,
 	)
 	return ncf
@@ -110,7 +109,7 @@ func createArguments() ArgNodesCoordinator {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:         1,
 		MetaConsensusGroupSize:          1,
-		Marshalizer:                     &mock.MarshalizerMock{},
+		Marshalizer:                     &marshal.GogoProtoMarshalizer{},
 		Hasher:                          &hashingMocks.HasherMock{},
 		Shuffler:                        nodeShuffler,
 		EpochStartNotifier:              epochStartSubscriber,
@@ -2109,13 +2108,21 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
 	require.Nil(t, newNodesConfig)
 
-	nc.flagStakingV4.SetValue(true)
+	nc.updateEpochFlags(stakingV4Epoch)
 
 	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
 	require.Nil(t, err)
 	v1, _ := NewValidator([]byte("pk2"), 1, 2)
 	v2, _ := NewValidator([]byte("pk1"), 1, 3)
 	require.Equal(t, []Validator{v1, v2}, newNodesConfig.auctionList)
+
+	validatorInfos = append(validatorInfos, &state.ShardValidatorInfo{
+		PublicKey: []byte("pk3"),
+		List:      string(common.NewList),
+	})
+	newNodesConfig, err = nc.computeNodesConfigFromList(previousConfig, validatorInfos)
+	require.Equal(t, epochStart.ErrReceivedNewListNodeInStakingV4, err)
+	require.Nil(t, newNodesConfig)
 }
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix(t *testing.T) {

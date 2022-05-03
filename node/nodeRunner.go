@@ -177,6 +177,9 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
 	log.Debug(readEpochFor("limit validators"), "epoch", enableEpochs.StakeLimitsEnableEpoch)
+	log.Debug(readEpochFor("staking v4 init"), "epoch", enableEpochs.StakingV4InitEnableEpoch)
+	log.Debug(readEpochFor("staking v4 enable"), "epoch", enableEpochs.StakingV4EnableEpoch)
+	log.Debug(readEpochFor("staking v4 distribute auction to waiting"), "epoch", enableEpochs.StakingV4DistributeAuctionToWaitingEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -331,6 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
+		configs.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
 	)
 	if err != nil {
 		return true, err

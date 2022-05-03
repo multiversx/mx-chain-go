@@ -47,11 +47,12 @@ type stakingSC struct {
 	flagCorrectFirstQueued                  atomic.Flag
 	flagCorrectJailedNotUnstakedEmptyQueue  atomic.Flag
 	flagStakingV4                           atomic.Flag
+	flagStakingV4Init                       atomic.Flag
 	correctJailedNotUnstakedEmptyQueueEpoch uint32
 	correctFirstQueuedEpoch                 uint32
 	correctLastUnjailedEpoch                uint32
 	stakingV2Epoch                          uint32
-	stakingV4Epoch                          uint32
+	stakingV4InitEpoch                      uint32
 	walletAddressLen                        int
 	mutExecution                            sync.RWMutex
 	minNodePrice                            *big.Int
@@ -131,7 +132,7 @@ func NewStakingSmartContract(
 		validatorToDelegationEnableEpoch:        args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		correctFirstQueuedEpoch:                 args.EpochConfig.EnableEpochs.CorrectFirstQueuedEpoch,
 		correctJailedNotUnstakedEmptyQueueEpoch: args.EpochConfig.EnableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch,
-		stakingV4Epoch:                          args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
+		stakingV4InitEpoch:                      args.EpochConfig.EnableEpochs.StakingV4InitEnableEpoch,
 	}
 	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
@@ -139,7 +140,7 @@ func NewStakingSmartContract(
 	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 	log.Debug("staking: enable epoch for correct first queued", "epoch", reg.correctFirstQueuedEpoch)
 	log.Debug("staking: enable epoch for correct jailed not unstaked with empty queue", "epoch", reg.correctJailedNotUnstakedEmptyQueueEpoch)
-	log.Debug("staking: enable epoch for staking v4", "epoch", reg.stakingV4Epoch)
+	log.Debug("staking: enable epoch for staking v4 init", "epoch", reg.stakingV4InitEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -1187,7 +1188,10 @@ func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagCorrectJailedNotUnstakedEmptyQueue.SetValue(epoch >= s.correctJailedNotUnstakedEmptyQueueEpoch)
 	log.Debug("stakingSC: correct jailed not unstaked with empty queue", "enabled", s.flagCorrectJailedNotUnstakedEmptyQueue.IsSet())
 
-	s.flagStakingV4.SetValue(epoch >= s.stakingV4Epoch)
+	s.flagStakingV4Init.SetValue(epoch == s.stakingV4InitEpoch)
+	log.Debug("stakingSC: staking v4 init", "enabled", s.flagStakingV4Init.IsSet())
+
+	s.flagStakingV4.SetValue(epoch >= s.stakingV4InitEpoch)
 	log.Debug("stakingSC: staking v4", "enabled", s.flagStakingV4.IsSet())
 }
 

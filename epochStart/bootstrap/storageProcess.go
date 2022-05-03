@@ -411,6 +411,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		NodeTypeProvider:                sesb.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                   sesb.prefsConfig.FullArchive,
 		NodesCoordinatorRegistryFactory: sesb.nodesCoordinatorRegistryFactory,
+		StakingV4EnableEpoch:            sesb.enableEpochs.StakingV4EnableEpoch,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

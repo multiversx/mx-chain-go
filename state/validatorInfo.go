@@ -109,6 +109,16 @@ func (vi *ValidatorInfo) SetTotalValidatorIgnoredSignatures(totalValidatorIgnore
 	vi.TotalValidatorIgnoredSignatures = totalValidatorIgnoredSignatures
 }
 
+// ShallowClone returns a clone of the object
+func (vi *ValidatorInfo) ShallowClone() ValidatorInfoHandler {
+	if vi == nil {
+		return nil
+	}
+
+	validatorCopy := *vi
+	return &validatorCopy
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (svi *ShardValidatorInfo) IsInterfaceNil() bool {
 	return svi == nil

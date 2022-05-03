@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
@@ -53,7 +52,6 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		TestMarshalizer,
-		&epochNotifier.EpochNotifierStub{},
 		StakingV4Epoch,
 	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
@@ -111,7 +109,6 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		TestMarshalizer,
-		&epochNotifier.EpochNotifierStub{},
 		StakingV4Epoch,
 	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{

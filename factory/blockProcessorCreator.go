@@ -654,16 +654,17 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		PeerState:        pcf.state.PeerAccounts(),
-		BaseState:        pcf.state.AccountsAdapter(),
-		ArgParser:        argsParser,
-		CurrTxs:          pcf.data.Datapool().CurrentBlockTxs(),
-		RatingsData:      pcf.coreData.RatingsData(),
-		EpochNotifier:    pcf.coreData.EpochNotifier(),
-		StakeEnableEpoch: pcf.epochConfig.EnableEpochs.StakeEnableEpoch,
+		PubkeyConv:         pcf.coreData.ValidatorPubKeyConverter(),
+		Hasher:             pcf.coreData.Hasher(),
+		Marshalizer:        pcf.coreData.InternalMarshalizer(),
+		PeerState:          pcf.state.PeerAccounts(),
+		BaseState:          pcf.state.AccountsAdapter(),
+		ArgParser:          argsParser,
+		CurrTxs:            pcf.data.Datapool().CurrentBlockTxs(),
+		RatingsData:        pcf.coreData.RatingsData(),
+		EpochNotifier:      pcf.coreData.EpochNotifier(),
+		StakeEnableEpoch:   pcf.epochConfig.EnableEpochs.StakeEnableEpoch,
+		StakingV4InitEpoch: pcf.epochConfig.EnableEpochs.StakingV4InitEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -711,8 +712,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsStakingDataProvider := metachainEpochStart.StakingDataProviderArgs{
+		EpochNotifier:        pcf.coreData.EpochNotifier(),
+		SystemVM:             systemVM,
+		MinNodePrice:         pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		StakingV4EnableEpoch: pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+	}
+
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
-	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
 	if err != nil {
 		return nil, err
 	}

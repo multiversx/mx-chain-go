@@ -28,6 +28,9 @@ const (
 	validatorStakeData        = "stake@01@" + validatorBLSKey + "@0b823739887c40e9331f70c5a140623dfaf4558a9138b62f4473b26bbafdd4f58cb5889716a71c561c9e20e7a280e985@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba"
 	cannotUnBondTokensMessage = "cannot unBond tokens, the validator would remain without min deposit, nodes are still active"
 	noTokensToUnBondMessage   = "no tokens that can be unbond at this time"
+	delegationManagementKey   = "delegationManagement"
+	stakingV4InitEpoch        = 4443
+	stakingV4EnableEpoch      = 4444
 )
 
 var (
@@ -35,8 +38,6 @@ var (
 	value2500EGLD, _ = big.NewInt(0).SetString("2500000000000000000000", 10)
 	value200EGLD, _  = big.NewInt(0).SetString("200000000000000000000", 10)
 )
-
-const delegationManagementKey = "delegationManagement"
 
 func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
 	acc, _ := testContext.Accounts.LoadAccount(vmAddr.DelegationManagerSCAddress)
@@ -106,7 +107,13 @@ func checkReturnLog(t *testing.T, testContextMeta *vm.VMTestContext, subStr stri
 }
 
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{StakingV4EnableEpoch: 444})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		core.MetachainShardId,
+		config.EnableEpochs{
+			StakingV4InitEnableEpoch: stakingV4InitEpoch,
+			StakingV4EnableEpoch:     stakingV4EnableEpoch,
+		},
+	)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -139,13 +146,15 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
 	argUnbondTokensV1 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 20000,
-		StakingV4EnableEpoch:      44444,
+		StakingV4InitEnableEpoch:  stakingV4InitEpoch,
+		StakingV4EnableEpoch:      stakingV4EnableEpoch,
 	}
 	testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV1)
 
 	argUnbondTokensV2 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 0,
-		StakingV4EnableEpoch:      44444,
+		StakingV4InitEnableEpoch:  stakingV4InitEpoch,
+		StakingV4EnableEpoch:      stakingV4EnableEpoch,
 	}
 	testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV2)
 }
@@ -179,7 +188,13 @@ func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *t
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{StakingV4EnableEpoch: 4444})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		core.MetachainShardId,
+		config.EnableEpochs{
+			StakingV4InitEnableEpoch: stakingV4InitEpoch,
+			StakingV4EnableEpoch:     stakingV4EnableEpoch,
+		},
+	)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -226,7 +241,13 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{StakingV4EnableEpoch: 444})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		core.MetachainShardId,
+		config.EnableEpochs{
+			StakingV4InitEnableEpoch: stakingV4InitEpoch,
+			StakingV4EnableEpoch:     stakingV4EnableEpoch,
+		},
+	)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()

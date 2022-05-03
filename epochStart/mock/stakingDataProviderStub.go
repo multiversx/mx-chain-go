@@ -77,6 +77,10 @@ func (sdps *StakingDataProviderStub) GetBlsKeyOwner([]byte) (string, error) {
 	return "", nil
 }
 
+// EpochConfirmed -
+func (sdps *StakingDataProviderStub) EpochConfirmed(uint32, uint64) {
+}
+
 // IsInterfaceNil -
 func (sdps *StakingDataProviderStub) IsInterfaceNil() bool {
 	return sdps == nil

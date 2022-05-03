@@ -16,28 +16,49 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStakingDataProvider_NilSystemVMShouldErr(t *testing.T) {
-	t.Parallel()
+const stakingV4EnableEpoch = 444
 
-	sdp, err := NewStakingDataProvider(nil, "100000")
-
-	assert.True(t, check.IfNil(sdp))
-	assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
+func createStakingDataProviderArgs() StakingDataProviderArgs {
+	return StakingDataProviderArgs{
+		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		SystemVM:             &mock.VMExecutionHandlerStub{},
+		MinNodePrice:         "2500",
+		StakingV4EnableEpoch: stakingV4EnableEpoch,
+	}
 }
 
-func TestNewStakingDataProvider_ShouldWork(t *testing.T) {
+func TestNewStakingDataProvider_NilInputPointersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{}, "100000")
+	t.Run("nil system vm", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		args.SystemVM = nil
+		sdp, err := NewStakingDataProvider(args)
+		assert.True(t, check.IfNil(sdp))
+		assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
+	})
 
-	assert.False(t, check.IfNil(sdp))
-	assert.Nil(t, err)
+	t.Run("nil epoch notifier", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		args.EpochNotifier = nil
+		sdp, err := NewStakingDataProvider(args)
+		assert.True(t, check.IfNil(sdp))
+		assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		sdp, err := NewStakingDataProvider(args)
+		assert.False(t, check.IfNil(sdp))
+		assert.Nil(t, err)
+	})
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
@@ -45,7 +66,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 
 	numCall := 0
 	expectedErr := errors.New("expected error")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			numCall++
 			if numCall == 1 {
@@ -64,7 +86,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 
 			return nil, nil
 		},
-	}, "100000")
+	}
+	sdp, _ := NewStakingDataProvider(args)
 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
@@ -86,7 +109,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	numCall := 0
 	owner := []byte("owner")
 	expectedErr := errors.New("expected error")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -110,7 +134,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 			}
 			return nil, nil
 		},
-	}, "100000")
+	}
+	sdp, _ := NewStakingDataProvider(args)
 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
@@ -223,6 +248,39 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 	require.Zero(t, len(ownersWithNotEnoughFunds))
 }
 
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithStakingV4ReceivedNewListNode(t *testing.T) {
+	v0 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey0"),
+		List:          string(common.EligibleList),
+		RewardAddress: []byte("address0"),
+	}
+	v1 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey1"),
+		List:          string(common.NewList),
+		RewardAddress: []byte("address0"),
+	}
+	v2 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey2"),
+		List:          string(common.AuctionList),
+		RewardAddress: []byte("address1"),
+	}
+
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(v0)
+	_ = valInfo.Add(v1)
+	_ = valInfo.Add(v2)
+
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), epochStart.ErrReceivedNewListNodeInStakingV4.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(v1.PublicKey)))
+	require.Empty(t, keysToUnStake)
+	require.Empty(t, ownersWithNotEnoughFunds)
+}
+
 func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *testing.T) {
 	nbShards := uint32(3)
 	nbEligible := make(map[uint32]uint32)
@@ -256,6 +314,39 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *t
 	require.Nil(t, err)
 	require.Equal(t, 1, len(keysToUnStake))
 	require.Equal(t, 1, len(ownersWithNotEnoughFunds))
+}
+
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFundsWithStakingV4(t *testing.T) {
+	owner := "address0"
+	v0 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey0"),
+		List:          string(common.EligibleList),
+		RewardAddress: []byte(owner),
+	}
+	v1 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey1"),
+		List:          string(common.AuctionList),
+		RewardAddress: []byte(owner),
+	}
+
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(v0)
+	_ = valInfo.Add(v1)
+
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	sdp.EpochConfirmed(stakingV4EnableEpoch, 0)
+
+	sdp.cache[owner].blsKeys = append(sdp.cache[owner].blsKeys, []byte("newKey"))
+	sdp.cache[owner].totalStaked = big.NewInt(2500)
+	sdp.cache[owner].numStakedNodes++
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Nil(t, err)
+
+	expectedUnStakedKeys := [][]byte{[]byte("blsKey1"), []byte("newKey")}
+	expectedOwnerWithNotEnoughFunds := map[string][][]byte{owner: expectedUnStakedKeys}
+	require.Equal(t, expectedUnStakedKeys, keysToUnStake)
+	require.Equal(t, expectedOwnerWithNotEnoughFunds, ownersWithNotEnoughFunds)
 }
 
 func TestStakingDataProvider_GetTotalStakeEligibleNodes(t *testing.T) {
@@ -392,7 +483,8 @@ func createStakingDataProviderWithMockArgs(
 	stakingVal *big.Int,
 	numRunContractCalls *int,
 ) *stakingDataProvider {
-	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			*numRunContractCalls++
 			switch input.Function {
@@ -416,7 +508,8 @@ func createStakingDataProviderWithMockArgs(
 
 			return nil, errors.New("unexpected call")
 		},
-	}, "100000")
+	}
+	sdp, err := NewStakingDataProvider(args)
 	require.Nil(t, err)
 
 	return sdp
@@ -432,7 +525,9 @@ func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []
 
 	doStake(t, s.systemVM, s.userAccountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
 
-	sdp, _ := NewStakingDataProvider(s.systemVM, "100000")
+	argsStakingDataProvider := createStakingDataProviderArgs()
+	argsStakingDataProvider.SystemVM = s.systemVM
+	sdp, _ := NewStakingDataProvider(argsStakingDataProvider)
 
 	return sdp
 }
@@ -467,7 +562,10 @@ func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo state.
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1,
 	})
-	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
+
+	argsStakingDataProvider := createStakingDataProviderArgs()
+	argsStakingDataProvider.SystemVM = args.SystemVM
+	sdp, _ := NewStakingDataProvider(argsStakingDataProvider)
 	args.StakingDataProvider = sdp
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)

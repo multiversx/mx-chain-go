@@ -36,9 +36,10 @@ type ArgStakingToPeer struct {
 	ArgParser                        process.ArgumentsParser
 	CurrTxs                          dataRetriever.TransactionCacher
 	RatingsData                      process.RatingsInfoHandler
+	EpochNotifier                    process.EpochNotifier
 	StakeEnableEpoch                 uint32
 	ValidatorToDelegationEnableEpoch uint32
-	EpochNotifier                    process.EpochNotifier
+	StakingV4InitEpoch               uint32
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -58,6 +59,8 @@ type stakingToPeer struct {
 	flagStaking                      atomic.Flag
 	validatorToDelegationEnableEpoch uint32
 	flagValidatorToDelegation        atomic.Flag
+	stakingV4InitEpoch               uint32
+	flagStakingV4                    atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -80,8 +83,10 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		jailRating:                       args.RatingsData.MinRating(),
 		stakeEnableEpoch:                 args.StakeEnableEpoch,
 		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
+		stakingV4InitEpoch:               args.StakingV4InitEpoch,
 	}
 	log.Debug("stakingToPeer: enable epoch for stake", "epoch", st.stakeEnableEpoch)
+	log.Debug("stakingToPeer: enable epoch for staking v4 init", "epoch", st.stakingV4InitEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
 
@@ -332,11 +337,16 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
+	newNodesList := common.NewList
+	if stp.flagStakingV4.IsSet() {
+		newNodesList = common.AuctionList
+	}
+
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	if !stakingData.Jailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
-			log.Debug("node is staked, changed status to new", "blsKey", blsPubKey)
-			account.SetListAndIndex(account.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce))
+			log.Debug("node is staked, changed status to", "list", newNodesList, "blsKey", blsPubKey)
+			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.StakedNonce))
 			account.SetTempRating(stp.startRating)
 			account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 		}
@@ -356,8 +366,8 @@ func (stp *stakingToPeer) updatePeerState(
 
 		isNewValidator := !isValidator && stakingData.Staked
 		if isNewValidator {
-			log.Debug("node is unJailed and staked, changing status to new list", "blsKey", blsPubKey)
-			account.SetListAndIndex(account.GetShardId(), string(common.NewList), uint32(stakingData.UnJailedNonce))
+			log.Debug("node is unJailed and staked, changing status to", "list", newNodesList, "blsKey", blsPubKey)
+			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.UnJailedNonce))
 		}
 
 		if account.GetList() == string(common.JailedList) {
@@ -428,6 +438,9 @@ func (stp *stakingToPeer) EpochConfirmed(epoch uint32, _ uint64) {
 
 	stp.flagValidatorToDelegation.SetValue(epoch >= stp.validatorToDelegationEnableEpoch)
 	log.Debug("stakingToPeer: validator to delegation", "enabled", stp.flagValidatorToDelegation.IsSet())
+
+	stp.flagStakingV4.SetValue(epoch >= stp.stakingV4InitEpoch)
+	log.Debug("stakingToPeer: staking v4 init", "enabled", stp.flagStakingV4.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

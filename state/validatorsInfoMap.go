@@ -74,7 +74,7 @@ func (vi *shardValidatorsInfoMap) Add(validator ValidatorInfoHandler) error {
 func (vi *shardValidatorsInfoMap) GetValidator(blsKey []byte) ValidatorInfoHandler {
 	for _, validator := range vi.GetAllValidatorsInfo() {
 		if bytes.Equal(validator.GetPublicKey(), blsKey) {
-			return validator
+			return validator.ShallowClone()
 		}
 	}
 

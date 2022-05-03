@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -121,6 +122,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		auctionList:    make([]Validator, 0),
 	}
 
+	// todo: if not genesis, use previous randomness from start of epoch meta block
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{
@@ -159,7 +161,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihnc.fillPublicKeyToValidatorMap()
-	err = ihnc.saveState(ihnc.savedStateKey)
+	err = ihnc.saveState(ihnc.savedStateKey, arguments.Epoch)
 	if err != nil {
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
@@ -673,7 +675,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	}
 
 	ihnc.fillPublicKeyToValidatorMap()
-	err = ihnc.saveState(randomness)
+	err = ihnc.saveState(randomness, newEpoch)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
@@ -776,6 +778,9 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 				currentValidator,
 				validatorInfo.ShardId)
 		case string(common.NewList):
+			if ihnc.flagStakingV4.IsSet() {
+				return nil, epochStart.ErrReceivedNewListNodeInStakingV4
+			}
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
 			newNodesList = append(newNodesList, currentValidator)
 		case string(common.InactiveList):
@@ -856,7 +861,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	needToRemove := epochToRemove >= 0
 	ihnc.currentEpoch = newEpoch
 
-	err := ihnc.saveState(ihnc.savedStateKey)
+	err := ihnc.saveState(ihnc.savedStateKey, newEpoch)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
