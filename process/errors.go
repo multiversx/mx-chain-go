@@ -1073,3 +1073,6 @@ var ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch = errors.New("num of mini blo
 
 // ErrNilDoubleTransactionsDetector signals that a nil double transactions detector has been provided
 var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detector")
+
+// ErrMetaHeaderEpochOutOfRange signals that the given header is out of accepted range
+var ErrMetaHeaderEpochOutOfRange = errors.New("epoch out of range for meta block header")

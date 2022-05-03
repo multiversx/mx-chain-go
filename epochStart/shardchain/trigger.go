@@ -584,18 +584,18 @@ func (t *trigger) saveEpochStartMeta(metaHdr data.HeaderHandler) {
 }
 
 // call only if mutex is locked before
-func (t *trigger) isMetaBlockValid(_ string, metaHdr data.HeaderHandler) bool {
+func (t *trigger) isMetaBlockValid(hash string, metaHdr data.HeaderHandler) bool {
 	currHdr := metaHdr
 	for i := metaHdr.GetNonce() - 1; i >= metaHdr.GetNonce()-t.validity; i-- {
 		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.GetPrevHash())
 		if err != nil {
-			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash", "error", err.Error())
+			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash",  "hash", hash, "error", err.Error())
 			return false
 		}
 
 		err = t.headerValidator.IsHeaderConstructionValid(currHdr, neededHdr)
 		if err != nil {
-			log.Debug("isMetaBlockValid.IsHeaderConstructionValid", "error", err.Error())
+			log.Debug("isMetaBlockValid.IsHeaderConstructionValid",  "hash", hash, "error", err.Error())
 			return false
 		}
 
@@ -641,8 +641,6 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
-		delete(t.mapEpochStartHdrs, hash)
-		delete(t.mapHashHdr, hash)
 		return false, 0
 	}
 
@@ -650,8 +648,6 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 	if err != nil {
 		t.addMissingMiniblocks(metaHdr.GetEpoch(), missingMiniblocksHashes)
 		log.Warn("processMetablock failed", "error", err)
-		delete(t.mapEpochStartHdrs, hash)
-		delete(t.mapHashHdr, hash)
 		return false, 0
 	}
 
