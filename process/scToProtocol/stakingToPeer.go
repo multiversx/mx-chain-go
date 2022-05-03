@@ -3,7 +3,6 @@ package scToProtocol
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -346,7 +345,7 @@ func (stp *stakingToPeer) updatePeerState(
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	if !stakingData.Jailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
-			log.Debug(fmt.Sprintf("node is staked, changed status to %s list", newNodesList), "blsKey", blsPubKey)
+			log.Debug("node is staked, changed status to", "list", newNodesList, "blsKey", blsPubKey)
 			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.StakedNonce))
 			account.SetTempRating(stp.startRating)
 			account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
@@ -367,7 +366,7 @@ func (stp *stakingToPeer) updatePeerState(
 
 		isNewValidator := !isValidator && stakingData.Staked
 		if isNewValidator {
-			log.Debug(fmt.Sprintf("node is unJailed and staked, changing status to %s list", newNodesList), "blsKey", blsPubKey)
+			log.Debug("node is unJailed and staked, changing status to", "list", newNodesList, "blsKey", blsPubKey)
 			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.UnJailedNonce))
 		}
 
