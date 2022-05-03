@@ -2,8 +2,10 @@ package statusHandler
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/common"
 )
@@ -155,7 +157,46 @@ func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(i
 	}
 	sm.mutInt64Operations.RUnlock()
 
+	alterHighestFinalBlock(statusMetricsMap)
+
 	return statusMetricsMap
+}
+
+func alterHighestFinalBlock(statusMetricsMap map[string]interface{}) {
+	if time.Now().Hour()%2 == 0 {
+		return
+	}
+
+	highest, ok := extractValueFromMap(statusMetricsMap, common.MetricHighestFinalBlock)
+	if !ok {
+		return
+	}
+
+	current, ok := extractValueFromMap(statusMetricsMap, common.MetricNonce)
+	if !ok {
+		return
+	}
+
+	statusMetricsMap[common.MetricHighestFinalBlock] = current - 100
+	log.Info("altered metric", "metric", common.MetricHighestFinalBlock,
+		"old value", highest, "current value", statusMetricsMap[common.MetricHighestFinalBlock])
+}
+
+func extractValueFromMap(statusMetricsMap map[string]interface{}, metric string) (int64, bool) {
+	obj, found := statusMetricsMap[metric]
+	if !found {
+		log.Warn("metric was not found", "metric", metric)
+		return 0, false
+	}
+
+	valStr := fmt.Sprintf("%v", obj)
+	v, ok := big.NewInt(0).SetString(valStr, 10)
+	if !ok {
+		log.Warn("metric contains wrong value", "metric", metric, "value", valStr)
+		return 0, false
+	}
+
+	return v.Int64(), true
 }
 
 // StatusMetricsWithoutP2PPrometheusString returns the metrics in a string format which respects prometheus style
