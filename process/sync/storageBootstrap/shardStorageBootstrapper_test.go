@@ -1,8 +1,12 @@
 package storageBootstrap
 
 import (
+	"bytes"
+	"errors"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -13,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	storageMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -142,4 +147,104 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	assert.True(t, wasCalledEpochNotifier)
 }
 
-//TODO: Add unit tests for methods: cleanupNotarizedStorageForHigherNoncesIfExist and getCrossNotarizedHeaderNonce
+func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(t *testing.T) {
+	baseArgs := createMockShardStorageBoostrapperArgs()
+
+	bForceError := true
+	numCalled := 0
+	numKeysNotFound := 0
+	metaNonce := uint64(2)
+	nonceToByteSlice := []byte("nonceToByteSlice")
+	metaHash := []byte("meta_hash")
+
+	metaNonceToDelete := metaNonce + maxNumOfConsecutiveNoncesNotFoundAccepted + 2
+	metaBlock := &block.MetaBlock{Nonce: metaNonceToDelete}
+	marshalledMetaBlock, _ := baseArgs.Marshalizer.Marshal(metaBlock)
+
+	baseArgs.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
+		ToByteSliceCalled: func(u uint64) []byte {
+			if u == metaNonceToDelete {
+				return nonceToByteSlice
+			}
+			return []byte("")
+		},
+	}
+	baseArgs.Store = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &storageMock.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					if bForceError {
+						return errors.New("forced error")
+					}
+
+					if bytes.Equal(key, nonceToByteSlice) {
+						numCalled++
+						return nil
+					}
+					if bytes.Equal(key, metaHash) {
+						numCalled++
+						return nil
+					}
+
+					return errors.New("error")
+				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, nonceToByteSlice) {
+						return metaHash, nil
+					}
+					if bytes.Equal(key, metaHash) {
+						return marshalledMetaBlock, nil
+					}
+					numKeysNotFound++
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
+
+	crossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 1})
+	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	assert.Equal(t, 0, numCalled)
+
+	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: core.MetachainShardId, Nonce: metaNonce})
+	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	assert.Equal(t, 0, numCalled)
+	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted, numKeysNotFound-1)
+
+	numKeysNotFound = 0
+	metaNonceToDelete = metaNonce + maxNumOfConsecutiveNoncesNotFoundAccepted + 1
+	metaBlock = &block.MetaBlock{Nonce: metaNonceToDelete}
+	marshalledMetaBlock, _ = baseArgs.Marshalizer.Marshal(metaBlock)
+
+	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	assert.Equal(t, 0, numCalled)
+	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted*2, numKeysNotFound-1)
+
+	numKeysNotFound = 0
+	bForceError = false
+
+	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	assert.Equal(t, 2, numCalled)
+	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted*2, numKeysNotFound-1)
+}
+
+func TestShardStorageBootstrapper_GetCrossNotarizedHeaderNonceShouldWork(t *testing.T) {
+	crossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 1})
+	nonce, err := getCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	assert.Equal(t, sync.ErrHeaderNotFound, err)
+	assert.Equal(t, uint64(0), nonce)
+
+	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: core.MetachainShardId, Nonce: 2})
+	nonce, err = getCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(2), nonce)
+}
