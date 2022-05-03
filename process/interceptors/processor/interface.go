@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/state"
 )
 
 // InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
@@ -20,4 +21,9 @@ type InterceptedTransactionHandler interface {
 // ShardedPool is a perspective of the sharded data pool
 type ShardedPool interface {
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
+}
+
+type interceptedValidatorInfo interface {
+	Hash() []byte
+	ValidatorInfo() state.ValidatorInfo
 }

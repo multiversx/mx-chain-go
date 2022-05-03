@@ -140,6 +140,9 @@ var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
 // ErrNilTrieDataGetter signals that a nil trie data getter has been provided
 var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
@@ -220,3 +223,9 @@ var ErrNilPathManager = errors.New("nil path manager")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
+var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
+
+// ErrNilValidatorInfoStorage signals that a nil validator info storage has been provided
+var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
