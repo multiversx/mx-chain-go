@@ -45,8 +45,6 @@ func InitBaseMetrics(statusHandlerUtils StatusHandlersUtils) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, initUint)
-	appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
