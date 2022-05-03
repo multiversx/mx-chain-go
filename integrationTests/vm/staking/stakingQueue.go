@@ -27,24 +27,14 @@ func createStakingQueue(
 		ownerWaitingNodes = append(ownerWaitingNodes, generateAddress(i))
 	}
 
-	// We need to save one key and then add keys to waiting list because there is a bug in those functions
-	// TODO: FIX bug in testscommon.AddKeysToWaitingList to also init staking queue if there are no keys in list
-	stakingcommon.SaveOneKeyToWaitingList(
+	stakingcommon.AddKeysToWaitingList(
 		accountsAdapter,
-		ownerWaitingNodes[0],
+		ownerWaitingNodes,
 		marshaller,
 		owner,
 		owner,
 	)
-	if numOfNodesInStakingQueue > 1 {
-		stakingcommon.AddKeysToWaitingList(
-			accountsAdapter,
-			ownerWaitingNodes[1:],
-			marshaller,
-			owner,
-			owner,
-		)
-	}
+
 	stakingcommon.AddValidatorData(
 		accountsAdapter,
 		owner,
