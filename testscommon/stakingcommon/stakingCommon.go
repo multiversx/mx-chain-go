@@ -123,7 +123,7 @@ func AddKeysToWaitingList(
 			waitingListElement.NextKey = nextKey
 		}
 
-		saveStakedData(stakingSCAcc, marshaller, rewardAddress, ownerAddress, waitingKey)
+		saveStakedWaitingKey(stakingSCAcc, marshaller, rewardAddress, ownerAddress, waitingKey)
 		previousKey = saveElemInList(stakingSCAcc, marshaller, waitingListElement, waitingKey)
 	}
 
@@ -158,7 +158,7 @@ func saveWaitingList(
 	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
 }
 
-func saveStakedData(
+func saveStakedWaitingKey(
 	stakingSCAcc state.UserAccountHandler,
 	marshaller marshal.Marshalizer,
 	rewardAddress []byte,
