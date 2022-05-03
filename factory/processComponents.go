@@ -1077,6 +1077,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1112,6 +1113,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
