@@ -40,7 +40,7 @@ func TestNewInterceptedValidatorInfoDataFactory(t *testing.T) {
 		assert.Equal(t, process.ErrNilCoreComponentsHolder, err)
 		assert.True(t, check.IfNil(ividf))
 	})
-	t.Run("nil marshalizer should error", func(t *testing.T) {
+	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, cryptoComponents := createMockComponentHolders()

@@ -16,7 +16,7 @@ import (
 // ArgValidatorInfoResolver is the argument structure used to create a new validator info resolver instance
 type ArgValidatorInfoResolver struct {
 	SenderResolver       dataRetriever.TopicResolverSender
-	Marshalizer          marshal.Marshalizer
+	Marshaller           marshal.Marshalizer
 	AntifloodHandler     dataRetriever.P2PAntifloodHandler
 	Throttler            dataRetriever.ResolverThrottler
 	ValidatorInfoPool    storage.Cacher
@@ -43,7 +43,7 @@ func NewValidatorInfoResolver(args ArgValidatorInfoResolver) (*validatorInfoReso
 	return &validatorInfoResolver{
 		TopicResolverSender: args.SenderResolver,
 		messageProcessor: messageProcessor{
-			marshalizer:      args.Marshalizer,
+			marshalizer:      args.Marshaller,
 			antifloodHandler: args.AntifloodHandler,
 			throttler:        args.Throttler,
 			topic:            args.SenderResolver.RequestTopic(),
@@ -58,7 +58,7 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 	if check.IfNil(args.SenderResolver) {
 		return dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(args.Marshalizer) {
+	if check.IfNil(args.Marshaller) {
 		return dataRetriever.ErrNilMarshalizer
 	}
 	if check.IfNil(args.AntifloodHandler) {
@@ -105,18 +105,14 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
+	// TODO: add support for HashArrayType
 	switch rd.Type {
 	case dataRetriever.HashType:
 		return res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer)
 	default:
-		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
 
-	if err != nil {
-		err = fmt.Errorf("%w for value %s", err, logger.DisplayByteSlice(rd.Value))
-	}
-
-	return err
+	return fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 }
 
 // resolveHashRequest sends the response for a hash request

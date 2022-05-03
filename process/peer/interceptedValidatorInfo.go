@@ -75,15 +75,15 @@ func createValidatorInfo(marshalizer marshal.Marshalizer, buff []byte) (*state.V
 // CheckValidity checks the validity of the received validator info
 func (ivi *interceptedValidatorInfo) CheckValidity() error {
 	// Verify string properties len
-	err := verifyPropertyLen(publicKeyProperty, ivi.validatorInfo.PublicKey)
+	err := verifyPropertyLen(publicKeyProperty, ivi.validatorInfo.PublicKey, publicKeyPropertyRequiredBytesLen, minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(listProperty, []byte(ivi.validatorInfo.List))
+	err = verifyPropertyLen(listProperty, []byte(ivi.validatorInfo.List), 0, minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(rewardAddressProperty, ivi.validatorInfo.RewardAddress)
+	err = verifyPropertyLen(rewardAddressProperty, ivi.validatorInfo.RewardAddress, 0, minSizeInBytes, rewardAddressPropertyMaxPropertyBytesLen)
 	if err != nil {
 		return err
 	}
@@ -131,11 +131,19 @@ func (ivi *interceptedValidatorInfo) String() string {
 }
 
 // verifyPropertyLen returns an error if the provided value is longer than accepted by the network
-func verifyPropertyLen(property string, value []byte) error {
-	if len(value) > maxSizeInBytes {
+func verifyPropertyLen(property string, value []byte, requiredLen, minSize, maxSize int) error {
+	hasRequiredLen := requiredLen != 0
+	isOverLimit := len(value) > maxSize
+	isOverRequiredLen := len(value) > requiredLen
+	isTooLong := isOverLimit || (hasRequiredLen && isOverRequiredLen)
+	if isTooLong {
 		return fmt.Errorf("%w for %s", process.ErrPropertyTooLong, property)
 	}
-	if len(value) < minSizeInBytes {
+
+	isUnderLimit := len(value) < minSize
+	isUnderRequiredLen := len(value) < requiredLen
+	isTooShort := isUnderLimit || (hasRequiredLen && isUnderRequiredLen)
+	if isTooShort {
 		return fmt.Errorf("%w for %s", process.ErrPropertyTooShort, property)
 	}
 

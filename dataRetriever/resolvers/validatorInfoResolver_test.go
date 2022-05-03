@@ -22,7 +22,7 @@ import (
 func createMockArgValidatorInfoResolver() resolvers.ArgValidatorInfoResolver {
 	return resolvers.ArgValidatorInfoResolver{
 		SenderResolver:       &mock.TopicResolverSenderStub{},
-		Marshalizer:          &mock.MarshalizerMock{},
+		Marshaller:           &mock.MarshalizerMock{},
 		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
 		Throttler:            &mock.ThrottlerStub{},
 		ValidatorInfoPool:    testscommon.NewCacherStub(),
@@ -37,7 +37,7 @@ func createMockValidatorInfo() state.ValidatorInfo {
 		ShardId:   123,
 		List:      string(common.EligibleList),
 		Index:     10,
-		Rating:    10,
+		Rating:    11,
 	}
 }
 
@@ -54,11 +54,11 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 		assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
 		assert.True(t, check.IfNil(res))
 	})
-	t.Run("nil Marshalizer should error", func(t *testing.T) {
+	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoResolver()
-		args.Marshalizer = nil
+		args.Marshaller = nil
 
 		res, err := resolvers.NewValidatorInfoResolver(args)
 		assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
@@ -193,7 +193,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
-		args.Marshalizer = &mock.MarshalizerStub{
+		args.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},
@@ -245,7 +245,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				return []byte("some value"), true
 			},
 		}
-		args.Marshalizer = &testscommon.MarshalizerStub{
+		args.Marshaller = &testscommon.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -275,7 +275,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				return []byte("some value"), nil
 			},
 		}
-		args.Marshalizer = &testscommon.MarshalizerStub{
+		args.Marshaller = &testscommon.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},

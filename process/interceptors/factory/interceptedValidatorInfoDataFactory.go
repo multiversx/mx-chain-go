@@ -9,7 +9,7 @@ import (
 )
 
 type interceptedValidatorInfoDataFactory struct {
-	marshalizer      marshal.Marshalizer
+	marshaller       marshal.Marshalizer
 	hasher           hashing.Hasher
 	nodesCoordinator process.NodesCoordinator
 }
@@ -22,7 +22,7 @@ func NewInterceptedValidatorInfoDataFactory(args ArgInterceptedDataFactory) (*in
 	}
 
 	return &interceptedValidatorInfoDataFactory{
-		marshalizer:      args.CoreComponents.InternalMarshalizer(),
+		marshaller:       args.CoreComponents.InternalMarshalizer(),
 		hasher:           args.CoreComponents.Hasher(),
 		nodesCoordinator: args.NodesCoordinator,
 	}, nil
@@ -49,7 +49,7 @@ func checkArgs(args ArgInterceptedDataFactory) error {
 func (ividf *interceptedValidatorInfoDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	args := peer.ArgInterceptedValidatorInfo{
 		DataBuff:         buff,
-		Marshalizer:      ividf.marshalizer,
+		Marshalizer:      ividf.marshaller,
 		Hasher:           ividf.hasher,
 		NodesCoordinator: ividf.nodesCoordinator,
 	}

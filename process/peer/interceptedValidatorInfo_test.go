@@ -41,7 +41,7 @@ func TestNewInterceptedValidatorInfo(t *testing.T) {
 		assert.Equal(t, process.ErrNilBuffer, err)
 		assert.True(t, check.IfNil(ivi))
 	})
-	t.Run("nil marshalizer should error", func(t *testing.T) {
+	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgInterceptedValidatorInfo()
@@ -120,7 +120,6 @@ func TestInterceptedValidatorInfo_CheckValidity(t *testing.T) {
 
 		ivi, _ := NewInterceptedValidatorInfo(args)
 		require.False(t, check.IfNil(ivi))
-
 		assert.Equal(t, expectedErr, ivi.CheckValidity())
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -135,7 +134,6 @@ func TestInterceptedValidatorInfo_CheckValidity(t *testing.T) {
 
 		ivi, _ := NewInterceptedValidatorInfo(args)
 		require.False(t, check.IfNil(ivi))
-
 		assert.Nil(t, ivi.CheckValidity())
 	})
 }
@@ -198,24 +196,4 @@ func TestInterceptedValidatorInfo_Getters(t *testing.T) {
 	assert.True(t, strings.Contains(str, fmt.Sprintf("index=%d", validatorInfo.Index)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("tempRating=%d", validatorInfo.TempRating)))
 	assert.True(t, strings.Contains(str, fmt.Sprintf("rating=%d", validatorInfo.Rating)))
-}
-
-func TestInterceptedValidatorInfo_Identifiers(t *testing.T) {
-
-}
-
-func TestInterceptedValidatorInfo_IsForCurrentShard(t *testing.T) {
-
-}
-
-func TestInterceptedValidatorInfo_String(t *testing.T) {
-
-}
-
-func TestInterceptedValidatorInfo_Type(t *testing.T) {
-
-}
-
-func TestInterceptedValidatorInfo_ValidatorInfo(t *testing.T) {
-
 }

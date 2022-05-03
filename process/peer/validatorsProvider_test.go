@@ -624,7 +624,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 }
 func createMockValidatorInfo() *state.ValidatorInfo {
 	initialInfo := &state.ValidatorInfo{
-		PublicKey:                  []byte("a1"),
+		PublicKey:                  []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 		ShardId:                    0,
 		List:                       "eligible",
 		Index:                      1,

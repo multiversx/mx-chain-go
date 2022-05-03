@@ -10,12 +10,12 @@ import (
 
 // ArgValidatorInfoInterceptorProcessor is the argument structure used to create a new validator info interceptor processor
 type ArgValidatorInfoInterceptorProcessor struct {
-	Marshalizer       marshal.Marshalizer
+	Marshaller        marshal.Marshalizer
 	ValidatorInfoPool storage.Cacher
 }
 
 type validatorInfoInterceptorProcessor struct {
-	marshalizer       marshal.Marshalizer
+	marshaller        marshal.Marshalizer
 	validatorInfoPool storage.Cacher
 }
 
@@ -27,13 +27,13 @@ func NewValidatorInfoInterceptorProcessor(args ArgValidatorInfoInterceptorProces
 	}
 
 	return &validatorInfoInterceptorProcessor{
-		marshalizer:       args.Marshalizer,
+		marshaller:        args.Marshaller,
 		validatorInfoPool: args.ValidatorInfoPool,
 	}, nil
 }
 
 func checkArgs(args ArgValidatorInfoInterceptorProcessor) error {
-	if check.IfNil(args.Marshalizer) {
+	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
 	if check.IfNil(args.ValidatorInfoPool) {
@@ -43,13 +43,8 @@ func checkArgs(args ArgValidatorInfoInterceptorProcessor) error {
 	return nil
 }
 
-// Validate checks if the intercepted data can be processed
-func (viip *validatorInfoInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
-	_, ok := data.(interceptedValidatorInfo)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
+// Validate returns nil as validation is done on Save
+func (viip *validatorInfoInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
 	return nil
 }
 

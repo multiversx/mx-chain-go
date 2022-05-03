@@ -41,7 +41,7 @@ func createMockInterceptedValidatorInfo() process.InterceptedData {
 
 func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfoInterceptorProcessor {
 	return processor.ArgValidatorInfoInterceptorProcessor{
-		Marshalizer:       testMarshalizer,
+		Marshaller:        testMarshalizer,
 		ValidatorInfoPool: testscommon.NewCacherStub(),
 	}
 }
@@ -49,11 +49,11 @@ func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfo
 func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil marshalizer should error", func(t *testing.T) {
+	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.Marshalizer = nil
+		args.Marshaller = nil
 
 		proc, err := processor.NewValidatorInfoInterceptorProcessor(args)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -97,7 +97,6 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		args.ValidatorInfoPool = &testscommon.CacherStub{
 			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 				wasCalled = true
-
 				return false, false
 			},
 		}
@@ -114,16 +113,14 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		providedData := createMockInterceptedValidatorInfo()
 		wasCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		providedBuff, _ := args.Marshalizer.Marshal(createMockValidatorInfo())
+		providedBuff, _ := args.Marshaller.Marshal(createMockValidatorInfo())
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 
 		args.ValidatorInfoPool = &testscommon.CacherStub{
 			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 				assert.Equal(t, providedHash, key)
-
 				wasCalled = true
-
 				return false, false
 			},
 		}
@@ -139,32 +136,18 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 func TestValidatorInfoInterceptorProcessor_Validate(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil data should error", func(t *testing.T) {
-		t.Parallel()
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
 
-		proc, _ := processor.NewValidatorInfoInterceptorProcessor(createMockArgValidatorInfoInterceptorProcessor())
-		require.False(t, check.IfNil(proc))
+	args := createMockArgValidatorInfoInterceptorProcessor()
+	proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
+	require.False(t, check.IfNil(proc))
 
-		assert.Equal(t, process.ErrWrongTypeAssertion, proc.Validate(nil, ""))
-	})
-	t.Run("invalid data should error", func(t *testing.T) {
-		t.Parallel()
-
-		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted validator info
-		proc, _ := processor.NewValidatorInfoInterceptorProcessor(createMockArgValidatorInfoInterceptorProcessor())
-		require.False(t, check.IfNil(proc))
-
-		assert.Equal(t, process.ErrWrongTypeAssertion, proc.Validate(providedData, ""))
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
-		require.False(t, check.IfNil(proc))
-
-		assert.Nil(t, proc.Validate(createMockInterceptedValidatorInfo(), ""))
-	})
+	assert.Nil(t, proc.Validate(createMockInterceptedValidatorInfo(), ""))
 }
 
 func TestValidatorInfoInterceptorProcessor_RegisterHandler(t *testing.T) {
