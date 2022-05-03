@@ -159,6 +159,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -182,6 +183,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -199,6 +201,30 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+	}
+
+	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
+		// we deliberately set this, automatically choose full archive node mode
+		arg.NodeOperationMode = p2p.FullArchiveMode
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	log.LogIfError(err)
+
+	return libP2PMes
+}
+
+// CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
+func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig config.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
+	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:          TestMarshalizer,
+		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:            p2pConfig,
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		NodeOperationMode:    p2p.NormalOperation,
+		PeersRatingHandler:   peersRatingHandler,
 	}
 
 	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
@@ -234,6 +260,25 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	p2pConfig := CreateP2PConfigWithNoDiscovery()
 
 	return CreateMessengerFromConfig(p2pConfig)
+}
+
+// CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
+func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
+	p2pConfig := config.P2PConfig{
+		Node: config.NodeConfig{
+			Port:                  "0",
+			Seed:                  "",
+			ConnectionWatcherType: "print",
+		},
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled: false,
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.NilListSharder,
+		},
+	}
+
+	return CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, peersRatingHanlder)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:

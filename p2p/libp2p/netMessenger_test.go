@@ -93,6 +93,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
 
@@ -193,6 +194,15 @@ func TestNewNetworkMessenger_NilPreferredPeersHolderShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(messenger))
 	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
+}
+
+func TestNewNetworkMessenger_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.PeersRatingHandler = nil
+	mes, err := libp2p.NewNetworkMessenger(arg)
+
+	assert.True(t, check.IfNil(mes))
+	assert.True(t, errors.Is(err, p2p.ErrNilPeersRatingHandler))
 }
 
 func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
@@ -1304,6 +1314,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1369,6 +1380,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1441,6 +1453,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1504,6 +1517,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1758,7 +1772,8 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Type:                    "NilListSharder",
 			},
 		},
-		SyncTimer:            &mock.SyncTimerStub{},
+		SyncTimer:          &mock.SyncTimerStub{},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 

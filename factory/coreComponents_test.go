@@ -323,6 +323,10 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 					Shards:   1,
 				},
 			},
+			PeersRatingConfig: config.PeersRatingConfig{
+				TopRatedCacheCapacity: 1000,
+				BadRatedCacheCapacity: 1000,
+			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: dummyPk,
 			},

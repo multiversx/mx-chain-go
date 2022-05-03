@@ -33,6 +33,7 @@ type resolversContainerFactory struct {
 	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
 	throttler              dataRetriever.ResolverThrottler
+	peersRatingHandler     dataRetriever.PeersRatingHandler
 }
 
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
@@ -44,6 +45,7 @@ type ArgsNewResolversContainerFactory struct {
 	ExistingResolvers          dataRetriever.ResolversContainer
 	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
+	PeersRatingHandler         dataRetriever.PeersRatingHandler
 	NumConcurrentResolvingJobs int32
 }
 
@@ -64,6 +66,9 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, update.ErrNilPeersRatingHandler
+	}
 
 	thr, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
 	if err != nil {
@@ -79,6 +84,7 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 		inputAntifloodHandler:  args.InputAntifloodHandler,
 		outputAntifloodHandler: args.OutputAntifloodHandler,
 		throttler:              thr,
+		peersRatingHandler:     args.PeersRatingHandler,
 	}, nil
 }
 
@@ -179,6 +185,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		SelfShardIdProvider:         rcf.shardCoordinator,
+		PeersRatingHandler:          rcf.peersRatingHandler,
 	}
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {

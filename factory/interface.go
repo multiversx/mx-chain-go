@@ -217,6 +217,7 @@ type NetworkComponentsHolder interface {
 	PeerBlackListHandler() process.PeerBlackListCacher
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
+	PeersRatingHandler() p2p.PeersRatingHandler
 	IsInterfaceNil() bool
 }
 

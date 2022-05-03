@@ -109,25 +109,26 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	// TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor             ConnectionMonitor
-	connMonitorWrapper      p2p.ConnectionMonitorWrapper
-	peerDiscoverer          p2p.PeerDiscoverer
-	sharder                 p2p.Sharder
-	peerShardResolver       p2p.PeerShardResolver
-	mutPeerResolver         sync.RWMutex
-	mutTopics               sync.RWMutex
-	processors              map[string]*topicProcessors
-	topics                  map[string]*pubsub.Topic
-	subscriptions           map[string]*pubsub.Subscription
-	outgoingPLB             p2p.ChannelLoadBalancer
-	poc                     *peersOnChannel
-	goRoutinesThrottler     *throttler.NumGoRoutinesThrottler
-	connectionsMetric       *metrics.Connections
-	debugger                p2p.Debugger
-	marshalizer             p2p.Marshalizer
-	syncTimer               p2p.SyncTimer
-	preferredPeersHolder    p2p.PreferredPeersHolderHandler
-	printConnectionsWatcher p2p.ConnectionsWatcher
+	connMonitor          ConnectionMonitor
+	connMonitorWrapper   p2p.ConnectionMonitorWrapper
+	peerDiscoverer       p2p.PeerDiscoverer
+	sharder              p2p.Sharder
+	peerShardResolver    p2p.PeerShardResolver
+	mutPeerResolver      sync.RWMutex
+	mutTopics            sync.RWMutex
+	processors           map[string]*topicProcessors
+	topics               map[string]*pubsub.Topic
+	subscriptions        map[string]*pubsub.Subscription
+	outgoingPLB          p2p.ChannelLoadBalancer
+	poc                  *peersOnChannel
+	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
+	connectionsMetric    *metrics.Connections
+	debugger             p2p.Debugger
+	marshalizer          p2p.Marshalizer
+	syncTimer            p2p.SyncTimer
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
+	printConnectionsWatcher   p2p.ConnectionsWatcher
+	peersRatingHandler   p2p.PeersRatingHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -138,6 +139,7 @@ type ArgsNetworkMessenger struct {
 	SyncTimer            p2p.SyncTimer
 	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 	NodeOperationMode    p2p.NodeOperation
+	PeersRatingHandler   p2p.PeersRatingHandler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -154,6 +156,9 @@ func newNetworkMessenger(args ArgsNetworkMessenger, messageSigning messageSignin
 	}
 	if check.IfNil(args.PreferredPeersHolder) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPeersRatingHandler)
 	}
 
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
@@ -231,6 +236,7 @@ func constructNode(
 		p2pHost:                 NewConnectableHost(h),
 		port:                    port,
 		printConnectionsWatcher: connWatcher,
+		peersRatingHandler: args.PeersRatingHandler,
 	}
 
 	return p2pNode, nil
@@ -299,6 +305,7 @@ func addComponentsToNode(
 	p2pNode.syncTimer = args.SyncTimer
 	p2pNode.preferredPeersHolder = args.PreferredPeersHolder
 	p2pNode.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pNode.p2pHost.ID()))
+	p2pNode.peersRatingHandler = args.PeersRatingHandler
 
 	err = p2pNode.createPubSub(messageSigning)
 	if err != nil {
@@ -351,6 +358,7 @@ func (netMes *networkMessenger) createPubSub(messageSigning messageSigningConfig
 	}
 
 	netMes.poc, err = newPeersOnChannel(
+		netMes.peersRatingHandler,
 		netMes.pb.ListPeers,
 		refreshPeersOnTopic,
 		ttlPeersOnTopic)
@@ -1004,6 +1012,10 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 		}
 		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
 
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
+
 		return messageOk
 	}
 }
@@ -1238,6 +1250,10 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		}
 
 		netMes.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), !messageOk)
+
+		if messageOk {
+			netMes.peersRatingHandler.IncreaseRating(fromConnectedPeer)
+		}
 	}(msg)
 
 	return nil

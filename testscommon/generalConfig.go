@@ -417,6 +417,10 @@ func GetGeneralConfig() config.Config {
 			Capacity: 10000,
 			Name:     "VMOutputCacher",
 		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
+		},
 	}
 }
 
