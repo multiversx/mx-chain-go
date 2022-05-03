@@ -39,6 +39,8 @@ func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaPr
 		NodesConfig: nodesConfig{
 			queue: queue,
 		},
+		AccountsAdapter: stateComponents.AccountsAdapter(),
+		Marshaller:      coreComponents.InternalMarshalizer(),
 	}
 }
 

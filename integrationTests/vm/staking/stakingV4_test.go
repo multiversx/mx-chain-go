@@ -227,19 +227,34 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	owner1StakedKeys := map[uint32][][]byte{
 		0: {[]byte("pubKey0"), []byte("pubKey1"), []byte("pubKey2")},
 	}
-
+	owner1StakingQueueKeys := [][]byte{
+		[]byte("pubKey3"), []byte("pubKey4"), []byte("pubKey5"),
+	}
 	owner1Stats := &OwnerStats{
-		EligibleBlsKeys: owner1StakedKeys,
-		TotalStake:      big.NewInt(5000),
+		EligibleBlsKeys:  owner1StakedKeys,
+		StakingQueueKeys: owner1StakingQueueKeys,
+		TotalStake:       big.NewInt(5000),
+	}
+
+	owner2 := "owner2"
+	owner2StakingQueueKeys := [][]byte{
+		[]byte("pubKey6"), []byte("pubKey7"), []byte("pubKey8"),
+	}
+	owner2Stats := &OwnerStats{
+		StakingQueueKeys: owner2StakingQueueKeys,
+		TotalStake:       big.NewInt(5000),
 	}
 
 	nodesConfig := &InitialNodesConfig{
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
+			owner2: owner2Stats,
 		},
 	}
 
 	node := NewTestMetaProcessorWithCustomNodes(nodesConfig)
+	waiting := node.getWaitingListKeys()
 
+	_ = waiting
 	_ = node
 }
