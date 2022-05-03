@@ -6,6 +6,7 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -81,6 +82,11 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		EnableEpochs: config.EnableEpochs{
+			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+			StakingV4EnableEpoch:                     StakingV4Epoch,
+			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+		},
 	}
 	tpn.NodesSetup = nodesSetup
 

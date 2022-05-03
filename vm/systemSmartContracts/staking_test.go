@@ -3379,21 +3379,25 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 	eei.CleanCache()
 	arguments.Function = "switchJailedWithWaiting"
 	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "function not allowed to be called by address"))
 
 	eei.CleanCache()
 	arguments.Function = "resetLastUnJailedFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
 
 	eei.CleanCache()
 	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
 
 	eei.CleanCache()
 	arguments.Function = "cleanAdditionalQueue"
 	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
 
 	stakingSmartContract.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)

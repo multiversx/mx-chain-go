@@ -19,6 +19,7 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -70,6 +71,11 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		EnableEpochs: config.EnableEpochs{
+			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+			StakingV4EnableEpoch:                     StakingV4Epoch,
+			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+		},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -256,6 +262,11 @@ func CreateNodeWithBLSAndTxKeys(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		EnableEpochs: config.EnableEpochs{
+			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+			StakingV4EnableEpoch:                     StakingV4Epoch,
+			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+		},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
