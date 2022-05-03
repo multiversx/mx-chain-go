@@ -83,19 +83,19 @@ func createHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.H
 
 // CheckValidity will check the validity of the received peer heartbeat
 func (ihb *interceptedHeartbeat) CheckValidity() error {
-	err := verifyPropertyLen(payloadProperty, ihb.heartbeat.Payload)
+	err := verifyPropertyMinMaxLen(payloadProperty, ihb.heartbeat.Payload)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(versionNumberProperty, []byte(ihb.heartbeat.VersionNumber))
+	err = verifyPropertyMinMaxLen(versionNumberProperty, []byte(ihb.heartbeat.VersionNumber))
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(nodeDisplayNameProperty, []byte(ihb.heartbeat.NodeDisplayName))
+	err = verifyPropertyMaxLen(nodeDisplayNameProperty, []byte(ihb.heartbeat.NodeDisplayName))
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(identityProperty, []byte(ihb.heartbeat.Identity))
+	err = verifyPropertyMaxLen(identityProperty, []byte(ihb.heartbeat.Identity))
 	if err != nil {
 		return err
 	}
