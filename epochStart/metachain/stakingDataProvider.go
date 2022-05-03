@@ -39,36 +39,39 @@ type stakingDataProvider struct {
 	flagStakingV4Enable     atomic.Flag
 }
 
+// StakingDataProviderArgs is a struct placeholder for all arguments required to create a NewStakingDataProvider
+type StakingDataProviderArgs struct {
+	EpochNotifier        process.EpochNotifier
+	SystemVM             vmcommon.VMExecutionHandler
+	MinNodePrice         string
+	StakingV4EnableEpoch uint32
+}
+
 // NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
 // computation as this will retrieve the staking data from the system VM
-func NewStakingDataProvider(
-	systemVM vmcommon.VMExecutionHandler,
-	minNodePrice string,
-	stakingV4EnableEpoch uint32,
-	epochNotifier process.EpochNotifier,
-) (*stakingDataProvider, error) {
-	if check.IfNil(systemVM) {
+func NewStakingDataProvider(args StakingDataProviderArgs) (*stakingDataProvider, error) {
+	if check.IfNil(args.SystemVM) {
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
-	if check.IfNil(epochNotifier) {
+	if check.IfNil(args.EpochNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
 
-	nodePrice, ok := big.NewInt(0).SetString(minNodePrice, 10)
+	nodePrice, ok := big.NewInt(0).SetString(args.MinNodePrice, 10)
 	if !ok || nodePrice.Cmp(big.NewInt(0)) <= 0 {
 		return nil, epochStart.ErrInvalidMinNodePrice
 	}
 
 	sdp := &stakingDataProvider{
-		systemVM:                systemVM,
+		systemVM:                args.SystemVM,
 		cache:                   make(map[string]*ownerStats),
 		minNodePrice:            nodePrice,
 		totalEligibleStake:      big.NewInt(0),
 		totalEligibleTopUpStake: big.NewInt(0),
-		stakingV4EnableEpoch:    stakingV4EnableEpoch,
+		stakingV4EnableEpoch:    args.StakingV4EnableEpoch,
 	}
 	log.Debug("stakingDataProvider: enable epoch for staking v4", "epoch", sdp.stakingV4EnableEpoch)
-	epochNotifier.RegisterNotifyHandler(sdp)
+	args.EpochNotifier.RegisterNotifyHandler(sdp)
 
 	return sdp, nil
 }
