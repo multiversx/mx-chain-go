@@ -3,7 +3,6 @@ package storageBootstrap
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
