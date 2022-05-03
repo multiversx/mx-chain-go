@@ -451,6 +451,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		NodesCoordinator:                     thn.NodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper:                      thn.PeerShardMapper,
+		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
