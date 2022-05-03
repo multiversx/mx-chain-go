@@ -6,18 +6,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
+	heartbeatMocks "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/p2p"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgValidatorInfoInterceptorProcessor() ArgValidatorInfoInterceptorProcessor {
 	return ArgValidatorInfoInterceptorProcessor{
-		Marshaller:      testscommon.MarshalizerMock{},
 		PeerShardMapper: &mock.PeerShardMapperStub{},
 	}
 }
@@ -25,16 +24,6 @@ func createMockArgValidatorInfoInterceptorProcessor() ArgValidatorInfoIntercepto
 func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil marshaller should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.Marshaller = nil
-
-		processor, err := NewValidatorInfoInterceptorProcessor(args)
-		assert.Equal(t, process.ErrNilMarshalizer, err)
-		assert.True(t, check.IfNil(processor))
-	})
 	t.Run("nil peer shard mapper should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -79,7 +68,7 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 			},
 			PeerId: "pid",
 		}
-		arg.DataBuff, _ = arg.Marshalizer.Marshal(heartbeatMessages.HeartbeatV2{})
+		arg.DataBuff, _ = arg.Marshalizer.Marshal(&heartbeatMessages.HeartbeatV2{})
 		ihb, _ := heartbeat.NewInterceptedHeartbeat(arg)
 
 		err = processor.Save(ihb, "", "")
@@ -101,12 +90,13 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
-		msg := message.ShardValidatorInfo{
+		msg := &message.ShardValidatorInfo{
 			ShardId: 5,
 		}
-		dataBuff, _ := args.Marshaller.Marshal(msg)
+		marshaller := heartbeatMocks.MarshallerMock{}
+		dataBuff, _ := marshaller.Marshal(msg)
 		arg := p2p.ArgInterceptedValidatorInfo{
-			Marshaller:  args.Marshaller,
+			Marshaller:  &marshaller,
 			DataBuff:    dataBuff,
 			NumOfShards: 10,
 		}

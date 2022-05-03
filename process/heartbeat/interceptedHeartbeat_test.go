@@ -125,10 +125,8 @@ func TestInterceptedHeartbeat_CheckValidity(t *testing.T) {
 	t.Run("versionNumberProperty too short", testInterceptedHeartbeatPropertyLen(versionNumberProperty, false))
 	t.Run("versionNumberProperty too long", testInterceptedHeartbeatPropertyLen(versionNumberProperty, true))
 
-	t.Run("nodeDisplayNameProperty too short", testInterceptedHeartbeatPropertyLen(nodeDisplayNameProperty, false))
 	t.Run("nodeDisplayNameProperty too long", testInterceptedHeartbeatPropertyLen(nodeDisplayNameProperty, true))
 
-	t.Run("identityProperty too short", testInterceptedHeartbeatPropertyLen(identityProperty, false))
 	t.Run("identityProperty too long", testInterceptedHeartbeatPropertyLen(identityProperty, true))
 
 	t.Run("invalid peer subtype should error", func(t *testing.T) {

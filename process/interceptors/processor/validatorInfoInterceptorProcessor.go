@@ -3,7 +3,6 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -13,26 +12,20 @@ type shardProvider interface {
 
 // ArgValidatorInfoInterceptorProcessor is the argument for the interceptor processor used for validator info
 type ArgValidatorInfoInterceptorProcessor struct {
-	Marshaller      marshal.Marshalizer
 	PeerShardMapper process.PeerShardMapper
 }
 
 type validatorInfoInterceptorProcessor struct {
-	marshaller      marshal.Marshalizer
 	peerShardMapper process.PeerShardMapper
 }
 
 // NewValidatorInfoInterceptorProcessor creates an instance of validatorInfoInterceptorProcessor
 func NewValidatorInfoInterceptorProcessor(args ArgValidatorInfoInterceptorProcessor) (*validatorInfoInterceptorProcessor, error) {
-	if check.IfNil(args.Marshaller) {
-		return nil, process.ErrNilMarshalizer
-	}
 	if check.IfNil(args.PeerShardMapper) {
 		return nil, process.ErrNilPeerShardMapper
 	}
 
 	return &validatorInfoInterceptorProcessor{
-		marshaller:      args.Marshaller,
 		peerShardMapper: args.PeerShardMapper,
 	}, nil
 }

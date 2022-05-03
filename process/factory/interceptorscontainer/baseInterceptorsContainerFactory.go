@@ -707,7 +707,6 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 	}
 
 	argProcessor := processor.ArgValidatorInfoInterceptorProcessor{
-		Marshaller:      bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
 		PeerShardMapper: bicf.peerShardMapper,
 	}
 	hdrProcessor, err := processor.NewValidatorInfoInterceptorProcessor(argProcessor)

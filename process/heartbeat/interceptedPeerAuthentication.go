@@ -104,23 +104,23 @@ func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*he
 // CheckValidity checks the validity of the received peer authentication. This call won't trigger the signature validation.
 func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	// Verify properties len
-	err := verifyPropertyLen(publicKeyProperty, ipa.peerAuthentication.Pubkey)
+	err := verifyPropertyMinMaxLen(publicKeyProperty, ipa.peerAuthentication.Pubkey)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(signatureProperty, ipa.peerAuthentication.Signature)
+	err = verifyPropertyMinMaxLen(signatureProperty, ipa.peerAuthentication.Signature)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(peerIdProperty, ipa.peerId.Bytes())
+	err = verifyPropertyMinMaxLen(peerIdProperty, ipa.peerId.Bytes())
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(payloadProperty, ipa.peerAuthentication.Payload)
+	err = verifyPropertyMinMaxLen(payloadProperty, ipa.peerAuthentication.Payload)
 	if err != nil {
 		return err
 	}
-	err = verifyPropertyLen(payloadSignatureProperty, ipa.peerAuthentication.PayloadSignature)
+	err = verifyPropertyMinMaxLen(payloadSignatureProperty, ipa.peerAuthentication.PayloadSignature)
 	if err != nil {
 		return err
 	}
@@ -245,15 +245,25 @@ func (ipa *interceptedPeerAuthentication) SizeInBytes() int {
 		len(ipa.peerAuthentication.PayloadSignature)
 }
 
-// verifyPropertyLen returns an error if the provided value is longer than accepted by the network
-func verifyPropertyLen(property string, value []byte) error {
+// verifyPropertyMaxLen returns an error if the provided value is longer than max accepted by the network
+func verifyPropertyMaxLen(property string, value []byte) error {
 	if len(value) > maxSizeInBytes {
 		return fmt.Errorf("%w for %s", process.ErrPropertyTooLong, property)
 	}
+
+	return nil
+}
+
+// verifyPropertyMinMaxLen returns an error if the provided value is longer/shorter than max/min accepted by the network
+func verifyPropertyMinMaxLen(property string, value []byte) error {
+	err := verifyPropertyMaxLen(property, value)
+	if err != nil {
+		return err
+	}
+
 	if len(value) < minSizeInBytes {
 		return fmt.Errorf("%w for %s", process.ErrPropertyTooShort, property)
 	}
-
 	return nil
 }
 

@@ -113,7 +113,7 @@ func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.Pee
 func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
 
-	shardValidatorInfo := message.ShardValidatorInfo{
+	shardValidatorInfo := &message.ShardValidatorInfo{
 		ShardId: dcp.shardCoordinator.SelfId(),
 	}
 

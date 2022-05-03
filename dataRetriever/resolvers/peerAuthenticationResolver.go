@@ -275,7 +275,7 @@ func (res *peerAuthenticationResolver) getMaxChunks(dataBuff [][]byte) int {
 
 // sendData sends a message to a peer
 func (res *peerAuthenticationResolver) sendData(dataSlice [][]byte, reference []byte, chunkIndex int, maxChunks int, pid core.PeerID) error {
-	b := batch.Batch{
+	b := &batch.Batch{
 		Data:       dataSlice,
 		Reference:  reference,
 		ChunkIndex: uint32(chunkIndex),

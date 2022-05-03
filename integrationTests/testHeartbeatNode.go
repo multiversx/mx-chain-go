@@ -541,7 +541,6 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 
 func (thn *TestHeartbeatNode) createValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
 	args := interceptorsProcessor.ArgValidatorInfoInterceptorProcessor{
-		Marshaller:      &testscommon.MarshalizerMock{},
 		PeerShardMapper: thn.PeerShardMapper,
 	}
 	sviProcessor, _ := interceptorsProcessor.NewValidatorInfoInterceptorProcessor(args)
