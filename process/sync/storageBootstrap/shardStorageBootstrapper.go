@@ -145,13 +145,14 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 ) {
 	var numConsecutiveNoncesNotFound int
 
-	nonce, err := getCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	lastCrossNotarizedNonce, err := getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders)
 	if err != nil {
 		log.Warn("cleanupNotarizedStorageForHigherNoncesIfExist", "error", err.Error())
 		return
 	}
 
-	log.Debug("cleanup notarized storage higher than nonce", "nonce", nonce)
+	log.Debug("cleanup notarized storage has been started", "from nonce", lastCrossNotarizedNonce+1)
+	nonce := lastCrossNotarizedNonce
 
 	for {
 		nonce++
@@ -164,10 +165,13 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 		)
 		if err != nil {
 			log.Debug("meta block is not found in MetaHdrNonceHashDataUnit storage",
-				"nonce", nonce)
+				"nonce", nonce, "error", err.Error())
 
 			numConsecutiveNoncesNotFound++
 			if numConsecutiveNoncesNotFound > maxNumOfConsecutiveNoncesNotFoundAccepted {
+				log.Debug("cleanup notarized storage has been finished",
+					"from nonce", lastCrossNotarizedNonce+1,
+					"to nonce", nonce)
 				break
 			}
 
@@ -183,6 +187,11 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 				"nonce", metaBlock.GetNonce(),
 				"hash", metaBlockHash,
 				"error", err.Error())
+		} else {
+			log.Debug("meta block has been removed from MetaHdrNonceHashDataUnit storage",
+				"shardId", metaBlock.GetShardID(),
+				"nonce", metaBlock.GetNonce(),
+				"hash", metaBlockHash)
 		}
 
 		err = ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
@@ -192,17 +201,22 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 				"nonce", metaBlock.GetNonce(),
 				"hash", metaBlockHash,
 				"error", err.Error())
+		} else {
+			log.Debug("meta block has been removed from MetaBlockUnit storage",
+				"shardId", metaBlock.GetShardID(),
+				"nonce", metaBlock.GetNonce(),
+				"hash", metaBlockHash)
 		}
 	}
 }
 
-func getCrossNotarizedHeaderNonce(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) (uint64, error) {
+func getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) (uint64, error) {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
 		if crossNotarizedHeader.ShardId != core.MetachainShardId {
 			continue
 		}
 
-		log.Debug("cross notarized header",
+		log.Debug("last cross notarized header",
 			"shard", crossNotarizedHeader.ShardId,
 			"epoch", crossNotarizedHeader.Epoch,
 			"nonce", crossNotarizedHeader.Nonce,
