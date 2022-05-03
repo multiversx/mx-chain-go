@@ -149,7 +149,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
 		return v.([]byte), nil
@@ -159,7 +159,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	defer ps.lock.RUnlock()
 
 	numClosedDbs := 0
-	for idx := 1; idx < len(ps.activePersisters); idx++ {
+	for idx := epochOffset; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
 			if err == storage.ErrDBIsClosed {
@@ -172,7 +172,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 		return val, nil
 	}
 
-	if numClosedDbs+1 == len(ps.activePersisters) && len(ps.activePersisters) > 1 {
+	if numClosedDbs+epochOffset == len(ps.activePersisters) && len(ps.activePersisters) > epochOffset {
 		return nil, storage.ErrDBIsClosed
 	}
 

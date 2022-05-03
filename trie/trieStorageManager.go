@@ -51,7 +51,7 @@ type NewTrieStorageManagerArgs struct {
 	Hasher                 hashing.Hasher
 	GeneralConfig          config.TrieStorageManagerConfig
 	CheckpointHashesHolder CheckpointHashesHolder
-	IdleProvider               IdleNodeProvider
+	IdleProvider           IdleNodeProvider
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -188,8 +188,8 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
-// GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
-func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+// GetFromEpoch checks only the storer for the given epoch
+func (tsm *trieStorageManager) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	tsm.storageOperationMutex.Lock()
 
 	if tsm.closed {
@@ -207,7 +207,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 	tsm.storageOperationMutex.Unlock()
 
-	return storer.GetFromCurrentEpoch(key)
+	return storer.GetFromEpoch(key, epoch)
 }
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
@@ -423,7 +423,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider, false)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
@@ -601,19 +601,38 @@ func isActiveDB(stsm *snapshotTrieStorageManager) bool {
 }
 
 func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
-	val, err := stsm.GetFromCurrentEpoch([]byte(common.TrieSyncedKey))
+	epoch, err := stsm.GetLatestStorageEpoch()
+	if err != nil {
+		log.Debug("isTrieSynced get latest storage epoch error", "err", err.Error())
+		return false
+	}
+
+	isTrieSyncedThisEpoch := isTrieSyncedInEpoch(stsm, epoch)
+	isTrieSyncedLastEpoch := false
+
+	if epoch > 0 {
+		isTrieSyncedLastEpoch = isTrieSyncedInEpoch(stsm, epoch-1)
+	}
+
+	isTrieSynced := isTrieSyncedThisEpoch || isTrieSyncedLastEpoch
+	log.Debug("isTrieSynced ", "value", isTrieSynced)
+	return isTrieSynced
+}
+
+func isTrieSyncedInEpoch(stsm *snapshotTrieStorageManager, epoch uint32) bool {
+	val, err := stsm.GetFromEpoch([]byte(common.TrieSyncedKey), epoch)
 	if err != nil {
 		log.Debug("isTrieSynced get error", "err", err.Error())
 		return false
 	}
 
-	if bytes.Equal(val, []byte(common.TrieSyncedVal)) {
-		log.Debug("isTrieSynced true")
-		return true
+	if !bytes.Equal(val, []byte(common.TrieSyncedVal)) {
+		log.Debug("isTrieSynced false")
+		return false
 	}
 
-	log.Debug("isTrieSynced invalid value", "value", val)
-	return false
+	log.Debug("isTrieSynced true")
+	return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

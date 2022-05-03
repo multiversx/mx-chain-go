@@ -2254,7 +2254,7 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 	assert.Equal(t, dataTrie, account.DataTrie())
 }
 
-func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
+func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestartIfNoSnapshotFinished(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
@@ -2265,7 +2265,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetFromEpochCalled: func(key []byte, _ uint32) ([]byte, error) {
 					if bytes.Equal(key, []byte(common.ActiveDBKey)) {
 						return nil, fmt.Errorf("key not found")
 					}
@@ -2277,6 +2277,9 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
 					takeSnapshotCalled.SetValue(true)
 				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 6, nil
+				},
 			}
 		},
 	}
@@ -2284,6 +2287,70 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 	_ = generateAccountDBFromTrie(trieStub)
 	time.Sleep(time.Second)
 	assert.True(t, takeSnapshotCalled.IsSet())
+}
+
+func TestAccountsDB_NewAccountsDbDoesNotStartSnapshotInEpoch0(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("rootHash")
+	takeSnapshotCalled := atomicFlag.Flag{}
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetFromEpochCalled: func(key []byte, _ uint32) ([]byte, error) {
+					return []byte(common.ActiveDBVal), nil
+				},
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					takeSnapshotCalled.SetValue(true)
+				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 0, nil
+				},
+			}
+		},
+	}
+
+	_ = generateAccountDBFromTrie(trieStub)
+	time.Sleep(time.Second)
+	assert.False(t, takeSnapshotCalled.IsSet())
+}
+
+func TestAccountsDB_NewAccountsDbDoesNotStartSnapshotIfSnapshotFinishedBeforeRestart(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("rootHash")
+	takeSnapshotCalled := atomicFlag.Flag{}
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &testscommon.StorageManagerStub{
+				GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
+					return []byte(common.ActiveDBVal), nil
+				},
+				ShouldTakeSnapshotCalled: func() bool {
+					return true
+				},
+				TakeSnapshotCalled: func(_ []byte, _ []byte, _ chan core.KeyValueHolder, _ common.SnapshotStatisticsHandler, _ uint32) {
+					takeSnapshotCalled.SetValue(true)
+				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 6, nil
+				},
+			}
+		},
+	}
+
+	_ = generateAccountDBFromTrie(trieStub)
+	time.Sleep(time.Second)
+	assert.False(t, takeSnapshotCalled.IsSet())
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {

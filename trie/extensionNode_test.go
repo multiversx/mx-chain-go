@@ -320,7 +320,7 @@ func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
 	assert.Nil(t, encNode)
 }
 
-func TestExtensionNode_resolveCollapsed(t *testing.T) {
+func TestExtensionNode_resolveCollapsedFromDb(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -329,7 +329,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	_ = en.commitDirty(0, 5, db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 
-	err := collapsedEn.resolveCollapsed(0, db)
+	err := collapsedEn.resolveCollapsedFromDb(0, db)
 	assert.Nil(t, err)
 	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
 
@@ -338,22 +338,51 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	assert.Equal(t, h1, h2)
 }
 
-func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
+func TestExtensionNode_resolveCollapsedFromDbNode(t *testing.T) {
 	t.Parallel()
 
 	en := &extensionNode{}
 
-	err := en.resolveCollapsed(0, nil)
+	err := en.resolveCollapsedFromDb(0, nil)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
-func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
+func TestExtensionNode_resolveCollapsedFromDbNilNode(t *testing.T) {
 	t.Parallel()
 
 	var en *extensionNode
 
-	err := en.resolveCollapsed(2, nil)
+	err := en.resolveCollapsedFromDb(2, nil)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
+}
+
+func TestExtensionNode_resolveCollapsedFromBytes(t *testing.T) {
+	t.Parallel()
+
+	db := testscommon.NewMemDbMock()
+	en, collapsedEn := getEnAndCollapsedEn()
+	_ = en.setHash()
+	_ = en.commitDirty(0, 5, db, db)
+	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
+	childBytes, _ := en.child.getEncodedNode()
+
+	err := collapsedEn.resolveCollapsedFromBytes(0, childBytes)
+	assert.Nil(t, err)
+	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
+
+	h1, _ := encodeNodeAndGetHash(resolved)
+	h2, _ := encodeNodeAndGetHash(collapsedEn.child)
+	assert.Equal(t, h1, h2)
+}
+
+func TestExtensionNode_resolveCollapsedFromBytesWrongBytes(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	childBytes := []byte("wrong bytes")
+
+	err := collapsedEn.resolveCollapsedFromBytes(0, childBytes)
+	assert.NotNil(t, err)
 }
 
 func TestExtensionNode_isCollapsed(t *testing.T) {
@@ -899,10 +928,10 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	enWriter := bytes.NewBuffer(make([]byte, 0))
 	collapsedEnWriter := bytes.NewBuffer(make([]byte, 0))
 
-	db := testscommon.NewMemDbMock()
+	db := testscommon.NewSnapshotPruningStorerMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = collapsedEn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
@@ -915,7 +944,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = en.commitDirty(0, 5, db, db)
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -940,7 +969,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = en.commitDirty(0, 5, db, db)
 
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1017,7 +1046,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 func TestExtensionNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := testscommon.NewSnapshotPruningStorerMock()
 	en, _ := getEnAndCollapsedEn()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -1025,7 +1054,7 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = en.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = en.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

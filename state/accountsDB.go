@@ -101,12 +101,23 @@ type ArgsAccountsDB struct {
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
+	adb, err := getAccountsDbFromArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	startSnapshotIfNeeded(adb)
+
+	return adb, nil
+}
+
+func getAccountsDbFromArgs(args ArgsAccountsDB) (*AccountsDB, error) {
 	err := checkArgsAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}
 
-	adb := &AccountsDB{
+	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
 		marshaller:             args.Marshaller,
@@ -122,15 +133,17 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		processingMode:       args.ProcessingMode,
 		lastSnapshot:         &snapshotInfo{},
 		processStatusHandler: args.ProcessStatusHandler,
-	}
+	}, nil
+}
 
-	trieStorageManager := adb.mainTrie.GetStorageManager()
-	val, err := trieStorageManager.GetFromCurrentEpoch([]byte(common.ActiveDBKey))
-	if err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal)) {
+func startSnapshotIfNeeded(adb accountsAdapterWithStorageAccess) {
+	trieStorageManager := adb.getStorageManager()
+	val, err := getFromLastEpoch(trieStorageManager, []byte(common.ActiveDBKey))
+	shouldSnapshotAfterRestart := err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal))
+	shouldSnapshotAfterRestart = shouldSnapshotAfterRestart && !(err == ErrInvalidLastEpoch)
+	if shouldSnapshotAfterRestart {
 		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
-
-	return adb, nil
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {
@@ -160,22 +173,29 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
 	if err != nil {
 		log.Debug("startSnapshotAfterRestart root hash", "error", err)
-
-		err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-		handleLoggingWhenError("error while putting active DB value into main storer", err)
-
 		return
 	}
+
+	if !tsm.ShouldTakeSnapshot() {
+		return
+	}
+
 	log.Debug("snapshot hash after restart", "hash", rootHash)
+	adb.SnapshotState(rootHash)
+}
 
-	if tsm.ShouldTakeSnapshot() {
-		log.Debug("startSnapshotAfterRestart")
-		adb.SnapshotState(rootHash)
-		return
+func getFromLastEpoch(trieStorageManager common.StorageManager, key []byte) ([]byte, error) {
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		return nil, err
 	}
 
-	err = tsm.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
-	handleLoggingWhenError("newTrieStorageManager error while putting active DB value into main storer", err)
+	if epoch == 0 {
+		return nil, ErrInvalidLastEpoch
+	}
+	lastEpoch := epoch - 1
+
+	return trieStorageManager.GetFromEpoch(key, lastEpoch)
 }
 
 func handleLoggingWhenError(message string, err error, extraArguments ...interface{}) {
@@ -1116,9 +1136,11 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		printStats(stats, "snapshotState user trie", rootHash)
 
-		log.Debug("set activeDB in epoch", "epoch", epoch)
-		errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
-		handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+		if epoch > 0 {
+			log.Debug("set activeDB in epoch userAccounts", "epoch", epoch-1)
+			errPut := trieStorageManager.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch-1)
+			handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+		}
 	}()
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
@@ -1133,9 +1155,9 @@ func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
 	log.Debug("snapshot statistics",
 		"type", identifier,
 		"duration", time.Since(stats.startTime).Truncate(time.Second),
-		"total num of nodes", stats.numNodes,
-		"total size", core.ConvertBytes(stats.trieSize),
-		"num data tries", stats.numDataTries,
+		"num of nodes copied", stats.numNodes,
+		"total size copied", core.ConvertBytes(stats.trieSize),
+		"num data tries copied", stats.numDataTries,
 		"rootHash", rootHash,
 	)
 }
@@ -1231,6 +1253,10 @@ func (adb *AccountsDB) Close() error {
 
 	_ = adb.mainTrie.Close()
 	return adb.storagePruningManager.Close()
+}
+
+func (adb *AccountsDB) getStorageManager() common.StorageManager {
+	return adb.mainTrie.GetStorageManager()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

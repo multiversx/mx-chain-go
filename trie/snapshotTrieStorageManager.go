@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
+const storerOffset = 1
+
 type snapshotTrieStorageManager struct {
 	*trieStorageManager
 	mainSnapshotStorer snapshotPruningStorer
@@ -35,7 +37,7 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
-	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
+	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, storerOffset)
 	if isClosingError(err) {
 		return nil, err
 	}
@@ -71,4 +73,57 @@ func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, er
 	}
 
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
+}
+
+// GetFromOldEpochsWithoutAddingToCache searches for the key without adding it to cache if it is found. It starts
+// the search for the key from the currentStorer - epochOffset)
+func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
+
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+		return nil, errors.ErrContextClosing
+	}
+
+	return stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, epochOffset)
+}
+
+// PutInEpochWithoutCache saves the data in the given epoch storer
+func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
+
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+		return errors.ErrContextClosing
+	}
+
+	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, epoch)
+}
+
+// GetFromCurrentEpoch the key in the current epoch storer
+func (stsm *snapshotTrieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
+
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+		return nil, errors.ErrContextClosing
+	}
+
+	return stsm.mainSnapshotStorer.GetFromCurrentEpoch(key)
+}
+
+// RemoveFromCurrentEpoch removes the key from the current epoch storer
+func (stsm *snapshotTrieStorageManager) RemoveFromCurrentEpoch(key []byte) error {
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
+
+	if stsm.closed {
+		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+		return errors.ErrContextClosing
+	}
+
+	return stsm.mainSnapshotStorer.RemoveFromCurrentEpoch(key)
 }

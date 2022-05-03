@@ -215,12 +215,20 @@ func TestLeafNode_getEncodedNodeNil(t *testing.T) {
 	assert.Nil(t, encNode)
 }
 
-func TestLeafNode_resolveCollapsed(t *testing.T) {
+func TestLeafNode_resolveCollapsedFromDb(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	assert.Nil(t, ln.resolveCollapsed(0, nil))
+	assert.Nil(t, ln.resolveCollapsedFromDb(0, nil))
+}
+
+func TestLeafNode_resolveCollapsedFromBytes(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshalizerAndHasher())
+
+	assert.Nil(t, ln.resolveCollapsedFromBytes(0, []byte("random string")))
 }
 
 func TestLeafNode_isCollapsed(t *testing.T) {
@@ -723,7 +731,7 @@ func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 func TestLeafNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := testscommon.NewSnapshotPruningStorerMock()
 	ln := getLn(marshalizer, hasherMock)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -731,7 +739,7 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

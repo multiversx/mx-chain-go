@@ -35,8 +35,8 @@ func (tsm *trieStorageManagerWithoutPruning) Get(key []byte) ([]byte, error) {
 	return tsm.mainStorer.Get(key)
 }
 
-// GetFromCurrentEpoch checks only the db
-func (tsm *trieStorageManagerWithoutPruning) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+// GetFromEpoch checks only the db
+func (tsm *trieStorageManagerWithoutPruning) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return tsm.mainStorer.Get(key)
 }
 

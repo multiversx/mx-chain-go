@@ -124,3 +124,6 @@ var ErrNilChainHandler = errors.New("nil chain handler")
 
 // ErrNilProcessStatusHandler signals that a nil process status handler was provided
 var ErrNilProcessStatusHandler = errors.New("nil process status handler")
+
+// ErrInvalidLastEpoch signals that the last epoch is invalid (it's < than 0)
+var ErrInvalidLastEpoch = errors.New("invalid last epoch")

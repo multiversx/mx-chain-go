@@ -174,11 +174,12 @@ func (ln *leafNode) commitCheckpoint(
 }
 
 func (ln *leafNode) commitSnapshot(
-	db common.DBWriteCacher,
+	db snapshotPruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	saveToStorage bool,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -194,12 +195,14 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
-	if err != nil {
-		return err
-	}
+	if saveToStorage {
+		nodeSize, err := encodeNodeAndCommitToDB(ln, db)
+		if err != nil {
+			return err
+		}
 
-	stats.AddSize(uint64(nodeSize))
+		stats.AddSize(uint64(nodeSize))
+	}
 
 	return nil
 }
@@ -233,7 +236,11 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(_ byte, _ common.DBWriteCacher) error {
+func (ln *leafNode) resolveCollapsedFromDb(_ byte, _ common.DBWriteCacher) error {
+	return nil
+}
+
+func (ln *leafNode) resolveCollapsedFromBytes(_ byte, _ []byte) error {
 	return nil
 }
 

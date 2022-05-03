@@ -10,7 +10,7 @@ type StorageManagerStub struct {
 	PutCalled                       func([]byte, []byte) error
 	PutInEpochCalled                func([]byte, []byte, uint32) error
 	GetCalled                       func([]byte) ([]byte, error)
-	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
+	GetFromEpochCalled              func([]byte, uint32) ([]byte, error)
 	TakeSnapshotCalled              func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled             func([]byte, []byte, chan core.KeyValueHolder, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled     func([]byte) common.DBWriteCacher
@@ -54,10 +54,10 @@ func (sms *StorageManagerStub) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
-// GetFromCurrentEpoch -
-func (sms *StorageManagerStub) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	if sms.GetFromCurrentEpochCalled != nil {
-		return sms.GetFromCurrentEpochCalled(key)
+// GetFromEpoch -
+func (sms *StorageManagerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+	if sms.GetFromEpochCalled != nil {
+		return sms.GetFromEpochCalled(key, epoch)
 	}
 
 	return nil, nil

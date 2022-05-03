@@ -37,11 +37,11 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochs(t *
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 1)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
+	res, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2, 1)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -62,7 +62,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -85,7 +85,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	_ = ps.ChangeEpochSimple(2)
 	_ = ps.ChangeEpochSimple(3)
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -121,7 +121,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	_ = ps.ChangeEpochSimple(3)
 	_ = ps.Close()
 
-	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
+	val, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"), 1)
 	assert.Nil(t, val)
 	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
@@ -144,7 +144,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentSto
 	assert.Nil(t, err)
 	ps.ClearCache()
 
-	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 1)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))

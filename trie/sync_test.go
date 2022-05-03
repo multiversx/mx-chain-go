@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -197,7 +196,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	rootHash := bn.getHash()
 	db := testscommon.NewMemDbMock()
 
-	err = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = bn.commitDirty(0, 5, db, db)
 	require.Nil(t, err)
 
 	arg := createMockArgument(timeout)

@@ -182,3 +182,8 @@ type StoragePruningManager interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+type accountsAdapterWithStorageAccess interface {
+	AccountsAdapter
+	getStorageManager() common.StorageManager
+}

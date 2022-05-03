@@ -11,7 +11,7 @@ func NewSnapshotPruningStorerMock() *SnapshotPruningStorerMock {
 }
 
 // GetFromOldEpochsWithoutAddingToCache -
-func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error) {
+func (spsm *SnapshotPruningStorerMock) GetFromOldEpochsWithoutAddingToCache(key []byte, _ int) ([]byte, error) {
 	return spsm.Get(key)
 }
 
@@ -27,6 +27,11 @@ func (spsm *SnapshotPruningStorerMock) GetFromLastEpoch(key []byte) ([]byte, err
 
 // GetFromCurrentEpoch -
 func (spsm *SnapshotPruningStorerMock) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	return spsm.Get(key)
+}
+
+// GetFromEpoch -
+func (spsm *SnapshotPruningStorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return spsm.Get(key)
 }
 

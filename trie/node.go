@@ -133,7 +133,7 @@ func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsed(pos, db)
+		err = n.resolveCollapsedFromDb(pos, db)
 		if err != nil {
 			return err
 		}

@@ -24,7 +24,8 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsed(pos byte, db common.DBWriteCacher) error
+	resolveCollapsedFromDb(pos byte, db common.DBWriteCacher) error
+	resolveCollapsedFromBytes(pos byte, childNode []byte) error
 	hashNode() ([]byte, error)
 	hashChildren() error
 	tryGet(key []byte, db common.DBWriteCacher) ([]byte, error)
@@ -47,7 +48,7 @@ type node interface {
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitSnapshot(originDb snapshotPruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -60,7 +61,7 @@ type node interface {
 
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	commitSnapshot(originDb snapshotPruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -93,11 +94,12 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.DBWriteCacher
-	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, error)
+	GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpoch() (uint32, error)
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	RemoveFromCurrentEpoch(key []byte) error
 }
 

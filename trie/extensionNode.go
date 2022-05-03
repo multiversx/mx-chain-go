@@ -242,11 +242,12 @@ func (en *extensionNode) commitCheckpoint(
 }
 
 func (en *extensionNode) commitSnapshot(
-	db common.DBWriteCacher,
+	db snapshotPruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	saveToStorage bool,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -257,17 +258,35 @@ func (en *extensionNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	err = resolveIfCollapsed(en, 0, db)
+	saveChildToStorage := false
+	childBytes, err := db.GetFromLastEpoch(en.EncodedChild)
+	if err != nil {
+		saveChildToStorage = true
+		childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(en.EncodedChild, 2)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = en.resolveCollapsedFromBytes(0, childBytes)
 	if err != nil {
 		return err
 	}
 
-	err = en.child.commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
+	err = en.child.commitSnapshot(db, leavesChan, ctx, stats, idleProvider, saveChildToStorage)
 	if err != nil {
 		return err
 	}
 
-	return en.saveToStorage(db, stats)
+	if saveToStorage {
+		err = en.saveToStorage(db, stats)
+		if err != nil {
+			return err
+		}
+	}
+
+	en.child = nil
+	return nil
 }
 
 func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
@@ -278,7 +297,6 @@ func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats comm
 
 	stats.AddSize(uint64(nodeSize))
 
-	en.child = nil
 	return nil
 }
 
@@ -295,12 +313,26 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsed(_ byte, db common.DBWriteCacher) error {
+func (en *extensionNode) resolveCollapsedFromDb(_ byte, db common.DBWriteCacher) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("resolveCollapsed error %w", err)
 	}
 	child, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	if err != nil {
+		return err
+	}
+	child.setGivenHash(en.EncodedChild)
+	en.child = child
+	return nil
+}
+
+func (en *extensionNode) resolveCollapsedFromBytes(_ byte, childNode []byte) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("resolveCollapsed error %w", err)
+	}
+	child, err := decodeNode(childNode, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}

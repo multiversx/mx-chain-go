@@ -297,22 +297,3 @@ func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
 
 	assert.False(t, ts.ShouldTakeSnapshot())
 }
-
-func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
-	t.Parallel()
-
-	getFromCurrentEpochCalled := false
-	args := getNewTrieStorageManagerArgs()
-	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		DB: memorydb.New(),
-		GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
-			getFromCurrentEpochCalled = true
-			return nil, nil
-		},
-	}
-	ts, _ := trie.NewTrieStorageManager(args)
-
-	_, err := ts.GetFromCurrentEpoch([]byte("key"))
-	assert.Nil(t, err)
-	assert.True(t, getFromCurrentEpochCalled)
-}

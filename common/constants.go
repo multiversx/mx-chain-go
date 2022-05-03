@@ -225,9 +225,6 @@ const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
 // MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
 const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
 
-// MetricRewardsValue is the metric that stores rewards value
-const MetricRewardsValue = "erd_rewards_value"
-
 // MetricNodeDisplayName is the metric that stores the name of the node
 const MetricNodeDisplayName = "erd_node_display_name"
 
@@ -289,7 +286,7 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 // MetricRedundancyLevel is the metric that specifies the redundancy level of the current node
 const MetricRedundancyLevel = "erd_redundancy_level"
 
-// MetricRedundancyMainActive is the metrics that specifies data about the redundancy main machine
+// MetricRedundancyIsMainActive is the metrics that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
 // MetricValueNA represents the value to be used when a metric is not available/applicable

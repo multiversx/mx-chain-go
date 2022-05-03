@@ -336,11 +336,12 @@ func (bn *branchNode) commitCheckpoint(
 }
 
 func (bn *branchNode) commitSnapshot(
-	db common.DBWriteCacher,
+	db snapshotPruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	saveToStorage bool,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -351,23 +352,47 @@ func (bn *branchNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
+	for i, childHash := range bn.EncodedChildren {
+		if len(childHash) == 0 {
+			continue
+		}
+
+		saveChildToStorage := false
+
+		childBytes, err := db.GetFromLastEpoch(childHash)
+		if err != nil {
+			saveChildToStorage = true
+			childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(childHash, 2)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = bn.resolveCollapsedFromBytes(byte(i), childBytes)
 		if err != nil {
 			return err
 		}
 
 		if bn.children[i] == nil {
+			log.Warn("child should not be nil")
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider)
+		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider, saveChildToStorage)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats)
+	if saveToStorage {
+		err = bn.saveToStorage(db, stats)
+		if err != nil {
+			return err
+		}
+	}
+
+	bn.removeChildrenPointers()
+	return nil
 }
 
 func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
@@ -378,7 +403,6 @@ func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.
 
 	stats.AddSize(uint64(nodeSize))
 
-	bn.removeChildrenPointers()
 	return nil
 }
 
@@ -401,7 +425,7 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (bn *branchNode) resolveCollapsed(pos byte, db common.DBWriteCacher) error {
+func (bn *branchNode) resolveCollapsedFromDb(pos byte, db common.DBWriteCacher) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("resolveCollapsed error %w", err)
@@ -417,6 +441,25 @@ func (bn *branchNode) resolveCollapsed(pos byte, db common.DBWriteCacher) error 
 		}
 		child.setGivenHash(bn.EncodedChildren[pos])
 		bn.children[pos] = child
+	}
+	return nil
+}
+
+func (bn *branchNode) resolveCollapsedFromBytes(pos byte, childNode []byte) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("resolveCollapsed error %w", err)
+	}
+	if childPosOutOfRange(pos) {
+		return ErrChildPosOutOfRange
+	}
+	if len(bn.EncodedChildren[pos]) != 0 {
+		decodedChild, err := decodeNode(childNode, bn.marsh, bn.hasher)
+		if err != nil {
+			return err
+		}
+		decodedChild.setGivenHash(bn.EncodedChildren[pos])
+		bn.children[pos] = decodedChild
 	}
 	return nil
 }

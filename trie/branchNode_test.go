@@ -427,7 +427,7 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 	assert.Nil(t, encNode)
 }
 
-func TestBranchNode_resolveCollapsed(t *testing.T) {
+func TestBranchNode_resolveCollapsedFromDb(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -440,36 +440,64 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
 
-	err := collapsedBn.resolveCollapsed(childPos, db)
+	err := collapsedBn.resolveCollapsedFromDb(childPos, db)
 	assert.Nil(t, err)
 	assert.Equal(t, resolved, collapsedBn.children[childPos])
 }
 
-func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
+func TestBranchNode_resolveCollapsedFromDbEmptyNode(t *testing.T) {
 	t.Parallel()
 
 	bn := emptyDirtyBranchNode()
 
-	err := bn.resolveCollapsed(2, nil)
+	err := bn.resolveCollapsedFromDb(2, nil)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
-func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
+func TestBranchNode_resolveCollapsedFromDbNilNode(t *testing.T) {
 	t.Parallel()
 
 	var bn *branchNode
 
-	err := bn.resolveCollapsed(2, nil)
+	err := bn.resolveCollapsedFromDb(2, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
-func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
+func TestBranchNode_resolveCollapsedFromDbPosOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	err := bn.resolveCollapsed(17, nil)
+	err := bn.resolveCollapsedFromDb(17, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
+}
+
+func TestBranchNode_resolveCollapsedFromBytes(t *testing.T) {
+	t.Parallel()
+
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	childPos := byte(2)
+
+	resolved, _ := newLeafNode([]byte("dog"), []byte("dog"), bn.marsh, bn.hasher)
+	resolved.dirty = false
+	resolved.hash = collapsedBn.EncodedChildren[childPos]
+
+	encodedChild, _ := bn.children[childPos].getEncodedNode()
+
+	err := collapsedBn.resolveCollapsedFromBytes(childPos, encodedChild)
+	assert.Nil(t, err)
+	assert.Equal(t, resolved, collapsedBn.children[childPos])
+}
+
+func TestBranchNode_resolveCollapsedFromBytesWrongBytes(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	childPos := byte(2)
+	encodedChild := []byte("wrong encoding")
+
+	err := collapsedBn.resolveCollapsedFromBytes(childPos, encodedChild)
+	assert.NotNil(t, err)
 }
 
 func TestBranchNode_isCollapsed(t *testing.T) {
@@ -1033,8 +1061,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
-
+	_ = bn.commitDirty(0, 5, db, db)
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(children))
@@ -1233,8 +1260,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
-	_ = collapsedBn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = bn.commitDirty(0, 5, db, db)
+	_ = collapsedBn.commitDirty(0, 5, db, db)
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1271,7 +1298,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	_ = bn.commitDirty(0, 5, db, db)
 
 	hashes, err := collapsedBn.getAllHashes(db)
 	assert.Nil(t, err)
@@ -1347,7 +1374,7 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 func TestBranchNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := testscommon.NewSnapshotPruningStorerMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -1355,7 +1382,7 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
+	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 
