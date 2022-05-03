@@ -1178,8 +1178,6 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 func (e *epochStartBootstrap) setEpochStartMetrics() {
 	if !check.IfNil(e.epochStartMeta) {
 		metablockEconomics := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler()
-		e.statusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, e.epochStartMeta.GetNonce())
-		e.statusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, e.epochStartMeta.GetRound())
 		e.statusHandler.SetStringValue(common.MetricTotalSupply, metablockEconomics.GetTotalSupply().String())
 		e.statusHandler.SetStringValue(common.MetricInflation, metablockEconomics.GetTotalNewlyMinted().String())
 		e.statusHandler.SetStringValue(common.MetricTotalFees, e.epochStartMeta.GetAccumulatedFees().String())
