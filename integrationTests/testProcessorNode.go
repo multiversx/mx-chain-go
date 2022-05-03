@@ -205,8 +205,14 @@ const stateCheckpointModulus = 100
 // StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
+// StakingV4InitEpoch defines the epoch for integration tests when stakingV4 init is enabled
+const StakingV4InitEpoch = 4443
+
 // StakingV4Epoch defines the epoch for integration tests when stakingV4 is enabled; should be greater than StakingV2Epoch
 const StakingV4Epoch = 4444
+
+// StakingV4DistributeAuctionToWaiting defines the epoch for integration tests when nodes distribution from auction to waiting list is enabled in staking v4
+const StakingV4DistributeAuctionToWaiting = 4445
 
 // ScheduledMiniBlocksEnableEpoch defines the epoch for integration tests when scheduled nini blocks are enabled
 const ScheduledMiniBlocksEnableEpoch = 1000
