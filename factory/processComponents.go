@@ -1073,6 +1073,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		CurrentNetworkEpochProvider:          currentEpochProvider,
 		ResolverConfig:                       pcf.config.Resolvers,
 		PreferredPeersHolder:                 pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:                   pcf.network.PeersRatingHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      peerShardMapper,
@@ -1112,6 +1113,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		CurrentNetworkEpochProvider:          currentEpochProvider,
 		ResolverConfig:                       pcf.config.Resolvers,
 		PreferredPeersHolder:                 pcf.network.PreferredPeersHolderHandler(),
+		PeersRatingHandler:                   pcf.network.PeersRatingHandler(),
 		NodesCoordinator:                     pcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: pcf.config.HeartbeatV2.MaxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      peerShardMapper,
@@ -1466,6 +1468,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		MaxHardCapForMissingNodes: pcf.config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
+		PeersRatingHandler:        pcf.network.PeersRatingHandler(),
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }

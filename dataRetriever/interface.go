@@ -420,6 +420,15 @@ type PreferredPeersHolderHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PeersRatingHandler represent an entity able to handle peers ratings
+type PeersRatingHandler interface {
+	AddPeer(pid core.PeerID)
+	IncreaseRating(pid core.PeerID)
+	DecreaseRating(pid core.PeerID)
+	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
+	IsInterfaceNil() bool
+}
+
 // SelfShardIDProvider defines the behavior of a component able to provide the self shard ID
 type SelfShardIDProvider interface {
 	SelfId() uint32

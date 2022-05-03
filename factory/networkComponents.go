@@ -15,10 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	peersHolder "github.com/ElrondNetwork/elrond-go/p2p/peersHolder"
+	"github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -60,6 +62,7 @@ type networkComponents struct {
 	antifloodConfig        config.AntifloodConfig
 	peerHonestyHandler     consensus.PeerHonestyHandler
 	peersHolder            PreferredPeersHolderHandler
+	peersRatingHandler     p2p.PeersRatingHandler
 	closeFunc              context.CancelFunc
 }
 
@@ -98,6 +101,23 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
+	topRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
+	badRatedCache, err := lrucache.NewCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
+	if err != nil {
+		return nil, err
+	}
+	argsPeersRatingHandler := rating.ArgPeersRatingHandler{
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
+	}
+	peersRatingHandler, err := rating.NewPeersRatingHandler(argsPeersRatingHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          ncf.marshalizer,
 		ListenAddress:        ncf.listenAddress,
@@ -105,8 +125,8 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		SyncTimer:            ncf.syncer,
 		PreferredPeersHolder: ph,
 		NodeOperationMode:    ncf.nodeOperationMode,
+		PeersRatingHandler:   peersRatingHandler,
 	}
-
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
 		return nil, err
@@ -185,6 +205,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		antifloodConfig:        ncf.mainConfig.Antiflood,
 		peerHonestyHandler:     peerHonestyHandler,
 		peersHolder:            ph,
+		peersRatingHandler:     peersRatingHandler,
 		closeFunc:              cancelFunc,
 	}, nil
 }

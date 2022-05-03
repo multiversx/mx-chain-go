@@ -25,26 +25,27 @@ const minNumOfPeerAuthentication = 5
 var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
-	container                            dataRetriever.ResolversContainer
-	shardCoordinator                     sharding.Coordinator
-	messenger                            dataRetriever.TopicMessageHandler
-	store                                dataRetriever.StorageService
-	marshalizer                          marshal.Marshalizer
-	dataPools                            dataRetriever.PoolsHolder
-	uint64ByteSliceConverter             typeConverters.Uint64ByteSliceConverter
-	intRandomizer                        dataRetriever.IntRandomizer
-	dataPacker                           dataRetriever.DataPacker
-	triesContainer                       common.TriesHolder
-	inputAntifloodHandler                dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler               dataRetriever.P2PAntifloodHandler
-	throttler                            dataRetriever.ResolverThrottler
-	intraShardTopic                      string
-	isFullHistoryNode                    bool
-	currentNetworkEpochProvider          dataRetriever.CurrentNetworkEpochProviderHandler
-	preferredPeersHolder                 dataRetriever.PreferredPeersHolderHandler
-	numCrossShardPeers                   int
-	numIntraShardPeers                   int
-	numFullHistoryPeers                  int
+	container                   dataRetriever.ResolversContainer
+	shardCoordinator            sharding.Coordinator
+	messenger                   dataRetriever.TopicMessageHandler
+	store                       dataRetriever.StorageService
+	marshalizer                 marshal.Marshalizer
+	dataPools                   dataRetriever.PoolsHolder
+	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
+	intRandomizer               dataRetriever.IntRandomizer
+	dataPacker                  dataRetriever.DataPacker
+	triesContainer              common.TriesHolder
+	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	throttler                   dataRetriever.ResolverThrottler
+	intraShardTopic             string
+	isFullHistoryNode           bool
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
+	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler          dataRetriever.PeersRatingHandler
+	numCrossShardPeers          int
+	numIntraShardPeers          int
+	numFullHistoryPeers         int
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	maxNumOfPeerAuthenticationInResponse int
 	peerShardMapper                      process.PeerShardMapper
@@ -89,6 +90,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.preferredPeersHolder) {
 		return dataRetriever.ErrNilPreferredPeersHolder
+	}
+	if check.IfNil(brcf.peersRatingHandler) {
+		return dataRetriever.ErrNilPeersRatingHandler
 	}
 	if brcf.numCrossShardPeers <= 0 {
 		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
@@ -352,6 +356,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
 		PreferredPeersHolder:        brcf.preferredPeersHolder,
 		SelfShardIdProvider:         brcf.shardCoordinator,
+		PeersRatingHandler:          brcf.peersRatingHandler,
 	}
 	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units

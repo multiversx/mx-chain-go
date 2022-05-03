@@ -213,6 +213,14 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
+
+	PeersRatingConfig PeersRatingConfig
+}
+
+// PeersRatingConfig will hold settings related to peers rating
+type PeersRatingConfig struct {
+	TopRatedCacheCapacity int
+	BadRatedCacheCapacity int
 }
 
 // LogsConfig will hold settings related to the logging sub-system

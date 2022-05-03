@@ -169,6 +169,17 @@ func TestNewMetaResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *te
 	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 }
 
+func TestNewMetaResolversContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.PeersRatingHandler = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
+}
+
 func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -316,6 +327,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},
