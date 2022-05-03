@@ -2,6 +2,7 @@ package staking
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -218,4 +219,27 @@ func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootH
 			require.Equal(t, firstNodeRootHashInEpoch, rootHash)
 		}
 	}
+}
+
+func TestStakingV4_CustomScenario(t *testing.T) {
+	owner1 := "owner1"
+
+	owner1StakedKeys := map[uint32][][]byte{
+		0: {[]byte("pubKey0"), []byte("pubKey1"), []byte("pubKey2")},
+	}
+
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: owner1StakedKeys,
+		TotalStake:      big.NewInt(5000),
+	}
+
+	nodesConfig := &InitialNodesConfig{
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+	}
+
+	node := NewTestMetaProcessorWithCustomNodes(nodesConfig)
+
+	_ = node
 }
