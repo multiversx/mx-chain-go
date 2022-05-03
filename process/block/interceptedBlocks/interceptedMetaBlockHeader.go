@@ -95,7 +95,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 			return err
 		}
 
-		if imh.isMetaHeaderOutOfRange() {
+		if imh.isMetaHeaderEpochOutOfRange() {
 			// TODO: remove this log after testing
 			log.Debug("InterceptedMetaHeader.CheckValidity",
 				"trigger epoch", imh.epochStartTrigger.Epoch(),
@@ -123,7 +123,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	return imh.integrityVerifier.Verify(imh.hdr)
 }
 
-func (imh *InterceptedMetaHeader) isMetaHeaderOutOfRange() bool {
+func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 	if imh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return false
 	}
