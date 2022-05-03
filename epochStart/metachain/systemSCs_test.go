@@ -2034,6 +2034,7 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	s.EpochConfirmed(6, 6)
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
+	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
@@ -2051,6 +2052,7 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	s.EpochConfirmed(21, 21)
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 21, 21)
+	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 }
