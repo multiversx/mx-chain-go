@@ -33,10 +33,13 @@ func TestScDeploy(t *testing.T) {
 	roundsPerEpoch := uint64(10)
 
 	enableEpochs := config.EnableEpochs{
-		BuiltInFunctionsEnableEpoch:    builtinEnableEpoch,
-		SCDeployEnableEpoch:            deployEnableEpoch,
-		RelayedTransactionsEnableEpoch: relayedTxEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
+		BuiltInFunctionsEnableEpoch:              builtinEnableEpoch,
+		SCDeployEnableEpoch:                      deployEnableEpoch,
+		RelayedTransactionsEnableEpoch:           relayedTxEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:           penalizedTooMuchGasEnableEpoch,
+		StakingV4InitEnableEpoch:                 integrationTests.StakingV4InitEpoch,
+		StakingV4EnableEpoch:                     integrationTests.StakingV4Epoch,
+		StakingV4DistributeAuctionToWaitingEpoch: integrationTests.StakingV4DistributeAuctionToWaiting,
 	}
 
 	shardNode := integrationTests.NewTestProcessorNodeWithEnableEpochs(

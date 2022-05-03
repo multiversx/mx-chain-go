@@ -428,6 +428,11 @@ func newBaseTestProcessorNode(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		EnableEpochs: config.EnableEpochs{
+			StakingV4InitEnableEpoch:                 StakingV4InitEpoch,
+			StakingV4EnableEpoch:                     StakingV4Epoch,
+			StakingV4DistributeAuctionToWaitingEpoch: StakingV4DistributeAuctionToWaiting,
+		},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
