@@ -283,6 +283,7 @@ type EndpointsThrottlersConfig struct {
 
 // WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
+	MaxGasPerVmQuery             uint64
 	SimultaneousRequests         uint32
 	SameSourceRequests           uint32
 	SameSourceResetIntervalInSec uint32
