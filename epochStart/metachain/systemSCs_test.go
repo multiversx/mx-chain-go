@@ -679,7 +679,7 @@ func prepareStakingContractWithData(
 	ownerAddress []byte,
 ) {
 	stakingcommon.AddStakingData(accountsDB, ownerAddress, rewardAddress, [][]byte{stakedKey}, marshalizer)
-	stakingcommon.SaveOneKeyToWaitingList(accountsDB, waitingKey, marshalizer, rewardAddress, ownerAddress)
+	stakingcommon.AddKeysToWaitingList(accountsDB, [][]byte{waitingKey}, marshalizer, rewardAddress, ownerAddress)
 	stakingcommon.AddValidatorData(accountsDB, rewardAddress, [][]byte{stakedKey, waitingKey}, big.NewInt(10000000000), marshalizer)
 
 	_, err := accountsDB.Commit()
@@ -1650,7 +1650,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 		[][]byte{[]byte("stakedPubKey0"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")},
 		args.Marshalizer,
 	)
-	stakingcommon.SaveOneKeyToWaitingList(args.UserAccountsDB, []byte("waitingPubKey"), args.Marshalizer, []byte("ownerKey"), []byte("ownerKey"))
+	stakingcommon.AddKeysToWaitingList(args.UserAccountsDB, [][]byte{[]byte("waitingPubKey")}, args.Marshalizer, []byte("ownerKey"), []byte("ownerKey"))
 	stakingcommon.AddValidatorData(args.UserAccountsDB, []byte("ownerKey"), [][]byte{[]byte("stakedPubKey0"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3"), []byte("waitingPubKey")}, big.NewInt(0), args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 

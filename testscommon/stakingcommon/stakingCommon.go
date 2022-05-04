@@ -87,42 +87,31 @@ func AddStakingData(
 func AddKeysToWaitingList(
 	accountsDB state.AccountsAdapter,
 	waitingKeys [][]byte,
-	marshalizer marshal.Marshalizer,
+	marshaller marshal.Marshalizer,
 	rewardAddress []byte,
 	ownerAddress []byte,
 ) {
-	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
-
-	for _, waitingKey := range waitingKeys {
-		stakedData := &systemSmartContracts.StakedDataV2_0{
-			Waiting:       true,
-			RewardAddress: rewardAddress,
-			OwnerAddress:  ownerAddress,
-			StakeValue:    big.NewInt(100),
-		}
-		marshaledData, _ := marshalizer.Marshal(stakedData)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
+	if len(waitingKeys) == 0 {
+		return
 	}
 
-	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
-	waitingListHead := &systemSmartContracts.WaitingList{}
-	_ = marshalizer.Unmarshal(waitingListHead, marshaledData)
+	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
+	waitingList := getWaitingList(stakingSCAcc, marshaller)
 
-	waitingListAlreadyHasElements := waitingListHead.Length > 0
-	waitingListLastKeyBeforeAddingNewKeys := waitingListHead.LastKey
-
-	waitingListHead.Length += uint32(len(waitingKeys))
-	lastKeyInList := []byte("w_" + string(waitingKeys[len(waitingKeys)-1]))
-	waitingListHead.LastKey = lastKeyInList
-
-	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+	waitingListAlreadyHasElements := waitingList.Length > 0
+	waitingListLastKeyBeforeAddingNewKeys := waitingList.LastKey
+	previousKey := waitingList.LastKey
+	if !waitingListAlreadyHasElements {
+		waitingList.FirstKey = getPrefixedWaitingKey(waitingKeys[0])
+		previousKey = waitingList.FirstKey
+	}
 
 	numWaitingKeys := len(waitingKeys)
-	previousKey := waitingListHead.LastKey
-	for i, waitingKey := range waitingKeys {
+	waitingList.LastKey = getPrefixedWaitingKey(waitingKeys[numWaitingKeys-1])
+	waitingList.Length += uint32(numWaitingKeys)
+	saveWaitingList(stakingSCAcc, marshaller, waitingList)
 
-		waitingKeyInList := []byte("w_" + string(waitingKey))
+	for i, waitingKey := range waitingKeys {
 		waitingListElement := &systemSmartContracts.ElementInList{
 			BLSPublicKey: waitingKey,
 			PreviousKey:  previousKey,
@@ -130,72 +119,96 @@ func AddKeysToWaitingList(
 		}
 
 		if i < numWaitingKeys-1 {
-			nextKey := []byte("w_" + string(waitingKeys[i+1]))
+			nextKey := getPrefixedWaitingKey(waitingKeys[i+1])
 			waitingListElement.NextKey = nextKey
 		}
 
-		marshaledData, _ = marshalizer.Marshal(waitingListElement)
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
+		prefixedWaitingKey := getPrefixedWaitingKey(waitingKey)
+		saveStakedWaitingKey(stakingSCAcc, marshaller, rewardAddress, ownerAddress, waitingKey)
+		saveElemInList(stakingSCAcc, marshaller, waitingListElement, prefixedWaitingKey)
 
-		previousKey = waitingKeyInList
+		previousKey = prefixedWaitingKey
 	}
 
 	if waitingListAlreadyHasElements {
-		marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListLastKeyBeforeAddingNewKeys)
-	} else {
-		marshaledData, _ = stakingSCAcc.DataTrieTracker().RetrieveValue(waitingListHead.FirstKey)
-	}
-
-	waitingListElement := &systemSmartContracts.ElementInList{}
-	_ = marshalizer.Unmarshal(waitingListElement, marshaledData)
-	waitingListElement.NextKey = []byte("w_" + string(waitingKeys[0]))
-	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-
-	if waitingListAlreadyHasElements {
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListLastKeyBeforeAddingNewKeys, marshaledData)
-	} else {
-		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingListHead.FirstKey, marshaledData)
+		lastElem, _ := GetWaitingListElement(stakingSCAcc, marshaller, waitingListLastKeyBeforeAddingNewKeys)
+		lastElem.NextKey = getPrefixedWaitingKey(waitingKeys[0])
+		saveElemInList(stakingSCAcc, marshaller, lastElem, waitingListLastKeyBeforeAddingNewKeys)
 	}
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
 
-// SaveOneKeyToWaitingList will add one bls key with its associated owner in the staking queue list
-func SaveOneKeyToWaitingList(
-	accountsDB state.AccountsAdapter,
-	waitingKey []byte,
-	marshalizer marshal.Marshalizer,
+func getWaitingList(
+	stakingSCAcc state.UserAccountHandler,
+	marshaller marshal.Marshalizer,
+) *systemSmartContracts.WaitingList {
+	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue([]byte("waitingList"))
+	waitingList := &systemSmartContracts.WaitingList{}
+	_ = marshaller.Unmarshal(waitingList, marshaledData)
+
+	return waitingList
+}
+
+func saveWaitingList(
+	stakingSCAcc state.UserAccountHandler,
+	marshaller marshal.Marshalizer,
+	waitingList *systemSmartContracts.WaitingList,
+) {
+	marshaledData, _ := marshaller.Marshal(waitingList)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+}
+
+func getPrefixedWaitingKey(key []byte) []byte {
+	return []byte("w_" + string(key))
+}
+
+func saveStakedWaitingKey(
+	stakingSCAcc state.UserAccountHandler,
+	marshaller marshal.Marshalizer,
 	rewardAddress []byte,
 	ownerAddress []byte,
+	key []byte,
 ) {
-	stakingSCAcc := LoadUserAccount(accountsDB, vm.StakingSCAddress)
 	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
 		RewardAddress: rewardAddress,
 		OwnerAddress:  ownerAddress,
 		StakeValue:    big.NewInt(100),
 	}
-	marshaledData, _ := marshalizer.Marshal(stakedData)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
 
-	waitingKeyInList := []byte("w_" + string(waitingKey))
-	waitingListHead := &systemSmartContracts.WaitingList{
-		FirstKey: waitingKeyInList,
-		LastKey:  waitingKeyInList,
-		Length:   1,
+	marshaledData, _ := marshaller.Marshal(stakedData)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
+}
+
+func saveElemInList(
+	stakingSCAcc state.UserAccountHandler,
+	marshaller marshal.Marshalizer,
+	elem *systemSmartContracts.ElementInList,
+	key []byte,
+) {
+	marshaledData, _ := marshaller.Marshal(elem)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(key, marshaledData)
+}
+
+// GetWaitingListElement returns the element in waiting list saved at the provided key
+func GetWaitingListElement(
+	stakingSCAcc state.UserAccountHandler,
+	marshaller marshal.Marshalizer,
+	key []byte,
+) (*systemSmartContracts.ElementInList, error) {
+	marshaledData, _ := stakingSCAcc.DataTrieTracker().RetrieveValue(key)
+	if len(marshaledData) == 0 {
+		return nil, vm.ErrElementNotFound
 	}
-	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
 
-	waitingListElement := &systemSmartContracts.ElementInList{
-		BLSPublicKey: waitingKey,
-		PreviousKey:  waitingKeyInList,
-		NextKey:      make([]byte, 0),
+	element := &systemSmartContracts.ElementInList{}
+	err := marshaller.Unmarshal(element, marshaledData)
+	if err != nil {
+		return nil, err
 	}
-	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
 
-	_ = accountsDB.SaveAccount(stakingSCAcc)
+	return element, nil
 }
 
 // LoadUserAccount returns address's state.UserAccountHandler from the provided db
