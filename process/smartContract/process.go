@@ -1211,7 +1211,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		Function:          parsedTransfer.CallFunction,
 		AllowInitFunction: false,
 	}
-	PrependEmptyAsyncContextArgs(newVMInput, false)
+	PrependEmptyAsyncContextArgs(newVMInput)
 	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
 
 	return true, newVMInput, nil
@@ -1257,13 +1257,13 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(
 		AllowInitFunction: false,
 	}
 	newVMInput.ESDTTransfers = parsedTransfer.ESDTTransfers
-	PrependEmptyAsyncContextArgs(newVMInput, false)
+	PrependEmptyAsyncContextArgs(newVMInput)
 
 	return newVMInput
 }
 
-func PrependEmptyAsyncContextArgs(vmInput *vmcommon.ContractCallInput, builtInFuncCall bool) {
-	if contexts.IsCallAsync(vmInput.CallType) && !builtInFuncCall {
+func PrependEmptyAsyncContextArgs(vmInput *vmcommon.ContractCallInput) {
+	if contexts.IsCallAsync(vmInput.CallType) {
 		arwen.PrependToArguments(vmInput, []byte{}, []byte{})
 		if contexts.IsCallback(vmInput.CallType) {
 			arwen.PrependToArguments(vmInput, []byte{}, []byte{})

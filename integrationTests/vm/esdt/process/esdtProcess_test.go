@@ -339,7 +339,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	initialSupply := big.NewInt(10000000000)
 	numDecimals := byte(6)
 
-	txData.Clear().IssueESDT("robertWhyNot", ticker, initialSupply.Int64(), numDecimals)
+	txData.Clear().IssueESDTWithAsyncArgs("robertWhyNot", ticker, initialSupply.Int64(), numDecimals)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true).Int(1000)
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:          0,
@@ -355,6 +355,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 		OriginalSender: metaNode.OwnAccount.Address,
 	}
 
+	// PrependEmptyAsyncContextArgs(vmCallInput)
 	returnCode, err := metaNode.ScProcessor.ProcessSmartContractResult(scr)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, returnCode)
