@@ -780,7 +780,7 @@ func (txs *transactions) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 				searchFirst,
 			)
 			if err != nil {
-				log.Warn("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
+				log.Debug("transactions.AddTxsFromMiniBlocks: GetTransactionHandler", "tx hash", txHash, "error", err.Error())
 				continue
 			}
 
@@ -1029,6 +1029,11 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)
+
+	if txs.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
+		log.Debug("CreateAndProcessMiniBlocks global stuck")
+		return make(block.MiniBlockSlice, 0), nil
+	}
 
 	startTime = time.Now()
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(

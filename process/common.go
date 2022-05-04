@@ -608,6 +608,7 @@ func DisplayProcessTxDetails(
 	message string,
 	accountHandler vmcommon.AccountHandler,
 	txHandler data.TransactionHandler,
+	txHash []byte,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
 	if !check.IfNil(accountHandler) {
@@ -638,6 +639,7 @@ func DisplayProcessTxDetails(
 	}
 
 	log.Trace("executing transaction",
+		"txHash", txHash,
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
 		"gas limit", txHandler.GetGasLimit(),

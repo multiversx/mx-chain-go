@@ -184,21 +184,32 @@ type Config struct {
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
 	VMOutputCacher        CacheConfig
+
+	PeersRatingConfig PeersRatingConfig
+}
+
+// PeersRatingConfig will hold settings related to peers rating
+type PeersRatingConfig struct {
+	TopRatedCacheCapacity int
+	BadRatedCacheCapacity int
 }
 
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
 	LogFileLifeSpanInSec int
+	LogFileLifeSpanInMB  int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled                        bool
-	ValidatorCleanOldEpochsData    bool
-	ObserverCleanOldEpochsData     bool
-	NumEpochsToKeep                uint64
-	NumActivePersisters            uint64
-	FullArchiveNumActivePersisters uint32
+	Enabled                              bool
+	ValidatorCleanOldEpochsData          bool
+	ObserverCleanOldEpochsData           bool
+	AccountsTrieCleanOldEpochsData       bool
+	AccountsTrieSkipRemovalCustomPattern string
+	NumEpochsToKeep                      uint64
+	NumActivePersisters                  uint64
+	FullArchiveNumActivePersisters       uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings

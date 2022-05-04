@@ -35,6 +35,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 	leavesChannel1 := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash)
+	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
@@ -61,6 +62,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
 	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash)
+	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 4)
@@ -95,6 +97,7 @@ func TestTrieStorageManager_Close(t *testing.T) {
 		Hasher:                 &hashingMocks.HasherMock{},
 		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)

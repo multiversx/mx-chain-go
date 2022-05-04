@@ -128,6 +128,7 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
+	ProcessStatusHandler() common.ProcessStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -214,6 +215,7 @@ type NetworkComponentsHolder interface {
 	PeerBlackListHandler() process.PeerBlackListCacher
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
+	PeersRatingHandler() p2p.PeersRatingHandler
 	IsInterfaceNil() bool
 }
 

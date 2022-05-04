@@ -272,6 +272,7 @@ type ShardedDataCacherNotifier interface {
 	Clear()
 	ClearShardStore(cacheId string)
 	GetCounts() counting.CountsWithSize
+	Keys() [][]byte
 	IsInterfaceNil() bool
 }
 
@@ -406,6 +407,15 @@ type CurrentNetworkEpochProviderHandler interface {
 type PreferredPeersHolderHandler interface {
 	Get() map[uint32][]core.PeerID
 	Contains(peerID core.PeerID) bool
+	IsInterfaceNil() bool
+}
+
+// PeersRatingHandler represent an entity able to handle peers ratings
+type PeersRatingHandler interface {
+	AddPeer(pid core.PeerID)
+	IncreaseRating(pid core.PeerID)
+	DecreaseRating(pid core.PeerID)
+	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }
 
