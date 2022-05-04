@@ -104,6 +104,9 @@ func TestTomlParser(t *testing.T) {
 				NumConcurrentVMs:     16,
 				VirtualMachineConfig: vmConfig,
 			},
+			GasConfig: VirtualMachineGasConfig{
+				MaxGasPerVmQuery: 1_500_000_000,
+			},
 		},
 		Debug: DebugConfig{
 			InterceptorResolver: InterceptorResolverDebugConfig{
@@ -124,11 +127,6 @@ func TestTomlParser(t *testing.T) {
 				CallGCWhenShuffleOut:    true,
 				ExtraPrintsOnShuffleOut: true,
 				DoProfileOnShuffleOut:   true,
-			},
-		},
-		Antiflood: AntifloodConfig{
-			WebServer: WebServerAntifloodConfig{
-				MaxGasPerVmQuery: 1_500_000_000,
 			},
 		},
 	}
@@ -179,10 +177,6 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
-[Antiflood]
-    [Antiflood.WebServer]
-        MaxGasPerVmQuery = 1500000000  #1.5b
-
 [VirtualMachine]
     [VirtualMachine.Execution]
         ArwenVersions = [
@@ -196,6 +190,9 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+
+	[VirtualMachine.GasConfig]
+		MaxGasPerVmQuery = 1500000000
 
 [Debug]
     [Debug.InterceptorResolver]
