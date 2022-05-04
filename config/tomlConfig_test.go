@@ -126,6 +126,11 @@ func TestTomlParser(t *testing.T) {
 				DoProfileOnShuffleOut:   true,
 			},
 		},
+		Antiflood: AntifloodConfig{
+			WebServer: WebServerAntifloodConfig{
+				MaxGasPerVmQuery: 1_500_000_000,
+			},
+		},
 	}
 	testString := `
 [MiniBlocksStorage]
@@ -173,6 +178,10 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+
+[Antiflood]
+    [Antiflood.WebServer]
+        MaxGasPerVmQuery = 1500000000  #1.5b
 
 [VirtualMachine]
     [VirtualMachine.Execution]
