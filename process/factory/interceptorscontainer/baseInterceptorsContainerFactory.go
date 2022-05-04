@@ -589,3 +589,47 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 
 	return bicf.container.AddMultiple(keys, interceptorsSlice)
 }
+
+func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
+	identifier := common.ValidatorInfoTopic
+
+	interceptedValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoDataFactory(*bicf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	argProcessor := processor.ArgValidatorInfoInterceptorProcessor{
+		Marshaller:        internalMarshalizer,
+		ValidatorInfoPool: bicf.dataPool.ValidatorsInfo(),
+	}
+
+	validatorInfoProcessor, err := processor.NewValidatorInfoInterceptorProcessor(argProcessor)
+	if err != nil {
+		return err
+	}
+
+	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
+		interceptors.ArgMultiDataInterceptor{
+			Topic:                identifier,
+			Marshalizer:          internalMarshalizer,
+			DataFactory:          interceptedValidatorInfoFactory,
+			Processor:            validatorInfoProcessor,
+			Throttler:            bicf.globalThrottler,
+			AntifloodHandler:     bicf.antifloodHandler,
+			WhiteListRequest:     bicf.whiteListHandler,
+			PreferredPeersHolder: bicf.preferredPeersHolder,
+			CurrentPeerId:        bicf.messenger.ID(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	interceptor, err := bicf.createTopicAndAssignHandler(identifier, mdInterceptor, true)
+	if err != nil {
+		return err
+	}
+
+	return bicf.container.Add(identifier, interceptor)
+}

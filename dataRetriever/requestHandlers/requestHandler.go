@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -549,6 +550,36 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	}
 
 	rrh.addRequestedItems([][]byte{key}, uniqueMetaHeadersSuffix)
+}
+
+// RequestValidatorInfo asks for the validator info associated with a specific hash from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
+	log.Debug("requesting validator info messages from network",
+		"topic", common.ValidatorInfoTopic,
+		"hash", hash,
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
+	if err != nil {
+		log.Error("RequestValidatorInfo.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"hash", hash,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	err = resolver.RequestDataFromHash(hash, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"hash", hash,
+			"epoch", rrh.epoch,
+		)
+	}
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {

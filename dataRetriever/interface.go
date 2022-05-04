@@ -321,6 +321,7 @@ type PoolsHolder interface {
 	TrieNodesChunks() storage.Cacher
 	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
+	ValidatorsInfo() storage.Cacher
 	IsInterfaceNil() bool
 }
 

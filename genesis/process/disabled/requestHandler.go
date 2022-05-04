@@ -78,6 +78,10 @@ func (r *RequestHandler) CreateTrieNodeIdentifier(_ []byte, _ uint32) []byte {
 	return make([]byte, 0)
 }
 
+// RequestValidatorInfo does nothing
+func (r *RequestHandler) RequestValidatorInfo(_ []byte) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (r *RequestHandler) IsInterfaceNil() bool {
 	return r == nil
