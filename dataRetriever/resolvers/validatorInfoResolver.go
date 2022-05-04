@@ -109,7 +109,6 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 	switch rd.Type {
 	case dataRetriever.HashType:
 		return res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer)
-	default:
 	}
 
 	return fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
