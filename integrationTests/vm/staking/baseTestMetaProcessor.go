@@ -1,30 +1,12 @@
 package staking
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
 )
 
-type baseMetaProcessor struct {
-	MetaBlockProcessor  process.BlockProcessor
-	NodesCoordinator    nodesCoordinator.NodesCoordinator
-	ValidatorStatistics process.ValidatorStatisticsProcessor
-	EpochStartTrigger   integrationTests.TestEpochStartTrigger
-	BlockChainHandler   data.ChainHandler
-	NodesConfig         nodesConfig
-	AccountsAdapter     state.AccountsAdapter
-	Marshaller          marshal.Marshalizer
-
-	currentRound uint64
-}
-
-func newBaseMetaProcessor(
+func newTestMetaProcessor(
 	coreComponents factory.CoreComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
 	bootstrapComponents factory.BootstrapComponentsHolder,
@@ -33,7 +15,7 @@ func newBaseMetaProcessor(
 	nc nodesCoordinator.NodesCoordinator,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 	queue [][]byte,
-) *baseMetaProcessor {
+) *TestMetaProcessor {
 	gasScheduleNotifier := createGasScheduleNotifier()
 	blockChainHook := createBlockChainHook(
 		dataComponents, coreComponents,
@@ -76,7 +58,7 @@ func newBaseMetaProcessor(
 	waiting, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
 	shuffledOut, _ := nc.GetAllShuffledOutValidatorsPublicKeys(0)
 
-	return &baseMetaProcessor{
+	return &TestMetaProcessor{
 		AccountsAdapter: stateComponents.AccountsAdapter(),
 		Marshaller:      coreComponents.InternalMarshalizer(),
 		NodesConfig: nodesConfig{

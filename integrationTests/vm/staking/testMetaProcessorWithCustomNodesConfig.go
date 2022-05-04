@@ -60,18 +60,16 @@ func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaPr
 		config.MaxNodesChangeConfig,
 	)
 
-	return &TestMetaProcessor{
-		newBaseMetaProcessor(
-			coreComponents,
-			dataComponents,
-			bootstrapComponents,
-			statusComponents,
-			stateComponents,
-			nc,
-			config.MaxNodesChangeConfig,
-			queue,
-		),
-	}
+	return newTestMetaProcessor(
+		coreComponents,
+		dataComponents,
+		bootstrapComponents,
+		statusComponents,
+		stateComponents,
+		nc,
+		config.MaxNodesChangeConfig,
+		queue,
+	)
 }
 
 func createStakingQueueCustomNodes(

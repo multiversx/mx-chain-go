@@ -248,6 +248,11 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	}
 
 	nodesConfig := &InitialNodesConfig{
+		MetaConsensusGroupSize:        2,
+		ShardConsensusGroupSize:       1,
+		MinNumberOfEligibleShardNodes: 1,
+		MinNumberOfEligibleMetaNodes:  1,
+		NumOfShards:                   2,
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
 			owner2: owner2Stats,
@@ -263,7 +268,7 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 
 	node := NewTestMetaProcessorWithCustomNodes(nodesConfig)
 	waiting := node.getWaitingListKeys()
-
+	node.Process(t, 1)
 	_ = waiting
 	_ = node
 }

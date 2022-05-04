@@ -13,13 +13,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +47,16 @@ type nodesConfig struct {
 
 // TestMetaProcessor -
 type TestMetaProcessor struct {
-	*baseMetaProcessor
+	MetaBlockProcessor  process.BlockProcessor
+	NodesCoordinator    nodesCoordinator.NodesCoordinator
+	ValidatorStatistics process.ValidatorStatisticsProcessor
+	EpochStartTrigger   integrationTests.TestEpochStartTrigger
+	BlockChainHandler   data.ChainHandler
+	NodesConfig         nodesConfig
+	AccountsAdapter     state.AccountsAdapter
+	Marshaller          marshal.Marshalizer
+
+	currentRound uint64
 }
 
 // NewTestMetaProcessor -
@@ -97,18 +110,16 @@ func NewTestMetaProcessor(
 		maxNodesConfig,
 	)
 
-	return &TestMetaProcessor{
-		newBaseMetaProcessor(
-			coreComponents,
-			dataComponents,
-			bootstrapComponents,
-			statusComponents,
-			stateComponents,
-			nc,
-			maxNodesConfig,
-			queue,
-		),
-	}
+	return newTestMetaProcessor(
+		coreComponents,
+		dataComponents,
+		bootstrapComponents,
+		statusComponents,
+		stateComponents,
+		nc,
+		maxNodesConfig,
+		queue,
+	)
 }
 
 func createMaxNodesConfig(
