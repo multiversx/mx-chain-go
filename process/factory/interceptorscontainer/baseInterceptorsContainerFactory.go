@@ -228,11 +228,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		return nil, err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                topic,
-			Marshalizer:          internalMarshalizer,
+			Marshalizer:          internalMarshaller,
 			DataFactory:          txFactory,
 			Processor:            txProcessor,
 			Throttler:            bicf.globalThrottler,
@@ -271,11 +271,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		return nil, err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                topic,
-			Marshalizer:          internalMarshalizer,
+			Marshalizer:          internalMarshaller,
 			DataFactory:          txFactory,
 			Processor:            txProcessor,
 			Throttler:            bicf.globalThrottler,
@@ -314,11 +314,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		return nil, err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                topic,
-			Marshalizer:          internalMarshalizer,
+			Marshalizer:          internalMarshaller,
 			DataFactory:          txFactory,
 			Processor:            txProcessor,
 			Throttler:            bicf.globalThrottler,
@@ -426,11 +426,11 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	hasher := bicf.argInterceptorFactory.CoreComponents.Hasher()
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   bicf.dataPool.MiniBlocks(),
-		Marshalizer:      internalMarshalizer,
+		Marshalizer:      internalMarshaller,
 		Hasher:           hasher,
 		ShardCoordinator: bicf.shardCoordinator,
 		WhiteListHandler: bicf.whiteListHandler,
@@ -448,7 +448,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                topic,
-			Marshalizer:          internalMarshalizer,
+			Marshalizer:          internalMarshaller,
 			DataFactory:          miniblockFactory,
 			Processor:            miniblockProcessor,
 			Throttler:            bicf.globalThrottler,
@@ -520,11 +520,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		return nil, err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                topic,
-			Marshalizer:          internalMarshalizer,
+			Marshalizer:          internalMarshaller,
 			DataFactory:          trieNodesFactory,
 			Processor:            trieNodesProcessor,
 			Throttler:            bicf.globalThrottler,
@@ -598,11 +598,9 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 		return err
 	}
 
-	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgValidatorInfoInterceptorProcessor{
-		Marshaller:           internalMarshalizer,
-		ValidatorInfoPool:    bicf.dataPool.ValidatorsInfo(),
-		ValidatorInfoStorage: bicf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
+		ValidatorInfoPool: bicf.dataPool.ValidatorsInfo(),
 	}
 
 	validatorInfoProcessor, err := processor.NewValidatorInfoInterceptorProcessor(argProcessor)
@@ -613,7 +611,7 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 	mdInterceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                identifier,
-			Marshalizer:          internalMarshalizer,
+			Marshalizer:          internalMarshaller,
 			DataFactory:          interceptedValidatorInfoFactory,
 			Processor:            validatorInfoProcessor,
 			Throttler:            bicf.globalThrottler,

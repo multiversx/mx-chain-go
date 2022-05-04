@@ -1,7 +1,6 @@
 package processor_test
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,25 +42,13 @@ func createMockInterceptedValidatorInfo() process.InterceptedData {
 
 func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfoInterceptorProcessor {
 	return processor.ArgValidatorInfoInterceptorProcessor{
-		Marshaller:           testMarshalizer,
-		ValidatorInfoPool:    testscommon.NewCacherStub(),
-		ValidatorInfoStorage: &storage.StorerStub{},
+		ValidatorInfoPool: testscommon.NewCacherStub(),
 	}
 }
 
 func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil marshaller should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.Marshaller = nil
-
-		proc, err := processor.NewValidatorInfoInterceptorProcessor(args)
-		assert.Equal(t, process.ErrNilMarshalizer, err)
-		assert.True(t, check.IfNil(proc))
-	})
 	t.Run("nil cache should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -71,16 +57,6 @@ func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 
 		proc, err := processor.NewValidatorInfoInterceptorProcessor(args)
 		assert.Equal(t, process.ErrNilValidatorInfoPool, err)
-		assert.True(t, check.IfNil(proc))
-	})
-	t.Run("nil storage should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.ValidatorInfoStorage = nil
-
-		proc, err := processor.NewValidatorInfoInterceptorProcessor(args)
-		assert.Equal(t, process.ErrNilValidatorInfoStorage, err)
 		assert.True(t, check.IfNil(proc))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -121,50 +97,6 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		assert.Equal(t, process.ErrWrongTypeAssertion, proc.Save(providedData, "", ""))
 		assert.False(t, wasCalled)
 	})
-	t.Run("marshal returns error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		providedData := createMockInterceptedValidatorInfo()
-		wasCalled := false
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.ValidatorInfoStorage = &storage.StorerStub{
-			PutInEpochCalled: func(key, data []byte, epoch uint32) error {
-				wasCalled = true
-				return nil
-			},
-		}
-		args.Marshaller = &testscommon.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
-		require.False(t, check.IfNil(proc))
-
-		assert.Equal(t, expectedErr, proc.Save(providedData, "", ""))
-		assert.False(t, wasCalled)
-	})
-	t.Run("epoch uncastable to uint should error", func(t *testing.T) {
-		t.Parallel()
-
-		providedData := createMockInterceptedValidatorInfo()
-		wasCalled := false
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.ValidatorInfoStorage = &storage.StorerStub{
-			PutInEpochCalled: func(key, data []byte, epoch uint32) error {
-				wasCalled = true
-				return nil
-			},
-		}
-
-		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
-		require.False(t, check.IfNil(proc))
-
-		assert.NotNil(t, proc.Save(providedData, "", "non uint epoch"))
-		assert.False(t, wasCalled)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -173,7 +105,7 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		providedData := createMockInterceptedValidatorInfo()
 		wasHasOrAddCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		providedBuff, _ := args.Marshaller.Marshal(createMockValidatorInfo())
+		providedBuff, _ := testscommon.MarshalizerMock{}.Marshal(createMockValidatorInfo())
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 
@@ -184,23 +116,12 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 				return false, false
 			},
 		}
-		wasPutInEpochCalled := false
-		args.ValidatorInfoStorage = &storage.StorerStub{
-			PutInEpochCalled: func(key, data []byte, epoch uint32) error {
-				assert.Equal(t, providedHash, key)
-				assert.Equal(t, providedBuff, data)
-				assert.Equal(t, providedEpoch, epoch)
-				wasPutInEpochCalled = true
-				return nil
-			},
-		}
 
 		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
 		require.False(t, check.IfNil(proc))
 
 		assert.Nil(t, proc.Save(providedData, "", providedEpochStr))
 		assert.True(t, wasHasOrAddCalled)
-		assert.True(t, wasPutInEpochCalled)
 	})
 }
 
