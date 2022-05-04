@@ -1083,6 +1083,9 @@ var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
 // ErrNilValidatorInfoPool signals that a nil validator info pool has been provided
 var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
 
+// ErrNilValidatorInfoStorage signals that a nil validator info storage has been provided
+var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
 // ErrPropertyTooLong signals that a heartbeat property was too long
 var ErrPropertyTooLong = errors.New("property too long")
 

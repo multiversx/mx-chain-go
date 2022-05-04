@@ -600,8 +600,9 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgValidatorInfoInterceptorProcessor{
-		Marshaller:        internalMarshalizer,
-		ValidatorInfoPool: bicf.dataPool.ValidatorsInfo(),
+		Marshaller:           internalMarshalizer,
+		ValidatorInfoPool:    bicf.dataPool.ValidatorsInfo(),
+		ValidatorInfoStorage: bicf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
 	}
 
 	validatorInfoProcessor, err := processor.NewValidatorInfoInterceptorProcessor(argProcessor)
