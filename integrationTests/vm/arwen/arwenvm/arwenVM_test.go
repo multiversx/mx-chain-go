@@ -913,7 +913,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	require.Equal(t, transferEGLD, scr.GetValue())
 	require.Equal(t, parentAddress, scr.GetSndAddr())
 	require.Equal(t, funderAddress, scr.GetRcvAddr())
-	require.Equal(t, []byte("acceptFunds@01a5c7"), scr.GetData())
+	require.Equal(t, []byte("acceptFunds@168ec815aaa4dfec4de9062e611c8ccc99500101d63962305f8af2d726cc3d04@c7a233a7a0c3889270e967c77aea29871c31740769940739109605ffc4102ddc@01a5c7"), scr.GetData())
 	utils.ProcessSCRResult(t, testContextFunderSC, scr, vmcommon.Ok, nil)
 
 	intermediateTxs = testContextFunderSC.GetIntermediateTransactions(t)

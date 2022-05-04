@@ -33,9 +33,9 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 	require.Nil(t, err)
 
 	err = context.ExecuteSC(&context.Owner, "badWriteLog1")
-	require.Equal(t, fmt.Errorf("GuardedMakeByteSlice2D: negative length (-1)"), err)
+	require.Equal(t, fmt.Errorf("negative length"), err)
 	err = context.ExecuteSC(&context.Owner, "badWriteLog2")
-	require.Equal(t, fmt.Errorf("mem load: negative length"), err)
+	require.Equal(t, fmt.Errorf("negative length"), err)
 	err = context.ExecuteSC(&context.Owner, "badWriteLog3")
 	require.Nil(t, err)
 	err = context.ExecuteSC(&context.Owner, "badWriteLog4")
