@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -320,7 +319,7 @@ func calcNormRand(randomness []byte, expectedLen int) []byte {
 	randLen := len(rand)
 
 	if expectedLen > randLen {
-		repeatedCt := expectedLen/randLen + 1
+		repeatedCt := expectedLen/randLen + 1 // todo: fix possible div by 0
 		rand = bytes.Repeat(randomness, repeatedCt)
 	}
 
@@ -343,9 +342,6 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 }
 
 func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfoHandler, numOfSelectedNodes uint32) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
 
 	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
@@ -375,7 +371,7 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 	}
 
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Debug(message)
+	log.Info(message)
 }
 
 func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {

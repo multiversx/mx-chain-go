@@ -1,9 +1,16 @@
 package staking
 
 import (
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
+	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 )
 
 func newTestMetaProcessor(
@@ -88,4 +95,34 @@ func newTestMetaProcessor(
 		EpochStartTrigger:   epochStartTrigger,
 		BlockChainHandler:   dataComponents.Blockchain(),
 	}
+}
+
+func createGasScheduleNotifier() core.GasScheduleNotifier {
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
+	return mock.NewGasScheduleNotifierMock(gasSchedule)
+}
+
+func createEpochStartTrigger(
+	coreComponents factory.CoreComponentsHolder,
+	storageService dataRetriever.StorageService,
+) integrationTests.TestEpochStartTrigger {
+	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+		Settings: &config.EpochStartConfig{
+			MinRoundsBetweenEpochs: 10,
+			RoundsPerEpoch:         10,
+		},
+		Epoch:              0,
+		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
+		Storage:            storageService,
+		Marshalizer:        coreComponents.InternalMarshalizer(),
+		Hasher:             coreComponents.Hasher(),
+		AppStatusHandler:   coreComponents.StatusHandler(),
+	}
+
+	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+	testTrigger := &metachain.TestTrigger{}
+	testTrigger.SetTrigger(epochStartTrigger)
+
+	return testTrigger
 }

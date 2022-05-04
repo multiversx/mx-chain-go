@@ -42,15 +42,23 @@ func AddValidatorData(
 	marshaller marshal.Marshalizer,
 ) {
 	validatorSC := LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
-	validatorData := &systemSmartContracts.ValidatorDataV2{
-		RegisterNonce:   0,
-		Epoch:           0,
-		RewardAddress:   ownerKey,
-		TotalStakeValue: totalStake,
-		LockedStake:     big.NewInt(0),
-		TotalUnstaked:   big.NewInt(0),
-		BlsPubKeys:      registeredKeys,
-		NumRegistered:   uint32(len(registeredKeys)),
+	ownerStoredData, _ := validatorSC.DataTrieTracker().RetrieveValue(ownerKey)
+	validatorData := &systemSmartContracts.ValidatorDataV2{}
+	if len(ownerStoredData) != 0 {
+		_ = marshaller.Unmarshal(validatorData, ownerStoredData)
+		validatorData.BlsPubKeys = append(validatorData.BlsPubKeys, registeredKeys...)
+		validatorData.TotalStakeValue = totalStake
+	} else {
+		validatorData = &systemSmartContracts.ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   ownerKey,
+			TotalStakeValue: totalStake,
+			LockedStake:     big.NewInt(0),
+			TotalUnstaked:   big.NewInt(0),
+			BlsPubKeys:      registeredKeys,
+			NumRegistered:   uint32(len(registeredKeys)),
+		}
 	}
 
 	marshaledData, _ := marshaller.Marshal(validatorData)

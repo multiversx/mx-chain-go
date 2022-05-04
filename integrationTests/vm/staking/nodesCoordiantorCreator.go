@@ -109,11 +109,30 @@ func createGenesisNodesWithCustomConfig(
 	eligibleGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 	waitingGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
-	for _, ownerStats := range owners {
+	for owner, ownerStats := range owners {
 		for shardID, ownerEligibleKeys := range ownerStats.EligibleBlsKeys {
 			for _, eligibleKey := range ownerEligibleKeys {
 				validator := integrationMocks.NewNodeInfo(eligibleKey, eligibleKey, shardID, initialRating)
 				eligibleGenesis[shardID] = append(eligibleGenesis[shardID], validator)
+
+				pubKey := validator.PubKeyBytes()
+
+				peerAccount, _ := state.NewPeerAccount(pubKey)
+				peerAccount.SetTempRating(initialRating)
+				peerAccount.ShardId = shardID
+				peerAccount.BLSPublicKey = pubKey
+				peerAccount.List = string(common.EligibleList)
+				_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
+
+				stakingcommon.RegisterValidatorKeys(
+					stateComponents.AccountsAdapter(),
+					[]byte(owner),
+					[]byte(owner),
+					[][]byte{pubKey},
+					ownerStats.TotalStake,
+					marshaller,
+				)
+
 			}
 		}
 
@@ -121,6 +140,25 @@ func createGenesisNodesWithCustomConfig(
 			for _, waitingKey := range ownerWaitingKeys {
 				validator := integrationMocks.NewNodeInfo(waitingKey, waitingKey, shardID, initialRating)
 				waitingGenesis[shardID] = append(waitingGenesis[shardID], validator)
+
+				pubKey := validator.PubKeyBytes()
+
+				peerAccount, _ := state.NewPeerAccount(pubKey)
+				peerAccount.SetTempRating(initialRating)
+				peerAccount.ShardId = shardID
+				peerAccount.BLSPublicKey = pubKey
+				peerAccount.List = string(common.WaitingList)
+				_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
+
+				stakingcommon.RegisterValidatorKeys(
+					stateComponents.AccountsAdapter(),
+					[]byte(owner),
+					[]byte(owner),
+					[][]byte{pubKey},
+					ownerStats.TotalStake,
+					marshaller,
+				)
+
 			}
 		}
 	}
@@ -128,8 +166,8 @@ func createGenesisNodesWithCustomConfig(
 	eligible, _ := nodesCoordinator.NodesInfoToValidators(eligibleGenesis)
 	waiting, _ := nodesCoordinator.NodesInfoToValidators(waitingGenesis)
 
-	registerValidators(eligible, stateComponents, marshaller, common.EligibleList)
-	registerValidators(waiting, stateComponents, marshaller, common.WaitingList)
+	//registerValidators(eligible, stateComponents, marshaller, common.EligibleList)
+	//registerValidators(waiting, stateComponents, marshaller, common.WaitingList)
 
 	return eligible, waiting
 }

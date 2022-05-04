@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -17,14 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
 
@@ -151,36 +146,6 @@ func createMaxNodesConfig(
 	return maxNodesConfig
 }
 
-func createGasScheduleNotifier() core.GasScheduleNotifier {
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasSchedule, 1)
-	return mock.NewGasScheduleNotifierMock(gasSchedule)
-}
-
-func createEpochStartTrigger(
-	coreComponents factory.CoreComponentsHolder,
-	storageService dataRetriever.StorageService,
-) integrationTests.TestEpochStartTrigger {
-	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 10,
-			RoundsPerEpoch:         10,
-		},
-		Epoch:              0,
-		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
-		Storage:            storageService,
-		Marshalizer:        coreComponents.InternalMarshalizer(),
-		Hasher:             coreComponents.Hasher(),
-		AppStatusHandler:   coreComponents.StatusHandler(),
-	}
-
-	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
-	testTrigger := &metachain.TestTrigger{}
-	testTrigger.SetTrigger(epochStartTrigger)
-
-	return testTrigger
-}
-
 // Process -
 func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 	for r := tmp.currentRound; r < tmp.currentRound+numOfRounds; r++ {
@@ -303,6 +268,16 @@ func (tmp *TestMetaProcessor) updateNodesConfig(epoch uint32) {
 	tmp.NodesConfig.leaving = leaving
 	tmp.NodesConfig.auction = auction
 	tmp.NodesConfig.queue = tmp.getWaitingListKeys()
+}
+
+func generateAddresses(startIdx, n uint32) [][]byte {
+	ret := make([][]byte, 0, n)
+
+	for i := startIdx; i < n+startIdx; i++ {
+		ret = append(ret, generateAddress(i))
+	}
+
+	return ret
 }
 
 func generateAddress(identifier uint32) []byte {
