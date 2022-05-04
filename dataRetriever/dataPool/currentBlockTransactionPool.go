@@ -15,8 +15,8 @@ type transactionMapCacher struct {
 	txsForBlock map[string]data.TransactionHandler
 }
 
-// NewCurrentBlockTransactionPool returns a new transaction pool to be used for the current block
-func NewCurrentBlockTransactionPool() *transactionMapCacher {
+// NewCurrentBlockTransactionsPool returns a new transactions pool to be used for the current block
+func NewCurrentBlockTransactionsPool() *transactionMapCacher {
 	return &transactionMapCacher{
 		mutTxs:      sync.RWMutex{},
 		txsForBlock: make(map[string]data.TransactionHandler),

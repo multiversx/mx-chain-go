@@ -1115,7 +1115,7 @@ func TestSystemSCProcessor_ProcessDelegationRewardsNothingToExecute(t *testing.T
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	localCache := dataPool.NewCurrentBlockTransactionPool()
+	localCache := dataPool.NewCurrentBlockTransactionsPool()
 	miniBlocks := []*block.MiniBlock{
 		{
 			SenderShardID:   0,
@@ -1134,7 +1134,7 @@ func TestSystemSCProcessor_ProcessDelegationRewardsErrors(t *testing.T) {
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	localCache := dataPool.NewCurrentBlockTransactionPool()
+	localCache := dataPool.NewCurrentBlockTransactionsPool()
 	miniBlocks := []*block.MiniBlock{
 		{
 			SenderShardID:   core.MetachainShardId,
@@ -1179,7 +1179,7 @@ func TestSystemSCProcessor_ProcessDelegationRewards(t *testing.T) {
 	args, scContainer := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	localCache := dataPool.NewCurrentBlockTransactionPool()
+	localCache := dataPool.NewCurrentBlockTransactionsPool()
 	miniBlocks := []*block.MiniBlock{
 		{
 			SenderShardID:   core.MetachainShardId,

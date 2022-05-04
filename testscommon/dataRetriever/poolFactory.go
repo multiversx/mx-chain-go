@@ -116,19 +116,21 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	currentTx := dataPool.NewCurrentBlockTransactionPool()
+	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currentBlockValidatorInfo := dataPool.NewCurrentBlockValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     unsignedTxPool,
-		RewardTransactions:       rewardsTxPool,
-		Headers:                  headersPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                adaptedTrieNodesStorage,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currentTx,
-		SmartContracts:           smartContracts,
-		ValidatorsInfo:           validatorsInfo,
+		Transactions:              txPool,
+		UnsignedTransactions:      unsignedTxPool,
+		RewardTransactions:        rewardsTxPool,
+		Headers:                   headersPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 adaptedTrieNodesStorage,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currentBlockTransactions,
+		CurrentBlockValidatorInfo: currentBlockValidatorInfo,
+		SmartContracts:            smartContracts,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
@@ -183,19 +185,21 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	currentTx := dataPool.NewCurrentBlockTransactionPool()
+	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
+	currentBlockValidatorInfo := dataPool.NewCurrentBlockValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:             txPool,
-		UnsignedTransactions:     unsignedTxPool,
-		RewardTransactions:       rewardsTxPool,
-		Headers:                  headersPool,
-		MiniBlocks:               txBlockBody,
-		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                trieNodes,
-		TrieNodesChunks:          trieNodesChunks,
-		CurrentBlockTransactions: currentTx,
-		SmartContracts:           smartContracts,
-		ValidatorsInfo:           validatorsInfo,
+		Transactions:              txPool,
+		UnsignedTransactions:      unsignedTxPool,
+		RewardTransactions:        rewardsTxPool,
+		Headers:                   headersPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 trieNodes,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currentBlockTransactions,
+		CurrentBlockValidatorInfo: currentBlockValidatorInfo,
+		SmartContracts:            smartContracts,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

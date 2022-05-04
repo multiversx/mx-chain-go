@@ -75,7 +75,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.currBlockTxs = dataPool.NewCurrentBlockTransactionPool()
+	holder.currBlockTxs = dataPool.NewCurrentBlockTransactionsPool()
 	holder.currBlockValidatorInfo = dataPool.NewCurrentBlockValidatorInfoPool()
 
 	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
