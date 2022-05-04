@@ -1079,3 +1079,6 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 
 // ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
 var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
+
+// ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
+var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")

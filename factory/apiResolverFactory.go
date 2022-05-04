@@ -104,7 +104,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInFuncs, _, err := createBuiltinFuncs(
+	builtInFuncs, _, _, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapterAPI(),
@@ -273,7 +273,7 @@ func createScQueryElement(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
-	builtInFuncs, nftStorageHandler, err := createBuiltinFuncs(
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapterAPI(),
@@ -298,22 +298,23 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           args.stateComponents.AccountsAdapterAPI(),
-		PubkeyConv:         args.coreComponents.AddressPubKeyConverter(),
-		StorageService:     args.dataComponents.StorageService(),
-		BlockChain:         args.dataComponents.Blockchain(),
-		ShardCoordinator:   args.processComponents.ShardCoordinator(),
-		Marshalizer:        args.coreComponents.InternalMarshalizer(),
-		Uint64Converter:    args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           args.dataComponents.Datapool(),
-		ConfigSCStorage:    scStorage,
-		CompiledSCPool:     smartContractsCache,
-		WorkingDir:         args.workingDir,
-		EpochNotifier:      args.coreComponents.EpochNotifier(),
-		EnableEpochs:       args.epochConfig.EnableEpochs,
-		NilCompiledSCStore: true,
+		Accounts:              args.stateComponents.AccountsAdapterAPI(),
+		PubkeyConv:            args.coreComponents.AddressPubKeyConverter(),
+		StorageService:        args.dataComponents.StorageService(),
+		BlockChain:            args.dataComponents.Blockchain(),
+		ShardCoordinator:      args.processComponents.ShardCoordinator(),
+		Marshalizer:           args.coreComponents.InternalMarshalizer(),
+		Uint64Converter:       args.coreComponents.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              args.dataComponents.Datapool(),
+		ConfigSCStorage:       scStorage,
+		CompiledSCPool:        smartContractsCache,
+		WorkingDir:            args.workingDir,
+		EpochNotifier:         args.coreComponents.EpochNotifier(),
+		EnableEpochs:          args.epochConfig.EnableEpochs,
+		NilCompiledSCStore:    true,
 	}
 
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -410,7 +411,7 @@ func createBuiltinFuncs(
 	esdtTransferRoleEnableEpoch uint32,
 	transferToMetaEnableEpoch uint32,
 	optimizeNFTStoreEnableEpoch uint32,
-) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, error) {
+) (vmcommon.BuiltInFunctionContainer, vmcommon.SimpleESDTNFTStorageHandler, vmcommon.ESDTGlobalSettingsHandler, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                  gasScheduleNotifier,
 		MapDNSAddresses:              make(map[string]struct{}),

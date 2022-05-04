@@ -115,6 +115,7 @@ func createGenesisConfig() config.EnableEpochs {
 		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
+		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
 	}
 }
 
@@ -361,26 +362,27 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GlobalMintBurnDisableEpoch:   enableEpochs.GlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           arg.Accounts,
-		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
-		StorageService:     arg.Data.StorageService(),
-		BlockChain:         arg.Data.Blockchain(),
-		ShardCoordinator:   arg.ShardCoordinator,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           arg.Data.Datapool(),
-		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:      epochNotifier,
-		NilCompiledSCStore: true,
-		EnableEpochs:       enableEpochs,
+		Accounts:              arg.Accounts,
+		PubkeyConv:            arg.Core.AddressPubKeyConverter(),
+		StorageService:        arg.Data.StorageService(),
+		BlockChain:            arg.Data.Blockchain(),
+		ShardCoordinator:      arg.ShardCoordinator,
+		Marshalizer:           arg.Core.InternalMarshalizer(),
+		Uint64Converter:       arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              arg.Data.Datapool(),
+		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:         epochNotifier,
+		NilCompiledSCStore:    true,
+		EnableEpochs:          enableEpochs,
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {

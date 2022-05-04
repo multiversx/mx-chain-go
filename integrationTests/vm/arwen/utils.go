@@ -236,26 +236,27 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator: oneShardCoordinator,
 		EpochNotifier:    context.EpochNotifier,
 	}
-	builtInFuncs, nftStorageHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, err := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:           context.Accounts,
-		PubkeyConv:         pkConverter,
-		StorageService:     chainStorer,
-		BlockChain:         blockchainMock,
-		ShardCoordinator:   oneShardCoordinator,
-		Marshalizer:        marshalizer,
-		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           datapool,
-		CompiledSCPool:     datapool.SmartContracts(),
-		EpochNotifier:      context.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:              context.Accounts,
+		PubkeyConv:            pkConverter,
+		StorageService:        chainStorer,
+		BlockChain:            blockchainMock,
+		ShardCoordinator:      oneShardCoordinator,
+		Marshalizer:           marshalizer,
+		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              datapool,
+		CompiledSCPool:        datapool.SmartContracts(),
+		EpochNotifier:         context.EpochNotifier,
+		NilCompiledSCStore:    true,
 		ConfigSCStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Name:     "SmartContractsStorage",

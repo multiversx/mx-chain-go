@@ -382,7 +382,7 @@ func newBaseTestProcessorNode(
 			return numNodes
 		},
 	}
-	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+	nodesCoord := &shardingMocks.NodesCoordinatorStub{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
@@ -416,7 +416,7 @@ func newBaseTestProcessorNode(
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoord,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -596,7 +596,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
-	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{}
+	nodesCoord := &shardingMocks.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
@@ -604,7 +604,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
+		NodesCoordinator:        nodesCoord,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
@@ -852,24 +852,25 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           tpn.AccntState,
-		PubkeyConv:         TestAddressPubkeyConverter,
-		StorageService:     tpn.Storage,
-		BlockChain:         tpn.BlockChain,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		Marshalizer:        TestMarshalizer,
-		Uint64Converter:    TestUint64Converter,
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           tpn.DataPool,
-		CompiledSCPool:     smartContractsCache,
-		EpochNotifier:      tpn.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:              tpn.AccntState,
+		PubkeyConv:            TestAddressPubkeyConverter,
+		StorageService:        tpn.Storage,
+		BlockChain:            tpn.BlockChain,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		Marshalizer:           TestMarshalizer,
+		Uint64Converter:       TestUint64Converter,
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              tpn.DataPool,
+		CompiledSCPool:        smartContractsCache,
+		EpochNotifier:         tpn.EpochNotifier,
+		NilCompiledSCStore:    true,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1441,7 +1442,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)
@@ -1449,19 +1450,20 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           tpn.AccntState,
-		PubkeyConv:         TestAddressPubkeyConverter,
-		StorageService:     tpn.Storage,
-		BlockChain:         tpn.BlockChain,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		Marshalizer:        TestMarshalizer,
-		Uint64Converter:    TestUint64Converter,
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           tpn.DataPool,
-		CompiledSCPool:     tpn.DataPool.SmartContracts(),
-		EpochNotifier:      tpn.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:              tpn.AccntState,
+		PubkeyConv:            TestAddressPubkeyConverter,
+		StorageService:        tpn.Storage,
+		BlockChain:            tpn.BlockChain,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		Marshalizer:           TestMarshalizer,
+		Uint64Converter:       TestUint64Converter,
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              tpn.DataPool,
+		CompiledSCPool:        tpn.DataPool.SmartContracts(),
+		EpochNotifier:         tpn.EpochNotifier,
+		NilCompiledSCStore:    true,
 	}
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -1659,21 +1661,22 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
 	}
-	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
+	builtInFuncs, nftStorageHandler, globalSettingsHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           tpn.AccntState,
-		PubkeyConv:         TestAddressPubkeyConverter,
-		StorageService:     tpn.Storage,
-		BlockChain:         tpn.BlockChain,
-		ShardCoordinator:   tpn.ShardCoordinator,
-		Marshalizer:        TestMarshalizer,
-		Uint64Converter:    TestUint64Converter,
-		BuiltInFunctions:   builtInFuncs,
-		NFTStorageHandler:  nftStorageHandler,
-		DataPool:           tpn.DataPool,
-		CompiledSCPool:     tpn.DataPool.SmartContracts(),
-		EpochNotifier:      tpn.EpochNotifier,
-		NilCompiledSCStore: true,
+		Accounts:              tpn.AccntState,
+		PubkeyConv:            TestAddressPubkeyConverter,
+		StorageService:        tpn.Storage,
+		BlockChain:            tpn.BlockChain,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		Marshalizer:           TestMarshalizer,
+		Uint64Converter:       TestUint64Converter,
+		BuiltInFunctions:      builtInFuncs,
+		NFTStorageHandler:     nftStorageHandler,
+		GlobalSettingsHandler: globalSettingsHandler,
+		DataPool:              tpn.DataPool,
+		CompiledSCPool:        tpn.DataPool.SmartContracts(),
+		EpochNotifier:         tpn.EpochNotifier,
+		NilCompiledSCStore:    true,
 	}
 
 	var signVerifier vm.MessageSignVerifier
