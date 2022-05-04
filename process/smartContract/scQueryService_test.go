@@ -347,7 +347,7 @@ func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 		require.True(t, runSCWasCalled)
 	})
 
-	t.Run("custom gas defined, should use max uint64", func(t *testing.T) {
+	t.Run("custom gas defined, should use it", func(t *testing.T) {
 		t.Parallel()
 
 		maxGasLimit := uint64(1_500_000_000)
