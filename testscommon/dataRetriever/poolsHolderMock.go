@@ -24,6 +24,7 @@ type PoolsHolderMock struct {
 	trieNodesChunks      storage.Cacher
 	smartContracts       storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
+	validatorsInfo       storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -82,6 +83,9 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.validatorsInfo, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
@@ -145,6 +149,11 @@ func (holder *PoolsHolderMock) TrieNodesChunks() storage.Cacher {
 // SmartContracts -
 func (holder *PoolsHolderMock) SmartContracts() storage.Cacher {
 	return holder.smartContracts
+}
+
+// ValidatorsInfo -
+func (holder *PoolsHolderMock) ValidatorsInfo() storage.Cacher {
+	return holder.validatorsInfo
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

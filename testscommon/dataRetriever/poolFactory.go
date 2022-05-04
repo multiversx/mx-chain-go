@@ -112,6 +112,10 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
+	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
+	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
 	currentTx := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
@@ -124,6 +128,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currentTx,
 		SmartContracts:           smartContracts,
+		ValidatorsInfo:           validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
@@ -174,6 +179,10 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
+	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
+	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
 	currentTx := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
@@ -186,6 +195,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currentTx,
 		SmartContracts:           smartContracts,
+		ValidatorsInfo:           validatorsInfo,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

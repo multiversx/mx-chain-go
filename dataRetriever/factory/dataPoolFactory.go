@@ -124,6 +124,12 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool)
+	validatorsInfo, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
+	}
+
 	currBlockTxs := dataPool.NewCurrentBlockPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
@@ -136,6 +142,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currBlockTxs,
 		SmartContracts:           smartContracts,
+		ValidatorsInfo:           validatorsInfo,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

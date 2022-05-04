@@ -1,6 +1,7 @@
 package processor_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -41,7 +42,6 @@ func createMockInterceptedValidatorInfo() process.InterceptedData {
 
 func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfoInterceptorProcessor {
 	return processor.ArgValidatorInfoInterceptorProcessor{
-		Marshaller:        testMarshalizer,
 		ValidatorInfoPool: testscommon.NewCacherStub(),
 	}
 }
@@ -49,16 +49,6 @@ func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfo
 func TestNewValidatorInfoInterceptorProcessor(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil marshaller should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.Marshaller = nil
-
-		proc, err := processor.NewValidatorInfoInterceptorProcessor(args)
-		assert.Equal(t, process.ErrNilMarshalizer, err)
-		assert.True(t, check.IfNil(proc))
-	})
 	t.Run("nil cache should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -110,17 +100,19 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		providedEpoch := uint32(15)
+		providedEpochStr := fmt.Sprintf("%d", providedEpoch)
 		providedData := createMockInterceptedValidatorInfo()
-		wasCalled := false
+		wasHasOrAddCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		providedBuff, _ := args.Marshaller.Marshal(createMockValidatorInfo())
+		providedBuff, _ := testscommon.MarshalizerMock{}.Marshal(createMockValidatorInfo())
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 
 		args.ValidatorInfoPool = &testscommon.CacherStub{
 			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 				assert.Equal(t, providedHash, key)
-				wasCalled = true
+				wasHasOrAddCalled = true
 				return false, false
 			},
 		}
@@ -128,8 +120,8 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		proc, _ := processor.NewValidatorInfoInterceptorProcessor(args)
 		require.False(t, check.IfNil(proc))
 
-		assert.Nil(t, proc.Save(providedData, "", ""))
-		assert.True(t, wasCalled)
+		assert.Nil(t, proc.Save(providedData, "", providedEpochStr))
+		assert.True(t, wasHasOrAddCalled)
 	})
 }
 

@@ -58,6 +58,7 @@ type RequestHandler interface {
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
+	RequestValidatorInfo(hash []byte)
 	IsInterfaceNil() bool
 }
 

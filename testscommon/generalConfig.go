@@ -145,6 +145,7 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes: 1000000000,
 			Shards:      1,
 		},
+		ValidatorInfoPool: getLRUCacheConfig(),
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
