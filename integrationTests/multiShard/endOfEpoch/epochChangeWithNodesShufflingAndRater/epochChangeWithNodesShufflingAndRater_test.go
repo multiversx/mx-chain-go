@@ -48,7 +48,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	defer func() {
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Messenger.Close()
+				n.Close()
 			}
 		}
 	}()

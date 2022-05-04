@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -54,13 +55,14 @@ type ArgsExporter struct {
 	WhiteListHandler          process.WhiteListHandler
 	WhiteListerVerifiedTxs    process.WhiteListHandler
 	InterceptorsContainer     process.InterceptorsContainer
-	NodesCoordinator          sharding.NodesCoordinator
+	NodesCoordinator          nodesCoordinator.NodesCoordinator
 	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
 	ValidityAttester          process.ValidityAttester
 	InputAntifloodHandler     process.P2PAntifloodHandler
 	OutputAntifloodHandler    process.P2PAntifloodHandler
 	RoundHandler              process.RoundHandler
+	PeersRatingHandler        dataRetriever.PeersRatingHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	EnableSignTxWithHashEpoch uint32
 	MaxHardCapForMissingNodes int
@@ -89,7 +91,7 @@ type exportHandlerFactory struct {
 	existingResolvers         dataRetriever.ResolversContainer
 	epochStartTrigger         epochStart.TriggerHandler
 	accounts                  state.AccountsAdapter
-	nodesCoordinator          sharding.NodesCoordinator
+	nodesCoordinator          nodesCoordinator.NodesCoordinator
 	headerSigVerifier         process.InterceptedHeaderSigVerifier
 	headerIntegrityVerifier   process.HeaderIntegrityVerifier
 	validityAttester          process.ValidityAttester
@@ -97,6 +99,7 @@ type exportHandlerFactory struct {
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	roundHandler              process.RoundHandler
+	peersRatingHandler        dataRetriever.PeersRatingHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	enableSignTxWithHashEpoch uint32
 	maxHardCapForMissingNodes int
@@ -199,6 +202,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.RoundHandler) {
 		return nil, update.ErrNilRoundHandler
 	}
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, update.ErrNilPeersRatingHandler
+	}
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
 	}
@@ -243,6 +249,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		outputAntifloodHandler:    args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		roundHandler:              args.RoundHandler,
+		peersRatingHandler:        args.PeersRatingHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
@@ -332,6 +339,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		NumConcurrentResolvingJobs: 100,
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
+		PeersRatingHandler:         e.peersRatingHandler,
 	}
 	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {

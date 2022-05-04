@@ -81,6 +81,9 @@ func RunDelegationStressTest(
 		trieStorage,
 		gasSchedule,
 	)
+	defer func() {
+		_ = node.VMContainer.Close()
+	}()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20MIL eGLD
 	nodeInitialBalance := big.NewInt(0).Set(totalSupply)

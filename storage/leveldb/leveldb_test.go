@@ -351,3 +351,61 @@ func testDbAllMethodsShouldNotPanic(t *testing.T, closeHandler func(db *leveldb.
 	err = ldb.Remove([]byte("key4"))
 	require.Equal(t, storage.ErrDBIsClosed, err)
 }
+
+func TestDB_SpecialValueTest(t *testing.T) {
+	t.Parallel()
+
+	ldb := createLevelDb(t, 100, 100, 10)
+	key := []byte("key")
+	removedValue := []byte("removed") // in old implementations we had a check against this value
+	randomValue := []byte("random")
+	t.Run("operations: put -> get of 'removed' value", func(t *testing.T) {
+		err := ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Nil(t, err)
+		assert.Equal(t, removedValue, recovered)
+	})
+	t.Run("operations: put -> remove -> get of 'removed' value", func(t *testing.T) {
+		err := ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		err = ldb.Remove(key)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Equal(t, storage.ErrKeyNotFound, err)
+		assert.Nil(t, recovered)
+	})
+	t.Run("operations: put -> remove -> put -> get of 'removed' value", func(t *testing.T) {
+		err := ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		err = ldb.Remove(key)
+		require.Nil(t, err)
+
+		err = ldb.Put(key, removedValue)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Nil(t, err)
+		assert.Equal(t, removedValue, recovered)
+	})
+	t.Run("operations: put -> remove -> put -> get of random value", func(t *testing.T) {
+		err := ldb.Put(key, randomValue)
+		require.Nil(t, err)
+
+		err = ldb.Remove(key)
+		require.Nil(t, err)
+
+		err = ldb.Put(key, randomValue)
+		require.Nil(t, err)
+
+		recovered, err := ldb.Get(key)
+		assert.Nil(t, err)
+		assert.Equal(t, randomValue, recovered)
+	})
+
+	_ = ldb.Close()
+}

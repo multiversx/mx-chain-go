@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -25,9 +26,9 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer         sharding.ChanceComputer
+	chanceComputer         nodesCoordinator.ChanceComputer
 	validatorAccountsDB    state.AccountsAdapter
-	blockChainHookImpl     *hooks.BlockChainHookImpl
+	blockChainHook         process.BlockChainHookHandler
 	cryptoHook             vmcommon.CryptoHook
 	systemContracts        vm.SystemSCContainer
 	economics              process.EconomicsDataHandler
@@ -46,7 +47,6 @@ type vmContainerFactory struct {
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
 type ArgsNewVMContainerFactory struct {
-	ArgBlockChainHook   hooks.ArgBlockChainHook
 	Economics           process.EconomicsDataHandler
 	MessageSignVerifier vm.MessageSignVerifier
 	GasSchedule         core.GasScheduleNotifier
@@ -55,10 +55,12 @@ type ArgsNewVMContainerFactory struct {
 	Marshalizer         marshal.Marshalizer
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
-	ChanceComputer      sharding.ChanceComputer
+	ChanceComputer      nodesCoordinator.ChanceComputer
 	EpochNotifier       process.EpochNotifier
 	EpochConfig         *config.EpochConfig
 	ShardCoordinator    sharding.Coordinator
+	PubkeyConv          core.PubkeyConverter
+	BlockChainHook      process.BlockChainHookHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -90,21 +92,20 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.GasSchedule) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilGasSchedule)
 	}
-	if check.IfNil(args.ArgBlockChainHook.PubkeyConv) {
+	if check.IfNil(args.PubkeyConv) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilAddressPubKeyConverter)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilShardCoordinator)
 	}
-
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
-	if err != nil {
-		return nil, fmt.Errorf("%w in NewVMContainerFactory", err)
+	if check.IfNil(args.BlockChainHook) {
+		return nil, process.ErrNilBlockChainHook
 	}
+
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		blockChainHookImpl:     blockChainHookImpl,
+		blockChainHook:         args.BlockChainHook,
 		cryptoHook:             cryptoHook,
 		economics:              args.Economics,
 		messageSigVerifier:     args.MessageSignVerifier,
@@ -116,7 +117,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		validatorAccountsDB:    args.ValidatorAccountsDB,
 		chanceComputer:         args.ChanceComputer,
 		epochNotifier:          args.EpochNotifier,
-		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
+		addressPubKeyConverter: args.PubkeyConv,
 		epochConfig:            args.EpochConfig,
 		shardCoordinator:       args.ShardCoordinator,
 	}, nil
@@ -141,7 +142,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 // Close closes the vm container factory
 func (vmf *vmContainerFactory) Close() error {
-	return vmf.blockChainHookImpl.Close()
+	return vmf.blockChainHook.Close()
 }
 
 // CreateForGenesis sets up all the needed virtual machines returning a container of all the VMs to be used in the genesis process
@@ -167,7 +168,7 @@ func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContai
 func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContainerFactory, vm.ContextHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
 	systemEI, err := systemSmartContracts.NewVMContext(
-		vmf.blockChainHookImpl,
+		vmf.blockChainHook,
 		vmf.cryptoHook,
 		atArgumentParser,
 		vmf.validatorAccountsDB,
@@ -254,7 +255,7 @@ func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionH
 
 // BlockChainHookImpl returns the created blockChainHookImpl
 func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
-	return vmf.blockChainHookImpl
+	return vmf.blockChainHook
 }
 
 // SystemSmartContractContainer return the created system smart contracts

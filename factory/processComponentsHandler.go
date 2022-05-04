@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -151,12 +152,14 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
 		return errors.ErrNilScheduledTxsExecutionHandler
 	}
-
+	if check.IfNil(m.processComponents.txsSender) {
+		return errors.ErrNilTxsSender
+	}
 	return nil
 }
 
 // NodesCoordinator returns the nodes coordinator
-func (m *managedProcessComponents) NodesCoordinator() sharding.NodesCoordinator {
+func (m *managedProcessComponents) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -525,6 +528,18 @@ func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.Schedu
 	}
 
 	return m.processComponents.scheduledTxsExecutionHandler
+}
+
+// TxsSenderHandler returns the transactions sender handler
+func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.txsSender
 }
 
 // IsInterfaceNil returns true if the interface is nil

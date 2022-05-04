@@ -106,13 +106,13 @@ func createGenesisConfig() config.EnableEpochs {
 		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
 		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
 		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
-		DisableOldTrieStorageEpoch:                        unreachableEpoch,
 		IsPayableBySCEnableEpoch:                          unreachableEpoch,
 		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
 		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
@@ -390,15 +390,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:             arg.VirtualMachineConfig,
 		BlockGasLimit:      math.MaxUint64,
 		GasSchedule:        arg.GasSchedule,
-		ArgBlockChainHook:  argsHook,
+		BlockChainHook:     blockChainHookImpl,
 		EpochNotifier:      epochNotifier,
 		EpochConfig:        arg.EpochConfig.EnableEpochs,
 		ArwenChangeLocker:  genesisArwenLocker,
 		ESDTTransferParser: esdtTransferParser,
+		BuiltInFunctions:   argsHook.BuiltInFunctions,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

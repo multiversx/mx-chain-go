@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
@@ -459,6 +461,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		IsInImportMode:               ccf.isInImportMode,
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
+		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -586,6 +589,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		IsInImportMode:               ccf.isInImportMode,
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
+		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

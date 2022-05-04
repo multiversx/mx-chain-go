@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-core/data/api"
@@ -16,7 +17,7 @@ func NewDisabledStakeValuesProcessor() *stakeValuesProcessor {
 }
 
 // GetTotalStakedValue returns the errCannotReturnTotalStakedFromShardNode error
-func (svp *stakeValuesProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
+func (svp *stakeValuesProcessor) GetTotalStakedValue(_ context.Context) (*api.StakeValues, error) {
 	return nil, errCannotReturnTotalStakedFromShardNode
 }
 

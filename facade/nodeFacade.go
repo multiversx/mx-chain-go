@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -91,6 +92,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if arg.WsAntifloodConfig.SameSourceResetIntervalInSec == 0 {
 		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
+	}
+	if arg.WsAntifloodConfig.TrieOperationsDeadlineMilliseconds == 0 {
+		return nil, fmt.Errorf("%w, TrieOperationsDeadlineMilliseconds should not be 0", ErrInvalidValue)
 	}
 	if check.IfNil(arg.AccountsState) {
 		return nil, ErrNilAccountState
@@ -183,27 +187,42 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*es
 
 // GetESDTsRoles returns all the tokens identifiers and roles for the given address
 func (nf *nodeFacade) GetESDTsRoles(address string) (map[string][]string, error) {
-	return nf.node.GetESDTsRoles(address)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.GetESDTsRoles(address, ctx)
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
 func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
-	return nf.node.GetNFTTokenIDsRegisteredByAddress(address)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.GetNFTTokenIDsRegisteredByAddress(address, ctx)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
 func (nf *nodeFacade) GetESDTsWithRole(address string, role string) ([]string, error) {
-	return nf.node.GetESDTsWithRole(address, role)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.GetESDTsWithRole(address, role, ctx)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address
 func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error) {
-	return nf.node.GetKeyValuePairs(address)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.GetKeyValuePairs(address, ctx)
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
-	return nf.node.GetAllESDTTokens(address)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.GetAllESDTTokens(address, ctx)
 }
 
 // GetTokenSupply returns the provided token supply
@@ -213,7 +232,16 @@ func (nf *nodeFacade) GetTokenSupply(token string) (*apiData.ESDTSupply, error) 
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
 func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
-	return nf.node.GetAllIssuedESDTs(tokenType)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.node.GetAllIssuedESDTs(tokenType, ctx)
+}
+
+func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, context.CancelFunc) {
+	timeout := time.Duration(nf.wsAntifloodConfig.TrieOperationsDeadlineMilliseconds) * time.Millisecond
+
+	return context.WithTimeout(context.Background(), timeout)
 }
 
 // CreateTransaction creates a transaction from all needed fields
@@ -263,7 +291,12 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash, withResults)
+	return nf.apiResolver.GetTransaction(hash, withResults)
+}
+
+// GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
+func (nf *nodeFacade) GetTransactionsPool() (*common.TransactionsPoolAPIResponse, error) {
+	return nf.apiResolver.GetTransactionsPool()
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -301,17 +334,26 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 
 // GetTotalStakedValue will return total staked value
 func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
-	return nf.apiResolver.GetTotalStakedValue()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.apiResolver.GetTotalStakedValue(ctx)
 }
 
 // GetDirectStakedList will output the list for the direct staked addresses
 func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error) {
-	return nf.apiResolver.GetDirectStakedList()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.apiResolver.GetDirectStakedList(ctx)
 }
 
 // GetDelegatorsList will output the list for the delegators addresses
 func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
-	return nf.apiResolver.GetDelegatorsList()
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	return nf.apiResolver.GetDelegatorsList(ctx)
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
@@ -369,17 +411,58 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 
 // GetBlockByHash return the block for a given hash
 func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByHash(hash, withTxs)
+	return nf.apiResolver.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
 func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByNonce(nonce, withTxs)
+	return nf.apiResolver.GetBlockByNonce(nonce, withTxs)
 }
 
 // GetBlockByRound returns the block for a given round
 func (nf *nodeFacade) GetBlockByRound(round uint64, withTxs bool) (*apiData.Block, error) {
-	return nf.node.GetBlockByRound(round, withTxs)
+	return nf.apiResolver.GetBlockByRound(round, withTxs)
+}
+
+// GetInternalMetaBlockByHash return the meta block for a given hash
+func (nf *nodeFacade) GetInternalMetaBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByHash(format, hash)
+}
+
+// GetInternalMetaBlockByNonce returns the meta block for a given nonce
+func (nf *nodeFacade) GetInternalMetaBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByNonce(format, nonce)
+}
+
+// GetInternalMetaBlockByRound returns the meta block for a given round
+func (nf *nodeFacade) GetInternalMetaBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalMetaBlockByRound(format, round)
+}
+
+// GetInternalStartOfEpochMetaBlock wil return start of epoch meta block
+// for a specified epoch
+func (nf *nodeFacade) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalShardBlockByHash return the shard block for a given hash
+func (nf *nodeFacade) GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByHash(format, hash)
+}
+
+// GetInternalShardBlockByNonce returns the shard block for a given nonce
+func (nf *nodeFacade) GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByNonce(format, nonce)
+}
+
+// GetInternalShardBlockByRound returns the shard block for a given round
+func (nf *nodeFacade) GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error) {
+	return nf.apiResolver.GetInternalShardBlockByRound(format, round)
+}
+
+// GetInternalMiniBlockByHash return the miniblock for a given hash
+func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
+	return nf.apiResolver.GetInternalMiniBlock(format, txHash, epoch)
 }
 
 // Close will cleanup started go routines
@@ -389,11 +472,6 @@ func (nf *nodeFacade) Close() error {
 	nf.cancelFunc()
 
 	return nil
-}
-
-// GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
-func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
-	return nf.accountsState.GetNumCheckpoints()
 }
 
 // GetProof returns the Merkle proof for the given address and root hash
@@ -422,11 +500,6 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
 	return nf.node.VerifyProof(rootHash, address, proof)
-}
-
-// GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
-func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
-	return nf.peerState.GetNumCheckpoints()
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
@@ -509,6 +582,16 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		TouchedAccounts: input.TouchedAccounts,
 		Logs:            logs,
 	}
+}
+
+// GetGenesisNodesPubKeys will return genesis nodes public keys by shard
+func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
+	eligible, waiting := nf.apiResolver.GetGenesisNodesPubKeys()
+	if eligible == nil && waiting == nil {
+		return nil, nil, ErrNilGenesisNodes
+	}
+
+	return eligible, waiting, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

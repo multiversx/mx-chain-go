@@ -153,6 +153,7 @@ type Messenger interface {
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	UnjoinAllTopics() error
 	Port() int
+	WaitForConnections(maxWaitingTime time.Duration, minNumOfPeers uint32)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -293,8 +294,8 @@ type Sharder interface {
 }
 
 // PeerDenialEvaluator defines the behavior of a component that is able to decide if a peer ID is black listed or not
-//TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
-//TODO move antiflooding inside network messenger
+// TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
+// TODO move antiflooding inside network messenger
 type PeerDenialEvaluator interface {
 	IsDenied(pid core.PeerID) bool
 	UpsertPeerID(pid core.PeerID, duration time.Duration) error
@@ -302,17 +303,11 @@ type PeerDenialEvaluator interface {
 }
 
 // ConnectionMonitorWrapper uses a connection monitor but checks if the peer is blacklisted or not
-//TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
+// TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
 type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	PeerDenialEvaluator() PeerDenialEvaluator
-	IsInterfaceNil() bool
-}
-
-// Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
-type Cacher interface {
-	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
 	IsInterfaceNil() bool
 }
 
@@ -327,5 +322,21 @@ type Debugger interface {
 // SyncTimer represent an entity able to tell the current time
 type SyncTimer interface {
 	CurrentTime() time.Time
+	IsInterfaceNil() bool
+}
+
+// ConnectionsWatcher represent an entity able to watch new connections
+type ConnectionsWatcher interface {
+	NewKnownConnection(pid core.PeerID, connection string)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// PeersRatingHandler represent an entity able to handle peers ratings
+type PeersRatingHandler interface {
+	AddPeer(pid core.PeerID)
+	IncreaseRating(pid core.PeerID)
+	DecreaseRating(pid core.PeerID)
+	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }
