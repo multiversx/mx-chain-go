@@ -903,8 +903,8 @@ type RewardsCreator interface {
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body)
-	DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler)
+	SaveValidatorInfoBlockDataToStorage(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteValidatorInfoBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }

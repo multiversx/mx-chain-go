@@ -8,12 +8,12 @@ import (
 
 // EpochValidatorInfoCreatorStub -
 type EpochValidatorInfoCreatorStub struct {
-	CreateValidatorInfoMiniBlocksCalled func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocksCalled func(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	CreateMarshalizedDataCalled         func(body block.Body) map[string][][]byte
-	SaveTxBlockToStorageCalled          func(metaBlock data.HeaderHandler, body *block.Body)
-	DeleteTxsFromStorageCalled          func(metaBlock data.HeaderHandler)
-	RemoveBlockDataFromPoolsCalled      func(metaBlock data.HeaderHandler, body *block.Body)
+	CreateValidatorInfoMiniBlocksCalled           func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocksCalled           func(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateMarshalizedDataCalled                   func(body block.Body) map[string][][]byte
+	SaveValidatorInfoBlockDataToStorageCalled     func(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteValidatorInfoBlockDataFromStorageCalled func(metaBlock data.HeaderHandler, body *block.Body)
+	RemoveBlockDataFromPoolsCalled                func(metaBlock data.HeaderHandler, body *block.Body)
 }
 
 // CreateValidatorInfoMiniBlocks -
@@ -32,17 +32,17 @@ func (e *EpochValidatorInfoCreatorStub) VerifyValidatorInfoMiniBlocks(miniblocks
 	return nil
 }
 
-// SaveValidatorInfoBlocksToStorage -
-func (e *EpochValidatorInfoCreatorStub) SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body) {
-	if e.SaveTxBlockToStorageCalled != nil {
-		e.SaveTxBlockToStorageCalled(metaBlock, body)
+// SaveValidatorInfoBlockDataToStorage -
+func (e *EpochValidatorInfoCreatorStub) SaveValidatorInfoBlockDataToStorage(metaBlock data.HeaderHandler, body *block.Body) {
+	if e.SaveValidatorInfoBlockDataToStorageCalled != nil {
+		e.SaveValidatorInfoBlockDataToStorageCalled(metaBlock, body)
 	}
 }
 
-// DeleteValidatorInfoBlocksFromStorage -
-func (e *EpochValidatorInfoCreatorStub) DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler) {
-	if e.DeleteTxsFromStorageCalled != nil {
-		e.DeleteTxsFromStorageCalled(metaBlock)
+// DeleteValidatorInfoBlockDataFromStorage -
+func (e *EpochValidatorInfoCreatorStub) DeleteValidatorInfoBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+	if e.DeleteValidatorInfoBlockDataFromStorageCalled != nil {
+		e.DeleteValidatorInfoBlockDataFromStorageCalled(metaBlock, body)
 	}
 }
 

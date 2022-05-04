@@ -752,12 +752,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	validatorInfoStorage := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		MiniBlockStorage: miniBlockStorage,
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		DataPool:         pcf.data.Datapool(),
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		ValidatorInfoStorage: validatorInfoStorage,
+		MiniBlockStorage:     miniBlockStorage,
+		Hasher:               pcf.coreData.Hasher(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		DataPool:             pcf.data.Datapool(),
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {

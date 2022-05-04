@@ -15,17 +15,18 @@ import (
 
 func createMockDataPoolArgs() dataPool.DataPoolArgs {
 	return dataPool.DataPoolArgs{
-		Transactions:             testscommon.NewShardedDataStub(),
-		UnsignedTransactions:     testscommon.NewShardedDataStub(),
-		RewardTransactions:       testscommon.NewShardedDataStub(),
-		Headers:                  &mock.HeadersCacherStub{},
-		MiniBlocks:               testscommon.NewCacherStub(),
-		PeerChangesBlocks:        testscommon.NewCacherStub(),
-		TrieNodes:                testscommon.NewCacherStub(),
-		TrieNodesChunks:          testscommon.NewCacherStub(),
-		CurrentBlockTransactions: &mock.TxForCurrentBlockStub{},
-		SmartContracts:           testscommon.NewCacherStub(),
-		ValidatorsInfo:           testscommon.NewCacherStub(),
+		Transactions:              testscommon.NewShardedDataStub(),
+		UnsignedTransactions:      testscommon.NewShardedDataStub(),
+		RewardTransactions:        testscommon.NewShardedDataStub(),
+		Headers:                   &mock.HeadersCacherStub{},
+		MiniBlocks:                testscommon.NewCacherStub(),
+		PeerChangesBlocks:         testscommon.NewCacherStub(),
+		TrieNodes:                 testscommon.NewCacherStub(),
+		TrieNodesChunks:           testscommon.NewCacherStub(),
+		CurrentBlockTransactions:  &mock.TxForCurrentBlockStub{},
+		CurrentBlockValidatorInfo: &mock.ValidatorInfoForCurrentBlockStub{},
+		SmartContracts:            testscommon.NewCacherStub(),
+		ValidatorsInfo:            testscommon.NewCacherStub(),
 	}
 }
 
@@ -139,7 +140,8 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
-func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
+func TestNewDataPool_NilCurrBlockTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
 
 	args := createMockDataPoolArgs()
 	args.CurrentBlockTransactions = nil
@@ -149,19 +151,31 @@ func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
 	require.Equal(t, dataRetriever.ErrNilCurrBlockTxs, err)
 }
 
+func TestNewDataPool_NilCurrBlockValidatorInfoShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.CurrentBlockValidatorInfo = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	require.Nil(t, tdp)
+	require.Equal(t, dataRetriever.ErrNilCurrBlockValidatorInfo, err)
+}
+
 func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	args := dataPool.DataPoolArgs{
-		Transactions:             testscommon.NewShardedDataStub(),
-		UnsignedTransactions:     testscommon.NewShardedDataStub(),
-		RewardTransactions:       testscommon.NewShardedDataStub(),
-		Headers:                  &mock.HeadersCacherStub{},
-		MiniBlocks:               testscommon.NewCacherStub(),
-		PeerChangesBlocks:        testscommon.NewCacherStub(),
-		TrieNodes:                testscommon.NewCacherStub(),
-		TrieNodesChunks:          testscommon.NewCacherStub(),
-		CurrentBlockTransactions: &mock.TxForCurrentBlockStub{},
-		SmartContracts:           testscommon.NewCacherStub(),
-		ValidatorsInfo:           testscommon.NewCacherStub(),
+		Transactions:              testscommon.NewShardedDataStub(),
+		UnsignedTransactions:      testscommon.NewShardedDataStub(),
+		RewardTransactions:        testscommon.NewShardedDataStub(),
+		Headers:                   &mock.HeadersCacherStub{},
+		MiniBlocks:                testscommon.NewCacherStub(),
+		PeerChangesBlocks:         testscommon.NewCacherStub(),
+		TrieNodes:                 testscommon.NewCacherStub(),
+		TrieNodesChunks:           testscommon.NewCacherStub(),
+		CurrentBlockTransactions:  &mock.TxForCurrentBlockStub{},
+		CurrentBlockValidatorInfo: &mock.ValidatorInfoForCurrentBlockStub{},
+		SmartContracts:            testscommon.NewCacherStub(),
+		ValidatorsInfo:            testscommon.NewCacherStub(),
 	}
 
 	tdp, err := dataPool.NewDataPool(args)
@@ -176,6 +190,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.MiniBlocks == tdp.MiniBlocks())
 	assert.True(t, args.PeerChangesBlocks == tdp.PeerChangesBlocks())
 	assert.True(t, args.CurrentBlockTransactions == tdp.CurrentBlockTxs())
+	assert.True(t, args.CurrentBlockValidatorInfo == tdp.CurrentBlockValidatorInfo())
 	assert.True(t, args.TrieNodes == tdp.TrieNodes())
 	assert.True(t, args.TrieNodesChunks == tdp.TrieNodesChunks())
 	assert.True(t, args.SmartContracts == tdp.SmartContracts())

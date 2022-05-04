@@ -9,32 +9,34 @@ import (
 var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
 
 type dataPool struct {
-	transactions         dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
-	headers              dataRetriever.HeadersPool
-	miniBlocks           storage.Cacher
-	peerChangesBlocks    storage.Cacher
-	trieNodes            storage.Cacher
-	trieNodesChunks      storage.Cacher
-	currBlockTxs         dataRetriever.TransactionCacher
-	smartContracts       storage.Cacher
-	validatorsInfo       storage.Cacher
+	transactions           dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
+	headers                dataRetriever.HeadersPool
+	miniBlocks             storage.Cacher
+	peerChangesBlocks      storage.Cacher
+	trieNodes              storage.Cacher
+	trieNodesChunks        storage.Cacher
+	currBlockTxs           dataRetriever.TransactionCacher
+	currBlockValidatorInfo dataRetriever.ValidatorInfoCacher
+	smartContracts         storage.Cacher
+	validatorsInfo         storage.Cacher
 }
 
 // DataPoolArgs represents the data pool's constructor structure
 type DataPoolArgs struct {
-	Transactions             dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactions     dataRetriever.ShardedDataCacherNotifier
-	RewardTransactions       dataRetriever.ShardedDataCacherNotifier
-	Headers                  dataRetriever.HeadersPool
-	MiniBlocks               storage.Cacher
-	PeerChangesBlocks        storage.Cacher
-	TrieNodes                storage.Cacher
-	TrieNodesChunks          storage.Cacher
-	CurrentBlockTransactions dataRetriever.TransactionCacher
-	SmartContracts           storage.Cacher
-	ValidatorsInfo           storage.Cacher
+	Transactions              dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactions      dataRetriever.ShardedDataCacherNotifier
+	RewardTransactions        dataRetriever.ShardedDataCacherNotifier
+	Headers                   dataRetriever.HeadersPool
+	MiniBlocks                storage.Cacher
+	PeerChangesBlocks         storage.Cacher
+	TrieNodes                 storage.Cacher
+	TrieNodesChunks           storage.Cacher
+	CurrentBlockTransactions  dataRetriever.TransactionCacher
+	CurrentBlockValidatorInfo dataRetriever.ValidatorInfoCacher
+	SmartContracts            storage.Cacher
+	ValidatorsInfo            storage.Cacher
 }
 
 // NewDataPool creates a data pools holder object
@@ -60,6 +62,9 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.CurrentBlockTransactions) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
+	if check.IfNil(args.CurrentBlockValidatorInfo) {
+		return nil, dataRetriever.ErrNilCurrBlockValidatorInfo
+	}
 	if check.IfNil(args.TrieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
@@ -74,23 +79,29 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	}
 
 	return &dataPool{
-		transactions:         args.Transactions,
-		unsignedTransactions: args.UnsignedTransactions,
-		rewardTransactions:   args.RewardTransactions,
-		headers:              args.Headers,
-		miniBlocks:           args.MiniBlocks,
-		peerChangesBlocks:    args.PeerChangesBlocks,
-		trieNodes:            args.TrieNodes,
-		trieNodesChunks:      args.TrieNodesChunks,
-		currBlockTxs:         args.CurrentBlockTransactions,
-		smartContracts:       args.SmartContracts,
-		validatorsInfo:       args.ValidatorsInfo,
+		transactions:           args.Transactions,
+		unsignedTransactions:   args.UnsignedTransactions,
+		rewardTransactions:     args.RewardTransactions,
+		headers:                args.Headers,
+		miniBlocks:             args.MiniBlocks,
+		peerChangesBlocks:      args.PeerChangesBlocks,
+		trieNodes:              args.TrieNodes,
+		trieNodesChunks:        args.TrieNodesChunks,
+		currBlockTxs:           args.CurrentBlockTransactions,
+		currBlockValidatorInfo: args.CurrentBlockValidatorInfo,
+		smartContracts:         args.SmartContracts,
+		validatorsInfo:         args.ValidatorsInfo,
 	}, nil
 }
 
 // CurrentBlockTxs returns the holder for current block transactions
 func (dp *dataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return dp.currBlockTxs
+}
+
+// CurrentBlockValidatorInfo returns the holder for current block validator info
+func (dp *dataPool) CurrentBlockValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	return dp.currBlockValidatorInfo
 }
 
 // Transactions returns the holder for transactions

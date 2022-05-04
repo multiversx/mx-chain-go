@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"sort"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,19 +24,23 @@ var _ process.EpochStartValidatorInfoCreator = (*validatorInfoCreator)(nil)
 
 // ArgsNewValidatorInfoCreator defines the arguments structure needed to create a new validatorInfo creator
 type ArgsNewValidatorInfoCreator struct {
-	ShardCoordinator sharding.Coordinator
-	MiniBlockStorage storage.Storer
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	DataPool         dataRetriever.PoolsHolder
+	ShardCoordinator     sharding.Coordinator
+	ValidatorInfoStorage storage.Storer
+	MiniBlockStorage     storage.Storer
+	Hasher               hashing.Hasher
+	Marshalizer          marshal.Marshalizer
+	DataPool             dataRetriever.PoolsHolder
 }
 
 type validatorInfoCreator struct {
-	shardCoordinator sharding.Coordinator
-	miniBlockStorage storage.Storer
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	dataPool         dataRetriever.PoolsHolder
+	currValidatorInfo    dataRetriever.ValidatorInfoCacher
+	shardCoordinator     sharding.Coordinator
+	validatorInfoStorage storage.Storer
+	miniBlockStorage     storage.Storer
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	dataPool             dataRetriever.PoolsHolder
+	mutValidatorInfo     sync.Mutex
 }
 
 // NewValidatorInfoCreator creates a new validatorInfo creator object
@@ -48,6 +54,9 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.Hasher) {
 		return nil, epochStart.ErrNilHasher
 	}
+	if check.IfNil(args.ValidatorInfoStorage) {
+		return nil, epochStart.ErrNilValidatorInfoStorage
+	}
 	if check.IfNil(args.MiniBlockStorage) {
 		return nil, epochStart.ErrNilStorage
 	}
@@ -55,12 +64,15 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 		return nil, epochStart.ErrNilDataPoolsHolder
 	}
 
+	currValidatorInfoCache := dataPool.NewCurrentBlockValidatorInfoPool()
 	vic := &validatorInfoCreator{
-		shardCoordinator: args.ShardCoordinator,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		miniBlockStorage: args.MiniBlockStorage,
-		dataPool:         args.DataPool,
+		currValidatorInfo:    currValidatorInfoCache,
+		shardCoordinator:     args.ShardCoordinator,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		validatorInfoStorage: args.ValidatorInfoStorage,
+		miniBlockStorage:     args.MiniBlockStorage,
+		dataPool:             args.DataPool,
 	}
 
 	return vic, nil
@@ -71,6 +83,11 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 	if validatorsInfo == nil {
 		return nil, epochStart.ErrNilValidatorInfo
 	}
+
+	vic.mutValidatorInfo.Lock()
+	defer vic.mutValidatorInfo.Unlock()
+
+	vic.clean()
 
 	miniblocks := make([]*block.MiniBlock, 0)
 
@@ -101,6 +118,10 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 	miniblocks = append(miniblocks, miniBlock)
 
 	return miniblocks, nil
+}
+
+func (vic *validatorInfoCreator) clean() {
+	vic.currValidatorInfo.Clean()
 }
 
 func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.ValidatorInfo) (*block.MiniBlock, error) {
@@ -194,9 +215,48 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	return nil
 }
 
-// SaveValidatorInfoBlocksToStorage saves created data to storage
-func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ data.HeaderHandler, body *block.Body) {
+// SaveValidatorInfoBlockDataToStorage saves created data to storage
+func (vic *validatorInfoCreator) SaveValidatorInfoBlockDataToStorage(_ data.HeaderHandler, body *block.Body) {
 	if check.IfNil(body) {
+		return
+	}
+
+	var validatorInfo *state.ShardValidatorInfo
+	var marshalledData []byte
+	var err error
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		for _, validatorInfoHash := range miniBlock.TxHashes {
+			validatorInfo, err = vic.currValidatorInfo.GetValidatorInfo(validatorInfoHash)
+			if err != nil {
+				continue
+			}
+
+			marshalledData, err = vic.marshalizer.Marshal(validatorInfo)
+			if err != nil {
+				continue
+			}
+
+			_ = vic.validatorInfoStorage.Put(validatorInfoHash, marshalledData)
+		}
+
+		marshalledData, err = vic.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			continue
+		}
+
+		mbHash := vic.hasher.Compute(string(marshalledData))
+		_ = vic.miniBlockStorage.Put(mbHash, marshalledData)
+	}
+}
+
+// DeleteValidatorInfoBlockDataFromStorage deletes data from storage
+func (vic *validatorInfoCreator) DeleteValidatorInfoBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}
 
@@ -205,20 +265,9 @@ func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ data.HeaderH
 			continue
 		}
 
-		marshalizedData, err := vic.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			continue
+		for _, txHash := range miniBlock.TxHashes {
+			_ = vic.validatorInfoStorage.Remove(txHash)
 		}
-
-		mbHash := vic.hasher.Compute(string(marshalizedData))
-		_ = vic.miniBlockStorage.Put(mbHash, marshalizedData)
-	}
-}
-
-// DeleteValidatorInfoBlocksFromStorage deletes data from storage
-func (vic *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler) {
-	if check.IfNil(metaBlock) {
-		return
 	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {

@@ -2127,12 +2127,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
 
+		validatorInfoStorage := tpn.Storage.GetStorer(dataRetriever.UnsignedTransactionUnit)
 		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
-			ShardCoordinator: tpn.ShardCoordinator,
-			MiniBlockStorage: miniBlockStorage,
-			Hasher:           TestHasher,
-			Marshalizer:      TestMarshalizer,
-			DataPool:         tpn.DataPool,
+			ShardCoordinator:     tpn.ShardCoordinator,
+			ValidatorInfoStorage: validatorInfoStorage,
+			MiniBlockStorage:     miniBlockStorage,
+			Hasher:               TestHasher,
+			Marshalizer:          TestMarshalizer,
+			DataPool:             tpn.DataPool,
 		}
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)

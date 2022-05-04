@@ -112,10 +112,11 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 
 	argsNewEpochEconomics := ArgsNewValidatorInfoCreator{
-		ShardCoordinator: shardCoordinator,
-		MiniBlockStorage: createMemUnit(),
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator:     shardCoordinator,
+		ValidatorInfoStorage: createMemUnit(),
+		MiniBlockStorage:     createMemUnit(),
+		Hasher:               &hashingMocks.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
@@ -377,7 +378,7 @@ func createValidatorInfoMiniBlocks(
 	return miniblocks
 }
 
-func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T) {
+func TestEpochValidatorInfoCreator_SaveValidatorInfoBlockDataToStorage(t *testing.T) {
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = mock.NewStorerMock()
@@ -427,7 +428,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	}
 
 	body := &block.Body{MiniBlocks: miniblocks}
-	vic.SaveValidatorInfoBlocksToStorage(meta, body)
+	vic.SaveValidatorInfoBlockDataToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := miniBlockStorage.Get(mbHeader.Hash)
@@ -440,15 +441,15 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 	}
 }
 
-func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorage(t *testing.T) {
-	testDeleteValidatorInfoBlock(t, block.PeerBlock, false)
+func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlockDataFromStorage(t *testing.T) {
+	testDeleteValidatorInfoBlockData(t, block.PeerBlock, false)
 }
 
-func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDeleteOnlyPeerBlocks(t *testing.T) {
-	testDeleteValidatorInfoBlock(t, block.TxBlock, true)
+func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlockDataFromStorageDoesDeleteOnlyPeerBlocks(t *testing.T) {
+	testDeleteValidatorInfoBlockData(t, block.TxBlock, true)
 }
 
-func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExist bool) {
+func testDeleteValidatorInfoBlockData(t *testing.T, blockType block.Type, shouldExist bool) {
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = mock.NewStorerMock()
@@ -504,7 +505,8 @@ func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExis
 		require.Nil(t, err)
 	}
 
-	vic.DeleteValidatorInfoBlocksFromStorage(meta)
+	body := &block.Body{}
+	vic.DeleteValidatorInfoBlockDataFromStorage(meta, body)
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := mbStorage.Get(mbHeader.Hash)

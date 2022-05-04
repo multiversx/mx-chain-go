@@ -8,18 +8,19 @@ import (
 
 // PoolsHolderStub -
 type PoolsHolderStub struct {
-	HeadersCalled              func() dataRetriever.HeadersPool
-	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
-	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
-	MiniBlocksCalled           func() storage.Cacher
-	MetaBlocksCalled           func() storage.Cacher
-	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
-	TrieNodesCalled            func() storage.Cacher
-	TrieNodesChunksCalled      func() storage.Cacher
-	PeerChangesBlocksCalled    func() storage.Cacher
-	SmartContractsCalled       func() storage.Cacher
-	ValidatorsInfoCalled       func() storage.Cacher
+	HeadersCalled                func() dataRetriever.HeadersPool
+	TransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
+	MiniBlocksCalled             func() storage.Cacher
+	MetaBlocksCalled             func() storage.Cacher
+	CurrBlockTxsCalled           func() dataRetriever.TransactionCacher
+	CurrBlockValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
+	TrieNodesCalled              func() storage.Cacher
+	TrieNodesChunksCalled        func() storage.Cacher
+	PeerChangesBlocksCalled      func() storage.Cacher
+	SmartContractsCalled         func() storage.Cacher
+	ValidatorsInfoCalled         func() storage.Cacher
 }
 
 // NewPoolsHolderStub -
@@ -85,6 +86,15 @@ func (holder *PoolsHolderStub) MetaBlocks() storage.Cacher {
 func (holder *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	if holder.CurrBlockTxsCalled != nil {
 		return holder.CurrBlockTxsCalled()
+	}
+
+	return nil
+}
+
+// CurrentBlockValidatorInfo -
+func (holder *PoolsHolderStub) CurrentBlockValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	if holder.CurrBlockValidatorInfoCalled != nil {
+		return holder.CurrBlockValidatorInfoCalled()
 	}
 
 	return nil

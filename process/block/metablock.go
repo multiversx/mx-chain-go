@@ -1580,7 +1580,7 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
-		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
+		go mp.validatorInfoCreator.SaveValidatorInfoBlockDataToStorage(header, body)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {

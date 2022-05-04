@@ -14,17 +14,18 @@ import (
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions         dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
-	headers              dataRetriever.HeadersPool
-	miniBlocks           storage.Cacher
-	peerChangesBlocks    storage.Cacher
-	trieNodes            storage.Cacher
-	trieNodesChunks      storage.Cacher
-	smartContracts       storage.Cacher
-	currBlockTxs         dataRetriever.TransactionCacher
-	validatorsInfo       storage.Cacher
+	transactions           dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
+	headers                dataRetriever.HeadersPool
+	miniBlocks             storage.Cacher
+	peerChangesBlocks      storage.Cacher
+	trieNodes              storage.Cacher
+	trieNodesChunks        storage.Cacher
+	smartContracts         storage.Cacher
+	currBlockTxs           dataRetriever.TransactionCacher
+	currBlockValidatorInfo dataRetriever.ValidatorInfoCacher
+	validatorsInfo         storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -74,7 +75,8 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.currBlockTxs = dataPool.NewCurrentBlockPool()
+	holder.currBlockTxs = dataPool.NewCurrentBlockTransactionPool()
+	holder.currBlockValidatorInfo = dataPool.NewCurrentBlockValidatorInfoPool()
 
 	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
 	panicIfError("NewPoolsHolderMock", err)
@@ -94,6 +96,11 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 // CurrentBlockTxs -
 func (holder *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return holder.currBlockTxs
+}
+
+// CurrentBlockValidatorInfo -
+func (holder *PoolsHolderMock) CurrentBlockValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	return holder.currBlockValidatorInfo
 }
 
 // Transactions -

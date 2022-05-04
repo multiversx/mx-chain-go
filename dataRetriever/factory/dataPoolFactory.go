@@ -130,7 +130,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}
 
-	currBlockTxs := dataPool.NewCurrentBlockPool()
+	currBlockTxs := dataPool.NewCurrentBlockTransactionPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:             txPool,
 		UnsignedTransactions:     uTxPool,
