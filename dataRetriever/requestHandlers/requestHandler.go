@@ -30,6 +30,7 @@ const uniqueMiniblockSuffix = "mb"
 const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
+const uniqueValidatorInfoSuffix = "vi"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -554,6 +555,10 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 // RequestValidatorInfo asks for the validator info associated with a specific hash from connected peers
 func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
+	if !rrh.testIfRequestIsNeeded(hash, uniqueValidatorInfoSuffix) {
+		return
+	}
+
 	log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
 		"hash", hash,
@@ -571,6 +576,8 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 		return
 	}
 
+	rrh.whiteList.Add([][]byte{hash})
+
 	err = resolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestValidatorInfo.RequestDataFromHash",
@@ -580,6 +587,8 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 			"epoch", rrh.epoch,
 		)
 	}
+
+	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
