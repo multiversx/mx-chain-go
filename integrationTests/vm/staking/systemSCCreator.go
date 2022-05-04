@@ -35,12 +35,13 @@ func createSystemSCProcessor(
 	vmContainer process.VirtualMachinesContainer,
 ) process.EpochStartSystemSCProcessor {
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
-	stakingSCProvider, _ := metachain.NewStakingDataProvider(
-		systemVM,
-		strconv.Itoa(nodePrice),
-		stakingV4EnableEpoch,
-		coreComponents.EpochNotifier(),
-	)
+	argsStakingDataProvider := metachain.StakingDataProviderArgs{
+		EpochNotifier:        coreComponents.EpochNotifier(),
+		SystemVM:             systemVM,
+		MinNodePrice:         strconv.Itoa(nodePrice),
+		StakingV4EnableEpoch: stakingV4EnableEpoch,
+	}
+	stakingSCProvider, _ := metachain.NewStakingDataProvider(argsStakingDataProvider)
 
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
