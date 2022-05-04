@@ -1,6 +1,7 @@
 package requestHandlers
 
 import (
+	"bytes"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1204,4 +1205,64 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
 	assert.True(t, called)
+}
+
+func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("MetaChainResolver returns error", func(t *testing.T) {
+		providedHash := []byte("provided hash")
+		wasCalled := false
+		res := &mock.ResolverStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+					return res, errors.New("provided err")
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestValidatorInfo(providedHash)
+
+		assert.False(t, wasCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		providedHash := []byte("provided hash")
+		wasCalled := false
+		res := &mock.ResolverStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				assert.True(t, bytes.Equal(providedHash, hash))
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestValidatorInfo(providedHash)
+
+		assert.True(t, wasCalled)
+	})
 }

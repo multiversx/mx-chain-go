@@ -25,6 +25,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		TrieNodesChunks:          testscommon.NewCacherStub(),
 		CurrentBlockTransactions: &mock.TxForCurrentBlockStub{},
 		SmartContracts:           testscommon.NewCacherStub(),
+		ValidatorsInfo:           testscommon.NewCacherStub(),
 	}
 }
 
@@ -116,6 +117,17 @@ func TestNewDataPool_NilSmartContractsShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
+func TestNewDataPool_NilValidatorsInfoShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.ValidatorsInfo = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	assert.Equal(t, dataRetriever.ErrNilValidatorInfoPool, err)
+	assert.Nil(t, tdp)
+}
+
 func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -149,6 +161,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 		TrieNodesChunks:          testscommon.NewCacherStub(),
 		CurrentBlockTransactions: &mock.TxForCurrentBlockStub{},
 		SmartContracts:           testscommon.NewCacherStub(),
+		ValidatorsInfo:           testscommon.NewCacherStub(),
 	}
 
 	tdp, err := dataPool.NewDataPool(args)

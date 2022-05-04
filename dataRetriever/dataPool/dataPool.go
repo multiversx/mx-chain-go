@@ -19,6 +19,7 @@ type dataPool struct {
 	trieNodesChunks      storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
 	smartContracts       storage.Cacher
+	validatorsInfo       storage.Cacher
 }
 
 // DataPoolArgs represents the data pool's constructor structure
@@ -33,6 +34,7 @@ type DataPoolArgs struct {
 	TrieNodesChunks          storage.Cacher
 	CurrentBlockTransactions dataRetriever.TransactionCacher
 	SmartContracts           storage.Cacher
+	ValidatorsInfo           storage.Cacher
 }
 
 // NewDataPool creates a data pools holder object
@@ -67,6 +69,9 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.SmartContracts) {
 		return nil, dataRetriever.ErrNilSmartContractsPool
 	}
+	if check.IfNil(args.ValidatorsInfo) {
+		return nil, dataRetriever.ErrNilValidatorInfoPool
+	}
 
 	return &dataPool{
 		transactions:         args.Transactions,
@@ -79,6 +84,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		trieNodesChunks:      args.TrieNodesChunks,
 		currBlockTxs:         args.CurrentBlockTransactions,
 		smartContracts:       args.SmartContracts,
+		validatorsInfo:       args.ValidatorsInfo,
 	}, nil
 }
 
@@ -130,6 +136,11 @@ func (dp *dataPool) TrieNodesChunks() storage.Cacher {
 // SmartContracts returns the holder for smart contracts
 func (dp *dataPool) SmartContracts() storage.Cacher {
 	return dp.smartContracts
+}
+
+// ValidatorsInfo returns the holder for validators info
+func (dp *dataPool) ValidatorsInfo() storage.Cacher {
+	return dp.validatorsInfo
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

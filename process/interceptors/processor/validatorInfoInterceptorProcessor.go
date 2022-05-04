@@ -3,19 +3,16 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ArgValidatorInfoInterceptorProcessor is the argument structure used to create a new validator info interceptor processor
 type ArgValidatorInfoInterceptorProcessor struct {
-	Marshaller        marshal.Marshalizer
 	ValidatorInfoPool storage.Cacher
 }
 
 type validatorInfoInterceptorProcessor struct {
-	marshaller        marshal.Marshalizer
 	validatorInfoPool storage.Cacher
 }
 
@@ -27,15 +24,11 @@ func NewValidatorInfoInterceptorProcessor(args ArgValidatorInfoInterceptorProces
 	}
 
 	return &validatorInfoInterceptorProcessor{
-		marshaller:        args.Marshaller,
 		validatorInfoPool: args.ValidatorInfoPool,
 	}, nil
 }
 
 func checkArgs(args ArgValidatorInfoInterceptorProcessor) error {
-	if check.IfNil(args.Marshaller) {
-		return process.ErrNilMarshalizer
-	}
 	if check.IfNil(args.ValidatorInfoPool) {
 		return process.ErrNilValidatorInfoPool
 	}
