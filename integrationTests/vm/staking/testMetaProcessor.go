@@ -13,17 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
@@ -47,16 +43,7 @@ type nodesConfig struct {
 
 // TestMetaProcessor -
 type TestMetaProcessor struct {
-	MetaBlockProcessor  process.BlockProcessor
-	NodesCoordinator    nodesCoordinator.NodesCoordinator
-	ValidatorStatistics process.ValidatorStatisticsProcessor
-	EpochStartTrigger   integrationTests.TestEpochStartTrigger
-	BlockChainHandler   data.ChainHandler
-	NodesConfig         nodesConfig
-	AccountsAdapter     state.AccountsAdapter
-	Marshaller          marshal.Marshalizer
-
-	currentRound uint64
+	*baseMetaProcessor
 }
 
 // NewTestMetaProcessor -
@@ -87,91 +74,40 @@ func NewTestMetaProcessor(
 		stateComponents.AccountsAdapter(),
 	)
 
-	nc := createNodesCoordinator(
+	eligibleMap, waitingMap := createGenesisNodes(
 		numOfMetaNodes,
 		numOfShards,
 		numOfEligibleNodesPerShard,
 		numOfWaitingNodesPerShard,
+		coreComponents.InternalMarshalizer(),
+		stateComponents,
+	)
+
+	nc := createNodesCoordinator(
+		eligibleMap,
+		waitingMap,
+		numOfMetaNodes,
+		numOfShards,
+		numOfEligibleNodesPerShard,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
 		coreComponents,
 		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-		stateComponents,
 		bootstrapComponents.NodesCoordinatorRegistryFactory(),
 		maxNodesConfig,
 	)
 
-	gasScheduleNotifier := createGasScheduleNotifier()
-	blockChainHook := createBlockChainHook(
-		dataComponents, coreComponents,
-		stateComponents.AccountsAdapter(),
-		bootstrapComponents.ShardCoordinator(),
-		gasScheduleNotifier,
-	)
-
-	metaVmFactory := createVMContainerFactory(
-		coreComponents,
-		gasScheduleNotifier,
-		blockChainHook,
-		stateComponents.PeerAccounts(),
-		bootstrapComponents.ShardCoordinator(),
-		nc,
-		maxNodesConfig[0].MaxNumNodes,
-	)
-	vmContainer, _ := metaVmFactory.Create()
-
-	validatorStatisticsProcessor := createValidatorStatisticsProcessor(
-		dataComponents,
-		coreComponents,
-		nc,
-		bootstrapComponents.ShardCoordinator(),
-		stateComponents.PeerAccounts(),
-	)
-	scp := createSystemSCProcessor(
-		nc,
-		coreComponents,
-		stateComponents,
-		bootstrapComponents.ShardCoordinator(),
-		maxNodesConfig,
-		validatorStatisticsProcessor,
-		vmContainer,
-	)
-
-	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents.StorageService())
-
-	eligible, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
-	waiting, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
-	shuffledOut, _ := nc.GetAllShuffledOutValidatorsPublicKeys(0)
-
 	return &TestMetaProcessor{
-		AccountsAdapter: stateComponents.AccountsAdapter(),
-		Marshaller:      coreComponents.InternalMarshalizer(),
-		NodesConfig: nodesConfig{
-			eligible:    eligible,
-			waiting:     waiting,
-			shuffledOut: shuffledOut,
-			queue:       queue,
-			auction:     make([][]byte, 0),
-		},
-		MetaBlockProcessor: createMetaBlockProcessor(
-			nc,
-			scp,
+		newBaseMetaProcessor(
 			coreComponents,
 			dataComponents,
 			bootstrapComponents,
 			statusComponents,
 			stateComponents,
-			validatorStatisticsProcessor,
-			blockChainHook,
-			metaVmFactory,
-			epochStartTrigger,
-			vmContainer,
+			nc,
+			maxNodesConfig,
+			queue,
 		),
-		currentRound:        1,
-		NodesCoordinator:    nc,
-		ValidatorStatistics: validatorStatisticsProcessor,
-		EpochStartTrigger:   epochStartTrigger,
-		BlockChainHandler:   dataComponents.Blockchain(),
 	}
 }
 

@@ -47,9 +47,9 @@ func createComponentHolders(numOfShards uint32) (
 	statusComponents := createStatusComponents()
 	stateComponents := createStateComponents(coreComponents)
 	dataComponents := createDataComponents(coreComponents, numOfShards)
-	boostrapComponents := createBootstrapComponents(coreComponents.InternalMarshalizer(), numOfShards)
+	bootstrapComponents := createBootstrapComponents(coreComponents.InternalMarshalizer(), numOfShards)
 
-	return coreComponents, dataComponents, boostrapComponents, statusComponents, stateComponents
+	return coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents
 }
 
 func createCoreComponents() factory.CoreComponentsHolder {

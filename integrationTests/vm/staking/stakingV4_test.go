@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -225,7 +227,7 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	owner1 := "owner1"
 
 	owner1StakedKeys := map[uint32][][]byte{
-		0: {[]byte("pubKey0"), []byte("pubKey1"), []byte("pubKey2")},
+		core.MetachainShardId: {[]byte("pubKey0"), []byte("pubKey1"), []byte("pubKey2")},
 	}
 	owner1StakingQueueKeys := [][]byte{
 		[]byte("pubKey3"), []byte("pubKey4"), []byte("pubKey5"),
@@ -249,6 +251,13 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
 			owner2: owner2Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            4,
+				NodesToShufflePerShard: 2,
+			},
 		},
 	}
 

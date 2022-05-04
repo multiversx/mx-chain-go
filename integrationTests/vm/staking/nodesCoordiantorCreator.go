@@ -24,27 +24,18 @@ const (
 )
 
 func createNodesCoordinator(
+	eligibleMap map[uint32][]nodesCoordinator.Validator,
+	waitingMap map[uint32][]nodesCoordinator.Validator,
 	numOfMetaNodes uint32,
 	numOfShards uint32,
 	numOfEligibleNodesPerShard uint32,
-	numOfWaitingNodesPerShard uint32,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	coreComponents factory.CoreComponentsHolder,
 	bootStorer storage.Storer,
-	stateComponents factory.StateComponentsHandler,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 ) nodesCoordinator.NodesCoordinator {
-	eligibleMap, waitingMap := createGenesisNodes(
-		numOfMetaNodes,
-		numOfShards,
-		numOfEligibleNodesPerShard,
-		numOfWaitingNodesPerShard,
-		coreComponents.InternalMarshalizer(),
-		stateComponents,
-	)
-
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           numOfEligibleNodesPerShard,
 		NodesMeta:            numOfMetaNodes,
@@ -108,6 +99,39 @@ func createGenesisNodes(
 	registerValidators(waitingValidators, stateComponents, marshaller, common.WaitingList)
 
 	return eligibleValidators, waitingValidators
+}
+
+func createGenesisNodesWithCustomConfig(
+	owners map[string]*OwnerStats,
+	marshaller marshal.Marshalizer,
+	stateComponents factory.StateComponentsHandler,
+) (map[uint32][]nodesCoordinator.Validator, map[uint32][]nodesCoordinator.Validator) {
+	eligibleGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	waitingGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+
+	for _, ownerStats := range owners {
+		for shardID, ownerEligibleKeys := range ownerStats.EligibleBlsKeys {
+			for _, eligibleKey := range ownerEligibleKeys {
+				validator := integrationMocks.NewNodeInfo(eligibleKey, eligibleKey, shardID, initialRating)
+				eligibleGenesis[shardID] = append(eligibleGenesis[shardID], validator)
+			}
+		}
+
+		for shardID, ownerWaitingKeys := range ownerStats.WaitingBlsKeys {
+			for _, waitingKey := range ownerWaitingKeys {
+				validator := integrationMocks.NewNodeInfo(waitingKey, waitingKey, shardID, initialRating)
+				waitingGenesis[shardID] = append(waitingGenesis[shardID], validator)
+			}
+		}
+	}
+
+	eligible, _ := nodesCoordinator.NodesInfoToValidators(eligibleGenesis)
+	waiting, _ := nodesCoordinator.NodesInfoToValidators(waitingGenesis)
+
+	registerValidators(eligible, stateComponents, marshaller, common.EligibleList)
+	registerValidators(waiting, stateComponents, marshaller, common.WaitingList)
+
+	return eligible, waiting
 }
 
 func generateGenesisNodeInfoMap(

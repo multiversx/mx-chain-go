@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 )
@@ -17,9 +18,13 @@ type OwnerStats struct {
 }
 
 type InitialNodesConfig struct {
-	NumOfShards          uint32
-	Owners               map[string]*OwnerStats
-	MaxNodesChangeConfig []config.MaxNodesChangeConfig
+	Owners                        map[string]*OwnerStats
+	MaxNodesChangeConfig          []config.MaxNodesChangeConfig
+	NumOfShards                   uint32
+	MinNumberOfEligibleShardNodes uint32
+	MinNumberOfEligibleMetaNodes  uint32
+	ShardConsensusGroupSize       int
+	MetaConsensusGroupSize        int
 }
 
 func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaProcessor {
@@ -35,12 +40,37 @@ func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaPr
 		stateComponents.AccountsAdapter(),
 	)
 
+	eligibleMap, waitingMap := createGenesisNodesWithCustomConfig(
+		config.Owners,
+		coreComponents.InternalMarshalizer(),
+		stateComponents,
+	)
+
+	nc := createNodesCoordinator(
+		eligibleMap,
+		waitingMap,
+		config.MinNumberOfEligibleMetaNodes,
+		config.NumOfShards,
+		config.MinNumberOfEligibleShardNodes,
+		config.ShardConsensusGroupSize,
+		config.MetaConsensusGroupSize,
+		coreComponents,
+		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		bootstrapComponents.NodesCoordinatorRegistryFactory(),
+		config.MaxNodesChangeConfig,
+	)
+
 	return &TestMetaProcessor{
-		NodesConfig: nodesConfig{
-			queue: queue,
-		},
-		AccountsAdapter: stateComponents.AccountsAdapter(),
-		Marshaller:      coreComponents.InternalMarshalizer(),
+		newBaseMetaProcessor(
+			coreComponents,
+			dataComponents,
+			bootstrapComponents,
+			statusComponents,
+			stateComponents,
+			nc,
+			config.MaxNodesChangeConfig,
+			queue,
+		),
 	}
 }
 
