@@ -588,9 +588,6 @@
         SameSourceRequests = 10000
         # SameSourceResetIntervalInSec time frame between counter reset, in seconds
         SameSourceResetIntervalInSec = 1
-        # MaxGasPerVmQuery defines the maximum amount of gas to be allocated for VM Queries comming from API
-        # If set to 0, then MaxUInt64 will be used
-        MaxGasPerVmQuery = 1500000000  #1.5b
         # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
         EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                                { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -721,6 +718,11 @@
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
+
+    [VirtualMachine.GasConfig]
+        # MaxGasPerVmQuery defines the maximum amount of gas to be allocated for VM Queries comming from API
+        # If set to 0, then MaxUInt64 will be used
+        MaxGasPerVmQuery = 1500000000  #1.5b
 
 [Hardfork]
     EnableTrigger = true
