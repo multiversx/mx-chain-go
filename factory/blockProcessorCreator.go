@@ -712,13 +712,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsStakingDataProvider := metachainEpochStart.StakingDataProviderArgs{
+		EpochNotifier:        pcf.coreData.EpochNotifier(),
+		SystemVM:             systemVM,
+		MinNodePrice:         pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		StakingV4EnableEpoch: pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
+	}
+
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
-	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(
-		systemVM,
-		pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
-		pcf.epochConfig.EnableEpochs.StakingV4EnableEpoch,
-		pcf.coreData.EpochNotifier(),
-	)
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
 	if err != nil {
 		return nil, err
 	}

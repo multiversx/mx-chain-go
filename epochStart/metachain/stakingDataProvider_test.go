@@ -25,29 +25,40 @@ import (
 
 const stakingV4EnableEpoch = 444
 
+func createStakingDataProviderArgs() StakingDataProviderArgs {
+	return StakingDataProviderArgs{
+		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		SystemVM:             &mock.VMExecutionHandlerStub{},
+		MinNodePrice:         "2500",
+		StakingV4EnableEpoch: stakingV4EnableEpoch,
+	}
+}
+
 func TestNewStakingDataProvider_NilInputPointersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil system vm", func(t *testing.T) {
-		sdp, err := NewStakingDataProvider(nil, "100000", stakingV4EnableEpoch, &epochNotifier.EpochNotifierStub{})
+		args := createStakingDataProviderArgs()
+		args.SystemVM = nil
+		sdp, err := NewStakingDataProvider(args)
 		assert.True(t, check.IfNil(sdp))
 		assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
 	})
 
 	t.Run("nil epoch notifier", func(t *testing.T) {
-		sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{}, "100000", stakingV4EnableEpoch, nil)
+		args := createStakingDataProviderArgs()
+		args.EpochNotifier = nil
+		sdp, err := NewStakingDataProvider(args)
 		assert.True(t, check.IfNil(sdp))
 		assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
 	})
-}
 
-func TestNewStakingDataProvider_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{}, "100000", stakingV4EnableEpoch, &epochNotifier.EpochNotifierStub{})
-
-	assert.False(t, check.IfNil(sdp))
-	assert.Nil(t, err)
+	t.Run("should work", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		sdp, err := NewStakingDataProvider(args)
+		assert.False(t, check.IfNil(sdp))
+		assert.Nil(t, err)
+	})
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
@@ -55,7 +66,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 
 	numCall := 0
 	expectedErr := errors.New("expected error")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			numCall++
 			if numCall == 1 {
@@ -74,9 +86,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 
 			return nil, nil
 		},
-	}, "100000",
-		stakingV4EnableEpoch,
-		&epochNotifier.EpochNotifierStub{})
+	}
+	sdp, _ := NewStakingDataProvider(args)
 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
@@ -98,7 +109,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	numCall := 0
 	owner := []byte("owner")
 	expectedErr := errors.New("expected error")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -122,9 +134,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 			}
 			return nil, nil
 		},
-	}, "100000",
-		stakingV4EnableEpoch,
-		&epochNotifier.EpochNotifierStub{})
+	}
+	sdp, _ := NewStakingDataProvider(args)
 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
@@ -472,7 +483,8 @@ func createStakingDataProviderWithMockArgs(
 	stakingVal *big.Int,
 	numRunContractCalls *int,
 ) *stakingDataProvider {
-	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			*numRunContractCalls++
 			switch input.Function {
@@ -496,9 +508,8 @@ func createStakingDataProviderWithMockArgs(
 
 			return nil, errors.New("unexpected call")
 		},
-	}, "100000",
-		stakingV4EnableEpoch,
-		&epochNotifier.EpochNotifierStub{})
+	}
+	sdp, err := NewStakingDataProvider(args)
 	require.Nil(t, err)
 
 	return sdp
@@ -514,7 +525,9 @@ func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []
 
 	doStake(t, s.systemVM, s.userAccountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
 
-	sdp, _ := NewStakingDataProvider(s.systemVM, "100000", stakingV4EnableEpoch, &epochNotifier.EpochNotifierStub{})
+	argsStakingDataProvider := createStakingDataProviderArgs()
+	argsStakingDataProvider.SystemVM = s.systemVM
+	sdp, _ := NewStakingDataProvider(argsStakingDataProvider)
 
 	return sdp
 }
@@ -549,7 +562,10 @@ func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo state.
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1,
 	})
-	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500", stakingV4EnableEpoch, &epochNotifier.EpochNotifierStub{})
+
+	argsStakingDataProvider := createStakingDataProviderArgs()
+	argsStakingDataProvider.SystemVM = args.SystemVM
+	sdp, _ := NewStakingDataProvider(argsStakingDataProvider)
 	args.StakingDataProvider = sdp
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)

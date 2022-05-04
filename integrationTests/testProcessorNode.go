@@ -2178,7 +2178,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
-		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM, "1000", StakingV4Epoch, coreComponents.EpochNotifier())
+
+		argsStakingDataProvider := metachain.StakingDataProviderArgs{
+			EpochNotifier:        coreComponents.EpochNotifier(),
+			SystemVM:             systemVM,
+			MinNodePrice:         "1000",
+			StakingV4EnableEpoch: StakingV4Epoch,
+		}
+		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(argsStakingDataProvider)
 		if errRsp != nil {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}

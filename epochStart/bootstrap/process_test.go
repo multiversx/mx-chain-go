@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -90,16 +89,12 @@ func createMockEpochStartBootstrapArgs(
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
-	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		&marshal.GogoProtoMarshalizer{},
-		444,
-	)
 	return ArgsEpochStartBootstrap{
 		ScheduledSCRsStorer:             genericMocks.NewStorerMock("path", 0),
 		CoreComponentsHolder:            coreMock,
 		CryptoComponentsHolder:          cryptoMock,
 		Messenger:                       &mock.MessengerStub{},
-		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
