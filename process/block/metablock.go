@@ -1579,8 +1579,8 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
-		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
-		go mp.validatorInfoCreator.SaveValidatorInfoBlockDataToStorage(header, body)
+		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -2381,7 +2381,9 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	var mrsTxs map[string][][]byte
 	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.epochRewardsCreator.CreateMarshalizedData(body)
+		mrsTxs = mp.epochRewardsCreator.CreateMarshalledData(body)
+		//TODO: Append also validator info txs to be broadcast
+		//mrsTxs = mp.validatorInfoCreator.CreateMarshalledData(body)
 	} else {
 		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
 	}

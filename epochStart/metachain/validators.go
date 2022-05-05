@@ -78,7 +78,7 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	return vic, nil
 }
 
-// CreateValidatorInfoMiniBlocks creates the validatorInfo miniblocks according to the provided validatorInfo map
+// CreateValidatorInfoMiniBlocks creates the validatorInfo mini blocks according to the provided validatorInfo map
 func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
 	if validatorsInfo == nil {
 		return nil, epochStart.ErrNilValidatorInfo
@@ -89,7 +89,7 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 
 	vic.clean()
 
-	miniblocks := make([]*block.MiniBlock, 0)
+	miniBlocks := make([]*block.MiniBlock, 0)
 
 	for shardId := uint32(0); shardId < vic.shardCoordinator.NumberOfShards(); shardId++ {
 		validators := validatorsInfo[shardId]
@@ -102,12 +102,12 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 			return nil, err
 		}
 
-		miniblocks = append(miniblocks, miniBlock)
+		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
 	validators := validatorsInfo[core.MetachainShardId]
 	if len(validators) == 0 {
-		return miniblocks, nil
+		return miniBlocks, nil
 	}
 
 	miniBlock, err := vic.createMiniBlock(validators)
@@ -115,13 +115,9 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo ma
 		return nil, err
 	}
 
-	miniblocks = append(miniblocks, miniBlock)
+	miniBlocks = append(miniBlocks, miniBlock)
 
-	return miniblocks, nil
-}
-
-func (vic *validatorInfoCreator) clean() {
-	vic.currValidatorInfo.Clean()
+	return miniBlocks, nil
 }
 
 func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.ValidatorInfo) (*block.MiniBlock, error) {
@@ -160,12 +156,12 @@ func createShardValidatorInfo(validator *state.ValidatorInfo) *state.ShardValida
 	}
 }
 
-// VerifyValidatorInfoMiniBlocks verifies if received validatorinfo miniblocks are correct
+// VerifyValidatorInfoMiniBlocks verifies if received validator info mini blocks are correct
 func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
-	miniblocks []*block.MiniBlock,
+	miniBlocks []*block.MiniBlock,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 ) error {
-	if len(miniblocks) == 0 {
+	if len(miniBlocks) == 0 {
 		return epochStart.ErrNilMiniblocks
 	}
 
@@ -186,7 +182,7 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 
 	numReceivedValidatorInfoMBs := 0
 	var receivedMbHash []byte
-	for _, receivedMb := range miniblocks {
+	for _, receivedMb := range miniBlocks {
 		if receivedMb == nil {
 			return epochStart.ErrNilMiniblock
 		}
@@ -203,7 +199,7 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 
 		_, ok := hashesToMiniBlocks[string(receivedMbHash)]
 		if !ok {
-			// TODO: add display debug prints of miniblocks contents
+			// TODO: add display debug prints of mini blocks contents
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
 		}
 	}
@@ -215,8 +211,80 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	return nil
 }
 
-// SaveValidatorInfoBlockDataToStorage saves created data to storage
-func (vic *validatorInfoCreator) SaveValidatorInfoBlockDataToStorage(_ data.HeaderHandler, body *block.Body) {
+// GetLocalValidatorInfoCache returns the local validator info cache which holds all the validator info for the current block
+func (vic *validatorInfoCreator) GetLocalValidatorInfoCache() epochStart.ValidatorInfoCacher {
+	return vic.currValidatorInfo
+}
+
+// CreateMarshalledData creates the marshalled data to be sent to shards
+func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[string][][]byte {
+	if check.IfNil(body) {
+		return nil
+	}
+
+	marshalledValidatorInfoTxs := make(map[string][][]byte)
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+		if miniBlock.SenderShardID != vic.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == vic.shardCoordinator.SelfId() {
+			continue
+		}
+
+		broadcastTopic := createBroadcastTopic(vic.shardCoordinator, miniBlock.ReceiverShardID)
+		if _, ok := marshalledValidatorInfoTxs[broadcastTopic]; !ok {
+			marshalledValidatorInfoTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			validatorInfoTx, err := vic.currValidatorInfo.GetValidatorInfo(txHash)
+			if err != nil {
+				log.Error("validatorInfoCreator.CreateMarshalledData.GetValidatorInfo", "hash", txHash, "error", err)
+				continue
+			}
+
+			marshalledData, err := vic.marshalizer.Marshal(validatorInfoTx)
+			if err != nil {
+				log.Error("validatorInfoCreator.CreateMarshalledData.Marshal", "hash", txHash, "error", err)
+				continue
+			}
+
+			marshalledValidatorInfoTxs[broadcastTopic] = append(marshalledValidatorInfoTxs[broadcastTopic], marshalledData)
+		}
+
+		if len(marshalledValidatorInfoTxs[broadcastTopic]) == 0 {
+			delete(marshalledValidatorInfoTxs, broadcastTopic)
+		}
+	}
+
+	return marshalledValidatorInfoTxs
+}
+
+// GetValidatorInfoTxs returns validator info txs for the current block
+func (vic *validatorInfoCreator) GetValidatorInfoTxs(body *block.Body) map[string]*state.ShardValidatorInfo {
+	validatorInfoTxs := make(map[string]*state.ShardValidatorInfo)
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			validatorInfoTx, err := vic.currValidatorInfo.GetValidatorInfo(txHash)
+			if err != nil {
+				continue
+			}
+
+			validatorInfoTxs[string(txHash)] = validatorInfoTx
+		}
+	}
+
+	return validatorInfoTxs
+}
+
+// SaveBlockDataToStorage saves block data to storage
+func (vic *validatorInfoCreator) SaveBlockDataToStorage(_ data.HeaderHandler, body *block.Body) {
 	if check.IfNil(body) {
 		return
 	}
@@ -254,8 +322,8 @@ func (vic *validatorInfoCreator) SaveValidatorInfoBlockDataToStorage(_ data.Head
 	}
 }
 
-// DeleteValidatorInfoBlockDataFromStorage deletes data from storage
-func (vic *validatorInfoCreator) DeleteValidatorInfoBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+// DeleteBlockDataFromStorage deletes block data from storage
+func (vic *validatorInfoCreator) DeleteBlockDataFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}
@@ -277,18 +345,24 @@ func (vic *validatorInfoCreator) DeleteValidatorInfoBlockDataFromStorage(metaBlo
 	}
 }
 
-// IsInterfaceNil return true if underlying object is nil
-func (vic *validatorInfoCreator) IsInterfaceNil() bool {
-	return vic == nil
-}
-
-// RemoveBlockDataFromPools removes block info from pools
-func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, _ *block.Body) {
+// RemoveBlockDataFromPools removes block data from pools
+func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) {
 		return
 	}
 
 	miniBlocksPool := vic.dataPool.MiniBlocks()
+	validatorInfoPool := vic.dataPool.ValidatorsInfo()
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			validatorInfoPool.Remove(txHash)
+		}
+	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
@@ -304,4 +378,13 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderH
 			"receiver", mbHeader.GetReceiverShardID(),
 			"num txs", mbHeader.GetTxCount())
 	}
+}
+
+func (vic *validatorInfoCreator) clean() {
+	vic.currValidatorInfo.Clean()
+}
+
+// IsInterfaceNil return true if underlying object is nil
+func (vic *validatorInfoCreator) IsInterfaceNil() bool {
+	return vic == nil
 }
