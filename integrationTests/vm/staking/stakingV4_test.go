@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/require"
 )
@@ -227,16 +226,15 @@ func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootH
 func TestStakingV4_CustomScenario(t *testing.T) {
 	pubKeys := generateAddresses(0, 20)
 
+	//_ = logger.SetLogLevel("*:DEBUG")
+
 	owner1 := "owner1"
-	logger.SetLogLevel("*:DEBUG")
-	owner1StakedKeys := map[uint32][][]byte{
-		core.MetachainShardId: {pubKeys[0], pubKeys[1], pubKeys[2]},
-		0:                     {pubKeys[3], pubKeys[4], pubKeys[5], pubKeys[6], pubKeys[7], pubKeys[8]},
-	}
-	owner1StakingQueueKeys := [][]byte{pubKeys[9], pubKeys[10], pubKeys[11]}
 	owner1Stats := &OwnerStats{
-		EligibleBlsKeys:  owner1StakedKeys,
-		StakingQueueKeys: owner1StakingQueueKeys,
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:3],
+			0:                     pubKeys[3:6],
+		},
+		StakingQueueKeys: pubKeys[6:9],
 		TotalStake:       big.NewInt(5000),
 	}
 
@@ -247,11 +245,11 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 		TotalStake:       big.NewInt(5000),
 	}
 
-	nodesConfig := &InitialNodesConfig{
+	cfg := &InitialNodesConfig{
 		MetaConsensusGroupSize:        2,
-		ShardConsensusGroupSize:       1,
-		MinNumberOfEligibleShardNodes: 1,
-		MinNumberOfEligibleMetaNodes:  1,
+		ShardConsensusGroupSize:       2,
+		MinNumberOfEligibleShardNodes: 2,
+		MinNumberOfEligibleMetaNodes:  2,
 		NumOfShards:                   2,
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
@@ -266,9 +264,9 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 		},
 	}
 	//todo; check that in epoch = staking v4 nodes with not enough stake will be unstaked
-	node := NewTestMetaProcessorWithCustomNodes(nodesConfig)
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
 	node.EpochStartTrigger.SetRoundsPerEpoch(5)
 
-	node.Process(t, 20)
+	node.Process(t, 16)
 
 }

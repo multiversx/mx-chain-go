@@ -110,64 +110,29 @@ func createGenesisNodesWithCustomConfig(
 	waitingGenesis := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 
 	for owner, ownerStats := range owners {
-		for shardID, ownerEligibleKeys := range ownerStats.EligibleBlsKeys {
-			for _, eligibleKey := range ownerEligibleKeys {
-				validator := integrationMocks.NewNodeInfo(eligibleKey, eligibleKey, shardID, initialRating)
-				eligibleGenesis[shardID] = append(eligibleGenesis[shardID], validator)
+		registerOwnerKeys(
+			[]byte(owner),
+			ownerStats.EligibleBlsKeys,
+			ownerStats.TotalStake,
+			stateComponents,
+			marshaller,
+			common.EligibleList,
+			eligibleGenesis,
+		)
 
-				pubKey := validator.PubKeyBytes()
-
-				peerAccount, _ := state.NewPeerAccount(pubKey)
-				peerAccount.SetTempRating(initialRating)
-				peerAccount.ShardId = shardID
-				peerAccount.BLSPublicKey = pubKey
-				peerAccount.List = string(common.EligibleList)
-				_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
-
-				stakingcommon.RegisterValidatorKeys(
-					stateComponents.AccountsAdapter(),
-					[]byte(owner),
-					[]byte(owner),
-					[][]byte{pubKey},
-					ownerStats.TotalStake,
-					marshaller,
-				)
-
-			}
-		}
-
-		for shardID, ownerWaitingKeys := range ownerStats.WaitingBlsKeys {
-			for _, waitingKey := range ownerWaitingKeys {
-				validator := integrationMocks.NewNodeInfo(waitingKey, waitingKey, shardID, initialRating)
-				waitingGenesis[shardID] = append(waitingGenesis[shardID], validator)
-
-				pubKey := validator.PubKeyBytes()
-
-				peerAccount, _ := state.NewPeerAccount(pubKey)
-				peerAccount.SetTempRating(initialRating)
-				peerAccount.ShardId = shardID
-				peerAccount.BLSPublicKey = pubKey
-				peerAccount.List = string(common.WaitingList)
-				_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
-
-				stakingcommon.RegisterValidatorKeys(
-					stateComponents.AccountsAdapter(),
-					[]byte(owner),
-					[]byte(owner),
-					[][]byte{pubKey},
-					ownerStats.TotalStake,
-					marshaller,
-				)
-
-			}
-		}
+		registerOwnerKeys(
+			[]byte(owner),
+			ownerStats.WaitingBlsKeys,
+			ownerStats.TotalStake,
+			stateComponents,
+			marshaller,
+			common.WaitingList,
+			waitingGenesis,
+		)
 	}
 
 	eligible, _ := nodesCoordinator.NodesInfoToValidators(eligibleGenesis)
 	waiting, _ := nodesCoordinator.NodesInfoToValidators(waitingGenesis)
-
-	//registerValidators(eligible, stateComponents, marshaller, common.EligibleList)
-	//registerValidators(waiting, stateComponents, marshaller, common.WaitingList)
 
 	return eligible, waiting
 }
@@ -199,6 +164,33 @@ func generateGenesisNodeInfoMap(
 	return validatorsMap
 }
 
+func registerOwnerKeys(
+	owner []byte,
+	ownerPubKeys map[uint32][][]byte,
+	totalStake *big.Int,
+	stateComponents factory.StateComponentsHolder,
+	marshaller marshal.Marshalizer,
+	list common.PeerType,
+	allNodes map[uint32][]nodesCoordinator.GenesisNodeInfoHandler,
+) {
+	for shardID, pubKeysInShard := range ownerPubKeys {
+		for _, pubKey := range pubKeysInShard {
+			validator := integrationMocks.NewNodeInfo(pubKey, pubKey, shardID, initialRating)
+			allNodes[shardID] = append(allNodes[shardID], validator)
+
+			savePeerAcc(stateComponents, pubKey, shardID, list)
+		}
+		stakingcommon.RegisterValidatorKeys(
+			stateComponents.AccountsAdapter(),
+			owner,
+			owner,
+			pubKeysInShard,
+			totalStake,
+			marshaller,
+		)
+	}
+}
+
 func registerValidators(
 	validators map[uint32][]nodesCoordinator.Validator,
 	stateComponents factory.StateComponentsHolder,
@@ -208,13 +200,7 @@ func registerValidators(
 	for shardID, validatorsInShard := range validators {
 		for _, val := range validatorsInShard {
 			pubKey := val.PubKey()
-
-			peerAccount, _ := state.NewPeerAccount(pubKey)
-			peerAccount.SetTempRating(initialRating)
-			peerAccount.ShardId = shardID
-			peerAccount.BLSPublicKey = pubKey
-			peerAccount.List = string(list)
-			_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
+			savePeerAcc(stateComponents, pubKey, shardID, list)
 
 			stakingcommon.RegisterValidatorKeys(
 				stateComponents.AccountsAdapter(),
@@ -226,4 +212,18 @@ func registerValidators(
 			)
 		}
 	}
+}
+
+func savePeerAcc(
+	stateComponents factory.StateComponentsHolder,
+	pubKey []byte,
+	shardID uint32,
+	list common.PeerType,
+) {
+	peerAccount, _ := state.NewPeerAccount(pubKey)
+	peerAccount.SetTempRating(initialRating)
+	peerAccount.ShardId = shardID
+	peerAccount.BLSPublicKey = pubKey
+	peerAccount.List = string(list)
+	_ = stateComponents.PeerAccounts().SaveAccount(peerAccount)
 }
