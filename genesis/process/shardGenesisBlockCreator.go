@@ -539,6 +539,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
 		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
 		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		TxVersionChecker:                      arg.Core.TxVersionChecker(),
+		GuardianChecker:                       disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

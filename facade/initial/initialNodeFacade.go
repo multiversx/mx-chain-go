@@ -122,7 +122,9 @@ func (inf *initialNodeFacade) CreateTransaction(
 	_ string,
 	_ string,
 	_ uint32,
-	_ uint32) (*transaction.Transaction, []byte, error) {
+	_ uint32,
+	_ string,
+	_ string) (*transaction.Transaction, []byte, error) {
 	return nil, nil, errNodeStarting
 }
 

@@ -261,6 +261,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                         pcf.epochNotifier,
 		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
 		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		GuardianChecker:                       pcf.coreData.GuardedAccountHandler(),
+		TxVersionChecker:                      pcf.coreData.TxVersionChecker(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -555,6 +557,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		EpochNotifier:                         pcf.epochNotifier,
+		GuardianChecker:                       pcf.coreData.GuardedAccountHandler(),
+		TxVersionChecker:                      pcf.coreData.TxVersionChecker(),
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
@@ -1026,6 +1030,8 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		EpochNotifier:                         pcf.epochNotifier,
+		TxVersionChecker:                      pcf.coreData.TxVersionChecker(),
+		GuardianChecker:                       pcf.coreData.GuardedAccountHandler(),
 	}
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)

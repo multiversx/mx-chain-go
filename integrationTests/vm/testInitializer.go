@@ -502,6 +502,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
 		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
 		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:                &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -859,6 +861,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		MetaProtectionEnableEpoch:             enableEpochs.MetaProtectionEnableEpoch,
 		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
 		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
+		TxVersionChecker:                      &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:                       &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

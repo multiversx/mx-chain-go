@@ -1544,6 +1544,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:                  tpn.EpochNotifier,
 		RelayedTxEnableEpoch:           tpn.EnableEpochs.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
+		GuardianChecker:                &guardianMocks.GuardianCheckerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -1787,6 +1789,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ESDTEnableEpoch:                       0,
 		EpochNotifier:                         tpn.EpochNotifier,
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		GuardianChecker:                       &guardianMocks.GuardianCheckerStub{},
+		TxVersionChecker:                      &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -2328,6 +2332,8 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		string(tx.ChainID),
 		tx.Version,
 		tx.Options,
+		TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
+		hex.EncodeToString(tx.GuardianSignature),
 	)
 	if err != nil {
 		return "", err

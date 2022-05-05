@@ -742,19 +742,9 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
 
-	guardianAddress, err := addrPubKeyConverter.Decode(guardian)
-	if err != nil {
-		return nil, nil, errors.New("could not create guardian address from provided param")
-	}
-
 	signatureBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
 		return nil, nil, errors.New("could not fetch signature bytes")
-	}
-
-	guardianSigBytes, err := hex.DecodeString(guardianSigHex)
-	if err != nil {
-		return nil, nil, errors.New("could not fetch guardian signature bytes")
 	}
 
 	if len(value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
@@ -767,21 +757,26 @@ func (n *Node) CreateTransaction(
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:             nonce,
-		Value:             valAsBigInt,
-		RcvAddr:           receiverAddress,
-		RcvUserName:       receiverUsername,
-		SndAddr:           senderAddress,
-		SndUserName:       senderUsername,
-		GasPrice:          gasPrice,
-		GasLimit:          gasLimit,
-		Data:              dataField,
-		Signature:         signatureBytes,
-		ChainID:           []byte(chainID),
-		Version:           version,
-		Options:           options,
-		GuardianAddr:      guardianAddress,
-		GuardianSignature: guardianSigBytes,
+		Nonce:       nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: receiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: senderUsername,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Data:        dataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(chainID),
+		Version:     version,
+		Options:     options,
+	}
+
+	if len(guardian) > 0 {
+		err = n.setTxGuardianData(guardian, guardianSigHex, tx)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	var txHash []byte
@@ -791,6 +786,22 @@ func (n *Node) CreateTransaction(
 	}
 
 	return tx, txHash, nil
+}
+
+func (n *Node) setTxGuardianData(guardian string, guardianSigHex string, tx *transaction.Transaction) error {
+	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	guardianAddress, err := addrPubKeyConverter.Decode(guardian)
+	if err != nil {
+		return errors.New("could not create guardian address from provided param")
+	}
+	guardianSigBytes, err := hex.DecodeString(guardianSigHex)
+	if err != nil {
+		return errors.New("could not fetch guardian signature bytes")
+	}
+	tx.GuardianAddr = guardianAddress
+	tx.GuardianSignature = guardianSigBytes
+
+	return nil
 }
 
 // GetAccount will return account details for a given address

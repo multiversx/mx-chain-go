@@ -205,7 +205,7 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 }
 
 func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
-	if !account.IsFrozen() {
+	if !check.IfNil(account) && !account.IsFrozen() {
 		return nil
 	}
 

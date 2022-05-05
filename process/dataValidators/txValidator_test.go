@@ -84,6 +84,7 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -102,6 +103,7 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -121,6 +123,7 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		nil,
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -140,6 +143,7 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		nil,
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -159,10 +163,30 @@ func TestNewTxValidator_NilGuardianSigVerifierShouldErr(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		nil,
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, txValidator)
 	assert.True(t, errors.Is(err, process.ErrNilGuardianSigVerifier))
+}
+
+func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb := getAccAdapter(0, big.NewInt(0))
+	shardCoordinator := createMockCoordinator("_", 0)
+	maxNonceDeltaAllowed := 100
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		&testscommon.WhiteListHandlerStub{},
+		mock.NewPubkeyConverterMock(32),
+		&guardianMocks.GuardianSigVerifierStub{},
+		nil,
+		maxNonceDeltaAllowed,
+	)
+	assert.Nil(t, txValidator)
+	assert.True(t, errors.Is(err, process.ErrNilTransactionVersionChecker))
 }
 
 func TestNewTxValidator_ShouldWork(t *testing.T) {
@@ -177,6 +201,7 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -200,6 +225,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -226,6 +252,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -253,6 +280,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -282,6 +310,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -310,6 +339,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -340,6 +370,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 		},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -375,6 +406,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -400,6 +432,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		maxNonceDeltaAllowed,
 	)
 
@@ -424,6 +457,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		&guardianMocks.GuardianSigVerifierStub{},
+		&testscommon.TxVersionCheckerStub{},
 		100,
 	)
 	_ = txValidator
