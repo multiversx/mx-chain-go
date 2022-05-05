@@ -104,6 +104,9 @@ func TestTomlParser(t *testing.T) {
 				NumConcurrentVMs:     16,
 				VirtualMachineConfig: vmConfig,
 			},
+			GasConfig: VirtualMachineGasConfig{
+				MaxGasPerVmQuery: 1_500_000_000,
+			},
 		},
 		Debug: DebugConfig{
 			InterceptorResolver: InterceptorResolverDebugConfig{
@@ -187,6 +190,9 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+
+	[VirtualMachine.GasConfig]
+		MaxGasPerVmQuery = 1500000000
 
 [Debug]
     [Debug.InterceptorResolver]
