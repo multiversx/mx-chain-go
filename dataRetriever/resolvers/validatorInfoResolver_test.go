@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -542,11 +543,20 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		numOfProvidedData := 2*args.MaxNumOfValidatorInfoInResponse + 2 // 2 chunks of 5 + 1 chunk of 2
 		providedHashes := make([][]byte, 0)
 		providedData := make([]state.ValidatorInfo, 0)
+		testHasher := hashingMocks.HasherMock{}
+		testMarshaller := testscommon.MarshalizerMock{}
+		providedDataMap := make(map[string]struct{}, 0)
 		for i := 0; i < numOfProvidedData; i++ {
 			hashStr := fmt.Sprintf("hash%d", i)
 			providedHashes = append(providedHashes, []byte(hashStr))
 			pkStr := fmt.Sprintf("pk%d", i)
-			providedData = append(providedData, createMockValidatorInfo([]byte(pkStr)))
+			newValidatorInfo := createMockValidatorInfo([]byte(pkStr))
+			providedData = append(providedData, newValidatorInfo)
+
+			buff, err := testMarshaller.Marshal(newValidatorInfo)
+			require.Nil(t, err)
+			hash := testHasher.Compute(string(buff))
+			providedDataMap[string(hash)] = struct{}{}
 		}
 		numOfCalls := 0
 		args.ValidatorInfoPool = &testscommon.CacherStub{
@@ -559,23 +569,23 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		numOfCallsSend := 0
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
+				println(numOfCallsSend)
 				marshallerMock := testscommon.MarshalizerMock{}
 				b := &batch.Batch{}
 				_ = marshallerMock.Unmarshal(b, buff)
 
-				expectedLen := args.MaxNumOfValidatorInfoInResponse
-				if numOfCallsSend == 2 {
-					expectedLen = numOfProvidedData % args.MaxNumOfValidatorInfoInResponse
-				}
 				dataLen := len(b.Data)
-				assert.Equal(t, expectedLen, dataLen)
+				assert.True(t, dataLen <= args.MaxNumOfValidatorInfoInResponse)
 
 				for i := 0; i < dataLen; i++ {
 					vi := &state.ValidatorInfo{}
 					_ = marshallerMock.Unmarshal(vi, b.Data[i])
 
-					indexInProvidedData := numOfCallsSend*args.MaxNumOfValidatorInfoInResponse + i
-					assert.Equal(t, &providedData[indexInProvidedData], vi)
+					// remove this info from the provided map
+					buff, err := testMarshaller.Marshal(vi)
+					require.Nil(t, err)
+					hash := testHasher.Compute(string(buff))
+					delete(providedDataMap, string(hash))
 				}
 
 				numOfCallsSend++
@@ -588,8 +598,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		buff, _ := args.Marshaller.Marshal(&batch.Batch{Data: providedHashes})
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
 		assert.Nil(t, err)
-		expectedNumOfCalls := numOfProvidedData/args.MaxNumOfValidatorInfoInResponse + 1
+		expectedNumOfCalls := numOfProvidedData / args.MaxNumOfValidatorInfoInResponse
+		if numOfProvidedData%args.MaxNumOfValidatorInfoInResponse != 0 {
+			expectedNumOfCalls++
+		}
 		assert.Equal(t, expectedNumOfCalls, numOfCallsSend)
+		assert.Equal(t, 0, len(providedDataMap)) // all items should have been deleted on Send
 	})
 }
 
