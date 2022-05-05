@@ -399,6 +399,9 @@ func GetGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
+		ValidatorInfo: config.ValidatorInfoConfig{
+			MaxNumOfValidatorInfoInResponse: 5,
+		},
 	}
 }
 

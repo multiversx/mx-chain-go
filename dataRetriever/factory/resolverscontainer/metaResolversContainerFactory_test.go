@@ -1,6 +1,7 @@
 package resolverscontainer_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -212,6 +213,18 @@ func TestNewMetaResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.
 	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
+func TestNewMetaResolversContainerFactory_InvalidMAxValidatorInfoShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.MaxNumOfValidatorInfoInResponse = 0
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	assert.True(t, strings.Contains(err.Error(), "maxNumOfValidatorInfoInResponse"))
+}
+
 func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -304,6 +317,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
+		MaxNumOfValidatorInfoInResponse: 5,
 	}
 }

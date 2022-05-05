@@ -591,6 +591,51 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
 }
 
+// RequestValidatorsInfo asks for the validator info associated with the specified hashes from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueValidatorInfoSuffix)
+	if len(unrequestedHashes) == 0 {
+		return
+	}
+
+	log.Debug("requesting validator info messages from network",
+		"topic", common.ValidatorInfoTopic,
+		"num hashes", len(unrequestedHashes),
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
+	if err != nil {
+		log.Error("RequestValidatorInfo.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"num hashes", len(unrequestedHashes),
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	validatorInfoResolver, ok := resolver.(HashSliceResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating a validator info resolver")
+		return
+	}
+
+	rrh.whiteList.Add(unrequestedHashes)
+
+	err = validatorInfoResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"num hashes", len(unrequestedHashes),
+			"epoch", rrh.epoch,
+		)
+	}
+
+	rrh.addRequestedItems(unrequestedHashes, uniqueValidatorInfoSuffix)
+}
+
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
 	rrh.sweepIfNeeded()
 
