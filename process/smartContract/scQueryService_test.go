@@ -308,6 +308,85 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	assert.Equal(t, d[1], vmOutput.ReturnData[1])
 }
 
+func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no gas defined, should use max uint64", func(t *testing.T) {
+		t.Parallel()
+
+		runSCWasCalled := false
+		mockVM := &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+				require.Equal(t, uint64(math.MaxUint64), input.GasProvided)
+				runSCWasCalled = true
+				return &vmcommon.VMOutput{}, nil
+			},
+		}
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		}
+		argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		}
+
+		target, _ := NewSCQueryService(argsNewSCQuery)
+
+		query := process.SCQuery{
+			ScAddress: []byte(DummyScAddress),
+			FuncName:  "function",
+			Arguments: [][]byte{},
+		}
+
+		_, err := target.ExecuteQuery(&query)
+		require.Nil(t, err)
+		require.True(t, runSCWasCalled)
+	})
+
+	t.Run("custom gas defined, should use it", func(t *testing.T) {
+		t.Parallel()
+
+		maxGasLimit := uint64(1_500_000_000)
+		runSCWasCalled := false
+		mockVM := &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+				require.Equal(t, maxGasLimit, input.GasProvided)
+				runSCWasCalled = true
+				return &vmcommon.VMOutput{}, nil
+			},
+		}
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		}
+		argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		}
+
+		argsNewSCQuery.MaxGasLimitPerQuery = maxGasLimit
+
+		target, _ := NewSCQueryService(argsNewSCQuery)
+
+		query := process.SCQuery{
+			ScAddress: []byte(DummyScAddress),
+			FuncName:  "function",
+			Arguments: [][]byte{},
+		}
+
+		_, err := target.ExecuteQuery(&query)
+		require.Nil(t, err)
+		require.True(t, runSCWasCalled)
+	})
+}
+
 func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 	t.Parallel()
 
