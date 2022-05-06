@@ -62,7 +62,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 forking.NewGenericEpochNotifier(),
 		RaterField:                         &testscommon.RaterMock{Chance: 5},
-		AddressPubKeyConverterField:        &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverterField:        testscommon.NewPubkeyConverterMock(addressLength),
 		EconomicsDataField:                 stakingcommon.CreateEconomicsData(),
 		ChanStopNodeProcessField:           endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProviderField:              nodetype.NewNodeTypeProvider(core.NodeTypeValidator),

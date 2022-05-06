@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -41,6 +42,7 @@ func newTestMetaProcessor(
 		maxNodesConfig[0].MaxNumNodes,
 	)
 	vmContainer, _ := metaVmFactory.Create()
+	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 
 	validatorStatisticsProcessor := createValidatorStatisticsProcessor(
 		dataComponents,
@@ -56,9 +58,10 @@ func newTestMetaProcessor(
 		bootstrapComponents.ShardCoordinator(),
 		maxNodesConfig,
 		validatorStatisticsProcessor,
-		vmContainer,
+		systemVM,
 	)
 
+	txCoordinator := &mock.TransactionCoordinatorMock{}
 	epochStartTrigger := createEpochStartTrigger(coreComponents, dataComponents.StorageService())
 
 	eligible, _ := nc.GetAllEligibleValidatorsPublicKeys(0)
@@ -88,12 +91,17 @@ func newTestMetaProcessor(
 			metaVmFactory,
 			epochStartTrigger,
 			vmContainer,
+			txCoordinator,
 		),
 		currentRound:        1,
 		NodesCoordinator:    nc,
 		ValidatorStatistics: validatorStatisticsProcessor,
 		EpochStartTrigger:   epochStartTrigger,
 		BlockChainHandler:   dataComponents.Blockchain(),
+		TxCacher:            dataComponents.Datapool().CurrentBlockTxs(),
+		TxCoordinator:       txCoordinator,
+		SystemVM:            systemVM,
+		StateComponents:     stateComponents,
 	}
 }
 

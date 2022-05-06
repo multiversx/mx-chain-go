@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -23,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func createSystemSCProcessor(
@@ -32,9 +32,8 @@ func createSystemSCProcessor(
 	shardCoordinator sharding.Coordinator,
 	maxNodesConfig []config.MaxNodesChangeConfig,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	vmContainer process.VirtualMachinesContainer,
+	systemVM vmcommon.VMExecutionHandler,
 ) process.EpochStartSystemSCProcessor {
-	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 	argsStakingDataProvider := metachain.StakingDataProviderArgs{
 		EpochNotifier:        coreComponents.EpochNotifier(),
 		SystemVM:             systemVM,

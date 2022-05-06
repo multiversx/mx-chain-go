@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/stretchr/testify/require"
 )
@@ -224,9 +225,9 @@ func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootH
 }
 
 func TestStakingV4_CustomScenario(t *testing.T) {
-	pubKeys := generateAddresses(0, 20)
+	pubKeys := generateAddresses(0, 30)
 
-	//_ = logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	owner1 := "owner1"
 	owner1Stats := &OwnerStats{
@@ -239,9 +240,49 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	}
 
 	owner2 := "owner2"
-	owner2StakingQueueKeys := [][]byte{pubKeys[12], pubKeys[13], pubKeys[14]}
 	owner2Stats := &OwnerStats{
-		StakingQueueKeys: owner2StakingQueueKeys,
+		EligibleBlsKeys: map[uint32][][]byte{
+			1: pubKeys[9:10],
+			2: pubKeys[10:11],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			0: pubKeys[11:12],
+			1: pubKeys[12:13],
+			2: pubKeys[13:14],
+		},
+		TotalStake: big.NewInt(5000),
+	}
+
+	owner3 := "owner3"
+	owner3Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[14:15],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			0: pubKeys[15:16],
+		},
+		TotalStake: big.NewInt(5000),
+	}
+
+	owner4 := "owner4"
+	owner4Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			0: pubKeys[16:19],
+			1: pubKeys[19:21],
+			2: pubKeys[21:23],
+		},
+		TotalStake: big.NewInt(5000),
+	}
+
+	owner5 := "owner5"
+	owner5Stats := &OwnerStats{
+		StakingQueueKeys: pubKeys[23:25],
+		TotalStake:       big.NewInt(5000),
+	}
+
+	owner6 := "owner6"
+	owner6Stats := &OwnerStats{
+		StakingQueueKeys: pubKeys[25:26],
 		TotalStake:       big.NewInt(5000),
 	}
 
@@ -250,10 +291,14 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 		ShardConsensusGroupSize:       2,
 		MinNumberOfEligibleShardNodes: 2,
 		MinNumberOfEligibleMetaNodes:  2,
-		NumOfShards:                   2,
+		NumOfShards:                   4,
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
 			owner2: owner2Stats,
+			owner3: owner3Stats,
+			owner4: owner4Stats,
+			owner5: owner5Stats,
+			owner6: owner6Stats,
 		},
 		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
 			{
@@ -267,6 +312,6 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	node := NewTestMetaProcessorWithCustomNodes(cfg)
 	node.EpochStartTrigger.SetRoundsPerEpoch(5)
 
-	node.Process(t, 16)
+	node.Process(t, 25)
 
 }
