@@ -179,9 +179,6 @@ func createMockEpochStartBootstrapArgs(
 				Shards:   10,
 			},
 			Resolvers: generalCfg.Resolvers,
-			ValidatorInfo: config.ValidatorInfoConfig{
-				MaxNumOfValidatorInfoInResponse: 5,
-			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {

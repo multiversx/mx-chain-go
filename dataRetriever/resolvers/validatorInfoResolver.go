@@ -13,18 +13,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const minNumOfValidatorInfo = 5
+// maxBuffToSendValidatorsInfo represents max buffer size to send in bytes
+const maxBuffToSendValidatorsInfo = 1 << 18 // 256KB
 
 // ArgValidatorInfoResolver is the argument structure used to create a new validator info resolver instance
 type ArgValidatorInfoResolver struct {
-	SenderResolver                  dataRetriever.TopicResolverSender
-	Marshaller                      marshal.Marshalizer
-	AntifloodHandler                dataRetriever.P2PAntifloodHandler
-	Throttler                       dataRetriever.ResolverThrottler
-	ValidatorInfoPool               storage.Cacher
-	ValidatorInfoStorage            storage.Storer
-	IsFullHistoryNode               bool
-	MaxNumOfValidatorInfoInResponse int
+	SenderResolver       dataRetriever.TopicResolverSender
+	Marshaller           marshal.Marshalizer
+	AntifloodHandler     dataRetriever.P2PAntifloodHandler
+	Throttler            dataRetriever.ResolverThrottler
+	ValidatorInfoPool    storage.Cacher
+	ValidatorInfoStorage storage.Storer
+	DataPacker           dataRetriever.DataPacker
+	IsFullHistoryNode    bool
 }
 
 // validatorInfoResolver is a wrapper over Resolver that is specialized in resolving validator info requests
@@ -32,9 +33,9 @@ type validatorInfoResolver struct {
 	dataRetriever.TopicResolverSender
 	messageProcessor
 	baseStorageResolver
-	validatorInfoPool               storage.Cacher
-	validatorInfoStorage            storage.Storer
-	maxNumOfValidatorInfoInResponse int
+	validatorInfoPool    storage.Cacher
+	validatorInfoStorage storage.Storer
+	dataPacker           dataRetriever.DataPacker
 }
 
 // NewValidatorInfoResolver creates a validator info resolver
@@ -52,10 +53,10 @@ func NewValidatorInfoResolver(args ArgValidatorInfoResolver) (*validatorInfoReso
 			throttler:        args.Throttler,
 			topic:            args.SenderResolver.RequestTopic(),
 		},
-		baseStorageResolver:             createBaseStorageResolver(args.ValidatorInfoStorage, args.IsFullHistoryNode),
-		validatorInfoPool:               args.ValidatorInfoPool,
-		validatorInfoStorage:            args.ValidatorInfoStorage,
-		maxNumOfValidatorInfoInResponse: args.MaxNumOfValidatorInfoInResponse,
+		baseStorageResolver:  createBaseStorageResolver(args.ValidatorInfoStorage, args.IsFullHistoryNode),
+		validatorInfoPool:    args.ValidatorInfoPool,
+		validatorInfoStorage: args.ValidatorInfoStorage,
+		dataPacker:           args.DataPacker,
 	}, nil
 }
 
@@ -78,8 +79,8 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 	if check.IfNil(args.ValidatorInfoStorage) {
 		return dataRetriever.ErrNilValidatorInfoStorage
 	}
-	if args.MaxNumOfValidatorInfoInResponse < minNumOfValidatorInfo {
-		return dataRetriever.ErrInvalidNumOfValidatorInfo
+	if check.IfNil(args.DataPacker) {
+		return dataRetriever.ErrNilDataPacker
 	}
 
 	return nil
@@ -150,7 +151,7 @@ func (res *validatorInfoResolver) resolveHashRequest(hash []byte, epoch uint32, 
 		return err
 	}
 
-	return res.marshalAndSend([][]byte{data}, pid)
+	return res.marshalAndSend(data, pid)
 }
 
 // resolveMultipleHashesRequest sends the response for a hash array type request
@@ -171,44 +172,19 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte
 }
 
 func (res *validatorInfoResolver) sendValidatorInfoForHashes(validatorInfoForHashes [][]byte, pid core.PeerID) error {
-	if len(validatorInfoForHashes) > res.maxNumOfValidatorInfoInResponse {
-		return res.sendLargeDataBuff(validatorInfoForHashes, pid)
+	buffsToSend, err := res.dataPacker.PackDataInChunks(validatorInfoForHashes, maxBuffToSendValidatorsInfo)
+	if err != nil {
+		return err
 	}
 
-	return res.marshalAndSend(validatorInfoForHashes, pid)
-}
-
-func (res *validatorInfoResolver) sendLargeDataBuff(dataBuff [][]byte, pid core.PeerID) error {
-	chunksMap := res.splitDataBuffIntoChunks(dataBuff)
-	for _, chunk := range chunksMap {
-		err := res.marshalAndSend(chunk, pid)
+	for _, buff := range buffsToSend {
+		err = res.Send(buff, pid)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func (res *validatorInfoResolver) splitDataBuffIntoChunks(dataBuff [][]byte) map[int][][]byte {
-	chunksMap := make(map[int][][]byte)
-	currentChunk := make([][]byte, 0)
-	currentChunkSize := 0
-	chunkIndex := 0
-	for _, data := range dataBuff {
-		if currentChunkSize == res.maxNumOfValidatorInfoInResponse {
-			chunksMap[chunkIndex] = currentChunk
-			chunkIndex++
-			currentChunk = make([][]byte, 0)
-			currentChunkSize = 0
-		}
-
-		currentChunk = append(currentChunk, data)
-		currentChunkSize++
-	}
-	chunksMap[chunkIndex] = currentChunk
-
-	return chunksMap
 }
 
 func (res *validatorInfoResolver) fetchValidatorInfoForHashes(hashes [][]byte, epoch uint32) ([][]byte, error) {
@@ -248,9 +224,9 @@ func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch
 	return buff, nil
 }
 
-func (res *validatorInfoResolver) marshalAndSend(data [][]byte, pid core.PeerID) error {
+func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) error {
 	b := &batch.Batch{
-		Data: data,
+		Data: [][]byte{data},
 	}
 	buff, err := res.marshalizer.Marshal(b)
 	if err != nil {

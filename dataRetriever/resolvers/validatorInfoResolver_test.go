@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -24,14 +25,14 @@ import (
 
 func createMockArgValidatorInfoResolver() resolvers.ArgValidatorInfoResolver {
 	return resolvers.ArgValidatorInfoResolver{
-		SenderResolver:                  &mock.TopicResolverSenderStub{},
-		Marshaller:                      &mock.MarshalizerMock{},
-		AntifloodHandler:                &mock.P2PAntifloodHandlerStub{},
-		Throttler:                       &mock.ThrottlerStub{},
-		ValidatorInfoPool:               testscommon.NewCacherStub(),
-		ValidatorInfoStorage:            &storage.StorerStub{},
-		IsFullHistoryNode:               false,
-		MaxNumOfValidatorInfoInResponse: 5,
+		SenderResolver:       &mock.TopicResolverSenderStub{},
+		Marshaller:           &mock.MarshalizerMock{},
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		Throttler:            &mock.ThrottlerStub{},
+		ValidatorInfoPool:    testscommon.NewCacherStub(),
+		ValidatorInfoStorage: &storage.StorerStub{},
+		DataPacker:           &mock.DataPackerStub{},
+		IsFullHistoryNode:    false,
 	}
 }
 
@@ -108,14 +109,14 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 		assert.Equal(t, dataRetriever.ErrNilValidatorInfoStorage, err)
 		assert.True(t, check.IfNil(res))
 	})
-	t.Run("invalid MaxNumOfValidatorInfoInResponse should error", func(t *testing.T) {
+	t.Run("nil DataPacker should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoResolver()
-		args.MaxNumOfValidatorInfoInResponse = 0
+		args.DataPacker = nil
 
 		res, err := resolvers.NewValidatorInfoResolver(args)
-		assert.Equal(t, dataRetriever.ErrInvalidNumOfValidatorInfo, err)
+		assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 		assert.True(t, check.IfNil(res))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -488,7 +489,37 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
 		assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrValidatorInfoNotFound.Error()))
 	})
-	t.Run("enough hashes for one chunk should work", func(t *testing.T) {
+	t.Run("pack data in chuncks returns error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected err")
+		args := createMockArgValidatorInfoResolver()
+		args.ValidatorInfoPool = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return key, true
+			},
+		}
+		args.ValidatorInfoStorage = &storage.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				return nil, errors.New("not found")
+			},
+		}
+		args.DataPacker = &mock.DataPackerStub{
+			PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		res, _ := resolvers.NewValidatorInfoResolver(args)
+		require.False(t, check.IfNil(res))
+
+		b := &batch.Batch{
+			Data: [][]byte{[]byte("hash")},
+		}
+		buff, _ := args.Marshaller.Marshal(b)
+		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("all hashes in one chunk should work", func(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
@@ -528,6 +559,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		args.DataPacker, _ = partitioning.NewSimpleDataPacker(args.Marshaller)
 		res, _ := resolvers.NewValidatorInfoResolver(args)
 		require.False(t, check.IfNil(res))
 
@@ -540,7 +572,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoResolver()
-		numOfProvidedData := 2*args.MaxNumOfValidatorInfoInResponse + 2 // 2 chunks of 5 + 1 chunk of 2
+		numOfProvidedData := 1000
 		providedHashes := make([][]byte, 0)
 		providedData := make([]state.ValidatorInfo, 0)
 		testHasher := hashingMocks.HasherMock{}
@@ -575,8 +607,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				_ = marshallerMock.Unmarshal(b, buff)
 
 				dataLen := len(b.Data)
-				assert.True(t, dataLen <= args.MaxNumOfValidatorInfoInResponse)
-
 				for i := 0; i < dataLen; i++ {
 					vi := &state.ValidatorInfo{}
 					_ = marshallerMock.Unmarshal(vi, b.Data[i])
@@ -592,17 +622,14 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		args.DataPacker, _ = partitioning.NewSimpleDataPacker(args.Marshaller)
 		res, _ := resolvers.NewValidatorInfoResolver(args)
 		require.False(t, check.IfNil(res))
 
 		buff, _ := args.Marshaller.Marshal(&batch.Batch{Data: providedHashes})
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
 		assert.Nil(t, err)
-		expectedNumOfCalls := numOfProvidedData / args.MaxNumOfValidatorInfoInResponse
-		if numOfProvidedData%args.MaxNumOfValidatorInfoInResponse != 0 {
-			expectedNumOfCalls++
-		}
-		assert.Equal(t, expectedNumOfCalls, numOfCallsSend)
+		assert.Equal(t, 2, numOfCallsSend)       // ~677 messages in a chunk
 		assert.Equal(t, 0, len(providedDataMap)) // all items should have been deleted on Send
 	})
 }

@@ -232,6 +232,3 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrValidatorInfoNotFound signals that no validator info was found
 var ErrValidatorInfoNotFound = errors.New("validator info not found")
-
-// ErrInvalidNumOfValidatorInfo signals that an invalid number of validator info was provided
-var ErrInvalidNumOfValidatorInfo = errors.New("invalid num of validator info")

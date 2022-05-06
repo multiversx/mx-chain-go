@@ -252,18 +252,6 @@ func TestNewShardResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t
 	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
 }
 
-func TestNewShardResolversContainerFactory_InvalidMAxValidatorInfoShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.MaxNumOfValidatorInfoInResponse = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	assert.True(t, strings.Contains(err.Error(), "maxNumOfValidatorInfoInResponse"))
-}
-
 func TestNewShardResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -395,7 +383,6 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
-		MaxNumOfValidatorInfoInResponse: 5,
+		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 	}
 }

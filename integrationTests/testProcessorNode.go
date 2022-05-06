@@ -1348,8 +1348,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler:              tpn.PeersRatingHandler,
-		MaxNumOfValidatorInfoInResponse: 5,
+		PeersRatingHandler: tpn.PeersRatingHandler,
 	}
 
 	var err error

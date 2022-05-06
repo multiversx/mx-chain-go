@@ -19,33 +19,30 @@ import (
 // EmptyExcludePeersOnTopic is an empty topic
 const EmptyExcludePeersOnTopic = ""
 
-const minNumOfValidatorInfoInResponse = 5
-
 var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
-	container                       dataRetriever.ResolversContainer
-	shardCoordinator                sharding.Coordinator
-	messenger                       dataRetriever.TopicMessageHandler
-	store                           dataRetriever.StorageService
-	marshalizer                     marshal.Marshalizer
-	dataPools                       dataRetriever.PoolsHolder
-	uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
-	intRandomizer                   dataRetriever.IntRandomizer
-	dataPacker                      dataRetriever.DataPacker
-	triesContainer                  common.TriesHolder
-	inputAntifloodHandler           dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler          dataRetriever.P2PAntifloodHandler
-	throttler                       dataRetriever.ResolverThrottler
-	intraShardTopic                 string
-	isFullHistoryNode               bool
-	currentNetworkEpochProvider     dataRetriever.CurrentNetworkEpochProviderHandler
-	preferredPeersHolder            dataRetriever.PreferredPeersHolderHandler
-	peersRatingHandler              dataRetriever.PeersRatingHandler
-	numCrossShardPeers              int
-	numIntraShardPeers              int
-	numFullHistoryPeers             int
-	maxNumOfValidatorInfoInResponse int
+	container                   dataRetriever.ResolversContainer
+	shardCoordinator            sharding.Coordinator
+	messenger                   dataRetriever.TopicMessageHandler
+	store                       dataRetriever.StorageService
+	marshalizer                 marshal.Marshalizer
+	dataPools                   dataRetriever.PoolsHolder
+	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
+	intRandomizer               dataRetriever.IntRandomizer
+	dataPacker                  dataRetriever.DataPacker
+	triesContainer              common.TriesHolder
+	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	throttler                   dataRetriever.ResolverThrottler
+	intraShardTopic             string
+	isFullHistoryNode           bool
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
+	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler          dataRetriever.PeersRatingHandler
+	numCrossShardPeers          int
+	numIntraShardPeers          int
+	numFullHistoryPeers         int
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -99,10 +96,6 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if brcf.numFullHistoryPeers <= 0 {
 		return fmt.Errorf("%w for numFullHistoryPeers", dataRetriever.ErrInvalidValue)
-	}
-	if brcf.maxNumOfValidatorInfoInResponse < minNumOfValidatorInfoInResponse {
-		return fmt.Errorf("%w for maxNumOfValidatorInfoInResponse, expected %d, received %d",
-			dataRetriever.ErrInvalidValue, minNumOfValidatorInfoInResponse, brcf.maxNumOfValidatorInfoInResponse)
 	}
 
 	return nil
@@ -374,14 +367,14 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 	}
 
 	arg := resolvers.ArgValidatorInfoResolver{
-		SenderResolver:                  resolverSender,
-		Marshaller:                      brcf.marshalizer,
-		AntifloodHandler:                brcf.inputAntifloodHandler,
-		Throttler:                       brcf.throttler,
-		ValidatorInfoPool:               brcf.dataPools.ValidatorsInfo(),
-		ValidatorInfoStorage:            brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
-		IsFullHistoryNode:               brcf.isFullHistoryNode,
-		MaxNumOfValidatorInfoInResponse: brcf.maxNumOfValidatorInfoInResponse,
+		SenderResolver:       resolverSender,
+		Marshaller:           brcf.marshalizer,
+		AntifloodHandler:     brcf.inputAntifloodHandler,
+		Throttler:            brcf.throttler,
+		ValidatorInfoPool:    brcf.dataPools.ValidatorsInfo(),
+		ValidatorInfoStorage: brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
+		DataPacker:           brcf.dataPacker,
+		IsFullHistoryNode:    brcf.isFullHistoryNode,
 	}
 	validatorInfoResolver, err := resolvers.NewValidatorInfoResolver(arg)
 	if err != nil {

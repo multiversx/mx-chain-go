@@ -187,12 +187,6 @@ type Config struct {
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig PeersRatingConfig
-
-	ValidatorInfo ValidatorInfoConfig
-}
-
-type ValidatorInfoConfig struct {
-	MaxNumOfValidatorInfoInResponse int
 }
 
 // PeersRatingConfig will hold settings related to peers rating

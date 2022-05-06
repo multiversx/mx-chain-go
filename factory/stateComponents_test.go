@@ -231,9 +231,6 @@ func getGeneralConfig() config.Config {
 			Type:     "LRU",
 			Shards:   1,
 		},
-		ValidatorInfo: config.ValidatorInfoConfig{
-			MaxNumOfValidatorInfoInResponse: 5,
-		},
 	}
 }
 
