@@ -546,6 +546,15 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionsContainer() vmcommon.BuiltInFun
 	return bh.builtInFunctions
 }
 
+func (bh *BlockChainHookImpl) IsBuiltinFunctionName(functionName string) bool {
+	function, err := bh.builtInFunctions.Get(functionName)
+	if err != nil {
+		return false
+	}
+
+	return function.IsActive()
+}
+
 // GetAllState returns the underlying state of a given account
 // TODO remove this func completely
 func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {

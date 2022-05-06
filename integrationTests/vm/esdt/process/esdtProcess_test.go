@@ -355,7 +355,6 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 		OriginalSender: metaNode.OwnAccount.Address,
 	}
 
-	// PrependEmptyAsyncContextArgs(vmCallInput)
 	returnCode, err := metaNode.ScProcessor.ProcessSmartContractResult(scr)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, returnCode)

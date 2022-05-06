@@ -106,9 +106,12 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	s.systemEI.AddTxValueToSmartContract(input.CallValue, input.RecipientAddr)
 	s.systemEI.SetGasProvided(input.GasProvided)
 
-	err := removeAsyncContextArguments(input)
-	if err != nil {
-		return nil, err
+	isBuiltInFunction := s.systemEI.BlockChainHook().IsBuiltinFunctionName(input.Function)
+	if !isBuiltInFunction {
+		err := removeAsyncContextArguments(input)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	contract, err := s.systemEI.GetContract(input.RecipientAddr)
