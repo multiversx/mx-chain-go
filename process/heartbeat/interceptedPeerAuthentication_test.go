@@ -8,12 +8,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -27,8 +27,8 @@ func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication 
 		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "",
 	}
-	marshalizer := testscommon.MarshalizerMock{}
-	payloadBytes, err := marshalizer.Marshal(payload)
+	marshaller := marshal.GogoProtoMarshalizer{}
+	payloadBytes, err := marshaller.Marshal(payload)
 	if err != nil {
 		return nil
 	}
@@ -51,7 +51,7 @@ func getSizeOfPA(pa *heartbeat.PeerAuthentication) int {
 func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerAuthentication) ArgInterceptedPeerAuthentication {
 	arg := ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: ArgBaseInterceptedHeartbeat{
-			Marshalizer: &testscommon.MarshalizerMock{},
+			Marshaller: &marshal.GogoProtoMarshalizer{},
 		},
 		NodesCoordinator:      &shardingMocks.NodesCoordinatorStub{},
 		SignaturesHandler:     &processMocks.SignaturesHandlerStub{},
@@ -59,7 +59,7 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		ExpiryTimespanInSec:   30,
 		HardforkTriggerPubKey: providedHardforkPubKey,
 	}
-	arg.DataBuff, _ = arg.Marshalizer.Marshal(interceptedData)
+	arg.DataBuff, _ = arg.Marshaller.Marshal(interceptedData)
 
 	return arg
 }
@@ -77,11 +77,11 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilBuffer, err)
 	})
-	t.Run("nil marshalizer should error", func(t *testing.T) {
+	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
-		arg.Marshalizer = nil
+		arg.Marshaller = nil
 
 		ipa, err := NewInterceptedPeerAuthentication(arg)
 		assert.True(t, check.IfNil(ipa))
@@ -131,7 +131,7 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
-		arg.Marshalizer = &mock.MarshalizerStub{
+		arg.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},
@@ -233,19 +233,19 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 	t.Run("message is expired", func(t *testing.T) {
 		t.Parallel()
 
-		marshalizer := testscommon.MarshalizerMock{}
+		marshaller := &marshal.GogoProtoMarshalizer{}
 		expiryTimespanInSec := int64(30)
 		interceptedData := createDefaultInterceptedPeerAuthentication()
 		expiredTimestamp := time.Now().Unix() - expiryTimespanInSec - 1
 		payload := &heartbeat.Payload{
 			Timestamp: expiredTimestamp,
 		}
-		payloadBytes, err := marshalizer.Marshal(payload)
+		payloadBytes, err := marshaller.Marshal(payload)
 		assert.Nil(t, err)
 
 		interceptedData.Payload = payloadBytes
 		arg := createMockInterceptedPeerAuthenticationArg(interceptedData)
-		arg.Marshalizer = &marshalizer
+		arg.Marshaller = marshaller
 		arg.ExpiryTimespanInSec = expiryTimespanInSec
 
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
@@ -270,8 +270,8 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 			Timestamp:       time.Now().Unix(),
 			HardforkMessage: "hardfork message",
 		}
-		marshalizer := testscommon.MarshalizerMock{}
-		payloadBytes, _ := marshalizer.Marshal(payload)
+		marshaller := marshal.GogoProtoMarshalizer{}
+		payloadBytes, _ := marshaller.Marshal(payload)
 		peerAuth.Payload = payloadBytes
 
 		arg := createMockInterceptedPeerAuthenticationArg(peerAuth)
@@ -321,7 +321,7 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	arg := createMockInterceptedPeerAuthenticationArg(providedPA)
 	ipa, _ := NewInterceptedPeerAuthentication(arg)
 	expectedPeerAuthentication := &heartbeat.PeerAuthentication{}
-	err := arg.Marshalizer.Unmarshal(expectedPeerAuthentication, arg.DataBuff)
+	err := arg.Marshaller.Unmarshal(expectedPeerAuthentication, arg.DataBuff)
 	assert.Nil(t, err)
 	assert.True(t, ipa.IsForCurrentShard())
 	assert.Equal(t, interceptedPeerAuthenticationType, ipa.Type())

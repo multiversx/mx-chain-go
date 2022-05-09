@@ -70,13 +70,15 @@ func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fro
 }
 
 func (hip *heartbeatInterceptorProcessor) updatePeerInfo(message interface{}, fromConnectedPeer core.PeerID) error {
-	heartbeatData, ok := message.(heartbeat.HeartbeatV2)
+	heartbeatData, ok := message.(*heartbeat.HeartbeatV2)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	hip.peerShardMapper.PutPeerIdShardId(fromConnectedPeer, hip.shardCoordinator.SelfId())
 	hip.peerShardMapper.PutPeerIdSubType(fromConnectedPeer, core.P2PPeerSubType(heartbeatData.GetPeerSubType()))
+
+	log.Trace("Heartbeat message saved")
 
 	return nil
 }

@@ -55,7 +55,7 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 			TopicResolverSender: arg.SenderResolver,
 		},
 		messageProcessor: messageProcessor{
-			marshalizer:      arg.Marshalizer,
+			marshalizer:      arg.Marshaller,
 			antifloodHandler: arg.AntifloodHandler,
 			throttler:        arg.Throttler,
 			topic:            arg.SenderResolver.RequestTopic(),

@@ -9,7 +9,7 @@ import (
 // ArgBaseResolver is the argument structure used as base to create a new a resolver instance
 type ArgBaseResolver struct {
 	SenderResolver   dataRetriever.TopicResolverSender
-	Marshalizer      marshal.Marshalizer
+	Marshaller       marshal.Marshalizer
 	AntifloodHandler dataRetriever.P2PAntifloodHandler
 	Throttler        dataRetriever.ResolverThrottler
 }
@@ -22,7 +22,7 @@ func checkArgBase(arg ArgBaseResolver) error {
 	if check.IfNil(arg.SenderResolver) {
 		return dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(arg.Marshalizer) {
+	if check.IfNil(arg.Marshaller) {
 		return dataRetriever.ErrNilMarshalizer
 	}
 	if check.IfNil(arg.AntifloodHandler) {

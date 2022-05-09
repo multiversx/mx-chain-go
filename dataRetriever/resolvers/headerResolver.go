@@ -58,7 +58,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 		epochHandler:        epochHandler,
 		shardCoordinator:    arg.ShardCoordinator,
 		messageProcessor: messageProcessor{
-			marshalizer:      arg.Marshalizer,
+			marshalizer:      arg.Marshaller,
 			antifloodHandler: arg.AntifloodHandler,
 			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,

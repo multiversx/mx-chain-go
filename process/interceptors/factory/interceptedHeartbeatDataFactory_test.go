@@ -51,8 +51,8 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 			Timestamp:       time.Now().Unix(),
 			HardforkMessage: "hardfork message",
 		}
-		marshalizer := mock.MarshalizerMock{}
-		payloadBytes, err := marshalizer.Marshal(payload)
+		marshaller := mock.MarshalizerMock{}
+		payloadBytes, err := marshaller.Marshal(payload)
 		assert.Nil(t, err)
 
 		hb := &heartbeat.HeartbeatV2{
@@ -63,7 +63,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 			Nonce:           10,
 			PeerSubType:     0,
 		}
-		marshaledHeartbeat, err := marshalizer.Marshal(hb)
+		marshaledHeartbeat, err := marshaller.Marshal(hb)
 		assert.Nil(t, err)
 
 		interceptedData, err := ihdf.Create(marshaledHeartbeat)

@@ -64,11 +64,11 @@ func TestDirectConnectionInfoInterceptorProcessor_Save(t *testing.T) {
 		// provide heartbeat as intercepted data
 		arg := heartbeat.ArgInterceptedHeartbeat{
 			ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-				Marshalizer: &marshal.GogoProtoMarshalizer{},
+				Marshaller: &marshal.GogoProtoMarshalizer{},
 			},
 			PeerId: "pid",
 		}
-		arg.DataBuff, _ = arg.Marshalizer.Marshal(&heartbeatMessages.HeartbeatV2{})
+		arg.DataBuff, _ = arg.Marshaller.Marshal(&heartbeatMessages.HeartbeatV2{})
 		ihb, _ := heartbeat.NewInterceptedHeartbeat(arg)
 
 		err = processor.Save(ihb, "", "")

@@ -88,12 +88,14 @@ func (paip *peerAuthenticationInterceptorProcessor) Save(data process.Intercepte
 }
 
 func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}) error {
-	peerAuthenticationData, ok := message.(heartbeat.PeerAuthentication)
+	peerAuthenticationData, ok := message.(*heartbeat.PeerAuthentication)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(peerAuthenticationData.GetPid()), peerAuthenticationData.GetPubkey())
+
+	log.Trace("PeerAuthentication message saved")
 
 	return nil
 }

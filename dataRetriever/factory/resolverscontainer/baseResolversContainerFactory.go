@@ -174,7 +174,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	arg := resolvers.ArgTxResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
@@ -253,7 +253,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 	arg := resolvers.ArgMiniblockResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
@@ -286,7 +286,7 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 	arg := resolvers.ArgPeerAuthenticationResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
@@ -395,7 +395,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	argTrie := resolvers.ArgTrieNodeResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},

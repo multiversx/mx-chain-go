@@ -196,7 +196,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 	argTrieResolver := resolvers.ArgTrieNodeResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      rcf.marshalizer,
+			Marshaller:       rcf.marshalizer,
 			AntifloodHandler: rcf.inputAntifloodHandler,
 			Throttler:        rcf.throttler,
 		},

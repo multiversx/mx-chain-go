@@ -177,7 +177,8 @@ func NewTestHeartbeatNode(
 	}
 
 	localId := thn.Messenger.ID()
-	thn.PeerShardMapper.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
+	pkBytes, _ := pk.ToByteArray()
+	thn.PeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
 	thn.NodeKeys = TestKeyPair{
 		Sk: sk,

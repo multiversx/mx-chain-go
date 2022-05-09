@@ -107,8 +107,8 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 			Timestamp:       time.Now().Unix(),
 			HardforkMessage: "hardfork message",
 		}
-		marshalizer := mock.MarshalizerMock{}
-		payloadBytes, err := marshalizer.Marshal(payload)
+		marshaller := mock.MarshalizerMock{}
+		payloadBytes, err := marshaller.Marshal(payload)
 		assert.Nil(t, err)
 
 		peerAuthentication := &heartbeat.PeerAuthentication{
@@ -118,7 +118,7 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 			Payload:          payloadBytes,
 			PayloadSignature: []byte("payload signature"),
 		}
-		marshaledPeerAuthentication, err := marshalizer.Marshal(peerAuthentication)
+		marshaledPeerAuthentication, err := marshaller.Marshal(peerAuthentication)
 		assert.Nil(t, err)
 
 		interceptedData, err := ipadf.Create(marshaledPeerAuthentication)

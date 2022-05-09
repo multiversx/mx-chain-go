@@ -32,8 +32,8 @@ func NewInterceptedHeartbeatDataFactory(arg ArgInterceptedDataFactory) (*interce
 func (ihdf *interceptedHeartbeatDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	arg := heartbeat.ArgInterceptedHeartbeat{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			DataBuff:    buff,
-			Marshalizer: ihdf.marshalizer,
+			DataBuff:   buff,
+			Marshaller: ihdf.marshalizer,
 		},
 		PeerId: ihdf.peerID,
 	}

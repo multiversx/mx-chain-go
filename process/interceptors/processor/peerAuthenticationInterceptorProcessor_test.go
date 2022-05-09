@@ -36,8 +36,8 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "hardfork message",
 	}
-	marshalizer := mock.MarshalizerMock{}
-	payloadBytes, _ := marshalizer.Marshal(payload)
+	marshaller := mock.MarshalizerMock{}
+	payloadBytes, _ := marshaller.Marshal(payload)
 
 	return &heartbeatMessages.PeerAuthentication{
 		Pubkey:           []byte("public key"),
@@ -51,7 +51,7 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 func createMockInterceptedPeerAuthentication() process.InterceptedData {
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			Marshalizer: &mock.MarshalizerMock{},
+			Marshaller: &mock.MarshalizerMock{},
 		},
 		NodesCoordinator:      &mock.NodesCoordinatorStub{},
 		SignaturesHandler:     &mock.SignaturesHandlerStub{},
@@ -59,7 +59,7 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		ExpiryTimespanInSec:   30,
 		HardforkTriggerPubKey: []byte("provided hardfork pub key"),
 	}
-	arg.DataBuff, _ = arg.Marshalizer.Marshal(createInterceptedPeerAuthentication())
+	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedPeerAuthentication())
 	ipa, _ := heartbeat.NewInterceptedPeerAuthentication(arg)
 
 	return ipa
@@ -181,14 +181,14 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 
 		providedIPA := createMockInterceptedPeerAuthentication()
 		providedIPAHandler := providedIPA.(interceptedDataHandler)
-		providedIPAMessage := providedIPAHandler.Message().(heartbeatMessages.PeerAuthentication)
+		providedIPAMessage := providedIPAHandler.Message().(*heartbeatMessages.PeerAuthentication)
 		wasPutCalled := false
 		providedPid := core.PeerID("pid")
 		arg := createPeerAuthenticationInterceptorProcessArg()
 		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-				ipa := value.(heartbeatMessages.PeerAuthentication)
+				ipa := value.(*heartbeatMessages.PeerAuthentication)
 				assert.Equal(t, providedIPAMessage.Pid, ipa.Pid)
 				assert.Equal(t, providedIPAMessage.Payload, ipa.Payload)
 				assert.Equal(t, providedIPAMessage.Signature, ipa.Signature)
