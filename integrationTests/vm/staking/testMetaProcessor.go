@@ -229,56 +229,61 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 					CallValue:  big.NewInt(0),
 				},
 				RecipientAddr: vm.StakingSCAddress,
-				Function:      "stakeNodesFromQueue",
 			}
 			arguments.Function = "stake"
-			arguments.CallerAddr = vm.ValidatorSCAddress
-			arguments.Arguments = [][]byte{[]byte("000address-3198"), []byte("000address-3198"), []byte("000address-3198")}
+			arguments.CallerAddr = []byte("000address-3198")
+			arguments.RecipientAddr = vm.ValidatorSCAddress
+			arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), []byte("000address-3198"), []byte("signature")}
+			arguments.CallValue = big.NewInt(2000)
+			arguments.GasProvided = 10
 
 			vmOutput, _ := tmp.SystemVM.RunSmartContractCall(arguments)
 
 			stakedData, _ := tmp.processSCOutputAccounts(vmOutput)
-			stakingSC := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
-			stakedDataBuffer, _ := stakingSC.DataTrieTracker().RetrieveValue([]byte("000address-3198"))
+			//stakingSC := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
+			//stakedDataBuffer, _ := stakingSC.DataTrieTracker().RetrieveValue([]byte("000address-3198"))
+			//
+			//_ = stakingSC.DataTrieTracker().SaveKeyValue([]byte("000address-3198"), stakedData)
+			//
+			//tmp.AccountsAdapter.SaveAccount(stakingSC)
 
-			_ = stakingSC.DataTrieTracker().SaveKeyValue([]byte("000address-3198"), stakedData)
+			//var peerAcc state.PeerAccountHandler
+			//
+			//peerAcc, _ = state.NewPeerAccount([]byte("000address-3198"))
+			//
+			//tmp.StateComponents.PeerAccounts().SaveAccount(peerAcc)
+			//tmp.AccountsAdapter.SaveAccount(peerAcc)
+			//
+			//tmp.AccountsAdapter.Commit()
+			//tmp.StateComponents.PeerAccounts().Commit()
+			//
+			//loadedAcc, _ := tmp.StateComponents.PeerAccounts().LoadAccount([]byte("000address-3198"))
+			//
+			//loadedAccCasted, castOK := loadedAcc.(state.PeerAccountHandler)
+			//if castOK {
+			//
+			//}
 
-			tmp.AccountsAdapter.SaveAccount(stakingSC)
+			/*
+				stakingcommon.AddValidatorData(
+					tmp.AccountsAdapter,
+					[]byte("000address-3198"),
+					[][]byte{[]byte("000address-3198")},
+					big.NewInt(1000),
+					tmp.Marshaller,
+				)
 
-			var peerAcc state.PeerAccountHandler
-
-			peerAcc, _ = state.NewPeerAccount([]byte("000address-3198"))
-
-			tmp.StateComponents.PeerAccounts().SaveAccount(peerAcc)
-			tmp.AccountsAdapter.SaveAccount(peerAcc)
+			*/
 
 			tmp.AccountsAdapter.Commit()
 			tmp.StateComponents.PeerAccounts().Commit()
 
-			loadedAcc, _ := tmp.StateComponents.PeerAccounts().LoadAccount([]byte("000address-3198"))
-
-			loadedAccCasted, castOK := loadedAcc.(state.PeerAccountHandler)
-			if castOK {
-
-			}
-
-			stakingcommon.AddValidatorData(
-				tmp.AccountsAdapter,
-				[]byte("000address-3198"),
-				[][]byte{[]byte("000address-3198")},
-				big.NewInt(1000),
-				tmp.Marshaller,
-			)
-
-			tmp.AccountsAdapter.Commit()
-			tmp.StateComponents.PeerAccounts().Commit()
-
-			stakedDataBuffer, _ = stakingSC.DataTrieTracker().RetrieveValue([]byte("000address-3198"))
-			_ = stakedDataBuffer
+			//stakedDataBuffer, _ = stakingSC.DataTrieTracker().RetrieveValue([]byte("000address-3198"))
+			//_ = stakedDataBuffer
 			_ = vmOutput
 			_ = stakedData
-			_ = loadedAcc
-			_ = loadedAccCasted
+			//_ = loadedAcc
+			//_ = loadedAccCasted
 		}
 
 		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, haveTime)
@@ -408,6 +413,9 @@ func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 		if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
 			fmt.Println("DSADA")
 		}
+		if bytes.Equal(outAcc.Address, vm.ValidatorSCAddress) {
+			fmt.Println("VAAAAAAAAAAAAAAAAAAAAALLLLLLLLLLLLLl")
+		}
 
 		acc := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, outAcc.Address)
 
@@ -415,9 +423,21 @@ func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 		for _, storeUpdate := range storageUpdates {
 			if bytes.Equal(storeUpdate.Offset, []byte("000address-3198")) {
 				fmt.Println("DASDSA")
-				return storeUpdate.Data, nil
+				//return storeUpdate.Data, nil
 			}
 			err := acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				return nil, err
+			}
+
+			if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(big.NewInt(0)) != 0 {
+				err = acc.AddToBalance(outAcc.BalanceDelta)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			err = tmp.AccountsAdapter.SaveAccount(acc)
 			if err != nil {
 				return nil, err
 			}
