@@ -312,6 +312,18 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	node := NewTestMetaProcessorWithCustomNodes(cfg)
 	node.EpochStartTrigger.SetRoundsPerEpoch(5)
 
-	node.Process(t, 25)
+	//node.Process(t, 25)
+	node.Process(t, 18)
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		"owner444": &NodesRegisterData{
+			BLSKeys:    [][]byte{generateAddress(444)},
+			TotalStake: big.NewInt(2000),
+		},
+		"owner555": &NodesRegisterData{
+			BLSKeys:    [][]byte{generateAddress(555), generateAddress(666)},
+			TotalStake: big.NewInt(5000),
+		},
+	})
 
+	node.Process(t, 7)
 }

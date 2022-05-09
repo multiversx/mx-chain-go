@@ -1,8 +1,6 @@
 package staking
 
 import (
-	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -13,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -25,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -177,114 +173,70 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		)
 
 		haveTime := func() bool { return true }
+		/*
+			if r == 17 && numOfRounds == 25 {
+				numOfNodesToStake := big.NewInt(1).Bytes()
+				numOfNodesToStakeHex := hex.EncodeToString(numOfNodesToStake)
+				signature := []byte("signature")
+				pubKey := hex.EncodeToString([]byte("000address-3198"))
+				txData := hex.EncodeToString([]byte("stake")) + "@" + numOfNodesToStakeHex + "@" + pubKey + "@" + hex.EncodeToString(signature)
 
-		if r == 17 && numOfRounds == 25 {
-			oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
-			pubKey := hex.EncodeToString([]byte("000address-3198"))
-			txData := hex.EncodeToString([]byte("stake")) + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("signature"))
+				shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+				shardMiniBlockHeader := block.MiniBlockHeader{
+					Hash:            []byte("hashStake"),
+					ReceiverShardID: 0,
+					SenderShardID:   core.MetachainShardId,
+					TxCount:         1,
+				}
+				shardMiniBlockHeaders = append(header.MiniBlockHeaders, shardMiniBlockHeader)
+				shardData := block.ShardData{
+					Nonce:                 r,
+					HeaderHash:            []byte("hdr_hashStake"),
+					TxCount:               1,
+					ShardMiniBlockHeaders: shardMiniBlockHeaders,
+				}
+				header.ShardInfo = append(header.ShardInfo, shardData)
+				tmp.TxCacher.AddTx(shardMiniBlockHeader.Hash, &smartContractResult.SmartContractResult{
+					RcvAddr: vm.StakingSCAddress,
+					Data:    []byte(txData),
+				})
 
-			shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
-			shardMiniBlockHeader := block.MiniBlockHeader{
-				Hash:            []byte("hashStake"),
-				ReceiverShardID: 0,
-				SenderShardID:   core.MetachainShardId,
-				TxCount:         1,
-			}
-			shardMiniBlockHeaders = append(header.MiniBlockHeaders, shardMiniBlockHeader)
-			shardData := block.ShardData{
-				Nonce:                 r,
-				ShardID:               0,
-				HeaderHash:            []byte("hdr_hashStake"),
-				TxCount:               1,
-				ShardMiniBlockHeaders: shardMiniBlockHeaders,
-				DeveloperFees:         big.NewInt(0),
-				AccumulatedFees:       big.NewInt(0),
-			}
-			header.ShardInfo = append(header.ShardInfo, shardData)
-			tmp.TxCacher.AddTx(shardMiniBlockHeader.Hash, &smartContractResult.SmartContractResult{
-				RcvAddr: vm.StakingSCAddress,
-				Data:    []byte(txData),
-			})
+				haveTime = func() bool { return false }
 
-			haveTime = func() bool { return false }
-
-			blockBody := &block.Body{
-				MiniBlocks: []*block.MiniBlock{
-					{
-						TxHashes:        [][]byte{shardMiniBlockHeader.Hash},
-						SenderShardID:   core.MetachainShardId,
-						ReceiverShardID: core.MetachainShardId,
-						Type:            block.SmartContractResultBlock,
+				blockBody := &block.Body{
+					MiniBlocks: []*block.MiniBlock{
+						{
+							TxHashes:        [][]byte{shardMiniBlockHeader.Hash},
+							SenderShardID:   core.MetachainShardId,
+							ReceiverShardID: core.MetachainShardId,
+							Type:            block.SmartContractResultBlock,
+						},
 					},
-				},
+				}
+
+				tmp.TxCoordinator.RequestBlockTransactions(blockBody)
+
+				tmp.BlockChainHook.SetCurrentHeader(header)
+
+				arguments := &vmcommon.ContractCallInput{
+					VMInput: vmcommon.VMInput{
+						CallerAddr:   []byte("owner-3198"),
+						Arguments:   [][]byte{numOfNodesToStake, []byte("000address-3198"), signature},
+						CallValue:   big.NewInt(2000),
+						GasProvided: 10,
+					},
+					RecipientAddr: vm.ValidatorSCAddress,
+					Function:      "stake",
+				}
+				vmOutput, _ := tmp.SystemVM.RunSmartContractCall(arguments)
+
+				_, _ = tmp.processSCOutputAccounts(vmOutput)
+
+
+
 			}
 
-			tmp.TxCoordinator.RequestBlockTransactions(blockBody)
-
-			tmp.BlockChainHook.SetCurrentHeader(header)
-
-			arguments := &vmcommon.ContractCallInput{
-				VMInput: vmcommon.VMInput{
-					CallerAddr: vm.EndOfEpochAddress,
-					CallValue:  big.NewInt(0),
-				},
-				RecipientAddr: vm.StakingSCAddress,
-			}
-			arguments.Function = "stake"
-			arguments.CallerAddr = []byte("000address-3198")
-			arguments.RecipientAddr = vm.ValidatorSCAddress
-			arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), []byte("000address-3198"), []byte("signature")}
-			arguments.CallValue = big.NewInt(2000)
-			arguments.GasProvided = 10
-
-			vmOutput, _ := tmp.SystemVM.RunSmartContractCall(arguments)
-
-			stakedData, _ := tmp.processSCOutputAccounts(vmOutput)
-			//stakingSC := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, vm.StakingSCAddress)
-			//stakedDataBuffer, _ := stakingSC.DataTrieTracker().RetrieveValue([]byte("000address-3198"))
-			//
-			//_ = stakingSC.DataTrieTracker().SaveKeyValue([]byte("000address-3198"), stakedData)
-			//
-			//tmp.AccountsAdapter.SaveAccount(stakingSC)
-
-			//var peerAcc state.PeerAccountHandler
-			//
-			//peerAcc, _ = state.NewPeerAccount([]byte("000address-3198"))
-			//
-			//tmp.StateComponents.PeerAccounts().SaveAccount(peerAcc)
-			//tmp.AccountsAdapter.SaveAccount(peerAcc)
-			//
-			//tmp.AccountsAdapter.Commit()
-			//tmp.StateComponents.PeerAccounts().Commit()
-			//
-			//loadedAcc, _ := tmp.StateComponents.PeerAccounts().LoadAccount([]byte("000address-3198"))
-			//
-			//loadedAccCasted, castOK := loadedAcc.(state.PeerAccountHandler)
-			//if castOK {
-			//
-			//}
-
-			/*
-				stakingcommon.AddValidatorData(
-					tmp.AccountsAdapter,
-					[]byte("000address-3198"),
-					[][]byte{[]byte("000address-3198")},
-					big.NewInt(1000),
-					tmp.Marshaller,
-				)
-
-			*/
-
-			tmp.AccountsAdapter.Commit()
-			tmp.StateComponents.PeerAccounts().Commit()
-
-			//stakedDataBuffer, _ = stakingSC.DataTrieTracker().RetrieveValue([]byte("000address-3198"))
-			//_ = stakedDataBuffer
-			_ = vmOutput
-			_ = stakedData
-			//_ = loadedAcc
-			//_ = loadedAccCasted
-		}
+		*/
 
 		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, haveTime)
 		require.Nil(t, err)
@@ -410,21 +362,10 @@ func generateAddress(identifier uint32) []byte {
 func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutput) ([]byte, error) {
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
-			fmt.Println("DSADA")
-		}
-		if bytes.Equal(outAcc.Address, vm.ValidatorSCAddress) {
-			fmt.Println("VAAAAAAAAAAAAAAAAAAAAALLLLLLLLLLLLLl")
-		}
-
 		acc := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, outAcc.Address)
 
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
-			if bytes.Equal(storeUpdate.Offset, []byte("000address-3198")) {
-				fmt.Println("DASDSA")
-				//return storeUpdate.Data, nil
-			}
 			err := acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				return nil, err
@@ -443,6 +384,9 @@ func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 			}
 		}
 	}
+
+	tmp.AccountsAdapter.Commit()
+	tmp.StateComponents.PeerAccounts().Commit()
 
 	return nil, nil
 }
