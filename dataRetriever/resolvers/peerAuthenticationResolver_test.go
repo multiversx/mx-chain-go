@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
@@ -55,6 +57,7 @@ func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationRe
 				return &pid, true
 			},
 		},
+		DataPacker: &mock.DataPackerStub{},
 	}
 }
 
@@ -68,7 +71,7 @@ func createPublicKeys(prefix string, numOfPks int) [][]byte {
 }
 
 func createMockRequestedBuff(numOfPks int) ([]byte, error) {
-	marshalizer := &mock.MarshalizerMock{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 	return marshalizer.Marshal(&batch.Batch{Data: createPublicKeys("pk", numOfPks)})
 }
 
@@ -127,6 +130,15 @@ func TestNewPeerAuthenticationResolver(t *testing.T) {
 		arg.NodesCoordinator = nil
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Equal(t, dataRetriever.ErrNilNodesCoordinator, err)
+		assert.Nil(t, res)
+	})
+	t.Run("nil DataPacker should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgPeerAuthenticationResolver()
+		arg.DataPacker = nil
+		res, err := resolvers.NewPeerAuthenticationResolver(arg)
+		assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 		assert.Nil(t, res)
 	})
 	t.Run("invalid max num of peer authentication  should error", func(t *testing.T) {
@@ -325,6 +337,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		arg.DataPacker, _ = partitioning.NewSizeDataPacker(arg.Marshalizer)
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
@@ -374,6 +387,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 				return nil
 			},
 		}
+		arg.DataPacker, _ = partitioning.NewSizeDataPacker(arg.Marshalizer)
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())

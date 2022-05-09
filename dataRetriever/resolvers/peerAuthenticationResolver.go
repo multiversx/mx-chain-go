@@ -16,6 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// maxBuffToSendPeerAuthentications represents max buffer size to send in bytes
+const maxBuffToSendPeerAuthentications = 1 << 18 // 256KB
+
 const minNumOfPeerAuthentication = 5
 const bytesInUint32 = 4
 
@@ -25,6 +28,7 @@ type ArgPeerAuthenticationResolver struct {
 	PeerAuthenticationPool               storage.Cacher
 	NodesCoordinator                     dataRetriever.NodesCoordinator
 	PeerShardMapper                      process.PeerShardMapper
+	DataPacker                           dataRetriever.DataPacker
 	MaxNumOfPeerAuthenticationInResponse int
 }
 
@@ -35,6 +39,7 @@ type peerAuthenticationResolver struct {
 	peerAuthenticationPool               storage.Cacher
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	peerShardMapper                      process.PeerShardMapper
+	dataPacker                           dataRetriever.DataPacker
 	maxNumOfPeerAuthenticationInResponse int
 }
 
@@ -58,6 +63,7 @@ func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuth
 		peerAuthenticationPool:               arg.PeerAuthenticationPool,
 		nodesCoordinator:                     arg.NodesCoordinator,
 		peerShardMapper:                      arg.PeerShardMapper,
+		dataPacker:                           arg.DataPacker,
 		maxNumOfPeerAuthenticationInResponse: arg.MaxNumOfPeerAuthenticationInResponse,
 	}, nil
 }
@@ -75,6 +81,9 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	}
 	if check.IfNil(arg.PeerShardMapper) {
 		return dataRetriever.ErrNilPeerShardMapper
+	}
+	if check.IfNil(arg.DataPacker) {
+		return dataRetriever.ErrNilDataPacker
 	}
 	if arg.MaxNumOfPeerAuthenticationInResponse < minNumOfPeerAuthentication {
 		return dataRetriever.ErrInvalidNumOfPeerAuthentication
@@ -185,12 +194,12 @@ func (res *peerAuthenticationResolver) resolveChunkRequest(chunkIndex int, epoch
 		return err
 	}
 
-	dataSlice, err := res.fetchPeerAuthenticationSlicesForPublicKeys(pksChunk)
+	peerAuthsForCHunk, err := res.fetchPeerAuthenticationSlicesForPublicKeys(pksChunk)
 	if err != nil {
 		return fmt.Errorf("resolveChunkRequest error %w from chunk %d", err, chunkIndex)
 	}
 
-	return res.sendData(dataSlice, nil, chunkIndex, maxChunks, pid)
+	return res.sendPeerAuthsForHashes(peerAuthsForCHunk, pid)
 }
 
 // getSortedValidatorsKeys returns the sorted slice of validators keys from all shards
@@ -241,27 +250,24 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, hashesBuff)
 	}
 
-	return res.sendPeerAuthsForHashes(peerAuthsForHashes, hashesBuff, pid)
+	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid)
 }
 
 // sendPeerAuthsForHashes sends multiple peer authentication messages for specific hashes
-func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte, hashesBuff []byte, pid core.PeerID) error {
-	if len(dataBuff) > res.maxNumOfPeerAuthenticationInResponse {
-		return res.sendLargeDataBuff(dataBuff, hashesBuff, res.maxNumOfPeerAuthenticationInResponse, pid)
-	}
-
-	return res.sendData(dataBuff, hashesBuff, 0, 0, pid)
-}
-
-// sendLargeDataBuff splits dataBuff into chunks and sends a message for the first chunk
-func (res *peerAuthenticationResolver) sendLargeDataBuff(dataBuff [][]byte, reference []byte, chunkSize int, pid core.PeerID) error {
-	maxChunks := res.getMaxChunks(dataBuff)
-	chunk, err := res.extractChunk(dataBuff, 0, chunkSize, maxChunks)
+func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte, pid core.PeerID) error {
+	buffsToSend, err := res.dataPacker.PackDataInChunks(dataBuff, maxBuffToSendPeerAuthentications)
 	if err != nil {
 		return err
 	}
 
-	return res.sendData(chunk, reference, 0, maxChunks, pid)
+	for _, buff := range buffsToSend {
+		err = res.Send(buff, pid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // getMaxChunks returns the max num of chunks from a buffer
@@ -271,22 +277,6 @@ func (res *peerAuthenticationResolver) getMaxChunks(dataBuff [][]byte) int {
 		maxChunks++
 	}
 	return maxChunks
-}
-
-// sendData sends a message to a peer
-func (res *peerAuthenticationResolver) sendData(dataSlice [][]byte, reference []byte, chunkIndex int, maxChunks int, pid core.PeerID) error {
-	b := &batch.Batch{
-		Data:       dataSlice,
-		Reference:  reference,
-		ChunkIndex: uint32(chunkIndex),
-		MaxChunks:  uint32(maxChunks),
-	}
-	buffToSend, err := res.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return res.Send(buffToSend, pid)
 }
 
 // fetchPeerAuthenticationSlicesForPublicKeys fetches all peer authentications for all pks
