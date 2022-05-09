@@ -515,7 +515,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 
 	thn.createPeerAuthInterceptor(argsFactory)
 	thn.createHeartbeatInterceptor(argsFactory)
-	thn.createValidatorInfoInterceptor(argsFactory)
+	thn.createDirectConnectionInfoInterceptor(argsFactory)
 }
 
 func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -542,7 +542,7 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	thn.HeartbeatInterceptor = thn.initMultiDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
 }
 
-func (thn *TestHeartbeatNode) createValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
+func (thn *TestHeartbeatNode) createDirectConnectionInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
 	args := interceptorsProcessor.ArgDirectConnectionInfoInterceptorProcessor{
 		PeerShardMapper: thn.PeerShardMapper,
 	}
