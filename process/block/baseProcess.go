@@ -694,7 +694,7 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 	} else {
 		constructionState := int32(block.Final)
 		processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
-		if processedMiniBlockInfo != nil && !processedMiniBlockInfo.IsFullyProcessed {
+		if processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed {
 			constructionState = int32(block.PartialExecuted)
 		}
 
@@ -724,7 +724,7 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 
 	constructionState := int32(block.Final)
 	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
-	if processedMiniBlockInfo != nil && !processedMiniBlockInfo.IsFullyProcessed {
+	if processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed {
 		constructionState = int32(block.PartialExecuted)
 	}
 

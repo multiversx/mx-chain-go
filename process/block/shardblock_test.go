@@ -5078,7 +5078,7 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 	metaHash := []byte("meta_hash")
 	mbHash := []byte("mb_hash")
 	mbInfo := &processedMb.ProcessedMiniBlockInfo{
-		IsFullyProcessed:       true,
+		FullyProcessed:         true,
 		IndexOfLastTxProcessed: 69,
 	}
 	miniBlockHeader := &block.MiniBlockHeader{}
@@ -5099,7 +5099,7 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 
 	processedMbInfo, processedMetaHash := sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash)
 	assert.Equal(t, metaHash, processedMetaHash)
-	assert.Equal(t, mbInfo.IsFullyProcessed, processedMbInfo.IsFullyProcessed)
+	assert.Equal(t, mbInfo.FullyProcessed, processedMbInfo.FullyProcessed)
 	assert.Equal(t, mbInfo.IndexOfLastTxProcessed, processedMbInfo.IndexOfLastTxProcessed)
 
 	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
@@ -5107,6 +5107,6 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 
 	processedMbInfo, processedMetaHash = sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash)
 	assert.Equal(t, metaHash, processedMetaHash)
-	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(1), processedMbInfo.IndexOfLastTxProcessed)
 }

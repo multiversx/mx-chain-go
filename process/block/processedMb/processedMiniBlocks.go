@@ -12,7 +12,7 @@ var log = logger.GetOrCreate("process/processedMb")
 
 // ProcessedMiniBlockInfo will keep the info about processed mini blocks
 type ProcessedMiniBlockInfo struct {
-	IsFullyProcessed       bool
+	FullyProcessed         bool
 	IndexOfLastTxProcessed int32
 }
 
@@ -44,7 +44,7 @@ func (pmb *ProcessedMiniBlockTracker) SetProcessedMiniBlockInfo(metaBlockHash []
 	}
 
 	miniBlocksProcessed[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
-		IsFullyProcessed:       processedMbInfo.IsFullyProcessed,
+		FullyProcessed:         processedMbInfo.FullyProcessed,
 		IndexOfLastTxProcessed: processedMbInfo.IndexOfLastTxProcessed,
 	}
 }
@@ -79,7 +79,7 @@ func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksInfo(metaBlockHash [
 	processedMiniBlocksInfo := make(map[string]*ProcessedMiniBlockInfo)
 	for miniBlockHash, processedMiniBlockInfo := range pmb.processedMiniBlocks[string(metaBlockHash)] {
 		processedMiniBlocksInfo[miniBlockHash] = &ProcessedMiniBlockInfo{
-			IsFullyProcessed:       processedMiniBlockInfo.IsFullyProcessed,
+			FullyProcessed:         processedMiniBlockInfo.FullyProcessed,
 			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
 		}
 	}
@@ -99,13 +99,13 @@ func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlockInfo(miniBlockHash []
 		}
 
 		return &ProcessedMiniBlockInfo{
-			IsFullyProcessed:       processedMiniBlockInfo.IsFullyProcessed,
+			FullyProcessed:         processedMiniBlockInfo.FullyProcessed,
 			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
 		}, []byte(metaBlockHash)
 	}
 
 	return &ProcessedMiniBlockInfo{
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 		IndexOfLastTxProcessed: -1,
 	}, nil
 }
@@ -125,7 +125,7 @@ func (pmb *ProcessedMiniBlockTracker) IsMiniBlockFullyProcessed(metaBlockHash []
 		return false
 	}
 
-	return processedMbInfo.IsFullyProcessed
+	return processedMbInfo.FullyProcessed
 }
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
@@ -143,13 +143,13 @@ func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []b
 		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{
 			MetaHash:               []byte(metaHash),
 			MiniBlocksHashes:       make([][]byte, 0, len(miniBlocksInfo)),
-			IsFullyProcessed:       make([]bool, 0, len(miniBlocksInfo)),
+			FullyProcessed:         make([]bool, 0, len(miniBlocksInfo)),
 			IndexOfLastTxProcessed: make([]int32, 0, len(miniBlocksInfo)),
 		}
 
 		for miniBlockHash, processedMiniBlockInfo := range miniBlocksInfo {
 			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
-			miniBlocksInMeta.IsFullyProcessed = append(miniBlocksInMeta.IsFullyProcessed, processedMiniBlockInfo.IsFullyProcessed)
+			miniBlocksInMeta.FullyProcessed = append(miniBlocksInMeta.FullyProcessed, processedMiniBlockInfo.FullyProcessed)
 			miniBlocksInMeta.IndexOfLastTxProcessed = append(miniBlocksInMeta.IndexOfLastTxProcessed, processedMiniBlockInfo.IndexOfLastTxProcessed)
 		}
 
@@ -165,26 +165,32 @@ func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniB
 	defer pmb.mutProcessedMiniBlocks.Unlock()
 
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		miniBlocksInfo := make(MiniBlocksInfo)
-		for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
-			isFullyProcessed := true
-			if miniBlocksInMeta.IsFullyProcessed != nil && index < len(miniBlocksInMeta.IsFullyProcessed) {
-				isFullyProcessed = miniBlocksInMeta.IsFullyProcessed[index]
-			}
-
-			//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
-			indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
-			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
-				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
-			}
-
-			miniBlocksInfo[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
-				IsFullyProcessed:       isFullyProcessed,
-				IndexOfLastTxProcessed: indexOfLastTxProcessed,
-			}
-		}
-		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksInfo
+		pmb.processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = getMiniBlocksInfo(miniBlocksInMeta)
 	}
+}
+
+func getMiniBlocksInfo(miniBlocksInMeta bootstrapStorage.MiniBlocksInMeta) MiniBlocksInfo {
+	miniBlocksInfo := make(MiniBlocksInfo)
+
+	for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
+		fullyProcessed := true
+		if miniBlocksInMeta.FullyProcessed != nil && index < len(miniBlocksInMeta.FullyProcessed) {
+			fullyProcessed = miniBlocksInMeta.FullyProcessed[index]
+		}
+
+		//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
+		indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
+		if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
+			indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
+		}
+
+		miniBlocksInfo[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
+			FullyProcessed:         fullyProcessed,
+			IndexOfLastTxProcessed: indexOfLastTxProcessed,
+		}
+	}
+
+	return miniBlocksInfo
 }
 
 // DisplayProcessedMiniBlocks will display all miniblocks hashes and meta block hash from the map
@@ -200,7 +206,7 @@ func (pmb *ProcessedMiniBlockTracker) DisplayProcessedMiniBlocks() {
 			log.Debug("processed",
 				"mini block hash", []byte(miniBlockHash),
 				"index of last tx processed", processedMiniBlockInfo.IndexOfLastTxProcessed,
-				"is fully processed", processedMiniBlockInfo.IsFullyProcessed,
+				"fully processed", processedMiniBlockInfo.FullyProcessed,
 			)
 		}
 	}

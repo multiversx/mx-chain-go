@@ -1986,7 +1986,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	preproc := tc.getPreProcessor(block.TxBlock)
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		IndexOfLastTxProcessed: -1,
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 	}
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
 
@@ -2132,7 +2132,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	preproc := tc.getPreProcessor(block.TxBlock)
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		IndexOfLastTxProcessed: -1,
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 	}
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
 
@@ -4331,21 +4331,21 @@ func TestGetProcessedMiniBlockInfo_ShouldWork(t *testing.T) {
 	processedMiniBlocksInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
 	processedMbInfo := getProcessedMiniBlockInfo(nil, []byte("hash1"))
-	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(-1), processedMbInfo.IndexOfLastTxProcessed)
 
 	processedMbInfo = getProcessedMiniBlockInfo(processedMiniBlocksInfo, []byte("hash1"))
-	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(-1), processedMbInfo.IndexOfLastTxProcessed)
 	assert.Equal(t, 1, len(processedMiniBlocksInfo))
 
 	processedMbInfo.IndexOfLastTxProcessed = 69
-	processedMbInfo.IsFullyProcessed = true
+	processedMbInfo.FullyProcessed = true
 
 	processedMbInfo = getProcessedMiniBlockInfo(processedMiniBlocksInfo, []byte("hash1"))
-	assert.True(t, processedMbInfo.IsFullyProcessed)
+	assert.True(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(69), processedMbInfo.IndexOfLastTxProcessed)
 	assert.Equal(t, 1, len(processedMiniBlocksInfo))
-	assert.True(t, processedMiniBlocksInfo["hash1"].IsFullyProcessed)
+	assert.True(t, processedMiniBlocksInfo["hash1"].FullyProcessed)
 	assert.Equal(t, int32(69), processedMiniBlocksInfo["hash1"].IndexOfLastTxProcessed)
 }

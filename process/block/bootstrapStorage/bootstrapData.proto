@@ -11,7 +11,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 message MiniBlocksInMeta {
 	bytes          MetaHash         = 1;
 	repeated bytes MiniBlocksHashes = 2;
-	repeated bool IsFullyProcessed  = 3;
+	repeated bool FullyProcessed  = 3;
 	repeated int32 IndexOfLastTxProcessed = 4;
 }
 

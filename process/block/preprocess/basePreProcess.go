@@ -2,6 +2,8 @@ package preprocess
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"sync"
 	"time"
@@ -104,6 +106,11 @@ type txsForBlock struct {
 	missingTxs     int
 	mutTxsForBlock sync.RWMutex
 	txHashAndInfo  map[string]*txInfo
+}
+
+type processedIndexes struct {
+	indexOfLastTxProcessedByItself   int32
+	indexOfLastTxProcessedByProposer int32
 }
 
 // basePreProcess is the base struct for all pre-processors
@@ -482,14 +489,14 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-func (bpp *basePreProcess) handleProcessTransactionInit(postProcessorInfoHandler process.PostProcessorInfoHandler, txHash []byte) int {
+func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
-	postProcessorInfoHandler.InitProcessedTxsResults(txHash)
+	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
 	bpp.gasHandler.Reset(txHash)
 	return snapshot
 }
 
-func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandler process.PostProcessorInfoHandler, snapshot int, txHash []byte) {
+func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, snapshot int, txHash []byte) {
 	bpp.gasHandler.RestoreGasSinceLastReset(txHash)
 
 	errRevert := bpp.accounts.RevertToSnapshot(snapshot)
@@ -497,7 +504,7 @@ func (bpp *basePreProcess) handleProcessTransactionError(postProcessorInfoHandle
 		log.Debug("basePreProcess.handleProcessError: RevertToSnapshot", "error", errRevert.Error())
 	}
 
-	postProcessorInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
 }
 
 func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
@@ -516,4 +523,57 @@ func (bpp *basePreProcess) epochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("basePreProcess: optimize gas used in cross mini blocks", "enabled", bpp.flagOptimizeGasUsedInCrossMiniBlocks.IsSet())
 	bpp.flagFrontRunningProtection.SetValue(epoch >= bpp.frontRunningProtectionEnableEpoch)
 	log.Debug("basePreProcess: front running protection", "enabled", bpp.flagFrontRunningProtection.IsSet())
+}
+
+func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
+	miniBlock *block.MiniBlock,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
+	headerHandler data.HeaderHandler,
+) (*processedIndexes, error) {
+
+	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	pi := &processedIndexes{}
+
+	pi.indexOfLastTxProcessedByItself = int32(-1)
+	if processedMiniBlocks != nil {
+		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+		pi.indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+	}
+
+	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	pi.indexOfLastTxProcessedByProposer = miniBlockHeader.GetIndexOfLastTxProcessed()
+
+	return pi, nil
+}
+
+// checkIfIndexesAreOutOfBound checks if the given indexes are out of bound for the given mini block
+func checkIfIndexesAreOutOfBound(
+	indexOfFirstTxToBeProcessed int32,
+	indexOfLastTxToBeProcessed int32,
+	miniBlock *block.MiniBlock,
+) error {
+	maxIndex := int32(len(miniBlock.TxHashes)) - 1
+
+	isIndexOutOfBound := indexOfFirstTxToBeProcessed > indexOfLastTxToBeProcessed ||
+		indexOfFirstTxToBeProcessed < 0 || indexOfFirstTxToBeProcessed > maxIndex ||
+		indexOfLastTxToBeProcessed < 0 || indexOfLastTxToBeProcessed > maxIndex
+
+	if isIndexOutOfBound {
+		return fmt.Errorf("%w: indexOfFirstTxToBeProcessed: %d, indexOfLastTxToBeProcessed = %d, maxIndex: %d",
+			process.ErrIndexIsOutOfBound,
+			indexOfFirstTxToBeProcessed,
+			indexOfLastTxToBeProcessed,
+			maxIndex,
+		)
+	}
+
+	return nil
 }

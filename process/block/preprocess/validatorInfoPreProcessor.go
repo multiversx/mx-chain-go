@@ -158,7 +158,7 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
 	_ bool,
 	_ bool,
 	indexOfLastTxProcessed int,
-	_ process.PostProcessorInfoHandler,
+	_ process.PreProcessorExecutionInfoHandler,
 ) ([][]byte, int, bool, error) {
 	if miniBlock.Type != block.PeerBlock {
 		return nil, indexOfLastTxProcessed, false, process.ErrWrongTypeInMiniBlock

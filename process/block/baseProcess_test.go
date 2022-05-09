@@ -804,7 +804,7 @@ func Test_setIndexOfFirstTxProcessed(t *testing.T) {
 
 	processedMiniBlocks := bp.GetProcessedMiniBlocks()
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 		IndexOfLastTxProcessed: 8,
 	}
 	processedMiniBlocks.SetProcessedMiniBlockInfo(metaHash, mbHash, processedMbInfo)
@@ -831,7 +831,7 @@ func Test_setIndexOfLastTxProcessed(t *testing.T) {
 	assert.Equal(t, int32(99), miniBlockHeader.GetIndexOfLastTxProcessed())
 
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 		IndexOfLastTxProcessed: 8,
 	}
 	processedMiniBlocksDestMeInfo[string(mbHash)] = processedMbInfo
@@ -854,7 +854,7 @@ func Test_setProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
 	}
 
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
-		IsFullyProcessed: false,
+		FullyProcessed: false,
 	}
 
 	miniBlockHeader.SenderShardID = 0
@@ -894,7 +894,7 @@ func Test_setProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
 		}
 
 		processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
-			IsFullyProcessed: false,
+			FullyProcessed: false,
 		}
 
 		err := bp.SetProcessingTypeAndConstructionStateForNormalMb(miniBlockHeader, processedMiniBlocksDestMeInfo)
@@ -928,7 +928,7 @@ func Test_setProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
 		}
 
 		processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
-			IsFullyProcessed: false,
+			FullyProcessed: false,
 		}
 
 		err := bp.SetProcessingTypeAndConstructionStateForNormalMb(miniBlockHeader, processedMiniBlocksDestMeInfo)

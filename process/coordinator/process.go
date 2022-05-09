@@ -630,7 +630,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
-		if processedMbInfo.IsFullyProcessed {
+		if processedMbInfo.FullyProcessed {
 			createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,
@@ -712,7 +712,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"num txs", len(miniBlock.TxHashes),
 				"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
 				"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
-				"fully processed", processedMbInfo.IsFullyProcessed,
+				"fully processed", processedMbInfo.FullyProcessed,
 				"total gas provided", tc.gasHandler.TotalGasProvided(),
 				"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 				"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -730,7 +730,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"num txs", len(miniBlock.TxHashes),
 			"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
 			"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
-			"fully processed", processedMbInfo.IsFullyProcessed,
+			"fully processed", processedMbInfo.FullyProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -781,7 +781,7 @@ func (tc *transactionCoordinator) handleProcessMiniBlockExecution(
 	createMBDestMeExecutionInfo.miniBlocks = append(createMBDestMeExecutionInfo.miniBlocks, miniBlock)
 	createMBDestMeExecutionInfo.numTxAdded = createMBDestMeExecutionInfo.numTxAdded + uint32(len(newProcessedTxHashes))
 
-	if processedMbInfo.IsFullyProcessed {
+	if processedMbInfo.FullyProcessed {
 		createMBDestMeExecutionInfo.numNewMiniBlocksProcessed++
 	}
 }
@@ -794,7 +794,7 @@ func getProcessedMiniBlockInfo(
 	if processedMiniBlocksInfo == nil {
 		return &processedMb.ProcessedMiniBlockInfo{
 			IndexOfLastTxProcessed: -1,
-			IsFullyProcessed:       false,
+			FullyProcessed:         false,
 		}
 	}
 
@@ -802,7 +802,7 @@ func getProcessedMiniBlockInfo(
 	if !ok {
 		processedMbInfo = &processedMb.ProcessedMiniBlockInfo{
 			IndexOfLastTxProcessed: -1,
-			IsFullyProcessed:       false,
+			FullyProcessed:         false,
 		}
 		processedMiniBlocksInfo[string(miniBlockHash)] = processedMbInfo
 	}
@@ -1196,7 +1196,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		} else {
 			if tc.flagMiniBlockPartialExecution.IsSet() {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-				processedMbInfo.IsFullyProcessed = false
+				processedMbInfo.FullyProcessed = false
 			}
 		}
 
@@ -1204,7 +1204,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	}
 
 	processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-	processedMbInfo.IsFullyProcessed = true
+	processedMbInfo.FullyProcessed = true
 
 	return nil
 }

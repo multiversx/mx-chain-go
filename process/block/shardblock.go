@@ -749,7 +749,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 			//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
 			indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
 			sp.processedMiniBlocks.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
-				IsFullyProcessed:       true,
+				FullyProcessed:         true,
 				IndexOfLastTxProcessed: indexOfLastTxProcessed,
 			})
 		}
@@ -790,7 +790,7 @@ func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 	}
 
 	sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 		IndexOfLastTxProcessed: indexOfFirstTxProcessed - 1,
 	})
 }
@@ -1536,7 +1536,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 			}
 
 			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
-				IsFullyProcessed:       miniBlockHeader.IsFinal(),
+				FullyProcessed:         miniBlockHeader.IsFinal(),
 				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
 			})
 
@@ -1923,7 +1923,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 
 	for miniBlockHash, processedMiniBlockInfo := range createAndProcessInfo.currProcessedMiniBlocksInfo {
 		createAndProcessInfo.allProcessedMiniBlocksInfo[miniBlockHash] = &processedMb.ProcessedMiniBlockInfo{
-			IsFullyProcessed:       processedMiniBlockInfo.IsFullyProcessed,
+			FullyProcessed:         processedMiniBlockInfo.FullyProcessed,
 			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
 		}
 	}

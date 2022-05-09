@@ -1082,3 +1082,6 @@ var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
 
 // ErrMissingMiniBlockHeader signals that mini block header is missing
 var ErrMissingMiniBlockHeader = errors.New("missing mini block header")
+
+// ErrIndexIsOutOfBound signals that the given index is out of bound
+var ErrIndexIsOutOfBound = errors.New("index is out of bound")

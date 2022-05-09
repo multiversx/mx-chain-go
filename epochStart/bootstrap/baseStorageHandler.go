@@ -16,6 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 )
 
+type miniBlockInfo struct {
+	miniBlockHashes              [][]byte
+	fullyProcessed               []bool
+	indexOfLastTxProcessed       []int32
+	pendingMiniBlocksMap         map[string]struct{}
+	pendingMiniBlocksPerShardMap map[uint32][][]byte
+}
+
 // baseStorageHandler handles the storage functions for saving bootstrap data
 type baseStorageHandler struct {
 	storageService   dataRetriever.StorageService
