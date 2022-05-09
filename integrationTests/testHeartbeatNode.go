@@ -58,7 +58,7 @@ const (
 
 	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
-	delayBetweenRequests    = time.Second * 5
+	delayBetweenRequests    = time.Second
 	maxTimeout              = time.Minute
 	maxMissingKeysInRequest = 1
 	providedHardforkPubKey  = "provided pub key"
