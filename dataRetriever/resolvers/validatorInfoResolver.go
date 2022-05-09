@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -165,7 +166,11 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte
 
 	validatorInfoForHashes, err := res.fetchValidatorInfoForHashes(hashes, epoch)
 	if err != nil {
-		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, hashesBuff)
+		outputHashes := ""
+		for _, hash := range hashes {
+			outputHashes += hex.EncodeToString(hash) + " "
+		}
+		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, outputHashes)
 	}
 
 	return res.sendValidatorInfoForHashes(validatorInfoForHashes, pid)

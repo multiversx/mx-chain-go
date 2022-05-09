@@ -591,7 +591,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
 }
 
-// RequestValidatorsInfo asks for the validator info associated with the specified hashes from connected peers
+// RequestValidatorsInfo asks for the validators` info associated with the specified hashes from connected peers
 func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueValidatorInfoSuffix)
 	if len(unrequestedHashes) == 0 {

@@ -82,7 +82,7 @@ func (r *RequestHandler) CreateTrieNodeIdentifier(_ []byte, _ uint32) []byte {
 func (r *RequestHandler) RequestValidatorInfo(_ []byte) {
 }
 
-// RequestValidatorsInfo -
+// RequestValidatorsInfo does nothing
 func (r *RequestHandler) RequestValidatorsInfo(_ [][]byte) {
 }
 

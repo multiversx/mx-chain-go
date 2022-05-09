@@ -445,18 +445,17 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("unmarshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		numCalls := 0
 		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &testscommon.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				marshallerMock := testscommon.MarshalizerMock{}
-				if numCalls < 1 {
-					numCalls++
-					return marshallerMock.Unmarshal(obj, buff)
+				switch obj.(type) {
+				case *dataRetriever.RequestData:
+					return testscommon.MarshalizerMock{}.Unmarshal(obj, buff)
+				case *batch.Batch:
+					return expectedErr
 				}
-
-				return expectedErr
+				return nil
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
@@ -487,6 +486,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		buff, _ := args.Marshaller.Marshal(b)
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
+		require.NotNil(t, err)
 		assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrValidatorInfoNotFound.Error()))
 	})
 	t.Run("pack data in chuncks returns error", func(t *testing.T) {
@@ -601,7 +601,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		numOfCallsSend := 0
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				println(numOfCallsSend)
 				marshallerMock := testscommon.MarshalizerMock{}
 				b := &batch.Batch{}
 				_ = marshallerMock.Unmarshal(b, buff)
