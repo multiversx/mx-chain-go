@@ -102,6 +102,7 @@ func newTestMetaProcessor(
 		TxCoordinator:       txCoordinator,
 		SystemVM:            systemVM,
 		StateComponents:     stateComponents,
+		BlockChainHook:      blockChainHook,
 	}
 }
 

@@ -61,6 +61,7 @@ type TestMetaProcessor struct {
 	TxCoordinator       process.TransactionCoordinator
 	SystemVM            vmcommon.VMExecutionHandler
 	StateComponents     factory.StateComponentsHolder
+	BlockChainHook      process.BlockChainHookHandler
 
 	currentRound uint64
 }
@@ -219,6 +220,9 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 			}
 
 			tmp.TxCoordinator.RequestBlockTransactions(blockBody)
+
+			tmp.BlockChainHook.SetCurrentHeader(header)
+
 			arguments := &vmcommon.ContractCallInput{
 				VMInput: vmcommon.VMInput{
 					CallerAddr: vm.EndOfEpochAddress,
