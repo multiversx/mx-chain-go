@@ -78,7 +78,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager.ExitPruningBufferingMode()
 
 	go func() {
-		printStats(stats, "snapshotState peer trie", rootHash)
+		stats.PrintStats("snapshotState peer trie", rootHash)
 
 		if epoch > 0 {
 			log.Debug("set activeDB in epoch peerAccounts", "epoch", epoch-1)
@@ -102,7 +102,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, nil, stats)
 	trieStorageManager.ExitPruningBufferingMode()
 
-	go printStats(stats, "setStateCheckpoint peer trie", rootHash)
+	go stats.PrintStats("setStateCheckpoint peer trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }

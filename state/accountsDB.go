@@ -1134,7 +1134,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	}()
 
 	go func() {
-		printStats(stats, "snapshotState user trie", rootHash)
+		stats.PrintStats("snapshotState user trie", rootHash)
 
 		if epoch > 0 {
 			log.Debug("set activeDB in epoch userAccounts", "epoch", epoch-1)
@@ -1144,22 +1144,6 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	}()
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
-}
-
-func printStats(stats *snapshotStatistics, identifier string, rootHash []byte) {
-	stats.wg.Wait()
-
-	stats.mutex.RLock()
-	defer stats.mutex.RUnlock()
-
-	log.Debug("snapshot statistics",
-		"type", identifier,
-		"duration", time.Since(stats.startTime).Truncate(time.Second),
-		"num of nodes copied", stats.numNodes,
-		"total size copied", core.ConvertBytes(stats.trieSize),
-		"num data tries copied", stats.numDataTries,
-		"rootHash", rootHash,
-	)
 }
 
 func (adb *AccountsDB) snapshotUserAccountDataTrie(
@@ -1217,7 +1201,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		stats.wg.Done()
 	}()
 
-	go printStats(stats, "setStateCheckpoint user trie", rootHash)
+	go stats.PrintStats("setStateCheckpoint user trie", rootHash)
 
 	adb.waitForCompletionIfRunningInImportDB(stats)
 }
