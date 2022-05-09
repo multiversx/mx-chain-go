@@ -434,7 +434,7 @@ func (txs *transactions) computeTxsFromMiniBlock(
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
 
 	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
-	err := checkIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
+	err := process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -1459,7 +1459,7 @@ func (txs *transactions) ProcessMiniBlock(
 	processedTxHashes := make([][]byte, 0)
 
 	indexOfFirstTxToBeProcessed := indexOfLastTxProcessed + 1
-	err = checkIfIndexesAreOutOfBound(int32(indexOfFirstTxToBeProcessed), int32(len(miniBlock.TxHashes))-1, miniBlock)
+	err = process.CheckIfIndexesAreOutOfBound(int32(indexOfFirstTxToBeProcessed), int32(len(miniBlock.TxHashes))-1, miniBlock)
 	if err != nil {
 		return nil, indexOfLastTxProcessed, false, err
 	}
@@ -1544,15 +1544,15 @@ func (txs *transactions) ProcessMiniBlock(
 		txs.saveAccountBalanceForAddress(miniBlockTxs[txIndex].GetRcvAddr())
 
 		if !scheduledMode {
-			snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
-			_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[txIndex])
+			err = txs.processInNormalMode(
+				preProcessorExecutionInfoHandler,
+				miniBlockTxs[txIndex],
+				miniBlockTxHashes[txIndex],
+				&gasInfo,
+				gasProvidedByTxInSelfShard)
 			if err != nil {
-				txs.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
 				break
 			}
-
-			txs.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[txIndex], &gasInfo)
-			txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[txIndex])
 		} else {
 			txs.gasHandler.SetGasProvidedAsScheduled(gasProvidedByTxInSelfShard, miniBlockTxHashes[txIndex])
 		}
@@ -1600,6 +1600,28 @@ func (txs *transactions) ProcessMiniBlock(
 	}
 
 	return nil, txIndex - 1, false, err
+}
+
+func (txs *transactions) processInNormalMode(
+	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+	tx *transaction.Transaction,
+	txHash []byte,
+	gasInfo *gasConsumedInfo,
+	gasProvidedByTxInSelfShard uint64,
+) error {
+
+	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash)
+
+	_, err := txs.txProcessor.ProcessTransaction(tx)
+	if err != nil {
+		txs.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, txHash)
+		return err
+	}
+
+	txs.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, gasInfo)
+	txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
+
+	return nil
 }
 
 // CreateMarshalizedData marshalizes transactions and creates and saves them into a new structure

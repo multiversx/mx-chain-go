@@ -282,7 +282,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		}
 
 		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
-		err = checkIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
+		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
 			return err
 		}
@@ -524,7 +524,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	processedTxHashes := make([][]byte, 0)
 
 	indexOfFirstTxToBeProcessed := indexOfLastTxProcessed + 1
-	err = checkIfIndexesAreOutOfBound(int32(indexOfFirstTxToBeProcessed), int32(len(miniBlock.TxHashes))-1, miniBlock)
+	err = process.CheckIfIndexesAreOutOfBound(int32(indexOfFirstTxToBeProcessed), int32(len(miniBlock.TxHashes))-1, miniBlock)
 	if err != nil {
 		return nil, indexOfLastTxProcessed, false, err
 	}

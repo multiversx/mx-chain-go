@@ -374,8 +374,28 @@ func (e *epochStartData) computeStillPending(
 	miniBlockHeaders map[string]block.MiniBlockHeader,
 ) []block.MiniBlockHeader {
 
+	initIndexesOfProcessedTxs(miniBlockHeaders, shardID)
+
+	for _, shardHdr := range shardHdrs {
+		computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, shardID)
+	}
+
+	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
+	for _, mbHeader := range miniBlockHeaders {
+		log.Debug("pending mini block for", "shard", shardID, "mb hash", mbHeader.Hash)
+		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
+	}
+
+	sort.Slice(pendingMiniBlocks, func(i, j int) bool {
+		return bytes.Compare(pendingMiniBlocks[i].Hash, pendingMiniBlocks[j].Hash) < 0
+	})
+
+	return pendingMiniBlocks
+}
+
+func initIndexesOfProcessedTxs(miniBlockHeaders map[string]block.MiniBlockHeader, shardID uint32) {
 	for mbHash, mbHeader := range miniBlockHeaders {
-		log.Debug("epochStartData.computeStillPending: Init",
+		log.Debug("epochStartData.initIndexesOfProcessedTxs",
 			"mb hash", mbHash,
 			"len(reserved)", len(mbHeader.GetReserved()),
 			"shard", shardID,
@@ -388,23 +408,6 @@ func (e *epochStartData) computeStillPending(
 		setIndexOfFirstAndLastTxProcessed(&mbHeader, -1, -1)
 		miniBlockHeaders[mbHash] = mbHeader
 	}
-
-	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
-
-	for _, shardHdr := range shardHdrs {
-		computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, shardID)
-	}
-
-	for _, mbHeader := range miniBlockHeaders {
-		log.Debug("pending mini block for", "shard", shardID, "mb hash", mbHeader.Hash)
-		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
-	}
-
-	sort.Slice(pendingMiniBlocks, func(i, j int) bool {
-		return bytes.Compare(pendingMiniBlocks[i].Hash, pendingMiniBlocks[j].Hash) < 0
-	})
-
-	return pendingMiniBlocks
 }
 
 func computeStillPendingInShardHeader(

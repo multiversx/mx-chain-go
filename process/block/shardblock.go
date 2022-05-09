@@ -708,6 +708,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	headersPool := sp.dataPool.Headers()
 
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte)
+	mapMetaHashMetaBlock := make(map[string]*block.MetaBlock)
 
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
@@ -717,6 +718,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 			continue
 		}
 
+		mapMetaHashMetaBlock[string(metaBlockHash)] = metaBlock
 		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for mbHash := range processedMiniBlocks {
 			mapMetaHashMiniBlockHashes[string(metaBlockHash)] = append(mapMetaHashMiniBlockHashes[string(metaBlockHash)], []byte(mbHash))
@@ -745,20 +747,55 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	}
 
 	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
-		for _, miniBlockHash := range miniBlockHashes {
-			//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
-			indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
-			sp.processedMiniBlocks.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
-				FullyProcessed:         true,
-				IndexOfLastTxProcessed: indexOfLastTxProcessed,
-			})
+		sp.setProcessedMiniBlocksInfo(miniBlockHashes, metaBlockHash, mapMetaHashMetaBlock[metaBlockHash])
+	}
+
+	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
+
+	return nil
+}
+
+func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
+	for _, miniBlockHash := range miniBlockHashes {
+		indexOfLastTxProcessed := getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
+		sp.processedMiniBlocks.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
+			FullyProcessed:         true,
+			IndexOfLastTxProcessed: indexOfLastTxProcessed,
+		})
+	}
+}
+
+func getIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock *block.MetaBlock) int32 {
+	for _, mbh := range metaBlock.MiniBlockHeaders {
+		if bytes.Equal(mbh.Hash, miniBlockHash) {
+			return int32(mbh.TxCount) - 1
 		}
 	}
 
+	for _, shardData := range metaBlock.ShardInfo {
+		for _, mbh := range shardData.ShardMiniBlockHeaders {
+			if bytes.Equal(mbh.Hash, miniBlockHash) {
+				return int32(mbh.TxCount) - 1
+			}
+		}
+	}
+
+	log.Warn("shardProcessor.getIndexOfLastTxProcessedInMiniBlock",
+		"miniBlock hash", miniBlockHash,
+		"metaBlock round", metaBlock.Round,
+		"metaBlock nonce", metaBlock.Nonce,
+		"error", process.ErrMissingMiniBlock)
+
+	return common.MaxIndexOfTxInMiniBlock
+}
+
+func (sp *shardProcessor) rollBackProcessedMiniBlocksInfo(headerHandler data.HeaderHandler, mapMiniBlockHashes map[string]uint32) {
 	for miniBlockHash := range mapMiniBlockHashes {
 		miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, []byte(miniBlockHash))
 		if miniBlockHeader == nil {
-			log.Warn("shardProcessor.restoreMetaBlockIntoPool: GetMiniBlockHeaderWithHash", "mb hash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
+			log.Warn("shardProcessor.rollBackProcessedMiniBlocksInfo: GetMiniBlockHeaderWithHash",
+				"mb hash", miniBlockHash,
+				"error", process.ErrMissingMiniBlockHeader)
 			continue
 		}
 
@@ -768,8 +805,6 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 
 		sp.rollBackProcessedMiniBlockInfo(miniBlockHeader, []byte(miniBlockHash))
 	}
-
-	return nil
 }
 
 func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.MiniBlockHeaderHandler, miniBlockHash []byte) {

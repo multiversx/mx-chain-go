@@ -692,12 +692,7 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForScheduledMb(
 			return err
 		}
 	} else {
-		constructionState := int32(block.Final)
-		processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
-		if processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed {
-			constructionState = int32(block.PartialExecuted)
-		}
-
+		constructionState := getConstructionState(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 		err = miniBlockHeaderHandler.SetConstructionState(constructionState)
 		if err != nil {
 			return err
@@ -722,18 +717,34 @@ func (bp *baseProcessor) setProcessingTypeAndConstructionStateForNormalMb(
 		}
 	}
 
-	constructionState := int32(block.Final)
-	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
-	if processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed {
-		constructionState = int32(block.PartialExecuted)
-	}
-
+	constructionState := getConstructionState(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo)
 	err := miniBlockHeaderHandler.SetConstructionState(constructionState)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func getConstructionState(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) int32 {
+	constructionState := int32(block.Final)
+	if isPartiallyExecuted(miniBlockHeaderHandler, processedMiniBlocksDestMeInfo) {
+		constructionState = int32(block.PartialExecuted)
+	}
+
+	return constructionState
+}
+
+func isPartiallyExecuted(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) bool {
+	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
+	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
+
 }
 
 // check if header has the same miniblocks as presented in body
@@ -774,9 +785,30 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
 		}
+
+		err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+		if err != nil {
+			return err
+		}
+
+		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
+	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() < int32(mbh.GetTxCount())-1 {
+		return nil
+	}
+	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
+		return nil
+	}
+
+	return process.ErrIndexDoesNotMatch
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {

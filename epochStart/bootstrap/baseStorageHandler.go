@@ -24,6 +24,11 @@ type miniBlockInfo struct {
 	pendingMiniBlocksPerShardMap map[uint32][][]byte
 }
 
+type processedIndexes struct {
+	firstIndex int32
+	lastIndex  int32
+}
+
 // baseStorageHandler handles the storage functions for saving bootstrap data
 type baseStorageHandler struct {
 	storageService   dataRetriever.StorageService

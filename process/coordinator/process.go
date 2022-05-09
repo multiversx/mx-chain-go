@@ -42,6 +42,11 @@ type createMiniBlockDestMeExecutionInfo struct {
 	numAlreadyMiniBlocksProcessed int
 }
 
+type processedIndexes struct {
+	indexOfLastTxProcessedByItself   int32
+	indexOfLastTxProcessedByProposer int32
+}
+
 // ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
 type ArgTransactionCoordinator struct {
 	Hasher                               hashing.Hasher
@@ -1673,28 +1678,19 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
 	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
 
-	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, miniBlockHeaderHandler)
 	if err != nil {
 		return big.NewInt(0), big.NewInt(0), err
 	}
 
-	indexOfLastTxProcessedByItself := int32(-1)
-	if processedMiniBlocks != nil {
-		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-		indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
+	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
+	if err != nil {
+		return big.NewInt(0), big.NewInt(0), err
 	}
 
-	indexOfLastTxProcessedByProposer := miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
-
-	for index, txHash := range miniBlock.TxHashes {
-		if index <= int(indexOfLastTxProcessedByItself) {
-			continue
-		}
-
-		if index > int(indexOfLastTxProcessedByProposer) {
-			break
-		}
-
+	for index := indexOfFirstTxToBeProcessed; index <= pi.indexOfLastTxProcessedByProposer; index++ {
+		txHash := miniBlock.TxHashes[index]
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
 			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees ", "type", miniBlock.Type, "txHash", txHash)
@@ -1709,6 +1705,30 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	}
 
 	return maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, nil
+}
+
+func (tc *transactionCoordinator) getIndexesOfLastTxProcessed(
+	miniBlock *block.MiniBlock,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) (*processedIndexes, error) {
+
+	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	pi := &processedIndexes{}
+
+	pi.indexOfLastTxProcessedByItself = -1
+	if processedMiniBlocks != nil {
+		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+		pi.indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+	}
+
+	pi.indexOfLastTxProcessedByProposer = miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
+
+	return pi, nil
 }
 
 func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinator) error {

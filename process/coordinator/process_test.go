@@ -2684,7 +2684,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -3514,7 +3514,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}, {TxCount: 1}},
 	}
 
 	body := &block.Body{

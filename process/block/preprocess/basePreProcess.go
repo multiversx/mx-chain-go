@@ -2,7 +2,6 @@ package preprocess
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"sync"
@@ -552,28 +551,4 @@ func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 	pi.indexOfLastTxProcessedByProposer = miniBlockHeader.GetIndexOfLastTxProcessed()
 
 	return pi, nil
-}
-
-// checkIfIndexesAreOutOfBound checks if the given indexes are out of bound for the given mini block
-func checkIfIndexesAreOutOfBound(
-	indexOfFirstTxToBeProcessed int32,
-	indexOfLastTxToBeProcessed int32,
-	miniBlock *block.MiniBlock,
-) error {
-	maxIndex := int32(len(miniBlock.TxHashes)) - 1
-
-	isIndexOutOfBound := indexOfFirstTxToBeProcessed > indexOfLastTxToBeProcessed ||
-		indexOfFirstTxToBeProcessed < 0 || indexOfFirstTxToBeProcessed > maxIndex ||
-		indexOfLastTxToBeProcessed < 0 || indexOfLastTxToBeProcessed > maxIndex
-
-	if isIndexOutOfBound {
-		return fmt.Errorf("%w: indexOfFirstTxToBeProcessed: %d, indexOfLastTxToBeProcessed = %d, maxIndex: %d",
-			process.ErrIndexIsOutOfBound,
-			indexOfFirstTxToBeProcessed,
-			indexOfLastTxToBeProcessed,
-			maxIndex,
-		)
-	}
-
-	return nil
 }

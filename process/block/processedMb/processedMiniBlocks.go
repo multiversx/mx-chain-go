@@ -178,7 +178,6 @@ func getMiniBlocksInfo(miniBlocksInMeta bootstrapStorage.MiniBlocksInMeta) MiniB
 			fullyProcessed = miniBlocksInMeta.FullyProcessed[index]
 		}
 
-		//TODO: Check if needed, how to set the real index (metaBlock -> ShardInfo -> ShardMiniBlockHeaders -> TxCount)
 		indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
 		if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
 			indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]

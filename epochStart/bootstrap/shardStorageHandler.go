@@ -283,7 +283,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	}
 
 	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: initial processed and pending for scheduled")
-	printProcessedAndPendingMiniBlocks(processedMiniBlocks, pendingMiniBlocks)
+	displayProcessedAndPendingMiniBlocks(processedMiniBlocks, pendingMiniBlocks)
 
 	if !withScheduled {
 		return processedMiniBlocks, pendingMiniBlocks, nil
@@ -319,7 +319,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocksWithScheduled(
 	}
 
 	log.Debug("getProcessedAndPendingMiniBlocksWithScheduled: updated processed and pending for scheduled")
-	printProcessedAndPendingMiniBlocks(processedMiniBlocks, pendingMiniBlocks)
+	displayProcessedAndPendingMiniBlocks(processedMiniBlocks, pendingMiniBlocks)
 
 	return processedMiniBlocks, pendingMiniBlocks, nil
 }
@@ -468,31 +468,41 @@ func removeHash(hashes [][]byte, hashToRemove []byte) [][]byte {
 	return append(result, hashes...)
 }
 
-func printProcessedAndPendingMiniBlocks(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
+func displayProcessedAndPendingMiniBlocks(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
 	for _, miniBlocksInMeta := range processedMiniBlocks {
-		log.Debug("processed meta block", "hash", miniBlocksInMeta.MetaHash)
-		for index, mbHash := range miniBlocksInMeta.MiniBlocksHashes {
-			fullyProcessed := true
-			if miniBlocksInMeta.FullyProcessed != nil && index < len(miniBlocksInMeta.FullyProcessed) {
-				fullyProcessed = miniBlocksInMeta.FullyProcessed[index]
-			}
-
-			indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
-			if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
-				indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
-			}
-
-			log.Debug("processedMiniBlock", "hash", mbHash,
-				"index of last tx processed", indexOfLastTxProcessed,
-				"fully processed", fullyProcessed)
-		}
+		displayProcessedMiniBlocksInMeta(miniBlocksInMeta)
 	}
 
 	for _, pendingMbsInShard := range pendingMiniBlocks {
-		log.Debug("shard", "shardID", pendingMbsInShard.ShardID)
-		for _, mbHash := range pendingMbsInShard.MiniBlocksHashes {
-			log.Debug("pendingMiniBlock", "hash", mbHash)
+		displayPendingMiniBlocks(pendingMbsInShard)
+	}
+}
+
+func displayProcessedMiniBlocksInMeta(miniBlocksInMeta bootstrapStorage.MiniBlocksInMeta) {
+	log.Debug("processed meta block", "hash", miniBlocksInMeta.MetaHash)
+
+	for index, mbHash := range miniBlocksInMeta.MiniBlocksHashes {
+		fullyProcessed := true
+		if miniBlocksInMeta.FullyProcessed != nil && index < len(miniBlocksInMeta.FullyProcessed) {
+			fullyProcessed = miniBlocksInMeta.FullyProcessed[index]
 		}
+
+		indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
+		if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
+			indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
+		}
+
+		log.Debug("processedMiniBlock", "hash", mbHash,
+			"index of last tx processed", indexOfLastTxProcessed,
+			"fully processed", fullyProcessed)
+	}
+}
+
+func displayPendingMiniBlocks(pendingMbsInShard bootstrapStorage.PendingMiniBlocksInfo) {
+	log.Debug("shard", "shardID", pendingMbsInShard.ShardID)
+
+	for _, mbHash := range pendingMbsInShard.MiniBlocksHashes {
+		log.Debug("pendingMiniBlock", "hash", mbHash)
 	}
 }
 
