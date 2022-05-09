@@ -30,6 +30,7 @@ const uniqueMiniblockSuffix = "mb"
 const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
+const uniquePeerAuthenticationSuffix = "pa"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -775,6 +776,12 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsChunk(destShardID u
 
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
+	suffix := fmt.Sprintf("%s_%d", uniquePeerAuthenticationSuffix, destShardID)
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes, suffix)
+	if len(unrequestedHashes) == 0 {
+		return
+	}
+
 	log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
@@ -796,6 +803,8 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 		return
 	}
 
+	rrh.whiteList.Add(unrequestedHashes)
+
 	err = peerAuthResolver.RequestDataFromHashArray(hashes, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",
@@ -804,4 +813,6 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"shard", destShardID,
 		)
 	}
+
+	rrh.addRequestedItems(unrequestedHashes, suffix)
 }
