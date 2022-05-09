@@ -34,6 +34,9 @@ const (
 	nodePrice                                = 1000
 )
 
+func haveTime() bool { return true }
+func noTime() bool   { return false }
+
 type nodesConfig struct {
 	eligible    map[uint32][][]byte
 	waiting     map[uint32][][]byte
@@ -157,35 +160,42 @@ func createMaxNodesConfig(
 // Process -
 func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 	for r := tmp.currentRound; r < tmp.currentRound+numOfRounds; r++ {
-		_, err := tmp.MetaBlockProcessor.CreateNewHeader(r, r)
-		require.Nil(t, err)
-
-		epoch := tmp.EpochStartTrigger.Epoch()
-		printNewHeaderRoundEpoch(r, epoch)
-
-		currentHeader, currentHash := tmp.getCurrentHeaderInfo()
-		header := createMetaBlockToCommit(
-			epoch,
-			r,
-			currentHash,
-			currentHeader.GetRandSeed(),
-			tmp.NodesCoordinator.ConsensusGroupSize(core.MetachainShardId),
-		)
-
-		haveTime := func() bool { return true }
-
-		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, haveTime)
-		require.Nil(t, err)
-
-		err = tmp.MetaBlockProcessor.CommitBlock(newHeader, blockBody)
-		require.Nil(t, err)
-
-		time.Sleep(time.Millisecond * 50)
-		tmp.updateNodesConfig(epoch)
-		displayConfig(tmp.NodesConfig)
+		header := tmp.createNewHeader(t, r)
+		tmp.createAndCommitBlock(t, header, haveTime)
 	}
 
 	tmp.currentRound += numOfRounds
+}
+
+func (tmp *TestMetaProcessor) createNewHeader(t *testing.T, round uint64) *block.MetaBlock {
+	_, err := tmp.MetaBlockProcessor.CreateNewHeader(round, round)
+	require.Nil(t, err)
+
+	epoch := tmp.EpochStartTrigger.Epoch()
+	printNewHeaderRoundEpoch(round, epoch)
+
+	currentHeader, currentHash := tmp.getCurrentHeaderInfo()
+	header := createMetaBlockToCommit(
+		epoch,
+		round,
+		currentHash,
+		currentHeader.GetRandSeed(),
+		tmp.NodesCoordinator.ConsensusGroupSize(core.MetachainShardId),
+	)
+
+	return header
+}
+
+func (tmp *TestMetaProcessor) createAndCommitBlock(t *testing.T, header data.HeaderHandler, haveTime func() bool) {
+	newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, haveTime)
+	require.Nil(t, err)
+
+	err = tmp.MetaBlockProcessor.CommitBlock(newHeader, blockBody)
+	require.Nil(t, err)
+
+	time.Sleep(time.Millisecond * 50)
+	tmp.updateNodesConfig(header.GetEpoch())
+	displayConfig(tmp.NodesConfig)
 }
 
 func printNewHeaderRoundEpoch(round uint64, epoch uint32) {

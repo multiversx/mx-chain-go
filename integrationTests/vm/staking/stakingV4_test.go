@@ -312,18 +312,28 @@ func TestStakingV4_CustomScenario(t *testing.T) {
 	node := NewTestMetaProcessorWithCustomNodes(cfg)
 	node.EpochStartTrigger.SetRoundsPerEpoch(5)
 
-	//node.Process(t, 25)
-	node.Process(t, 18)
-	node.ProcessStake(t, map[string]*NodesRegisterData{
-		"owner444": &NodesRegisterData{
+	owner444 := "owner444"
+	owner555 := "owner555"
+	newNodes := map[string]*NodesRegisterData{
+		owner444: {
 			BLSKeys:    [][]byte{generateAddress(444)},
-			TotalStake: big.NewInt(2000),
-		},
-		"owner555": &NodesRegisterData{
-			BLSKeys:    [][]byte{generateAddress(555), generateAddress(666)},
 			TotalStake: big.NewInt(5000),
 		},
-	})
+		owner555: {
+			BLSKeys:    [][]byte{generateAddress(555), generateAddress(666)},
+			TotalStake: big.NewInt(6000),
+		},
+	}
+	node.Process(t, 15)
+	node.ProcessStake(t, newNodes)
 
-	node.Process(t, 7)
+	currNodesConfig := node.NodesConfig
+	requireSliceContains(t, currNodesConfig.auction, newNodes[owner444].BLSKeys)
+	requireSliceContains(t, currNodesConfig.auction, newNodes[owner555].BLSKeys)
+
+	node.Process(t, 4)
+
+	currNodesConfig = node.NodesConfig
+	requireMapContains(t, currNodesConfig.waiting, newNodes[owner444].BLSKeys)
+	requireMapContains(t, currNodesConfig.waiting, newNodes[owner555].BLSKeys)
 }

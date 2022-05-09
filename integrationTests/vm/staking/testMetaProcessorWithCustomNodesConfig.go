@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
@@ -87,60 +86,38 @@ type NodesRegisterData struct {
 }
 
 func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*NodesRegisterData) {
-	_, err := tmp.MetaBlockProcessor.CreateNewHeader(tmp.currentRound, tmp.currentRound)
-	require.Nil(t, err)
-
-	epoch := tmp.EpochStartTrigger.Epoch()
-	printNewHeaderRoundEpoch(tmp.currentRound, epoch)
-
-	currentHeader, currentHash := tmp.getCurrentHeaderInfo()
-	header := createMetaBlockToCommit(
-		epoch,
-		tmp.currentRound,
-		currentHash,
-		currentHeader.GetRandSeed(),
-		tmp.NodesCoordinator.ConsensusGroupSize(core.MetachainShardId),
-	)
+	header := tmp.createNewHeader(t, tmp.currentRound)
 	tmp.BlockChainHook.SetCurrentHeader(header)
 
 	txHashes := make([][]byte, 0)
-
 	for owner, nodesData := range nodes {
 		numBLSKeys := int64(len(nodesData.BLSKeys))
-		numOfNodesToStake := big.NewInt(numBLSKeys).Bytes()
+		numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
 
-		txData := hex.EncodeToString([]byte("stake")) + "@" + hex.EncodeToString(numOfNodesToStake)
-		argsStake := [][]byte{numOfNodesToStake}
+		txData := hex.EncodeToString([]byte("stake")) + "@" + hex.EncodeToString(numBLSKeysBytes)
+		argsStake := [][]byte{numBLSKeysBytes}
 
 		for _, blsKey := range nodesData.BLSKeys {
 			signature := append([]byte("signature-"), blsKey...)
 
 			argsStake = append(argsStake, blsKey, signature)
 			txData += "@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(signature)
-
-			txHash := append([]byte("txHash-stake-"), blsKey...)
-			txHashes = append(txHashes, txHash)
-			tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
-				RcvAddr: vm.StakingSCAddress,
-				Data:    []byte(txData),
-			})
 		}
 
-		arguments := &vmcommon.ContractCallInput{
-			VMInput: vmcommon.VMInput{
-				CallerAddr:  []byte(owner),
-				Arguments:   argsStake,
-				CallValue:   nodesData.TotalStake,
-				GasProvided: 10,
-			},
-			RecipientAddr: vm.ValidatorSCAddress,
-			Function:      "stake",
-		}
-		vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
-		require.Nil(t, err)
+		txHash := append([]byte("txHash-stake-"), []byte(owner)...)
+		txHashes = append(txHashes, txHash)
 
-		err = tmp.processSCOutputAccounts(vmOutput)
-		require.Nil(t, err)
+		tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
+			RcvAddr: vm.StakingSCAddress,
+			Data:    []byte(txData),
+		})
+
+		tmp.doStake(t, vmcommon.VMInput{
+			CallerAddr:  []byte(owner),
+			Arguments:   argsStake,
+			CallValue:   nodesData.TotalStake,
+			GasProvided: 10,
+		})
 	}
 
 	blockBody := &block.Body{MiniBlocks: block.MiniBlockSlice{
@@ -152,19 +129,22 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 		},
 	}}
 	tmp.TxCoordinator.RequestBlockTransactions(blockBody)
-
-	haveTime := func() bool { return false }
-	newHeader, newBlockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, haveTime)
-	require.Nil(t, err)
-
-	err = tmp.MetaBlockProcessor.CommitBlock(newHeader, newBlockBody)
-	require.Nil(t, err)
-
-	time.Sleep(time.Millisecond * 50)
-	tmp.updateNodesConfig(epoch)
-	displayConfig(tmp.NodesConfig)
+	tmp.createAndCommitBlock(t, header, noTime)
 
 	tmp.currentRound += 1
+}
+
+func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput:       vmInput,
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "stake",
+	}
+	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
+	require.Nil(t, err)
+
+	err = tmp.processSCOutputAccounts(vmOutput)
+	require.Nil(t, err)
 }
 
 func createStakingQueueCustomNodes(
