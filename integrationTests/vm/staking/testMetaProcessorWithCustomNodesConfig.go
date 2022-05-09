@@ -2,7 +2,6 @@ package staking
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -104,66 +103,54 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	)
 	tmp.BlockChainHook.SetCurrentHeader(header)
 
-	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
-	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
+	txHashes := make([][]byte, 0)
 
 	for owner, nodesData := range nodes {
 		numBLSKeys := int64(len(nodesData.BLSKeys))
 		numOfNodesToStake := big.NewInt(numBLSKeys).Bytes()
-		numOfNodesToStakeHex := hex.EncodeToString(numOfNodesToStake)
-		_ = numOfNodesToStakeHex
+
+		txData := hex.EncodeToString([]byte("stake")) + "@" + hex.EncodeToString(numOfNodesToStake)
+		argsStake := [][]byte{numOfNodesToStake}
+
 		for _, blsKey := range nodesData.BLSKeys {
 			signature := append([]byte("signature-"), blsKey...)
-			txData := hex.EncodeToString([]byte("stake")) + "@" +
-				hex.EncodeToString(big.NewInt(1).Bytes()) + "@" +
-				hex.EncodeToString(blsKey) + "@" +
-				hex.EncodeToString(signature)
 
-			mbHeaderHash := []byte(fmt.Sprintf("mbHash-stake-blsKey=%s-owner=%s", blsKey, owner))
-			shardMiniBlockHeader := block.MiniBlockHeader{
-				Hash:            mbHeaderHash,
-				ReceiverShardID: 0,
-				SenderShardID:   core.MetachainShardId,
-				TxCount:         1,
-			}
-			shardMiniBlockHeaders = append(header.MiniBlockHeaders, shardMiniBlockHeader)
-			shardData := block.ShardData{
-				Nonce:                 tmp.currentRound,
-				ShardID:               0,
-				HeaderHash:            []byte("hdr_hashStake"),
-				TxCount:               1,
-				ShardMiniBlockHeaders: shardMiniBlockHeaders,
-			}
-			header.ShardInfo = append(header.ShardInfo, shardData)
-			tmp.TxCacher.AddTx(mbHeaderHash, &smartContractResult.SmartContractResult{
+			argsStake = append(argsStake, blsKey, signature)
+			txData += "@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(signature)
+
+			txHash := append([]byte("txHash-stake-"), blsKey...)
+			txHashes = append(txHashes, txHash)
+			tmp.TxCacher.AddTx(txHash, &smartContractResult.SmartContractResult{
 				RcvAddr: vm.StakingSCAddress,
 				Data:    []byte(txData),
 			})
-
-			blockBody.MiniBlocks = append(blockBody.MiniBlocks, &block.MiniBlock{
-				TxHashes:        [][]byte{mbHeaderHash},
-				SenderShardID:   core.MetachainShardId,
-				ReceiverShardID: core.MetachainShardId,
-				Type:            block.SmartContractResultBlock,
-			},
-			)
-
-			arguments := &vmcommon.ContractCallInput{
-				VMInput: vmcommon.VMInput{
-					CallerAddr:  []byte(owner),
-					Arguments:   [][]byte{big.NewInt(1).Bytes(), blsKey, signature},
-					CallValue:   big.NewInt(nodesData.TotalStake.Int64()).Div(nodesData.TotalStake, big.NewInt(numBLSKeys)),
-					GasProvided: 10,
-				},
-				RecipientAddr: vm.ValidatorSCAddress,
-				Function:      "stake",
-			}
-			vmOutput, _ := tmp.SystemVM.RunSmartContractCall(arguments)
-
-			_, _ = tmp.processSCOutputAccounts(vmOutput)
 		}
 
+		arguments := &vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr:  []byte(owner),
+				Arguments:   argsStake,
+				CallValue:   nodesData.TotalStake,
+				GasProvided: 10,
+			},
+			RecipientAddr: vm.ValidatorSCAddress,
+			Function:      "stake",
+		}
+		vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
+		require.Nil(t, err)
+
+		err = tmp.processSCOutputAccounts(vmOutput)
+		require.Nil(t, err)
 	}
+
+	blockBody := &block.Body{MiniBlocks: block.MiniBlockSlice{
+		{
+			TxHashes:        txHashes,
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.SmartContractResultBlock,
+		},
+	}}
 	tmp.TxCoordinator.RequestBlockTransactions(blockBody)
 
 	haveTime := func() bool { return false }

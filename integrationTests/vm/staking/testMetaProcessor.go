@@ -173,70 +173,6 @@ func (tmp *TestMetaProcessor) Process(t *testing.T, numOfRounds uint64) {
 		)
 
 		haveTime := func() bool { return true }
-		/*
-			if r == 17 && numOfRounds == 25 {
-				numOfNodesToStake := big.NewInt(1).Bytes()
-				numOfNodesToStakeHex := hex.EncodeToString(numOfNodesToStake)
-				signature := []byte("signature")
-				pubKey := hex.EncodeToString([]byte("000address-3198"))
-				txData := hex.EncodeToString([]byte("stake")) + "@" + numOfNodesToStakeHex + "@" + pubKey + "@" + hex.EncodeToString(signature)
-
-				shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
-				shardMiniBlockHeader := block.MiniBlockHeader{
-					Hash:            []byte("hashStake"),
-					ReceiverShardID: 0,
-					SenderShardID:   core.MetachainShardId,
-					TxCount:         1,
-				}
-				shardMiniBlockHeaders = append(header.MiniBlockHeaders, shardMiniBlockHeader)
-				shardData := block.ShardData{
-					Nonce:                 r,
-					HeaderHash:            []byte("hdr_hashStake"),
-					TxCount:               1,
-					ShardMiniBlockHeaders: shardMiniBlockHeaders,
-				}
-				header.ShardInfo = append(header.ShardInfo, shardData)
-				tmp.TxCacher.AddTx(shardMiniBlockHeader.Hash, &smartContractResult.SmartContractResult{
-					RcvAddr: vm.StakingSCAddress,
-					Data:    []byte(txData),
-				})
-
-				haveTime = func() bool { return false }
-
-				blockBody := &block.Body{
-					MiniBlocks: []*block.MiniBlock{
-						{
-							TxHashes:        [][]byte{shardMiniBlockHeader.Hash},
-							SenderShardID:   core.MetachainShardId,
-							ReceiverShardID: core.MetachainShardId,
-							Type:            block.SmartContractResultBlock,
-						},
-					},
-				}
-
-				tmp.TxCoordinator.RequestBlockTransactions(blockBody)
-
-				tmp.BlockChainHook.SetCurrentHeader(header)
-
-				arguments := &vmcommon.ContractCallInput{
-					VMInput: vmcommon.VMInput{
-						CallerAddr:   []byte("owner-3198"),
-						Arguments:   [][]byte{numOfNodesToStake, []byte("000address-3198"), signature},
-						CallValue:   big.NewInt(2000),
-						GasProvided: 10,
-					},
-					RecipientAddr: vm.ValidatorSCAddress,
-					Function:      "stake",
-				}
-				vmOutput, _ := tmp.SystemVM.RunSmartContractCall(arguments)
-
-				_, _ = tmp.processSCOutputAccounts(vmOutput)
-
-
-
-			}
-
-		*/
 
 		newHeader, blockBody, err := tmp.MetaBlockProcessor.CreateBlock(header, haveTime)
 		require.Nil(t, err)
@@ -359,7 +295,7 @@ func generateAddress(identifier uint32) []byte {
 	return []byte(strings.Repeat("0", addressLength-len(uniqueIdentifier)) + uniqueIdentifier)
 }
 
-func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutput) ([]byte, error) {
+func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutput) error {
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
 		acc := stakingcommon.LoadUserAccount(tmp.AccountsAdapter, outAcc.Address)
@@ -368,19 +304,19 @@ func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 		for _, storeUpdate := range storageUpdates {
 			err := acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(big.NewInt(0)) != 0 {
 				err = acc.AddToBalance(outAcc.BalanceDelta)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 
 			err = tmp.AccountsAdapter.SaveAccount(acc)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
@@ -388,5 +324,5 @@ func (tmp *TestMetaProcessor) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 	tmp.AccountsAdapter.Commit()
 	tmp.StateComponents.PeerAccounts().Commit()
 
-	return nil, nil
+	return nil
 }
