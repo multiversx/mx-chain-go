@@ -82,6 +82,9 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	vaultAddress := arwen.MakeTestWalletAddress("vaultAddress")
 
 	testConfig := &testcommon.TestConfig{
+		ParentBalance: 20,
+		ChildBalance:  10,
+
 		GasProvided:        2_000_000,
 		GasProvidedToChild: 1_000_000,
 		GasUsedByParent:    400,
