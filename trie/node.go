@@ -279,3 +279,26 @@ func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider)
 		}
 	}
 }
+
+func getChildForSnapshot(db pruningStorer, childHash []byte) ([]byte, bool, error) {
+	epoch, err := db.GetLatestStorageEpoch()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if epoch == 0 {
+		return nil, false, fmt.Errorf("invalid epoch for getChildForSnapshot")
+	}
+
+	childBytes, err := db.GetFromEpochWithoutCache(childHash, epoch-1)
+	if err == nil {
+		return childBytes, false, nil
+	}
+
+	childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(childHash, 2)
+	if err == nil {
+		return childBytes, true, nil
+	}
+
+	return nil, false, err
+}

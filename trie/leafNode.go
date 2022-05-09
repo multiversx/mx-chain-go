@@ -174,7 +174,7 @@ func (ln *leafNode) commitCheckpoint(
 }
 
 func (ln *leafNode) commitSnapshot(
-	db snapshotPruningStorer,
+	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,

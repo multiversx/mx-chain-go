@@ -1,129 +1,94 @@
 package trie
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
-const storerOffset = 1
-
 type snapshotTrieStorageManager struct {
-	*trieStorageManager
-	mainSnapshotStorer snapshotPruningStorer
-	epoch              uint32
+	pruningStorer
+	tsm   *trieStorageManager
+	epoch uint32
 }
 
 func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snapshotTrieStorageManager, error) {
-	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	storer, ok := tsm.mainStorer.(pruningStorer)
 	if !ok {
 		return nil, fmt.Errorf("invalid storer type")
 	}
 
 	return &snapshotTrieStorageManager{
-		trieStorageManager: tsm,
-		mainSnapshotStorer: storer,
-		epoch:              epoch,
+		pruningStorer: storer,
+		tsm:           tsm,
+		epoch:         epoch,
 	}, nil
 }
 
-// Get checks all the storers for the given key, and returns it if it is found
-func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
-		return nil, errors.ErrContextClosing
+// Put adds the given value to the last epoch storer
+func (stsm *snapshotTrieStorageManager) Put(key []byte, val []byte) error {
+	if stsm.epoch == 0 {
+		return fmt.Errorf("invalid epoch for snapshot put")
 	}
 
-	val, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, storerOffset)
-	if isClosingError(err) {
-		return nil, err
-	}
-	if len(val) != 0 {
-		return val, nil
-	}
-
-	return stsm.getFromOtherStorers(key)
-}
-
-// Put adds the given value to the main storer
-func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
-		return errors.ErrContextClosing
-	}
-
-	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
-	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
-}
-
-// GetFromLastEpoch searches only the last epoch storer for the given key
-func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
-		return nil, errors.ErrContextClosing
-	}
-
-	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
+	return stsm.PutInEpochWithoutCache(key, val, stsm.epoch-1)
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches for the key without adding it to cache if it is found. It starts
 // the search for the key from the currentStorer - epochOffset)
 func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+	if stsm.checkIfClosed(fmt.Sprintf("getFromOldEpochsWithoutAddingToCache context closing, key = %s", hex.EncodeToString(key))) {
 		return nil, errors.ErrContextClosing
 	}
 
-	return stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, epochOffset)
+	return stsm.pruningStorer.GetFromOldEpochsWithoutAddingToCache(key, epochOffset)
 }
 
 // PutInEpochWithoutCache saves the data in the given epoch storer
 func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+	if stsm.checkIfClosed(fmt.Sprintf("putInEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))) {
 		return errors.ErrContextClosing
 	}
 
-	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, epoch)
+	return stsm.pruningStorer.PutInEpochWithoutCache(key, data, epoch)
 }
 
-// GetFromCurrentEpoch the key in the current epoch storer
-func (stsm *snapshotTrieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+// GetFromEpochWithoutCache seeks the key in the specified epoch storer
+func (stsm *snapshotTrieStorageManager) GetFromEpochWithoutCache(key []byte, epoch uint32) ([]byte, error) {
+	if stsm.checkIfClosed(fmt.Sprintf("getFromEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))) {
 		return nil, errors.ErrContextClosing
 	}
 
-	return stsm.mainSnapshotStorer.GetFromCurrentEpoch(key)
+	return stsm.pruningStorer.GetFromEpochWithoutCache(key, epoch)
 }
 
 // RemoveFromCurrentEpoch removes the key from the current epoch storer
 func (stsm *snapshotTrieStorageManager) RemoveFromCurrentEpoch(key []byte) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+	if stsm.checkIfClosed(fmt.Sprintf("removeFromCurrentEpoch context closing, key = %s", hex.EncodeToString(key))) {
 		return errors.ErrContextClosing
 	}
 
-	return stsm.mainSnapshotStorer.RemoveFromCurrentEpoch(key)
+	return stsm.pruningStorer.RemoveFromCurrentEpoch(key)
+}
+
+// GetLatestStorageEpoch returns the latest storage epoch
+func (stsm *snapshotTrieStorageManager) GetLatestStorageEpoch() (uint32, error) {
+	if stsm.checkIfClosed("getLatestStorageEpoch context closing") {
+		return 0, errors.ErrContextClosing
+	}
+
+	return stsm.epoch, nil
+}
+
+func (stsm *snapshotTrieStorageManager) checkIfClosed(message string) bool {
+	stsm.tsm.storageOperationMutex.Lock()
+	defer stsm.tsm.storageOperationMutex.Unlock()
+
+	if !stsm.tsm.closed {
+		return false
+	}
+
+	log.Debug(message)
+	return true
 }

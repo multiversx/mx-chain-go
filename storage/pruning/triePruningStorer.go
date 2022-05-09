@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	lastEpochIndex             = 1
 	currentEpochIndex          = 0
 	minNumOfActiveDBsNecessary = 2
 )
@@ -150,11 +149,6 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
 func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
-	v, ok := ps.cacher.Get(key)
-	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
-		return v.([]byte), nil
-	}
-
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -179,29 +173,21 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, ep
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
-// GetFromLastEpoch searches only the last epoch storer for the given key
-func (ps *triePruningStorer) GetFromLastEpoch(key []byte) ([]byte, error) {
+// GetFromEpochWithoutCache searches only the specified epoch storer for the given key
+func (ps *triePruningStorer) GetFromEpochWithoutCache(key []byte, epoch uint32) ([]byte, error) {
 	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	if len(ps.activePersisters) < 2 {
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	return ps.activePersisters[lastEpochIndex].persister.Get(key)
-}
-
-// GetFromCurrentEpoch searches only the current epoch storer for the given key
-func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	ps.lock.RLock()
-
-	if len(ps.activePersisters) == 0 {
-		ps.lock.RUnlock()
-		return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-	}
-
-	persister := ps.activePersisters[currentEpochIndex].persister
+	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
+	if !exists {
+		return nil, fmt.Errorf("key %s not found in %s",
+			hex.EncodeToString(key), ps.identifier)
+	}
+
+	persister, closePersister, err := ps.createAndInitPersisterIfClosedProtected(pd)
+	if err != nil {
+		return nil, err
+	}
+	defer closePersister()
 
 	return persister.Get(key)
 }

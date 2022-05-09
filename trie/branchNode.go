@@ -336,7 +336,7 @@ func (bn *branchNode) commitCheckpoint(
 }
 
 func (bn *branchNode) commitSnapshot(
-	db snapshotPruningStorer,
+	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
@@ -357,15 +357,9 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		saveChildToStorage := false
-
-		childBytes, err := db.GetFromLastEpoch(childHash)
+		childBytes, saveChildToStorage, err := getChildForSnapshot(db, childHash)
 		if err != nil {
-			saveChildToStorage = true
-			childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(childHash, 2)
-			if err != nil {
-				return err
-			}
+			return err
 		}
 
 		err = bn.resolveCollapsedFromBytes(byte(i), childBytes)

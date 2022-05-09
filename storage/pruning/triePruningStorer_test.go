@@ -184,16 +184,16 @@ func TestTriePruningStorer_GetFromLastEpochSearchesOnlyLastEpoch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromLastEpoch(testKey2)
+	res, err := ps.GetFromEpochWithoutCache(testKey2, 1)
 	assert.Equal(t, testVal2, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromLastEpoch(testKey1)
+	res, err = ps.GetFromEpochWithoutCache(testKey1, 1)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 
-	res, err = ps.GetFromLastEpoch(testKey3)
+	res, err = ps.GetFromEpochWithoutCache(testKey3, 1)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
@@ -233,16 +233,16 @@ func TestTriePruningStorer_GetFromCurrentEpochSearchesOnlyCurrentEpoch(t *testin
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, err := ps.GetFromCurrentEpoch(testKey3)
+	res, err := ps.GetFromEpochWithoutCache(testKey3, 2)
 	assert.Equal(t, testVal3, res)
 	assert.Nil(t, err)
 
-	res, err = ps.GetFromCurrentEpoch(testKey1)
+	res, err = ps.GetFromEpochWithoutCache(testKey1, 2)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 
-	res, err = ps.GetFromCurrentEpoch(testKey2)
+	res, err = ps.GetFromEpochWithoutCache(testKey2, 2)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))

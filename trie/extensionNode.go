@@ -242,7 +242,7 @@ func (en *extensionNode) commitCheckpoint(
 }
 
 func (en *extensionNode) commitSnapshot(
-	db snapshotPruningStorer,
+	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
@@ -258,14 +258,9 @@ func (en *extensionNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	saveChildToStorage := false
-	childBytes, err := db.GetFromLastEpoch(en.EncodedChild)
+	childBytes, saveChildToStorage, err := getChildForSnapshot(db, en.EncodedChild)
 	if err != nil {
-		saveChildToStorage = true
-		childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(en.EncodedChild, 2)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	err = en.resolveCollapsedFromBytes(0, childBytes)

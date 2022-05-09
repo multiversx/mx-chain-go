@@ -928,10 +928,10 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	enWriter := bytes.NewBuffer(make([]byte, 0))
 	collapsedEnWriter := bytes.NewBuffer(make([]byte, 0))
 
-	db := testscommon.NewSnapshotPruningStorerMock()
-	en, collapsedEn := getEnAndCollapsedEn()
+	db := testscommon.NewMemDbMock()
+	en, _ := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, nil, context.Background(), &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
+	collapsedEn, _ := en.getCollapsed()
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)

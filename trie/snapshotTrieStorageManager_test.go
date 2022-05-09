@@ -35,7 +35,7 @@ func TestNewSnapshotTrieStorageManager_GetFromOldEpochsWithoutCache(t *testing.T
 	}
 	stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
 
-	_, _ = stsm.Get([]byte("key"))
+	_, _ = stsm.GetFromOldEpochsWithoutAddingToCache([]byte("key"), 1)
 	assert.True(t, getFromOldEpochsWithoutCacheCalled)
 }
 
@@ -50,21 +50,6 @@ func TestNewSnapshotTrieStorageManager_PutWithoutCache(t *testing.T) {
 	}
 	stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
 
-	_ = stsm.Put([]byte("key"), []byte("data"))
+	_ = stsm.PutInEpochWithoutCache([]byte("key"), []byte("data"), 0)
 	assert.True(t, putWithoutCacheCalled)
-}
-
-func TestNewSnapshotTrieStorageManager_GetFromLastEpoch(t *testing.T) {
-	_, trieStorage := newEmptyTrie()
-	getFromLastEpochCalled := false
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		GetFromLastEpochCalled: func(_ []byte) ([]byte, error) {
-			getFromLastEpochCalled = true
-			return nil, nil
-		},
-	}
-	stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
-
-	_, _ = stsm.GetFromLastEpoch([]byte("key"))
-	assert.True(t, getFromLastEpochCalled)
 }

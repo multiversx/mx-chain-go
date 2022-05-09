@@ -48,7 +48,7 @@ type node interface {
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb snapshotPruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
+	commitSnapshot(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -61,7 +61,7 @@ type node interface {
 
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb snapshotPruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
+	commitSnapshot(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -92,14 +92,12 @@ type epochStorer interface {
 	SetEpochForPutOperation(epoch uint32)
 }
 
-type snapshotPruningStorer interface {
+type pruningStorer interface {
 	common.DBWriteCacher
 	GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error)
-	GetFromLastEpoch(key []byte) ([]byte, error)
-	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
+	GetFromEpochWithoutCache(key []byte, epoch uint32) ([]byte, error)
 	GetLatestStorageEpoch() (uint32, error)
-	GetFromCurrentEpoch(key []byte) ([]byte, error)
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	RemoveFromCurrentEpoch(key []byte) error
 }
 

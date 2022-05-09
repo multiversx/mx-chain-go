@@ -198,7 +198,7 @@ func (tsm *trieStorageManager) GetFromEpoch(key []byte, epoch uint32) ([]byte, e
 		return nil, errors.ErrContextClosing
 	}
 
-	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	storer, ok := tsm.mainStorer.(pruningStorer)
 	if !ok {
 		storerType := fmt.Sprintf("%T", tsm.mainStorer)
 		tsm.storageOperationMutex.Unlock()
@@ -207,7 +207,7 @@ func (tsm *trieStorageManager) GetFromEpoch(key []byte, epoch uint32) ([]byte, e
 
 	tsm.storageOperationMutex.Unlock()
 
-	return storer.GetFromEpoch(key, epoch)
+	return storer.GetFromEpochWithoutCache(key, epoch)
 }
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
@@ -259,7 +259,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 		return errors.ErrContextClosing
 	}
 
-	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	storer, ok := tsm.mainStorer.(pruningStorer)
 	if !ok {
 		return fmt.Errorf("invalid storer type for PutInEpoch")
 	}
@@ -299,7 +299,7 @@ func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	storer, ok := tsm.mainStorer.(pruningStorer)
 	if !ok {
 		log.Debug("GetLatestStorageEpoch", "error", fmt.Sprintf("%T", tsm.mainStorer))
 		return 0, fmt.Errorf("invalid storer type for GetLatestStorageEpoch")
@@ -404,16 +404,6 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 
 	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, snapshotEntry.rootHash)
-	if err != nil {
-		treatSnapshotError(err,
-			"trie storage manager: newSnapshotNode takeSnapshot",
-			snapshotEntry.rootHash,
-			snapshotEntry.mainTrieRootHash,
-		)
-		return
-	}
-
 	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
 		log.Error("takeSnapshot: trie storage manager: newSnapshotTrieStorageManager",
@@ -423,7 +413,25 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider, false)
+	childBytes, saveChildToStorage, err := getChildForSnapshot(stsm, snapshotEntry.rootHash)
+	if err != nil {
+		treatSnapshotError(err,
+			"trie storage manager: getChildForSnapshot",
+			snapshotEntry.rootHash,
+			snapshotEntry.mainTrieRootHash)
+		return
+	}
+
+	newRoot, err := decodeNode(childBytes, msh, hsh)
+	if err != nil {
+		log.Error("takeSnapshot: trie storage manager: decodeNode",
+			"rootHash", snapshotEntry.rootHash,
+			"main trie rootHash", snapshotEntry.mainTrieRootHash,
+			"err", err.Error())
+		return
+	}
+
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider, saveChildToStorage)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
@@ -510,7 +518,7 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.checkpointHashesHolder.Remove(hash)
-	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	storer, ok := tsm.mainStorer.(pruningStorer)
 	if !ok {
 		return fmt.Errorf("%w, storer type is %s", ErrWrongTypeAssertion, fmt.Sprintf("%T", tsm.mainStorer))
 	}
@@ -584,8 +592,8 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 	return isActiveDB(stsm)
 }
 
-func isActiveDB(stsm *snapshotTrieStorageManager) bool {
-	val, err := stsm.Get([]byte(common.ActiveDBKey))
+func isActiveDB(storer pruningStorer) bool {
+	val, err := storer.Get([]byte(common.ActiveDBKey))
 	if err != nil {
 		log.Debug("isActiveDB get error", "err", err.Error())
 		return false
@@ -600,18 +608,18 @@ func isActiveDB(stsm *snapshotTrieStorageManager) bool {
 	return false
 }
 
-func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
-	epoch, err := stsm.GetLatestStorageEpoch()
+func isTrieSynced(storer pruningStorer) bool {
+	epoch, err := storer.GetLatestStorageEpoch()
 	if err != nil {
 		log.Debug("isTrieSynced get latest storage epoch error", "err", err.Error())
 		return false
 	}
 
-	isTrieSyncedThisEpoch := isTrieSyncedInEpoch(stsm, epoch)
+	isTrieSyncedThisEpoch := isTrieSyncedInEpoch(storer, epoch)
 	isTrieSyncedLastEpoch := false
 
 	if epoch > 0 {
-		isTrieSyncedLastEpoch = isTrieSyncedInEpoch(stsm, epoch-1)
+		isTrieSyncedLastEpoch = isTrieSyncedInEpoch(storer, epoch-1)
 	}
 
 	isTrieSynced := isTrieSyncedThisEpoch || isTrieSyncedLastEpoch
@@ -619,8 +627,8 @@ func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 	return isTrieSynced
 }
 
-func isTrieSyncedInEpoch(stsm *snapshotTrieStorageManager, epoch uint32) bool {
-	val, err := stsm.GetFromEpoch([]byte(common.TrieSyncedKey), epoch)
+func isTrieSyncedInEpoch(storer pruningStorer, epoch uint32) bool {
+	val, err := storer.GetFromEpochWithoutCache([]byte(common.TrieSyncedKey), epoch)
 	if err != nil {
 		log.Debug("isTrieSynced get error", "err", err.Error())
 		return false
