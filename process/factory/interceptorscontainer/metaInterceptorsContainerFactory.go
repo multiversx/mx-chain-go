@@ -181,7 +181,7 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, err
 	}
 
-	err = micf.generateValidatorInfoInterceptor()
+	err = micf.generateDirectConnectionInfoInterceptor()
 	if err != nil {
 		return nil, err
 	}

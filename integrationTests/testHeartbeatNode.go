@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -64,7 +65,7 @@ const (
 )
 
 // TestMarshaller represents the main marshaller
-var TestMarshaller = &testscommon.MarshalizerMock{}
+var TestMarshaller = &marshal.GogoProtoMarshalizer{}
 
 // TestThrottler -
 var TestThrottler = &processMock.InterceptorThrottlerStub{
@@ -541,11 +542,11 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 }
 
 func (thn *TestHeartbeatNode) createValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
-	args := interceptorsProcessor.ArgValidatorInfoInterceptorProcessor{
+	args := interceptorsProcessor.ArgDirectConnectionInfoInterceptorProcessor{
 		PeerShardMapper: thn.PeerShardMapper,
 	}
-	sviProcessor, _ := interceptorsProcessor.NewValidatorInfoInterceptorProcessor(args)
-	sviFactory, _ := interceptorFactory.NewInterceptedValidatorInfoFactory(argsFactory)
+	sviProcessor, _ := interceptorsProcessor.NewDirectConnectionInfoInterceptorProcessor(args)
+	sviFactory, _ := interceptorFactory.NewInterceptedDirectConnectionInfoFactory(argsFactory)
 	thn.ValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
 }
 
@@ -553,7 +554,7 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 	mdInterceptor, _ := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      testscommon.MarshalizerMock{},
+			Marshalizer:      TestMarshalizer,
 			DataFactory:      dataFactory,
 			Processor:        processor,
 			Throttler:        TestThrottler,
@@ -616,7 +617,7 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 func (thn *TestHeartbeatNode) initDirectConnectionsProcessor() {
 	args := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 thn.Messenger,
-		Marshaller:                testscommon.MarshalizerMock{},
+		Marshaller:                TestMarshaller,
 		ShardCoordinator:          thn.ShardCoordinator,
 		DelayBetweenNotifications: 5 * time.Second,
 	}

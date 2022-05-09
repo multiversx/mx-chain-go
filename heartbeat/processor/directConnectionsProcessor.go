@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -113,8 +114,8 @@ func (dcp *directConnectionsProcessor) computeNewPeers(connectedPeers []core.Pee
 func (dcp *directConnectionsProcessor) notifyNewPeers(newPeers []core.PeerID) {
 	dcp.notifiedPeersMap = make(map[core.PeerID]struct{})
 
-	shardValidatorInfo := &message.ShardValidatorInfo{
-		ShardId: dcp.shardCoordinator.SelfId(),
+	shardValidatorInfo := &message.DirectConnectionInfo{
+		ShardId: strconv.Itoa(int(dcp.shardCoordinator.SelfId())),
 	}
 
 	shardValidatorInfoBuff, err := dcp.marshaller.Marshal(shardValidatorInfo)
