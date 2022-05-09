@@ -194,12 +194,12 @@ func (res *peerAuthenticationResolver) resolveChunkRequest(chunkIndex int, epoch
 		return err
 	}
 
-	peerAuthsForCHunk, err := res.fetchPeerAuthenticationSlicesForPublicKeys(pksChunk)
+	peerAuthsForChunk, err := res.fetchPeerAuthenticationSlicesForPublicKeys(pksChunk)
 	if err != nil {
 		return fmt.Errorf("resolveChunkRequest error %w from chunk %d", err, chunkIndex)
 	}
 
-	return res.sendPeerAuthsForHashes(peerAuthsForCHunk, pid)
+	return res.sendPeerAuthsForHashes(peerAuthsForChunk, pid)
 }
 
 // getSortedValidatorsKeys returns the sorted slice of validators keys from all shards
