@@ -550,6 +550,7 @@ type RequestHandler interface {
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
 	RequestValidatorInfo(hash []byte)
+	RequestValidatorsInfo(hashes [][]byte)
 	IsInterfaceNil() bool
 }
 
