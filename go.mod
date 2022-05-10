@@ -5,16 +5,15 @@ go 1.15
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.39
 	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.39
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.46
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.49
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/covalent-indexer-go v1.0.6
 	github.com/ElrondNetwork/elastic-indexer-go v1.1.41
 	github.com/ElrondNetwork/elrond-go-core v1.1.16-0.20220414130405-e3cc29bc7711
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.2
+	github.com/ElrondNetwork/elrond-vm-common v1.3.3
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2
-	github.com/ElrondNetwork/notifier-go v1.1.0
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/davecgh/go-spew v1.1.1
@@ -57,4 +56,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.39 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.39 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.39
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.46 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.46
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.49 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.49

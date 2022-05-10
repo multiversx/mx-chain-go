@@ -227,8 +227,18 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_nonces_passed_in_current_epoch": uint64(85),
 	}
 
-	configMetrics, _ := sm.NetworkMetrics()
-	assert.Equal(t, expectedConfig, configMetrics)
+	t.Run("no cross check value", func(t *testing.T) {
+		configMetrics, _ := sm.NetworkMetrics()
+		assert.Equal(t, expectedConfig, configMetrics)
+	})
+	t.Run("with cross check value", func(t *testing.T) {
+		crossCheckValue := "0: 9169897, 1: 9166353, 2: 9170524, "
+		sm.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckValue)
+
+		configMetrics, _ := sm.NetworkMetrics()
+		expectedConfig[common.MetricCrossCheckBlockHeight] = crossCheckValue
+		assert.Equal(t, expectedConfig, configMetrics)
+	})
 }
 
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
