@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -118,7 +119,18 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	returnCode := contract.Execute(input)
-	vmOutput := s.systemEI.CreateVMOutput()
+	vmOutput := &vmcommon.VMOutput{}
+	if returnCode == vmcommon.Ok {
+		vmOutput = s.systemEI.CreateVMOutput()
+	} else {
+		vmOutput = &vmcommon.VMOutput{
+			GasRemaining:  0,
+			GasRefund:     big.NewInt(0),
+			ReturnCode:    returnCode,
+			ReturnMessage: s.systemEI.GetReturnMessage(),
+		}
+	}
+
 	vmOutput.ReturnCode = returnCode
 
 	return vmOutput, nil
