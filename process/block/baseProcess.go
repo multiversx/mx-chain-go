@@ -1014,7 +1014,6 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
-	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality + 2)
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
 		displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
