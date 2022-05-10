@@ -1,6 +1,6 @@
 package disabled
 
-type disabledCustomDatabaseRemover struct {}
+type disabledCustomDatabaseRemover struct{}
 
 // NewDisabledCustomDatabaseRemover returns a new instance of disabledCustomDatabaseRemover
 func NewDisabledCustomDatabaseRemover() *disabledCustomDatabaseRemover {
