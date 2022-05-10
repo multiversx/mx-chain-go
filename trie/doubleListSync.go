@@ -32,7 +32,7 @@ type doubleListTrieSyncer struct {
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
 	existingNodes             map[string]node
-	missingHashes             map[string]struct{}
+	missingHashes             *missingHashes
 }
 
 // NewDoubleListTrieSyncer creates a new instance of trieSyncer that uses 2 list for keeping the "margin" nodes.
@@ -77,12 +77,12 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	defer d.mutOperation.Unlock()
 
 	d.existingNodes = make(map[string]node)
-	d.missingHashes = make(map[string]struct{})
+	d.missingHashes = newMissingHashes()
 
 	d.rootFound = false
 	d.rootHash = rootHash
 
-	d.missingHashes[string(rootHash)] = struct{}{}
+	d.missingHashes.add(string(rootHash))
 
 	timeStart := time.Now()
 	defer func() {
@@ -118,13 +118,14 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 		return false, err
 	}
 
-	if len(d.missingHashes) > 0 {
-		marginSlice := make([][]byte, 0, len(d.missingHashes))
-		for hash := range d.missingHashes {
+	if d.missingHashes.len() > 0 {
+		marginSlice := make([][]byte, 0, d.missingHashes.len())
+		missing := d.missingHashes.getHashesSliceWithCopy()
+		for _, hash := range missing {
 			n, errGet := d.getNodeFromCache([]byte(hash))
 			if errGet == nil {
 				d.existingNodes[hash] = n
-				delete(d.missingHashes, hash)
+				d.missingHashes.remove(hash)
 
 				continue
 			}
@@ -137,7 +138,7 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() 
 		return false, nil
 	}
 
-	return len(d.missingHashes)+len(d.existingNodes) == 0, nil
+	return d.missingHashes.len()+len(d.existingNodes) == 0, nil
 }
 
 func (d *doubleListTrieSyncer) request(hashes [][]byte) {
@@ -152,55 +153,83 @@ func (d *doubleListTrieSyncer) processMissingAndExisting() error {
 }
 
 func (d *doubleListTrieSyncer) processMissingHashes() {
-	for hash := range d.missingHashes {
+	missing := d.missingHashes.getHashesSliceWithCopy()
+	for _, hash := range missing {
 		n, err := d.getNodeFromCache([]byte(hash))
 		if err != nil {
 			continue
 		}
 
-		delete(d.missingHashes, hash)
+		d.missingHashes.remove(hash)
 
 		d.existingNodes[string(n.getHash())] = n
 	}
 }
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
-	for hash, element := range d.existingNodes {
-		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+	for _, element := range d.existingNodes {
+		err := d.traverseRecursively(element)
 		if err != nil {
 			return err
 		}
 
-		d.timeoutHandler.ResetWatchdog()
-
-		var children []node
-		var missingChildrenHashes [][]byte
-		missingChildrenHashes, children, err = element.loadChildren(d.getNode)
-		if err != nil {
-			return err
-		}
-
-		d.trieSyncStatistics.AddNumReceived(1)
-		if numBytes > core.MaxBufferSizeToSendTrieNodes {
-			d.trieSyncStatistics.AddNumLarge(1)
-		}
-		d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
-		d.updateStats(uint64(numBytes), element)
-
-		delete(d.existingNodes, hash)
-
-		for _, child := range children {
-			d.existingNodes[string(child.getHash())] = child
-		}
-
-		for _, missingHash := range missingChildrenHashes {
-			d.missingHashes[string(missingHash)] = struct{}{}
-		}
-
-		if len(missingChildrenHashes) > 0 && len(d.missingHashes) > d.maxHardCapForMissingNodes {
+		if d.missingHashes.len() > d.maxHardCapForMissingNodes {
 			break
 		}
 	}
+
+	return nil
+}
+
+func (d *doubleListTrieSyncer) traverseRecursively(current node) error {
+	err := d.handleExistingNode(current)
+	if err != nil {
+		return err
+	}
+
+	missingChildrenHashes, children, err := current.loadChildren(d.getNode)
+	if err != nil {
+		return err
+	}
+
+	for _, hash := range missingChildrenHashes {
+		d.missingHashes.add(string(hash))
+	}
+	if d.missingHashes.len() > d.maxHardCapForMissingNodes {
+		for _, child := range children {
+			d.existingNodes[string(child.getHash())] = child
+		}
+		return nil
+	}
+
+	for _, child := range children {
+		d.existingNodes[string(child.getHash())] = child
+		err = d.traverseRecursively(child)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *doubleListTrieSyncer) handleExistingNode(current node) error {
+	numBytes, err := encodeNodeAndCommitToDB(current, d.db)
+	if err != nil {
+		return err
+	}
+
+	d.timeoutHandler.ResetWatchdog()
+	hash := current.getHash()
+
+	d.trieSyncStatistics.AddNumReceived(1)
+	if numBytes > core.MaxBufferSizeToSendTrieNodes {
+		d.trieSyncStatistics.AddNumLarge(1)
+	}
+	d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
+	d.updateStats(uint64(numBytes), current)
+	delete(d.existingNodes, string(hash))
+	d.interceptedNodesCacher.Remove(hash)
 
 	return nil
 }
