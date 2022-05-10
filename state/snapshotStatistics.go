@@ -65,7 +65,7 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 	ss.mutex.RLock()
 	defer ss.mutex.RUnlock()
 
-	log.Debug("snapshot statistics",
+	log.Info("snapshot statistics",
 		"type", identifier,
 		"duration", time.Since(ss.startTime).Truncate(time.Second),
 		"num of nodes copied", ss.numNodes,

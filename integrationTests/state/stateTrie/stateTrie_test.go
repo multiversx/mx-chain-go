@@ -25,17 +25,20 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
+	notifier2 "github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/state/factory"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	testStorage "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/ElrondNetwork/elrond-go/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
@@ -2387,4 +2390,103 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return adb
+}
+
+func TestSnapshotSavesDataInTheCorrectEpochStorages(t *testing.T) {
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		SnapshotsGoroutineNum: 1,
+	}
+	args := getNewTrieStorageManagerArgs()
+	notifier := notifier2.NewManualEpochStartNotifier()
+	tps, storers, _ := testStorage.CreateTriePruningStorer(testscommon.NewMultiShardsCoordinatorMock(2), notifier)
+	args.MainStorer = tps
+	args.GeneralConfig = generalCfg
+	trieStorage, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, 10)
+	argsAccountsDB := state.ArgsAccountsDB{
+		Trie:                  tr,
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		AccountFactory:        factory.NewAccountCreator(),
+		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
+		ProcessingMode:        common.ImportDb,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+	}
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
+
+	epoch0Path := "Epoch_0/Shard_0/id"
+	epoch1Path := "Epoch_1/Shard_0/id"
+	numAccounts := uint32(100)
+
+	_, err := createDummyAccountsWith100EGLD(numAccounts, adb)
+	require.Nil(t, err)
+
+	for i := uint32(0); i < numAccounts/2; i++ {
+		acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(i))
+		accState := acc.(state.UserAccountHandler)
+		k, v := createDummyKeyValue(int(i))
+		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
+		_ = adb.SaveAccount(accState)
+
+	}
+	rootHash, _ := adb.Commit()
+
+	dataTriesRootHashes := make([][]byte, 0)
+	for i := uint32(0); i < numAccounts/2; i++ {
+		acc, _ := adb.LoadAccount(getDummyAccountAddressFromIndex(i))
+		accState := acc.(state.UserAccountHandler)
+		rh := accState.GetRootHash()
+		require.NotEqual(t, 0, len(rh))
+		dataTriesRootHashes = append(dataTriesRootHashes, rh)
+	}
+	require.NotEqual(t, 0, len(dataTriesRootHashes))
+
+	require.Equal(t, uint32(0), notifier.CurrentEpoch())
+	notifier.NewEpoch(1)
+
+	mainTr, _ := adb.GetTrie(rootHash)
+	epoch0Hashes, _ := mainTr.GetAllHashes()
+	epoch0storer := storers[epoch0Path]
+	epoch1storer := storers[epoch1Path]
+	for i := 0; i < len(epoch0Hashes)/2; i++ {
+		val, err := epoch0storer.Get(epoch0Hashes[i])
+		require.Nil(t, err)
+		err = epoch1storer.Put(epoch0Hashes[i], val)
+		require.Nil(t, err)
+	}
+
+	numMissingHashes := 0
+	for i := 0; i < len(epoch0Hashes); i++ {
+		_, err := epoch1storer.Get(epoch0Hashes[i])
+		if err != nil {
+			numMissingHashes++
+		}
+	}
+	assert.Equal(t, len(epoch0Hashes)/2, numMissingHashes)
+	for _, hash := range dataTriesRootHashes {
+		_, err := epoch1storer.Get(hash)
+		require.NotNil(t, err)
+	}
+
+	require.Equal(t, uint32(1), notifier.CurrentEpoch())
+	notifier.NewEpoch(2)
+
+	_ = epoch0storer.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	adb.SnapshotState(rootHash)
+
+	numMissingHashes = 0
+	for _, hash := range epoch0Hashes {
+		_, err = epoch1storer.Get(hash)
+		if err != nil {
+			numMissingHashes++
+		}
+	}
+	require.Equal(t, 0, numMissingHashes)
+
+	for _, hash := range dataTriesRootHashes {
+		_, err := epoch1storer.Get(hash)
+		require.Nil(t, err)
+	}
 }
