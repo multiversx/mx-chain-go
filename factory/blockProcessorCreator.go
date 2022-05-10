@@ -725,6 +725,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	pcf.stakingDataProvider = stakingDataProvider
+
 	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -43,10 +45,30 @@ func TestNewValidatorsProvider_WithMaxRatingZeroShouldErr(t *testing.T) {
 
 func TestNewValidatorsProvider_WithNilValidatorPubkeyConverterShouldErr(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
-	arg.PubKeyConverter = nil
+	arg.ValidatorPubKeyConverter = nil
 	vp, err := NewValidatorsProvider(arg)
 
-	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+	assert.True(t, strings.Contains(err.Error(), "validator"))
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilAddressPubkeyConverterShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.AddressPubKeyConverter = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+	assert.True(t, strings.Contains(err.Error(), "address"))
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilStakingDataProviderShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.StakingDataProvider = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.Equal(t, process.ErrNilStakingDataProvider, err)
 	assert.True(t, check.IfNil(vp))
 }
 
@@ -211,7 +233,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
 		lock:                         sync.RWMutex{},
-		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		validatorPubKeyConverter:     mock.NewPubkeyConverterMock(32),
 	}
 
 	vsp.updateCache()
@@ -285,7 +307,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
-		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		validatorPubKeyConverter:     mock.NewPubkeyConverterMock(32),
 		lock:                         sync.RWMutex{},
 	}
 
@@ -293,7 +315,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 
 	assert.NotNil(t, vsp.cache)
 	assert.Equal(t, len(validatorsMap.GetShardValidatorsInfoMap()[initialShardId]), len(vsp.cache))
-	encodedKey := arg.PubKeyConverter.Encode(pk)
+	encodedKey := arg.ValidatorPubKeyConverter.Encode(pk)
 	assert.NotNil(t, vsp.cache[encodedKey])
 	assert.Equal(t, initialList, vsp.cache[encodedKey].ValidatorStatus)
 	assert.Equal(t, initialShardId, vsp.cache[encodedKey].ShardId)
@@ -328,7 +350,7 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	}
 
 	vp := validatorsProvider{
-		pubkeyConverter: pubKeyConverter,
+		validatorPubKeyConverter: pubKeyConverter,
 	}
 
 	vp.aggregateLists(cache, validatorsMap, common.EligibleList)
@@ -398,7 +420,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		validatorStatistics:          arg.ValidatorStatistics,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
-		pubkeyConverter:              pubKeyConverter,
+		validatorPubKeyConverter:     pubKeyConverter,
 		lock:                         sync.RWMutex{},
 	}
 
@@ -468,7 +490,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	vsp := validatorsProvider{
 		nodesCoordinator:             nodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
-		pubkeyConverter:              arg.PubKeyConverter,
+		validatorPubKeyConverter:     arg.ValidatorPubKeyConverter,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		lock:                         sync.RWMutex{},
@@ -476,12 +498,12 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 
 	cache := vsp.createNewCache(0, validatorsMap)
 
-	encodedPkEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedPkEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.NotNil(t, cache[encodedPkEligible])
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkLeavingInTrie := arg.PubKeyConverter.Encode(pkLeavingInTrie)
+	encodedPkLeavingInTrie := arg.ValidatorPubKeyConverter.Encode(pkLeavingInTrie)
 	computedPeerType := fmt.Sprintf(common.CombinedPeerType, common.EligibleList, common.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
@@ -557,7 +579,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	epochStartNotifier.NotifyAll(&block.Header{Nonce: 1, ShardID: 2, Round: 3})
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
@@ -595,7 +617,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
@@ -635,13 +657,15 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 		NodesCoordinator:                  &shardingMocks.NodesCoordinatorMock{},
 		StartEpoch:                        1,
 		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
+		StakingDataProvider:               &stakingcommon.StakingDataProviderStub{},
 		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,
 		ValidatorStatistics: &testscommon.ValidatorStatisticsProcessorStub{
 			LastFinalizedRootHashCalled: func() []byte {
 				return []byte("rootHash")
 			},
 		},
-		MaxRating:       100,
-		PubKeyConverter: mock.NewPubkeyConverterMock(32),
+		MaxRating:                100,
+		ValidatorPubKeyConverter: mock.NewPubkeyConverterMock(32),
+		AddressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
 	}
 }

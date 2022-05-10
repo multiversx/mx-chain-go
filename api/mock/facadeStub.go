@@ -35,6 +35,7 @@ type FacadeStub struct {
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
+	AuctionListHandler                      func() ([]*common.AuctionListValidatorAPIResponse, error)
 	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                        func() map[string]interface{}
 	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
@@ -285,6 +286,11 @@ func (f *FacadeStub) ValidateTransactionForSimulation(tx *transaction.Transactio
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
 func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return f.ValidatorStatisticsHandler()
+}
+
+// AuctionListApi is the mock implementation of a handler's AuctionListApi method
+func (f *FacadeStub) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return f.AuctionListHandler()
 }
 
 // ExecuteSCQuery is a mock implementation.

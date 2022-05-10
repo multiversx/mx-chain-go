@@ -33,6 +33,7 @@ type NodeStub struct {
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []data.PubKeyHeartbeat
 	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
+	AuctionListApiCalled                           func() ([]*common.AuctionListValidatorAPIResponse, error)
 	DirectTriggerCalled                            func(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
@@ -164,6 +165,11 @@ func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
 // ValidatorStatisticsApi -
 func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return ns.ValidatorStatisticsApiCalled()
+}
+
+// AuctionListApi -
+func (ns *NodeStub) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return ns.AuctionListApiCalled()
 }
 
 // DirectTrigger -

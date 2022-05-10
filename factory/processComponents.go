@@ -158,6 +158,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	stakingDataProvider    epochStart.StakingDataProvider
 
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
@@ -323,7 +324,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
 		ValidatorStatistics:               validatorStatisticsProcessor,
 		MaxRating:                         pcf.maxRating,
-		PubKeyConverter:                   pcf.coreData.ValidatorPubKeyConverter(),
+		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)

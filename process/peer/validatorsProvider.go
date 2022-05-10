@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
@@ -28,7 +29,9 @@ type validatorsProvider struct {
 	lastCacheUpdate              time.Time
 	lock                         sync.RWMutex
 	cancelFunc                   func()
-	pubkeyConverter              core.PubkeyConverter
+	validatorPubKeyConverter     core.PubkeyConverter
+	addressPubKeyConverter       core.PubkeyConverter
+	stakingDataProvider          epochStart.StakingDataProvider
 	maxRating                    uint32
 	currentEpoch                 uint32
 }
@@ -39,7 +42,9 @@ type ArgValidatorsProvider struct {
 	EpochStartEventNotifier           process.EpochStartEventNotifier
 	CacheRefreshIntervalDurationInSec time.Duration
 	ValidatorStatistics               process.ValidatorStatisticsProcessor
-	PubKeyConverter                   core.PubkeyConverter
+	ValidatorPubKeyConverter          core.PubkeyConverter
+	AddressPubKeyConverter            core.PubkeyConverter
+	StakingDataProvider               epochStart.StakingDataProvider
 	StartEpoch                        uint32
 	MaxRating                         uint32
 }
@@ -52,14 +57,20 @@ func NewValidatorsProvider(
 	if check.IfNil(args.ValidatorStatistics) {
 		return nil, process.ErrNilValidatorStatistics
 	}
-	if check.IfNil(args.PubKeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
+	if check.IfNil(args.ValidatorPubKeyConverter) {
+		return nil, fmt.Errorf("%w for validators", process.ErrNilPubkeyConverter)
+	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, fmt.Errorf("%w for addresses", process.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.EpochStartEventNotifier) {
 		return nil, process.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.StakingDataProvider) {
+		return nil, process.ErrNilStakingDataProvider
 	}
 	if args.MaxRating == 0 {
 		return nil, process.ErrMaxRatingZero
@@ -73,13 +84,15 @@ func NewValidatorsProvider(
 	valProvider := &validatorsProvider{
 		nodesCoordinator:             args.NodesCoordinator,
 		validatorStatistics:          args.ValidatorStatistics,
+		stakingDataProvider:          args.StakingDataProvider,
 		cache:                        make(map[string]*state.ValidatorApiResponse),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
 		cancelFunc:                   cancelfunc,
 		maxRating:                    args.MaxRating,
-		pubkeyConverter:              args.PubKeyConverter,
+		validatorPubKeyConverter:     args.ValidatorPubKeyConverter,
+		addressPubKeyConverter:       args.AddressPubKeyConverter,
 		currentEpoch:                 args.StartEpoch,
 	}
 
@@ -91,6 +104,48 @@ func NewValidatorsProvider(
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
+	return vp.getValidators()
+}
+
+// GetAuctionList returns an array containing the validators that are currently in the auction list
+func (vp *validatorsProvider) GetAuctionList() []*common.AuctionListValidatorAPIResponse {
+	validators := vp.getValidators()
+
+	auctionListValidators := make([]*common.AuctionListValidatorAPIResponse, 0)
+	for pubKey, val := range validators {
+		if string(common.AuctionList) != val.ValidatorStatus {
+			continue
+		}
+
+		pubKeyBytes, err := vp.validatorPubKeyConverter.Decode(pubKey)
+		if err != nil {
+			log.Error("validatorsProvider.GetAuctionList: cannot decode public key of a node", "error", err)
+			continue
+		}
+
+		owner, err := vp.stakingDataProvider.GetBlsKeyOwner(pubKeyBytes)
+		if err != nil {
+			log.Error("validatorsProvider.GetAuctionList: cannot get bls key owner", "public key", pubKey, "error", err)
+			continue
+		}
+
+		topUp, err := vp.stakingDataProvider.GetNodeStakedTopUp(pubKeyBytes)
+		if err != nil {
+			log.Error("validatorsProvider.GetAuctionList: cannot get node top up", "public key", pubKey, "error", err)
+			continue
+		}
+
+		auctionListValidators = append(auctionListValidators, &common.AuctionListValidatorAPIResponse{
+			Owner:   vp.addressPubKeyConverter.Encode([]byte(owner)),
+			NodeKey: pubKey,
+			TopUp:   topUp.String(),
+		})
+	}
+
+	return auctionListValidators
+}
+
+func (vp *validatorsProvider) getValidators() map[string]*state.ValidatorApiResponse {
 	vp.lock.RLock()
 	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
 	vp.lock.RUnlock()
@@ -222,7 +277,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 	newCache := make(map[string]*state.ValidatorApiResponse)
 
 	for _, validatorInfo := range allNodes.GetAllValidatorsInfo() {
-		strKey := vp.pubkeyConverter.Encode(validatorInfo.GetPublicKey())
+		strKey := vp.validatorPubKeyConverter.Encode(validatorInfo.GetPublicKey())
 		newCache[strKey] = &state.ValidatorApiResponse{
 			NumLeaderSuccess:                   validatorInfo.GetLeaderSuccess(),
 			NumLeaderFailure:                   validatorInfo.GetLeaderFailure(),
@@ -253,7 +308,7 @@ func (vp *validatorsProvider) aggregateLists(
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			encodedKey := vp.pubkeyConverter.Encode(val)
+			encodedKey := vp.validatorPubKeyConverter.Encode(val)
 			foundInTrieValidator, ok := newCache[encodedKey]
 			peerType := string(currentList)
 
