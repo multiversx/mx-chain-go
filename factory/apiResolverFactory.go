@@ -346,6 +346,7 @@ func createScQueryElement(
 		ArwenChangeLocker:        args.coreComponents.ArwenChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
+		MaxGasLimitPerQuery:      args.generalConfig.VirtualMachine.GasConfig.MaxGasPerVmQuery,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
