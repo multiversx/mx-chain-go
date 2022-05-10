@@ -32,8 +32,6 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricNumTimesInForkChoice,
 		common.MetricHighestFinalBlock,
 		common.MetricCountConsensusAcceptedBlocks,
-		common.MetricRoundAtEpochStart,
-		common.MetricNonceAtEpochStart,
 		common.MetricRoundsPassedInCurrentEpoch,
 		common.MetricNoncesPassedInCurrentEpoch,
 		common.MetricNumConnectedPeers,

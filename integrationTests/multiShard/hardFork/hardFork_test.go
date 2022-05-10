@@ -618,6 +618,7 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
+			PeersRatingHandler:        node.PeersRatingHandler,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

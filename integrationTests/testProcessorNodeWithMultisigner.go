@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
@@ -54,7 +55,12 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	messenger := CreateMessengerWithNoDiscovery()
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+		})
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -70,6 +76,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		PeersRatingHandler:      peersRatingHandler,
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -242,7 +249,12 @@ func CreateNodeWithBLSAndTxKeys(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
-	messenger := CreateMessengerWithNoDiscovery()
+	peersRatingHandler, _ := p2pRating.NewPeersRatingHandler(
+		p2pRating.ArgPeersRatingHandler{
+			TopRatedCache: testscommon.NewCacherMock(),
+			BadRatedCache: testscommon.NewCacherMock(),
+		})
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
@@ -257,6 +269,7 @@ func CreateNodeWithBLSAndTxKeys(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		PeersRatingHandler:      peersRatingHandler,
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)

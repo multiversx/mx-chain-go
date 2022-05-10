@@ -30,7 +30,6 @@ func (ps *PruningStorer) AddMockActivePersisters(epochs []uint32, ordered bool, 
 			ps.activePersisters = append(ps.activePersisters, pd)
 		}
 
-
 		if withMap {
 			ps.persistersMapByEpoch[e] = pd
 		}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"sort"
 	"time"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -886,10 +886,10 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 	if err != nil {
-		log.Warn("cleanupPoolsForCrossShard",
-			"shard", shardID,
-			"nonces to previous final", noncesToPrevFinal,
-			"error", err.Error())
+		displayCleanupErrorMessage("cleanupPoolsForCrossShard",
+			shardID,
+			noncesToPrevFinal,
+			err)
 		return
 	}
 
@@ -1014,18 +1014,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
-	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality + 2)
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
-		message := "cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader"
-		errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
-			errSelfNotarized, shardID, noncesToPrevFinal,
-		)
-		if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
-			log.Debug(message, "error", errMessage)
-		} else {
-			log.Warn(message, "error", errMessage)
-		}
+		displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
+			shardID,
+			noncesToPrevFinal,
+			errSelfNotarized)
 		return
 	}
 
@@ -1035,16 +1029,10 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 		if errCrossNotarized != nil {
-			message := "cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader"
-			errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
-				errCrossNotarized, shardID, noncesToPrevFinal,
-			)
-			if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
-				log.Debug(message, "error", errMessage)
-			} else {
-				log.Warn(message, "error", errMessage)
-			}
-
+			displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
+				shardID,
+				noncesToPrevFinal,
+				errCrossNotarized)
 			return
 		}
 
@@ -1929,4 +1917,18 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 func (bp *baseProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	bp.flagScheduledMiniBlocks.SetValue(epoch >= bp.scheduledMiniBlocksEnableEpoch)
 	log.Debug("baseProcessor: scheduled mini blocks", "enabled", bp.flagScheduledMiniBlocks.IsSet())
+}
+
+func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
+	// 2 blocks on shard + 2 blocks on meta + 1 block to previous final
+	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality+1)*2 + 1
+	level := logger.LogWarning
+	if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
+		level = logger.LogDebug
+	}
+
+	log.Log(level, message,
+		"shard", shardID,
+		"nonces to previous final", noncesToPrevFinal,
+		"error", err.Error())
 }
