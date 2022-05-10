@@ -73,7 +73,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		Hasher:                 tc.hasher,
 		GeneralConfig:          tc.trieStorageManagerConfig,
 		CheckpointHashesHolder: checkpointHashesHolder,
-		IdleProvider:               args.IdleProvider,
+		IdleProvider:           args.IdleProvider,
 	}
 
 	log.Debug("trie checkpoints status", "enabled", args.CheckpointsEnabled)

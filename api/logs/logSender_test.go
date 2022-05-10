@@ -41,7 +41,7 @@ func createMockLogSender() (*logs.LogSender, *mock.WsConnStub, io.Writer) {
 	return lsender, conn, ls.Writer()
 }
 
-//------- NewLogSender
+// ------- NewLogSender
 
 func TestNewLogSender_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -82,7 +82,7 @@ func TestNewLogSender_ShouldWork(t *testing.T) {
 	removeWriterFromLogSubsystem(ls.Writer())
 }
 
-//------- StartSendingBlocking
+// ------- StartSendingBlocking
 
 func TestLogSender_StartSendingBlockingConnReadMessageErrShouldCloseConn(t *testing.T) {
 	t.Parallel()
@@ -144,7 +144,7 @@ func TestLogSender_StartSendingBlockingSendsMessage(t *testing.T) {
 	})
 
 	go func() {
-		//watchdog function
+		// watchdog function
 		time.Sleep(time.Millisecond * 10)
 
 		_ = ls.Writer().Close()
@@ -169,7 +169,7 @@ func TestLogSender_StartSendingBlockingSendsMessageAndStopsWhenReadClose(t *test
 	})
 
 	go func() {
-		//watchdog function
+		// watchdog function
 		time.Sleep(time.Millisecond * 10)
 
 		conn.SetReadMessageHandler(func() (messageType int, p []byte, err error) {

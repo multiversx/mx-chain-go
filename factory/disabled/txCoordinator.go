@@ -124,7 +124,7 @@ func (txCoordinator *TxCoordinator) AddTxsFromMiniBlocks(_ block.MiniBlockSlice)
 }
 
 // AddTransactions does nothing as it is disabled
-func (txCoordinator *TxCoordinator) AddTransactions (_ []data.TransactionHandler, _ block.Type) {
+func (txCoordinator *TxCoordinator) AddTransactions(_ []data.TransactionHandler, _ block.Type) {
 }
 
 // GetAllCurrentLogs returns empty logs map
