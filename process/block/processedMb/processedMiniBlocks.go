@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
@@ -173,15 +172,8 @@ func getMiniBlocksInfo(miniBlocksInMeta bootstrapStorage.MiniBlocksInMeta) MiniB
 	miniBlocksInfo := make(MiniBlocksInfo)
 
 	for index, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
-		fullyProcessed := true
-		if miniBlocksInMeta.FullyProcessed != nil && index < len(miniBlocksInMeta.FullyProcessed) {
-			fullyProcessed = miniBlocksInMeta.FullyProcessed[index]
-		}
-
-		indexOfLastTxProcessed := common.MaxIndexOfTxInMiniBlock
-		if miniBlocksInMeta.IndexOfLastTxProcessed != nil && index < len(miniBlocksInMeta.IndexOfLastTxProcessed) {
-			indexOfLastTxProcessed = miniBlocksInMeta.IndexOfLastTxProcessed[index]
-		}
+		fullyProcessed := miniBlocksInMeta.IsFullyProcessed(index)
+		indexOfLastTxProcessed := miniBlocksInMeta.GetIndexOfLastTxProcessedInMiniBlock(index)
 
 		miniBlocksInfo[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
 			FullyProcessed:         fullyProcessed,

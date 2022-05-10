@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"sort"
 	"time"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -1049,15 +1049,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality + 2)
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
-		message := "cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader"
-		errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
-			errSelfNotarized, shardID, noncesToPrevFinal,
-		)
+		level := logger.LogWarning
 		if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
-			log.Debug(message, "error", errMessage)
-		} else {
-			log.Warn(message, "error", errMessage)
+			level = logger.LogDebug
 		}
+
+		log.Log(level, "cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader", "shard ID", shardID, "nonces to previous final", noncesToPrevFinal, "error", errSelfNotarized)
 		return
 	}
 
@@ -1067,16 +1064,12 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 		if errCrossNotarized != nil {
-			message := "cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader"
-			errMessage := fmt.Errorf("%w : for shard %d with %d nonces to previous final",
-				errCrossNotarized, shardID, noncesToPrevFinal,
-			)
+			level := logger.LogWarning
 			if noncesToPrevFinal <= maxNoncesToPrevFinalWithoutWarn {
-				log.Debug(message, "error", errMessage)
-			} else {
-				log.Warn(message, "error", errMessage)
+				level = logger.LogDebug
 			}
 
+			log.Log(level, "cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader", "shard ID", shardID, "nonces to previous final", noncesToPrevFinal, "error", errCrossNotarized)
 			return
 		}
 

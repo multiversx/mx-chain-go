@@ -1,12 +1,12 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // TxCoordinator implements the TransactionCoordinator interface but does nothing as it is disabled

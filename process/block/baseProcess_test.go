@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"reflect"
 	"sort"
@@ -31,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -790,7 +790,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
 
-func Test_setIndexOfFirstTxProcessed(t *testing.T) {
+func TestBaseProcessor_SetIndexOfFirstTxProcessed(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
@@ -813,7 +813,7 @@ func Test_setIndexOfFirstTxProcessed(t *testing.T) {
 	assert.Equal(t, int32(9), miniBlockHeader.GetIndexOfFirstTxProcessed())
 }
 
-func Test_setIndexOfLastTxProcessed(t *testing.T) {
+func TestBaseProcessor_SetIndexOfLastTxProcessed(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
@@ -841,7 +841,7 @@ func Test_setIndexOfLastTxProcessed(t *testing.T) {
 	assert.Equal(t, int32(8), miniBlockHeader.GetIndexOfLastTxProcessed())
 }
 
-func Test_setProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
+func TestBaseProcessor_SetProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
@@ -878,7 +878,7 @@ func Test_setProcessingTypeAndConstructionStateForScheduledMb(t *testing.T) {
 	assert.Equal(t, int32(block.Scheduled), miniBlockHeader.GetProcessingType())
 }
 
-func Test_setProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
+func TestBaseProcessor_SetProcessingTypeAndConstructionStateForNormalMb(t *testing.T) {
 	t.Parallel()
 
 	t.Run("set processing/construction for normal mini blocks not processed, should work", func(t *testing.T) {
