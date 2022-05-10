@@ -297,3 +297,35 @@ func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
 
 	assert.False(t, ts.ShouldTakeSnapshot())
 }
+
+func TestTrieStorageManager_ShouldTakeSnapshotIsTrieSynced(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: memorydb.New(),
+		GetFromEpochWithoutCacheCalled: func(_ []byte, _ uint32) ([]byte, error) {
+			return []byte(common.TrieSyncedVal), nil
+		},
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			return 0, nil
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	assert.False(t, ts.ShouldTakeSnapshot())
+}
+
+func TestTrieStorageManager_ShouldTakeSnapshotWithActiveDb(t *testing.T) {
+	t.Parallel()
+
+	args := getNewTrieStorageManagerArgs()
+	db := memorydb.New()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		DB: db,
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	_ = db.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	assert.True(t, ts.ShouldTakeSnapshot())
+}

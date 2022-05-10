@@ -2,14 +2,16 @@ package trie
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/common"
 	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -642,6 +644,74 @@ func TestShouldStopIfContextDone(t *testing.T) {
 			assert.Fail(t, "timeout while waiting for the shouldStopIfContextDone call to write the result")
 		}
 	})
+}
+
+func TestNode_GetChildForSnapshotLatestStorageEpochErr(t *testing.T) {
+	t.Parallel()
+	expectedErr := fmt.Errorf("expected err")
+	db := &trie.SnapshotPruningStorerStub{
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			return 0, expectedErr
+		},
+	}
+
+	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	assert.Equal(t, expectedErr, err)
+	assert.Nil(t, childBytes)
+	assert.False(t, saveChildToStorage)
+}
+
+func TestNode_GetChildForSnapshotEpoch0(t *testing.T) {
+	t.Parallel()
+	db := &trie.SnapshotPruningStorerStub{
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			return 0, nil
+		},
+	}
+
+	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	assert.NotNil(t, err)
+	assert.Nil(t, childBytes)
+	assert.False(t, saveChildToStorage)
+}
+
+func TestNode_GetChildForSnapshotFoundInLastEpoch(t *testing.T) {
+	t.Parallel()
+	expectedChildBytes := []byte("child bytes")
+	db := &trie.SnapshotPruningStorerStub{
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			return 3, nil
+		},
+		GetFromEpochWithoutCacheCalled: func(_ []byte, _ uint32) ([]byte, error) {
+			return expectedChildBytes, nil
+		},
+	}
+
+	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	assert.Nil(t, err)
+	assert.Equal(t, expectedChildBytes, childBytes)
+	assert.False(t, saveChildToStorage)
+}
+
+func TestNode_GetChildForSnapshotNotFoundInLastEpoch(t *testing.T) {
+	t.Parallel()
+	expectedChildBytes := []byte("child bytes")
+	db := &trie.SnapshotPruningStorerStub{
+		GetLatestStorageEpochCalled: func() (uint32, error) {
+			return 3, nil
+		},
+		GetFromEpochWithoutCacheCalled: func(_ []byte, _ uint32) ([]byte, error) {
+			return nil, fmt.Errorf("error")
+		},
+		GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ int) ([]byte, error) {
+			return expectedChildBytes, nil
+		},
+	}
+
+	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	assert.Nil(t, err)
+	assert.Equal(t, expectedChildBytes, childBytes)
+	assert.True(t, saveChildToStorage)
 }
 
 func Benchmark_ShouldStopIfContextDone(b *testing.B) {
