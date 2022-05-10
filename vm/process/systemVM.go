@@ -119,14 +119,13 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	returnCode := contract.Execute(input)
-	vmOutput := &vmcommon.VMOutput{}
+	var vmOutput *vmcommon.VMOutput
 	if returnCode == vmcommon.Ok {
 		vmOutput = s.systemEI.CreateVMOutput()
 	} else {
 		vmOutput = &vmcommon.VMOutput{
 			GasRemaining:  0,
 			GasRefund:     big.NewInt(0),
-			ReturnCode:    returnCode,
 			ReturnMessage: s.systemEI.GetReturnMessage(),
 		}
 	}
