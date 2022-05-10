@@ -2,8 +2,8 @@ package processor
 
 import (
 	"errors"
+	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -88,7 +88,7 @@ func TestNewDirectConnectionsProcessor(t *testing.T) {
 		notifiedPeers := make([]core.PeerID, 0)
 		var mutNotifiedPeers sync.RWMutex
 		args := createMockArgDirectConnectionsProcessor()
-		expectedShard := strconv.Itoa(int(args.ShardCoordinator.SelfId()))
+		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				mutNotifiedPeers.Lock()
@@ -241,7 +241,7 @@ func Test_directConnectionsProcessor_notifyNewPeers(t *testing.T) {
 		providedConnectedPeers := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5", "pid6"}
 		counter := 0
 		args := createMockArgDirectConnectionsProcessor()
-		expectedShard := strconv.Itoa(int(args.ShardCoordinator.SelfId()))
+		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				shardValidatorInfo := &message.DirectConnectionInfo{}
