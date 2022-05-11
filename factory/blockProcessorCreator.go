@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	factoryDisabled "github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -413,6 +414,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForTxSimulate: vmFactoryTxSimulator,
 		vmFactoryForProcessing: vmFactory,
 	}
+
+	pcf.stakingDataProvider = factoryDisabled.NewDisabledStakingDataProvider()
 
 	return blockProcessorComponents, nil
 }
