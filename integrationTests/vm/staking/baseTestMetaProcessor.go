@@ -51,6 +51,10 @@ func newTestMetaProcessor(
 		bootstrapComponents.ShardCoordinator(),
 		stateComponents.PeerAccounts(),
 	)
+	stakingDataProvider := createStakingDataProvider(
+		coreComponents.EpochNotifier(),
+		systemVM,
+	)
 	scp := createSystemSCProcessor(
 		nc,
 		coreComponents,
@@ -59,6 +63,7 @@ func newTestMetaProcessor(
 		maxNodesConfig,
 		validatorStatisticsProcessor,
 		systemVM,
+		stakingDataProvider,
 	)
 
 	txCoordinator := &mock.TransactionCoordinatorMock{}
@@ -103,6 +108,7 @@ func newTestMetaProcessor(
 		SystemVM:            systemVM,
 		StateComponents:     stateComponents,
 		BlockChainHook:      blockChainHook,
+		StakingDataProvider: stakingDataProvider,
 	}
 }
 

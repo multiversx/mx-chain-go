@@ -134,6 +134,7 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	tmp.currentRound += 1
 }
 
+//TODO: Do the same for unStake
 func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	arguments := &vmcommon.ContractCallInput{
 		VMInput:       vmInput,
@@ -163,8 +164,9 @@ func createStakingQueueCustomNodes(
 			[]byte(owner),
 		)
 
-		stakingcommon.AddValidatorData(
+		stakingcommon.RegisterValidatorKeys(
 			accountsAdapter,
+			[]byte(owner),
 			[]byte(owner),
 			ownerStats.StakingQueueKeys,
 			ownerStats.TotalStake,

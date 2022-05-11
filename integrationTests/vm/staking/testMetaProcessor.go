@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -61,6 +62,7 @@ type TestMetaProcessor struct {
 	SystemVM            vmcommon.VMExecutionHandler
 	StateComponents     factory.StateComponentsHolder
 	BlockChainHook      process.BlockChainHookHandler
+	StakingDataProvider epochStart.StakingDataProvider
 
 	currentRound uint64
 }
@@ -195,7 +197,7 @@ func (tmp *TestMetaProcessor) createAndCommitBlock(t *testing.T, header data.Hea
 
 	time.Sleep(time.Millisecond * 50)
 	tmp.updateNodesConfig(header.GetEpoch())
-	displayConfig(tmp.NodesConfig)
+	tmp.displayConfig(tmp.NodesConfig)
 }
 
 func printNewHeaderRoundEpoch(round uint64, epoch uint32) {

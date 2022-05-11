@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	epochStartMock "github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -33,15 +34,8 @@ func createSystemSCProcessor(
 	maxNodesConfig []config.MaxNodesChangeConfig,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	systemVM vmcommon.VMExecutionHandler,
+	stakingDataProvider epochStart.StakingDataProvider,
 ) process.EpochStartSystemSCProcessor {
-	argsStakingDataProvider := metachain.StakingDataProviderArgs{
-		EpochNotifier:        coreComponents.EpochNotifier(),
-		SystemVM:             systemVM,
-		MinNodePrice:         strconv.Itoa(nodePrice),
-		StakingV4EnableEpoch: stakingV4EnableEpoch,
-	}
-	stakingSCProvider, _ := metachain.NewStakingDataProvider(argsStakingDataProvider)
-
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
 		UserAccountsDB:          stateComponents.AccountsAdapter(),
@@ -54,7 +48,7 @@ func createSystemSCProcessor(
 		ChanceComputer:          &epochStartMock.ChanceComputerStub{},
 		EpochNotifier:           coreComponents.EpochNotifier(),
 		GenesisNodesConfig:      &mock.NodesSetupStub{},
-		StakingDataProvider:     stakingSCProvider,
+		StakingDataProvider:     stakingDataProvider,
 		NodesConfigProvider:     nc,
 		ShardCoordinator:        shardCoordinator,
 		ESDTOwnerAddressBytes:   bytes.Repeat([]byte{1}, 32),
@@ -70,6 +64,21 @@ func createSystemSCProcessor(
 
 	systemSCProcessor, _ := metachain.NewSystemSCProcessor(args)
 	return systemSCProcessor
+}
+
+func createStakingDataProvider(
+	epochNotifier process.EpochNotifier,
+	systemVM vmcommon.VMExecutionHandler,
+) epochStart.StakingDataProvider {
+	argsStakingDataProvider := metachain.StakingDataProviderArgs{
+		EpochNotifier:        epochNotifier,
+		SystemVM:             systemVM,
+		MinNodePrice:         strconv.Itoa(nodePrice),
+		StakingV4EnableEpoch: stakingV4EnableEpoch,
+	}
+	stakingSCProvider, _ := metachain.NewStakingDataProvider(argsStakingDataProvider)
+
+	return stakingSCProvider
 }
 
 func createValidatorStatisticsProcessor(
