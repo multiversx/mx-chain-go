@@ -15,6 +15,7 @@ type StakingDataProviderStub struct {
 	GetNodeStakedTopUpCalled              func(blsKey []byte) (*big.Int, error)
 	FillValidatorInfoCalled               func(blsKey []byte) error
 	ComputeUnQualifiedNodesCalled         func(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
+	GetBlsKeyOwnerCalled                  func([]byte) (string, error)
 }
 
 // FillValidatorInfo -
@@ -73,7 +74,11 @@ func (sdps *StakingDataProviderStub) Clean() {
 }
 
 // GetBlsKeyOwner -
-func (sdps *StakingDataProviderStub) GetBlsKeyOwner([]byte) (string, error) {
+func (sdps *StakingDataProviderStub) GetBlsKeyOwner(key []byte) (string, error) {
+	if sdps.GetBlsKeyOwnerCalled != nil {
+		return sdps.GetBlsKeyOwnerCalled(key)
+	}
+
 	return "", nil
 }
 
