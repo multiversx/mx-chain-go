@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -169,7 +170,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ShardCoord = tP2pNode.ShardCoordinator
 	processComponents.NodesCoord = tP2pNode.NodesCoordinator
-	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
+	processComponents.ValidatorProvider = &stakingcommon.ValidatorsProviderStub{}
 	processComponents.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
 		GetValidatorInfoForRootHashCalled: func(_ []byte) (state.ShardValidatorsInfoMapHandler, error) {
 			ret := state.NewShardValidatorsInfoMap()

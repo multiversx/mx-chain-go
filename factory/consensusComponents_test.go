@@ -22,6 +22,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/require"
@@ -457,7 +458,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
-		ValidatorProvider:        &mock.ValidatorsProviderStub{},
+		ValidatorProvider:        &stakingcommon.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:               &testscommon.RequestHandlerStub{},
