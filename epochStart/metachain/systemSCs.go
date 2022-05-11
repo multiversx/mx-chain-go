@@ -375,26 +375,12 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 	}
 
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Debug(message)
+	log.Info(message)
 }
 
 func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
-	allNodes := s.getAllNodeKeys(validatorsInfoMap)
+	allNodes := GetAllNodeKeys(validatorsInfoMap)
 	return s.prepareStakingData(allNodes)
-}
-
-func (s *systemSCProcessor) getAllNodeKeys(
-	validatorsInfo state.ShardValidatorsInfoMapHandler,
-) map[uint32][][]byte {
-	nodeKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfoMap() {
-		nodeKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
-		for _, validatorInfo := range validatorsInfoSlice {
-			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.GetPublicKey())
-		}
-	}
-
-	return nodeKeys
 }
 
 func (s *systemSCProcessor) updateToGovernanceV2() error {

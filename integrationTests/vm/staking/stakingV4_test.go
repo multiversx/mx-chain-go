@@ -73,8 +73,6 @@ func requireMapDoesNotContain(t *testing.T, m map[uint32][][]byte, s [][]byte) {
 	}
 }
 
-// TODO: Staking v4: more tests to check exactly which nodes have been selected/unselected from previous nodes config auction
-
 func TestStakingV4(t *testing.T) {
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)

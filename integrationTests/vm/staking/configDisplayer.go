@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 )
 
 const (
@@ -36,28 +36,17 @@ func getShortPubKeysList(pubKeys [][]byte) [][]byte {
 	return pubKeysToDisplay
 }
 
-func getEligibleNodeKeys(
-	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
-) map[uint32][][]byte {
-	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfoMap.GetShardValidatorsInfoMap() {
-		eligibleNodesKeys[shardID] = make([][]byte, 0)
-		for _, validatorInfo := range validatorsInfoSlice {
-			eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.GetPublicKey())
-
-		}
-	}
-	return eligibleNodesKeys
+func (tmp *TestMetaProcessor) getAllNodeKeys() map[uint32][][]byte {
+	rootHash, _ := tmp.ValidatorStatistics.RootHash()
+	validatorsMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
+	return metachain.GetAllNodeKeys(validatorsMap)
 }
 
 func (tmp *TestMetaProcessor) displayConfig(config nodesConfig) {
 	lines := make([]*display.LineData, 0)
 
-	rootHash, _ := tmp.ValidatorStatistics.RootHash()
-	validatorsMap, _ := tmp.ValidatorStatistics.GetValidatorInfoForRootHash(rootHash)
-
-	allNodes := getEligibleNodeKeys(validatorsMap)
-	tmp.StakingDataProvider.PrepareStakingData(allNodes)
+	allNodes := tmp.getAllNodeKeys()
+	_ = tmp.StakingDataProvider.PrepareStakingData(allNodes)
 
 	for shard := range config.eligible {
 		lines = append(lines, tmp.getDisplayableValidatorsInShard("eligible", config.eligible[shard], shard)...)

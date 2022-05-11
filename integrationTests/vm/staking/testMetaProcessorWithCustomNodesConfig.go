@@ -8,16 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
+// OwnerStats -
 type OwnerStats struct {
 	EligibleBlsKeys  map[uint32][][]byte
 	WaitingBlsKeys   map[uint32][][]byte
@@ -25,6 +24,7 @@ type OwnerStats struct {
 	TotalStake       *big.Int
 }
 
+// InitialNodesConfig -
 type InitialNodesConfig struct {
 	Owners                        map[string]*OwnerStats
 	MaxNodesChangeConfig          []config.MaxNodesChangeConfig
@@ -35,6 +35,7 @@ type InitialNodesConfig struct {
 	MetaConsensusGroupSize        int
 }
 
+// NewTestMetaProcessorWithCustomNodes -
 func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createComponentHolders(config.NumOfShards)
 
@@ -80,11 +81,14 @@ func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaPr
 	)
 }
 
+// NodesRegisterData -
 type NodesRegisterData struct {
 	BLSKeys    [][]byte
 	TotalStake *big.Int
 }
 
+// ProcessStake will create a block containing mini blocks with staking txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to stake all nodes
 func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*NodesRegisterData) {
 	header := tmp.createNewHeader(t, tmp.currentRound)
 	tmp.BlockChainHook.SetCurrentHeader(header)
@@ -144,37 +148,6 @@ func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
 	require.Nil(t, err)
 
-	err = tmp.processSCOutputAccounts(vmOutput)
+	err = integrationTests.ProcessSCOutputAccounts(vmOutput, tmp.AccountsAdapter)
 	require.Nil(t, err)
-}
-
-func createStakingQueueCustomNodes(
-	owners map[string]*OwnerStats,
-	marshaller marshal.Marshalizer,
-	accountsAdapter state.AccountsAdapter,
-) [][]byte {
-	queue := make([][]byte, 0)
-
-	for owner, ownerStats := range owners {
-		stakingcommon.AddKeysToWaitingList(
-			accountsAdapter,
-			ownerStats.StakingQueueKeys,
-			marshaller,
-			[]byte(owner),
-			[]byte(owner),
-		)
-
-		stakingcommon.RegisterValidatorKeys(
-			accountsAdapter,
-			[]byte(owner),
-			[]byte(owner),
-			ownerStats.StakingQueueKeys,
-			ownerStats.TotalStake,
-			marshaller,
-		)
-
-		queue = append(queue, ownerStats.StakingQueueKeys...)
-	}
-
-	return queue
 }

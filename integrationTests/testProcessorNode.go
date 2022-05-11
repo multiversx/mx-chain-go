@@ -1901,7 +1901,7 @@ func (tpn *TestProcessorNode) InitDelegationManager() {
 		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
 	}
 
-	err = tpn.processSCOutputAccounts(vmOutput)
+	err = ProcessSCOutputAccounts(vmOutput, tpn.AccntState)
 	log.LogIfError(err)
 
 	err = tpn.updateSystemSCContractsCode(vmInput.ContractCodeMetadata, vm.DelegationManagerSCAddress)
@@ -1937,7 +1937,7 @@ func (tpn *TestProcessorNode) InitLiquidStaking() []byte {
 		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
 	}
 
-	err = tpn.processSCOutputAccounts(vmOutput)
+	err = ProcessSCOutputAccounts(vmOutput, tpn.AccntState)
 	log.LogIfError(err)
 
 	_, err = tpn.AccntState.Commit()
@@ -1966,7 +1966,7 @@ func (tpn *TestProcessorNode) InitLiquidStaking() []byte {
 		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
 	}
 
-	err = tpn.processSCOutputAccounts(vmOutput)
+	err = ProcessSCOutputAccounts(vmOutput, tpn.AccntState)
 	log.LogIfError(err)
 
 	err = tpn.updateSystemSCContractsCode(vmInputCreate.ContractCodeMetadata, vm.LiquidStakingSCAddress)
@@ -1989,39 +1989,6 @@ func (tpn *TestProcessorNode) updateSystemSCContractsCode(contractMetadata []byt
 	userAcc.SetCode(scAddress)
 
 	return tpn.AccntState.SaveAccount(userAcc)
-}
-
-// save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (tpn *TestProcessorNode) processSCOutputAccounts(vmOutput *vmcommon.VMOutput) error {
-	outputAccounts := process.SortVMOutputInsideData(vmOutput)
-	for _, outAcc := range outputAccounts {
-		acc, err := tpn.getUserAccount(outAcc.Address)
-		if err != nil {
-			return err
-		}
-
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		for _, storeUpdate := range storageUpdates {
-			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
-			if err != nil {
-				return err
-			}
-		}
-
-		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
-			err = acc.AddToBalance(outAcc.BalanceDelta)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = tpn.AccntState.SaveAccount(acc)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (tpn *TestProcessorNode) getUserAccount(address []byte) (state.UserAccountHandler, error) {
