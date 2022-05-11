@@ -73,6 +73,33 @@ func requireMapDoesNotContain(t *testing.T, m map[uint32][][]byte, s [][]byte) {
 	}
 }
 
+func remove(s [][]byte, elem []byte) [][]byte {
+	ret := s
+	for i, e := range s {
+		if bytes.Equal(elem, e) {
+			ret[i] = ret[len(s)-1]
+			return ret[:len(s)-1]
+		}
+	}
+
+	return ret
+}
+
+func unStake(owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
+	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
+	ownerStoredData, _ := validatorSC.DataTrieTracker().RetrieveValue(owner)
+	validatorData := &systemSmartContracts.ValidatorDataV2{}
+	_ = marshaller.Unmarshal(validatorData, ownerStoredData)
+
+	validatorData.TotalStakeValue.Sub(validatorData.TotalStakeValue, stake)
+
+	marshaledData, _ := marshaller.Marshal(validatorData)
+	_ = validatorSC.DataTrieTracker().SaveKeyValue(owner, marshaledData)
+
+	_ = accountsDB.SaveAccount(validatorSC)
+	_, _ = accountsDB.Commit()
+}
+
 func TestStakingV4(t *testing.T) {
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
@@ -227,7 +254,7 @@ func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootH
 }
 
 func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
-	pubKeys := generateAddresses(0, 40)
+	pubKeys := generateAddresses(0, 20)
 
 	// Owner1 has 8 nodes, but enough stake for just 7 nodes. At the end of the epoch(staking v4 init),
 	// the last node from staking queue should be unStaked
@@ -237,9 +264,9 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 			core.MetachainShardId: pubKeys[:3],
 		},
 		WaitingBlsKeys: map[uint32][][]byte{
-			0: pubKeys[3:6], // 1 waiting shard 0
+			0: pubKeys[3:6],
 		},
-		StakingQueueKeys: pubKeys[6:8], // 2 queue
+		StakingQueueKeys: pubKeys[6:8],
 		TotalStake:       big.NewInt(7 * nodePrice),
 	}
 
@@ -383,179 +410,124 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), owner4StakingQueue, 1)
 }
 
-func remove(s [][]byte, elem []byte) [][]byte {
-	ret := s
-	for i, e := range s {
-		if bytes.Equal(elem, e) {
-			ret[i] = ret[len(s)-1]
-			return ret[:len(s)-1]
-		}
-	}
-
-	return ret
-}
-
-func unStake(owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
-	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
-	ownerStoredData, _ := validatorSC.DataTrieTracker().RetrieveValue(owner)
-	validatorData := &systemSmartContracts.ValidatorDataV2{}
-	_ = marshaller.Unmarshal(validatorData, ownerStoredData)
-
-	validatorData.TotalStakeValue.Sub(validatorData.TotalStakeValue, stake)
-
-	marshaledData, _ := marshaller.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(owner, marshaledData)
-
-	_ = accountsDB.SaveAccount(validatorSC)
-	_, _ = accountsDB.Commit()
-}
-
 func TestStakingV4_StakeNewNodes(t *testing.T) {
-	pubKeys := generateAddresses(0, 40)
+	pubKeys := generateAddresses(0, 20)
 
-	//_ = logger.SetLogLevel("*:DEBUG")
-
+	// Owner1 has 6 nodes, zero top up
 	owner1 := "owner1"
 	owner1Stats := &OwnerStats{
 		EligibleBlsKeys: map[uint32][][]byte{
-			core.MetachainShardId: pubKeys[:3],
+			core.MetachainShardId: pubKeys[:2],
 		},
 		WaitingBlsKeys: map[uint32][][]byte{
-			0: pubKeys[3:6], // 1 waiting shard 0
+			0: pubKeys[2:4],
 		},
-		StakingQueueKeys: pubKeys[7:9], // 2 queue
-		TotalStake:       big.NewInt(7000),
+		StakingQueueKeys: pubKeys[4:6],
+		TotalStake:       big.NewInt(6 * nodePrice),
 	}
 
+	// Owner2 has 4 nodes, zero top up
 	owner2 := "owner2"
 	owner2Stats := &OwnerStats{
 		EligibleBlsKeys: map[uint32][][]byte{
-			0: pubKeys[17:20], //total 3 meta
+			0: pubKeys[6:8],
 		},
 		WaitingBlsKeys: map[uint32][][]byte{
-			core.MetachainShardId: pubKeys[13:16],
+			core.MetachainShardId: pubKeys[8:10],
 		},
-		TotalStake: big.NewInt(5000),
+		TotalStake: big.NewInt(4 * nodePrice),
 	}
-
-	owner5 := "owner5"
-	owner5Stats := &OwnerStats{
-		StakingQueueKeys: pubKeys[23:25],
-		TotalStake:       big.NewInt(5000),
-	}
-
-	owner6 := "owner6"
-	owner6Stats := &OwnerStats{
-		StakingQueueKeys: pubKeys[25:26],
-		TotalStake:       big.NewInt(5000),
+	// Owner3 has 1 node in staking queue with topUp = nodePrice
+	owner3 := "owner3"
+	owner3Stats := &OwnerStats{
+		StakingQueueKeys: pubKeys[10:11],
+		TotalStake:       big.NewInt(2 * nodePrice),
 	}
 
 	cfg := &InitialNodesConfig{
-		MetaConsensusGroupSize:        2,
-		ShardConsensusGroupSize:       2,
-		MinNumberOfEligibleShardNodes: 3,
-		MinNumberOfEligibleMetaNodes:  3,
+		MetaConsensusGroupSize:        1,
+		ShardConsensusGroupSize:       1,
+		MinNumberOfEligibleShardNodes: 1,
+		MinNumberOfEligibleMetaNodes:  1,
 		NumOfShards:                   1,
 		Owners: map[string]*OwnerStats{
 			owner1: owner1Stats,
 			owner2: owner2Stats,
-			owner5: owner5Stats,
-			owner6: owner6Stats,
+			owner3: owner3Stats,
 		},
 		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
 			{
 				EpochEnable:            0,
-				MaxNumNodes:            12,
-				NodesToShufflePerShard: 1,
-			},
-			{
-				EpochEnable:            stakingV4DistributeAuctionToWaitingEpoch,
-				MaxNumNodes:            10,
+				MaxNumNodes:            8,
 				NodesToShufflePerShard: 1,
 			},
 		},
 	}
-	//todo; check that in epoch = staking v4 nodes with not enough stake will be unstaked
 	node := NewTestMetaProcessorWithCustomNodes(cfg)
 	node.EpochStartTrigger.SetRoundsPerEpoch(4)
 
 	// 1. Check initial config is correct
 	currNodesConfig := node.NodesConfig
-	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 6)
-	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 6)
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.eligible[0], 2)
+	require.Len(t, currNodesConfig.waiting[0], 2)
 
-	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 3)
-	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 3)
-	require.Len(t, currNodesConfig.eligible[0], 3)
-	require.Len(t, currNodesConfig.waiting[0], 3)
-
-	requireSliceContainsNumOfElements(t, currNodesConfig.eligible[core.MetachainShardId], owner1Stats.EligibleBlsKeys[core.MetachainShardId], 3)
-	requireSliceContainsNumOfElements(t, currNodesConfig.waiting[core.MetachainShardId], owner2Stats.WaitingBlsKeys[core.MetachainShardId], 3)
-
-	requireSliceContainsNumOfElements(t, currNodesConfig.eligible[0], owner2Stats.EligibleBlsKeys[0], 3)
-	requireSliceContainsNumOfElements(t, currNodesConfig.waiting[0], owner1Stats.WaitingBlsKeys[0], 3)
-
-	initialStakingQueue := owner1Stats.StakingQueueKeys
-	initialStakingQueue = append(initialStakingQueue, owner5Stats.StakingQueueKeys...)
-	initialStakingQueue = append(initialStakingQueue, owner6Stats.StakingQueueKeys...)
-	require.Len(t, currNodesConfig.queue, 5)
-	requireSliceContainsNumOfElements(t, currNodesConfig.queue, initialStakingQueue, 5)
+	owner1StakingQueue := owner1Stats.StakingQueueKeys
+	owner3StakingQueue := owner3Stats.StakingQueueKeys
+	queue := make([][]byte, 0)
+	queue = append(queue, owner1StakingQueue...)
+	queue = append(queue, owner3StakingQueue...)
+	require.Len(t, currNodesConfig.queue, 3)
+	requireSameSliceDifferentOrder(t, currNodesConfig.queue, queue)
 
 	require.Empty(t, currNodesConfig.shuffledOut)
 	require.Empty(t, currNodesConfig.auction)
 
-	// 2. Check config after staking v4 initialization
-	node.Process(t, 5)
-	currNodesConfig = node.NodesConfig
-	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 6)
-	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 5)
-
-	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 3)
-	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 2)
-	require.Len(t, currNodesConfig.eligible[0], 3)
-	require.Len(t, currNodesConfig.waiting[0], 3)
-
-	// Owner1 will have one of the nodes in staking queue removed
-	initialStakingQueue = initialStakingQueue[2:]
-	initialStakingQueue = append(initialStakingQueue, owner1Stats.StakingQueueKeys[0])
-	require.Len(t, currNodesConfig.auction, 4)
-	requireSliceContainsNumOfElements(t, currNodesConfig.auction, initialStakingQueue, 4)
-
-	// Owner2 will have one of the nodes in waiting list removed
-	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 1)
-	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.leaving), getAllPubKeys(owner2Stats.WaitingBlsKeys), 1)
-
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.eligible), totalEligible)
-	//require.Len(t, getAllPubKeys(nodesConfigStakingV4Init.waiting), totalWaiting)
-	//require.Empty(t, nodesConfigStakingV4Init.queue)
-	//require.Empty(t, nodesConfigStakingV4Init.shuffledOut)
-	//requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Init.auction)
-
-	node.Process(t, 8)
-
-	owner444 := "owner444"
-	owner555 := "owner555"
-	newNodes := map[string]*NodesRegisterData{
-		owner444: {
+	// NewOwner1 stakes 1 node with top up = 2*node price; should be sent to auction list
+	newOwner1 := "newOwner1"
+	newNodes1 := map[string]*NodesRegisterData{
+		newOwner1: {
 			BLSKeys:    [][]byte{generateAddress(444)},
-			TotalStake: big.NewInt(50000),
-		},
-		owner555: {
-			BLSKeys:    [][]byte{generateAddress(555), generateAddress(666)},
-			TotalStake: big.NewInt(60000),
+			TotalStake: big.NewInt(3 * nodePrice),
 		},
 	}
-	node.ProcessStake(t, newNodes)
-
+	// 2. Check config after staking v4 init when a new node is staked
+	node.Process(t, 5)
+	node.ProcessStake(t, newNodes1)
 	currNodesConfig = node.NodesConfig
-	requireSliceContains(t, currNodesConfig.auction, newNodes[owner444].BLSKeys)
-	requireSliceContains(t, currNodesConfig.auction, newNodes[owner555].BLSKeys)
+	queue = append(queue, newNodes1[newOwner1].BLSKeys...)
+	require.Empty(t, currNodesConfig.queue)
+	require.Empty(t, currNodesConfig.leaving)
+	require.Len(t, currNodesConfig.auction, 4)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
 
-	node.Process(t, 3)
-
+	// NewOwner2 stakes 2 node with top up = 2*node price; should be sent to auction list
+	newOwner2 := "newOwner2"
+	newNodes2 := map[string]*NodesRegisterData{
+		newOwner2: {
+			BLSKeys:    [][]byte{generateAddress(555), generateAddress(666)},
+			TotalStake: big.NewInt(4 * nodePrice),
+		},
+	}
+	// 2. Check in epoch = staking v4 when 2 new nodes are staked
+	node.Process(t, 4)
+	node.ProcessStake(t, newNodes2)
 	currNodesConfig = node.NodesConfig
-	requireMapContains(t, currNodesConfig.waiting, newNodes[owner444].BLSKeys)
-	requireMapContains(t, currNodesConfig.waiting, newNodes[owner555].BLSKeys)
+	queue = append(queue, newNodes2[newOwner2].BLSKeys...)
+	require.Empty(t, currNodesConfig.queue)
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, queue, 6)
 
-	node.Process(t, 20)
+	// 3. Epoch =  staking v4 distribute auction to waiting
+	// Only the new 2 owners + owner3 had enough top up to be distributed to waiting.
+	// Meanwhile; owner1 which had 0 top up, still has his bls keys in auction
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	require.Empty(t, currNodesConfig.queue)
+	requireMapContains(t, currNodesConfig.waiting, newNodes1[newOwner1].BLSKeys)
+	requireMapContains(t, currNodesConfig.waiting, newNodes2[newOwner2].BLSKeys)
+	requireMapContains(t, currNodesConfig.waiting, owner3StakingQueue)
+	requireSliceContains(t, currNodesConfig.auction, owner1StakingQueue)
 }

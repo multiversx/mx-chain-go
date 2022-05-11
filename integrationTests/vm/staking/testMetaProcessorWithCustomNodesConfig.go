@@ -123,6 +123,8 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 			GasProvided: 10,
 		})
 	}
+	_, err := tmp.AccountsAdapter.Commit()
+	require.Nil(t, err)
 
 	blockBody := &block.Body{MiniBlocks: block.MiniBlockSlice{
 		{
@@ -138,7 +140,9 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	tmp.currentRound += 1
 }
 
-//TODO: Do the same for unStake
+//TODO:
+// 1. Do the same for unStake/unJail
+// 2. Use this func to stake initial nodes instead of hard coding them
 func (tmp *TestMetaProcessor) doStake(t *testing.T, vmInput vmcommon.VMInput) {
 	arguments := &vmcommon.ContractCallInput{
 		VMInput:       vmInput,
