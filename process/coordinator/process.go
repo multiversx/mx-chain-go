@@ -1678,13 +1678,13 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 
 	pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, miniBlockHeaderHandler)
 	if err != nil {
-		return big.NewInt(0), big.NewInt(0), err
+		return nil, nil, err
 	}
 
 	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
 	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 	if err != nil {
-		return big.NewInt(0), big.NewInt(0), err
+		return nil, nil, err
 	}
 
 	for index := indexOfFirstTxToBeProcessed; index <= pi.indexOfLastTxProcessedByProposer; index++ {
@@ -1692,7 +1692,7 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
 			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees ", "type", miniBlock.Type, "txHash", txHash)
-			return big.NewInt(0), big.NewInt(0), process.ErrMissingTransaction
+			return nil, nil, process.ErrMissingTransaction
 		}
 
 		maxAccumulatedFeesFromTx := core.SafeMul(txHandler.GetGasLimit(), txHandler.GetGasPrice())

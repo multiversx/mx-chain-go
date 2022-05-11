@@ -3906,8 +3906,8 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 
 	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, nil, nil)
 	assert.Equal(t, process.ErrMissingTransaction, errGetMaxFees)
-	assert.Equal(t, big.NewInt(0), accumulatedFees)
-	assert.Equal(t, big.NewInt(0), developerFees)
+	assert.Nil(t, accumulatedFees)
+	assert.Nil(t, developerFees)
 }
 
 func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *testing.T) {

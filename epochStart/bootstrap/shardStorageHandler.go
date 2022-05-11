@@ -246,11 +246,13 @@ func getProcessedMiniBlocks(
 	referencedMetaBlockHash []byte,
 ) []bootstrapStorage.MiniBlocksInMeta {
 
-	miniBlockHashes := make([][]byte, 0)
-	fullyProcessed := make([]bool, 0)
-	indexOfLastTxProcessed := make([]int32, 0)
-
 	miniBlockHeadersDestMe := getMiniBlockHeadersForDest(metaBlock, shardID)
+
+	requiredLength := len(miniBlockHeadersDestMe)
+	miniBlockHashes := make([][]byte, 0, requiredLength)
+	fullyProcessed := make([]bool, 0, requiredLength)
+	indexOfLastTxProcessed := make([]int32, 0, requiredLength)
+
 	for mbHash, mbHeader := range miniBlockHeadersDestMe {
 		log.Debug("getProcessedMiniBlocks", "mb hash", mbHash)
 
@@ -470,7 +472,7 @@ func removeHash(hashes [][]byte, hashToRemove []byte) [][]byte {
 }
 
 func displayProcessedAndPendingMiniBlocks(processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta, pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
-	if log.GetLevel() <= logger.LogDebug {
+	if log.GetLevel() > logger.LogDebug {
 		return
 	}
 

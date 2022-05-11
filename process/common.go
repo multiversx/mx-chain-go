@@ -824,10 +824,11 @@ func CheckIfIndexesAreOutOfBound(
 ) error {
 	maxIndex := int32(len(miniBlock.TxHashes)) - 1
 
-	isIndexOutOfBound := indexOfFirstTxToBeProcessed > indexOfLastTxToBeProcessed ||
-		indexOfFirstTxToBeProcessed < 0 || indexOfFirstTxToBeProcessed > maxIndex ||
-		indexOfLastTxToBeProcessed < 0 || indexOfLastTxToBeProcessed > maxIndex
+	isFirstIndexHigherThanLastIndex := indexOfFirstTxToBeProcessed > indexOfLastTxToBeProcessed
+	isFirstIndexOutOfRange := indexOfFirstTxToBeProcessed < 0 || indexOfFirstTxToBeProcessed > maxIndex
+	isLastIndexOutOfRange := indexOfLastTxToBeProcessed < 0 || indexOfLastTxToBeProcessed > maxIndex
 
+	isIndexOutOfBound := isFirstIndexHigherThanLastIndex || isFirstIndexOutOfRange || isLastIndexOutOfRange
 	if isIndexOutOfBound {
 		return fmt.Errorf("%w: indexOfFirstTxToBeProcessed: %d, indexOfLastTxToBeProcessed = %d, maxIndex: %d",
 			ErrIndexIsOutOfBound,
