@@ -4,15 +4,16 @@
     #the node might loose rating (even facing penalties) due to the fact that
     #the indexer is called synchronously and might block due to external causes.
     #Strongly suggested to activate this on a regular observer node.
-    Enabled           = false
-    IndexerCacheSize  = 0
-    URL               = "http://localhost:9200"
-    UseKibana         = false
-    Username          = ""
-    Password          = ""
+    Enabled                   = false
+    IndexerCacheSize          = 0
+    BulkRequestMaxSizeInBytes = 4194304 # 4MB
+    URL                       = "http://localhost:9200"
+    UseKibana                 = false
+    Username                  = ""
+    Password                  = ""
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
-    # ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators"]
-    EnabledIndexes    = ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators"]
+    # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
+    EnabledIndexes            = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
 
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 [EventNotifierConnector]
