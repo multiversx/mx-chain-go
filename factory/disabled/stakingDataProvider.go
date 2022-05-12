@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
-var emptyBI = big.NewInt(0)
+var zeroBI = big.NewInt(0)
 
 type stakingDataProvider struct {
 }
@@ -18,17 +18,17 @@ func NewDisabledStakingDataProvider() *stakingDataProvider {
 
 // GetTotalStakeEligibleNodes returns an empty big integer
 func (s *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
-	return emptyBI
+	return zeroBI
 }
 
 // GetTotalTopUpStakeEligibleNodes returns an empty big integer
 func (s *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
-	return emptyBI
+	return zeroBI
 }
 
 // GetNodeStakedTopUp returns an empty big integer and a nil error
 func (s *stakingDataProvider) GetNodeStakedTopUp(_ []byte) (*big.Int, error) {
-	return emptyBI, nil
+	return zeroBI, nil
 }
 
 // PrepareStakingData returns a nil error

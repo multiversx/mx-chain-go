@@ -118,7 +118,11 @@ func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 
 // GetBalance -
 func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
-	return ns.GetBalanceHandler(address)
+	if ns.GetBalanceHandler != nil {
+		return ns.GetBalanceHandler(address)
+	}
+
+	return nil, nil
 }
 
 // CreateTransaction -
@@ -130,22 +134,38 @@ func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiver strin
 
 //ValidateTransaction -
 func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
-	return ns.ValidateTransactionHandler(tx)
+	if ns.ValidateTransactionHandler != nil {
+		return ns.ValidateTransactionHandler(tx)
+	}
+
+	return nil
 }
 
 // ValidateTransactionForSimulation -
 func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
-	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
+	if ns.ValidateTransactionForSimulationCalled != nil {
+		return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
+	}
+
+	return nil
 }
 
 // SendBulkTransactions -
 func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	return ns.SendBulkTransactionsHandler(txs)
+	if ns.SendBulkTransactionsHandler != nil {
+		return ns.SendBulkTransactionsHandler(txs)
+	}
+
+	return 0, nil
 }
 
 // GetAccount -
 func (ns *NodeStub) GetAccount(address string) (api.AccountResponse, error) {
-	return ns.GetAccountHandler(address)
+	if ns.GetAccountHandler != nil {
+		return ns.GetAccountHandler(address)
+	}
+
+	return api.AccountResponse{}, nil
 }
 
 // GetCode -
@@ -159,27 +179,47 @@ func (ns *NodeStub) GetCode(codeHash []byte) []byte {
 
 // GetHeartbeats -
 func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
-	return ns.GetHeartbeatsHandler()
+	if ns.GetHeartbeatsHandler != nil {
+		return ns.GetHeartbeatsHandler()
+	}
+
+	return nil
 }
 
 // ValidatorStatisticsApi -
 func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
-	return ns.ValidatorStatisticsApiCalled()
+	if ns.ValidatorStatisticsApiCalled != nil {
+		return ns.ValidatorStatisticsApiCalled()
+	}
+
+	return nil, nil
 }
 
 // AuctionListApi -
 func (ns *NodeStub) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
-	return ns.AuctionListApiCalled()
+	if ns.AuctionListApiCalled != nil {
+		return ns.AuctionListApiCalled()
+	}
+
+	return nil, nil
 }
 
 // DirectTrigger -
 func (ns *NodeStub) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return ns.DirectTriggerCalled(epoch, withEarlyEndOfEpoch)
+	if ns.DirectTriggerCalled != nil {
+		return ns.DirectTriggerCalled(epoch, withEarlyEndOfEpoch)
+	}
+
+	return nil
 }
 
 // IsSelfTrigger -
 func (ns *NodeStub) IsSelfTrigger() bool {
-	return ns.IsSelfTriggerCalled()
+	if ns.IsSelfTriggerCalled != nil {
+		return ns.IsSelfTriggerCalled()
+	}
+
+	return false
 }
 
 // GetQueryHandler -

@@ -1780,7 +1780,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
 
 	errProcessStakingData := errors.New("error processing staking data")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
 			return errProcessStakingData
 		},
@@ -1808,7 +1808,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
 
 	errGetNodeTopUp := errors.New("error getting top up per node")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			switch string(blsKey) {
 			case "pubKey0", "pubKey1":

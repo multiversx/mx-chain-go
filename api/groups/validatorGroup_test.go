@@ -95,9 +95,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
-
 	req, _ := http.NewRequest("GET", "/validator/statistics", nil)
-
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -118,7 +116,6 @@ func TestAuctionList_ErrorWhenFacadeFails(t *testing.T) {
 	t.Parallel()
 
 	errStr := "error in facade"
-
 	facade := mock.FacadeStub{
 		AuctionListHandler: func() ([]*common.AuctionListValidatorAPIResponse, error) {
 			return nil, errors.New(errStr)
@@ -129,9 +126,7 @@ func TestAuctionList_ErrorWhenFacadeFails(t *testing.T) {
 	require.NoError(t, err)
 
 	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
-
 	req, _ := http.NewRequest("GET", "/validator/auction", nil)
-
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -152,7 +147,6 @@ func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
 			TopUp:   "112233",
 		},
 	}
-
 	facade := mock.FacadeStub{
 		AuctionListHandler: func() ([]*common.AuctionListValidatorAPIResponse, error) {
 			return auctionListToReturn, nil
@@ -163,9 +157,7 @@ func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
-
 	req, _ := http.NewRequest("GET", "/validator/auction", nil)
-
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
