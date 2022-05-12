@@ -45,9 +45,10 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 	return asl, nil
 }
 
-func (als *auctionListSelector) selectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
 	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
 	numOfShuffledNodes := als.currentNodesEnableConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
+	maxNumNodes := als.currentNodesEnableConfig.MaxNumNodes
 
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
@@ -59,24 +60,24 @@ func (als *auctionListSelector) selectNodesFromAuctionList(validatorsInfoMap sta
 		numOfValidatorsAfterShuffling = 0
 	}
 
-	availableSlots, err := safeSub(als.currentNodesEnableConfig.MaxNumNodes, numOfValidatorsAfterShuffling)
+	availableSlots, err := safeSub(maxNumNodes, numOfValidatorsAfterShuffling)
 	if availableSlots == 0 || err != nil {
 		log.Info(fmt.Sprintf("%v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
 			err,
-			als.currentNodesEnableConfig.MaxNumNodes,
+			maxNumNodes,
 			numOfValidatorsAfterShuffling,
 		))
 		return nil
 	}
 
 	auctionListSize := uint32(len(auctionList))
-	log.Info("systemSCProcessor.selectNodesFromAuctionList",
-		"max nodes", als.currentNodesEnableConfig.MaxNumNodes,
+	log.Info("systemSCProcessor.SelectNodesFromAuctionList",
+		"max nodes", maxNumNodes,
 		"current number of validators", currNumOfValidators,
 		"num of nodes which will be shuffled out", numOfShuffledNodes,
 		"num of validators after shuffling", numOfValidatorsAfterShuffling,
 		"auction list size", auctionListSize,
-		fmt.Sprintf("available slots (%v -%v)", als.currentNodesEnableConfig.MaxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
+		fmt.Sprintf("available slots (%v -%v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
 	err = als.sortAuctionList(auctionList, randomness)

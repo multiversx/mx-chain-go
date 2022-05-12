@@ -149,7 +149,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 			return err
 		}
 
-		err = s.auctionListSelector.selectNodesFromAuctionList(validatorsInfoMap, header.GetPrevRandSeed())
+		err = s.auctionListSelector.SelectNodesFromAuctionList(validatorsInfoMap, header.GetPrevRandSeed())
 		if err != nil {
 			return err
 		}
