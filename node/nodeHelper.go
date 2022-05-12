@@ -23,13 +23,14 @@ func prepareOpenTopics(
 	shardCoordinator sharding.Coordinator,
 ) {
 	selfID := shardCoordinator.SelfId()
+	selfShardHeartbeatV2Topic := common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(common.HeartbeatTopic)
+		antiflood.SetTopicsForAll(common.HeartbeatTopic, common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic)
 		return
 	}
 
 	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(common.HeartbeatTopic, selfShardTxTopic)
+	antiflood.SetTopicsForAll(common.HeartbeatTopic, common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic, selfShardTxTopic)
 }
 
 // CreateNode is the node factory
