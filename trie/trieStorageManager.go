@@ -579,13 +579,19 @@ func (tsm *trieStorageManager) SetEpochForPutOperation(epoch uint32) {
 
 // ShouldTakeSnapshot returns true if the conditions for a new snapshot are met
 func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
-	stsm, err := newSnapshotTrieStorageManager(tsm, 0)
+	epoch, err := tsm.GetLatestStorageEpoch()
+	if err != nil {
+		log.Debug("shouldTakeSnapshot get latest storage epoch error", "err", err.Error())
+		return false
+	}
+
+	stsm, err := newSnapshotTrieStorageManager(tsm, epoch)
 	if err != nil {
 		log.Error("shouldTakeSnapshot error", "err", err.Error())
 		return false
 	}
 
-	if isTrieSynced(stsm) {
+	if isTrieSynced(stsm, epoch) {
 		return false
 	}
 
@@ -608,13 +614,7 @@ func isActiveDB(storer pruningStorer) bool {
 	return false
 }
 
-func isTrieSynced(storer pruningStorer) bool {
-	epoch, err := storer.GetLatestStorageEpoch()
-	if err != nil {
-		log.Debug("isTrieSynced get latest storage epoch error", "err", err.Error())
-		return false
-	}
-
+func isTrieSynced(storer pruningStorer, epoch uint32) bool {
 	isTrieSyncedThisEpoch := isTrieSyncedInEpoch(storer, epoch)
 	isTrieSyncedLastEpoch := false
 
