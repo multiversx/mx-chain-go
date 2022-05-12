@@ -4349,3 +4349,50 @@ func TestGetProcessedMiniBlockInfo_ShouldWork(t *testing.T) {
 	assert.True(t, processedMiniBlocksInfo["hash1"].FullyProcessed)
 	assert.Equal(t, int32(69), processedMiniBlocksInfo["hash1"].IndexOfLastTxProcessed)
 }
+
+func TestTransactionCoordinator_getIndexesOfLastTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("calculating hash error should not get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: true,
+		}
+		tc, _ := NewTransactionCoordinator(args)
+
+		miniBlock := &block.MiniBlock{}
+		pmbt := &processedMb.ProcessedMiniBlockTracker{}
+		miniBlockHeader := &block.MiniBlockHeader{}
+
+		pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, pmbt, miniBlockHeader)
+		assert.Nil(t, pi)
+		assert.Equal(t, testscommon.ErrMockMarshalizer, err)
+	})
+
+	t.Run("should get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: false,
+		}
+		tc, _ := NewTransactionCoordinator(args)
+
+		miniBlock := &block.MiniBlock{}
+		miniBlockHash, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+		mbh := &block.MiniBlockHeader{
+			Hash:    miniBlockHash,
+			TxCount: 6,
+		}
+		_ = mbh.SetIndexOfFirstTxProcessed(2)
+		_ = mbh.SetIndexOfLastTxProcessed(4)
+		pmbt := &processedMb.ProcessedMiniBlockTracker{}
+
+		pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, pmbt, mbh)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessedByItself)
+		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
+	})
+}

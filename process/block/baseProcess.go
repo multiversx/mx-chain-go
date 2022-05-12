@@ -801,14 +801,15 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 }
 
 func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() < int32(mbh.GetTxCount())-1 {
-		return nil
+	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+
 	}
-	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
-		return nil
+	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() < int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
 	}
 
-	return process.ErrIndexDoesNotMatch
+	return nil
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {

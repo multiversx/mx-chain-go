@@ -5110,3 +5110,134 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(1), processedMbInfo.IndexOfLastTxProcessed)
 }
+
+func TestShardProcessor_SetProcessedMiniBlocksInfo(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+	miniBlockHashes := [][]byte{mbHash1, mbHash2, mbHash3}
+	metaHash := "metaHash"
+	mbh1 := block.MiniBlockHeader{
+		TxCount: 3,
+		Hash:    mbHash1,
+	}
+	mbh2 := block.MiniBlockHeader{
+		TxCount: 5,
+		Hash:    mbHash2,
+	}
+	mbh3 := block.MiniBlockHeader{
+		TxCount: 5,
+		Hash:    mbHash3,
+	}
+	metaBlock := &block.MetaBlock{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh1, mbh2, mbh3},
+	}
+
+	sp.SetProcessedMiniBlocksInfo(miniBlockHashes, metaHash, metaBlock)
+	processedMiniBlockTracker := sp.GetProcessedMiniBlocks()
+	mapProcessedMiniBlocksInfo := processedMiniBlockTracker.GetProcessedMiniBlocksInfo([]byte(metaHash))
+	assert.Equal(t, 3, len(mapProcessedMiniBlocksInfo))
+
+	mbi, ok := mapProcessedMiniBlocksInfo[string(mbHash1)]
+	assert.True(t, ok)
+	assert.True(t, mbi.FullyProcessed)
+	assert.Equal(t, int32(mbh1.TxCount-1), mbi.IndexOfLastTxProcessed)
+
+	mbi, ok = mapProcessedMiniBlocksInfo[string(mbHash2)]
+	assert.True(t, ok)
+	assert.True(t, mbi.FullyProcessed)
+	assert.Equal(t, int32(mbh2.TxCount-1), mbi.IndexOfLastTxProcessed)
+
+	mbi, ok = mapProcessedMiniBlocksInfo[string(mbHash3)]
+	assert.True(t, ok)
+	assert.True(t, mbi.FullyProcessed)
+	assert.Equal(t, int32(mbh3.TxCount-1), mbi.IndexOfLastTxProcessed)
+}
+
+func TestShardProcessor_GetIndexOfLastTxProcessedInMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+
+	mbh1 := block.MiniBlockHeader{
+		TxCount: 3,
+		Hash:    mbHash1,
+	}
+	mbh2 := block.MiniBlockHeader{
+		TxCount: 5,
+		Hash:    mbHash2,
+	}
+	metaBlock := &block.MetaBlock{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh1},
+		ShardInfo: []block.ShardData{
+			{ShardMiniBlockHeaders: []block.MiniBlockHeader{mbh2}},
+		},
+	}
+
+	index := sp.GetIndexOfLastTxProcessedInMiniBlock(mbHash1, metaBlock)
+	assert.Equal(t, int32(mbh1.TxCount-1), index)
+
+	index = sp.GetIndexOfLastTxProcessedInMiniBlock(mbHash2, metaBlock)
+	assert.Equal(t, int32(mbh2.TxCount-1), index)
+
+	index = sp.GetIndexOfLastTxProcessedInMiniBlock(mbHash3, metaBlock)
+	assert.Equal(t, common.MaxIndexOfTxInMiniBlock, index)
+}
+
+func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	metaHash := []byte("metaHash")
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+
+	mbInfo := &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         true,
+		IndexOfLastTxProcessed: 69,
+	}
+
+	sp.GetProcessedMiniBlocks().SetProcessedMiniBlockInfo(metaHash, mbHash3, mbInfo)
+
+	mbh2 := block.MiniBlockHeader{
+		SenderShardID: 0,
+		TxCount:       5,
+		Hash:          mbHash2,
+	}
+	mbh3 := block.MiniBlockHeader{
+		SenderShardID: 2,
+		TxCount:       5,
+		Hash:          mbHash3,
+	}
+	indexOfFirstTxProcessed := int32(3)
+	_ = mbh3.SetIndexOfFirstTxProcessed(indexOfFirstTxProcessed)
+
+	mapMiniBlockHashes := make(map[string]uint32)
+	mapMiniBlockHashes[string(mbHash1)] = 1
+	mapMiniBlockHashes[string(mbHash2)] = 0
+	mapMiniBlockHashes[string(mbHash3)] = 2
+
+	header := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh2, mbh3},
+	}
+
+	sp.RollBackProcessedMiniBlocksInfo(header, mapMiniBlockHashes)
+
+	processedMbInfo, processedMetaHash := sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash3)
+	assert.Equal(t, metaHash, processedMetaHash)
+	assert.False(t, processedMbInfo.FullyProcessed)
+	assert.Equal(t, indexOfFirstTxProcessed-1, processedMbInfo.IndexOfLastTxProcessed)
+}

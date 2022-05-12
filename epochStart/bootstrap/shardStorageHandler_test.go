@@ -1384,3 +1384,86 @@ func Test_removeHashes(t *testing.T) {
 	updatedHashes = removeHashes(hashes, different)
 	require.Equal(t, expectedRemoveDifferent, updatedHashes)
 }
+
+func Test_getNeededMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	neededMetaBlock, err := getNeededMetaBlock(nil, nil)
+	assert.Nil(t, neededMetaBlock)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+
+	wrongHash := []byte("wrongHash")
+	headers := make(map[string]data.HeaderHandler)
+	neededMetaBlock, err = getNeededMetaBlock(wrongHash, headers)
+	assert.Nil(t, neededMetaBlock)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+
+	hash := []byte("good hash")
+	header := &block.Header{}
+	headers[string(hash)] = header
+	neededMetaBlock, err = getNeededMetaBlock(hash, headers)
+	assert.Nil(t, neededMetaBlock)
+	assert.True(t, errors.Is(err, epochStart.ErrWrongTypeAssertion))
+
+	metaBlock := &block.MetaBlock{}
+	headers[string(hash)] = metaBlock
+	neededMetaBlock, err = getNeededMetaBlock(hash, headers)
+	assert.Nil(t, err)
+	assert.Equal(t, metaBlock, neededMetaBlock)
+}
+
+func Test_getProcessedMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	mbHash1 := []byte("hash1")
+	mbHash2 := []byte("hash2")
+
+	mbh1 := block.MiniBlockHeader{
+		Hash:            mbHash1,
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		TxCount:         5,
+	}
+	_ = mbh1.SetIndexOfLastTxProcessed(int32(mbh1.TxCount - 2))
+	_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+	mbh2 := block.MiniBlockHeader{
+		Hash:            mbHash2,
+		SenderShardID:   2,
+		ReceiverShardID: 0,
+		TxCount:         5,
+	}
+	_ = mbh2.SetIndexOfLastTxProcessed(int32(mbh2.TxCount - 1))
+	_ = mbh2.SetConstructionState(int32(block.Final))
+
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:               1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{mbh1},
+			},
+			{
+				ShardID:               2,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{mbh2},
+			},
+		},
+	}
+
+	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+	referencedMetaBlockHash := []byte("hash")
+
+	processedMiniBlocks = getProcessedMiniBlocks(metaBlock, 0, processedMiniBlocks, referencedMetaBlockHash)
+
+	require.Equal(t, 1, len(processedMiniBlocks))
+	require.Equal(t, 2, len(processedMiniBlocks[0].MiniBlocksHashes))
+	require.Equal(t, 2, len(processedMiniBlocks[0].IndexOfLastTxProcessed))
+	require.Equal(t, 2, len(processedMiniBlocks[0].FullyProcessed))
+
+	require.Equal(t, referencedMetaBlockHash, processedMiniBlocks[0].MetaHash)
+	assert.Equal(t, int32(mbh1.TxCount-2), processedMiniBlocks[0].IndexOfLastTxProcessed[0])
+	assert.Equal(t, int32(mbh1.TxCount-1), processedMiniBlocks[0].IndexOfLastTxProcessed[1])
+	assert.False(t, processedMiniBlocks[0].FullyProcessed[0])
+	assert.True(t, processedMiniBlocks[0].FullyProcessed[1])
+	assert.Equal(t, mbHash1, processedMiniBlocks[0].MiniBlocksHashes[0])
+	assert.Equal(t, mbHash2, processedMiniBlocks[0].MiniBlocksHashes[1])
+}

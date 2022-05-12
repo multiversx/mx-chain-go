@@ -551,3 +551,86 @@ func TestEpochStartCreator_computeStillPending(t *testing.T) {
 	assert.Equal(t, int32(4), stillPending[1].GetIndexOfFirstTxProcessed())
 	assert.Equal(t, int32(8), stillPending[1].GetIndexOfLastTxProcessed())
 }
+
+func Test_initIndexesOfProcessedTxs(t *testing.T) {
+	t.Parallel()
+
+	miniBlockHeaders := make(map[string]block.MiniBlockHeader)
+	mbh1 := block.MiniBlockHeader{
+		TxCount: 5,
+	}
+	_ = mbh1.SetIndexOfFirstTxProcessed(1)
+	_ = mbh1.SetIndexOfLastTxProcessed(2)
+
+	mbh2 := block.MiniBlockHeader{
+		TxCount: 5,
+	}
+
+	miniBlockHeaders["mbHash1"] = mbh1
+	miniBlockHeaders["mbHash2"] = mbh2
+
+	initIndexesOfProcessedTxs(miniBlockHeaders, 0)
+
+	mbh := miniBlockHeaders["mbHash1"]
+	assert.Equal(t, int32(1), mbh.GetIndexOfFirstTxProcessed())
+	assert.Equal(t, int32(2), mbh.GetIndexOfLastTxProcessed())
+
+	mbh = miniBlockHeaders["mbHash2"]
+	assert.Equal(t, int32(-1), mbh.GetIndexOfFirstTxProcessed())
+	assert.Equal(t, int32(-1), mbh.GetIndexOfLastTxProcessed())
+}
+
+func Test_computeStillPendingInShardHeader(t *testing.T) {
+	t.Parallel()
+
+	mbHash1 := []byte("mbHash1")
+	mbHash2 := []byte("mbHash2")
+	mbHash3 := []byte("mbHash3")
+
+	mbh1 := block.MiniBlockHeader{
+		TxCount: 6,
+		Hash:    mbHash1,
+	}
+
+	mbh2 := block.MiniBlockHeader{
+		TxCount: 6,
+		Hash:    mbHash2,
+	}
+	_ = mbh2.SetConstructionState(int32(block.Final))
+
+	mbh3 := block.MiniBlockHeader{
+		TxCount: 6,
+		Hash:    mbHash3,
+	}
+	oldIndexOfFirstTxProcessed := int32(1)
+	oldIndexOfLastTxProcessed := int32(2)
+	_ = mbh3.SetConstructionState(int32(block.PartialExecuted))
+	_ = mbh3.SetIndexOfFirstTxProcessed(oldIndexOfFirstTxProcessed)
+	_ = mbh3.SetIndexOfLastTxProcessed(oldIndexOfLastTxProcessed)
+
+	shardHdr := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{mbh1, mbh2, mbh3},
+	}
+
+	newIndexOfFirstTxProcessed := int32(3)
+	newIndexOfLastTxProcessed := int32(4)
+	_ = shardHdr.MiniBlockHeaders[2].SetIndexOfFirstTxProcessed(newIndexOfFirstTxProcessed)
+	_ = shardHdr.MiniBlockHeaders[2].SetIndexOfLastTxProcessed(newIndexOfLastTxProcessed)
+
+	miniBlockHeaders := make(map[string]block.MiniBlockHeader)
+	miniBlockHeaders[string(mbHash2)] = mbh2
+	miniBlockHeaders[string(mbHash3)] = mbh3
+
+	assert.Equal(t, 2, len(miniBlockHeaders))
+	computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, 0)
+	assert.Equal(t, 1, len(miniBlockHeaders))
+
+	mbh, ok := miniBlockHeaders[string(mbHash2)]
+	require.False(t, ok)
+
+	mbh, ok = miniBlockHeaders[string(mbHash3)]
+	require.True(t, ok)
+
+	assert.Equal(t, newIndexOfFirstTxProcessed, mbh.GetIndexOfFirstTxProcessed())
+	assert.Equal(t, newIndexOfLastTxProcessed, mbh.GetIndexOfLastTxProcessed())
+}

@@ -514,3 +514,15 @@ func (sp *shardProcessor) RollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 func (sp *shardProcessor) GetProcessedMiniBlocks() *processedMb.ProcessedMiniBlockTracker {
 	return sp.processedMiniBlocks
 }
+
+func (sp *shardProcessor) SetProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
+	sp.setProcessedMiniBlocksInfo(miniBlockHashes, metaBlockHash, metaBlock)
+}
+
+func (sp *shardProcessor) GetIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock *block.MetaBlock) int32 {
+	return getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
+}
+
+func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.HeaderHandler, mapMiniBlockHashes map[string]uint32) {
+	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
+}
