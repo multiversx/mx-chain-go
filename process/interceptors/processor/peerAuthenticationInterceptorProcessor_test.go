@@ -187,7 +187,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		arg := createPeerAuthenticationInterceptorProcessArg()
 		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
+				assert.True(t, bytes.Equal(providedIPAMessage.Pid, key))
 				ipa := value.(*heartbeatMessages.PeerAuthentication)
 				assert.Equal(t, providedIPAMessage.Pid, ipa.Pid)
 				assert.Equal(t, providedIPAMessage.Payload, ipa.Payload)
