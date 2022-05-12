@@ -87,7 +87,7 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	defer cancel()
 
 	directStakedList, err := dslp.GetDirectStakedList(ctxWithTimeout)
-	require.Equal(t,ErrTrieOperationsTimeout, err)
+	require.Equal(t, ErrTrieOperationsTimeout, err)
 	require.Nil(t, directStakedList)
 }
 

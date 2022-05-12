@@ -187,7 +187,10 @@
     # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
     SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
 
-   	# FailExecutionOnEveryAPIErrorEnableEpoch represents the epoch when new protection in VM is enabled to fail all wrong API calls
+    # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 2
+
+   	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
    	FailExecutionOnEveryAPIErrorEnableEpoch = 3
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
