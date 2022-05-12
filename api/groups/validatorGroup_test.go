@@ -108,7 +108,6 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 	assert.Equal(t, validatorStatistics.Result, mapToReturn)
 }
 
@@ -165,7 +164,6 @@ func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 	assert.Equal(t, response.Data.Result, auctionListToReturn)
 }
 
