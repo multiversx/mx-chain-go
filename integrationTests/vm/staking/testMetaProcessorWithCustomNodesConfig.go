@@ -39,10 +39,6 @@ type InitialNodesConfig struct {
 func NewTestMetaProcessorWithCustomNodes(config *InitialNodesConfig) *TestMetaProcessor {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents, stateComponents := createComponentHolders(config.NumOfShards)
 
-	_ = dataComponents
-	_ = bootstrapComponents
-	_ = statusComponents
-
 	queue := createStakingQueueCustomNodes(
 		config.Owners,
 		coreComponents.InternalMarshalizer(),
@@ -126,15 +122,15 @@ func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*Nodes
 	_, err := tmp.AccountsAdapter.Commit()
 	require.Nil(t, err)
 
-	blockBody := &block.Body{MiniBlocks: block.MiniBlockSlice{
+	miniBlocks := block.MiniBlockSlice{
 		{
 			TxHashes:        txHashes,
 			SenderShardID:   core.MetachainShardId,
 			ReceiverShardID: core.MetachainShardId,
 			Type:            block.SmartContractResultBlock,
 		},
-	}}
-	tmp.TxCoordinator.RequestBlockTransactions(blockBody)
+	}
+	tmp.TxCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 	tmp.createAndCommitBlock(t, header, noTime)
 
 	tmp.currentRound += 1

@@ -85,19 +85,24 @@ func remove(s [][]byte, elem []byte) [][]byte {
 	return ret
 }
 
-func unStake(owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
+func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
 	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
-	ownerStoredData, _ := validatorSC.DataTrieTracker().RetrieveValue(owner)
+	ownerStoredData, err := validatorSC.DataTrieTracker().RetrieveValue(owner)
+	require.Nil(t, err)
+
 	validatorData := &systemSmartContracts.ValidatorDataV2{}
-	_ = marshaller.Unmarshal(validatorData, ownerStoredData)
+	err = marshaller.Unmarshal(validatorData, ownerStoredData)
+	require.Nil(t, err)
 
 	validatorData.TotalStakeValue.Sub(validatorData.TotalStakeValue, stake)
-
 	marshaledData, _ := marshaller.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(owner, marshaledData)
+	err = validatorSC.DataTrieTracker().SaveKeyValue(owner, marshaledData)
+	require.Nil(t, err)
 
-	_ = accountsDB.SaveAccount(validatorSC)
-	_, _ = accountsDB.Commit()
+	err = accountsDB.SaveAccount(validatorSC)
+	require.Nil(t, err)
+	_, err = accountsDB.Commit()
+	require.Nil(t, err)
 }
 
 func TestStakingV4(t *testing.T) {
@@ -336,7 +341,6 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 
 	requireSliceContainsNumOfElements(t, currNodesConfig.eligible[core.MetachainShardId], owner1Stats.EligibleBlsKeys[core.MetachainShardId], 3)
 	requireSliceContainsNumOfElements(t, currNodesConfig.waiting[core.MetachainShardId], owner2Stats.WaitingBlsKeys[core.MetachainShardId], 3)
-
 	requireSliceContainsNumOfElements(t, currNodesConfig.eligible[0], owner2Stats.EligibleBlsKeys[0], 3)
 	requireSliceContainsNumOfElements(t, currNodesConfig.waiting[0], owner1Stats.WaitingBlsKeys[0], 3)
 
@@ -373,8 +377,8 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 1)
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.leaving), getAllPubKeys(owner2Stats.WaitingBlsKeys), 1)
 
-	// Owner1 will unStake some EGLD => at the end of next epoch, he should the other node from auction list removed
-	unStake([]byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice))
+	// Owner1 will unStake some EGLD => at the end of next epoch, he should have the other node from queue(now auction list) removed
+	unStake(t, []byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice))
 
 	// 3. Check config in epoch = staking v4
 	node.Process(t, 5)
@@ -400,7 +404,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	// Owner3 will unStake EGLD => he will have negative top-up at the selection time => one of his nodes will be unStaked.
 	// His other node should not have been selected => remains in auction.
 	// Meanwhile, owner4 had never unStaked EGLD => his node from auction list node will be distributed to waiting
-	unStake([]byte(owner3), node.AccountsAdapter, node.Marshaller, big.NewInt(2*nodePrice))
+	unStake(t, []byte(owner3), node.AccountsAdapter, node.Marshaller, big.NewInt(2*nodePrice))
 
 	// 4. Check config in epoch = staking v4 distribute auction to waiting
 	node.Process(t, 5)

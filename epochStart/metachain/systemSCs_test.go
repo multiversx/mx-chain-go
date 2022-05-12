@@ -1277,23 +1277,23 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
 	_ = scContainer.Add(delegationAddr, contract)
 
-	prepareStakingContractWithData(
+	stakingcommon.AddStakingData(
 		args.UserAccountsDB,
-		[]byte("stakedPubKey0"),
-		[]byte("waitingPubKey"),
-		args.Marshalizer,
-		delegationAddr,
-		delegationAddr,
-	)
-
-	stakingcommon.AddStakingData(args.UserAccountsDB,
 		delegationAddr,
 		delegationAddr,
 		[][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")},
 		args.Marshalizer,
 	)
 	allKeys := [][]byte{[]byte("stakedPubKey0"), []byte("waitingPubKey"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")}
-	stakingcommon.AddValidatorData(args.UserAccountsDB, delegationAddr, allKeys[2:], big.NewInt(3000), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(
+		args.UserAccountsDB,
+		delegationAddr,
+		delegationAddr,
+		allKeys,
+		big.NewInt(3000),
+		args.Marshalizer,
+	)
+
 	addDelegationData(args.UserAccountsDB, delegationAddr, allKeys, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 

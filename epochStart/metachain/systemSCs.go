@@ -375,7 +375,7 @@ func (s *systemSCProcessor) displayAuctionList(auctionList []state.ValidatorInfo
 	}
 
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Info(message)
+	log.Debug(message)
 }
 
 func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {

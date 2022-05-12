@@ -75,7 +75,6 @@ func (tcm *TransactionCoordinatorMock) RequestMiniBlocks(header data.HeaderHandl
 // RequestBlockTransactions -
 func (tcm *TransactionCoordinatorMock) RequestBlockTransactions(body *block.Body) {
 	if tcm.RequestBlockTransactionsCalled == nil {
-		tcm.miniBlocks = body.MiniBlocks
 		return
 	}
 
@@ -235,6 +234,7 @@ func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxs() map[block.Type]ma
 // AddTxsFromMiniBlocks -
 func (tcm *TransactionCoordinatorMock) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 	if tcm.AddTxsFromMiniBlocksCalled == nil {
+		tcm.miniBlocks = miniBlocks
 		return
 	}
 

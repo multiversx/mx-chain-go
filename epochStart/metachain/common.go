@@ -2,7 +2,7 @@ package metachain
 
 import "github.com/ElrondNetwork/elrond-go/state"
 
-// GetAllNodeKeys returns all <shard,pubKeys> from the provided man
+// GetAllNodeKeys returns all <shard,pubKeys> from the provided map
 func GetAllNodeKeys(validatorsInfo state.ShardValidatorsInfoMapHandler) map[uint32][][]byte {
 	nodeKeys := make(map[uint32][][]byte)
 	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfoMap() {

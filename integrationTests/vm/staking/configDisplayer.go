@@ -1,6 +1,7 @@
 package staking
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 
@@ -79,8 +80,11 @@ func (tmp *TestMetaProcessor) getDisplayableValidatorsInShard(list string, pubKe
 		horizontalLineAfter := idx == len(pubKeysToDisplay)-1
 		owner, _ := tmp.StakingDataProvider.GetBlsKeyOwner(pk)
 		topUp, _ := tmp.StakingDataProvider.GetNodeStakedTopUp(pk)
-		line := display.NewLineData(horizontalLineAfter, []string{list, string(pk), owner, topUp.String(), strconv.Itoa(int(shardID))})
-		lines = append(lines, line)
+		if bytes.Equal(pk, []byte("...")) {
+			lines = append(lines, display.NewLineData(horizontalLineAfter, []string{list, string(pk), "...", "...", strconv.Itoa(int(shardID))}))
+		} else {
+			lines = append(lines, display.NewLineData(horizontalLineAfter, []string{list, string(pk), owner, topUp.String(), strconv.Itoa(int(shardID))}))
+		}
 	}
 	lines = append(lines, display.NewLineData(true, []string{list, fmt.Sprintf("Total: %d", len(pubKeys)), "", "", strconv.Itoa(int(shardID))}))
 
@@ -96,7 +100,11 @@ func (tmp *TestMetaProcessor) displayValidators(list string, pubKeys [][]byte) {
 		horizontalLineAfter := idx == len(pubKeysToDisplay)-1
 		owner, _ := tmp.StakingDataProvider.GetBlsKeyOwner(pk)
 		topUp, _ := tmp.StakingDataProvider.GetNodeStakedTopUp(pk)
-		lines = append(lines, display.NewLineData(horizontalLineAfter, []string{list, string(pk), owner, topUp.String()}))
+		if bytes.Equal(pk, []byte("...")) {
+			lines = append(lines, display.NewLineData(horizontalLineAfter, []string{list, string(pk), "...", "..."}))
+		} else {
+			lines = append(lines, display.NewLineData(horizontalLineAfter, []string{list, string(pk), owner, topUp.String()}))
+		}
 	}
 	lines = append(lines, display.NewLineData(true, []string{list, fmt.Sprintf("Total: %d", len(pubKeys))}))
 

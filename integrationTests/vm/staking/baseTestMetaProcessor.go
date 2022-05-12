@@ -64,7 +64,6 @@ type TestMetaProcessor struct {
 	TxCacher            dataRetriever.TransactionCacher
 	TxCoordinator       process.TransactionCoordinator
 	SystemVM            vmcommon.VMExecutionHandler
-	StateComponents     factory.StateComponentsHolder
 	BlockChainHook      process.BlockChainHookHandler
 	StakingDataProvider epochStart.StakingDataProvider
 
@@ -163,7 +162,6 @@ func newTestMetaProcessor(
 		TxCacher:            dataComponents.Datapool().CurrentBlockTxs(),
 		TxCoordinator:       txCoordinator,
 		SystemVM:            systemVM,
-		StateComponents:     stateComponents,
 		BlockChainHook:      blockChainHook,
 		StakingDataProvider: stakingDataProvider,
 	}
