@@ -82,7 +82,8 @@ func newTestMetaProcessor(
 ) *TestMetaProcessor {
 	gasScheduleNotifier := createGasScheduleNotifier()
 	blockChainHook := createBlockChainHook(
-		dataComponents, coreComponents,
+		dataComponents,
+		coreComponents,
 		stateComponents.AccountsAdapter(),
 		bootstrapComponents.ShardCoordinator(),
 		gasScheduleNotifier,
