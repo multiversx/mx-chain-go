@@ -200,6 +200,7 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// AuctionListSelector handles selection of nodes from auction list to be sent to waiting list, based on their top up
 type AuctionListSelector interface {
 	SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error
 	EpochConfirmed(epoch uint32, timestamp uint64)

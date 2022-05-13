@@ -26,6 +26,7 @@ type auctionListSelector struct {
 	maxNodesEnableConfig     []config.MaxNodesChangeConfig
 }
 
+// AuctionListSelectorArgs is a struct placeholder for all arguments required to create a NewAuctionListSelector
 type AuctionListSelectorArgs struct {
 	ShardCoordinator     sharding.Coordinator
 	StakingDataProvider  epochStart.StakingDataProvider
@@ -33,6 +34,8 @@ type AuctionListSelectorArgs struct {
 	MaxNodesEnableConfig []config.MaxNodesChangeConfig
 }
 
+// NewAuctionListSelector will create a new auctionListSelector, which handles selection of nodes from auction list based
+// on their top up
 func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
@@ -56,7 +59,14 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 	return asl, nil
 }
 
+// SelectNodesFromAuctionList will select nodes from validatorsInfoMap based on their top up. If two or more validators
+// have the same top-up, then sorting will be done based on blsKey XOR randomness. Selected nodes will have their list set
+// to common.SelectNodesFromAuctionList
 func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+	if len(randomness) == 0 {
+		return process.ErrNilRandSeed
+	}
+
 	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
 	numOfShuffledNodes := als.currentNodesEnableConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 	maxNumNodes := als.currentNodesEnableConfig.MaxNumNodes
@@ -186,7 +196,7 @@ func calcNormRand(randomness []byte, expectedLen int) []byte {
 	randLen := len(rand)
 
 	if expectedLen > randLen {
-		repeatedCt := expectedLen/randLen + 1 // todo: fix possible div by 0
+		repeatedCt := expectedLen/randLen + 1
 		rand = bytes.Repeat(randomness, repeatedCt)
 	}
 
@@ -244,6 +254,7 @@ func (als *auctionListSelector) displayAuctionList(auctionList []state.Validator
 	log.Debug(message)
 }
 
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (als *auctionListSelector) EpochConfirmed(epoch uint32, _ uint64) {
 	for _, maxNodesConfig := range als.maxNodesEnableConfig {
 		if epoch >= maxNodesConfig.EpochEnable {
@@ -252,6 +263,7 @@ func (als *auctionListSelector) EpochConfirmed(epoch uint32, _ uint64) {
 	}
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (als *auctionListSelector) IsInterfaceNil() bool {
 	return als == nil
 }

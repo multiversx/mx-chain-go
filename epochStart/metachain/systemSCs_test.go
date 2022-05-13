@@ -1826,7 +1826,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
 
-	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("rnd")})
 	require.Error(t, err)
 	require.True(t, strings.Contains(err.Error(), errGetNodeTopUp.Error()))
 	require.True(t, strings.Contains(err.Error(), epochStart.ErrSortAuctionList.Error()))
@@ -1861,7 +1861,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4NotEnoughSlotsForA
 
 	s, _ := NewSystemSCProcessor(args)
 	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
-	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("rnd")})
 	require.Nil(t, err)
 
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
