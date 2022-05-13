@@ -9,11 +9,15 @@
     BulkRequestMaxSizeInBytes = 4194304 # 4MB
     URL               = "http://localhost:9200"
     UseKibana         = false
-    Username          = ""
-    Password          = ""
+    Username          = "postgres"
+    Password          = "postgres"
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
     # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
     EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations"]
+    PostgresURL       = "postgres://localhost:5432"
+    PostgresDBName    = "elrondv4"
+    UsePostgres       = false
+
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 [EventNotifierConnector]
     # Enabled will turn on or off the event notifier connector

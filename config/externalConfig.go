@@ -17,6 +17,9 @@ type ElasticSearchConfig struct {
 	Username                  string
 	Password                  string
 	EnabledIndexes            []string
+	PostgresURL               string
+	PostgresDBName            string
+	UsePostgres               bool
 }
 
 // EventNotifierConfig will hold the configuration for the events notifier driver

@@ -237,6 +237,9 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
 		UseKibana:                elasticSearchConfig.UseKibana,
 		IsInImportDBMode:         scf.isInImportMode,
+		PostgresURL:              elasticSearchConfig.PostgresURL,
+		PostgresDBName:           elasticSearchConfig.PostgresDBName,
+		UsePostgres:              elasticSearchConfig.UsePostgres,
 	}
 }
 
