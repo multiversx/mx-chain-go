@@ -235,13 +235,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		}
 
 		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
-
-		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
-		irp.interResultsForBlock[string(scrHash)] = scrInfo
-		for key := range irp.mapProcessedResult {
-			irp.mapProcessedResult[key] = append(irp.mapProcessedResult[key], scrHash)
-		}
+		irp.addIntermediateTxToResultsForBlock(addScr, scrHash, sndShId, dstShId)
 	}
 
 	return nil

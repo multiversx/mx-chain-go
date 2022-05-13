@@ -266,3 +266,18 @@ func createMiniBlocksMap(scrMbs []*block.MiniBlock) map[uint32][]*block.MiniBloc
 
 	return createdMapMbs
 }
+
+func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
+	txHandler data.TransactionHandler,
+	txHash []byte,
+	sndShardID uint32,
+	rcvShardID uint32,
+) {
+	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
+	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo}
+	bpp.interResultsForBlock[string(txHash)] = scrInfo
+
+	for key := range bpp.mapProcessedResult {
+		bpp.mapProcessedResult[key] = append(bpp.mapProcessedResult[key], txHash)
+	}
+}

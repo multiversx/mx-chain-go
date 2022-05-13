@@ -397,19 +397,32 @@ func Test_addMiniBlocksToPending(t *testing.T) {
 	mbFound := 0
 	for _, pendingMbInfo := range pendingMbsInfo {
 		for _, mbHash := range pendingMbInfo.MiniBlocksHashes {
-			for _, expectedPendingMb := range expectedPendingMbs {
-				if expectedPendingMb.ShardID == pendingMbInfo.ShardID {
-					for _, expectedMbHash := range expectedPendingMb.MiniBlocksHashes {
-						if bytes.Equal(mbHash, expectedMbHash) {
-							mbFound++
-						}
-					}
-				}
-			}
+			mbFound += getExpectedMbHashes(expectedPendingMbs, pendingMbInfo, mbHash)
 		}
 	}
 
 	require.Equal(t, 9, mbFound)
+}
+
+func getExpectedMbHashes(
+	expectedPendingMbs []bootstrapStorage.PendingMiniBlocksInfo,
+	pendingMbInfo bootstrapStorage.PendingMiniBlocksInfo,
+	mbHash []byte,
+) int {
+	mbFound := 0
+	for _, expectedPendingMb := range expectedPendingMbs {
+		if expectedPendingMb.ShardID != pendingMbInfo.ShardID {
+			continue
+		}
+
+		for _, expectedMbHash := range expectedPendingMb.MiniBlocksHashes {
+			if bytes.Equal(mbHash, expectedMbHash) {
+				mbFound++
+			}
+		}
+	}
+
+	return mbFound
 }
 
 func TestShardStorageHandler_getProcessedAndPendingMiniBlocksErrorGettingEpochStartShardData(t *testing.T) {
@@ -1065,7 +1078,7 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 		{ShardID: 0, MiniBlocksHashes: [][]byte{crossMbHeaders[1].Hash, crossMbHeaders[2].Hash, crossMbHeaders[3].Hash, crossMbHeaders[4].Hash}},
 	}
 	expectedProcessedMiniBlocks := []bootstrapStorage.MiniBlocksInMeta{
-		{MetaHash: []byte(firstPendingMetaHash), MiniBlocksHashes: [][]byte{crossMbHeaders[0].Hash}, IsFullyProcessed: []bool{true}, IndexOfLastTxProcessed: []int32{int32(txCount - 1)}},
+		{MetaHash: []byte(firstPendingMetaHash), MiniBlocksHashes: [][]byte{crossMbHeaders[0].Hash}, FullyProcessed: []bool{true}, IndexOfLastTxProcessed: []int32{int32(txCount - 1)}},
 	}
 
 	expectedPendingMbsWithScheduled := []bootstrapStorage.PendingMiniBlocksInfo{
@@ -1195,8 +1208,8 @@ func Test_getProcessedMiniBlocksForFinishedMeta(t *testing.T) {
 	require.Equal(t, 1, len(miniBlocksInMeta[0].IndexOfLastTxProcessed))
 	assert.Equal(t, int32(99), miniBlocksInMeta[0].IndexOfLastTxProcessed[0])
 
-	require.Equal(t, 1, len(miniBlocksInMeta[0].IsFullyProcessed))
-	assert.True(t, miniBlocksInMeta[0].IsFullyProcessed[0])
+	require.Equal(t, 1, len(miniBlocksInMeta[0].FullyProcessed))
+	assert.True(t, miniBlocksInMeta[0].FullyProcessed[0])
 }
 
 func Test_updateProcessedMiniBlocksForScheduled(t *testing.T) {
@@ -1213,7 +1226,7 @@ func Test_updateProcessedMiniBlocksForScheduled(t *testing.T) {
 		{
 			MetaHash:               metaBlockHash,
 			MiniBlocksHashes:       [][]byte{mbHash1, mbHash2},
-			IsFullyProcessed:       []bool{true, false},
+			FullyProcessed:         []bool{true, false},
 			IndexOfLastTxProcessed: []int32{100, 50},
 		},
 	}
@@ -1231,9 +1244,9 @@ func Test_updateProcessedMiniBlocksForScheduled(t *testing.T) {
 	assert.Equal(t, mbHash1, miniBlocksInMeta[0].MiniBlocksHashes[0])
 	assert.Equal(t, mbHash2, miniBlocksInMeta[0].MiniBlocksHashes[1])
 
-	require.Equal(t, 2, len(miniBlocksInMeta[0].IsFullyProcessed))
-	assert.True(t, miniBlocksInMeta[0].IsFullyProcessed[0])
-	assert.False(t, miniBlocksInMeta[0].IsFullyProcessed[1])
+	require.Equal(t, 2, len(miniBlocksInMeta[0].FullyProcessed))
+	assert.True(t, miniBlocksInMeta[0].FullyProcessed[0])
+	assert.False(t, miniBlocksInMeta[0].FullyProcessed[1])
 
 	require.Equal(t, 2, len(miniBlocksInMeta[0].IndexOfLastTxProcessed))
 	assert.Equal(t, int32(100), miniBlocksInMeta[0].IndexOfLastTxProcessed[0])
@@ -1370,4 +1383,87 @@ func Test_removeHashes(t *testing.T) {
 	different := [][]byte{[]byte("different")}
 	updatedHashes = removeHashes(hashes, different)
 	require.Equal(t, expectedRemoveDifferent, updatedHashes)
+}
+
+func Test_getNeededMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	neededMetaBlock, err := getNeededMetaBlock(nil, nil)
+	assert.Nil(t, neededMetaBlock)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+
+	wrongHash := []byte("wrongHash")
+	headers := make(map[string]data.HeaderHandler)
+	neededMetaBlock, err = getNeededMetaBlock(wrongHash, headers)
+	assert.Nil(t, neededMetaBlock)
+	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+
+	hash := []byte("good hash")
+	header := &block.Header{}
+	headers[string(hash)] = header
+	neededMetaBlock, err = getNeededMetaBlock(hash, headers)
+	assert.Nil(t, neededMetaBlock)
+	assert.True(t, errors.Is(err, epochStart.ErrWrongTypeAssertion))
+
+	metaBlock := &block.MetaBlock{}
+	headers[string(hash)] = metaBlock
+	neededMetaBlock, err = getNeededMetaBlock(hash, headers)
+	assert.Nil(t, err)
+	assert.Equal(t, metaBlock, neededMetaBlock)
+}
+
+func Test_getProcessedMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	mbHash1 := []byte("hash1")
+	mbHash2 := []byte("hash2")
+
+	mbh1 := block.MiniBlockHeader{
+		Hash:            mbHash1,
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		TxCount:         5,
+	}
+	_ = mbh1.SetIndexOfLastTxProcessed(int32(mbh1.TxCount - 2))
+	_ = mbh1.SetConstructionState(int32(block.PartialExecuted))
+
+	mbh2 := block.MiniBlockHeader{
+		Hash:            mbHash2,
+		SenderShardID:   2,
+		ReceiverShardID: 0,
+		TxCount:         5,
+	}
+	_ = mbh2.SetIndexOfLastTxProcessed(int32(mbh2.TxCount - 1))
+	_ = mbh2.SetConstructionState(int32(block.Final))
+
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:               1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{mbh1},
+			},
+			{
+				ShardID:               2,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{mbh2},
+			},
+		},
+	}
+
+	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+	referencedMetaBlockHash := []byte("hash")
+
+	processedMiniBlocks = getProcessedMiniBlocks(metaBlock, 0, processedMiniBlocks, referencedMetaBlockHash)
+
+	require.Equal(t, 1, len(processedMiniBlocks))
+	require.Equal(t, 2, len(processedMiniBlocks[0].MiniBlocksHashes))
+	require.Equal(t, 2, len(processedMiniBlocks[0].IndexOfLastTxProcessed))
+	require.Equal(t, 2, len(processedMiniBlocks[0].FullyProcessed))
+
+	require.Equal(t, referencedMetaBlockHash, processedMiniBlocks[0].MetaHash)
+	assert.Equal(t, int32(mbh1.TxCount-2), processedMiniBlocks[0].IndexOfLastTxProcessed[0])
+	assert.Equal(t, int32(mbh1.TxCount-1), processedMiniBlocks[0].IndexOfLastTxProcessed[1])
+	assert.False(t, processedMiniBlocks[0].FullyProcessed[0])
+	assert.True(t, processedMiniBlocks[0].FullyProcessed[1])
+	assert.Equal(t, mbHash1, processedMiniBlocks[0].MiniBlocksHashes[0])
+	assert.Equal(t, mbHash2, processedMiniBlocks[0].MiniBlocksHashes[1])
 }

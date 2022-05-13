@@ -155,12 +155,7 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 			return err
 		}
 
-		addReceiptShardInfo := &txShardInfo{receiverShardID: selfId, senderShardID: selfId}
-		scrInfo := &txInfo{tx: txs[i], txShardInfo: addReceiptShardInfo}
-		opp.interResultsForBlock[string(txHash)] = scrInfo
-		for key := range opp.mapProcessedResult {
-			opp.mapProcessedResult[key] = append(opp.mapProcessedResult[key], txHash)
-		}
+		opp.addIntermediateTxToResultsForBlock(txs[i], txHash, selfId, selfId)
 	}
 
 	return nil

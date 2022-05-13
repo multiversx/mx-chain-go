@@ -3,26 +3,24 @@ package coordinator
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-
 	"math/big"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/batch"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -40,6 +38,11 @@ type createMiniBlockDestMeExecutionInfo struct {
 	numTxAdded                    uint32
 	numNewMiniBlocksProcessed     int
 	numAlreadyMiniBlocksProcessed int
+}
+
+type processedIndexes struct {
+	indexOfLastTxProcessed           int32
+	indexOfLastTxProcessedByProposer int32
 }
 
 // ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
@@ -630,7 +633,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
-		if processedMbInfo.IsFullyProcessed {
+		if processedMbInfo.FullyProcessed {
 			createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed++
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
 				"scheduled mode", scheduledMode,
@@ -712,7 +715,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"num txs", len(miniBlock.TxHashes),
 				"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
 				"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
-				"fully processed", processedMbInfo.IsFullyProcessed,
+				"fully processed", processedMbInfo.FullyProcessed,
 				"total gas provided", tc.gasHandler.TotalGasProvided(),
 				"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 				"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -730,7 +733,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"num txs", len(miniBlock.TxHashes),
 			"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
 			"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
-			"fully processed", processedMbInfo.IsFullyProcessed,
+			"fully processed", processedMbInfo.FullyProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", tc.gasHandler.TotalGasRefunded(),
@@ -781,7 +784,7 @@ func (tc *transactionCoordinator) handleProcessMiniBlockExecution(
 	createMBDestMeExecutionInfo.miniBlocks = append(createMBDestMeExecutionInfo.miniBlocks, miniBlock)
 	createMBDestMeExecutionInfo.numTxAdded = createMBDestMeExecutionInfo.numTxAdded + uint32(len(newProcessedTxHashes))
 
-	if processedMbInfo.IsFullyProcessed {
+	if processedMbInfo.FullyProcessed {
 		createMBDestMeExecutionInfo.numNewMiniBlocksProcessed++
 	}
 }
@@ -794,7 +797,7 @@ func getProcessedMiniBlockInfo(
 	if processedMiniBlocksInfo == nil {
 		return &processedMb.ProcessedMiniBlockInfo{
 			IndexOfLastTxProcessed: -1,
-			IsFullyProcessed:       false,
+			FullyProcessed:         false,
 		}
 	}
 
@@ -802,7 +805,7 @@ func getProcessedMiniBlockInfo(
 	if !ok {
 		processedMbInfo = &processedMb.ProcessedMiniBlockInfo{
 			IndexOfLastTxProcessed: -1,
-			IsFullyProcessed:       false,
+			FullyProcessed:         false,
 		}
 		processedMiniBlocksInfo[string(miniBlockHash)] = processedMbInfo
 	}
@@ -1196,7 +1199,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		} else {
 			if tc.flagMiniBlockPartialExecution.IsSet() {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-				processedMbInfo.IsFullyProcessed = false
+				processedMbInfo.FullyProcessed = false
 			}
 		}
 
@@ -1204,7 +1207,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	}
 
 	processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
-	processedMbInfo.IsFullyProcessed = true
+	processedMbInfo.FullyProcessed = true
 
 	return nil
 }
@@ -1673,32 +1676,23 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
 	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
 
-	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, miniBlockHeaderHandler)
 	if err != nil {
-		return big.NewInt(0), big.NewInt(0), err
+		return nil, nil, err
 	}
 
-	indexOfLastTxProcessedByItself := int32(-1)
-	if processedMiniBlocks != nil {
-		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-		indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
+	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	indexOfLastTxProcessedByProposer := miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
-
-	for index, txHash := range miniBlock.TxHashes {
-		if index <= int(indexOfLastTxProcessedByItself) {
-			continue
-		}
-
-		if index > int(indexOfLastTxProcessedByProposer) {
-			break
-		}
-
+	for index := indexOfFirstTxToBeProcessed; index <= pi.indexOfLastTxProcessedByProposer; index++ {
+		txHash := miniBlock.TxHashes[index]
 		txHandler, ok := mapHashTx[string(txHash)]
 		if !ok {
 			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees ", "type", miniBlock.Type, "txHash", txHash)
-			return big.NewInt(0), big.NewInt(0), process.ErrMissingTransaction
+			return nil, nil, process.ErrMissingTransaction
 		}
 
 		maxAccumulatedFeesFromTx := core.SafeMul(txHandler.GetGasLimit(), txHandler.GetGasPrice())
@@ -1709,6 +1703,30 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	}
 
 	return maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, nil
+}
+
+func (tc *transactionCoordinator) getIndexesOfLastTxProcessed(
+	miniBlock *block.MiniBlock,
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) (*processedIndexes, error) {
+
+	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	pi := &processedIndexes{}
+
+	pi.indexOfLastTxProcessed = -1
+	if processedMiniBlocks != nil {
+		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+		pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
+	}
+
+	pi.indexOfLastTxProcessedByProposer = miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
+
+	return pi, nil
 }
 
 func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinator) error {

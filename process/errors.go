@@ -1082,3 +1082,15 @@ var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
 
 // ErrMissingMiniBlockHeader signals that mini block header is missing
 var ErrMissingMiniBlockHeader = errors.New("missing mini block header")
+
+// ErrMissingMiniBlock signals that mini block is missing
+var ErrMissingMiniBlock = errors.New("missing mini block")
+
+// ErrIndexIsOutOfBound signals that the given index is out of bound
+var ErrIndexIsOutOfBound = errors.New("index is out of bound")
+
+// ErrIndexDoesNotMatchWithPartialExecuted signals that the given index does not match with a partial executed mini block
+var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does not match with a partial executed mini block")
+
+// ErrIndexDoesNotMatchWithFullyExecuted signals that the given index does not match with a fully executed mini block
+var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")

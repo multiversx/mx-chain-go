@@ -18,13 +18,13 @@ func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
 	mtbHash1 := []byte("meta1")
 	mtbHash2 := []byte("meta2")
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, &processedMb.ProcessedMiniBlockInfo{FullyProcessed: true})
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash1, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash1, &processedMb.ProcessedMiniBlockInfo{FullyProcessed: true})
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, &processedMb.ProcessedMiniBlockInfo{FullyProcessed: true})
 	assert.True(t, pmb.IsMiniBlockFullyProcessed(mtbHash1, mbHash2))
 
 	pmb.RemoveMiniBlockHash(mbHash1)
@@ -47,9 +47,9 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksInfo(t *testing.T) {
 	mtbHash1 := []byte("meta1")
 	mtbHash2 := []byte("meta2")
 
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
-	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
-	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash2, &processedMb.ProcessedMiniBlockInfo{IsFullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash1, &processedMb.ProcessedMiniBlockInfo{FullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash1, mbHash2, &processedMb.ProcessedMiniBlockInfo{FullyProcessed: true})
+	pmb.SetProcessedMiniBlockInfo(mtbHash2, mbHash2, &processedMb.ProcessedMiniBlockInfo{FullyProcessed: true})
 
 	mapData := pmb.GetProcessedMiniBlocksInfo(mtbHash1)
 	assert.NotNil(t, mapData[string(mbHash1)])
@@ -70,7 +70,7 @@ func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) 
 	data1 := bootstrapStorage.MiniBlocksInMeta{
 		MetaHash:               mtbHash1,
 		MiniBlocksHashes:       [][]byte{mbHash1},
-		IsFullyProcessed:       []bool{true},
+		FullyProcessed:         []bool{true},
 		IndexOfLastTxProcessed: []int32{69},
 	}
 
@@ -88,7 +88,7 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlockInfo(t *testing.T) {
 	mbHash := []byte("mb_hash")
 	metaHash := []byte("meta_hash")
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
-		IsFullyProcessed:       true,
+		FullyProcessed:         true,
 		IndexOfLastTxProcessed: 69,
 	}
 	pmb := processedMb.NewProcessedMiniBlocks()
@@ -96,11 +96,11 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlockInfo(t *testing.T) {
 
 	processedMiniBlockInfo, processedMetaHash := pmb.GetProcessedMiniBlockInfo(nil)
 	assert.Nil(t, processedMetaHash)
-	assert.False(t, processedMiniBlockInfo.IsFullyProcessed)
+	assert.False(t, processedMiniBlockInfo.FullyProcessed)
 	assert.Equal(t, int32(-1), processedMiniBlockInfo.IndexOfLastTxProcessed)
 
 	processedMiniBlockInfo, processedMetaHash = pmb.GetProcessedMiniBlockInfo(mbHash)
 	assert.Equal(t, metaHash, processedMetaHash)
-	assert.Equal(t, processedMbInfo.IsFullyProcessed, processedMiniBlockInfo.IsFullyProcessed)
+	assert.Equal(t, processedMbInfo.FullyProcessed, processedMiniBlockInfo.FullyProcessed)
 	assert.Equal(t, processedMbInfo.IndexOfLastTxProcessed, processedMiniBlockInfo.IndexOfLastTxProcessed)
 }

@@ -9,9 +9,9 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 //MiniBlocksInMeta is used to store all mini blocks hashes for a metablock hash
 message MiniBlocksInMeta {
-	bytes          MetaHash         = 1;
-	repeated bytes MiniBlocksHashes = 2;
-	repeated bool IsFullyProcessed  = 3;
+	bytes          MetaHash               = 1;
+	repeated bytes MiniBlocksHashes       = 2;
+	repeated bool  FullyProcessed         = 3;
 	repeated int32 IndexOfLastTxProcessed = 4;
 }
 

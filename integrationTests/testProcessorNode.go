@@ -326,10 +326,7 @@ type TestProcessorNode struct {
 	EnableEpochs             config.EnableEpochs
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor        process.TransactionLogProcessor
-	ScheduledMiniBlocksEnableEpoch uint32
-	MiniBlockPartialExecutionEnableEpoch uint32
-
+	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler p2p.PeersRatingHandler
 }
 
@@ -431,8 +428,6 @@ func newBaseTestProcessorNode(
 		PeersRatingHandler:      peersRatingHandler,
 	}
 
-	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
-	tpn.MiniBlockPartialExecutionEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
@@ -444,6 +439,8 @@ func newBaseTestProcessorNode(
 	tpn.initDataPools()
 	tpn.EnableEpochs = config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 10,
+		ScheduledMiniBlocksEnableEpoch:              1000000,
+		MiniBlockPartialExecutionEnableEpoch:        1000000,
 	}
 
 	return tpn
@@ -1591,7 +1588,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
-		tpn.ScheduledMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 	)
@@ -1616,9 +1613,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TransactionsLogProcessor:             tpn.TransactionLogProcessor,
 		EpochNotifier:                        tpn.EpochNotifier,
 		ScheduledTxsExecutionHandler:         scheduledTxsExecutionHandler,
-		ScheduledMiniBlocksEnableEpoch:       tpn.ScheduledMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		DoubleTransactionsDetector:           &testscommon.PanicDoubleTransactionsDetector{},
-		MiniBlockPartialExecutionEnableEpoch: tpn.MiniBlockPartialExecutionEnableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1831,7 +1828,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EpochNotifier,
 		tpn.EnableEpochs.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		tpn.EnableEpochs.FrontRunningProtectionEnableEpoch,
-		tpn.ScheduledMiniBlocksEnableEpoch,
+		tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 	)
@@ -1856,9 +1853,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TransactionsLogProcessor:             tpn.TransactionLogProcessor,
 		EpochNotifier:                        tpn.EpochNotifier,
 		ScheduledTxsExecutionHandler:         scheduledTxsExecutionHandler,
-		ScheduledMiniBlocksEnableEpoch:       tpn.ScheduledMiniBlocksEnableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       tpn.EnableEpochs.ScheduledMiniBlocksEnableEpoch,
 		DoubleTransactionsDetector:           &testscommon.PanicDoubleTransactionsDetector{},
-		MiniBlockPartialExecutionEnableEpoch: tpn.MiniBlockPartialExecutionEnableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: tpn.EnableEpochs.MiniBlockPartialExecutionEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)

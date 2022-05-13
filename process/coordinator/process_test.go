@@ -1986,7 +1986,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	preproc := tc.getPreProcessor(block.TxBlock)
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		IndexOfLastTxProcessed: -1,
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 	}
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
 
@@ -2132,7 +2132,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	preproc := tc.getPreProcessor(block.TxBlock)
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		IndexOfLastTxProcessed: -1,
-		IsFullyProcessed:       false,
+		FullyProcessed:         false,
 	}
 	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
 
@@ -2684,7 +2684,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}},
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -3514,7 +3514,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 	header := &block.Header{
 		AccumulatedFees:  big.NewInt(101),
 		DeveloperFees:    big.NewInt(10),
-		MiniBlockHeaders: []block.MiniBlockHeader{{}, {}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1}, {TxCount: 1}},
 	}
 
 	body := &block.Body{
@@ -3906,8 +3906,8 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 
 	accumulatedFees, developerFees, errGetMaxFees := tc.getMaxAccumulatedAndDeveloperFees(mbh, mb, nil, nil)
 	assert.Equal(t, process.ErrMissingTransaction, errGetMaxFees)
-	assert.Equal(t, big.NewInt(0), accumulatedFees)
-	assert.Equal(t, big.NewInt(0), developerFees)
+	assert.Nil(t, accumulatedFees)
+	assert.Nil(t, developerFees)
 }
 
 func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *testing.T) {
@@ -4331,21 +4331,68 @@ func TestGetProcessedMiniBlockInfo_ShouldWork(t *testing.T) {
 	processedMiniBlocksInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
 	processedMbInfo := getProcessedMiniBlockInfo(nil, []byte("hash1"))
-	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(-1), processedMbInfo.IndexOfLastTxProcessed)
 
 	processedMbInfo = getProcessedMiniBlockInfo(processedMiniBlocksInfo, []byte("hash1"))
-	assert.False(t, processedMbInfo.IsFullyProcessed)
+	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(-1), processedMbInfo.IndexOfLastTxProcessed)
 	assert.Equal(t, 1, len(processedMiniBlocksInfo))
 
 	processedMbInfo.IndexOfLastTxProcessed = 69
-	processedMbInfo.IsFullyProcessed = true
+	processedMbInfo.FullyProcessed = true
 
 	processedMbInfo = getProcessedMiniBlockInfo(processedMiniBlocksInfo, []byte("hash1"))
-	assert.True(t, processedMbInfo.IsFullyProcessed)
+	assert.True(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(69), processedMbInfo.IndexOfLastTxProcessed)
 	assert.Equal(t, 1, len(processedMiniBlocksInfo))
-	assert.True(t, processedMiniBlocksInfo["hash1"].IsFullyProcessed)
+	assert.True(t, processedMiniBlocksInfo["hash1"].FullyProcessed)
 	assert.Equal(t, int32(69), processedMiniBlocksInfo["hash1"].IndexOfLastTxProcessed)
+}
+
+func TestTransactionCoordinator_getIndexesOfLastTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("calculating hash error should not get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: true,
+		}
+		tc, _ := NewTransactionCoordinator(args)
+
+		miniBlock := &block.MiniBlock{}
+		pmbt := &processedMb.ProcessedMiniBlockTracker{}
+		miniBlockHeader := &block.MiniBlockHeader{}
+
+		pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, pmbt, miniBlockHeader)
+		assert.Nil(t, pi)
+		assert.Equal(t, testscommon.ErrMockMarshalizer, err)
+	})
+
+	t.Run("should get indexes", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTransactionCoordinatorArguments()
+		args.Marshalizer = &testscommon.MarshalizerMock{
+			Fail: false,
+		}
+		tc, _ := NewTransactionCoordinator(args)
+
+		miniBlock := &block.MiniBlock{}
+		miniBlockHash, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+		mbh := &block.MiniBlockHeader{
+			Hash:    miniBlockHash,
+			TxCount: 6,
+		}
+		_ = mbh.SetIndexOfFirstTxProcessed(2)
+		_ = mbh.SetIndexOfLastTxProcessed(4)
+		pmbt := &processedMb.ProcessedMiniBlockTracker{}
+
+		pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, pmbt, mbh)
+		assert.Nil(t, err)
+		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
+		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
+	})
 }

@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -96,11 +95,11 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		Type:            0,
 	}
 
-	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, postProcessorInfoHandlerMock)
+	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -121,11 +120,11 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		Type:            block.PeerBlock,
 	}
 
-	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, postProcessorInfoHandlerMock)
+	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Nil(t, err)
 }
 
@@ -146,11 +145,11 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		Type:            block.PeerBlock,
 	}
 
-	postProcessorInfoHandlerMock := &mock.PostProcessorInfoHandlerMock{
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, postProcessorInfoHandlerMock)
+	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Equal(t, process.ErrValidatorInfoMiniBlockNotFromMeta, err)
 }
 

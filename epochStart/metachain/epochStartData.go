@@ -374,8 +374,28 @@ func (e *epochStartData) computeStillPending(
 	miniBlockHeaders map[string]block.MiniBlockHeader,
 ) []block.MiniBlockHeader {
 
+	initIndexesOfProcessedTxs(miniBlockHeaders, shardID)
+
+	for _, shardHdr := range shardHdrs {
+		computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, shardID)
+	}
+
+	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
+	for _, mbHeader := range miniBlockHeaders {
+		log.Debug("pending mini block for", "shard", shardID, "mb hash", mbHeader.Hash)
+		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
+	}
+
+	sort.Slice(pendingMiniBlocks, func(i, j int) bool {
+		return bytes.Compare(pendingMiniBlocks[i].Hash, pendingMiniBlocks[j].Hash) < 0
+	})
+
+	return pendingMiniBlocks
+}
+
+func initIndexesOfProcessedTxs(miniBlockHeaders map[string]block.MiniBlockHeader, shardID uint32) {
 	for mbHash, mbHeader := range miniBlockHeaders {
-		log.Debug("epochStartData.computeStillPending: Init",
+		log.Debug("epochStartData.initIndexesOfProcessedTxs",
 			"mb hash", mbHash,
 			"len(reserved)", len(mbHeader.GetReserved()),
 			"shard", shardID,
@@ -388,55 +408,56 @@ func (e *epochStartData) computeStillPending(
 		setIndexOfFirstAndLastTxProcessed(&mbHeader, -1, -1)
 		miniBlockHeaders[mbHash] = mbHeader
 	}
+}
 
-	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
-
-	for _, shardHdr := range shardHdrs {
-		for _, shardMiniBlockHeader := range shardHdr.GetMiniBlockHeaderHandlers() {
-			shardMiniBlockHash := string(shardMiniBlockHeader.GetHash())
-			mbHeader, ok := miniBlockHeaders[shardMiniBlockHash]
-			if !ok {
-				continue
-			}
-
-			if shardMiniBlockHeader.IsFinal() {
-				log.Debug("epochStartData.computeStillPending: IsFinal",
-					"mb hash", shardMiniBlockHash,
-					"shard", shardID,
-				)
-				delete(miniBlockHeaders, shardMiniBlockHash)
-				continue
-			}
-
-			currIndexOfFirstTxProcessed := mbHeader.GetIndexOfFirstTxProcessed()
-			currIndexOfLastTxProcessed := mbHeader.GetIndexOfLastTxProcessed()
-			newIndexOfFirstTxProcessed := shardMiniBlockHeader.GetIndexOfFirstTxProcessed()
-			newIndexOfLastTxProcessed := shardMiniBlockHeader.GetIndexOfLastTxProcessed()
-			if newIndexOfLastTxProcessed > currIndexOfLastTxProcessed {
-				log.Debug("epochStartData.computeStillPending",
-					"mb hash", shardMiniBlockHash,
-					"shard", shardID,
-					"current index of first tx processed", currIndexOfFirstTxProcessed,
-					"current index of last tx processed", currIndexOfLastTxProcessed,
-					"new index of first tx processed", newIndexOfFirstTxProcessed,
-					"new index of last tx processed", newIndexOfLastTxProcessed,
-				)
-				setIndexOfFirstAndLastTxProcessed(&mbHeader, newIndexOfFirstTxProcessed, newIndexOfLastTxProcessed)
-				miniBlockHeaders[shardMiniBlockHash] = mbHeader
-			}
+func computeStillPendingInShardHeader(
+	shardHdr data.HeaderHandler,
+	miniBlockHeaders map[string]block.MiniBlockHeader,
+	shardID uint32,
+) {
+	for _, shardMiniBlockHeader := range shardHdr.GetMiniBlockHeaderHandlers() {
+		shardMiniBlockHash := string(shardMiniBlockHeader.GetHash())
+		mbHeader, ok := miniBlockHeaders[shardMiniBlockHash]
+		if !ok {
+			continue
 		}
+
+		if shardMiniBlockHeader.IsFinal() {
+			log.Debug("epochStartData.computeStillPendingInShardHeader: IsFinal",
+				"mb hash", shardMiniBlockHash,
+				"shard", shardID,
+			)
+			delete(miniBlockHeaders, shardMiniBlockHash)
+			continue
+		}
+
+		updateIndexesOfProcessedTxs(mbHeader, shardMiniBlockHeader, shardMiniBlockHash, shardID, miniBlockHeaders)
 	}
+}
 
-	for _, mbHeader := range miniBlockHeaders {
-		log.Debug("pending mini block for", "shard", shardID, "mb hash", mbHeader.Hash)
-		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
+func updateIndexesOfProcessedTxs(
+	mbHeader block.MiniBlockHeader,
+	shardMiniBlockHeader data.MiniBlockHeaderHandler,
+	shardMiniBlockHash string,
+	shardID uint32,
+	miniBlockHeaders map[string]block.MiniBlockHeader,
+) {
+	currIndexOfFirstTxProcessed := mbHeader.GetIndexOfFirstTxProcessed()
+	currIndexOfLastTxProcessed := mbHeader.GetIndexOfLastTxProcessed()
+	newIndexOfFirstTxProcessed := shardMiniBlockHeader.GetIndexOfFirstTxProcessed()
+	newIndexOfLastTxProcessed := shardMiniBlockHeader.GetIndexOfLastTxProcessed()
+	if newIndexOfLastTxProcessed > currIndexOfLastTxProcessed {
+		log.Debug("epochStartData.updateIndexesOfProcessedTxs",
+			"mb hash", shardMiniBlockHash,
+			"shard", shardID,
+			"current index of first tx processed", currIndexOfFirstTxProcessed,
+			"current index of last tx processed", currIndexOfLastTxProcessed,
+			"new index of first tx processed", newIndexOfFirstTxProcessed,
+			"new index of last tx processed", newIndexOfLastTxProcessed,
+		)
+		setIndexOfFirstAndLastTxProcessed(&mbHeader, newIndexOfFirstTxProcessed, newIndexOfLastTxProcessed)
+		miniBlockHeaders[shardMiniBlockHash] = mbHeader
 	}
-
-	sort.Slice(pendingMiniBlocks, func(i, j int) bool {
-		return bytes.Compare(pendingMiniBlocks[i].Hash, pendingMiniBlocks[j].Hash) < 0
-	})
-
-	return pendingMiniBlocks
 }
 
 func setIndexOfFirstAndLastTxProcessed(mbHeader *block.MiniBlockHeader, indexOfFirstTxProcessed int32, indexOfLastTxProcessed int32) {
