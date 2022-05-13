@@ -803,6 +803,17 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			"in processComponentsFactory.newMetaBlockProcessor", err)
 	}
 
+	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		StakingDataProvider:  stakingDataProvider,
+		EpochNotifier:        pcf.coreData.EpochNotifier(),
+		MaxNodesEnableConfig: enableEpochs.MaxNodesChangeEnableEpoch,
+	}
+	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
+	if err != nil {
+		return nil, err
+	}
+
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
 		UserAccountsDB:          pcf.state.AccountsAdapter(),
@@ -821,7 +832,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 		ESDTOwnerAddressBytes:   esdtOwnerAddress,
 		EpochConfig:             pcf.epochConfig,
+		AuctionListSelector:     auctionListSelector,
 	}
+
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
 		return nil, err

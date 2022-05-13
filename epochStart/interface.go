@@ -199,3 +199,9 @@ type EpochNotifier interface {
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }
+
+type AuctionListSelector interface {
+	SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	IsInterfaceNil() bool
+}

@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -33,12 +34,22 @@ type AuctionListSelectorArgs struct {
 }
 
 func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector, error) {
-	asl := &auctionListSelector{
-		shardCoordinator:    args.ShardCoordinator,
-		stakingDataProvider: args.StakingDataProvider,
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, epochStart.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.StakingDataProvider) {
+		return nil, epochStart.ErrNilStakingDataProvider
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, epochStart.ErrNilEpochNotifier
 	}
 
-	asl.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
+	asl := &auctionListSelector{
+		maxNodesEnableConfig: make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig)),
+		shardCoordinator:     args.ShardCoordinator,
+		stakingDataProvider:  args.StakingDataProvider,
+	}
+
 	copy(asl.maxNodesEnableConfig, args.MaxNodesEnableConfig)
 	args.EpochNotifier.RegisterNotifyHandler(asl)
 

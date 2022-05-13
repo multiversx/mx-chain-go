@@ -41,11 +41,12 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	EpochNotifier       process.EpochNotifier
 	NodesConfigProvider epochStart.NodesConfigProvider
 	StakingDataProvider epochStart.StakingDataProvider
+	AuctionListSelector epochStart.AuctionListSelector
 }
 
 type systemSCProcessor struct {
 	*legacySystemSCProcessor
-	auctionListSelector *auctionListSelector
+	auctionListSelector epochStart.AuctionListSelector
 
 	governanceEnableEpoch    uint32
 	builtInOnMetaEnableEpoch uint32
@@ -62,25 +63,21 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.EpochNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.AuctionListSelector) {
+		return nil, epochStart.ErrNilAuctionListSelector
+	}
 
 	legacy, err := newLegacySystemSCProcessor(args)
 	if err != nil {
 		return nil, err
 	}
 
-	als, _ := NewAuctionListSelector(AuctionListSelectorArgs{
-		ShardCoordinator:     args.ShardCoordinator,
-		StakingDataProvider:  args.StakingDataProvider,
-		EpochNotifier:        args.EpochNotifier,
-		MaxNodesEnableConfig: args.MaxNodesEnableConfig,
-	})
-
 	s := &systemSCProcessor{
 		legacySystemSCProcessor:  legacy,
 		governanceEnableEpoch:    args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 		builtInOnMetaEnableEpoch: args.EpochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		stakingV4EnableEpoch:     args.EpochConfig.EnableEpochs.StakingV4EnableEpoch,
-		auctionListSelector:      als,
+		auctionListSelector:      args.AuctionListSelector,
 	}
 
 	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)

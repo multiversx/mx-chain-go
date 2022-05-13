@@ -2188,6 +2188,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+
+		argsAuctionListSelector := metachain.AuctionListSelectorArgs{
+			ShardCoordinator:    tpn.ShardCoordinator,
+			StakingDataProvider: stakingDataProvider,
+			EpochNotifier:       tpn.EpochNotifier,
+		}
+		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
+
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
 			SystemVM:                systemVM,
 			UserAccountsDB:          tpn.AccntState,
@@ -2204,6 +2212,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
 			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
+			AuctionListSelector:     auctionListSelector,
 			EpochConfig: config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					StakingV2EnableEpoch:     StakingV2Epoch,

@@ -850,6 +850,12 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	argsStakingDataProvider.MinNodePrice = "1000"
 	stakingSCProvider, _ := NewStakingDataProvider(argsStakingDataProvider)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	argsAuctionListSelector := AuctionListSelectorArgs{
+		ShardCoordinator:    shardCoordinator,
+		StakingDataProvider: stakingSCProvider,
+		EpochNotifier:       en,
+	}
+	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 
 	args := ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
@@ -864,6 +870,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		EpochNotifier:           en,
 		GenesisNodesConfig:      nodesSetup,
 		StakingDataProvider:     stakingSCProvider,
+		AuctionListSelector:     als,
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
@@ -1787,20 +1794,26 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
 
 	errGetNodeTopUp := errors.New("error getting top up per node")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			switch string(blsKey) {
-			case "pubKey0", "pubKey1":
-				return nil, errGetNodeTopUp
-			default:
-				require.Fail(t, "should not call this func with other params")
-				return nil, nil
-			}
+	argsAuctionListSelector := AuctionListSelectorArgs{
+		ShardCoordinator: args.ShardCoordinator,
+		StakingDataProvider: &mock.StakingDataProviderStub{
+			GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+				switch string(blsKey) {
+				case "pubKey0", "pubKey1":
+					return nil, errGetNodeTopUp
+				default:
+					require.Fail(t, "should not call this func with other params")
+					return nil, nil
+				}
+			},
 		},
+		EpochNotifier:        args.EpochNotifier,
+		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{{MaxNumNodes: 1}},
 	}
+	als, _ := NewAuctionListSelector(argsAuctionListSelector)
+	args.AuctionListSelector = als
 
 	owner := []byte("owner")
 	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
@@ -1823,7 +1836,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4NotEnoughSlotsForA
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
+	argsAuctionListSelector := AuctionListSelectorArgs{
+		ShardCoordinator:     args.ShardCoordinator,
+		StakingDataProvider:  args.StakingDataProvider,
+		EpochNotifier:        args.EpochNotifier,
+		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{{MaxNumNodes: 1}},
+	}
+	als, _ := NewAuctionListSelector(argsAuctionListSelector)
+	args.AuctionListSelector = als
 
 	owner1 := []byte("owner1")
 	owner2 := []byte("owner2")
@@ -1857,7 +1877,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 6}}
+	argsAuctionListSelector := AuctionListSelectorArgs{
+		ShardCoordinator:     args.ShardCoordinator,
+		StakingDataProvider:  args.StakingDataProvider,
+		EpochNotifier:        args.EpochNotifier,
+		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{{MaxNumNodes: 6}},
+	}
+	als, _ := NewAuctionListSelector(argsAuctionListSelector)
+	args.AuctionListSelector = als
 
 	owner1 := []byte("owner1")
 	owner2 := []byte("owner2")

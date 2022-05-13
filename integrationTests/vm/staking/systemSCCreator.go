@@ -36,6 +36,14 @@ func createSystemSCProcessor(
 	systemVM vmcommon.VMExecutionHandler,
 	stakingDataProvider epochStart.StakingDataProvider,
 ) process.EpochStartSystemSCProcessor {
+	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
+		ShardCoordinator:     shardCoordinator,
+		StakingDataProvider:  stakingDataProvider,
+		EpochNotifier:        coreComponents.EpochNotifier(),
+		MaxNodesEnableConfig: maxNodesConfig,
+	}
+	auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
+
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
 		UserAccountsDB:          stateComponents.AccountsAdapter(),
@@ -60,6 +68,7 @@ func createSystemSCProcessor(
 			},
 		},
 		MaxNodesEnableConfig: maxNodesConfig,
+		AuctionListSelector:  auctionListSelector,
 	}
 
 	systemSCProcessor, _ := metachain.NewSystemSCProcessor(args)
