@@ -282,7 +282,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		require.True(t, boot.shouldAllowRollback(header))
 	})
 
-	t.Run("should not allow any rollBack of a header if nonce is behind final", func(t *testing.T){
+	t.Run("should not allow any rollBack of a header if nonce is behind final", func(t *testing.T) {
 		header := &testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 9
