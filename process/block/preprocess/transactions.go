@@ -381,7 +381,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 		}
 
 		pi := &processedIndexes{
-			indexOfLastTxProcessedByItself:   -1,
+			indexOfLastTxProcessed:           -1,
 			indexOfLastTxProcessedByProposer: int32(len(miniBlock.TxHashes)) - 1,
 		}
 
@@ -411,7 +411,7 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 		}
 
 		pi := &processedIndexes{
-			indexOfLastTxProcessedByItself:   -1,
+			indexOfLastTxProcessed:           -1,
 			indexOfLastTxProcessedByProposer: int32(len(miniBlock.TxHashes)) - 1,
 		}
 
@@ -433,7 +433,7 @@ func (txs *transactions) computeTxsFromMiniBlock(
 
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
 
-	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
+	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
 	err := process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 	if err != nil {
 		return nil, err

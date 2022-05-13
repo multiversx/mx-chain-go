@@ -108,7 +108,7 @@ type txsForBlock struct {
 }
 
 type processedIndexes struct {
-	indexOfLastTxProcessedByItself   int32
+	indexOfLastTxProcessed           int32
 	indexOfLastTxProcessedByProposer int32
 }
 
@@ -537,10 +537,10 @@ func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 
 	pi := &processedIndexes{}
 
-	pi.indexOfLastTxProcessedByItself = int32(-1)
+	pi.indexOfLastTxProcessed = int32(-1)
 	if processedMiniBlocks != nil {
 		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-		pi.indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+		pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
 	}
 
 	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)

@@ -229,7 +229,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			return err
 		}
 
-		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
+		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
 		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
 			return err

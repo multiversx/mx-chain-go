@@ -2804,3 +2804,42 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
 	assert.Nil(t, err)
 }
+
+func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	mbh := &block.MiniBlockHeader{
+		TxCount: 5,
+	}
+
+	_ = mbh.SetConstructionState(int32(block.PartialExecuted))
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount))
+	err := bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Nil(t, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 2)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Nil(t, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Equal(t, process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock, err)
+
+	_ = mbh.SetConstructionState(int32(block.Final))
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount))
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Equal(t, process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 2)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Equal(t, process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock, err)
+
+	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
+	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
+	assert.Nil(t, err)
+}

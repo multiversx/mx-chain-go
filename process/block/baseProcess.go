@@ -805,7 +805,7 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
 
 	}
-	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() < int32(mbh.GetTxCount())-1 {
+	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
 	}
 

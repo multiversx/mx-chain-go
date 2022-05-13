@@ -526,3 +526,7 @@ func (sp *shardProcessor) GetIndexOfLastTxProcessedInMiniBlock(miniBlockHash []b
 func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.HeaderHandler, mapMiniBlockHashes map[string]uint32) {
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
 }
+
+func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
+	return checkConstructionStateAndIndexesCorrectness(mbh)
+}

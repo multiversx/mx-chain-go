@@ -41,7 +41,7 @@ type createMiniBlockDestMeExecutionInfo struct {
 }
 
 type processedIndexes struct {
-	indexOfLastTxProcessedByItself   int32
+	indexOfLastTxProcessed           int32
 	indexOfLastTxProcessedByProposer int32
 }
 
@@ -1681,7 +1681,7 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 		return nil, nil, err
 	}
 
-	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessedByItself + 1
+	indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
 	err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 	if err != nil {
 		return nil, nil, err
@@ -1718,10 +1718,10 @@ func (tc *transactionCoordinator) getIndexesOfLastTxProcessed(
 
 	pi := &processedIndexes{}
 
-	pi.indexOfLastTxProcessedByItself = -1
+	pi.indexOfLastTxProcessed = -1
 	if processedMiniBlocks != nil {
 		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-		pi.indexOfLastTxProcessedByItself = processedMiniBlockInfo.IndexOfLastTxProcessed
+		pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
 	}
 
 	pi.indexOfLastTxProcessedByProposer = miniBlockHeaderHandler.GetIndexOfLastTxProcessed()

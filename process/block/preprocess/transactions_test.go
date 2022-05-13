@@ -2191,7 +2191,7 @@ func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
 
 		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, pmbt, headerHandler)
 		assert.Nil(t, err)
-		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessedByItself)
+		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
 	})
 }

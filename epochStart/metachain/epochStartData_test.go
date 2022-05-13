@@ -625,10 +625,10 @@ func Test_computeStillPendingInShardHeader(t *testing.T) {
 	computeStillPendingInShardHeader(shardHdr, miniBlockHeaders, 0)
 	assert.Equal(t, 1, len(miniBlockHeaders))
 
-	mbh, ok := miniBlockHeaders[string(mbHash2)]
-	require.False(t, ok)
+	_, ok := miniBlockHeaders[string(mbHash2)]
+	assert.False(t, ok)
 
-	mbh, ok = miniBlockHeaders[string(mbHash3)]
+	mbh, ok := miniBlockHeaders[string(mbHash3)]
 	require.True(t, ok)
 
 	assert.Equal(t, newIndexOfFirstTxProcessed, mbh.GetIndexOfFirstTxProcessed())
