@@ -2189,10 +2189,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
 
+		maxNodesChangeConfigProvider, _ := notifier.NewNodesConfigProvider(
+			tpn.EpochNotifier,
+			nil,
+		)
 		argsAuctionListSelector := metachain.AuctionListSelectorArgs{
-			ShardCoordinator:    tpn.ShardCoordinator,
-			StakingDataProvider: stakingDataProvider,
-			EpochNotifier:       tpn.EpochNotifier,
+			ShardCoordinator:             tpn.ShardCoordinator,
+			StakingDataProvider:          stakingDataProvider,
+			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		}
 		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
 

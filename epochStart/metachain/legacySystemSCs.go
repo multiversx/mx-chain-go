@@ -46,7 +46,6 @@ type legacySystemSCProcessor struct {
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
 	maxNodesEnableConfig     []config.MaxNodesChangeConfig
-	currentNodesEnableConfig config.MaxNodesChangeConfig
 	maxNodes                 uint32
 
 	switchEnableEpoch           uint32
@@ -1363,7 +1362,6 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 		}
 		if epoch >= maxNodesConfig.EpochEnable {
 			s.maxNodes = maxNodesConfig.MaxNumNodes
-			s.currentNodesEnableConfig = maxNodesConfig
 		}
 	}
 

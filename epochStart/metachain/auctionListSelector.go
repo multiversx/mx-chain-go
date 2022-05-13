@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/display"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -20,18 +19,16 @@ import (
 )
 
 type auctionListSelector struct {
-	currentNodesEnableConfig config.MaxNodesChangeConfig
-	shardCoordinator         sharding.Coordinator
-	stakingDataProvider      epochStart.StakingDataProvider
-	maxNodesEnableConfig     []config.MaxNodesChangeConfig
+	shardCoordinator    sharding.Coordinator
+	stakingDataProvider epochStart.StakingDataProvider
+	nodesConfigProvider epochStart.MaxNodesChangeConfigProvider
 }
 
 // AuctionListSelectorArgs is a struct placeholder for all arguments required to create a NewAuctionListSelector
 type AuctionListSelectorArgs struct {
-	ShardCoordinator     sharding.Coordinator
-	StakingDataProvider  epochStart.StakingDataProvider
-	EpochNotifier        process.EpochNotifier
-	MaxNodesEnableConfig []config.MaxNodesChangeConfig
+	ShardCoordinator             sharding.Coordinator
+	StakingDataProvider          epochStart.StakingDataProvider
+	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
 }
 
 // NewAuctionListSelector will create a new auctionListSelector, which handles selection of nodes from auction list based
@@ -43,18 +40,15 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 	if check.IfNil(args.StakingDataProvider) {
 		return nil, epochStart.ErrNilStakingDataProvider
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, epochStart.ErrNilEpochNotifier
+	if check.IfNil(args.MaxNodesChangeConfigProvider) {
+		return nil, epochStart.ErrNilMaxNodesChangeConfigProvider
 	}
 
 	asl := &auctionListSelector{
-		maxNodesEnableConfig: make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig)),
-		shardCoordinator:     args.ShardCoordinator,
-		stakingDataProvider:  args.StakingDataProvider,
+		shardCoordinator:    args.ShardCoordinator,
+		stakingDataProvider: args.StakingDataProvider,
+		nodesConfigProvider: args.MaxNodesChangeConfigProvider,
 	}
-
-	copy(asl.maxNodesEnableConfig, args.MaxNodesEnableConfig)
-	args.EpochNotifier.RegisterNotifyHandler(asl)
 
 	return asl, nil
 }
@@ -67,10 +61,10 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap sta
 		return process.ErrNilRandSeed
 	}
 
-	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
-	numOfShuffledNodes := als.currentNodesEnableConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
-	maxNumNodes := als.currentNodesEnableConfig.MaxNumNodes
+	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
+	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 
+	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("%v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
@@ -81,6 +75,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap sta
 		numOfValidatorsAfterShuffling = 0
 	}
 
+	maxNumNodes := currNodesConfig.MaxNumNodes
 	availableSlots, err := safeSub(maxNumNodes, numOfValidatorsAfterShuffling)
 	if availableSlots == 0 || err != nil {
 		log.Info(fmt.Sprintf("%v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
@@ -252,15 +247,6 @@ func (als *auctionListSelector) displayAuctionList(auctionList []state.Validator
 
 	message := fmt.Sprintf("Auction list\n%s", table)
 	log.Debug(message)
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (als *auctionListSelector) EpochConfirmed(epoch uint32, _ uint64) {
-	for _, maxNodesConfig := range als.maxNodesEnableConfig {
-		if epoch >= maxNodesConfig.EpochEnable {
-			als.currentNodesEnableConfig = maxNodesConfig
-		}
-	}
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

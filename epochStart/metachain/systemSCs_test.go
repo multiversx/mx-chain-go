@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -850,10 +851,12 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	argsStakingDataProvider.MinNodePrice = "1000"
 	stakingSCProvider, _ := NewStakingDataProvider(argsStakingDataProvider)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(en, nil)
 	argsAuctionListSelector := AuctionListSelectorArgs{
-		ShardCoordinator:    shardCoordinator,
-		StakingDataProvider: stakingSCProvider,
-		EpochNotifier:       en,
+		ShardCoordinator:             shardCoordinator,
+		StakingDataProvider:          stakingSCProvider,
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 
@@ -1796,6 +1799,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
 
 	errGetNodeTopUp := errors.New("error getting top up per node")
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 1}})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator: args.ShardCoordinator,
 		StakingDataProvider: &mock.StakingDataProviderStub{
@@ -1809,8 +1813,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 				}
 			},
 		},
-		EpochNotifier:        args.EpochNotifier,
-		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{{MaxNumNodes: 1}},
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 	args.AuctionListSelector = als
@@ -1824,7 +1827,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingA
 	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner, 0))
 
 	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: args.EpochConfig.EnableEpochs.StakingV4EnableEpoch})
 
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("rnd")})
 	require.Error(t, err)
@@ -1836,11 +1839,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4NotEnoughSlotsForA
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, nil)
 	argsAuctionListSelector := AuctionListSelectorArgs{
-		ShardCoordinator:     args.ShardCoordinator,
-		StakingDataProvider:  args.StakingDataProvider,
-		EpochNotifier:        args.EpochNotifier,
-		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{{MaxNumNodes: 1}},
+		ShardCoordinator:             args.ShardCoordinator,
+		StakingDataProvider:          args.StakingDataProvider,
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 	args.AuctionListSelector = als
@@ -1877,11 +1880,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 6}})
 	argsAuctionListSelector := AuctionListSelectorArgs{
-		ShardCoordinator:     args.ShardCoordinator,
-		StakingDataProvider:  args.StakingDataProvider,
-		EpochNotifier:        args.EpochNotifier,
-		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{{MaxNumNodes: 6}},
+		ShardCoordinator:             args.ShardCoordinator,
+		StakingDataProvider:          args.StakingDataProvider,
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 	args.AuctionListSelector = als
@@ -1917,7 +1920,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4, 1))
 
 	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: args.EpochConfig.EnableEpochs.StakingV4EnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("pubKey7")})
 	require.Nil(t, err)
 
@@ -2006,14 +2009,12 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err := s.processLegacy(validatorsInfoMap, 0, 0)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch0, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch0.MaxNumNodes, s.maxNodes)
 
 	s.EpochConfirmed(1, 1)
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 1, 1)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch1, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 
 	for epoch := uint32(2); epoch <= 5; epoch++ {
@@ -2021,7 +2022,6 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 		require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 		err = s.processLegacy(validatorsInfoMap, uint64(epoch), epoch)
 		require.Nil(t, err)
-		require.Equal(t, nodesConfigEpoch1, s.currentNodesEnableConfig)
 		require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 	}
 
@@ -2031,14 +2031,12 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 5, 5)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch1, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 
 	s.EpochConfirmed(6, 6)
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
 	// simulate restart
@@ -2047,7 +2045,6 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
 	for epoch := uint32(7); epoch <= 20; epoch++ {
@@ -2055,7 +2052,6 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 		require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 		err = s.processLegacy(validatorsInfoMap, uint64(epoch), epoch)
 		require.Nil(t, err)
-		require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 		require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 	}
 
@@ -2065,7 +2061,6 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 21, 21)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -803,11 +804,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			"in processComponentsFactory.newMetaBlockProcessor", err)
 	}
 
+	maxNodesChangeConfigProvider, err := notifier.NewNodesConfigProvider(
+		pcf.epochNotifier,
+		enableEpochs.MaxNodesChangeEnableEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
-		StakingDataProvider:  stakingDataProvider,
-		EpochNotifier:        pcf.coreData.EpochNotifier(),
-		MaxNodesEnableConfig: enableEpochs.MaxNodesChangeEnableEpoch,
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		StakingDataProvider:          stakingDataProvider,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 	}
 	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
 	if err != nil {

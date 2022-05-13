@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -200,9 +201,17 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// MaxNodesChangeConfigProvider provides all config.MaxNodesChangeConfig, as well as
+// the current config.MaxNodesChangeConfig based on the current epoch
+type MaxNodesChangeConfigProvider interface {
+	GetAllNodesConfig() []config.MaxNodesChangeConfig
+	GetCurrentNodesConfig() config.MaxNodesChangeConfig
+	EpochConfirmed(epoch uint32, round uint64)
+	IsInterfaceNil() bool
+}
+
 // AuctionListSelector handles selection of nodes from auction list to be sent to waiting list, based on their top up
 type AuctionListSelector interface {
 	SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error
-	EpochConfirmed(epoch uint32, timestamp uint64)
 	IsInterfaceNil() bool
 }
