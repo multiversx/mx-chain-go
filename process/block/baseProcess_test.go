@@ -106,6 +106,7 @@ func createArgBaseProcessor(
 		GasHandler:                     &mock.GasHandlerMock{},
 		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
 		ScheduledMiniBlocksEnableEpoch: 2,
+		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 }
 
@@ -431,6 +432,7 @@ func createMockTransactionCoordinatorArguments(
 		ScheduledMiniBlocksEnableEpoch:       2,
 		DoubleTransactionsDetector:           &testscommon.PanicDoubleTransactionsDetector{},
 		MiniBlockPartialExecutionEnableEpoch: 2,
+		ProcessedMiniBlocksTracker:           &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -695,6 +697,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ProcessedMiniBlocksTracker = nil
+				return args
+			},
+			expectedErr: process.ErrNilProcessedMiniBlocksTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
 				bootstrapCopy := *bootstrapComponents
 				bootstrapCopy.VersionedHdrFactory = nil
 				return createArgBaseProcessor(coreComponents, dataComponents, &bootstrapCopy, statusComponents)
@@ -794,6 +804,8 @@ func TestBaseProcessor_SetIndexOfFirstTxProcessed(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	metaHash := []byte("meta_hash")
@@ -802,12 +814,11 @@ func TestBaseProcessor_SetIndexOfFirstTxProcessed(t *testing.T) {
 		Hash: mbHash,
 	}
 
-	processedMiniBlocks := bp.GetProcessedMiniBlocks()
 	processedMbInfo := &processedMb.ProcessedMiniBlockInfo{
 		FullyProcessed:         false,
 		IndexOfLastTxProcessed: 8,
 	}
-	processedMiniBlocks.SetProcessedMiniBlockInfo(metaHash, mbHash, processedMbInfo)
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash, processedMbInfo)
 	err := bp.SetIndexOfFirstTxProcessed(miniBlockHeader)
 	assert.Nil(t, err)
 	assert.Equal(t, int32(9), miniBlockHeader.GetIndexOfFirstTxProcessed())

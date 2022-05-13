@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -127,6 +126,7 @@ type basePreProcess struct {
 	flagOptimizeGasUsedInCrossMiniBlocks        atomic.Flag
 	frontRunningProtectionEnableEpoch           uint32
 	flagFrontRunningProtection                  atomic.Flag
+	processedMiniBlocksTracker                  process.ProcessedMiniBlocksTracker
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -526,7 +526,6 @@ func (bpp *basePreProcess) epochConfirmed(epoch uint32, _ uint64) {
 
 func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 	miniBlock *block.MiniBlock,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	headerHandler data.HeaderHandler,
 ) (*processedIndexes, error) {
 
@@ -537,11 +536,8 @@ func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 
 	pi := &processedIndexes{}
 
-	pi.indexOfLastTxProcessed = int32(-1)
-	if processedMiniBlocks != nil {
-		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-		pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
-	}
+	processedMiniBlockInfo, _ := bpp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
 
 	miniBlockHeader, err := getMiniBlockHeaderOfMiniBlock(headerHandler, miniBlockHash)
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
@@ -109,8 +109,8 @@ func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data
 	return bps.CreateNewHeaderCalled(round, nonce)
 }
 
-// ApplyProcessedMiniBlocks -
-func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
+// SetProcessedMiniBlocksTracker -
+func (bps *BlockProcessorStub) SetProcessedMiniBlocksTracker(_ process.ProcessedMiniBlocksTracker) {
 }
 
 // Close -

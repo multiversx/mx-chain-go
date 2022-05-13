@@ -124,6 +124,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 	}
 
 	mp := metaProcessor{
@@ -355,7 +356,7 @@ func (mp *metaProcessor) ProcessBlock(
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
-	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, nil, haveTime)
+	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -1559,8 +1560,10 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
 }
 
-// ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
+// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
+func (mp *metaProcessor) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
+	mp.processedMiniBlocksTracker = processedMiniBlocksTracker
+	mp.txCoordinator.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
 }
 
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage

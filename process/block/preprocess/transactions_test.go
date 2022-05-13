@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -233,6 +232,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 		ScheduledMiniBlocksEnableEpoch:              2,
 		TxTypeHandler:                               &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler:                &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:                  &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 }
 
@@ -418,6 +418,16 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilScheduledTxsExecutionHandl
 	txs, err := NewTransactionPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilProcessedMiniBlocksTracker(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.ProcessedMiniBlocksTracker = nil
+	txs, err := NewTransactionPreprocessor(args)
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T) {
@@ -1131,7 +1141,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, nil, haveTimeTrue)
+	_ = preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
@@ -2141,10 +2151,9 @@ func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
 		txs, _ := NewTransactionPreprocessor(args)
 
 		miniBlock := &block.MiniBlock{}
-		pmbt := &processedMb.ProcessedMiniBlockTracker{}
 		headerHandler := &block.Header{}
 
-		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, pmbt, headerHandler)
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		assert.Nil(t, pi)
 		assert.Equal(t, testscommon.ErrMockMarshalizer, err)
 	})
@@ -2159,10 +2168,9 @@ func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
 		txs, _ := NewTransactionPreprocessor(args)
 
 		miniBlock := &block.MiniBlock{}
-		pmbt := &processedMb.ProcessedMiniBlockTracker{}
 		headerHandler := &block.Header{}
 
-		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, pmbt, headerHandler)
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		assert.Nil(t, pi)
 		assert.Equal(t, process.ErrMissingMiniBlockHeader, err)
 	})
@@ -2184,12 +2192,11 @@ func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
 		}
 		_ = mbh.SetIndexOfFirstTxProcessed(2)
 		_ = mbh.SetIndexOfLastTxProcessed(4)
-		pmbt := &processedMb.ProcessedMiniBlockTracker{}
 		headerHandler := &block.Header{
 			MiniBlockHeaders: []block.MiniBlockHeader{mbh},
 		}
 
-		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, pmbt, headerHandler)
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		assert.Nil(t, err)
 		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)

@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 func (txs *transactions) ReceivedTransaction(txHash []byte, value interface{}) {
@@ -99,10 +98,9 @@ func (bsc *blockSizeComputation) NumTxs() uint32 {
 func (txs *transactions) ProcessTxsToMe(
 	header data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
-	return txs.processTxsToMe(header, body, processedMiniBlocks, haveTime)
+	return txs.processTxsToMe(header, body, haveTime)
 }
 
 func (txs *transactions) AddTxForCurrentBlock(

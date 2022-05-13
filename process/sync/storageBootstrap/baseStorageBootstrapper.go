@@ -164,11 +164,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
-	processedMiniBlocks := processedMb.NewProcessedMiniBlocks()
-	processedMiniBlocks.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
-	processedMiniBlocks.DisplayProcessedMiniBlocks()
+	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
+	processedMiniBlocksTracker.DisplayProcessedMiniBlocks()
 
-	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
+	st.blkExecutor.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
 
 	st.cleanupStorageForHigherNonceIfExist()
 

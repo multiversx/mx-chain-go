@@ -68,6 +68,7 @@ type ArgTransactionCoordinator struct {
 	ScheduledMiniBlocksEnableEpoch       uint32
 	DoubleTransactionsDetector           process.DoubleTransactionDetector
 	MiniBlockPartialExecutionEnableEpoch uint32
+	ProcessedMiniBlocksTracker           process.ProcessedMiniBlocksTracker
 }
 
 type transactionCoordinator struct {
@@ -104,6 +105,7 @@ type transactionCoordinator struct {
 	doubleTransactionsDetector           process.DoubleTransactionDetector
 	miniBlockPartialExecutionEnableEpoch uint32
 	flagMiniBlockPartialExecution        atomic.Flag
+	processedMiniBlocksTracker           process.ProcessedMiniBlocksTracker
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -130,6 +132,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		scheduledMiniBlocksEnableEpoch:       args.ScheduledMiniBlocksEnableEpoch,
 		doubleTransactionsDetector:           args.DoubleTransactionsDetector,
 		miniBlockPartialExecutionEnableEpoch: args.MiniBlockPartialExecutionEnableEpoch,
+		processedMiniBlocksTracker:           args.ProcessedMiniBlocksTracker,
 	}
 	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
 	log.Debug("coordinator/process: enable epoch for scheduled txs execution", "epoch", tc.scheduledMiniBlocksEnableEpoch)
@@ -434,7 +437,6 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	header data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	timeRemaining func() time.Duration,
 ) error {
 	if check.IfNil(body) {
@@ -452,7 +454,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	tc.doubleTransactionsDetector.ProcessBlockBody(body)
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(header, body, processedMiniBlocks, haveTime)
+	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
@@ -513,7 +515,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], nil, haveTime)
+		err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], haveTime)
 		if err != nil {
 			return err
 		}
@@ -527,7 +529,6 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	header data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) (int, error) {
 	numMiniBlocksProcessed := 0
@@ -556,7 +557,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		}
 
 		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
-		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, processedMiniBlocks, haveTime)
+		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
 			return mbIndex, err
 		}
@@ -1499,7 +1500,6 @@ func getNumOfCrossShardScCallsOrSpecialTxs(
 func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
 	header data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 ) error {
 	if header.GetEpoch() < tc.blockGasAndFeesReCheckEnableEpoch {
 		return nil
@@ -1512,7 +1512,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
 		return err
 	}
 
-	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs, processedMiniBlocks)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	if err != nil {
 		return err
 	}
@@ -1615,7 +1615,6 @@ func (tc *transactionCoordinator) verifyFees(
 	header data.HeaderHandler,
 	body *block.Body,
 	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 ) error {
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
@@ -1647,7 +1646,6 @@ func (tc *transactionCoordinator) verifyFees(
 			header.GetMiniBlockHeaderHandlers()[index],
 			miniBlock,
 			mapMiniBlockTypeAllTxs[miniBlock.Type],
-			processedMiniBlocks,
 		)
 		if err != nil {
 			return err
@@ -1671,12 +1669,11 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	miniBlock *block.MiniBlock,
 	mapHashTx map[string]data.TransactionHandler,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 ) (*big.Int, *big.Int, error) {
 	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
 	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
 
-	pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, miniBlockHeaderHandler)
+	pi, err := tc.getIndexesOfLastTxProcessed(miniBlock, miniBlockHeaderHandler)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1707,7 +1704,6 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 
 func (tc *transactionCoordinator) getIndexesOfLastTxProcessed(
 	miniBlock *block.MiniBlock,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 ) (*processedIndexes, error) {
 
@@ -1718,12 +1714,8 @@ func (tc *transactionCoordinator) getIndexesOfLastTxProcessed(
 
 	pi := &processedIndexes{}
 
-	pi.indexOfLastTxProcessed = -1
-	if processedMiniBlocks != nil {
-		processedMiniBlockInfo, _ := processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
-		pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
-	}
-
+	processedMiniBlockInfo, _ := tc.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	pi.indexOfLastTxProcessed = processedMiniBlockInfo.IndexOfLastTxProcessed
 	pi.indexOfLastTxProcessedByProposer = miniBlockHeaderHandler.GetIndexOfLastTxProcessed()
 
 	return pi, nil
@@ -1783,6 +1775,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.DoubleTransactionsDetector) {
 		return process.ErrNilDoubleTransactionsDetector
+	}
+	if check.IfNil(arguments.ProcessedMiniBlocksTracker) {
+		return process.ErrNilProcessedMiniBlocksTracker
 	}
 
 	return nil
@@ -1851,6 +1846,20 @@ func (tc *transactionCoordinator) AddTransactions(txs []data.TransactionHandler,
 	}
 
 	preProc.AddTransactions(txs)
+}
+
+// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
+func (tc *transactionCoordinator) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
+	tc.processedMiniBlocksTracker = processedMiniBlocksTracker
+
+	for _, blockType := range tc.keysTxPreProcs {
+		txPreProc := tc.getPreProcessor(blockType)
+		if check.IfNil(txPreProc) {
+			continue
+		}
+
+		txPreProc.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

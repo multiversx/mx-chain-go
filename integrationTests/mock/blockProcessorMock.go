@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
@@ -48,8 +48,8 @@ func (bpm *BlockProcessorMock) ProcessScheduledBlock(header data.HeaderHandler, 
 	return bpm.ProcessScheduledBlockCalled(header, body, haveTime)
 }
 
-// ApplyProcessedMiniBlocks -
-func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
+// SetProcessedMiniBlocksTracker -
+func (bpm *BlockProcessorMock) SetProcessedMiniBlocksTracker(_ process.ProcessedMiniBlocksTracker) {
 }
 
 // CommitBlock mocks the commit of a block

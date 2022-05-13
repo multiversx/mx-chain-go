@@ -1094,3 +1094,6 @@ var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does no
 
 // ErrIndexDoesNotMatchWithFullyExecuted signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
+
+// ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
+var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")

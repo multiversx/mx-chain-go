@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -49,6 +48,7 @@ func NewSmartContractResultPreprocessor(
 	balanceComputation BalanceComputationHandler,
 	epochNotifier process.EpochNotifier,
 	optimizeGasUsedInCrossMiniBlocksEnableEpoch uint32,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -93,6 +93,9 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(epochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(processedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -108,6 +111,7 @@ func NewSmartContractResultPreprocessor(
 		pubkeyConverter:      pubkeyConverter,
 
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: optimizeGasUsedInCrossMiniBlocksEnableEpoch,
+		processedMiniBlocksTracker:                  processedMiniBlocksTracker,
 	}
 
 	scr := &smartContractResults{
@@ -229,7 +233,6 @@ func (scr *smartContractResults) RestoreBlockDataIntoPools(
 func (scr *smartContractResults) ProcessBlockTransactions(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if check.IfNil(body) {
@@ -276,7 +279,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			continue
 		}
 
-		pi, err := scr.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, headerHandler)
+		pi, err := scr.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
 			return err
 		}
@@ -656,6 +659,11 @@ func (scr *smartContractResults) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
 
 // AddTransactions does nothing
 func (scr *smartContractResults) AddTransactions(_ []data.TransactionHandler) {
+}
+
+// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
+func (scr *smartContractResults) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
+	scr.processedMiniBlocksTracker = processedMiniBlocksTracker
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

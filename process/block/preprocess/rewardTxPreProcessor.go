@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -46,6 +45,7 @@ func NewRewardTxPreprocessor(
 	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
+	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -84,6 +84,9 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(processedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -93,10 +96,11 @@ func NewRewardTxPreprocessor(
 			gasHandler:       gasHandler,
 			economicsFee:     nil,
 		},
-		blockSizeComputation: blockSizeComputation,
-		balanceComputation:   balanceComputation,
-		accounts:             accounts,
-		pubkeyConverter:      pubkeyConverter,
+		blockSizeComputation:       blockSizeComputation,
+		balanceComputation:         balanceComputation,
+		accounts:                   accounts,
+		pubkeyConverter:            pubkeyConverter,
+		processedMiniBlocksTracker: processedMiniBlocksTracker,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -211,7 +215,6 @@ func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if check.IfNil(body) {
@@ -224,7 +227,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			continue
 		}
 
-		pi, err := rtp.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, headerHandler)
+		pi, err := rtp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
 			return err
 		}
@@ -538,6 +541,11 @@ func (rtp *rewardTxPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
 
 // AddTransactions does nothing
 func (rtp *rewardTxPreprocessor) AddTransactions(_ []data.TransactionHandler) {
+}
+
+// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
+func (rtp *rewardTxPreprocessor) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
+	rtp.processedMiniBlocksTracker = processedMiniBlocksTracker
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

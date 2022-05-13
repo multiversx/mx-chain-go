@@ -108,6 +108,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		economicsData:                  arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
 		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
+		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
 	}
 
 	sp := shardProcessor{
@@ -126,7 +127,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
 	sp.hdrsForCurrBlock = newHdrForBlock()
-	sp.processedMiniBlocks = processedMb.NewProcessedMiniBlocks()
 
 	headersPool := sp.dataPool.Headers()
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
@@ -306,7 +306,7 @@ func (sp *shardProcessor) ProcessBlock(
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
-	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, sp.processedMiniBlocks, haveTime)
+	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
@@ -320,7 +320,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body, sp.processedMiniBlocks)
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
 	if err != nil {
 		return err
 	}
@@ -758,7 +758,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
 	for _, miniBlockHash := range miniBlockHashes {
 		indexOfLastTxProcessed := getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
-		sp.processedMiniBlocks.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
+		sp.processedMiniBlocksTracker.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
 			FullyProcessed:         true,
 			IndexOfLastTxProcessed: indexOfLastTxProcessed,
 		})
@@ -810,11 +810,11 @@ func (sp *shardProcessor) rollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.MiniBlockHeaderHandler, miniBlockHash []byte) {
 	indexOfFirstTxProcessed := miniBlockHeader.GetIndexOfFirstTxProcessed()
 	if indexOfFirstTxProcessed == 0 {
-		sp.processedMiniBlocks.RemoveMiniBlockHash(miniBlockHash)
+		sp.processedMiniBlocksTracker.RemoveMiniBlockHash(miniBlockHash)
 		return
 	}
 
-	_, metaBlockHash := sp.processedMiniBlocks.GetProcessedMiniBlockInfo(miniBlockHash)
+	_, metaBlockHash := sp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
 	if metaBlockHash == nil {
 		log.Warn("shardProcessor.rollBackProcessedMiniBlockInfo: mini block was not found in ProcessedMiniBlockTracker component",
 			"sender shard", miniBlockHeader.GetSenderShardID(),
@@ -824,7 +824,7 @@ func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 		return
 	}
 
-	sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
+	sp.processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaBlockHash, miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
 		FullyProcessed:         false,
 		IndexOfLastTxProcessed: indexOfFirstTxProcessed - 1,
 	})
@@ -1077,7 +1077,7 @@ func (sp *shardProcessor) CommitBlock(
 		round:                      header.GetRound(),
 		lastSelfNotarizedHeaders:   sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
 		highestFinalBlockNonce:     sp.forkDetector.GetHighestFinalBlockNonce(),
-		processedMiniBlocks:        sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
+		processedMiniBlocks:        sp.processedMiniBlocksTracker.ConvertProcessedMiniBlocksMapToSlice(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 	}
@@ -1384,9 +1384,10 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 	return nil
 }
 
-// ApplyProcessedMiniBlocks will apply processed mini blocks
-func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) {
-	sp.processedMiniBlocks = processedMiniBlocks
+// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
+func (sp *shardProcessor) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
+	sp.processedMiniBlocksTracker = processedMiniBlocksTracker
+	sp.txCoordinator.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
 }
 
 // CreateNewHeader creates a new header
@@ -1570,7 +1571,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 				continue
 			}
 
-			sp.processedMiniBlocks.SetProcessedMiniBlockInfo(metaBlockHash, miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
+			sp.processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaBlockHash, miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
 				FullyProcessed:         miniBlockHeader.IsFinal(),
 				IndexOfLastTxProcessed: miniBlockHeader.GetIndexOfLastTxProcessed(),
 			})
@@ -1609,7 +1610,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			processedCrossMiniBlocksHashes[hash] = sp.processedMiniBlocks.IsMiniBlockFullyProcessed([]byte(metaBlockHash), []byte(hash))
+			processedCrossMiniBlocksHashes[hash] = sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed([]byte(metaBlockHash), []byte(hash))
 		}
 
 		for key, miniBlockHash := range miniBlockHashes {
@@ -1672,7 +1673,7 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 
 		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
-		sp.processedMiniBlocks.RemoveMetaBlockHash(headerHash)
+		sp.processedMiniBlocksTracker.RemoveMetaBlockHash(headerHash)
 	}
 
 	return nil
@@ -1911,7 +1912,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			continue
 		}
 
-		createAndProcessInfo.currProcessedMiniBlocksInfo = sp.processedMiniBlocks.GetProcessedMiniBlocksInfo(createAndProcessInfo.currMetaHdrHash)
+		createAndProcessInfo.currProcessedMiniBlocksInfo = sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(createAndProcessInfo.currMetaHdrHash)
 		createAndProcessInfo.hdrAdded = false
 
 		shouldContinue, errCreated := sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
@@ -2189,7 +2190,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 		return nil, err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedMiniBlocks(shardHeader, newBody, sp.processedMiniBlocks)
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(shardHeader, newBody)
 	if err != nil {
 		return nil, err
 	}

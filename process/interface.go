@@ -134,7 +134,7 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() time.Duration) error
+	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -147,11 +147,12 @@ type TransactionCoordinator interface {
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	CreateMarshalizedReceipts() ([]byte, error)
-	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) error
+	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
 	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
+	SetProcessedMiniBlocksTracker(processedMiniBlocksTracker ProcessedMiniBlocksTracker)
 	IsInterfaceNil() bool
 }
 
@@ -211,7 +212,7 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, processedMiniBlocks *processedMb.ProcessedMiniBlockTracker, haveTime func() bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
@@ -221,6 +222,7 @@ type PreProcessor interface {
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler)
+	SetProcessedMiniBlocksTracker(processedMiniBlocksTracker ProcessedMiniBlocksTracker)
 	IsInterfaceNil() bool
 }
 
@@ -235,7 +237,7 @@ type BlockProcessor interface {
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
+	SetProcessedMiniBlocksTracker(processedMiniBlocksTracker ProcessedMiniBlocksTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -1210,4 +1212,18 @@ type PreProcessorExecutionInfoHandler interface {
 	GetNumOfCrossInterMbsAndTxs() (int, int)
 	InitProcessedTxsResults(key []byte)
 	RevertProcessedTxsResults(txHashes [][]byte, key []byte)
+}
+
+// ProcessedMiniBlocksTracker handles tracking of processed mini blocks
+type ProcessedMiniBlocksTracker interface {
+	SetProcessedMiniBlockInfo(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo)
+	RemoveMetaBlockHash(metaBlockHash []byte)
+	RemoveMiniBlockHash(miniBlockHash []byte)
+	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
+	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
+	IsMiniBlockFullyProcessed(metaBlockHash []byte, miniBlockHash []byte) bool
+	ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta
+	ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
+	DisplayProcessedMiniBlocks()
+	IsInterfaceNil() bool
 }
