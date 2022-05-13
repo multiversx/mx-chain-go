@@ -22,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
 // TODO: move app status handler initialization here
@@ -223,6 +222,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 	return &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
+		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
 		ShardCoordinator:         scf.shardCoordinator,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
@@ -240,16 +240,17 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 	}
 }
 
-func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.EventNotifierFactoryArgs {
+func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactory.EventNotifierFactoryArgs {
 	eventNotifierConfig := scf.externalConfig.EventNotifierConnector
-	return &notifierFactory.EventNotifierFactoryArgs{
+	return &outportDriverFactory.EventNotifierFactoryArgs{
 		Enabled:          eventNotifierConfig.Enabled,
 		UseAuthorization: eventNotifierConfig.UseAuthorization,
 		ProxyUrl:         eventNotifierConfig.ProxyUrl,
 		Username:         eventNotifierConfig.Username,
 		Password:         eventNotifierConfig.Password,
-		Marshalizer:      scf.coreComponents.InternalMarshalizer(),
+		Marshaller:       scf.coreComponents.InternalMarshalizer(),
 		Hasher:           scf.coreComponents.Hasher(),
+		PubKeyConverter:  scf.coreComponents.AddressPubKeyConverter(),
 	}
 }
 

@@ -133,6 +133,9 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 }
 
+func (msb *metaStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExist(_ []bootstrapStorage.BootstrapHeaderInfo) {
+}
+
 func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 	bootstrapHeadersInfo []bootstrapStorage.BootstrapHeaderInfo,
 ) ([]data.HeaderHandler, [][]byte, error) {
