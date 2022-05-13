@@ -360,6 +360,7 @@ type IncreaseFactorConfig struct {
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
 	Querying  QueryVirtualMachineConfig
+	GasConfig VirtualMachineGasConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
@@ -379,6 +380,11 @@ type ArwenVersionByEpoch struct {
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
+}
+
+// VirtualMachineGasConfig holds the configuration for the virtual machine(s) gas operations
+type VirtualMachineGasConfig struct {
+	MaxGasPerVmQuery uint64
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
