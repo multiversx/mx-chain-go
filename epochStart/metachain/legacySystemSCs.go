@@ -1356,6 +1356,7 @@ func (s *legacySystemSCProcessor) legacyEpochConfirmed(epoch uint32) {
 	for _, maxNodesConfig := range s.maxNodesChangeConfigProvider.GetAllNodesConfig() {
 		if epoch == maxNodesConfig.EpochEnable {
 			s.flagChangeMaxNodesEnabled.SetValue(true)
+			break
 		}
 	}
 	s.maxNodes = s.maxNodesChangeConfigProvider.GetCurrentNodesConfig().MaxNumNodes
