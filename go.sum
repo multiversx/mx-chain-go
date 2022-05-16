@@ -32,8 +32,8 @@ github.com/ElrondNetwork/elrond-go-core v1.1.7/go.mod h1:O9FkkTT2H9kxCzfn40TbhoC
 github.com/ElrondNetwork/elrond-go-core v1.1.9/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.10/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-core v1.1.13/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
-github.com/ElrondNetwork/elrond-go-core v1.1.15-0.20220408095449-e179fadf3449 h1:szcj1iYXH/r9CFWQvOM+fPFoE0vlld5ckxx57j06qYA=
-github.com/ElrondNetwork/elrond-go-core v1.1.15-0.20220408095449-e179fadf3449/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
+github.com/ElrondNetwork/elrond-go-core v1.1.15-0.20220428101223-76d1bd8b4ed4 h1:FvWVq5yVhUrsYFG4B1co2x/cJzJG27v62zrKGAcARto=
+github.com/ElrondNetwork/elrond-go-core v1.1.15-0.20220428101223-76d1bd8b4ed4/go.mod h1:Yz8JK5sGBctw7+gU8j2mZHbzQ09Ek4XHJ4Uinq1N6nM=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.0/go.mod h1:DGiR7/j1xv729Xg8SsjYaUzWXL5svMd44REXjWS/gAc=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.1 h1:xJUUshIZQ7h+rG7Art/9QHVyaPRV1wEjrxXYBdpmRlM=
 github.com/ElrondNetwork/elrond-go-crypto v1.0.1/go.mod h1:uunsvweBrrhVojL8uiQSaTPsl3YIQ9iBqtYGM6xs4s0=
@@ -43,8 +43,9 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.6 h1:FGbO2C/s9cfNHag9jaKSB+sjuWUo
 github.com/ElrondNetwork/elrond-go-logger v1.0.6/go.mod h1:cBfgx0ST/CJx8jrxJSC5aiSrvkGzcnF7sK06RD8mFxQ=
 github.com/ElrondNetwork/elrond-vm-common v1.1.0/go.mod h1:w3i6f8uiuRkE68Ie/gebRcLgTuHqvruJSYrFyZWuLrE=
 github.com/ElrondNetwork/elrond-vm-common v1.2.9/go.mod h1:B/Y8WiqHyDd7xsjNYsaYbVMp1jQgQ+z4jTJkFvj/EWI=
-github.com/ElrondNetwork/elrond-vm-common v1.3.3-0.20220216133549-5b9bf359281c h1:BpzHwmC0haU60hP/qkWyWlGm7Ts1rI+If/1mF0kFToo=
 github.com/ElrondNetwork/elrond-vm-common v1.3.3-0.20220216133549-5b9bf359281c/go.mod h1:XQoxE2MmrhVpyBMghK3fWvnRAw/iirc0KPtbKAOEPBM=
+github.com/ElrondNetwork/elrond-vm-common v1.3.3-0.20220516075228-1771b35bd311 h1:DAiGFSeHLynl7Br/u3BtryNoeWIWqJXBGF2+6QQ5/a0=
+github.com/ElrondNetwork/elrond-vm-common v1.3.3-0.20220516075228-1771b35bd311/go.mod h1:3JwKIWi7jdTWxJfXiSrY5Ts73qooRBxfvk8MeoEyvSw=
 github.com/ElrondNetwork/notifier-go v1.0.3 h1:LhecyXqKuc/Q4NtIOlb9rw4hfMSj6usmxvYQWvb7Pn4=
 github.com/ElrondNetwork/notifier-go v1.0.3/go.mod h1:GOv7j2o90e/GVmmBddWwyfJZ/JW4V4pvyXIpukd6FfY=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
