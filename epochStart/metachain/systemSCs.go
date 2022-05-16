@@ -34,14 +34,14 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
-	MaxNodesEnableConfig    []config.MaxNodesChangeConfig
 	ESDTOwnerAddressBytes   []byte
 
-	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
-	EpochNotifier       process.EpochNotifier
-	NodesConfigProvider epochStart.NodesConfigProvider
-	StakingDataProvider epochStart.StakingDataProvider
-	AuctionListSelector epochStart.AuctionListSelector
+	GenesisNodesConfig           sharding.GenesisNodesSetupHandler
+	EpochNotifier                process.EpochNotifier
+	NodesConfigProvider          epochStart.NodesConfigProvider
+	StakingDataProvider          epochStart.StakingDataProvider
+	AuctionListSelector          epochStart.AuctionListSelector
+	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
 }
 
 type systemSCProcessor struct {

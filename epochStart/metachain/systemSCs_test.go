@@ -892,6 +892,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				StakingV4EnableEpoch:     445,
 			},
 		},
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -1034,7 +1035,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 0, MaxNumNodes: 10}}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{EpochEnable: 0, MaxNumNodes: 10}})
+	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1082,8 +1084,9 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(10, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}})
 	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 10
+	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1995,30 +1998,32 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 		MaxNumNodes:            48,
 		NodesToShufflePerShard: 1,
 	}
-
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{
-		nodesConfigEpoch0,
-		nodesConfigEpoch1,
-		nodesConfigEpoch6,
-	}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(
+		args.EpochNotifier,
+		[]config.MaxNodesChangeConfig{
+			nodesConfigEpoch0,
+			nodesConfigEpoch1,
+			nodesConfigEpoch6,
+		})
+	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 
 	validatorsInfoMap := state.NewShardValidatorsInfoMap()
 	s, _ := NewSystemSCProcessor(args)
 
-	s.EpochConfirmed(0, 0)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0, Nonce: 0})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err := s.processLegacy(validatorsInfoMap, 0, 0)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch0.MaxNumNodes, s.maxNodes)
 
-	s.EpochConfirmed(1, 1)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1, Nonce: 1})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 1, 1)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 
 	for epoch := uint32(2); epoch <= 5; epoch++ {
-		s.EpochConfirmed(epoch, uint64(epoch))
+		args.EpochNotifier.CheckEpoch(&block.Header{Epoch: epoch, Nonce: uint64(epoch)})
 		require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 		err = s.processLegacy(validatorsInfoMap, uint64(epoch), epoch)
 		require.Nil(t, err)
@@ -2026,29 +2031,29 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	}
 
 	// simulate restart
-	s.EpochConfirmed(0, 0)
-	s.EpochConfirmed(5, 5)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0, Nonce: 0})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 5, Nonce: 5})
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 5, 5)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 
-	s.EpochConfirmed(6, 6)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
 	// simulate restart
-	s.EpochConfirmed(0, 0)
-	s.EpochConfirmed(6, 6)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0, Nonce: 0})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
 	for epoch := uint32(7); epoch <= 20; epoch++ {
-		s.EpochConfirmed(epoch, uint64(epoch))
+		args.EpochNotifier.CheckEpoch(&block.Header{Epoch: epoch, Nonce: uint64(epoch)})
 		require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 		err = s.processLegacy(validatorsInfoMap, uint64(epoch), epoch)
 		require.Nil(t, err)
@@ -2056,8 +2061,8 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	}
 
 	// simulate restart
-	s.EpochConfirmed(1, 1)
-	s.EpochConfirmed(21, 21)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1, Nonce: 1})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 21, Nonce: 21})
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 21, 21)
 	require.Nil(t, err)

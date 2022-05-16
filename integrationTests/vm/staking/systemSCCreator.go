@@ -71,8 +71,8 @@ func createSystemSCProcessor(
 				MaxNodesChangeEnableEpoch: maxNodesConfig,
 			},
 		},
-		MaxNodesEnableConfig: maxNodesConfig,
-		AuctionListSelector:  auctionListSelector,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		AuctionListSelector:          auctionListSelector,
 	}
 
 	systemSCProcessor, _ := metachain.NewSystemSCProcessor(args)
