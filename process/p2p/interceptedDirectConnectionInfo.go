@@ -70,7 +70,7 @@ func createDirectConnectionInfo(marshaller marshal.Marshalizer, buff []byte) (*m
 
 // CheckValidity checks the validity of the received direct connection info
 func (idci *interceptedDirectConnectionInfo) CheckValidity() error {
-	shardId, err := strconv.ParseInt(idci.directConnectionInfo.ShardId, 10, 64)
+	shardId, err := strconv.ParseUint(idci.directConnectionInfo.ShardId, 10, 32)
 	if err != nil {
 		return err
 	}
