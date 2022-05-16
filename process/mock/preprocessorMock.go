@@ -26,7 +26,6 @@ type PreProcessorMock struct {
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled            func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                 func(txHandlers []data.TransactionHandler)
-	SetProcessedMiniBlocksTrackerCalled   func(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker)
 }
 
 // CreateBlockStarted -
@@ -156,14 +155,6 @@ func (ppm *PreProcessorMock) AddTransactions(txHandlers []data.TransactionHandle
 		return
 	}
 	ppm.AddTransactionsCalled(txHandlers)
-}
-
-//SetProcessedMiniBlocksTracker -
-func (ppm *PreProcessorMock) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	if ppm.SetProcessedMiniBlocksTrackerCalled == nil {
-		return
-	}
-	ppm.SetProcessedMiniBlocksTrackerCalled(processedMiniBlocksTracker)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

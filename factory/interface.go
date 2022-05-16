@@ -265,6 +265,7 @@ type ProcessComponentsHolder interface {
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
+	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
 	IsInterfaceNil() bool
 }
 

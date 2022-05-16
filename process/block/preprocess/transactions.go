@@ -1656,11 +1656,6 @@ func (txs *transactions) EpochConfirmed(epoch uint32, timestamp uint64) {
 	log.Debug("transactions: scheduled mini blocks", "enabled", txs.flagScheduledMiniBlocks.IsSet())
 }
 
-// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
-func (txs *transactions) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	txs.processedMiniBlocksTracker = processedMiniBlocksTracker
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (txs *transactions) IsInterfaceNil() bool {
 	return txs == nil

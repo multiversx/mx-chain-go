@@ -133,10 +133,6 @@ func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []*data.LogData {
 	return make([]*data.LogData, 0)
 }
 
-// SetProcessedMiniBlocksTracker does nothing as it is disabled
-func (txCoordinator *TxCoordinator) SetProcessedMiniBlocksTracker(_ process.ProcessedMiniBlocksTracker) {
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (txCoordinator *TxCoordinator) IsInterfaceNil() bool {
 	return txCoordinator == nil

@@ -1384,12 +1384,6 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 	return nil
 }
 
-// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
-func (sp *shardProcessor) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	sp.processedMiniBlocksTracker = processedMiniBlocksTracker
-	sp.txCoordinator.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
-}
-
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	sp.roundNotifier.CheckRound(round)

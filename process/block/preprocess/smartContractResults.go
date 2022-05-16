@@ -661,11 +661,6 @@ func (scr *smartContractResults) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
 func (scr *smartContractResults) AddTransactions(_ []data.TransactionHandler) {
 }
 
-// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
-func (scr *smartContractResults) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	scr.processedMiniBlocksTracker = processedMiniBlocksTracker
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (scr *smartContractResults) IsInterfaceNil() bool {
 	return scr == nil

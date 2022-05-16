@@ -1560,12 +1560,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
 }
 
-// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
-func (mp *metaProcessor) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	mp.processedMiniBlocksTracker = processedMiniBlocksTracker
-	mp.txCoordinator.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
-}
-
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
 func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
 	if !mp.outportHandler.HasDrivers() {

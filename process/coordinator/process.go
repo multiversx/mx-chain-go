@@ -1848,20 +1848,6 @@ func (tc *transactionCoordinator) AddTransactions(txs []data.TransactionHandler,
 	preProc.AddTransactions(txs)
 }
 
-// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
-func (tc *transactionCoordinator) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	tc.processedMiniBlocksTracker = processedMiniBlocksTracker
-
-	for _, blockType := range tc.keysTxPreProcs {
-		txPreProc := tc.getPreProcessor(blockType)
-		if check.IfNil(txPreProc) {
-			continue
-		}
-
-		txPreProc.SetProcessedMiniBlocksTracker(processedMiniBlocksTracker)
-	}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
 	return tc == nil

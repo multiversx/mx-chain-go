@@ -5079,7 +5079,7 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
-	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -5123,7 +5123,7 @@ func TestShardProcessor_SetProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
-	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -5207,7 +5207,7 @@ func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
-	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	sp, _ := blproc.NewShardProcessor(arguments)
 

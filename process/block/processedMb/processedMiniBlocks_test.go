@@ -11,7 +11,7 @@ import (
 func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pmbt, _ := processedMb.NewProcessedMiniBlocksTracker()
+	pmbt := processedMb.NewProcessedMiniBlocksTracker()
 
 	mbHash1 := []byte("hash1")
 	mbHash2 := []byte("hash2")
@@ -40,7 +40,7 @@ func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
 func TestProcessedMiniBlocks_GetProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
-	pmbt, _ := processedMb.NewProcessedMiniBlocksTracker()
+	pmbt := processedMb.NewProcessedMiniBlocksTracker()
 
 	mbHash1 := []byte("hash1")
 	mbHash2 := []byte("hash2")
@@ -62,7 +62,7 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksInfo(t *testing.T) {
 func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) {
 	t.Parallel()
 
-	pmbt, _ := processedMb.NewProcessedMiniBlocksTracker()
+	pmbt := processedMb.NewProcessedMiniBlocksTracker()
 
 	mbHash1 := []byte("hash1")
 	mtbHash1 := []byte("meta1")
@@ -91,7 +91,7 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlockInfo(t *testing.T) {
 		FullyProcessed:         true,
 		IndexOfLastTxProcessed: 69,
 	}
-	pmbt, _ := processedMb.NewProcessedMiniBlocksTracker()
+	pmbt := processedMb.NewProcessedMiniBlocksTracker()
 	pmbt.SetProcessedMiniBlockInfo(metaHash, mbHash, processedMbInfo)
 
 	processedMiniBlockInfo, processedMetaHash := pmbt.GetProcessedMiniBlockInfo(nil)

@@ -4437,37 +4437,3 @@ func TestTransactionCoordinator_getIndexesOfLastTxProcessed(t *testing.T) {
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
 	})
 }
-
-func TestTransactionCoordinator_SetProcessedMiniBlocksTrackerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := createMockTransactionCoordinatorArguments()
-	tc, _ := NewTransactionCoordinator(args)
-
-	wasCalled := 0
-
-	tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
-	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
-		SetProcessedMiniBlocksTrackerCalled: func(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-			wasCalled++
-		},
-	}
-
-	tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.SmartContractResultBlock)
-	tc.txPreProcessors[block.SmartContractResultBlock] = &mock.PreProcessorMock{
-		SetProcessedMiniBlocksTrackerCalled: func(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-			wasCalled++
-		},
-	}
-
-	tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.RewardsBlock)
-	tc.txPreProcessors[block.RewardsBlock] = &mock.PreProcessorMock{
-		SetProcessedMiniBlocksTrackerCalled: func(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-			wasCalled++
-		},
-	}
-
-	pmbt := &testscommon.ProcessedMiniBlocksTrackerStub{}
-	tc.SetProcessedMiniBlocksTracker(pmbt)
-	assert.Equal(t, 3, wasCalled)
-}

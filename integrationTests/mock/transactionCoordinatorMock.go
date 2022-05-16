@@ -33,7 +33,6 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
-	SetProcessedMiniBlocksTrackerCalled                  func(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker)
 }
 
 // GetAllCurrentLogs -
@@ -246,14 +245,6 @@ func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.Transac
 		return
 	}
 	tcm.AddTransactionsCalled(txHandlers, blockType)
-}
-
-// SetProcessedMiniBlocksTracker -
-func (tcm *TransactionCoordinatorMock) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	if tcm.SetProcessedMiniBlocksTrackerCalled == nil {
-		return
-	}
-	tcm.SetProcessedMiniBlocksTrackerCalled(processedMiniBlocksTracker)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -804,7 +804,7 @@ func TestBaseProcessor_SetIndexOfFirstTxProcessed(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
-	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	bp, _ := blproc.NewShardProcessor(arguments)
 

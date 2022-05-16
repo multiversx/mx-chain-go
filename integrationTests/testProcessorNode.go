@@ -1567,7 +1567,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestHasher,
 		tpn.ShardCoordinator,
 	)
-	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1812,7 +1812,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestMarshalizer,
 		TestHasher,
 		tpn.ShardCoordinator)
-	processedMiniBlocksTracker, _ := processedMb.NewProcessedMiniBlocksTracker()
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,

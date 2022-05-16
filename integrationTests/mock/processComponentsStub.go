@@ -46,6 +46,7 @@ type ProcessComponentsStub struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
+	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 }
 
 // Create -
@@ -226,6 +227,11 @@ func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
 	return pcs.TxsSenderHandlerField
+}
+
+// ProcessedMiniBlocksTracker -
+func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return pcs.ProcessedMiniBlocksTrackerInternal
 }
 
 // IsInterfaceNil -

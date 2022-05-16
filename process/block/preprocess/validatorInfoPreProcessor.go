@@ -197,10 +197,6 @@ func (vip *validatorInfoPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlic
 func (vip *validatorInfoPreprocessor) AddTransactions(_ []data.TransactionHandler) {
 }
 
-// SetProcessedMiniBlocksTracker does nothing
-func (vip *validatorInfoPreprocessor) SetProcessedMiniBlocksTracker(_ process.ProcessedMiniBlocksTracker) {
-}
-
 // IsInterfaceNil does nothing
 func (vip *validatorInfoPreprocessor) IsInterfaceNil() bool {
 	return vip == nil

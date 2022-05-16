@@ -303,6 +303,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

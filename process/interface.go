@@ -152,7 +152,6 @@ type TransactionCoordinator interface {
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
-	SetProcessedMiniBlocksTracker(processedMiniBlocksTracker ProcessedMiniBlocksTracker)
 	IsInterfaceNil() bool
 }
 
@@ -222,7 +221,6 @@ type PreProcessor interface {
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler)
-	SetProcessedMiniBlocksTracker(processedMiniBlocksTracker ProcessedMiniBlocksTracker)
 	IsInterfaceNil() bool
 }
 
@@ -237,7 +235,6 @@ type BlockProcessor interface {
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	SetProcessedMiniBlocksTracker(processedMiniBlocksTracker ProcessedMiniBlocksTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler

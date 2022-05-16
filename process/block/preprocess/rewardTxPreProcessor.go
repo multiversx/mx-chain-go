@@ -543,11 +543,6 @@ func (rtp *rewardTxPreprocessor) AddTxsFromMiniBlocks(_ block.MiniBlockSlice) {
 func (rtp *rewardTxPreprocessor) AddTransactions(_ []data.TransactionHandler) {
 }
 
-// SetProcessedMiniBlocksTracker sets processed mini blocks tracker
-func (rtp *rewardTxPreprocessor) SetProcessedMiniBlocksTracker(processedMiniBlocksTracker process.ProcessedMiniBlocksTracker) {
-	rtp.processedMiniBlocksTracker = processedMiniBlocksTracker
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
 	return rtp == nil

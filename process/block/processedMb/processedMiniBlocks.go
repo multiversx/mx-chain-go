@@ -25,10 +25,10 @@ type processedMiniBlocksTracker struct {
 }
 
 // NewProcessedMiniBlocksTracker will create a processed mini blocks tracker object
-func NewProcessedMiniBlocksTracker() (*processedMiniBlocksTracker, error) {
+func NewProcessedMiniBlocksTracker() *processedMiniBlocksTracker {
 	return &processedMiniBlocksTracker{
 		processedMiniBlocks: make(map[string]miniBlocksInfo),
-	}, nil
+	}
 }
 
 // SetProcessedMiniBlockInfo will set a processed mini block info for the given meta block hash and mini block hash
