@@ -14,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -195,6 +196,7 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -213,6 +215,7 @@ func createHashShufflerIntraShards() (*randHashShuffler, error) {
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 
@@ -1102,12 +1105,12 @@ func TestNewHashValidatorsShuffler(t *testing.T) {
 	t.Parallel()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   eligiblePerShard,
+		NodesMeta:                    eligiblePerShard,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	assert.Nil(t, err)
@@ -1195,9 +1198,9 @@ func TestRandHashShuffler_UpdateParams(t *testing.T) {
 		adaptivity:                               true,
 		shuffleBetweenShards:                     true,
 		validatorDistributor:                     &CrossShardValidatorDistributor{},
-		availableNodesConfigs:                    nil,
 		stakingV4EnableEpoch:                     443,
 		stakingV4DistributeAuctionToWaitingEpoch: 444,
+		maxNodesChangeConfigProvider:             &epochNotifier.NodesConfigProviderMock{},
 	}
 
 	shuffler.UpdateParams(
@@ -1256,12 +1259,12 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t
 	eligibleMeta := 10
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligibleMeta),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   uint32(eligiblePerShard),
+		NodesMeta:                    uint32(eligibleMeta),
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -1328,8 +1331,15 @@ func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
-			{
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{
+			AllConfigs: []config.MaxNodesChangeConfig{
+				{
+					EpochEnable:            0,
+					MaxNumNodes:            100,
+					NodesToShufflePerShard: uint32(numNodesToShuffle),
+				},
+			},
+			CurrentConfig: config.MaxNodesChangeConfig{
 				EpochEnable:            0,
 				MaxNumNodes:            100,
 				NodesToShufflePerShard: uint32(numNodesToShuffle),
@@ -1400,8 +1410,15 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
-			{
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{
+			AllConfigs: []config.MaxNodesChangeConfig{
+				{
+					EpochEnable:            0,
+					MaxNumNodes:            100,
+					NodesToShufflePerShard: uint32(numNodesToShuffle),
+				},
+			},
+			CurrentConfig: config.MaxNodesChangeConfig{
 				EpochEnable:            0,
 				MaxNumNodes:            100,
 				NodesToShufflePerShard: uint32(numNodesToShuffle),
@@ -1457,12 +1474,12 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t 
 	eligibleMeta := 10
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligibleMeta),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   uint32(eligiblePerShard),
+		NodesMeta:                    uint32(eligibleMeta),
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -1499,12 +1516,12 @@ func TestRandHashShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRem
 	t.Parallel()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           10,
-		NodesMeta:            10,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   10,
+		NodesMeta:                    10,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -1550,12 +1567,12 @@ func TestRandHashShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 
 	for _, shuffle := range shuffleBetweenShards {
 		shufflerArgs := &NodesShufflerArgs{
-			NodesShard:           uint32(eligiblePerShard),
-			NodesMeta:            uint32(eligiblePerShard),
-			Hysteresis:           hysteresis,
-			Adaptivity:           adaptivity,
-			ShuffleBetweenShards: shuffle,
-			MaxNodesEnableConfig: nil,
+			NodesShard:                   uint32(eligiblePerShard),
+			NodesMeta:                    uint32(eligiblePerShard),
+			Hysteresis:                   hysteresis,
+			Adaptivity:                   adaptivity,
+			ShuffleBetweenShards:         shuffle,
+			MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 		}
 
 		shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -2394,6 +2411,7 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2491,12 +2509,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   uint32(eligiblePerShard),
+		NodesMeta:                    uint32(eligiblePerShard),
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -2551,12 +2569,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NilOrEmptyWaiting(t *test
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   uint32(eligiblePerShard),
+		NodesMeta:                    uint32(eligiblePerShard),
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2744,6 +2762,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 			StakingV4EnableEpoch:                     443,
 			StakingV4DistributeAuctionToWaitingEpoch: 444,
 		},
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2948,6 +2967,7 @@ func BenchmarkRandHashShuffler_RemoveWithoutReslice(b *testing.B) {
 	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
 }
 
+/*
 func TestRandHashShuffler_sortConfigs(t *testing.T) {
 	t.Parallel()
 
@@ -2982,13 +3002,16 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 	t.Parallel()
 
 	orderedConfigs := getDummyShufflerConfigs()
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(
+		forking.NewGenericEpochNotifier(),
+		orderedConfigs,
+		)
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           eligiblePerShard,
 		NodesMeta:            eligiblePerShard,
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: orderedConfigs,
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2999,10 +3022,12 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 			i++
 		}
 		shuffler.UpdateShufflerConfig(epoch)
-		require.Equal(t, orderedConfigs[i], shuffler.activeNodesConfig)
+		require.Equal(t, orderedConfigs[i], nodesConfigProvider.GetCurrentNodesConfig())
 	}
 }
 
+*/
+//TODO: MOOOVEEE THIIIIIIIISSSS
 func getDummyShufflerConfigs() []config.MaxNodesChangeConfig {
 	return []config.MaxNodesChangeConfig{
 		{EpochEnable: 0, MaxNumNodes: 2500, NodesToShufflePerShard: 400},

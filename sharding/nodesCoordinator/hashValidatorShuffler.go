@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
+	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/config"
 )
@@ -16,13 +17,13 @@ var _ NodesShuffler = (*randHashShuffler)(nil)
 
 // NodesShufflerArgs defines the arguments required to create a nodes shuffler
 type NodesShufflerArgs struct {
-	NodesShard           uint32
-	NodesMeta            uint32
-	Hysteresis           float32
-	Adaptivity           bool
-	ShuffleBetweenShards bool
-	MaxNodesEnableConfig []config.MaxNodesChangeConfig
-	EnableEpochs         config.EnableEpochs
+	NodesShard                   uint32
+	NodesMeta                    uint32
+	Hysteresis                   float32
+	Adaptivity                   bool
+	ShuffleBetweenShards         bool
+	MaxNodesChangeConfigProvider MaxNodesChangeConfigProvider
+	EnableEpochs                 config.EnableEpochs
 }
 
 type shuffleNodesArg struct {
@@ -55,10 +56,10 @@ type randHashShuffler struct {
 	nodesMeta                                uint32
 	shardHysteresis                          uint32
 	metaHysteresis                           uint32
-	activeNodesConfig                        config.MaxNodesChangeConfig
-	availableNodesConfigs                    []config.MaxNodesChangeConfig
 	mutShufflerParams                        sync.RWMutex
 	validatorDistributor                     ValidatorsDistributor
+	activeNodesConfig                        config.MaxNodesChangeConfig
+	maxNodesChangeConfigProvider             MaxNodesChangeConfigProvider
 	balanceWaitingListsEnableEpoch           uint32
 	flagBalanceWaitingLists                  atomic.Flag
 	waitingListFixEnableEpoch                uint32
@@ -75,27 +76,23 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	if args == nil {
 		return nil, ErrNilNodeShufflerArguments
 	}
+	if check.IfNil(args.MaxNodesChangeConfigProvider) {
+		return nil, ErrNilMaxNodesChangeConfigProvider
+	}
 
-	var configs []config.MaxNodesChangeConfig
-
-	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
+	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesChangeConfigProvider.GetAllNodesConfig())
 	log.Debug("hashValidatorShuffler: enable epoch for balance waiting lists", "epoch", args.EnableEpochs.BalanceWaitingListsEnableEpoch)
 	log.Debug("hashValidatorShuffler: enable epoch for staking v4", "epoch", args.EnableEpochs.StakingV4EnableEpoch)
 	log.Debug("hashValidatorShuffler: enable epoch for staking v4 distribute auction list to waiting list", "epoch", args.EnableEpochs.StakingV4DistributeAuctionToWaitingEpoch)
 
-	if args.MaxNodesEnableConfig != nil {
-		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
-		copy(configs, args.MaxNodesEnableConfig)
-	}
-
 	log.Debug("Shuffler created", "shuffleBetweenShards", args.ShuffleBetweenShards)
 	rxs := &randHashShuffler{
 		shuffleBetweenShards:                     args.ShuffleBetweenShards,
-		availableNodesConfigs:                    configs,
 		balanceWaitingListsEnableEpoch:           args.EnableEpochs.BalanceWaitingListsEnableEpoch,
 		waitingListFixEnableEpoch:                args.EnableEpochs.WaitingListFixEnableEpoch,
 		stakingV4DistributeAuctionToWaitingEpoch: args.EnableEpochs.StakingV4DistributeAuctionToWaitingEpoch,
 		stakingV4EnableEpoch:                     args.EnableEpochs.StakingV4EnableEpoch,
+		maxNodesChangeConfigProvider:             args.MaxNodesChangeConfigProvider,
 	}
 
 	log.Debug("randHashShuffler: enable epoch for balance waiting list", "epoch", rxs.balanceWaitingListsEnableEpoch)
@@ -110,8 +107,6 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	} else {
 		rxs.validatorDistributor = &IntraShardValidatorDistributor{}
 	}
-
-	rxs.sortConfigs()
 
 	return rxs, nil
 }
@@ -791,7 +786,7 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 	rhs.mutShufflerParams.Lock()
 	defer rhs.mutShufflerParams.Unlock()
 	rhs.activeNodesConfig.NodesToShufflePerShard = rhs.nodesShard
-	for _, maxNodesConfig := range rhs.availableNodesConfigs {
+	for _, maxNodesConfig := range rhs.maxNodesChangeConfigProvider.GetAllNodesConfig() {
 		if epoch >= maxNodesConfig.EpochEnable {
 			rhs.activeNodesConfig = maxNodesConfig
 		}
@@ -815,12 +810,4 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 
 	rhs.flagStakingV4.SetValue(epoch >= rhs.stakingV4EnableEpoch)
 	log.Debug("staking v4", "enabled", rhs.flagStakingV4.IsSet())
-}
-
-func (rhs *randHashShuffler) sortConfigs() {
-	rhs.mutShufflerParams.Lock()
-	sort.Slice(rhs.availableNodesConfigs, func(i, j int) bool {
-		return rhs.availableNodesConfigs[i].EpochEnable < rhs.availableNodesConfigs[j].EpochEnable
-	})
-	rhs.mutShufflerParams.Unlock()
 }

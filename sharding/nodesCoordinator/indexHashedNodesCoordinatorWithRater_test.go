@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
@@ -62,12 +63,12 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	eligibleMap := createDummyNodesMap(3, 1, "waiting")
 	waitingMap := make(map[uint32][]Validator)
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           3,
-		NodesMeta:            3,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   3,
+		NodesMeta:                    3,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -164,7 +165,6 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
@@ -237,7 +237,6 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -303,12 +302,12 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = list
 	sufflerArgs := &NodesShufflerArgs{
-		NodesShard:           1,
-		NodesMeta:            1,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   1,
+		NodesMeta:                    1,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(sufflerArgs)
 	require.Nil(t, err)
@@ -356,12 +355,12 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	eligibleMap[core.MetachainShardId] = list
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           1,
-		NodesMeta:            1,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   1,
+		NodesMeta:                    1,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -419,12 +418,12 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	waitingMap := make(map[uint32][]Validator)
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           3,
-		NodesMeta:            3,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   3,
+		NodesMeta:                    3,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -503,12 +502,12 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	waitingMap := make(map[uint32][]Validator)
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           3,
-		NodesMeta:            3,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
+		NodesShard:                   3,
+		NodesMeta:                    3,
+		Hysteresis:                   hysteresis,
+		Adaptivity:                   adaptivity,
+		ShuffleBetweenShards:         shuffleBetweenShards,
+		MaxNodesChangeConfigProvider: &epochNotifier.NodesConfigProviderMock{},
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -817,7 +816,6 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		Hysteresis:           hysteresis,
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
 	}
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)

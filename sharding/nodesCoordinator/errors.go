@@ -114,3 +114,6 @@ var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("should not have re
 
 // ErrNilEpochNotifier signals that a nil EpochNotifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")
+
+// ErrNilMaxNodesChangeConfigProvider signals that a nil nodes config provider has been provided
+var ErrNilMaxNodesChangeConfigProvider = errors.New("nil nodes config provider has been provided")

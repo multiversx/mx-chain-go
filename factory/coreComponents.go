@@ -317,8 +317,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		Hysteresis:           genesisNodesConfig.GetHysteresis(),
 		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
 		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
-		EnableEpochs:         ccf.epochConfig.EnableEpochs,
+		// TODO HERE ::::::::::: MaxNodesChangeConfigProvider:
+		EnableEpochs: ccf.epochConfig.EnableEpochs,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -165,5 +166,14 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// MaxNodesChangeConfigProvider provides all config.MaxNodesChangeConfig, as well as
+// the current config.MaxNodesChangeConfig based on the current epoch
+type MaxNodesChangeConfigProvider interface {
+	GetAllNodesConfig() []config.MaxNodesChangeConfig
+	GetCurrentNodesConfig() config.MaxNodesChangeConfig
+	EpochConfirmed(epoch uint32, round uint64)
 	IsInterfaceNil() bool
 }
