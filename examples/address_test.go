@@ -74,6 +74,7 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	genesisMintingAddressBytes, err := hex.DecodeString("f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0")
 	require.NoError(t, err)
 	genesisMintingAddress := addressEncoder.Encode(genesisMintingAddressBytes)
+	systemAccountAddress := addressEncoder.Encode(core.SystemAccountAddress)
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{
@@ -87,6 +88,7 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 		display.NewLineData(false, []string{"Delegation manager", delegationManagerScAddress}),
 		display.NewLineData(false, []string{"First delegation", firstDelegationScAddress}),
 		display.NewLineData(false, []string{"Genesis Minting Address", genesisMintingAddress}),
+		display.NewLineData(false, []string{"System Account Address", systemAccountAddress}),
 	}
 
 	table, _ := display.CreateTableString(header, lines)
@@ -102,4 +104,5 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq0llllsqkarq6", firstDelegationScAddress)
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu", contractDeployScAdress)
 	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", genesisMintingAddress)
+	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", systemAccountAddress)
 }
