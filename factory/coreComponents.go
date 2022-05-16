@@ -103,7 +103,6 @@ type coreComponents struct {
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
 	processStatusHandler          common.ProcessStatusHandler
-	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
