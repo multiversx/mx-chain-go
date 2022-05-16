@@ -448,6 +448,11 @@ func (host *vmContext) AddReturnMessage(message string) {
 	host.returnMessage += "@" + message
 }
 
+// GetReturnMessage will return the accumulated return message
+func (host *vmContext) GetReturnMessage() string {
+	return host.returnMessage
+}
+
 // AddLogEntry will add a log entry
 func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
 	host.logs = append(host.logs, entry)

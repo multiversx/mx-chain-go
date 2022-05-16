@@ -37,7 +37,7 @@ type WidgetsRender struct {
 	presenter view.Presenter
 }
 
-//NewWidgetsRender method will create new WidgetsRender that display termui console
+// NewWidgetsRender method will create new WidgetsRender that display termui console
 func NewWidgetsRender(presenter view.Presenter, grid *DrawableContainer) (*WidgetsRender, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
 		return nil, view.ErrNilPresenterInterface
@@ -106,7 +106,7 @@ func (wr *WidgetsRender) setGrid() {
 	wr.container.SetBottom(gridBottom)
 }
 
-//RefreshData method is used to prepare data that are displayed on container
+// RefreshData method is used to prepare data that are displayed on container
 func (wr *WidgetsRender) RefreshData(numMillisecondsRefreshTime int) {
 	wr.prepareInstanceInfo()
 	wr.prepareChainInfo(numMillisecondsRefreshTime)
@@ -116,7 +116,7 @@ func (wr *WidgetsRender) RefreshData(numMillisecondsRefreshTime int) {
 }
 
 func (wr *WidgetsRender) prepareInstanceInfo() {
-	//8 rows and one column
+	// 8 rows and one column
 	numRows := 8
 	rows := make([][]string, numRows)
 
@@ -138,7 +138,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 		fmt.Sprintf("Node name: %s (Shard %s - %s)",
 			nodeName,
 			shardIdStr,
-			strings.Title(nodeTypeAndListDisplay),
+			nodeTypeAndListDisplay,
 		),
 	}
 
@@ -174,7 +174,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 }
 
 func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
-	//10 rows and one column
+	// 10 rows and one column
 	numRows := 10
 	rows := make([][]string, numRows)
 
@@ -266,7 +266,7 @@ func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) 
 }
 
 func (wr *WidgetsRender) prepareBlockInfo() {
-	//7 rows and one column
+	// 7 rows and one column
 	numRows := 8
 	rows := make([][]string, numRows)
 
