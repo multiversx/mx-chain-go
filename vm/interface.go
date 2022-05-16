@@ -78,6 +78,7 @@ type ContextHandler interface {
 	AddCode(addr []byte, code []byte)
 	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
 	SetGasProvided(gasProvided uint64)
+	GetReturnMessage() string
 }
 
 // MessageSignVerifier is used to verify if message was signed with given public key
