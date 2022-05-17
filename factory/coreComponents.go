@@ -32,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/guardian"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -101,7 +100,6 @@ type coreComponents struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 	arwenChangeLocker             common.Locker
-	guardedAccountHandler         process.GuardedAccountHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -326,11 +324,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	// set as observer at first - it will be updated when creating the nodes coordinator
 	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
-	guardedAccountHandler, err := guardian.NewGuardedAccount(internalMarshalizer, epochNotifier)
-	if err != nil {
-		return nil, err
-	}
-
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -363,7 +356,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 		nodeTypeProvider:              nodeTypeProvider,
 		arwenChangeLocker:             arwenChangeLocker,
-		guardedAccountHandler:         guardedAccountHandler,
 	}, nil
 }
 

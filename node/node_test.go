@@ -2020,7 +2020,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 
 	tx, txHash, err := n.CreateTransaction(
 		nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData,
-		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(), 0,"", "",
+		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(), 0, "", "",
 	)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
@@ -3505,20 +3505,19 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:               &statusHandler.AppStatusHandlerStub{},
-		WDTimer:                    &testscommon.WatchdogMock{},
-		Alarm:                      &testscommon.AlarmSchedulerStub{},
-		NtpTimer:                   &testscommon.SyncTimerStub{},
-		RoundHandlerField:          &testscommon.RoundHandlerMock{},
-		EconomicsHandler:           &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:        &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:              &testscommon.RatingsInfoMock{},
-		RatingHandler:              &testscommon.RaterMock{},
-		NodesConfig:                &testscommon.NodesSetupStub{},
-		StartTime:                  time.Time{},
-		EpochChangeNotifier:        &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckHandler:      versioning.NewTxVersionChecker(0),
-		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		WDTimer:               &testscommon.WatchdogMock{},
+		Alarm:                 &testscommon.AlarmSchedulerStub{},
+		NtpTimer:              &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
 	}
 }
 
@@ -3574,10 +3573,11 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
-		BootstrapParams:          &bootstrapMocks.BootstrapParamsHandlerMock{},
-		NodeRole:                 "",
-		ShCoordinator:            &mock.ShardCoordinatorMock{},
-		HdrIntegrityVerifier:     &mock.HeaderIntegrityVerifierStub{},
-		GuardianSigVerifierField: &guardianMocks.GuardianSigVerifierStub{},
+		BootstrapParams:            &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:                   "",
+		ShCoordinator:              &mock.ShardCoordinatorMock{},
+		HdrIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		GuardianSigVerifierField:   &guardianMocks.GuardianSigVerifierStub{},
+		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }

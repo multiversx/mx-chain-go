@@ -51,7 +51,6 @@ type CoreComponentsStub struct {
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ArwenChangeLockerInternal          common.Locker
-	GuardedAccountHandlerField         process.GuardedAccountHandler
 }
 
 // Create -
@@ -240,11 +239,6 @@ func (ccs *CoreComponentsStub) NodeTypeProvider() core.NodeTypeProviderHandler {
 // ArwenChangeLocker -
 func (ccs *CoreComponentsStub) ArwenChangeLocker() common.Locker {
 	return ccs.ArwenChangeLockerInternal
-}
-
-// GuardedAccountHandler -
-func (ccs *CoreComponentsStub) GuardedAccountHandler() process.GuardedAccountHandler {
-	return ccs.GuardedAccountHandlerField
 }
 
 // String -

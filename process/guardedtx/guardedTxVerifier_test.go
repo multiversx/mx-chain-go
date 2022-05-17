@@ -39,26 +39,26 @@ func TestNewGuardedTxSigVerifier(t *testing.T) {
 		changedArgs.SigVerifier = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilSingleSigner, err)
-		require.Nil(t, gtxSigVerifier)
+		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("nil guardian checker", func(t *testing.T) {
 		changedArgs := *&args
 		changedArgs.GuardianChecker = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilGuardianChecker, err)
-		require.Nil(t, gtxSigVerifier)
+		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("nil public key converter", func(t *testing.T) {
 		changedArgs := *&args
 		changedArgs.PubKeyConverter = nil
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
 		require.Equal(t, process.ErrNilPubkeyConverter, err)
-		require.Nil(t, gtxSigVerifier)
+		require.True(t, check.IfNil(gtxSigVerifier))
 	})
 	t.Run("ok params", func(t *testing.T) {
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)
-		require.NotNil(t, gtxSigVerifier)
+		require.False(t, check.IfNil(gtxSigVerifier))
 	})
 }
 

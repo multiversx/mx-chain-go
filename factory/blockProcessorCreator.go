@@ -261,7 +261,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                         pcf.epochNotifier,
 		RelayedTxV2EnableEpoch:                enableEpochs.RelayedTransactionsV2EnableEpoch,
 		AddFailedRelayedToInvalidDisableEpoch: enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch,
-		GuardianChecker:                       pcf.coreData.GuardedAccountHandler(),
+		GuardianChecker:                       pcf.bootstrapComponents.GuardedAccountHandler(),
 		TxVersionChecker:                      pcf.coreData.TxVersionChecker(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
@@ -557,7 +557,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ESDTEnableEpoch:                       pcf.epochConfig.EnableEpochs.ESDTEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		EpochNotifier:                         pcf.epochNotifier,
-		GuardianChecker:                       pcf.coreData.GuardedAccountHandler(),
+		GuardianChecker:                       pcf.bootstrapComponents.GuardedAccountHandler(),
 		TxVersionChecker:                      pcf.coreData.TxVersionChecker(),
 	}
 
@@ -1031,7 +1031,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		BuiltInFunctionOnMetachainEnableEpoch: pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		EpochNotifier:                         pcf.epochNotifier,
 		TxVersionChecker:                      pcf.coreData.TxVersionChecker(),
-		GuardianChecker:                       pcf.coreData.GuardedAccountHandler(),
+		GuardianChecker:                       pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
@@ -1156,7 +1156,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		GlobalMintBurnDisableEpoch:   pcf.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  pcf.epochConfig.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:  pcf.epochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch,
-		GuardedAccountHandler:        pcf.coreData.GuardedAccountHandler(),
+		GuardedAccountHandler:        pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
 
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)

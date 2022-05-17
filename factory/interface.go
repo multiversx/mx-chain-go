@@ -127,7 +127,6 @@ type CoreComponentsHolder interface {
 	EncodedAddressLen() uint32
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ArwenChangeLocker() common.Locker
-	GuardedAccountHandler() process.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 
@@ -427,6 +426,7 @@ type BootstrapComponentsHolder interface {
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	GuardianSigVerifier() process.GuardianSigVerifier
+	GuardedAccountHandler() process.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 

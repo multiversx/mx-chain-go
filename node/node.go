@@ -798,6 +798,10 @@ func (n *Node) setTxGuardianData(guardian string, guardianSigHex string, tx *tra
 	if err != nil {
 		return errors.New("could not fetch guardian signature bytes")
 	}
+	if !tx.HasOptionGuardianSet() {
+		return errors.New("transaction has guardian but guardian option not set")
+	}
+
 	tx.GuardianAddr = guardianAddress
 	tx.GuardianSignature = guardianSigBytes
 

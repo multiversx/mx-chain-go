@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
+	"github.com/ElrondNetwork/elrond-go/process/guardian"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -59,6 +60,7 @@ type bootstrapComponents struct {
 	versionedHeaderFactory  factory.VersionedHeaderFactory
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 	roundActivationHandler  process.RoundActivationHandler
+	guardedAccountHandler   process.GuardedAccountHandler
 	guardianSigVerifier     process.GuardianSigVerifier
 }
 
@@ -162,7 +164,12 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
-	guardianSigVerifier, err := bcf.newGuardianSigVerifier()
+	guardedAccountHandler, err := guardian.NewGuardedAccount(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier())
+	if err != nil {
+		return nil, err
+	}
+
+	guardianSigVerifier, err := bcf.newGuardianSigVerifier(guardedAccountHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -254,13 +261,14 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		versionedHeaderFactory:  versionedHeaderFactory,
 		roundActivationHandler:  roundActivationHandler,
 		guardianSigVerifier:     guardianSigVerifier,
+		guardedAccountHandler:   guardedAccountHandler,
 	}, nil
 }
 
-func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier() (process.GuardianSigVerifier, error) {
+func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier(guardedAccountHandler process.GuardedAccountHandler) (process.GuardianSigVerifier, error) {
 	argGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
 		SigVerifier:     bcf.cryptoComponents.TxSingleSigner(),
-		GuardianChecker: bcf.coreComponents.GuardedAccountHandler(),
+		GuardianChecker: guardedAccountHandler,
 		PubKeyConverter: bcf.coreComponents.AddressPubKeyConverter(),
 		Marshaller:      bcf.coreComponents.InternalMarshalizer(),
 		KeyGen:          bcf.cryptoComponents.TxSignKeyGen(),

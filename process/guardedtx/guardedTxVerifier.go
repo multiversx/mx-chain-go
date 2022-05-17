@@ -71,8 +71,8 @@ func (gtx *guardedTxSigVerifier) VerifyGuardianSignature(account vmcommon.UserAc
 		return process.ErrNilTransaction
 	}
 
-	guardedTxHandler, castOK := txHandler.(data.GuardedTransactionHandler)
-	if !castOK {
+	guardedTxHandler, ok := txHandler.(data.GuardedTransactionHandler)
+	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 

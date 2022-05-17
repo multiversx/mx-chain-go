@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
@@ -161,18 +160,17 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:               &statusHandler.AppStatusHandlerStub{},
-		WatchdogTimer:              &testscommon.WatchdogMock{},
-		AlarmSch:                   &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:               &testscommon.SyncTimerStub{},
-		RoundHandlerField:          &testscommon.RoundHandlerMock{},
-		EconomicsHandler:           &economicsmocks.EconomicsHandlerStub{},
-		RatingsConfig:              &testscommon.RatingsInfoMock{},
-		RatingHandler:              &testscommon.RaterMock{},
-		NodesConfig:                &testscommon.NodesSetupStub{},
-		StartTime:                  time.Time{},
-		NodeTypeProviderField:      &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EpochChangeNotifier:        &epochNotifier.EpochNotifierStub{},
-		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHdl:          &statusHandler.AppStatusHandlerStub{},
+		WatchdogTimer:         &testscommon.WatchdogMock{},
+		AlarmSch:              &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:          &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerStub{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 	}
 }

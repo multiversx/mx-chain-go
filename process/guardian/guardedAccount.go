@@ -56,11 +56,11 @@ func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([
 	if err != nil {
 		return nil, err
 	}
-	if len(configuredGuardians.Data) == 0 {
+	if len(configuredGuardians.Slice) == 0 {
 		return nil, process.ErrAccountHasNoGuardianSet
 	}
 
-	guardian, err := agc.getActiveGuardian(*configuredGuardians)
+	guardian, err := agc.getActiveGuardian(configuredGuardians)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guar
 	if err != nil {
 		return err
 	}
-	newGuardians, err := agc.updateGuardians(guardian, *configuredGuardians)
+	newGuardians, err := agc.updateGuardians(guardian, configuredGuardians)
 	if err != nil {
 		return err
 	}
@@ -98,15 +98,15 @@ func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guar
 		return process.ErrWrongTypeAssertion
 	}
 
-	return agc.saveAccountGuardians(accHandler, *newGuardians)
+	return agc.saveAccountGuardians(accHandler, newGuardians)
 }
 
-func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, accountGuardians guardians.Guardians) (*guardians.Guardians, error) {
-	numSetGuardians := len(accountGuardians.Data)
+func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, accountGuardians *guardians.Guardians) (*guardians.Guardians, error) {
+	numSetGuardians := len(accountGuardians.Slice)
 
 	if numSetGuardians == 0 {
-		accountGuardians.Data = append(accountGuardians.Data, newGuardian)
-		return &accountGuardians, nil
+		accountGuardians.Slice = append(accountGuardians.Slice, newGuardian)
+		return accountGuardians, nil
 	}
 
 	activeGuardian, err := agc.getActiveGuardian(accountGuardians)
@@ -116,15 +116,15 @@ func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, acco
 	}
 
 	if activeGuardian.Equal(newGuardian) {
-		accountGuardians.Data = []*guardians.Guardian{activeGuardian}
+		accountGuardians.Slice = []*guardians.Guardian{activeGuardian}
 	} else {
-		accountGuardians.Data = []*guardians.Guardian{activeGuardian, newGuardian}
+		accountGuardians.Slice = []*guardians.Guardian{activeGuardian, newGuardian}
 	}
 
-	return &accountGuardians, nil
+	return accountGuardians, nil
 }
 
-func (agc *guardedAccount) saveAccountGuardians(account vmcommon.UserAccountHandler, accountGuardians guardians.Guardians) error {
+func (agc *guardedAccount) saveAccountGuardians(account vmcommon.UserAccountHandler, accountGuardians *guardians.Guardians) error {
 	marshalledData, err := agc.marshaller.Marshal(accountGuardians)
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func (agc *guardedAccount) getConfiguredGuardians(uah state.UserAccountHandler) 
 		return nil, err
 	}
 	if len(guardiansMarshalled) == 0 {
-		return &guardians.Guardians{Data: make([]*guardians.Guardian, 0)}, nil
+		return &guardians.Guardians{Slice: make([]*guardians.Guardian, 0)}, nil
 	}
 
 	configuredGuardians := &guardians.Guardians{}
@@ -151,12 +151,12 @@ func (agc *guardedAccount) getConfiguredGuardians(uah state.UserAccountHandler) 
 	return configuredGuardians, nil
 }
 
-func (agc *guardedAccount) getActiveGuardian(gs guardians.Guardians) (*guardians.Guardian, error) {
+func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardians.Guardian, error) {
 	agc.mutEpoch.RLock()
 	defer agc.mutEpoch.RUnlock()
 
 	var selectedGuardian *guardians.Guardian
-	for i, guardian := range gs.Data {
+	for i, guardian := range gs.Slice {
 		if guardian == nil {
 			continue
 		}
@@ -164,13 +164,13 @@ func (agc *guardedAccount) getActiveGuardian(gs guardians.Guardians) (*guardians
 			continue
 		}
 		if selectedGuardian == nil {
-			selectedGuardian = gs.Data[i]
+			selectedGuardian = gs.Slice[i]
 			continue
 		}
 
 		// get the most recent active guardian
 		if selectedGuardian.ActivationEpoch < guardian.ActivationEpoch {
-			selectedGuardian = gs.Data[i]
+			selectedGuardian = gs.Slice[i]
 		}
 	}
 
