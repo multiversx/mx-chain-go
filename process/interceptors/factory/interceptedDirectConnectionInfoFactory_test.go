@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
+func TestNewInterceptedDirectConnectionInfoFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil core comp should error", func(t *testing.T) {
@@ -20,9 +20,9 @@ func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 		_, cryptoComp := createMockComponentHolders()
 		arg := createMockArgument(nil, cryptoComp)
 
-		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
+		idcif, err := NewInterceptedDirectConnectionInfoFactory(*arg)
 		assert.Equal(t, process.ErrNilCoreComponentsHolder, err)
-		assert.True(t, check.IfNil(isvif))
+		assert.True(t, check.IfNil(idcif))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -31,9 +31,9 @@ func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 		coreComp.IntMarsh = nil
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
+		idcif, err := NewInterceptedDirectConnectionInfoFactory(*arg)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
-		assert.True(t, check.IfNil(isvif))
+		assert.True(t, check.IfNil(idcif))
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
@@ -42,9 +42,9 @@ func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 		arg := createMockArgument(coreComp, cryptoComp)
 		arg.ShardCoordinator = nil
 
-		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
+		idcif, err := NewInterceptedDirectConnectionInfoFactory(*arg)
 		assert.Equal(t, process.ErrNilShardCoordinator, err)
-		assert.True(t, check.IfNil(isvif))
+		assert.True(t, check.IfNil(idcif))
 	})
 	t.Run("should work and create", func(t *testing.T) {
 		t.Parallel()
@@ -52,17 +52,17 @@ func TestNewInterceptedValidatorInfoFactory(t *testing.T) {
 		coreComp, cryptoComp := createMockComponentHolders()
 		arg := createMockArgument(coreComp, cryptoComp)
 
-		isvif, err := NewInterceptedValidatorInfoFactory(*arg)
+		idcif, err := NewInterceptedDirectConnectionInfoFactory(*arg)
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(isvif))
+		assert.False(t, check.IfNil(idcif))
 
-		msg := &message.ShardValidatorInfo{
-			ShardId: 5,
+		msg := &message.DirectConnectionInfo{
+			ShardId: "5",
 		}
 		msgBuff, _ := arg.CoreComponents.InternalMarshalizer().Marshal(msg)
-		interceptedData, err := isvif.Create(msgBuff)
+		interceptedData, err := idcif.Create(msgBuff)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(interceptedData))
-		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*p2p.interceptedValidatorInfo"))
+		assert.True(t, strings.Contains(fmt.Sprintf("%T", interceptedData), "*p2p.interceptedDirectConnectionInfo"))
 	})
 }

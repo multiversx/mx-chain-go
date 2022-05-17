@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -17,8 +18,8 @@ func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
 		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "hardfork message",
 	}
-	marshalizer := mock.MarshalizerMock{}
-	payloadBytes, err := marshalizer.Marshal(payload)
+	marshaller := marshal.GogoProtoMarshalizer{}
+	payloadBytes, err := marshaller.Marshal(payload)
 	if err != nil {
 		return nil
 	}
@@ -41,8 +42,8 @@ func getSizeOfHeartbeat(hb *heartbeat.HeartbeatV2) int {
 
 func createMockInterceptedHeartbeatArg(interceptedData *heartbeat.HeartbeatV2) ArgInterceptedHeartbeat {
 	arg := ArgInterceptedHeartbeat{}
-	arg.Marshalizer = &mock.MarshalizerMock{}
-	arg.DataBuff, _ = arg.Marshalizer.Marshal(interceptedData)
+	arg.Marshaller = &marshal.GogoProtoMarshalizer{}
+	arg.DataBuff, _ = arg.Marshaller.Marshal(interceptedData)
 	arg.PeerId = "pid"
 
 	return arg
@@ -61,11 +62,11 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 		assert.Nil(t, ihb)
 		assert.Equal(t, process.ErrNilBuffer, err)
 	})
-	t.Run("nil marshalizer should error", func(t *testing.T) {
+	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
-		arg.Marshalizer = nil
+		arg.Marshaller = nil
 
 		ihb, err := NewInterceptedHeartbeat(arg)
 		assert.Nil(t, ihb)
@@ -85,7 +86,7 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
-		arg.Marshalizer = &mock.MarshalizerStub{
+		arg.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},
@@ -186,7 +187,7 @@ func TestInterceptedHeartbeat_Getters(t *testing.T) {
 	arg := createMockInterceptedHeartbeatArg(providedHB)
 	ihb, _ := NewInterceptedHeartbeat(arg)
 	expectedHeartbeat := &heartbeat.HeartbeatV2{}
-	err := arg.Marshalizer.Unmarshal(expectedHeartbeat, arg.DataBuff)
+	err := arg.Marshaller.Unmarshal(expectedHeartbeat, arg.DataBuff)
 	assert.Nil(t, err)
 	assert.True(t, ihb.IsForCurrentShard())
 	assert.Equal(t, interceptedHeartbeatType, ihb.Type())

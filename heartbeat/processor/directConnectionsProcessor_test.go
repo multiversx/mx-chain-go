@@ -2,6 +2,7 @@ package processor
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
@@ -22,7 +24,7 @@ import (
 func createMockArgDirectConnectionsProcessor() ArgDirectConnectionsProcessor {
 	return ArgDirectConnectionsProcessor{
 		Messenger:                 &p2pmocks.MessengerStub{},
-		Marshaller:                &testscommon.MarshalizerStub{},
+		Marshaller:                &marshal.GogoProtoMarshalizer{},
 		ShardCoordinator:          &testscommon.ShardsCoordinatorMock{},
 		DelayBetweenNotifications: time.Second,
 	}
@@ -86,13 +88,13 @@ func TestNewDirectConnectionsProcessor(t *testing.T) {
 		notifiedPeers := make([]core.PeerID, 0)
 		var mutNotifiedPeers sync.RWMutex
 		args := createMockArgDirectConnectionsProcessor()
-		expectedShard := args.ShardCoordinator.SelfId()
+		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				mutNotifiedPeers.Lock()
 				defer mutNotifiedPeers.Unlock()
 
-				shardValidatorInfo := message.ShardValidatorInfo{}
+				shardValidatorInfo := &message.DirectConnectionInfo{}
 				err := args.Marshaller.Unmarshal(shardValidatorInfo, buff)
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardValidatorInfo.ShardId)
@@ -239,10 +241,10 @@ func Test_directConnectionsProcessor_notifyNewPeers(t *testing.T) {
 		providedConnectedPeers := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5", "pid6"}
 		counter := 0
 		args := createMockArgDirectConnectionsProcessor()
-		expectedShard := args.ShardCoordinator.SelfId()
+		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
 		args.Messenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-				shardValidatorInfo := message.ShardValidatorInfo{}
+				shardValidatorInfo := &message.DirectConnectionInfo{}
 				err := args.Marshaller.Unmarshal(shardValidatorInfo, buff)
 				assert.Nil(t, err)
 				assert.Equal(t, expectedShard, shardValidatorInfo.ShardId)

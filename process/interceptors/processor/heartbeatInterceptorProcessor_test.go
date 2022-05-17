@@ -29,8 +29,8 @@ func createInterceptedHeartbeat() *heartbeatMessages.HeartbeatV2 {
 		Timestamp:       time.Now().Unix(),
 		HardforkMessage: "hardfork message",
 	}
-	marshalizer := mock.MarshalizerMock{}
-	payloadBytes, _ := marshalizer.Marshal(payload)
+	marshaller := mock.MarshalizerMock{}
+	payloadBytes, _ := marshaller.Marshal(payload)
 
 	return &heartbeatMessages.HeartbeatV2{
 		Payload:         payloadBytes,
@@ -45,11 +45,11 @@ func createInterceptedHeartbeat() *heartbeatMessages.HeartbeatV2 {
 func createMockInterceptedHeartbeat() process.InterceptedData {
 	arg := heartbeat.ArgInterceptedHeartbeat{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			Marshalizer: &mock.MarshalizerMock{},
+			Marshaller: &mock.MarshalizerMock{},
 		},
 		PeerId: "pid",
 	}
-	arg.DataBuff, _ = arg.Marshalizer.Marshal(createInterceptedHeartbeat())
+	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedHeartbeat())
 	ihb, _ := heartbeat.NewInterceptedHeartbeat(arg)
 
 	return ihb
@@ -138,9 +138,9 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		arg.HeartbeatCacher = &testscommon.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.True(t, bytes.Equal(providedPid.Bytes(), key))
-				ihb := value.(heartbeatMessages.HeartbeatV2)
+				ihb := value.(*heartbeatMessages.HeartbeatV2)
 				providedHbHandler := providedHb.(interceptedDataHandler)
-				providedHbMessage := providedHbHandler.Message().(heartbeatMessages.HeartbeatV2)
+				providedHbMessage := providedHbHandler.Message().(*heartbeatMessages.HeartbeatV2)
 				assert.Equal(t, providedHbMessage.Identity, ihb.Identity)
 				assert.Equal(t, providedHbMessage.Payload, ihb.Payload)
 				assert.Equal(t, providedHbMessage.NodeDisplayName, ihb.NodeDisplayName)

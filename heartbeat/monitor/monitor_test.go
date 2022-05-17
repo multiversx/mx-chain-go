@@ -31,7 +31,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 	}
 }
 
-func createHeartbeatMessage(active bool) heartbeat.HeartbeatV2 {
+func createHeartbeatMessage(active bool) *heartbeat.HeartbeatV2 {
 	crtTime := time.Now()
 	providedAgeInSec := int64(1)
 	messageTimestamp := crtTime.Unix() - providedAgeInSec
@@ -46,7 +46,7 @@ func createHeartbeatMessage(active bool) heartbeat.HeartbeatV2 {
 
 	marshaller := testscommon.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)
-	return heartbeat.HeartbeatV2{
+	return &heartbeat.HeartbeatV2{
 		Payload:         payloadBytes,
 		VersionNumber:   "v01",
 		NodeDisplayName: "node name",
@@ -187,7 +187,7 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		providedPid := core.PeerID("pid")
 		hb, err := monitor.parseMessage(providedPid, message, numInstances)
 		assert.Nil(t, err)
-		checkResults(t, message, hb, true, providedPid, 0)
+		checkResults(t, *message, hb, true, providedPid, 0)
 		pid := args.PubKeyConverter.Encode(providedPkBytes)
 		entries, ok := numInstances[pid]
 		assert.True(t, ok)
@@ -258,7 +258,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		providedStatuses := []bool{true, true, false}
 		numOfMessages := len(providedStatuses)
 		providedPids := make([]core.PeerID, numOfMessages)
-		providedMessages := make([]heartbeat.HeartbeatV2, numOfMessages)
+		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
 		for i := 0; i < numOfMessages; i++ {
 			providedPids[i] = core.PeerID(fmt.Sprintf("%s%d", "pid", i))
 			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
@@ -272,7 +272,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		heartbeats := monitor.GetHeartbeats()
 		assert.Equal(t, args.Cache.Len()-1, len(heartbeats))
 		for i := 0; i < len(heartbeats); i++ {
-			checkResults(t, providedMessages[i], heartbeats[i], providedStatuses[i], providedPids[i], 1)
+			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids[i], 1)
 		}
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -281,7 +281,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		providedStatuses := []bool{true, true, true}
 		numOfMessages := len(providedStatuses)
 		providedPids := make([]core.PeerID, numOfMessages)
-		providedMessages := make([]heartbeat.HeartbeatV2, numOfMessages)
+		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
 		for i := 0; i < numOfMessages; i++ {
 			providedPids[i] = core.PeerID(fmt.Sprintf("%s%d", "pid", i))
 			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
@@ -316,7 +316,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 			if i > 0 {
 				numInstances = 2
 			}
-			checkResults(t, providedMessages[i], heartbeats[i], providedStatuses[i], providedPids[i], numInstances)
+			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids[i], numInstances)
 		}
 	})
 }

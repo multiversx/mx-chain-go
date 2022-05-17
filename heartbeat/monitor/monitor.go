@@ -125,7 +125,7 @@ func (monitor *heartbeatV2Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interface{}, numInstances map[string]uint64) (data.PubKeyHeartbeat, error) {
 	pubKeyHeartbeat := data.PubKeyHeartbeat{}
 
-	heartbeatV2, ok := message.(heartbeat.HeartbeatV2)
+	heartbeatV2, ok := message.(*heartbeat.HeartbeatV2)
 	if !ok {
 		return pubKeyHeartbeat, process.ErrWrongTypeAssertion
 	}

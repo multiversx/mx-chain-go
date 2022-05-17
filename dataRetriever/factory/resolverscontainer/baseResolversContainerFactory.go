@@ -25,27 +25,27 @@ const minNumOfPeerAuthentication = 5
 var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
-	container                   dataRetriever.ResolversContainer
-	shardCoordinator            sharding.Coordinator
-	messenger                   dataRetriever.TopicMessageHandler
-	store                       dataRetriever.StorageService
-	marshalizer                 marshal.Marshalizer
-	dataPools                   dataRetriever.PoolsHolder
-	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
-	intRandomizer               dataRetriever.IntRandomizer
-	dataPacker                  dataRetriever.DataPacker
-	triesContainer              common.TriesHolder
-	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
-	throttler                   dataRetriever.ResolverThrottler
-	intraShardTopic             string
-	isFullHistoryNode           bool
-	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
-	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
-	peersRatingHandler          dataRetriever.PeersRatingHandler
-	numCrossShardPeers          int
-	numIntraShardPeers          int
-	numFullHistoryPeers         int
+	container                            dataRetriever.ResolversContainer
+	shardCoordinator                     sharding.Coordinator
+	messenger                            dataRetriever.TopicMessageHandler
+	store                                dataRetriever.StorageService
+	marshalizer                          marshal.Marshalizer
+	dataPools                            dataRetriever.PoolsHolder
+	uint64ByteSliceConverter             typeConverters.Uint64ByteSliceConverter
+	intRandomizer                        dataRetriever.IntRandomizer
+	dataPacker                           dataRetriever.DataPacker
+	triesContainer                       common.TriesHolder
+	inputAntifloodHandler                dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler               dataRetriever.P2PAntifloodHandler
+	throttler                            dataRetriever.ResolverThrottler
+	intraShardTopic                      string
+	isFullHistoryNode                    bool
+	currentNetworkEpochProvider          dataRetriever.CurrentNetworkEpochProviderHandler
+	preferredPeersHolder                 dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler                   dataRetriever.PeersRatingHandler
+	numCrossShardPeers                   int
+	numIntraShardPeers                   int
+	numFullHistoryPeers                  int
 	nodesCoordinator                     dataRetriever.NodesCoordinator
 	maxNumOfPeerAuthenticationInResponse int
 	peerShardMapper                      process.PeerShardMapper
@@ -174,7 +174,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	arg := resolvers.ArgTxResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
@@ -253,7 +253,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 	arg := resolvers.ArgMiniblockResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
@@ -286,7 +286,7 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 	arg := resolvers.ArgPeerAuthenticationResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},
@@ -294,6 +294,7 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 		NodesCoordinator:                     brcf.nodesCoordinator,
 		MaxNumOfPeerAuthenticationInResponse: brcf.maxNumOfPeerAuthenticationInResponse,
 		PeerShardMapper:                      brcf.peerShardMapper,
+		DataPacker:                           brcf.dataPacker,
 	}
 	peerAuthResolver, err := resolvers.NewPeerAuthenticationResolver(arg)
 	if err != nil {
@@ -394,7 +395,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	argTrie := resolvers.ArgTrieNodeResolver{
 		ArgBaseResolver: resolvers.ArgBaseResolver{
 			SenderResolver:   resolverSender,
-			Marshalizer:      brcf.marshalizer,
+			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
 			Throttler:        brcf.throttler,
 		},

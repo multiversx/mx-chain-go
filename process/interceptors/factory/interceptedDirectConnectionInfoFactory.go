@@ -8,19 +8,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type interceptedValidatorInfoFactory struct {
+type interceptedDirectConnectionInfoFactory struct {
 	marshaller       marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 }
 
-// NewInterceptedValidatorInfoFactory creates an instance of interceptedValidatorInfoFactory
-func NewInterceptedValidatorInfoFactory(args ArgInterceptedDataFactory) (*interceptedValidatorInfoFactory, error) {
+// NewInterceptedDirectConnectionInfoFactory creates an instance of interceptedDirectConnectionInfoFactory
+func NewInterceptedDirectConnectionInfoFactory(args ArgInterceptedDataFactory) (*interceptedDirectConnectionInfoFactory, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return &interceptedValidatorInfoFactory{
+	return &interceptedDirectConnectionInfoFactory{
 		marshaller:       args.CoreComponents.InternalMarshalizer(),
 		shardCoordinator: args.ShardCoordinator,
 	}, nil
@@ -41,17 +41,17 @@ func checkArgs(args ArgInterceptedDataFactory) error {
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (isvif *interceptedValidatorInfoFactory) Create(buff []byte) (process.InterceptedData, error) {
-	args := p2p.ArgInterceptedValidatorInfo{
-		Marshaller:  isvif.marshaller,
+func (idcif *interceptedDirectConnectionInfoFactory) Create(buff []byte) (process.InterceptedData, error) {
+	args := p2p.ArgInterceptedDirectConnectionInfo{
+		Marshaller:  idcif.marshaller,
 		DataBuff:    buff,
-		NumOfShards: isvif.shardCoordinator.NumberOfShards(),
+		NumOfShards: idcif.shardCoordinator.NumberOfShards(),
 	}
 
-	return p2p.NewInterceptedValidatorInfo(args)
+	return p2p.NewInterceptedDirectConnectionInfo(args)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (isvif *interceptedValidatorInfoFactory) IsInterfaceNil() bool {
-	return isvif == nil
+func (idcif *interceptedDirectConnectionInfoFactory) IsInterfaceNil() bool {
+	return idcif == nil
 }

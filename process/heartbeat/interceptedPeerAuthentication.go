@@ -43,7 +43,7 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		return nil, err
 	}
 
-	peerAuthentication, payload, err := createPeerAuthentication(arg.Marshalizer, arg.DataBuff)
+	peerAuthentication, payload, err := createPeerAuthentication(arg.Marshaller, arg.DataBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +97,8 @@ func createPeerAuthentication(marshalizer marshal.Marshalizer, buff []byte) (*he
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Trace("interceptedPeerAuthentication successfully created")
 
 	return peerAuthentication, payload, nil
 }
@@ -152,6 +154,8 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		return err
 	}
 
+	log.Trace("interceptedPeerAuthentication received valid data")
+
 	return nil
 }
 
@@ -197,7 +201,7 @@ func (ipa *interceptedPeerAuthentication) PayloadSignature() []byte {
 
 // Message returns the peer authentication message
 func (ipa *interceptedPeerAuthentication) Message() interface{} {
-	return ipa.peerAuthentication
+	return &ipa.peerAuthentication
 }
 
 // Pubkey returns the public key

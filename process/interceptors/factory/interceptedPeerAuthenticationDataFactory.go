@@ -68,8 +68,8 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
-			DataBuff:    buff,
-			Marshalizer: ipadf.marshalizer,
+			DataBuff:   buff,
+			Marshaller: ipadf.marshalizer,
 		},
 		NodesCoordinator:      ipadf.nodesCoordinator,
 		SignaturesHandler:     ipadf.signaturesHandler,

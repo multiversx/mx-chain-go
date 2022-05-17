@@ -14,10 +14,12 @@ import (
 const uint32Size = 4
 const uint64Size = 8
 
+var log = logger.GetOrCreate("process/heartbeat")
+
 // ArgBaseInterceptedHeartbeat is the base argument used for messages
 type ArgBaseInterceptedHeartbeat struct {
-	DataBuff    []byte
-	Marshalizer marshal.Marshalizer
+	DataBuff   []byte
+	Marshaller marshal.Marshalizer
 }
 
 // ArgInterceptedHeartbeat is the argument used in the intercepted heartbeat constructor
@@ -43,7 +45,7 @@ func NewInterceptedHeartbeat(arg ArgInterceptedHeartbeat) (*interceptedHeartbeat
 		return nil, process.ErrEmptyPeerID
 	}
 
-	hb, payload, err := createHeartbeat(arg.Marshalizer, arg.DataBuff)
+	hb, payload, err := createHeartbeat(arg.Marshaller, arg.DataBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -61,23 +63,26 @@ func checkBaseArg(arg ArgBaseInterceptedHeartbeat) error {
 	if len(arg.DataBuff) == 0 {
 		return process.ErrNilBuffer
 	}
-	if check.IfNil(arg.Marshalizer) {
+	if check.IfNil(arg.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
 	return nil
 }
 
-func createHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.HeartbeatV2, *heartbeat.Payload, error) {
+func createHeartbeat(marshaller marshal.Marshalizer, buff []byte) (*heartbeat.HeartbeatV2, *heartbeat.Payload, error) {
 	hb := &heartbeat.HeartbeatV2{}
-	err := marshalizer.Unmarshal(hb, buff)
+	err := marshaller.Unmarshal(hb, buff)
 	if err != nil {
 		return nil, nil, err
 	}
 	payload := &heartbeat.Payload{}
-	err = marshalizer.Unmarshal(payload, hb.Payload)
+	err = marshaller.Unmarshal(payload, hb.Payload)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Trace("interceptedHeartbeat successfully created")
+
 	return hb, payload, nil
 }
 
@@ -102,6 +107,9 @@ func (ihb *interceptedHeartbeat) CheckValidity() error {
 	if ihb.heartbeat.PeerSubType != uint32(core.RegularPeer) && ihb.heartbeat.PeerSubType != uint32(core.FullHistoryObserver) {
 		return process.ErrInvalidPeerSubType
 	}
+
+	log.Trace("interceptedHeartbeat received valid data")
+
 	return nil
 }
 
@@ -139,7 +147,7 @@ func (ihb *interceptedHeartbeat) String() string {
 
 // Message returns the heartbeat message
 func (ihb *interceptedHeartbeat) Message() interface{} {
-	return ihb.heartbeat
+	return &ihb.heartbeat
 }
 
 // SizeInBytes returns the size in bytes held by this instance

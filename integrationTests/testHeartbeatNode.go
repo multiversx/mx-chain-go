@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/random"
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/display"
+	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
@@ -57,14 +58,14 @@ const (
 
 	messagesInChunk         = 10
 	minPeersThreshold       = 1.0
-	delayBetweenRequests    = time.Second * 5
+	delayBetweenRequests    = time.Second
 	maxTimeout              = time.Minute
 	maxMissingKeysInRequest = 1
 	providedHardforkPubKey  = "provided pub key"
 )
 
 // TestMarshaller represents the main marshaller
-var TestMarshaller = &testscommon.MarshalizerMock{}
+var TestMarshaller = &marshal.GogoProtoMarshalizer{}
 
 // TestThrottler -
 var TestThrottler = &processMock.InterceptorThrottlerStub{
@@ -176,7 +177,8 @@ func NewTestHeartbeatNode(
 	}
 
 	localId := thn.Messenger.ID()
-	thn.PeerShardMapper.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
+	pkBytes, _ := pk.ToByteArray()
+	thn.PeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
 	thn.NodeKeys = TestKeyPair{
 		Sk: sk,
@@ -513,7 +515,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 
 	thn.createPeerAuthInterceptor(argsFactory)
 	thn.createHeartbeatInterceptor(argsFactory)
-	thn.createValidatorInfoInterceptor(argsFactory)
+	thn.createDirectConnectionInfoInterceptor(argsFactory)
 }
 
 func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
@@ -540,20 +542,20 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	thn.HeartbeatInterceptor = thn.initMultiDataInterceptor(identifierHeartbeat, hbFactory, hbProcessor)
 }
 
-func (thn *TestHeartbeatNode) createValidatorInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
-	args := interceptorsProcessor.ArgValidatorInfoInterceptorProcessor{
+func (thn *TestHeartbeatNode) createDirectConnectionInfoInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
+	args := interceptorsProcessor.ArgDirectConnectionInfoInterceptorProcessor{
 		PeerShardMapper: thn.PeerShardMapper,
 	}
-	sviProcessor, _ := interceptorsProcessor.NewValidatorInfoInterceptorProcessor(args)
-	sviFactory, _ := interceptorFactory.NewInterceptedValidatorInfoFactory(argsFactory)
-	thn.ValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
+	dciProcessor, _ := interceptorsProcessor.NewDirectConnectionInfoInterceptorProcessor(args)
+	dciFactory, _ := interceptorFactory.NewInterceptedDirectConnectionInfoFactory(argsFactory)
+	thn.ValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, dciFactory, dciProcessor)
 }
 
 func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory process.InterceptedDataFactory, processor process.InterceptorProcessor) *interceptors.MultiDataInterceptor {
 	mdInterceptor, _ := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      testscommon.MarshalizerMock{},
+			Marshalizer:      TestMarshalizer,
 			DataFactory:      dataFactory,
 			Processor:        processor,
 			Throttler:        TestThrottler,
@@ -616,7 +618,7 @@ func (thn *TestHeartbeatNode) initRequestsProcessor() {
 func (thn *TestHeartbeatNode) initDirectConnectionsProcessor() {
 	args := processor.ArgDirectConnectionsProcessor{
 		Messenger:                 thn.Messenger,
-		Marshaller:                testscommon.MarshalizerMock{},
+		Marshaller:                TestMarshaller,
 		ShardCoordinator:          thn.ShardCoordinator,
 		DelayBetweenNotifications: 5 * time.Second,
 	}

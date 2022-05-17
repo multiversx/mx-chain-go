@@ -696,20 +696,20 @@ func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() err
 	return bicf.container.Add(identifierHeartbeat, interceptor)
 }
 
-// ------- ValidatorInfo interceptor
+// ------- DirectConnectionInfo interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
+func (bicf *baseInterceptorsContainerFactory) generateDirectConnectionInfoInterceptor() error {
 	identifier := common.ConnectionTopic
 
-	interceptedValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoFactory(*bicf.argInterceptorFactory)
+	interceptedDirectConnectionInfoFactory, err := interceptorFactory.NewInterceptedDirectConnectionInfoFactory(*bicf.argInterceptorFactory)
 	if err != nil {
 		return err
 	}
 
-	argProcessor := processor.ArgValidatorInfoInterceptorProcessor{
+	argProcessor := processor.ArgDirectConnectionInfoInterceptorProcessor{
 		PeerShardMapper: bicf.peerShardMapper,
 	}
-	hdrProcessor, err := processor.NewValidatorInfoInterceptorProcessor(argProcessor)
+	dciProcessor, err := processor.NewDirectConnectionInfoInterceptorProcessor(argProcessor)
 	if err != nil {
 		return err
 	}
@@ -717,8 +717,8 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifier,
-			DataFactory:          interceptedValidatorInfoFactory,
-			Processor:            hdrProcessor,
+			DataFactory:          interceptedDirectConnectionInfoFactory,
+			Processor:            dciProcessor,
 			Throttler:            bicf.globalThrottler,
 			AntifloodHandler:     bicf.antifloodHandler,
 			WhiteListRequest:     bicf.whiteListHandler,

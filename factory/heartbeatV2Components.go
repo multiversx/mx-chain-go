@@ -114,13 +114,16 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		peerSubType = core.FullHistoryObserver
 	}
 
+	shardC := hcf.boostrapComponents.ShardCoordinator()
+	heartbeatTopic := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
+
 	cfg := hcf.config.HeartbeatV2
 
 	argsSender := sender.ArgSender{
 		Messenger:                          hcf.networkComponents.NetworkMessenger(),
 		Marshaller:                         hcf.coreComponents.InternalMarshalizer(),
 		PeerAuthenticationTopic:            common.PeerAuthenticationTopic,
-		HeartbeatTopic:                     common.HeartbeatV2Topic,
+		HeartbeatTopic:                     heartbeatTopic,
 		PeerAuthenticationTimeBetweenSends: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsInSec),
 		PeerAuthenticationTimeBetweenSendsWhenError: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsWhenErrorInSec),
 		PeerAuthenticationThresholdBetweenSends:     cfg.PeerAuthenticationThresholdBetweenSends,

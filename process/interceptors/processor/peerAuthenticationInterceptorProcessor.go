@@ -64,7 +64,7 @@ func (paip *peerAuthenticationInterceptorProcessor) Validate(_ process.Intercept
 }
 
 // Save will save the intercepted peer authentication inside the peer authentication cacher
-func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
+func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
 	interceptedPeerAuthenticationData, ok := data.(interceptedPeerAuthenticationMessageHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -82,18 +82,20 @@ func (paip *peerAuthenticationInterceptorProcessor) Save(data process.Intercepte
 		return err
 	}
 
-	paip.peerAuthenticationCacher.Put(fromConnectedPeer.Bytes(), interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())
-
-	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message())
+	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())
 }
 
-func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}) error {
-	peerAuthenticationData, ok := message.(heartbeat.PeerAuthentication)
+func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int) error {
+	peerAuthenticationData, ok := message.(*heartbeat.PeerAuthentication)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(peerAuthenticationData.GetPid()), peerAuthenticationData.GetPubkey())
+	pidBytes := peerAuthenticationData.GetPid()
+	paip.peerAuthenticationCacher.Put(pidBytes, message, messageSize)
+	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey())
+
+	log.Trace("PeerAuthentication message saved")
 
 	return nil
 }
