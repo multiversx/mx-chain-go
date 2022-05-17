@@ -235,3 +235,6 @@ var ErrNilValidatorInfoPool = errors.New("nil validator info pool")
 
 // ErrNilValidatorInfoStorage signals that a nil validator info storage has been provided
 var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
+
+// ErrValidatorInfoNotFound signals that no validator info was found
+var ErrValidatorInfoNotFound = errors.New("validator info not found")

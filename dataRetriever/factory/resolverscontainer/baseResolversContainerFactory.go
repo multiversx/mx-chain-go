@@ -373,6 +373,7 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 		Throttler:            brcf.throttler,
 		ValidatorInfoPool:    brcf.dataPools.ValidatorsInfo(),
 		ValidatorInfoStorage: brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit),
+		DataPacker:           brcf.dataPacker,
 		IsFullHistoryNode:    brcf.isFullHistoryNode,
 	}
 	validatorInfoResolver, err := resolvers.NewValidatorInfoResolver(arg)

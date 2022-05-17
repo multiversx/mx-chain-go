@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -1234,7 +1235,6 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
-
 		assert.False(t, wasCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1251,6 +1251,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		rrh, _ := NewResolverRequestHandler(
 			&mock.ResolversFinderStub{
 				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+					assert.Equal(t, common.ValidatorInfoTopic, baseTopic)
 					return res, nil
 				},
 			},
@@ -1262,7 +1263,89 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
+		assert.True(t, wasCalled)
+	})
+}
 
+func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("MetaChainResolver returns error", func(t *testing.T) {
+		providedHash := []byte("provided hash")
+		wasCalled := false
+		res := &mock.ResolverStub{
+			RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+					return res, errors.New("provided err")
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestValidatorsInfo([][]byte{providedHash})
+		assert.False(t, wasCalled)
+	})
+	t.Run("cast fails", func(t *testing.T) {
+		providedHash := []byte("provided hash")
+		mbResolver := &mock.ResolverStub{} // uncastable to HashSliceResolver
+		wasCalled := false
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+					return mbResolver, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					wasCalled = true
+				},
+			},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestValidatorsInfo([][]byte{providedHash})
+		assert.False(t, wasCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		providedHashes := [][]byte{[]byte("provided hash 1"), []byte("provided hash 2")}
+		wasCalled := false
+		res := &mock.HashSliceResolverStub{
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+				assert.Equal(t, providedHashes, hashes)
+				wasCalled = true
+				return nil
+			},
+		}
+
+		rrh, _ := NewResolverRequestHandler(
+			&mock.ResolversFinderStub{
+				MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+					assert.Equal(t, common.ValidatorInfoTopic, baseTopic)
+					return res, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+		)
+
+		rrh.RequestValidatorsInfo(providedHashes)
 		assert.True(t, wasCalled)
 	})
 }
