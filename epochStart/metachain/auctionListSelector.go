@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/display"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -97,18 +96,18 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap sta
 		fmt.Sprintf("available slots (%v -%v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	err = als.sortAuctionList(auctionList, randomness)
+	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
+	selectedNodesFromAuction, err := als.sortAuctionListV2(auctionList, numOfAvailableNodeSlots, randomness)
 	if err != nil {
 		return err
 	}
 
-	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
-	als.displayAuctionList(auctionList, numOfAvailableNodeSlots)
+	als.displayAuctionList(selectedNodesFromAuction, numOfAvailableNodeSlots)
 
 	for i := uint32(0); i < numOfAvailableNodeSlots; i++ {
-		newNode := auctionList[i]
+		newNode := selectedNodesFromAuction[i]
 		newNode.SetList(string(common.SelectedFromAuctionList))
-		err = validatorsInfoMap.Replace(auctionList[i], newNode)
+		err = validatorsInfoMap.Replace(selectedNodesFromAuction[i], newNode)
 		if err != nil {
 			return err
 		}
@@ -142,29 +141,35 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInf
 	return auctionList, numOfValidators
 }
 
-func (als *auctionListSelector) getMinRequiredTopUp(auctionList []state.ValidatorInfoHandler) (*big.Int, error) {
+func (als *auctionListSelector) getMinRequiredTopUp(auctionList []state.ValidatorInfoHandler, auctionListSize uint32) (*big.Int, error) {
 	validatorTopUpMap, err := als.getValidatorTopUpMap(auctionList)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
 	}
+	validatorAuctionNodesMap, err := als.getValidatorNumAuctionNodesMap(auctionList)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
+	}
 
+	minTopUp := big.NewInt(1)
 	maxTopUp := big.NewInt(1000000) // todo: extract to const
-	step := big.NewInt(10)          // egld
+	step := big.NewInt(10)
 
-	for topUp := big.NewInt(0.1); topUp.Cmp(maxTopUp) >= 0; topUp = topUp.Add(topUp, step) {
+	for topUp := minTopUp; topUp.Cmp(maxTopUp) < 0; topUp = topUp.Add(topUp, step) {
+
 		numNodesQualifyingForTopUp := int64(0)
-		for _, validator := range auctionList {
-			tmp := big.NewInt(0).Set(topUp)
+		for _, validator := range auctionList { // possible improvement: if we find a validator with not enough topUp, ignore any oncoming nodes from that owner
 			validatorStakedNodes, err := als.stakingDataProvider.GetNumStakedNodes(validator.GetPublicKey())
 			if err != nil {
 				return nil, err
 			}
 
-			tmp = tmp.Mul(tmp, big.NewInt(validatorStakedNodes))
-			validatorTotalTopUp := validatorTopUpMap[string(validator.GetPublicKey())]
-			validatorTopUpForAuction := validatorTotalTopUp.Sub(validatorTotalTopUp, tmp)
+			minQualifiedTopUpForAuction := big.NewInt(0)
+			minQualifiedTopUpForAuction = minQualifiedTopUpForAuction.Mul(topUp, big.NewInt(validatorStakedNodes))
+			validatorTotalTopUp := big.NewInt(0).SetBytes(validatorTopUpMap[string(validator.GetPublicKey())].Bytes())
 
-			if validatorTopUpForAuction.Cmp(topUp) == -1 {
+			validatorTopUpForAuction := validatorTotalTopUp.Sub(validatorTotalTopUp, minQualifiedTopUpForAuction)
+			if validatorTopUpForAuction.Cmp(topUp) < 0 {
 				continue
 			}
 
@@ -172,31 +177,91 @@ func (als *auctionListSelector) getMinRequiredTopUp(auctionList []state.Validato
 			qualifiedNodes = qualifiedNodes.Div(validatorTopUpForAuction, topUp)
 
 			if qualifiedNodes.Int64() > validatorStakedNodes {
-				numNodesQualifyingForTopUp += als.getNumNodesInAuction(validator.GetPublicKey())
+				numNodesQualifyingForTopUp += validatorAuctionNodesMap[string(validator.GetPublicKey())]
 			} else {
 				numNodesQualifyingForTopUp += qualifiedNodes.Int64()
 			}
-
 		}
 
-		if numNodesQualifyingForTopUp < int64(als.nodesConfigProvider.GetCurrentNodesConfig().MaxNumNodes) {
-			return topUp.Sub(topUp, step), nil
+		if numNodesQualifyingForTopUp < int64(auctionListSize) {
+			if topUp.Cmp(minTopUp) == 0 {
+				return big.NewInt(0), nil
+			} else {
+				return topUp.Sub(topUp, step), nil
+			}
 		}
 	}
 
 	return nil, errors.New("COULD NOT FIND TOPUP")
 }
 
-func (als *auctionListSelector) sortAuctionListV2(auctionList []state.ValidatorInfoHandler, randomness []byte) error {
+func (als *auctionListSelector) sortAuctionListV2(auctionList []state.ValidatorInfoHandler, auctionListSize uint32, randomness []byte) ([]state.ValidatorInfoHandler, error) {
 	if len(auctionList) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return nil
+	minTopUp, err := als.getMinRequiredTopUp(auctionList, auctionListSize)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorTopUpMap, _ := als.getValidatorTopUpMap(auctionList)
+	qualifiedValidators := make([]state.ValidatorInfoHandler, 0)
+
+	for _, validator := range auctionList {
+		if validatorTopUpMap[string(validator.GetPublicKey())].Cmp(minTopUp) >= 0 {
+			qualifiedValidators = append(qualifiedValidators, validator)
+		}
+	}
+
+	als.sortValidators(qualifiedValidators, validatorTopUpMap, randomness)
+	return qualifiedValidators, nil
 }
 
-func (als *auctionListSelector) getNumNodesInAuction(blsKey []byte) int64 {
-	return 1
+func (als *auctionListSelector) getValidatorNumAuctionNodesMap(auctionList []state.ValidatorInfoHandler) (map[string]int64, error) {
+	ret := make(map[string]int64)
+	ownerAuctionNodesMap := make(map[string][][]byte)
+
+	for _, validator := range auctionList {
+		owner, err := als.stakingDataProvider.GetBlsKeyOwner(validator.GetPublicKey())
+		if err != nil {
+			return nil, err
+		}
+
+		ownerAuctionNodesMap[owner] = append(ownerAuctionNodesMap[owner], validator.GetPublicKey())
+	}
+
+	for _, auctionNodes := range ownerAuctionNodesMap {
+		for _, auctionNode := range auctionNodes {
+			ret[string(auctionNode)] = int64(len(auctionNodes))
+		}
+
+	}
+
+	return ret, nil
+}
+
+func (als *auctionListSelector) sortValidators(
+	auctionList []state.ValidatorInfoHandler,
+	validatorTopUpMap map[string]*big.Int,
+	randomness []byte,
+) {
+	pubKeyLen := len(auctionList[0].GetPublicKey())
+	normRandomness := calcNormRand(randomness, pubKeyLen)
+	sort.SliceStable(auctionList, func(i, j int) bool {
+		pubKey1 := auctionList[i].GetPublicKey()
+		pubKey2 := auctionList[j].GetPublicKey()
+
+		nodeTopUpPubKey1 := validatorTopUpMap[string(pubKey1)]
+		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
+
+		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
+			return compareByXORWithRandomness(pubKey1, pubKey2, normRandomness)
+		}
+
+		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
+	})
+
 }
 
 func (als *auctionListSelector) sortAuctionList(auctionList []state.ValidatorInfoHandler, randomness []byte) error {
@@ -238,7 +303,7 @@ func (als *auctionListSelector) getValidatorTopUpMap(validators []state.Validato
 			return nil, fmt.Errorf("%w when trying to get top up per node for %s", err, hex.EncodeToString(pubKey))
 		}
 
-		ret[string(pubKey)] = topUp
+		ret[string(pubKey)] = big.NewInt(0).SetBytes(topUp.Bytes())
 	}
 
 	return ret, nil
@@ -272,9 +337,9 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 }
 
 func (als *auctionListSelector) displayAuctionList(auctionList []state.ValidatorInfoHandler, numOfSelectedNodes uint32) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
+	//if log.GetLevel() > logger.LogDebug {
+	//	return
+	//}
 
 	tableHeader := []string{"Owner", "Registered key", "TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
@@ -304,7 +369,7 @@ func (als *auctionListSelector) displayAuctionList(auctionList []state.Validator
 	}
 
 	message := fmt.Sprintf("Auction list\n%s", table)
-	log.Debug(message)
+	log.Info(message)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
