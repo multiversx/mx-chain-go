@@ -215,7 +215,7 @@ func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, mo
 
 			// Also check message age
 			value, _ := paCache.Get(node.Messenger.ID().Bytes())
-			msg := value.(heartbeat.PeerAuthentication)
+			msg := value.(*heartbeat.PeerAuthentication)
 
 			marshaller := integrationTests.TestMarshaller
 			payload := &heartbeat.Payload{}
