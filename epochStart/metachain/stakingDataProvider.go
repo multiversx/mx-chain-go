@@ -120,6 +120,21 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.topUpPerNode, nil
 }
 
+func (sdp *stakingDataProvider) GetNumStakedNodes(blsKey []byte) (int64, error) {
+	owner, err := sdp.GetBlsKeyOwner(blsKey)
+	if err != nil {
+		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
+		return 0, err
+	}
+
+	ownerInfo, ok := sdp.cache[owner]
+	if !ok {
+		return 0, epochStart.ErrOwnerDoesntHaveEligibleNodesInEpoch
+	}
+
+	return ownerInfo.numStakedNodes, nil
+}
+
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
 func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
 	sdp.Clean()

@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -139,6 +140,63 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInf
 	}
 
 	return auctionList, numOfValidators
+}
+
+func (als *auctionListSelector) getMinRequiredTopUp(auctionList []state.ValidatorInfoHandler) (*big.Int, error) {
+	validatorTopUpMap, err := als.getValidatorTopUpMap(auctionList)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
+	}
+
+	maxTopUp := big.NewInt(1000000) // todo: extract to const
+	step := big.NewInt(10)          // egld
+
+	for topUp := big.NewInt(0.1); topUp.Cmp(maxTopUp) >= 0; topUp = topUp.Add(topUp, step) {
+		numNodesQualifyingForTopUp := int64(0)
+		for _, validator := range auctionList {
+			tmp := big.NewInt(0).Set(topUp)
+			validatorStakedNodes, err := als.stakingDataProvider.GetNumStakedNodes(validator.GetPublicKey())
+			if err != nil {
+				return nil, err
+			}
+
+			tmp = tmp.Mul(tmp, big.NewInt(validatorStakedNodes))
+			validatorTotalTopUp := validatorTopUpMap[string(validator.GetPublicKey())]
+			validatorTopUpForAuction := validatorTotalTopUp.Sub(validatorTotalTopUp, tmp)
+
+			if validatorTopUpForAuction.Cmp(topUp) == -1 {
+				continue
+			}
+
+			qualifiedNodes := big.NewInt(0)
+			qualifiedNodes = qualifiedNodes.Div(validatorTopUpForAuction, topUp)
+
+			if qualifiedNodes.Int64() > validatorStakedNodes {
+				numNodesQualifyingForTopUp += als.getNumNodesInAuction(validator.GetPublicKey())
+			} else {
+				numNodesQualifyingForTopUp += qualifiedNodes.Int64()
+			}
+
+		}
+
+		if numNodesQualifyingForTopUp < int64(als.nodesConfigProvider.GetCurrentNodesConfig().MaxNumNodes) {
+			return topUp.Sub(topUp, step), nil
+		}
+	}
+
+	return nil, errors.New("COULD NOT FIND TOPUP")
+}
+
+func (als *auctionListSelector) sortAuctionListV2(auctionList []state.ValidatorInfoHandler, randomness []byte) error {
+	if len(auctionList) == 0 {
+		return nil
+	}
+
+	return nil
+}
+
+func (als *auctionListSelector) getNumNodesInAuction(blsKey []byte) int64 {
+	return 1
 }
 
 func (als *auctionListSelector) sortAuctionList(auctionList []state.ValidatorInfoHandler, randomness []byte) error {

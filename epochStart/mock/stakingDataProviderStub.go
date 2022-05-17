@@ -57,6 +57,10 @@ func (sdps *StakingDataProviderStub) GetNodeStakedTopUp(blsKey []byte) (*big.Int
 	return big.NewInt(0), nil
 }
 
+func (sdps *StakingDataProviderStub) GetNumStakedNodes([]byte) (int64, error) {
+	return 0, nil
+}
+
 // PrepareStakingData -
 func (sdps *StakingDataProviderStub) PrepareStakingData(keys map[uint32][][]byte) error {
 	if sdps.PrepareStakingDataCalled != nil {
