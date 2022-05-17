@@ -475,6 +475,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -698,6 +699,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2592,6 +2594,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2702,6 +2705,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3096,6 +3100,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3279,6 +3284,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		2,
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -5073,6 +5079,8 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	metaHash := []byte("meta_hash")
@@ -5083,29 +5091,29 @@ func TestShardProcessor_RollBackProcessedMiniBlockInfo(t *testing.T) {
 	}
 	miniBlockHeader := &block.MiniBlockHeader{}
 
-	sp.GetProcessedMiniBlocks().SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
-	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
 
 	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
-	assert.Equal(t, 0, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+	assert.Equal(t, 0, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
 
-	sp.GetProcessedMiniBlocks().SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
-	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash, mbInfo)
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
 
 	_ = miniBlockHeader.SetIndexOfFirstTxProcessed(2)
 
 	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, []byte("mb_hash_missing"))
-	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
 
-	processedMbInfo, processedMetaHash := sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash)
+	processedMbInfo, processedMetaHash := processedMiniBlocksTracker.GetProcessedMiniBlockInfo(mbHash)
 	assert.Equal(t, metaHash, processedMetaHash)
 	assert.Equal(t, mbInfo.FullyProcessed, processedMbInfo.FullyProcessed)
 	assert.Equal(t, mbInfo.IndexOfLastTxProcessed, processedMbInfo.IndexOfLastTxProcessed)
 
 	sp.RollBackProcessedMiniBlockInfo(miniBlockHeader, mbHash)
-	assert.Equal(t, 1, len(sp.GetProcessedMiniBlocks().GetProcessedMiniBlocksInfo(metaHash)))
+	assert.Equal(t, 1, len(processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(metaHash)))
 
-	processedMbInfo, processedMetaHash = sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash)
+	processedMbInfo, processedMetaHash = processedMiniBlocksTracker.GetProcessedMiniBlockInfo(mbHash)
 	assert.Equal(t, metaHash, processedMetaHash)
 	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, int32(1), processedMbInfo.IndexOfLastTxProcessed)
@@ -5115,6 +5123,8 @@ func TestShardProcessor_SetProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mbHash1 := []byte("mbHash1")
@@ -5139,8 +5149,7 @@ func TestShardProcessor_SetProcessedMiniBlocksInfo(t *testing.T) {
 	}
 
 	sp.SetProcessedMiniBlocksInfo(miniBlockHashes, metaHash, metaBlock)
-	processedMiniBlockTracker := sp.GetProcessedMiniBlocks()
-	mapProcessedMiniBlocksInfo := processedMiniBlockTracker.GetProcessedMiniBlocksInfo([]byte(metaHash))
+	mapProcessedMiniBlocksInfo := processedMiniBlocksTracker.GetProcessedMiniBlocksInfo([]byte(metaHash))
 	assert.Equal(t, 3, len(mapProcessedMiniBlocksInfo))
 
 	mbi, ok := mapProcessedMiniBlocksInfo[string(mbHash1)]
@@ -5198,6 +5207,8 @@ func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
+	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
+	arguments.ProcessedMiniBlocksTracker = processedMiniBlocksTracker
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	metaHash := []byte("metaHash")
@@ -5210,7 +5221,7 @@ func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
 		IndexOfLastTxProcessed: 69,
 	}
 
-	sp.GetProcessedMiniBlocks().SetProcessedMiniBlockInfo(metaHash, mbHash3, mbInfo)
+	processedMiniBlocksTracker.SetProcessedMiniBlockInfo(metaHash, mbHash3, mbInfo)
 
 	mbh2 := block.MiniBlockHeader{
 		SenderShardID: 0,
@@ -5236,7 +5247,7 @@ func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
 
 	sp.RollBackProcessedMiniBlocksInfo(header, mapMiniBlockHashes)
 
-	processedMbInfo, processedMetaHash := sp.GetProcessedMiniBlocks().GetProcessedMiniBlockInfo(mbHash3)
+	processedMbInfo, processedMetaHash := processedMiniBlocksTracker.GetProcessedMiniBlockInfo(mbHash3)
 	assert.Equal(t, metaHash, processedMetaHash)
 	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, indexOfFirstTxProcessed-1, processedMbInfo.IndexOfLastTxProcessed)

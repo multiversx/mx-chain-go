@@ -20,7 +20,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -90,6 +89,7 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledMiniBlocksEnableEpoch              uint32
 	TxTypeHandler                               process.TxTypeHandler
 	ScheduledTxsExecutionHandler                process.ScheduledTxsExecutionHandler
+	ProcessedMiniBlocksTracker                  process.ProcessedMiniBlocksTracker
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -147,6 +147,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.ScheduledTxsExecutionHandler) {
 		return nil, process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(args.ProcessedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
 
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
@@ -163,6 +166,7 @@ func NewTransactionPreprocessor(
 
 		optimizeGasUsedInCrossMiniBlocksEnableEpoch: args.OptimizeGasUsedInCrossMiniBlocksEnableEpoch,
 		frontRunningProtectionEnableEpoch:           args.FrontRunningProtectionEnableEpoch,
+		processedMiniBlocksTracker:                  args.ProcessedMiniBlocksTracker,
 	}
 
 	txs := &transactions{
@@ -313,11 +317,10 @@ func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *tr
 func (txs *transactions) ProcessBlockTransactions(
 	header data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if txs.isBodyToMe(body) {
-		return txs.processTxsToMe(header, body, processedMiniBlocks, haveTime)
+		return txs.processTxsToMe(header, body, haveTime)
 	}
 
 	if txs.isBodyFromMe(body) {
@@ -330,7 +333,6 @@ func (txs *transactions) ProcessBlockTransactions(
 func (txs *transactions) computeTxsToMe(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 ) ([]*txcache.WrappedTransaction, error) {
 	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
@@ -350,7 +352,7 @@ func (txs *transactions) computeTxsToMe(
 				miniBlock.ReceiverShardID)
 		}
 
-		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, processedMiniBlocks, headerHandler)
+		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -483,7 +485,6 @@ func (txs *transactions) getShardFromAddress(address []byte) uint32 {
 func (txs *transactions) processTxsToMe(
 	header data.HeaderHandler,
 	body *block.Body,
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker,
 	haveTime func() bool,
 ) error {
 	if check.IfNil(body) {
@@ -502,7 +503,7 @@ func (txs *transactions) processTxsToMe(
 		}
 	}
 
-	txsToMe, err := txs.computeTxsToMe(header, body, processedMiniBlocks)
+	txsToMe, err := txs.computeTxsToMe(header, body)
 	if err != nil {
 		return err
 	}

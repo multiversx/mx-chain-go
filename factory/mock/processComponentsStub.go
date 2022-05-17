@@ -46,6 +46,7 @@ type ProcessComponentsMock struct {
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
+	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 }
 
 // Create -
@@ -226,6 +227,11 @@ func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
 	return pcm.TxsSenderHandlerField
+}
+
+// ProcessedMiniBlocksTracker -
+func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return pcm.ProcessedMiniBlocksTrackerInternal
 }
 
 // IsInterfaceNil -

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -119,7 +118,6 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	_ data.HeaderHandler,
 	_ *block.Body,
-	_ *processedMb.ProcessedMiniBlockTracker,
 	_ func() bool,
 ) error {
 	return nil
