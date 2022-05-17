@@ -45,6 +45,7 @@ func (ncp *nodesConfigProvider) sortConfigs() {
 	})
 }
 
+// GetAllNodesConfig returns all config.MaxNodesChangeConfig
 func (ncp *nodesConfigProvider) GetAllNodesConfig() []config.MaxNodesChangeConfig {
 	ncp.mutex.Lock()
 	defer ncp.mutex.Unlock()
@@ -52,6 +53,7 @@ func (ncp *nodesConfigProvider) GetAllNodesConfig() []config.MaxNodesChangeConfi
 	return ncp.allNodesConfigs
 }
 
+// GetCurrentNodesConfig returns the current config.MaxNodesChangeConfig, based on epoch
 func (ncp *nodesConfigProvider) GetCurrentNodesConfig() config.MaxNodesChangeConfig {
 	ncp.mutex.Lock()
 	defer ncp.mutex.Unlock()
