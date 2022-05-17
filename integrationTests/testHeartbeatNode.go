@@ -546,9 +546,9 @@ func (thn *TestHeartbeatNode) createDirectConnectionInfoInterceptor(argsFactory 
 	args := interceptorsProcessor.ArgDirectConnectionInfoInterceptorProcessor{
 		PeerShardMapper: thn.PeerShardMapper,
 	}
-	sviProcessor, _ := interceptorsProcessor.NewDirectConnectionInfoInterceptorProcessor(args)
-	sviFactory, _ := interceptorFactory.NewInterceptedDirectConnectionInfoFactory(argsFactory)
-	thn.ValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, sviFactory, sviProcessor)
+	dciProcessor, _ := interceptorsProcessor.NewDirectConnectionInfoInterceptorProcessor(args)
+	dciFactory, _ := interceptorFactory.NewInterceptedDirectConnectionInfoFactory(argsFactory)
+	thn.ValidatorInfoInterceptor = thn.initSingleDataInterceptor(common.ConnectionTopic, dciFactory, dciProcessor)
 }
 
 func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory process.InterceptedDataFactory, processor process.InterceptorProcessor) *interceptors.MultiDataInterceptor {

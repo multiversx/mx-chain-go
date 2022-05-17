@@ -17,29 +17,29 @@ type ArgDirectConnectionInfoInterceptorProcessor struct {
 	PeerShardMapper process.PeerShardMapper
 }
 
-type DirectConnectionInfoInterceptorProcessor struct {
+type directConnectionInfoInterceptorProcessor struct {
 	peerShardMapper process.PeerShardMapper
 }
 
-// NewDirectConnectionInfoInterceptorProcessor creates an instance of DirectConnectionInfoInterceptorProcessor
-func NewDirectConnectionInfoInterceptorProcessor(args ArgDirectConnectionInfoInterceptorProcessor) (*DirectConnectionInfoInterceptorProcessor, error) {
+// NewDirectConnectionInfoInterceptorProcessor creates an instance of directConnectionInfoInterceptorProcessor
+func NewDirectConnectionInfoInterceptorProcessor(args ArgDirectConnectionInfoInterceptorProcessor) (*directConnectionInfoInterceptorProcessor, error) {
 	if check.IfNil(args.PeerShardMapper) {
 		return nil, process.ErrNilPeerShardMapper
 	}
 
-	return &DirectConnectionInfoInterceptorProcessor{
+	return &directConnectionInfoInterceptorProcessor{
 		peerShardMapper: args.PeerShardMapper,
 	}, nil
 }
 
 // Validate checks if the intercepted data can be processed
 // returns nil as proper validity checks are done at intercepted data level
-func (processor *DirectConnectionInfoInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
+func (processor *directConnectionInfoInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
 	return nil
 }
 
 // Save will save the intercepted validator info into peer shard mapper
-func (processor *DirectConnectionInfoInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
+func (processor *directConnectionInfoInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
 	shardDirectConnectionInfo, ok := data.(shardProvider)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -56,11 +56,11 @@ func (processor *DirectConnectionInfoInterceptorProcessor) Save(data process.Int
 }
 
 // RegisterHandler registers a callback function to be notified of incoming shard validator info, currently not implemented
-func (processor *DirectConnectionInfoInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
-	log.Error("DirectConnectionInfoInterceptorProcessor.RegisterHandler", "error", "not implemented")
+func (processor *directConnectionInfoInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+	log.Error("directConnectionInfoInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (processor *DirectConnectionInfoInterceptorProcessor) IsInterfaceNil() bool {
+func (processor *directConnectionInfoInterceptorProcessor) IsInterfaceNil() bool {
 	return processor == nil
 }
