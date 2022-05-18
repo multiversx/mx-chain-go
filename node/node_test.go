@@ -3488,6 +3488,55 @@ func TestNode_SendBulkTransactions(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestNode_setTxGuardianData(t *testing.T) {
+	t.Parallel()
+	lenPubKey := 32
+	coreComponents := getDefaultCoreComponents()
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+	)
+	guardianPubKey := bytes.Repeat([]byte{1}, lenPubKey)
+	guardian := coreComponents.AddrPubKeyConv.Encode(guardianPubKey)
+	guardianSig := []byte("guardian sig")
+	guardianSigHex := hex.EncodeToString(guardianSig)
+
+	t.Run("invalid guardian address should err", func(t *testing.T) {
+		tx := &transaction.Transaction{}
+		tx.Options |= transaction.MaskGuardedTransaction
+
+		err := n.SetTxGuardianData("invalid guardian address", guardianSigHex, tx)
+		require.NotNil(t, err)
+		require.Nil(t, tx.GuardianAddr)
+		require.Nil(t, tx.GuardianSignature)
+	})
+	t.Run("invalid guardian sig hex should err", func(t *testing.T) {
+		tx := &transaction.Transaction{}
+		tx.Options |= transaction.MaskGuardedTransaction
+
+		err := n.SetTxGuardianData(guardian, "invalid guardian sig hex", tx)
+		require.NotNil(t, err)
+		require.Nil(t, tx.GuardianAddr)
+		require.Nil(t, tx.GuardianSignature)
+	})
+	t.Run("no guardian option set on tx should err", func(t *testing.T) {
+		tx := &transaction.Transaction{}
+
+		err := n.SetTxGuardianData(guardian, guardianSigHex, tx)
+		require.NotNil(t, err)
+		require.Nil(t, tx.GuardianAddr)
+		require.Nil(t, tx.GuardianSignature)
+	})
+	t.Run("setTxGuardianData ok", func(t *testing.T) {
+		tx := &transaction.Transaction{}
+		tx.Options |= transaction.MaskGuardedTransaction
+
+		err := n.SetTxGuardianData(guardian, guardianSigHex, tx)
+		require.Nil(t, err)
+		require.Equal(t, guardianPubKey, tx.GuardianAddr)
+		require.Equal(t, guardianSig, tx.GuardianSignature)
+	})
+}
+
 func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 	return &nodeMockFactory.CoreComponentsMock{
 		IntMarsh:            &testscommon.MarshalizerMock{},

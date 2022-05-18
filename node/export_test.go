@@ -1,6 +1,7 @@
 package node
 
 import (
+	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/factory"
 )
@@ -18,4 +19,9 @@ func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofRespon
 // AddClosableComponents -
 func (n *Node) AddClosableComponents(components ...factory.Closer) {
 	n.closableComponents = append(n.closableComponents, components...)
+}
+
+// SetTxGuardianData -
+func (n *Node) SetTxGuardianData(guardian string, guardianSigHex string, tx *transaction.Transaction) error {
+	return n.setTxGuardianData(guardian, guardianSigHex, tx)
 }
