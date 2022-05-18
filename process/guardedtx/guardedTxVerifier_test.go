@@ -55,6 +55,20 @@ func TestNewGuardedTxSigVerifier(t *testing.T) {
 		require.Equal(t, process.ErrNilPubkeyConverter, err)
 		require.True(t, check.IfNil(gtxSigVerifier))
 	})
+	t.Run("nil marshaller", func(t *testing.T) {
+		changedArgs := *&args
+		changedArgs.Marshaller = nil
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
+		require.Equal(t, process.ErrNilMarshalizer, err)
+		require.True(t, check.IfNil(gtxSigVerifier))
+	})
+	t.Run("nil keyGen", func(t *testing.T) {
+		changedArgs := *&args
+		changedArgs.KeyGen = nil
+		gtxSigVerifier, err := NewGuardedTxSigVerifier(changedArgs)
+		require.Equal(t, process.ErrNilKeyGen, err)
+		require.True(t, check.IfNil(gtxSigVerifier))
+	})
 	t.Run("ok params", func(t *testing.T) {
 		gtxSigVerifier, err := NewGuardedTxSigVerifier(args)
 		require.Nil(t, err)

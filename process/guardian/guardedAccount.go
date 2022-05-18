@@ -156,7 +156,7 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 	defer agc.mutEpoch.RUnlock()
 
 	var selectedGuardian *guardians.Guardian
-	for i, guardian := range gs.Slice {
+	for _, guardian := range gs.Slice {
 		if guardian == nil {
 			continue
 		}
@@ -164,13 +164,13 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 			continue
 		}
 		if selectedGuardian == nil {
-			selectedGuardian = gs.Slice[i]
+			selectedGuardian = guardian
 			continue
 		}
 
 		// get the most recent active guardian
 		if selectedGuardian.ActivationEpoch < guardian.ActivationEpoch {
-			selectedGuardian = gs.Slice[i]
+			selectedGuardian = guardian
 		}
 	}
 

@@ -489,7 +489,7 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 	return nil, parsers.ErrInvalidCodeMetadata
 }
 
-// ApplyFiltersOnCodeMetadata will apply all known filters on the provided code metadata value
+// ApplyFiltersOnSCCodeMetadata will apply all known filters on the provided code metadata value
 func (bh *BlockChainHookImpl) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
 	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.flagIsPayableBySC.IsSet()
 	codeMetadata.Frozen = false
