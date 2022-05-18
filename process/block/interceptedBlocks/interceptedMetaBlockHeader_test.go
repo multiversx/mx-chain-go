@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
@@ -21,7 +22,11 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		EpochStartTrigger: &mock.EpochStartTriggerStub{
+			EpochCalled: func() uint32 {
+				return hdrEpoch
+			},
+		},
 	}
 
 	hdr := createMockMetaHeader()
@@ -116,7 +121,7 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	}
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultMetaArgument()
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
@@ -187,11 +192,11 @@ func TestInterceptedMetaHeader_Getters(t *testing.T) {
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := createMockShardHeader()
+	hdr := createMockMetaHeader()
 	expectedErr := errors.New("expected err")
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultMetaArgument()
 	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
@@ -207,17 +212,68 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdr := createMockShardHeader()
+	hdr := createMockMetaHeader()
 	expectedSignature := []byte("ran")
 	hdr.LeaderSignature = expectedSignature
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultMetaArgument()
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 
 	err := inHdr.CheckValidity()
 	assert.Nil(t, err)
+}
+
+func TestInterceptedMetaHeader_isMetaHeaderEpochOutOfRange(t *testing.T) {
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 10
+		},
+	}
+	t.Run("old epoch header accepted", func(t *testing.T) {
+		arg := createDefaultMetaArgument()
+		arg.EpochStartTrigger = epochStartTrigger
+		hdr := createMockMetaHeader()
+		hdr.Epoch = 8
+		arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
+
+		inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+		require.False(t, inHdr.IsMetaHeaderOutOfRange())
+	})
+
+	t.Run("current epoch header accepted", func(t *testing.T) {
+		arg := createDefaultMetaArgument()
+		arg.EpochStartTrigger = epochStartTrigger
+		hdr := createMockMetaHeader()
+		hdr.Epoch = 10
+		arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
+
+		inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+		require.False(t, inHdr.IsMetaHeaderOutOfRange())
+	})
+
+	t.Run("next epoch header accepted", func(t *testing.T) {
+		arg := createDefaultMetaArgument()
+		arg.EpochStartTrigger = epochStartTrigger
+		hdr := createMockMetaHeader()
+		hdr.Epoch = 11
+		arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
+
+		inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+		require.False(t, inHdr.IsMetaHeaderOutOfRange())
+	})
+
+	t.Run("larger epoch difference header rejected", func(t *testing.T) {
+		arg := createDefaultMetaArgument()
+		arg.EpochStartTrigger = epochStartTrigger
+		hdr := createMockMetaHeader()
+		hdr.Epoch = 12
+		arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
+
+		inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+		require.True(t, inHdr.IsMetaHeaderOutOfRange())
+	})
 }
 
 //------- IsInterfaceNil

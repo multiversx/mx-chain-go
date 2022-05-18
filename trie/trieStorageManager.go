@@ -51,7 +51,7 @@ type NewTrieStorageManagerArgs struct {
 	Hasher                 hashing.Hasher
 	GeneralConfig          config.TrieStorageManagerConfig
 	CheckpointHashesHolder CheckpointHashesHolder
-	IdleProvider               IdleNodeProvider
+	IdleProvider           IdleNodeProvider
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager

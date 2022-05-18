@@ -328,7 +328,7 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 }
 
 // Keys returns all the keys contained in shard caches
-func(txPool *shardedTxPool) Keys() [][]byte {
+func (txPool *shardedTxPool) Keys() [][]byte {
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
 
