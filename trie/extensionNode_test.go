@@ -320,22 +320,19 @@ func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
 	assert.Nil(t, encNode)
 }
 
-func TestExtensionNode_resolveCollapsedFromDb(t *testing.T) {
+func TestExtensionNode_getChildBytes(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
 	_ = en.commitDirty(0, 5, db, db)
-	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
+	_, child := getBnAndCollapsedBn(en.marsh, en.hasher)
+	childBytes, _ := child.getEncodedNode()
 
-	err := collapsedEn.resolveCollapsedFromDb(0, db)
+	val, err := collapsedEn.getChildBytes(0, db)
 	assert.Nil(t, err)
-	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
-
-	h1, _ := encodeNodeAndGetHash(resolved)
-	h2, _ := encodeNodeAndGetHash(collapsedEn.child)
-	assert.Equal(t, h1, h2)
+	assert.Equal(t, childBytes, val)
 }
 
 func TestExtensionNode_resolveCollapsedFromDbNode(t *testing.T) {
@@ -343,8 +340,9 @@ func TestExtensionNode_resolveCollapsedFromDbNode(t *testing.T) {
 
 	en := &extensionNode{}
 
-	err := en.resolveCollapsedFromDb(0, nil)
+	val, err := en.getChildBytes(0, nil)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
+	assert.Nil(t, val)
 }
 
 func TestExtensionNode_resolveCollapsedFromDbNilNode(t *testing.T) {
@@ -352,8 +350,9 @@ func TestExtensionNode_resolveCollapsedFromDbNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	err := en.resolveCollapsedFromDb(2, nil)
+	val, err := en.getChildBytes(2, nil)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
+	assert.Nil(t, val)
 }
 
 func TestExtensionNode_resolveCollapsedFromBytes(t *testing.T) {
@@ -1054,7 +1053,7 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = en.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
+	err = en.saveChildToAppropriateStorage(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

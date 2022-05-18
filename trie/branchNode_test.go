@@ -427,7 +427,7 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 	assert.Nil(t, encNode)
 }
 
-func TestBranchNode_resolveCollapsedFromDb(t *testing.T) {
+func TestBranchNode_getChildBytes(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -436,31 +436,32 @@ func TestBranchNode_resolveCollapsedFromDb(t *testing.T) {
 
 	_ = bn.setHash()
 	_ = bn.commitDirty(0, 5, db, db)
-	resolved, _ := newLeafNode([]byte("dog"), []byte("dog"), bn.marsh, bn.hasher)
-	resolved.dirty = false
-	resolved.hash = bn.EncodedChildren[childPos]
+	child, _ := newLeafNode([]byte("dog"), []byte("dog"), bn.marsh, bn.hasher)
+	childBytes, _ := child.getEncodedNode()
 
-	err := collapsedBn.resolveCollapsedFromDb(childPos, db)
+	val, err := collapsedBn.getChildBytes(childPos, db)
 	assert.Nil(t, err)
-	assert.Equal(t, resolved, collapsedBn.children[childPos])
+	assert.Equal(t, childBytes, val)
 }
 
-func TestBranchNode_resolveCollapsedFromDbEmptyNode(t *testing.T) {
+func TestBranchNode_getChildBytesEmptyNode(t *testing.T) {
 	t.Parallel()
 
 	bn := emptyDirtyBranchNode()
 
-	err := bn.resolveCollapsedFromDb(2, nil)
+	val, err := bn.getChildBytes(2, nil)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
+	assert.Nil(t, val)
 }
 
-func TestBranchNode_resolveCollapsedFromDbNilNode(t *testing.T) {
+func TestBranchNode_getChildBytesNilNode(t *testing.T) {
 	t.Parallel()
 
 	var bn *branchNode
 
-	err := bn.resolveCollapsedFromDb(2, nil)
+	val, err := bn.getChildBytes(2, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
+	assert.Nil(t, val)
 }
 
 func TestBranchNode_resolveCollapsedFromDbPosOutOfRange(t *testing.T) {
@@ -468,8 +469,9 @@ func TestBranchNode_resolveCollapsedFromDbPosOutOfRange(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	err := bn.resolveCollapsedFromDb(17, nil)
+	val, err := bn.getChildBytes(17, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
+	assert.Nil(t, val)
 }
 
 func TestBranchNode_resolveCollapsedFromBytes(t *testing.T) {
@@ -1382,7 +1384,7 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	err := bn.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = bn.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
+	err = bn.saveChildToAppropriateStorage(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

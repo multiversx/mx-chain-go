@@ -173,13 +173,12 @@ func (ln *leafNode) commitCheckpoint(
 	return nil
 }
 
-func (ln *leafNode) commitSnapshot(
-	db pruningStorer,
+func (ln *leafNode) saveChildToAppropriateStorage(
+	_ pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
-	stats common.SnapshotStatisticsHandler,
+	_ common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
-	saveToStorage bool,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -195,14 +194,16 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	if saveToStorage {
-		nodeSize, err := encodeNodeAndCommitToDB(ln, db)
-		if err != nil {
-			return err
-		}
+	return nil
+}
 
-		stats.AddSize(uint64(nodeSize))
+func (ln *leafNode) saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error {
+	nodeSize, err := encodeNodeAndCommitToDB(ln, targetDb)
+	if err != nil {
+		return err
 	}
+
+	stats.AddSize(uint64(nodeSize))
 
 	return nil
 }
@@ -236,8 +237,8 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsedFromDb(_ byte, _ common.DBWriteCacher) error {
-	return nil
+func (ln *leafNode) getChildBytes(_ byte, _ common.DBWriteCacher) ([]byte, error) {
+	return nil, nil
 }
 
 func (ln *leafNode) resolveCollapsedFromBytes(_ byte, _ []byte) error {

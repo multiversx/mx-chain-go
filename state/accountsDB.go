@@ -101,22 +101,18 @@ type ArgsAccountsDB struct {
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
-	adb, err := getAccountsDbFromArgs(args)
-	if err != nil {
-		return nil, err
-	}
-
-	startSnapshotIfNeeded(adb)
-
-	return adb, nil
-}
-
-func getAccountsDbFromArgs(args ArgsAccountsDB) (*AccountsDB, error) {
 	err := checkArgsAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}
 
+	adb := getAccountsDbFromArgs(args)
+	startSnapshotIfNeeded(adb)
+
+	return adb, nil
+}
+
+func getAccountsDbFromArgs(args ArgsAccountsDB) *AccountsDB {
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -133,17 +129,27 @@ func getAccountsDbFromArgs(args ArgsAccountsDB) (*AccountsDB, error) {
 		processingMode:       args.ProcessingMode,
 		lastSnapshot:         &snapshotInfo{},
 		processStatusHandler: args.ProcessStatusHandler,
-	}, nil
+	}
 }
 
 func startSnapshotIfNeeded(adb accountsAdapterWithStorageAccess) {
 	trieStorageManager := adb.getStorageManager()
 	val, err := getFromLastEpoch(trieStorageManager, []byte(common.ActiveDBKey))
-	shouldSnapshotAfterRestart := err != nil || !bytes.Equal(val, []byte(common.ActiveDBVal))
-	shouldSnapshotAfterRestart = shouldSnapshotAfterRestart && !(err == ErrInvalidLastEpoch)
-	if shouldSnapshotAfterRestart {
+	if shouldSnapshotAfterRestart(err, val) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
+}
+
+func shouldSnapshotAfterRestart(err error, val []byte) bool {
+	if err == ErrInvalidLastEpoch || err == nil {
+		return false
+	}
+
+	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
+		return false
+	}
+
+	return true
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {

@@ -21,6 +21,7 @@ const (
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
 	pollingIdleNode      = time.Millisecond
+	epochOffset          = 2
 )
 
 type baseNode struct {
@@ -112,10 +113,9 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 }
 
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	encChild, err := db.Get(n)
+	encChild, err := getNodeFromDB(n, db)
 	if err != nil {
-		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
-		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
+		return nil, err
 	}
 
 	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
@@ -126,6 +126,16 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 	return decodedNode, nil
 }
 
+func getNodeFromDB(n []byte, db common.DBWriteCacher) ([]byte, error) {
+	encChild, err := db.Get(n)
+	if err != nil {
+		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
+		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
+	}
+
+	return encChild, nil
+}
+
 func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
@@ -133,7 +143,16 @@ func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsedFromDb(pos, db)
+		childBytes, err := n.getChildBytes(pos, db)
+		if err != nil {
+			return err
+		}
+
+		if len(childBytes) == 0 {
+			return nil
+		}
+
+		err = n.resolveCollapsedFromBytes(pos, childBytes)
 		if err != nil {
 			return err
 		}
@@ -280,7 +299,7 @@ func shouldStopIfContextDone(ctx context.Context, idleProvider IdleNodeProvider)
 	}
 }
 
-func getChildForSnapshot(db pruningStorer, childHash []byte) ([]byte, bool, error) {
+func getNodeBytesForSnapshot(db pruningStorer, childHash []byte) ([]byte, bool, error) {
 	epoch, err := db.GetLatestStorageEpoch()
 	if err != nil {
 		return nil, false, err
@@ -295,7 +314,7 @@ func getChildForSnapshot(db pruningStorer, childHash []byte) ([]byte, bool, erro
 		return childBytes, false, nil
 	}
 
-	childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(childHash, 2)
+	childBytes, err = db.GetFromOldEpochsWithoutAddingToCache(childHash, epochOffset)
 	if err == nil {
 		return childBytes, true, nil
 	}

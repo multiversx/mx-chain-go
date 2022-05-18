@@ -199,7 +199,7 @@ func TestPeerAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
+				GetFromEpochCalled: func(key []byte, _ uint32) ([]byte, error) {
 					if bytes.Equal(key, []byte(common.ActiveDBKey)) {
 						return nil, fmt.Errorf("key not found")
 					}

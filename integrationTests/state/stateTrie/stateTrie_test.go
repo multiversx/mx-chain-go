@@ -2400,7 +2400,7 @@ func TestSnapshotSavesDataInTheCorrectEpochStorages(t *testing.T) {
 	}
 	args := getNewTrieStorageManagerArgs()
 	notifier := notifier2.NewManualEpochStartNotifier()
-	tps, storers, _ := testStorage.CreateTriePruningStorer(testscommon.NewMultiShardsCoordinatorMock(2), notifier)
+	tps, storers, _ := testStorage.CreateTestingTriePruningStorer(testscommon.NewMultiShardsCoordinatorMock(2), notifier)
 	args.MainStorer = tps
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)

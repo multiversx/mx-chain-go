@@ -12,13 +12,13 @@ type PeerAccountsDB struct {
 
 // NewPeerAccountsDB creates a new account manager
 func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
-	adb, err := getAccountsDbFromArgs(args)
+	err := checkArgsAccountsDB(args)
 	if err != nil {
 		return nil, err
 	}
 
 	padb := &PeerAccountsDB{
-		adb,
+		getAccountsDbFromArgs(args),
 	}
 	startSnapshotIfNeeded(padb)
 

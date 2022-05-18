@@ -38,7 +38,11 @@ func (stsm *snapshotTrieStorageManager) Put(key []byte, val []byte) error {
 // GetFromOldEpochsWithoutAddingToCache searches for the key without adding it to cache if it is found. It starts
 // the search for the key from the currentStorer - epochOffset)
 func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
-	if stsm.checkIfClosed(fmt.Sprintf("getFromOldEpochsWithoutAddingToCache context closing, key = %s", hex.EncodeToString(key))) {
+	stsm.tsm.storageOperationMutex.Lock()
+	defer stsm.tsm.storageOperationMutex.Unlock()
+
+	if stsm.tsm.closed {
+		log.Debug("getFromOldEpochsWithoutAddingToCache context closing, key = %s", hex.EncodeToString(key))
 		return nil, errors.ErrContextClosing
 	}
 
@@ -47,7 +51,11 @@ func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key
 
 // PutInEpochWithoutCache saves the data in the given epoch storer
 func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
-	if stsm.checkIfClosed(fmt.Sprintf("putInEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))) {
+	stsm.tsm.storageOperationMutex.Lock()
+	defer stsm.tsm.storageOperationMutex.Unlock()
+
+	if stsm.tsm.closed {
+		log.Debug("putInEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))
 		return errors.ErrContextClosing
 	}
 
@@ -56,7 +64,11 @@ func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key []byte, data 
 
 // GetFromEpochWithoutCache seeks the key in the specified epoch storer
 func (stsm *snapshotTrieStorageManager) GetFromEpochWithoutCache(key []byte, epoch uint32) ([]byte, error) {
-	if stsm.checkIfClosed(fmt.Sprintf("getFromEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))) {
+	stsm.tsm.storageOperationMutex.Lock()
+	defer stsm.tsm.storageOperationMutex.Unlock()
+
+	if stsm.tsm.closed {
+		log.Debug("getFromEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))
 		return nil, errors.ErrContextClosing
 	}
 
@@ -65,7 +77,11 @@ func (stsm *snapshotTrieStorageManager) GetFromEpochWithoutCache(key []byte, epo
 
 // RemoveFromCurrentEpoch removes the key from the current epoch storer
 func (stsm *snapshotTrieStorageManager) RemoveFromCurrentEpoch(key []byte) error {
-	if stsm.checkIfClosed(fmt.Sprintf("removeFromCurrentEpoch context closing, key = %s", hex.EncodeToString(key))) {
+	stsm.tsm.storageOperationMutex.Lock()
+	defer stsm.tsm.storageOperationMutex.Unlock()
+
+	if stsm.tsm.closed {
+		log.Debug("removeFromCurrentEpoch context closing, key = %s", hex.EncodeToString(key))
 		return errors.ErrContextClosing
 	}
 
@@ -74,21 +90,5 @@ func (stsm *snapshotTrieStorageManager) RemoveFromCurrentEpoch(key []byte) error
 
 // GetLatestStorageEpoch returns the latest storage epoch
 func (stsm *snapshotTrieStorageManager) GetLatestStorageEpoch() (uint32, error) {
-	if stsm.checkIfClosed("getLatestStorageEpoch context closing") {
-		return 0, errors.ErrContextClosing
-	}
-
 	return stsm.epoch, nil
-}
-
-func (stsm *snapshotTrieStorageManager) checkIfClosed(message string) bool {
-	stsm.tsm.storageOperationMutex.Lock()
-	defer stsm.tsm.storageOperationMutex.Unlock()
-
-	if !stsm.tsm.closed {
-		return false
-	}
-
-	log.Debug(message)
-	return true
 }

@@ -220,7 +220,9 @@ func TestLeafNode_resolveCollapsedFromDb(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	assert.Nil(t, ln.resolveCollapsedFromDb(0, nil))
+	val, err := ln.getChildBytes(0, nil)
+	assert.Nil(t, err)
+	assert.Nil(t, val)
 }
 
 func TestLeafNode_resolveCollapsedFromBytes(t *testing.T) {
@@ -739,7 +741,7 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	err := ln.commitCheckpoint(db, db, nil, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 
-	err = ln.commitSnapshot(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{}, true)
+	err = ln.saveChildToAppropriateStorage(db, nil, ctx, &trieMock.MockStatistics{}, &testscommon.ProcessStatusHandlerStub{})
 	assert.Equal(t, elrondErrors.ErrContextClosing, err)
 }
 

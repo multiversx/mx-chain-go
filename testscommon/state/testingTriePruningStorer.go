@@ -12,8 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
-// CreateTriePruningStorer creates a new trie pruning storer that is used for testing
-func CreateTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, map[string]storage.Persister, error) {
+// CreateTestingTriePruningStorer creates a new trie pruning storer that is used for testing
+func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier pruning.EpochStartNotifier) (storage.Storer, map[string]storage.Persister, error) {
 	cacheConf := storageUnit.CacheConfig{
 		Capacity: 10,
 		Type:     "LRU",

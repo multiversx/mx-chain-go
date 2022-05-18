@@ -655,7 +655,7 @@ func TestNode_GetChildForSnapshotLatestStorageEpochErr(t *testing.T) {
 		},
 	}
 
-	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, []byte("child hash"))
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, childBytes)
 	assert.False(t, saveChildToStorage)
@@ -669,7 +669,7 @@ func TestNode_GetChildForSnapshotEpoch0(t *testing.T) {
 		},
 	}
 
-	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, []byte("child hash"))
 	assert.NotNil(t, err)
 	assert.Nil(t, childBytes)
 	assert.False(t, saveChildToStorage)
@@ -687,7 +687,7 @@ func TestNode_GetChildForSnapshotFoundInLastEpoch(t *testing.T) {
 		},
 	}
 
-	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, []byte("child hash"))
 	assert.Nil(t, err)
 	assert.Equal(t, expectedChildBytes, childBytes)
 	assert.False(t, saveChildToStorage)
@@ -708,7 +708,7 @@ func TestNode_GetChildForSnapshotNotFoundInLastEpoch(t *testing.T) {
 		},
 	}
 
-	childBytes, saveChildToStorage, err := getChildForSnapshot(db, []byte("child hash"))
+	childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, []byte("child hash"))
 	assert.Nil(t, err)
 	assert.Equal(t, expectedChildBytes, childBytes)
 	assert.True(t, saveChildToStorage)

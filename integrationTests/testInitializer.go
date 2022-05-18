@@ -413,11 +413,11 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 		SnapshotsGoroutineNum: 1,
 	}
 
-	mainStorer, _, err := testStorage.CreateTriePruningStorer(coordinator, notifier)
+	mainStorer, _, err := testStorage.CreateTestingTriePruningStorer(coordinator, notifier)
 	if err != nil {
 		fmt.Println("err creating main storer" + err.Error())
 	}
-	checkpointsStorer, _, err := testStorage.CreateTriePruningStorer(coordinator, notifier)
+	checkpointsStorer, _, err := testStorage.CreateTestingTriePruningStorer(coordinator, notifier)
 	if err != nil {
 		fmt.Println("err creating checkpoints storer" + err.Error())
 	}

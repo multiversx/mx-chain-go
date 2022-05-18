@@ -24,7 +24,7 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsedFromDb(pos byte, db common.DBWriteCacher) error
+	getChildBytes(pos byte, db common.DBWriteCacher) ([]byte, error)
 	resolveCollapsedFromBytes(pos byte, childNode []byte) error
 	hashNode() ([]byte, error)
 	hashChildren() error
@@ -48,7 +48,8 @@ type node interface {
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
+	saveChildToAppropriateStorage(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
+	saveToStorage(targetDb common.DBWriteCacher, stats common.SnapshotStatisticsHandler) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -61,7 +62,7 @@ type node interface {
 
 type snapshotNode interface {
 	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
-	commitSnapshot(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider, saveToStorage bool) error
+	saveChildToAppropriateStorage(originDb pruningStorer, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.SnapshotStatisticsHandler, idleProvider IdleNodeProvider) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

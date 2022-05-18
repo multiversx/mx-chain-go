@@ -413,7 +413,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	childBytes, saveChildToStorage, err := getChildForSnapshot(stsm, snapshotEntry.rootHash)
+	rootBytes, saveRootToAppropriateStorage, err := getNodeBytesForSnapshot(stsm, snapshotEntry.rootHash)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: getChildForSnapshot",
@@ -422,7 +422,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	newRoot, err := decodeNode(childBytes, msh, hsh)
+	newRoot, err := decodeNode(rootBytes, msh, hsh)
 	if err != nil {
 		log.Error("takeSnapshot: trie storage manager: decodeNode",
 			"rootHash", snapshotEntry.rootHash,
@@ -431,10 +431,24 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider, saveChildToStorage)
+	err = newRoot.saveChildToAppropriateStorage(stsm, snapshotEntry.leavesChan, ctx, snapshotEntry.stats, tsm.idleProvider)
 	if err != nil {
 		treatSnapshotError(err,
 			"trie storage manager: takeSnapshot commit",
+			snapshotEntry.rootHash,
+			snapshotEntry.mainTrieRootHash,
+		)
+		return
+	}
+
+	if !saveRootToAppropriateStorage {
+		return
+	}
+
+	err = newRoot.saveToStorage(stsm, snapshotEntry.stats)
+	if err != nil {
+		treatSnapshotError(err,
+			"trie storage manager: saveNodeToStorage",
 			snapshotEntry.rootHash,
 			snapshotEntry.mainTrieRootHash,
 		)
@@ -623,7 +637,11 @@ func isTrieSynced(storer pruningStorer, epoch uint32) bool {
 	}
 
 	isTrieSynced := isTrieSyncedThisEpoch || isTrieSyncedLastEpoch
-	log.Debug("isTrieSynced ", "value", isTrieSynced)
+	log.Debug("isTrieSynced",
+		"this epoch ", isTrieSyncedThisEpoch,
+		"last epoch", isTrieSyncedLastEpoch,
+		"epoch", epoch,
+	)
 	return isTrieSynced
 }
 

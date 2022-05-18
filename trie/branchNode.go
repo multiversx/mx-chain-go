@@ -335,13 +335,12 @@ func (bn *branchNode) commitCheckpoint(
 	return bn.saveToStorage(targetDb, stats)
 }
 
-func (bn *branchNode) commitSnapshot(
+func (bn *branchNode) saveChildToAppropriateStorage(
 	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
-	saveToStorage bool,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -357,7 +356,7 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		childBytes, saveChildToStorage, err := getChildForSnapshot(db, childHash)
+		childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, childHash)
 		if err != nil {
 			return err
 		}
@@ -372,14 +371,16 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(db, leavesChan, ctx, stats, idleProvider, saveChildToStorage)
+		err = bn.children[i].saveChildToAppropriateStorage(db, leavesChan, ctx, stats, idleProvider)
 		if err != nil {
 			return err
 		}
-	}
 
-	if saveToStorage {
-		err = bn.saveToStorage(db, stats)
+		if !saveChildToStorage {
+			continue
+		}
+
+		err = bn.children[i].saveToStorage(db, stats)
 		if err != nil {
 			return err
 		}
@@ -419,24 +420,20 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (bn *branchNode) resolveCollapsedFromDb(pos byte, db common.DBWriteCacher) error {
+func (bn *branchNode) getChildBytes(pos byte, db common.DBWriteCacher) ([]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return fmt.Errorf("resolveCollapsed error %w", err)
+		return nil, fmt.Errorf("resolveCollapsed error %w", err)
 	}
 	if childPosOutOfRange(pos) {
-		return ErrChildPosOutOfRange
+		return nil, ErrChildPosOutOfRange
 	}
-	if len(bn.EncodedChildren[pos]) != 0 {
-		var child node
-		child, err = getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
-		if err != nil {
-			return err
-		}
-		child.setGivenHash(bn.EncodedChildren[pos])
-		bn.children[pos] = child
+
+	if len(bn.EncodedChildren[pos]) == 0 {
+		return nil, ErrInvalidNode
 	}
-	return nil
+
+	return getNodeFromDB(bn.EncodedChildren[pos], db)
 }
 
 func (bn *branchNode) resolveCollapsedFromBytes(pos byte, childNode []byte) error {

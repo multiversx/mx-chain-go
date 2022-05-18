@@ -241,13 +241,12 @@ func (en *extensionNode) commitCheckpoint(
 	return en.saveToStorage(targetDb, stats)
 }
 
-func (en *extensionNode) commitSnapshot(
+func (en *extensionNode) saveChildToAppropriateStorage(
 	db pruningStorer,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
 	stats common.SnapshotStatisticsHandler,
 	idleProvider IdleNodeProvider,
-	saveToStorage bool,
 ) error {
 	if shouldStopIfContextDone(ctx, idleProvider) {
 		return errors.ErrContextClosing
@@ -258,7 +257,7 @@ func (en *extensionNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	childBytes, saveChildToStorage, err := getChildForSnapshot(db, en.EncodedChild)
+	childBytes, saveChildToStorage, err := getNodeBytesForSnapshot(db, en.EncodedChild)
 	if err != nil {
 		return err
 	}
@@ -268,13 +267,13 @@ func (en *extensionNode) commitSnapshot(
 		return err
 	}
 
-	err = en.child.commitSnapshot(db, leavesChan, ctx, stats, idleProvider, saveChildToStorage)
+	err = en.child.saveChildToAppropriateStorage(db, leavesChan, ctx, stats, idleProvider)
 	if err != nil {
 		return err
 	}
 
-	if saveToStorage {
-		err = en.saveToStorage(db, stats)
+	if saveChildToStorage {
+		err = en.child.saveToStorage(db, stats)
 		if err != nil {
 			return err
 		}
@@ -308,18 +307,13 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsedFromDb(_ byte, db common.DBWriteCacher) error {
+func (en *extensionNode) getChildBytes(_ byte, db common.DBWriteCacher) ([]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return fmt.Errorf("resolveCollapsed error %w", err)
+		return nil, fmt.Errorf("resolveCollapsed error %w", err)
 	}
-	child, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
-	if err != nil {
-		return err
-	}
-	child.setGivenHash(en.EncodedChild)
-	en.child = child
-	return nil
+
+	return getNodeFromDB(en.EncodedChild, db)
 }
 
 func (en *extensionNode) resolveCollapsedFromBytes(_ byte, childNode []byte) error {
