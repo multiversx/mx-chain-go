@@ -25,7 +25,7 @@ import (
 	crypto "github.com/ElrondNetwork/elrond-go-crypto"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/config"
-	notifier2 "github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	manualNotifier "github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -2399,7 +2399,7 @@ func TestSnapshotSavesDataInTheCorrectEpochStorages(t *testing.T) {
 		SnapshotsGoroutineNum: 1,
 	}
 	args := getNewTrieStorageManagerArgs()
-	notifier := notifier2.NewManualEpochStartNotifier()
+	notifier := manualNotifier.NewManualEpochStartNotifier()
 	tps, storers, _ := testStorage.CreateTestingTriePruningStorer(testscommon.NewMultiShardsCoordinatorMock(2), notifier)
 	args.MainStorer = tps
 	args.GeneralConfig = generalCfg
@@ -2429,7 +2429,6 @@ func TestSnapshotSavesDataInTheCorrectEpochStorages(t *testing.T) {
 		k, v := createDummyKeyValue(int(i))
 		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
 		_ = adb.SaveAccount(accState)
-
 	}
 	rootHash, _ := adb.Commit()
 

@@ -18,7 +18,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 	}
 
 	padb := &PeerAccountsDB{
-		getAccountsDbFromArgs(args),
+		AccountsDB: getAccountsDbFromArgs(args),
 	}
 	startSnapshotIfNeeded(padb)
 

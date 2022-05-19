@@ -306,7 +306,7 @@ func getNodeBytesForSnapshot(db pruningStorer, childHash []byte) ([]byte, bool, 
 	}
 
 	if epoch == 0 {
-		return nil, false, fmt.Errorf("invalid epoch for getChildForSnapshot")
+		return nil, false, fmt.Errorf("invalid epoch for getNodeBytesForSnapshot")
 	}
 
 	childBytes, err := db.GetFromEpochWithoutCache(childHash, epoch-1)

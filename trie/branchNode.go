@@ -423,7 +423,7 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 func (bn *branchNode) getChildBytes(pos byte, db common.DBWriteCacher) ([]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("resolveCollapsed error %w", err)
+		return nil, fmt.Errorf("getChildBytes error %w", err)
 	}
 	if childPosOutOfRange(pos) {
 		return nil, ErrChildPosOutOfRange

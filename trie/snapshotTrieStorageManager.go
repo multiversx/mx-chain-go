@@ -8,9 +8,9 @@ import (
 )
 
 type snapshotTrieStorageManager struct {
-	pruningStorer
-	tsm   *trieStorageManager
-	epoch uint32
+	*trieStorageManager
+	pruningStorer pruningStorer
+	epoch         uint32
 }
 
 func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snapshotTrieStorageManager, error) {
@@ -20,9 +20,9 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 	}
 
 	return &snapshotTrieStorageManager{
-		pruningStorer: storer,
-		tsm:           tsm,
-		epoch:         epoch,
+		pruningStorer:      storer,
+		trieStorageManager: tsm,
+		epoch:              epoch,
 	}, nil
 }
 
@@ -38,10 +38,10 @@ func (stsm *snapshotTrieStorageManager) Put(key []byte, val []byte) error {
 // GetFromOldEpochsWithoutAddingToCache searches for the key without adding it to cache if it is found. It starts
 // the search for the key from the currentStorer - epochOffset)
 func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, epochOffset int) ([]byte, error) {
-	stsm.tsm.storageOperationMutex.Lock()
-	defer stsm.tsm.storageOperationMutex.Unlock()
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
 
-	if stsm.tsm.closed {
+	if stsm.closed {
 		log.Debug("getFromOldEpochsWithoutAddingToCache context closing, key = %s", hex.EncodeToString(key))
 		return nil, errors.ErrContextClosing
 	}
@@ -51,10 +51,10 @@ func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key
 
 // PutInEpochWithoutCache saves the data in the given epoch storer
 func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error {
-	stsm.tsm.storageOperationMutex.Lock()
-	defer stsm.tsm.storageOperationMutex.Unlock()
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
 
-	if stsm.tsm.closed {
+	if stsm.closed {
 		log.Debug("putInEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))
 		return errors.ErrContextClosing
 	}
@@ -64,10 +64,10 @@ func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key []byte, data 
 
 // GetFromEpochWithoutCache seeks the key in the specified epoch storer
 func (stsm *snapshotTrieStorageManager) GetFromEpochWithoutCache(key []byte, epoch uint32) ([]byte, error) {
-	stsm.tsm.storageOperationMutex.Lock()
-	defer stsm.tsm.storageOperationMutex.Unlock()
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
 
-	if stsm.tsm.closed {
+	if stsm.closed {
 		log.Debug("getFromEpochWithoutCache context closing, key = %s", hex.EncodeToString(key))
 		return nil, errors.ErrContextClosing
 	}
@@ -77,10 +77,10 @@ func (stsm *snapshotTrieStorageManager) GetFromEpochWithoutCache(key []byte, epo
 
 // RemoveFromCurrentEpoch removes the key from the current epoch storer
 func (stsm *snapshotTrieStorageManager) RemoveFromCurrentEpoch(key []byte) error {
-	stsm.tsm.storageOperationMutex.Lock()
-	defer stsm.tsm.storageOperationMutex.Unlock()
+	stsm.storageOperationMutex.Lock()
+	defer stsm.storageOperationMutex.Unlock()
 
-	if stsm.tsm.closed {
+	if stsm.closed {
 		log.Debug("removeFromCurrentEpoch context closing, key = %s", hex.EncodeToString(key))
 		return errors.ErrContextClosing
 	}

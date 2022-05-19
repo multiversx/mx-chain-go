@@ -310,7 +310,7 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 func (en *extensionNode) getChildBytes(_ byte, db common.DBWriteCacher) ([]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("resolveCollapsed error %w", err)
+		return nil, fmt.Errorf("getChildBytes error %w", err)
 	}
 
 	return getNodeFromDB(en.EncodedChild, db)
