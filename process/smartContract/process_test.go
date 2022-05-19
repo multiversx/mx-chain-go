@@ -4243,6 +4243,27 @@ func TestMergeVmOutputLogs(t *testing.T) {
 
 	mergeVMOutputLogs(vmOutput1, vmOutput2)
 	require.Len(t, vmOutput1.Logs, 2)
+
+	vmOutput1 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{
+				Identifier: []byte("identifier2"),
+			},
+		},
+	}
+
+	vmOutput2 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{
+				Identifier: []byte("identifier1"),
+			},
+		},
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Len(t, vmOutput1.Logs, 2)
+	require.Equal(t, []byte("identifier1"), vmOutput1.Logs[0].Identifier)
+	require.Equal(t, []byte("identifier2"), vmOutput1.Logs[1].Identifier)
 }
 
 func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
