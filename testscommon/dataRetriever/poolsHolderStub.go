@@ -20,7 +20,7 @@ type PoolsHolderStub struct {
 	TrieNodesChunksCalled        func() storage.Cacher
 	PeerChangesBlocksCalled      func() storage.Cacher
 	SmartContractsCalled         func() storage.Cacher
-	ValidatorsInfoCalled         func() storage.Cacher
+	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewPoolsHolderStub -
@@ -137,12 +137,12 @@ func (holder *PoolsHolderStub) SmartContracts() storage.Cacher {
 }
 
 // ValidatorsInfo -
-func (holder *PoolsHolderStub) ValidatorsInfo() storage.Cacher {
+func (holder *PoolsHolderStub) ValidatorsInfo() dataRetriever.ShardedDataCacherNotifier {
 	if holder.ValidatorsInfoCalled != nil {
 		return holder.ValidatorsInfoCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return testscommon.NewShardedDataStub()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

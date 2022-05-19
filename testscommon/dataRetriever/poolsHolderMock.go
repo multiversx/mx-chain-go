@@ -25,7 +25,7 @@ type PoolsHolderMock struct {
 	smartContracts         storage.Cacher
 	currBlockTxs           dataRetriever.TransactionCacher
 	currBlockValidatorInfo dataRetriever.ValidatorInfoCacher
-	validatorsInfo         storage.Cacher
+	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewPoolsHolderMock -
@@ -87,7 +87,11 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.smartContracts, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.validatorsInfo, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.validatorsInfo, err = shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+		Capacity:    100,
+		SizeInBytes: 100000,
+		Shards:      1,
+	})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
@@ -159,7 +163,7 @@ func (holder *PoolsHolderMock) SmartContracts() storage.Cacher {
 }
 
 // ValidatorsInfo -
-func (holder *PoolsHolderMock) ValidatorsInfo() storage.Cacher {
+func (holder *PoolsHolderMock) ValidatorsInfo() dataRetriever.ShardedDataCacherNotifier {
 	return holder.validatorsInfo
 }
 

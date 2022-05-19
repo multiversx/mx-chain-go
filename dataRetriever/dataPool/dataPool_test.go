@@ -26,7 +26,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		CurrentBlockTransactions:  &mock.TxForCurrentBlockStub{},
 		CurrentBlockValidatorInfo: &mock.ValidatorInfoForCurrentBlockStub{},
 		SmartContracts:            testscommon.NewCacherStub(),
-		ValidatorsInfo:            testscommon.NewCacherStub(),
+		ValidatorsInfo:            testscommon.NewShardedDataStub(),
 	}
 }
 
@@ -175,7 +175,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 		CurrentBlockTransactions:  &mock.TxForCurrentBlockStub{},
 		CurrentBlockValidatorInfo: &mock.ValidatorInfoForCurrentBlockStub{},
 		SmartContracts:            testscommon.NewCacherStub(),
-		ValidatorsInfo:            testscommon.NewCacherStub(),
+		ValidatorsInfo:            testscommon.NewShardedDataStub(),
 	}
 
 	tdp, err := dataPool.NewDataPool(args)

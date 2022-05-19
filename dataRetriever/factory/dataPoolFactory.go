@@ -124,8 +124,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool)
-	validatorsInfo, err := storageUnit.NewCache(cacherCfg)
+	validatorsInfo, err := shardedData.NewShardedData(dataRetriever.ValidatorsInfoPoolName, factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool))
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}

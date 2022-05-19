@@ -514,7 +514,7 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 			},
 		},
 	}
-	res := rwd.CreateMarshalizedData(&bdy)
+	res := rwd.CreateMarshalledData(&bdy)
 
 	assert.NotNil(t, res)
 }
@@ -579,7 +579,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 			},
 		},
 	}
-	rwd.SaveTxBlockToStorage(&mb2, &bdy)
+	rwd.SaveBlockDataToStorage(&mb2, &bdy)
 
 	assert.True(t, putRwdTxWasCalled)
 	assert.True(t, putMbWasCalled)

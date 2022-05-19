@@ -112,8 +112,11 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
-	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
+	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+		Capacity:    300,
+		SizeInBytes: 300000,
+		Shards:      1,
+	})
 	panicIfError("CreatePoolsHolder", err)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
@@ -181,8 +184,11 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	validatorsInfo, err := storageUnit.NewCache(cacherConfig)
+	validatorsInfo, err := shardedData.NewShardedData("validatorsInfoPool", storageUnit.CacheConfig{
+		Capacity:    300,
+		SizeInBytes: 300000,
+		Shards:      1,
+	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()

@@ -147,6 +147,12 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 				},
 			}
 		},
+		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destCacheID string) {
+				},
+			}
+		},
 		MetaBlocksCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {

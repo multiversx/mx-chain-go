@@ -128,7 +128,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 	return argsNewEpochEconomics
 }
 
-func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshalizer marshal.Marshalizer) bool {
+func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshalledShardValidatorsInfo [][]byte, marshalizer marshal.Marshalizer) bool {
 	if bl.SenderShardID != core.MetachainShardId ||
 		bl.ReceiverShardID != core.AllShardId ||
 		len(bl.TxHashes) == 0 ||
@@ -142,10 +142,10 @@ func verifyMiniBlocks(bl *block.MiniBlock, infos []*state.ValidatorInfo, marshal
 		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
 	})
 
-	for i, txHash := range bl.TxHashes {
-		vi := createShardValidatorInfo(validatorCopy[i])
+	for i, marshalledShardValidatorInfo := range marshalledShardValidatorsInfo {
+		vi := createShardValidatorInfo(infos[i])
 		unmarshaledVi := &state.ShardValidatorInfo{}
-		_ = marshalizer.Unmarshal(unmarshaledVi, txHash)
+		_ = marshalizer.Unmarshal(unmarshaledVi, marshalledShardValidatorInfo)
 		if !reflect.DeepEqual(unmarshaledVi, vi) {
 			return false
 		}
@@ -265,9 +265,22 @@ func TestEpochValidatorInfoCreator_CreateValidatorInfoMiniBlocksShouldBeCorrect(
 	vic, _ := NewValidatorInfoCreator(arguments)
 	mbs, _ := vic.CreateValidatorInfoMiniBlocks(validatorInfo)
 
-	correctMB0 := verifyMiniBlocks(mbs[0], validatorInfo[0], arguments.Marshalizer)
+	shardValidatorInfo := make([]*state.ShardValidatorInfo, len(validatorInfo[0]))
+	marshalledShardValidatorInfo := make([][]byte, len(validatorInfo[0]))
+	for i := 0; i < len(validatorInfo[0]); i++ {
+		shardValidatorInfo[i] = createShardValidatorInfo(validatorInfo[0][i])
+		marshalledShardValidatorInfo[i], _ = arguments.Marshalizer.Marshal(shardValidatorInfo[i])
+	}
+	correctMB0 := verifyMiniBlocks(mbs[0], validatorInfo[0], marshalledShardValidatorInfo, arguments.Marshalizer)
 	require.True(t, correctMB0)
-	correctMbMeta := verifyMiniBlocks(mbs[1], validatorInfo[core.MetachainShardId], arguments.Marshalizer)
+
+	shardValidatorInfo = make([]*state.ShardValidatorInfo, len(validatorInfo[core.MetachainShardId]))
+	marshalledShardValidatorInfo = make([][]byte, len(validatorInfo[core.MetachainShardId]))
+	for i := 0; i < len(validatorInfo[core.MetachainShardId]); i++ {
+		shardValidatorInfo[i] = createShardValidatorInfo(validatorInfo[core.MetachainShardId][i])
+		marshalledShardValidatorInfo[i], _ = arguments.Marshalizer.Marshal(shardValidatorInfo[i])
+	}
+	correctMbMeta := verifyMiniBlocks(mbs[1], validatorInfo[core.MetachainShardId], marshalledShardValidatorInfo, arguments.Marshalizer)
 	require.True(t, correctMbMeta)
 }
 
@@ -368,9 +381,9 @@ func createValidatorInfoMiniBlocks(
 		})
 
 		for index, validator := range validatorCopy {
-			shardValidator := createShardValidatorInfo(validator)
-			marshalizedValidator, _ := arguments.Marshalizer.Marshal(shardValidator)
-			miniBlock.TxHashes[index] = marshalizedValidator
+			shardValidatorInfo := createShardValidatorInfo(validator)
+			shardValidatorInfoHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, shardValidatorInfo)
+			miniBlock.TxHashes[index] = shardValidatorInfoHash
 		}
 
 		miniblocks = append(miniblocks, miniBlock)
@@ -428,7 +441,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlockDataToStorage(t *testin
 	}
 
 	body := &block.Body{MiniBlocks: miniblocks}
-	vic.SaveValidatorInfoBlockDataToStorage(meta, body)
+	vic.SaveBlockDataToStorage(meta, body)
 
 	for i, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := miniBlockStorage.Get(mbHeader.Hash)
@@ -506,7 +519,7 @@ func testDeleteValidatorInfoBlockData(t *testing.T, blockType block.Type, should
 	}
 
 	body := &block.Body{}
-	vic.DeleteValidatorInfoBlockDataFromStorage(meta, body)
+	vic.DeleteBlockDataFromStorage(meta, body)
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
 		mb, err := mbStorage.Get(mbHeader.Hash)

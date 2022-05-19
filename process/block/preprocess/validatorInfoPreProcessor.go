@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -17,9 +18,12 @@ var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
 var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 
 type validatorInfoPreprocessor struct {
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	blockSizeComputation BlockSizeComputationHandler
+	*basePreProcess
+	chReceivedAllValidatorInfo chan bool
+	onRequestValidatorsInfo    func(txHashes [][]byte)
+	validatorInfoForBlock      txsForBlock
+	validatorInfoPool          dataRetriever.ShardedDataCacherNotifier
+	storage                    dataRetriever.StorageService
 }
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
@@ -27,7 +31,11 @@ func NewValidatorInfoPreprocessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blockSizeComputation BlockSizeComputationHandler,
+	validatorInfoPool dataRetriever.ShardedDataCacherNotifier,
+	store dataRetriever.StorageService,
+	onRequestValidatorsInfo func(txHashes [][]byte),
 ) (*validatorInfoPreprocessor, error) {
+
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
@@ -37,13 +45,34 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(validatorInfoPool) {
+		return nil, process.ErrNilValidatorInfoPool
+	}
+	if check.IfNil(store) {
+		return nil, process.ErrNilStorage
+	}
+	if onRequestValidatorsInfo == nil {
+		return nil, process.ErrNilRequestHandler
+	}
 
-	rtp := &validatorInfoPreprocessor{
+	bpp := &basePreProcess{
 		hasher:               hasher,
 		marshalizer:          marshalizer,
 		blockSizeComputation: blockSizeComputation,
 	}
-	return rtp, nil
+
+	vip := &validatorInfoPreprocessor{
+		basePreProcess:          bpp,
+		storage:                 store,
+		validatorInfoPool:       validatorInfoPool,
+		onRequestValidatorsInfo: onRequestValidatorsInfo,
+	}
+
+	vip.chReceivedAllValidatorInfo = make(chan bool)
+	vip.validatorInfoPool.RegisterOnAdded(vip.receivedValidatorInfoTransaction)
+	vip.validatorInfoForBlock.txHashAndInfo = make(map[string]*txInfo)
+
+	return vip, nil
 }
 
 // IsDataPrepared does nothing
@@ -53,28 +82,7 @@ func (vip *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Durati
 
 // RemoveBlockDataFromPools removes the peer miniblocks from pool
 func (vip *validatorInfoPreprocessor) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	if check.IfNil(body) {
-		return process.ErrNilBlockBody
-	}
-	if check.IfNil(miniBlockPool) {
-		return process.ErrNilMiniBlockPool
-	}
-
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		currentMiniBlock := body.MiniBlocks[i]
-		if currentMiniBlock.Type != block.PeerBlock {
-			continue
-		}
-
-		miniBlockHash, err := core.CalculateHash(vip.marshalizer, vip.hasher, currentMiniBlock)
-		if err != nil {
-			return err
-		}
-
-		miniBlockPool.Remove(miniBlockHash)
-	}
-
-	return nil
+	return vip.removeBlockDataFromPools(body, miniBlockPool, vip.validatorInfoPool, vip.isMiniBlockCorrect)
 }
 
 // RemoveTxsFromPools does nothing for validatorInfoPreprocessor implementation
@@ -126,6 +134,22 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 // SaveTxsToStorage does nothing
 func (vip *validatorInfoPreprocessor) SaveTxsToStorage(_ *block.Body) error {
 	return nil
+}
+
+// receivedValidatorInfoTransaction is a callback function called when a new validator info transaction
+// is added in the validator info transactions pool
+func (vip *validatorInfoPreprocessor) receivedValidatorInfoTransaction(key []byte, value interface{}) {
+	tx, ok := value.(data.TransactionHandler)
+	if !ok {
+		log.Warn("validatorInfoPreprocessor.receivedValidatorInfoTransaction", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := vip.baseReceivedTransaction(key, tx, &vip.validatorInfoForBlock)
+
+	if receivedAllMissing {
+		vip.chReceivedAllValidatorInfo <- true
+	}
 }
 
 // CreateBlockStarted does nothing
@@ -192,4 +216,8 @@ func (vip *validatorInfoPreprocessor) AddTransactions(_ []data.TransactionHandle
 // IsInterfaceNil does nothing
 func (vip *validatorInfoPreprocessor) IsInterfaceNil() bool {
 	return vip == nil
+}
+
+func (vip *validatorInfoPreprocessor) isMiniBlockCorrect(mbType block.Type) bool {
+	return mbType == block.PeerBlock
 }

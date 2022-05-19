@@ -1310,6 +1310,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
+	// TODO: Should pe sent alongside rewardsTxs also validatorInfoTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -2381,9 +2382,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	var mrsTxs map[string][][]byte
 	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.epochRewardsCreator.CreateMarshalledData(body)
-		//TODO: Append also validator info txs to be broadcast
-		//mrsTxs = mp.validatorInfoCreator.CreateMarshalledData(body)
+		mrsTxs = mp.getAllMarshalledTxs(body)
 	} else {
 		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
 	}
@@ -2408,6 +2407,23 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
+}
+
+func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {
+	allMarshalledTxs := make(map[string][][]byte)
+
+	marshalledRewardsTxs := mp.epochRewardsCreator.CreateMarshalledData(body)
+	marshalledValidatorInfoTxs := mp.validatorInfoCreator.CreateMarshalledData(body)
+
+	for topic, marshalledTxs := range marshalledRewardsTxs {
+		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
+	}
+
+	for topic, marshalledTxs := range marshalledValidatorInfoTxs {
+		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
+	}
+
+	return allMarshalledTxs
 }
 
 func getTxCount(shardInfo []data.ShardDataHandler) uint32 {

@@ -11,7 +11,7 @@ func TestCurrentBlockValidatorInfoPool_AddGetCleanTx(t *testing.T) {
 	t.Parallel()
 
 	validatorInfoHash := []byte("hash")
-	validatorInfo := &state.ValidatorInfo{}
+	validatorInfo := &state.ShardValidatorInfo{}
 	currentValidatorInfoPool := NewCurrentBlockValidatorInfoPool()
 	require.False(t, currentValidatorInfoPool.IsInterfaceNil())
 

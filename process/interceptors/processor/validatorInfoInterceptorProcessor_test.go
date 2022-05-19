@@ -42,7 +42,7 @@ func createMockInterceptedValidatorInfo() process.InterceptedData {
 
 func createMockArgValidatorInfoInterceptorProcessor() processor.ArgValidatorInfoInterceptorProcessor {
 	return processor.ArgValidatorInfoInterceptorProcessor{
-		ValidatorInfoPool: testscommon.NewCacherStub(),
+		ValidatorInfoPool: testscommon.NewShardedDataStub(),
 	}
 }
 
@@ -84,10 +84,9 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		providedData := mock.NewInterceptedMetaBlockMock(nil, []byte("hash")) // unable to cast to intercepted validator info
 		wasCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
 				wasCalled = true
-				return false, false
 			},
 		}
 
@@ -109,11 +108,10 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 
-		args.ValidatorInfoPool = &testscommon.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
 				assert.Equal(t, providedHash, key)
 				wasHasOrAddCalled = true
-				return false, false
 			},
 		}
 

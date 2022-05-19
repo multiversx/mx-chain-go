@@ -20,7 +20,7 @@ type dataPool struct {
 	currBlockTxs           dataRetriever.TransactionCacher
 	currBlockValidatorInfo dataRetriever.ValidatorInfoCacher
 	smartContracts         storage.Cacher
-	validatorsInfo         storage.Cacher
+	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
 }
 
 // DataPoolArgs represents the data pool's constructor structure
@@ -36,7 +36,7 @@ type DataPoolArgs struct {
 	CurrentBlockTransactions  dataRetriever.TransactionCacher
 	CurrentBlockValidatorInfo dataRetriever.ValidatorInfoCacher
 	SmartContracts            storage.Cacher
-	ValidatorsInfo            storage.Cacher
+	ValidatorsInfo            dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewDataPool creates a data pools holder object
@@ -150,7 +150,7 @@ func (dp *dataPool) SmartContracts() storage.Cacher {
 }
 
 // ValidatorsInfo returns the holder for validators info
-func (dp *dataPool) ValidatorsInfo() storage.Cacher {
+func (dp *dataPool) ValidatorsInfo() dataRetriever.ShardedDataCacherNotifier {
 	return dp.validatorsInfo
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -233,7 +234,7 @@ func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[stri
 			continue
 		}
 
-		broadcastTopic := createBroadcastTopic(vic.shardCoordinator, miniBlock.ReceiverShardID)
+		broadcastTopic := createBroadcastTopic(factory.UnsignedTransactionTopic, vic.shardCoordinator, miniBlock.ReceiverShardID)
 		if _, ok := marshalledValidatorInfoTxs[broadcastTopic]; !ok {
 			marshalledValidatorInfoTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
@@ -360,7 +361,7 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderH
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
-			validatorInfoPool.Remove(txHash)
+			validatorInfoPool.RemoveDataFromAllShards(txHash)
 		}
 	}
 

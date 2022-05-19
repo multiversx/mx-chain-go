@@ -337,7 +337,7 @@ type PoolsHolder interface {
 	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	CurrentBlockValidatorInfo() ValidatorInfoCacher
-	ValidatorsInfo() storage.Cacher
+	ValidatorsInfo() ShardedDataCacherNotifier
 	IsInterfaceNil() bool
 }
 

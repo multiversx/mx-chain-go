@@ -214,7 +214,7 @@ func TestRewardsCreatorProxy_CreateMarshalizedData(t *testing.T) {
 	blockBody := createDefaultBlockBody()
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		CreateMarshalizedDataCalled: func(body *block.Body) map[string][][]byte {
+		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
 			if blockBody == body {
 				return expectedValue
 			}
@@ -224,7 +224,7 @@ func TestRewardsCreatorProxy_CreateMarshalizedData(t *testing.T) {
 
 	rewardsCreatorProxy, _, _ := createTestData(rewardCreatorV1, rCreatorV1)
 
-	protocolSustainabilityRewards := rewardsCreatorProxy.CreateMarshalizedData(blockBody)
+	protocolSustainabilityRewards := rewardsCreatorProxy.CreateMarshalledData(blockBody)
 	require.Equal(t, expectedValue, protocolSustainabilityRewards)
 }
 
@@ -259,14 +259,14 @@ func TestRewardsCreatorProxy_SaveTxBlockToStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		SaveTxBlockToStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
+		SaveBlockDataToStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
 
 	rewardsCreatorProxy, _, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
 
-	rewardsCreatorProxy.SaveTxBlockToStorage(metaBlock, blockBody)
+	rewardsCreatorProxy.SaveBlockDataToStorage(metaBlock, blockBody)
 	require.Equal(t, true, functionCalled)
 }
 
@@ -277,14 +277,14 @@ func TestRewardsCreatorProxy_DeleteTxsFromStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		DeleteTxsFromStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
+		DeleteBlockDataFromStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
 
 	rewardsCreatorProxy, _, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
 
-	rewardsCreatorProxy.DeleteTxsFromStorage(metaBlock, blockBody)
+	rewardsCreatorProxy.DeleteBlockDataFromStorage(metaBlock, blockBody)
 	require.Equal(t, true, functionCalled)
 }
 
