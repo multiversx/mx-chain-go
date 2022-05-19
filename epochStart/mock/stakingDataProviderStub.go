@@ -61,11 +61,19 @@ func (sdps *StakingDataProviderStub) GetNumStakedNodes([]byte) (int64, error) {
 	return 0, nil
 }
 
+func (sdps *StakingDataProviderStub) GetTotalTopUp([]byte) (*big.Int, error) {
+	return big.NewInt(0), nil
+}
+
 // PrepareStakingData -
 func (sdps *StakingDataProviderStub) PrepareStakingData(keys map[uint32][][]byte) error {
 	if sdps.PrepareStakingDataCalled != nil {
 		return sdps.PrepareStakingDataCalled(keys)
 	}
+	return nil
+}
+
+func (sdps *StakingDataProviderStub) PrepareStakingDataForStakingV4(state.ShardValidatorsInfoMapHandler) error {
 	return nil
 }
 

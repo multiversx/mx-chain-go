@@ -1812,16 +1812,19 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	owner2 := []byte("owner2")
 	owner3 := []byte("owner3")
 	owner4 := []byte("owner4")
+	owner5 := []byte("owner5")
 
 	owner1StakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1"), []byte("pubKey2")}
 	owner2StakedKeys := [][]byte{[]byte("pubKey3"), []byte("pubKey4"), []byte("pubKey5")}
 	owner3StakedKeys := [][]byte{[]byte("pubKey6"), []byte("pubKey7")}
-	owner4StakedKeys := [][]byte{[]byte("pubKey8"), []byte("pubKey9")}
+	owner4StakedKeys := [][]byte{[]byte("pubKey8"), []byte("pubKey9"), []byte("pubKe10"), []byte("pubKe11")}
+	owner5StakedKeys := [][]byte{[]byte("pubKe12"), []byte("pubKe13")}
 
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(6000), args.Marshalizer)
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(3000), args.Marshalizer)
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner3, owner3, owner3StakedKeys, big.NewInt(2000), args.Marshalizer)
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner4, owner4, owner4StakedKeys, big.NewInt(3000), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(6666), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(5555), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner3, owner3, owner3StakedKeys, big.NewInt(4444), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner4, owner4, owner4StakedKeys, big.NewInt(6666), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner5, owner5, owner5StakedKeys, big.NewInt(1000), args.Marshalizer)
 
 	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
@@ -1837,6 +1840,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 
 	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4, 1))
 	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[2], common.AuctionList, owner4, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[3], common.AuctionList, owner4, 1))
+
+	_ = validatorsInfo.Add(createValidatorInfo(owner5StakedKeys[0], common.EligibleList, owner5, 1))
+	_ = validatorsInfo.Add(createValidatorInfo(owner5StakedKeys[1], common.AuctionList, owner5, 1))
 
 	s, _ := NewSystemSCProcessor(args)
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: args.EpochConfig.EnableEpochs.StakingV4EnableEpoch})

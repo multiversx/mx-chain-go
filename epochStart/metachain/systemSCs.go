@@ -131,7 +131,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	}
 
 	if s.flagStakingV4Enabled.IsSet() {
-		err := s.prepareStakingDataForAllNodes(validatorsInfoMap)
+		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap) // s.stakingDataProvider.PrepareStakingDataForStakingV4(validatorsInfoMap)
 		if err != nil {
 			return err
 		}
