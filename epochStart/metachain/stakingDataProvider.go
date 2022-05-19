@@ -397,9 +397,9 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorsInfo state.Sha
 
 func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.ShardValidatorsInfoMapHandler) (map[string]string, error) {
 	mapBLSKeyStatus := make(map[string]string)
-	for _, validatorInfo := range validatorsInfo.GetAllValidatorsInfo() {
-		list := validatorInfo.GetList()
-		pubKey := validatorInfo.GetPublicKey()
+	for _, validator := range validatorsInfo.GetAllValidatorsInfo() {
+		list := validator.GetList()
+		pubKey := validator.GetPublicKey()
 
 		if sdp.flagStakingV4Enable.IsSet() && list == string(common.NewList) {
 			return nil, fmt.Errorf("%w, bls key = %s",

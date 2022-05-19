@@ -56,7 +56,11 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 // SelectNodesFromAuctionList will select nodes from validatorsInfoMap based on their top up. If two or more validators
 // have the same top-up, then sorting will be done based on blsKey XOR randomness. Selected nodes will have their list set
 // to common.SelectNodesFromAuctionList
-func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+func (als *auctionListSelector) SelectNodesFromAuctionList(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	unqualifiedOwners map[string]struct{},
+	randomness []byte,
+) error {
 	if len(randomness) == 0 {
 		return process.ErrNilRandSeed
 	}
@@ -64,7 +68,11 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap sta
 	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
 	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 
-	auctionList, currNumOfValidators := getAuctionListAndNumOfValidators(validatorsInfoMap)
+	auctionList, currNumOfValidators, err := als.getAuctionListAndNumOfValidators(validatorsInfoMap, unqualifiedOwners)
+	if err != nil {
+		return err
+	}
+
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("%v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
@@ -114,11 +122,28 @@ func safeSub(a, b uint32) (uint32, error) {
 	return a - b, nil
 }
 
-func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, uint32) {
+func (als *auctionListSelector) getAuctionListAndNumOfValidators(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	unqualifiedOwners map[string]struct{},
+) ([]state.ValidatorInfoHandler, uint32, error) {
 	auctionList := make([]state.ValidatorInfoHandler, 0)
 	numOfValidators := uint32(0)
 
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
+		owner, err := als.stakingDataProvider.GetBlsKeyOwner(validator.GetPublicKey())
+		if err != nil {
+			return nil, 0, err
+		}
+
+		_, isUnqualified := unqualifiedOwners[owner]
+		if isUnqualified {
+			log.Debug("auctionListSelector: found unqualified owner, do not add validator in auction selection",
+				"owner", hex.EncodeToString([]byte(owner)),
+				"bls key", hex.EncodeToString(validator.GetPublicKey()),
+			)
+			continue
+		}
+
 		if validator.GetList() == string(common.AuctionList) {
 			auctionList = append(auctionList, validator)
 			continue
@@ -128,7 +153,7 @@ func getAuctionListAndNumOfValidators(validatorsInfoMap state.ShardValidatorsInf
 		}
 	}
 
-	return auctionList, numOfValidators
+	return auctionList, numOfValidators, nil
 }
 
 type ownerData struct {
@@ -154,15 +179,14 @@ func (als *auctionListSelector) getOwnersData(auctionList []state.ValidatorInfoH
 			return nil, err
 		}
 
+		if stakedNodes == 0 {
+			return nil, process.ErrNodeIsNotSynced
+		}
+
 		totalTopUp, err := als.stakingDataProvider.GetTotalTopUp([]byte(owner))
 		if err != nil {
 			return nil, err
 		}
-
-		//topUpPerNode, err := als.stakingDataProvider.GetNodeStakedTopUp(node.GetPublicKey())
-		//if err != nil {
-		//	return nil, err
-		//}
 
 		data, exists := ownersData[owner]
 		if exists {
@@ -203,7 +227,6 @@ func copyOwnersData(ownersData map[string]*ownerData) map[string]*ownerData {
 
 func (als *auctionListSelector) getMinRequiredTopUp(
 	auctionList []state.ValidatorInfoHandler,
-	validatorTopUpMap map[string]*big.Int,
 	numAvailableSlots uint32,
 	randomness []byte,
 ) ([]state.ValidatorInfoHandler, *big.Int, error) {
@@ -216,49 +239,47 @@ func (als *auctionListSelector) getMinRequiredTopUp(
 	maxTopUp := big.NewInt(1000000) // todo: extract to const // max top up from auction list
 	step := big.NewInt(100)
 
-	previousConfig := copyOwnersData(ownersData)
-
-	fmt.Println("current config: ", previousConfig)
 	for topUp := big.NewInt(0).SetBytes(minTopUp.Bytes()); topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, step) {
-
 		numNodesQualifyingForTopUp := int64(0)
-		previousConfig = copyOwnersData(ownersData)
-		for ownerPubKey, owner := range ownersData {
-			validatorActiveNodes := owner.activeNodes
+		previousConfig := copyOwnersData(ownersData)
 
-			minQualifiedTopUpForAuction := big.NewInt(0).Mul(topUp, big.NewInt(validatorActiveNodes))
-			validatorTopUpForAuction := big.NewInt(0).Sub(owner.totalTopUp, minQualifiedTopUpForAuction)
+		for ownerPubKey, owner := range ownersData {
+			activeNodes := big.NewInt(owner.activeNodes)
+			topUpActiveNodes := big.NewInt(0).Mul(topUp, activeNodes)
+			validatorTopUpForAuction := big.NewInt(0).Sub(owner.totalTopUp, topUpActiveNodes)
 			if validatorTopUpForAuction.Cmp(topUp) < 0 {
 				delete(ownersData, ownerPubKey)
 				continue
 			}
 
 			qualifiedNodes := big.NewInt(0).Div(validatorTopUpForAuction, topUp)
-			if qualifiedNodes.Int64() > owner.auctionNodes {
+			qualifiedNodesInt := qualifiedNodes.Int64()
+			if qualifiedNodesInt > owner.auctionNodes {
 				numNodesQualifyingForTopUp += owner.auctionNodes
 			} else {
+				numNodesQualifyingForTopUp += qualifiedNodesInt
 
-				numNodesQualifyingForTopUp += qualifiedNodes.Int64()
+				owner.auctionNodes = qualifiedNodesInt
 
-				owner.auctionNodes = qualifiedNodes.Int64()
-				owner.topUpPerNode = big.NewInt(0).Div(owner.totalTopUp, big.NewInt(owner.activeNodes+owner.auctionNodes))
-
+				ownerRemainingNodes := big.NewInt(owner.activeNodes + owner.auctionNodes)
+				owner.topUpPerNode = big.NewInt(0).Div(owner.totalTopUp, ownerRemainingNodes)
 			}
 		}
 
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
 
-			selectedNodes := als.selectNodes(previousConfig, numAvailableSlots, randomness)
-
 			if topUp.Cmp(minTopUp) == 0 {
+				selectedNodes := als.selectNodes(previousConfig, uint32(len(auctionList)), randomness)
+
 				return selectedNodes, big.NewInt(0), nil
 			} else {
+				selectedNodes := als.selectNodes(previousConfig, numAvailableSlots, randomness)
 				return selectedNodes, topUp.Sub(topUp, step), nil
 			}
 		}
 
 	}
-	_ = previousConfig
+
 	return nil, nil, errors.New("COULD NOT FIND TOPUP")
 }
 
@@ -305,29 +326,10 @@ func (als *auctionListSelector) sortAuctionList(
 		return nil
 	}
 
-	validatorTopUpMap, err := als.getValidatorTopUpMap(auctionList)
-	if err != nil {
-		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
-	}
-
-	selectedNodes, minTopUp, err := als.getMinRequiredTopUp(auctionList, validatorTopUpMap, numOfAvailableNodeSlots, randomness)
+	selectedNodes, minTopUp, err := als.getMinRequiredTopUp(auctionList, numOfAvailableNodeSlots, randomness)
 	if err != nil {
 		return err
 	}
-
-	//als.sortValidators(auctionList, validatorTopUpMap, randomness)
-	/*
-		for i, validator := range auctionList {
-			if validatorTopUpMap[string(validator.GetPublicKey())].Cmp(minTopUp) >= 0 && i < int(numOfAvailableNodeSlots) {
-				newNode := validator
-				newNode.SetList(string(common.SelectedFromAuctionList))
-				err = validatorsInfoMap.Replace(validator, newNode)
-				if err != nil {
-					return err
-				}
-			}
-
-		}*/
 
 	for _, node := range selectedNodes {
 		newNode := node
@@ -340,29 +342,6 @@ func (als *auctionListSelector) sortAuctionList(
 
 	_ = minTopUp
 	return nil
-}
-
-func (als *auctionListSelector) getValidatorNumAuctionNodesMap(auctionList []state.ValidatorInfoHandler) (map[string]int64, error) {
-	ret := make(map[string]int64)
-	ownerAuctionNodesMap := make(map[string][][]byte)
-
-	for _, validator := range auctionList {
-		owner, err := als.stakingDataProvider.GetBlsKeyOwner(validator.GetPublicKey())
-		if err != nil {
-			return nil, err
-		}
-
-		ownerAuctionNodesMap[owner] = append(ownerAuctionNodesMap[owner], validator.GetPublicKey())
-	}
-
-	for _, auctionNodes := range ownerAuctionNodesMap {
-		for _, auctionNode := range auctionNodes {
-			ret[string(auctionNode)] = int64(len(auctionNodes))
-		}
-
-	}
-
-	return ret, nil
 }
 
 func (als *auctionListSelector) sortValidators(

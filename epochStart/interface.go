@@ -215,6 +215,10 @@ type MaxNodesChangeConfigProvider interface {
 
 // AuctionListSelector handles selection of nodes from auction list to be sent to waiting list, based on their top up
 type AuctionListSelector interface {
-	SelectNodesFromAuctionList(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error
+	SelectNodesFromAuctionList(
+		validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+		unqualifiedOwners map[string]struct{},
+		randomness []byte,
+	) error
 	IsInterfaceNil() bool
 }
