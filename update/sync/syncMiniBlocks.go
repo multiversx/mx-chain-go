@@ -2,6 +2,9 @@ package sync
 
 import (
 	"context"
+	"encoding/hex"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -102,6 +105,14 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBl
 
 func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBlockHeaderHandler, ctx context.Context) error {
 	_ = core.EmptyChannel(p.chReceivedAll)
+
+	// TODO - remove this
+	mbHashes := make([]string, 0, len(listPendingMiniBlocks))
+	for i := range listPendingMiniBlocks {
+		mbHashes = append(mbHashes, hex.EncodeToString(listPendingMiniBlocks[i].GetHash()))
+	}
+	log.Debug("pendingMiniBlocks.syncMiniBlocks", "requesting mb hashes", strings.Join(mbHashes, ", "),
+		"stack", string(debug.Stack()))
 
 	mapHashesToRequest := make(map[string]uint32)
 	for _, mbHeader := range listPendingMiniBlocks {
