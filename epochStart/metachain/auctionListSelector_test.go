@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/stakingcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,6 +29,19 @@ func createAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) Auction
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
+}
+
+func createFullAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) (AuctionListSelectorArgs, ArgsNewEpochStartSystemSCProcessing) {
+	epochNotifier := forking.NewGenericEpochNotifier()
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, config)
+
+	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	return AuctionListSelectorArgs{
+		ShardCoordinator:             shardCoordinator,
+		StakingDataProvider:          argsSystemSC.StakingDataProvider,
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
+	}, argsSystemSC
 }
 
 func TestNewAuctionListSelector(t *testing.T) {
@@ -71,9 +86,7 @@ func TestNewAuctionListSelector(t *testing.T) {
 func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughSlotsForAuctionNodes(t *testing.T) {
 	t.Parallel()
 
-	args := createAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1}})
-	als, _ := NewAuctionListSelector(args)
-
+	args, argsSystemSC := createFullAuctionListSelectorArgs([]config.MaxNodesChangeConfig{{MaxNumNodes: 1}})
 	owner1 := []byte("owner1")
 	owner2 := []byte("owner2")
 
@@ -83,7 +96,10 @@ func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughSlotsForAuctionN
 	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
 
+	als, _ := NewAuctionListSelector(args)
 	err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
 	require.Nil(t, err)
 
