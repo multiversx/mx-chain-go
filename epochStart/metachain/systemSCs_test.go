@@ -1877,11 +1877,12 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		-  XOR2 = []byte("pubKey5") XOR []byte("pubKey7") = [0 0 0 0 0 0 2]
 		-  XOR3 = []byte("pubKey7") XOR []byte("pubKey7") = [0 0 0 0 0 0 0]
 	*/
-	requireTopUpPerNodes(t, s.stakingDataProvider, owner1StakedKeys, big.NewInt(1000))
-	requireTopUpPerNodes(t, s.stakingDataProvider, owner2StakedKeys, big.NewInt(0))
-	requireTopUpPerNodes(t, s.stakingDataProvider, owner3StakedKeys, big.NewInt(0))
-	requireTopUpPerNodes(t, s.stakingDataProvider, owner4StakedKeys, big.NewInt(500))
+	requireTopUpPerNodes(t, s.stakingDataProvider, owner1StakedKeys, big.NewInt(1222))
+	requireTopUpPerNodes(t, s.stakingDataProvider, owner2StakedKeys, big.NewInt(851))
+	requireTopUpPerNodes(t, s.stakingDataProvider, owner3StakedKeys, big.NewInt(1222))
+	requireTopUpPerNodes(t, s.stakingDataProvider, owner4StakedKeys, big.NewInt(666))
 
+	// selected = 10, 4, 2
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 		0: {
 			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
@@ -1897,7 +1898,12 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 			createValidatorInfo(owner3StakedKeys[1], common.AuctionList, owner3, 1),
 
 			createValidatorInfo(owner4StakedKeys[0], common.JailedList, owner4, 1),
-			createValidatorInfo(owner4StakedKeys[1], common.SelectedFromAuctionList, owner4, 1),
+			createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4, 1),
+			createValidatorInfo(owner4StakedKeys[2], common.SelectedFromAuctionList, owner4, 1),
+			createValidatorInfo(owner4StakedKeys[3], common.AuctionList, owner4, 1),
+
+			createValidatorInfo(owner5StakedKeys[0], common.LeavingList, owner5, 1),
+			createValidatorInfo(owner5StakedKeys[1], common.AuctionList, owner5, 1),
 		},
 	}
 	require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
@@ -1994,11 +2000,20 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 }
 
 func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, stakedPubKeys [][]byte, topUp *big.Int) {
-	for _, pubKey := range stakedPubKeys {
-		topUpPerNode, err := s.GetNodeStakedTopUp(pubKey)
-		require.Nil(t, err)
-		require.Equal(t, topUpPerNode, topUp)
-	}
+	owner, err := s.GetBlsKeyOwner(stakedPubKeys[0])
+	require.Nil(t, err)
+
+	totalTopUp, err := s.GetTotalTopUp([]byte(owner))
+	require.Nil(t, err)
+
+	topUpPerNode := big.NewInt(0).Div(totalTopUp, big.NewInt(int64(len(stakedPubKeys))))
+	require.Equal(t, topUp, topUpPerNode)
+
+	//for _, pubKey := range stakedPubKeys {
+	//	topUpPerNode, err := s.GetNodeStakedTopUp(pubKey)
+	//	require.Nil(t, err)
+	//	require.Equal(t, topUpPerNode, topUp)
+	//}
 }
 
 // This func sets rating and temp rating with the start rating value used in createFullArgumentsForSystemSCProcessing

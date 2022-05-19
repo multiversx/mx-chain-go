@@ -137,6 +137,7 @@ type ownerData struct {
 	stakedNodes  int64
 	totalTopUp   *big.Int
 	topUpPerNode *big.Int
+	auctionList  []state.ValidatorInfoHandler
 }
 
 func (als *auctionListSelector) getOwnersData(auctionList []state.ValidatorInfoHandler) (map[string]*ownerData, error) {
@@ -167,6 +168,7 @@ func (als *auctionListSelector) getOwnersData(auctionList []state.ValidatorInfoH
 		if exists {
 			data.auctionNodes++
 			data.activeNodes--
+			data.auctionList = append(data.auctionList, node)
 		} else {
 			ownersData[owner] = &ownerData{
 				auctionNodes: 1,
@@ -174,6 +176,7 @@ func (als *auctionListSelector) getOwnersData(auctionList []state.ValidatorInfoH
 				stakedNodes:  stakedNodes,
 				totalTopUp:   big.NewInt(0).SetBytes(totalTopUp.Bytes()),
 				topUpPerNode: big.NewInt(0).Div(totalTopUp, big.NewInt(stakedNodes)),
+				auctionList:  []state.ValidatorInfoHandler{node},
 			}
 		}
 	}
@@ -190,7 +193,9 @@ func copyOwnersData(ownersData map[string]*ownerData) map[string]*ownerData {
 			stakedNodes:  data.stakedNodes,
 			totalTopUp:   data.totalTopUp,
 			topUpPerNode: data.topUpPerNode,
+			auctionList:  make([]state.ValidatorInfoHandler, len(data.auctionList)),
 		}
+		copy(ret[owner].auctionList, data.auctionList)
 	}
 
 	return ret
@@ -200,10 +205,11 @@ func (als *auctionListSelector) getMinRequiredTopUp(
 	auctionList []state.ValidatorInfoHandler,
 	validatorTopUpMap map[string]*big.Int,
 	numAvailableSlots uint32,
-) (*big.Int, error) {
+	randomness []byte,
+) ([]state.ValidatorInfoHandler, *big.Int, error) {
 	ownersData, err := als.getOwnersData(auctionList)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	minTopUp := big.NewInt(1)       // pornim de la topup cel mai slab din lista initiala
@@ -233,28 +239,60 @@ func (als *auctionListSelector) getMinRequiredTopUp(
 			} else {
 
 				numNodesQualifyingForTopUp += qualifiedNodes.Int64()
-				//removedNodesFromAuction := owner.auctionNodes - qualifiedNodes.Int64()
-				owner.auctionNodes = qualifiedNodes.Int64()
 
-				//gainedTopUpFromRemovedNodes := big.NewInt(0).Mul(owner.topUpPerNode, big.NewInt(removedNodesFromAuction))
-				//owner.totalTopUp = big.NewInt(0).Add(owner.totalTopUp, gainedTopUpFromRemovedNodes)
+				owner.auctionNodes = qualifiedNodes.Int64()
 				owner.topUpPerNode = big.NewInt(0).Div(owner.totalTopUp, big.NewInt(owner.activeNodes+owner.auctionNodes))
 
 			}
 		}
 
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
-			fmt.Println("last config", previousConfig)
+
+			selectedNodes := als.selectNodes(previousConfig, numAvailableSlots, randomness)
+
 			if topUp.Cmp(minTopUp) == 0 {
-				return big.NewInt(0), nil
+				return selectedNodes, big.NewInt(0), nil
 			} else {
-				return topUp.Sub(topUp, step), nil
+				return selectedNodes, topUp.Sub(topUp, step), nil
 			}
 		}
 
 	}
 	_ = previousConfig
-	return nil, errors.New("COULD NOT FIND TOPUP")
+	return nil, nil, errors.New("COULD NOT FIND TOPUP")
+}
+
+func (als *auctionListSelector) selectNodes(ownersData map[string]*ownerData, numAvailableSlots uint32, randomness []byte) []state.ValidatorInfoHandler {
+	selectedFromAuction := make([]state.ValidatorInfoHandler, 0)
+	validatorTopUpMap := make(map[string]*big.Int)
+
+	for _, owner := range ownersData {
+		sortListByXORWithRand(owner.auctionList, randomness)
+		for i := int64(0); i < owner.auctionNodes; i++ {
+			currNode := owner.auctionList[i]
+			validatorTopUpMap[string(currNode.GetPublicKey())] = big.NewInt(0).SetBytes(owner.topUpPerNode.Bytes())
+		}
+
+		selectedFromAuction = append(selectedFromAuction, owner.auctionList[:owner.auctionNodes]...)
+	}
+
+	als.sortValidators(selectedFromAuction, validatorTopUpMap, randomness)
+
+	selectedFromAuction = selectedFromAuction[:numAvailableSlots]
+
+	return selectedFromAuction
+}
+
+func sortListByXORWithRand(list []state.ValidatorInfoHandler, randomness []byte) {
+	pubKeyLen := len(list[0].GetPublicKey())
+	normRandomness := calcNormRand(randomness, pubKeyLen)
+
+	sort.SliceStable(list, func(i, j int) bool {
+		pubKey1 := list[i].GetPublicKey()
+		pubKey2 := list[j].GetPublicKey()
+
+		return compareByXORWithRandomness(pubKey1, pubKey2, normRandomness)
+	})
 }
 
 func (als *auctionListSelector) sortAuctionList(
@@ -272,24 +310,35 @@ func (als *auctionListSelector) sortAuctionList(
 		return fmt.Errorf("%w: %v", epochStart.ErrSortAuctionList, err)
 	}
 
-	minTopUp, err := als.getMinRequiredTopUp(auctionList, validatorTopUpMap, numOfAvailableNodeSlots)
+	selectedNodes, minTopUp, err := als.getMinRequiredTopUp(auctionList, validatorTopUpMap, numOfAvailableNodeSlots, randomness)
 	if err != nil {
 		return err
 	}
 
-	als.sortValidators(auctionList, validatorTopUpMap, randomness)
-
-	for i, validator := range auctionList {
-		if validatorTopUpMap[string(validator.GetPublicKey())].Cmp(minTopUp) >= 0 && i < int(numOfAvailableNodeSlots) {
-			newNode := validator
-			newNode.SetList(string(common.SelectedFromAuctionList))
-			err = validatorsInfoMap.Replace(validator, newNode)
-			if err != nil {
-				return err
+	//als.sortValidators(auctionList, validatorTopUpMap, randomness)
+	/*
+		for i, validator := range auctionList {
+			if validatorTopUpMap[string(validator.GetPublicKey())].Cmp(minTopUp) >= 0 && i < int(numOfAvailableNodeSlots) {
+				newNode := validator
+				newNode.SetList(string(common.SelectedFromAuctionList))
+				err = validatorsInfoMap.Replace(validator, newNode)
+				if err != nil {
+					return err
+				}
 			}
-		}
 
+		}*/
+
+	for _, node := range selectedNodes {
+		newNode := node
+		newNode.SetList(string(common.SelectedFromAuctionList))
+		err = validatorsInfoMap.Replace(node, newNode)
+		if err != nil {
+			return err
+		}
 	}
+
+	_ = minTopUp
 	return nil
 }
 
