@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/common"
@@ -42,6 +43,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricCurrentBlockHash,
 		common.MetricNumConnectedPeersClassification,
 		common.MetricLatestTagSoftwareVersion,
+		common.MetricAreVMQueriesReady,
 		common.MetricP2PNumConnectedPeersClassification,
 		common.MetricP2PPeerInfo,
 		common.MetricP2PIntraShardValidators,
@@ -59,7 +61,7 @@ func TestInitBaseMetrics(t *testing.T) {
 
 	ash := &statusHandler.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
-			okValue := value == initString || value == initZeroString
+			okValue := value == initString || value == initZeroString || value == strconv.FormatBool(false)
 			require.True(t, okValue)
 			keys[key] = struct{}{}
 		},
