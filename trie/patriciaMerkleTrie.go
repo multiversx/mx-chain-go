@@ -459,7 +459,10 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
-			log.Error("could not get all trie leaves: ", "error", err)
+			log.Error("could not get all trie leaves: ",
+				"error", err,
+				"main trie rootHash", rootHash,
+			)
 		}
 
 		tr.mutOperation.Lock()
