@@ -313,9 +313,17 @@ func (ps *PruningStorer) getPersisterToUse() *persisterData {
 	if ok && !persisterInSetEpoch.getIsClosed() {
 		persisterToUse = persisterInSetEpoch
 	} else {
+		returningPath := "<nil persisterToUse>"
+		if persisterToUse != nil {
+			returningPath = persisterToUse.path
+		}
+
 		log.Debug("active persister not found",
 			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch)
+			"used", persisterToUse.epoch,
+			"path", ps.dbPath,
+			"returning persister", returningPath,
+			"stack", string(debug.Stack())) // TODO remove debug.Stack call
 	}
 
 	return persisterToUse

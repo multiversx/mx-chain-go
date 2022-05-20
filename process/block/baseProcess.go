@@ -1182,7 +1182,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		if errNotCritical != nil {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
-		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime))
+		log.Debug("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash) // TODO revert this to TRACE
 	}
 
 	marshalizedReceipts, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
