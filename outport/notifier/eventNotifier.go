@@ -196,7 +196,7 @@ func (en *eventNotifier) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) 
 }
 
 // SaveAccounts does nothing
-func (en *eventNotifier) SaveAccounts(_ uint64, _ []nodeData.UserAccountHandler) error {
+func (en *eventNotifier) SaveAccounts(_ uint64, _ map[string]*indexer.AlteredAccount) error {
 	return nil
 }
 
