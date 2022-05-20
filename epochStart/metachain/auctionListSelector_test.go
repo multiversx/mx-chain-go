@@ -96,11 +96,17 @@ func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughSlotsForAuctionN
 	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
 	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
+
 	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
 	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
 
+	err := args.StakingDataProvider.FillValidatorInfo(owner1StakedKeys[0])
+	require.Nil(t, err)
+	err = args.StakingDataProvider.FillValidatorInfo(owner2StakedKeys[0])
+	require.Nil(t, err)
+
 	als, _ := NewAuctionListSelector(args)
-	err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+	err = als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
 	require.Nil(t, err)
 
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
