@@ -31,7 +31,7 @@ func TestNewMessageProcessor_PeerSignatureHandlerNilShouldErr(t *testing.T) {
 
 	mon, err := process.NewMessageProcessor(
 		nil,
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
@@ -39,7 +39,7 @@ func TestNewMessageProcessor_PeerSignatureHandlerNilShouldErr(t *testing.T) {
 	assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 }
 
-func TestNewMessageProcessor_MarshalizerNilShouldErr(t *testing.T) {
+func TestNewMessageProcessor_MarshallerNilShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, err := process.NewMessageProcessor(
@@ -49,7 +49,7 @@ func TestNewMessageProcessor_MarshalizerNilShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
+	assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 }
 
 func TestNewMessageProcessor_NetworkShardingCollectorNilShouldErr(t *testing.T) {
@@ -57,7 +57,7 @@ func TestNewMessageProcessor_NetworkShardingCollectorNilShouldErr(t *testing.T) 
 
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 		nil,
 	)
 
@@ -70,7 +70,7 @@ func TestNewMessageProcessor_ShouldWork(t *testing.T) {
 
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
@@ -215,7 +215,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 		NodeDisplayName: "NodeDisplayName",
 	}
 
-	marshalizer := &mock.MarshalizerStub{}
+	marshalizer := &mock.MarshallerStub{}
 
 	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
 		(obj.(*data.Heartbeat)).Pubkey = hb.Pubkey
@@ -237,7 +237,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 			UpdatePeerIDInfoCalled: func(pid core.PeerID, pk []byte, shardID uint32) {
 				updatePeerInfoWasCalled = true
 			},
-			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+			PutPeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 				updatePidSubTypeCalled = true
 			},
 		},
@@ -274,7 +274,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageInvalidPeerSignatureSh
 		NodeDisplayName: "NodeDisplayName",
 	}
 
-	marshalizer := &mock.MarshalizerStub{}
+	marshalizer := &mock.MarshallerStub{}
 
 	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
 		(obj.(*data.Heartbeat)).Pubkey = hb.Pubkey
@@ -330,7 +330,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 
 	mon, _ := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
@@ -357,7 +357,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 
 	mon, _ := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
-		&mock.MarshalizerStub{
+		&mock.MarshallerStub{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},
@@ -391,7 +391,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 		NodeDisplayName: bigNodeName,
 	}
 
-	marshalizer := &mock.MarshalizerStub{}
+	marshalizer := &mock.MarshallerStub{}
 
 	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
 		(obj.(*data.Heartbeat)).Pubkey = hb.Pubkey
@@ -432,7 +432,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testin
 
 	mon, _ := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
-		&mock.MarshalizerStub{},
+		&mock.MarshallerStub{},
 		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 

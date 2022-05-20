@@ -103,6 +103,34 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// HeartbeatV2Config will hold the configuration for heartbeat v2
+type HeartbeatV2Config struct {
+	PeerAuthenticationTimeBetweenSendsInSec          int64
+	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
+	PeerAuthenticationThresholdBetweenSends          float64
+	HeartbeatTimeBetweenSendsInSec                   int64
+	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
+	HeartbeatThresholdBetweenSends                   float64
+	MaxNumOfPeerAuthenticationInResponse             int
+	HeartbeatExpiryTimespanInSec                     int64
+	MinPeersThreshold                                float32
+	DelayBetweenRequestsInSec                        int64
+	MaxTimeoutInSec                                  int64
+	DelayBetweenConnectionNotificationsInSec         int64
+	MaxMissingKeysInRequest                          uint32
+	MaxDurationPeerUnresponsiveInSec                 int64
+	HideInactiveValidatorIntervalInSec               int64
+	PeerAuthenticationPool                           PeerAuthenticationPoolConfig
+	HeartbeatPool                                    CacheConfig
+	HardforkTimeBetweenSendsInSec                    int64
+}
+
+// PeerAuthenticationPoolConfig will hold the configuration for peer authentication pool
+type PeerAuthenticationPoolConfig struct {
+	DefaultSpanInSec int
+	CacheExpiryInSec int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage               StorageConfig
@@ -162,6 +190,7 @@ type Config struct {
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
 	Heartbeat           HeartbeatConfig
+	HeartbeatV2         HeartbeatV2Config
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
 	Consensus           ConsensusConfig

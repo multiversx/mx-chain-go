@@ -523,6 +523,12 @@ type TopicHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SignaturesHandler defines the behavior of a struct able to handle signatures
+type SignaturesHandler interface {
+	Verify(payload []byte, pid core.PeerID, signature []byte) error
+	IsInterfaceNil() bool
+}
+
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
@@ -548,6 +554,8 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
+	RequestPeerAuthenticationsChunk(destShardID uint32, chunkIndex uint32)
+	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -698,14 +706,21 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 type NetworkShardingCollector interface {
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
-	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	PutPeerIdShardId(pid core.PeerID, shardID uint32)
+	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
+	GetLastKnownPeerID(pk []byte) (*core.PeerID, bool)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -1119,6 +1134,7 @@ type CoreComponentsHolder interface {
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	HardforkTriggerPubKey() []byte
 	IsInterfaceNil() bool
 }
 
@@ -1130,6 +1146,7 @@ type CryptoComponentsHolder interface {
 	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
 	SetMultiSigner(ms crypto.MultiSigner) error
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
 	IsInterfaceNil() bool

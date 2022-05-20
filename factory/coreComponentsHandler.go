@@ -566,6 +566,18 @@ func (mcc *managedCoreComponents) ProcessStatusHandler() common.ProcessStatusHan
 	return mcc.coreComponents.processStatusHandler
 }
 
+// HardforkTriggerPubKey returns the hardfork source public key
+func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.hardforkTriggerPubKey
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil
@@ -573,5 +585,5 @@ func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (mcc *managedCoreComponents) String() string {
-	return "managedCoreComponents"
+	return coreComponentsName
 }
