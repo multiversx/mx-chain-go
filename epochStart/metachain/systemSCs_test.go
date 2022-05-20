@@ -1802,7 +1802,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 6}})
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 8}})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             args.ShardCoordinator,
 		StakingDataProvider:          args.StakingDataProvider,

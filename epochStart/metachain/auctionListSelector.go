@@ -135,16 +135,16 @@ func (als *auctionListSelector) getAuctionListAndNumOfValidators(
 			return nil, 0, err
 		}
 
-		_, isUnqualified := unqualifiedOwners[owner]
-		if isUnqualified {
-			log.Debug("auctionListSelector: found unqualified owner, do not add validator in auction selection",
-				"owner", hex.EncodeToString([]byte(owner)),
-				"bls key", hex.EncodeToString(validator.GetPublicKey()),
-			)
-			continue
-		}
+		if isInAuction(validator) {
+			_, isUnqualified := unqualifiedOwners[owner]
+			if isUnqualified {
+				log.Debug("auctionListSelector: found node in auction with unqualified owner, do not add it to selection",
+					"owner", owner,
+					"bls key", string(validator.GetPublicKey()),
+				)
+				continue
+			}
 
-		if validator.GetList() == string(common.AuctionList) {
 			auctionList = append(auctionList, validator)
 			continue
 		}
@@ -154,6 +154,10 @@ func (als *auctionListSelector) getAuctionListAndNumOfValidators(
 	}
 
 	return auctionList, numOfValidators, nil
+}
+
+func isInAuction(validator state.ValidatorInfoHandler) bool {
+	return validator.GetList() == string(common.AuctionList)
 }
 
 type ownerData struct {
@@ -180,7 +184,11 @@ func (als *auctionListSelector) getOwnersData(auctionList []state.ValidatorInfoH
 		}
 
 		if stakedNodes == 0 {
-			return nil, process.ErrNodeIsNotSynced
+			return nil, fmt.Errorf("auctionListSelector.getOwnersDat: error: %w, owner: %s, node: %s",
+				epochStart.ErrOwnerHasNoStakedNode,
+				hex.EncodeToString([]byte(owner)),
+				hex.EncodeToString(node.GetPublicKey()),
+			)
 		}
 
 		totalTopUp, err := als.stakingDataProvider.GetTotalTopUp([]byte(owner))
@@ -194,12 +202,13 @@ func (als *auctionListSelector) getOwnersData(auctionList []state.ValidatorInfoH
 			data.activeNodes--
 			data.auctionList = append(data.auctionList, node)
 		} else {
+			stakedNodesBigInt := big.NewInt(stakedNodes)
 			ownersData[owner] = &ownerData{
 				auctionNodes: 1,
 				activeNodes:  stakedNodes - 1,
 				stakedNodes:  stakedNodes,
 				totalTopUp:   big.NewInt(0).SetBytes(totalTopUp.Bytes()),
-				topUpPerNode: big.NewInt(0).Div(totalTopUp, big.NewInt(stakedNodes)),
+				topUpPerNode: big.NewInt(0).Div(totalTopUp, stakedNodesBigInt),
 				auctionList:  []state.ValidatorInfoHandler{node},
 			}
 		}
