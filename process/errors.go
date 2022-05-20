@@ -1082,3 +1082,6 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 
 // ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
 var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
+
+// ErrMetaHeaderEpochOutOfRange signals that the given header is out of accepted range
+var ErrMetaHeaderEpochOutOfRange = errors.New("epoch out of range for meta block header")
