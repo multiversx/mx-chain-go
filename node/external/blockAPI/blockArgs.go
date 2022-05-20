@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ArgAPIBlockProcessor is structure that store components that are needed to create an api block processor
@@ -21,4 +22,5 @@ type ArgAPIBlockProcessor struct {
 	StatusComputer           transaction.StatusComputerHandler
 	Hasher                   hashing.Hasher
 	AddressPubkeyConverter   core.PubkeyConverter
+	TxTypeHandler            process.TxTypeHandler
 }

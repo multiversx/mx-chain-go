@@ -189,18 +189,19 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		StorageService:           args.DataComponents.StorageService(),
 		DataPool:                 args.DataComponents.Datapool(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		TxTypeHandler:            txTypeHandler,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
 		return nil, err
 	}
 
-	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor)
+	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor, txTypeHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor)
+	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor, txTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -432,8 +433,12 @@ func createBuiltinFuncs(
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }
 
-func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
-	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+func createAPIBlockProcessor(
+	args *ApiResolverArgs,
+	apiTransactionHandler external.APITransactionHandler,
+	txTypeHandler process.TxTypeHandler,
+) (blockAPI.APIBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler, txTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -441,8 +446,12 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
 }
 
-func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIInternalBlockHandler, error) {
-	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+func createAPIInternalBlockProcessor(
+	args *ApiResolverArgs,
+	apiTransactionHandler external.APITransactionHandler,
+	txTypeHandler process.TxTypeHandler,
+) (blockAPI.APIInternalBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler, txTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +459,11 @@ func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandle
 	return blockAPI.CreateAPIInternalBlockProcessor(blockApiArgs)
 }
 
-func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
+func createAPIBlockProcessorArgs(
+	args *ApiResolverArgs,
+	apiTransactionHandler external.APITransactionHandler,
+	txTypeHandler process.TxTypeHandler,
+) (*blockAPI.ArgAPIBlockProcessor, error) {
 	statusComputer, err := txstatus.NewStatusComputer(
 		args.ProcessComponents.ShardCoordinator().SelfId(),
 		args.CoreComponents.Uint64ByteSliceConverter(),
@@ -470,6 +483,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		StatusComputer:           statusComputer,
 		AddressPubkeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		Hasher:                   args.CoreComponents.Hasher(),
+		TxTypeHandler:            txTypeHandler,
 	}
 
 	return blockApiArgs, nil

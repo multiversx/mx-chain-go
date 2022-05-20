@@ -42,6 +42,7 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		StorageService:           &mock.ChainStorerMock{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 }
 
@@ -123,6 +124,16 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilUint64Converter, err)
+	})
+
+	t.Run("NilTxTypeHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.TxTypeHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilTxTypeHandler, err)
 	})
 }
 
@@ -355,6 +366,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		StorageService:           chainStorer,
 		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -615,6 +627,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		StorageService:           chainStorer,
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

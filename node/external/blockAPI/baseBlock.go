@@ -19,6 +19,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockStatus is the status of a block
@@ -43,6 +44,7 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	txUnmarshaller           TransactionUnmarshaller
+	txTypeHandler            process.TxTypeHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -209,6 +211,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
+		// aici pun
 
 		// TODO : should check if tx is reward reverted
 		tx.Status, _ = bap.txStatusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
