@@ -209,7 +209,6 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
-		// aici pun
 
 		// TODO : should check if tx is reward reverted
 		tx.Status, _ = bap.txStatusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
