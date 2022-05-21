@@ -13,10 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
 	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go-core/data"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -747,4 +749,60 @@ func getTime(t *testing.T, timestamp string) time.Time {
 	tm := time.Unix(i, 0)
 
 	return tm
+}
+
+func TestApiTransactionProcessor_GetTransactionPopulatesProcessingTypeFields(t *testing.T) {
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+	txTypeHandler := &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCDeployment
+		},
+	}
+
+	arguments := createMockArgAPIBlockProcessor()
+	arguments.DataPool = dataPool
+	arguments.TxTypeHandler = txTypeHandler
+
+	processor, err := NewAPITransactionProcessor(arguments)
+	require.Nil(t, err)
+	require.NotNil(t, processor)
+
+	// Normal transaction
+	dataPool.Transactions().AddData([]byte{0, 0}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+	firstTx, err := processor.GetTransaction("0000", true)
+	require.Nil(t, err)
+	require.Equal(t, process.MoveBalance.String(), firstTx.ProcessingTypeOnSource)
+	require.Equal(t, process.SCDeployment.String(), firstTx.ProcessingTypeOnDestination)
+
+	// Unsigned transaction
+	dataPool.UnsignedTransactions().AddData([]byte{0, 1}, &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "foo")
+	secondTx, err := processor.GetTransaction("0001", true)
+	require.Nil(t, err)
+	require.Equal(t, process.MoveBalance.String(), secondTx.ProcessingTypeOnSource)
+	require.Equal(t, process.SCDeployment.String(), secondTx.ProcessingTypeOnDestination)
+}
+
+func TestApiTransactionProcessor_UnmarshalTransactionPopulatesProcessingTypeFields(t *testing.T) {
+	txTypeHandler := &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCInvoking
+		},
+	}
+
+	arguments := createMockArgAPIBlockProcessor()
+	arguments.Marshalizer, _ = marshalizerFactory.NewMarshalizer("gogo protobuf")
+	arguments.TxTypeHandler = txTypeHandler
+
+	processor, err := NewAPITransactionProcessor(arguments)
+	require.Nil(t, err)
+	require.NotNil(t, processor)
+
+	txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")
+	require.Nil(t, err)
+
+	tx, err := processor.UnmarshalTransaction(txBytes, transaction.TxTypeNormal)
+	require.Nil(t, err)
+	require.NotNil(t, tx)
+	require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+	require.Equal(t, process.SCInvoking.String(), tx.ProcessingTypeOnDestination)
 }
