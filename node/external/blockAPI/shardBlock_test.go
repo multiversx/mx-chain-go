@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +46,6 @@ func createMockShardAPIProcessor(
 				return withHistory
 			},
 		},
-		TxTypeHandler: &testscommon.TxTypeHandlerMock{},
 	}, nil)
 }
 

@@ -19,7 +19,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockStatus is the status of a block
@@ -44,7 +43,6 @@ type baseAPIBlockProcessor struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	txStatusComputer         transaction.StatusComputerHandler
 	txUnmarshaller           TransactionUnmarshaller
-	txTypeHandler            process.TxTypeHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
