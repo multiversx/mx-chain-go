@@ -373,14 +373,16 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
 	expectedTx := &transaction.ApiTransactionResult{
-		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
-		Nonce:         tx.Nonce,
-		Receiver:      hex.EncodeToString(tx.RcvAddr),
-		Sender:        hex.EncodeToString(tx.SndAddr),
-		Status:        transaction.TxStatusSuccess,
-		MiniBlockType: block.TxBlock.String(),
-		Type:          "normal",
-		Value:         "<nil>",
+		Tx:                          &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
+		ProcessingTypeOnSource:      process.MoveBalance.String(),
+		ProcessingTypeOnDestination: process.MoveBalance.String(),
+		Nonce:                       tx.Nonce,
+		Receiver:                    hex.EncodeToString(tx.RcvAddr),
+		Sender:                      hex.EncodeToString(tx.SndAddr),
+		Status:                      transaction.TxStatusSuccess,
+		MiniBlockType:               block.TxBlock.String(),
+		Type:                        "normal",
+		Value:                       "<nil>",
 		SmartContractResults: []*transaction.ApiSmartContractResult{
 			{
 				Hash:           hex.EncodeToString(scResultHash),
