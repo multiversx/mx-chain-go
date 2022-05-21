@@ -79,6 +79,17 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		return nil, err
 	}
 
+	tx, err := atp.doGetTransaction(hash, withResults)
+	if err != nil {
+		return nil, err
+	}
+
+	atp.populateProcessingTypeFields(tx)
+
+	return tx, nil
+}
+
+func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	tx, err := atp.optionallyGetTransactionFromPool(hash)
 	if err != nil {
 		return nil, err
@@ -92,6 +103,12 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	return atp.getTransactionFromStorage(hash)
+}
+
+func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction.ApiTransactionResult) {
+	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	tx.ProcessingTypeOnSource = typeOnSource.String()
+	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
@@ -331,7 +348,14 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
 func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	return atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	if err != nil {
+		return nil, err
+	}
+
+	atp.populateProcessingTypeFields(tx)
+
+	return tx, nil
 }
 
 // UnmarshalReceipt will try to unmarshal the provided receipts bytes
