@@ -62,6 +62,7 @@ import (
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/trie"
@@ -1049,6 +1050,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ArgsParser:       smartContract.NewArgumentParser(),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:  &guardianMocks.GuardianCheckerStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

@@ -21,9 +21,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
@@ -88,6 +89,8 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		GuardianChecker:  &guardianMocks.GuardianCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }

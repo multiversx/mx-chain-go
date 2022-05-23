@@ -13,9 +13,10 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -34,6 +35,8 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
 		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		GuardianChecker:  &guardianMocks.GuardianCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }

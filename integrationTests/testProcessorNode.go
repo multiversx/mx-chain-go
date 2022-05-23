@@ -92,6 +92,7 @@ import (
 	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
@@ -294,6 +295,7 @@ type TestProcessorNode struct {
 	MultiSigner             crypto.MultiSigner
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	GuardedAccountHandler   process.GuardedAccountHandler
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
@@ -415,6 +417,7 @@ func newBaseTestProcessorNode(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -599,6 +602,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -830,6 +834,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		GuardedAccountHandler:      tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1195,6 +1200,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: tpn.RoundHandler.TimeStamp(),
@@ -1236,6 +1243,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			RequestHandler:          tpn.RequestHandler,
+			GuardianSigVerifier:     bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1292,6 +1300,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			RequestHandler:          tpn.RequestHandler,
+			GuardianSigVerifier:     bootstrapComponents.GuardianSigVerifierField,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -1418,6 +1427,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		GuardedAccountHandler:      tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 
@@ -1534,6 +1544,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:                  tpn.EpochNotifier,
 		RelayedTxEnableEpoch:           tpn.EnableEpochs.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
+		GuardianChecker:                &guardianMocks.GuardianCheckerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -1635,6 +1647,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator:           tpn.ShardCoordinator,
 		EpochNotifier:              tpn.EpochNotifier,
 		GlobalMintBurnDisableEpoch: tpn.EnableEpochs.GlobalMintBurnDisableEpoch,
+		GuardedAccountHandler:      tpn.GuardedAccountHandler,
 	}
 	builtInFuncs, nftStorageHandler, _ := builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
@@ -1776,6 +1789,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ESDTEnableEpoch:                       0,
 		EpochNotifier:                         tpn.EpochNotifier,
 		BuiltInFunctionOnMetachainEnableEpoch: tpn.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch,
+		GuardianChecker:                       &guardianMocks.GuardianCheckerStub{},
+		TxVersionChecker:                      &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(
@@ -2317,6 +2332,8 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		string(tx.ChainID),
 		tx.Version,
 		tx.Options,
+		TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
+		hex.EncodeToString(tx.GuardianSignature),
 	)
 	if err != nil {
 		return "", err
@@ -3049,12 +3066,14 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
-		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
-		NodeRole:             "",
-		ShCoordinator:        shardCoordinator,
-		HdrVersionHandler:    headerVersionHandler,
-		VersionedHdrFactory:  versionedHeaderFactory,
-		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		BootstrapParams:            &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:                   "",
+		ShCoordinator:              shardCoordinator,
+		HdrVersionHandler:          headerVersionHandler,
+		VersionedHdrFactory:        versionedHeaderFactory,
+		HdrIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		GuardianSigVerifierField:   &guardianMocks.GuardianSigVerifierStub{},
+		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }
 

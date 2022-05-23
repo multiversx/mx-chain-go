@@ -463,3 +463,6 @@ var ErrContextClosing = errors.New("context closing")
 
 // ErrNilTxsSender signals that a nil transactions sender has been provided
 var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
+
+// ErrNilGuardianSigVerifier signals that a nil guardian signature verifier was provided
+var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")

@@ -1243,31 +1243,31 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:            pcf.coreData,
-		CryptoComponents:          pcf.crypto,
-		Accounts:                  pcf.state.AccountsAdapter(),
-		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:          pcf.nodesCoordinator,
-		Messenger:                 pcf.network.NetworkMessenger(),
-		Store:                     pcf.data.StorageService(),
-		DataPool:                  pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:              pcf.coreData.EconomicsData(),
-		BlockBlackList:            headerBlackList,
-		HeaderSigVerifier:         headerSigVerifier,
-		HeaderIntegrityVerifier:   headerIntegrityVerifier,
-		ValidityAttester:          validityAttester,
-		EpochStartTrigger:         epochStartTrigger,
-		WhiteListHandler:          pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:    pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
-		ArgumentsParser:           smartContract.NewArgumentParser(),
-		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
-		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
-		RequestHandler:            requestHandler,
+		CoreComponents:          pcf.coreData,
+		CryptoComponents:        pcf.crypto,
+		Accounts:                pcf.state.AccountsAdapter(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:        pcf.nodesCoordinator,
+		Messenger:               pcf.network.NetworkMessenger(),
+		Store:                   pcf.data.StorageService(),
+		DataPool:                pcf.data.Datapool(),
+		MaxTxNonceDeltaAllowed:  common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            pcf.coreData.EconomicsData(),
+		BlockBlackList:          headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:         smartContract.NewArgumentParser(),
+		SizeCheckDelta:          pcf.config.Marshalizer.SizeCheckDelta,
+		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		PreferredPeersHolder:    pcf.network.PreferredPeersHolderHandler(),
+		RequestHandler:          requestHandler,
+		GuardianSigVerifier:     pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
-	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1286,31 +1286,31 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:            pcf.coreData,
-		CryptoComponents:          pcf.crypto,
-		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:          pcf.nodesCoordinator,
-		Messenger:                 pcf.network.NetworkMessenger(),
-		Store:                     pcf.data.StorageService(),
-		DataPool:                  pcf.data.Datapool(),
-		Accounts:                  pcf.state.AccountsAdapter(),
-		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:              pcf.coreData.EconomicsData(),
-		BlockBlackList:            headerBlackList,
-		HeaderSigVerifier:         headerSigVerifier,
-		HeaderIntegrityVerifier:   headerIntegrityVerifier,
-		ValidityAttester:          validityAttester,
-		EpochStartTrigger:         epochStartTrigger,
-		WhiteListHandler:          pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:    pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
-		ArgumentsParser:           smartContract.NewArgumentParser(),
-		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
-		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
-		RequestHandler:            requestHandler,
+		CoreComponents:          pcf.coreData,
+		CryptoComponents:        pcf.crypto,
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:        pcf.nodesCoordinator,
+		Messenger:               pcf.network.NetworkMessenger(),
+		Store:                   pcf.data.StorageService(),
+		DataPool:                pcf.data.Datapool(),
+		Accounts:                pcf.state.AccountsAdapter(),
+		MaxTxNonceDeltaAllowed:  common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            pcf.coreData.EconomicsData(),
+		BlockBlackList:          headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:         smartContract.NewArgumentParser(),
+		SizeCheckDelta:          pcf.config.Marshalizer.SizeCheckDelta,
+		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		PreferredPeersHolder:    pcf.network.PreferredPeersHolderHandler(),
+		RequestHandler:          requestHandler,
+		GuardianSigVerifier:     pcf.bootstrapComponents.GuardianSigVerifier(),
 	}
-	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1481,6 +1481,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusComponentsHolder)
+	}
+	if check.IfNil(args.BootstrapComponents.GuardianSigVerifier()){
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGuardianSigVerifier)
 	}
 
 	return nil

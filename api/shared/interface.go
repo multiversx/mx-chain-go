@@ -92,7 +92,7 @@ type FacadeHandler interface {
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32, guardian string, guardianSigHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)

@@ -62,6 +62,7 @@ func createMockArgument(
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
 			Chain:               "chainID",
+			TxVersionCheck:      &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:        1,
 		},
 		Data: &mock.DataComponentsMock{

@@ -331,3 +331,6 @@ var ErrNilScheduledTxsHandler = errors.New("nil scheduled transactions handler")
 
 // ErrNilScheduledDataSyncerFactory signals that a nil scheduled data syncer factory was provided
 var ErrNilScheduledDataSyncerFactory = errors.New("nil scheduled data syncer factory")
+
+// ErrNilGuardianSigVerifier signals that a nil guardian signature verifier was provided
+var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")

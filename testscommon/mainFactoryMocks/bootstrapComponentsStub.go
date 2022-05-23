@@ -18,6 +18,8 @@ type BootstrapComponentsStub struct {
 	VersionedHdrFactory         nodeFactory.VersionedHeaderFactory
 	HdrIntegrityVerifier        nodeFactory.HeaderIntegrityVerifierHandler
 	RoundActivationHandlerField process.RoundActivationHandler
+	GuardedAccountHandlerField  process.GuardedAccountHandler
+	GuardianSigVerifierField    process.GuardianSigVerifier
 }
 
 // Create -
@@ -73,6 +75,16 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 // RoundActivationHandler -
 func (bcs *BootstrapComponentsStub) RoundActivationHandler() process.RoundActivationHandler {
 	return bcs.RoundActivationHandlerField
+}
+
+// GuardianSigVerifier -
+func (bcs *BootstrapComponentsStub) GuardianSigVerifier() process.GuardianSigVerifier {
+	return bcs.GuardianSigVerifierField
+}
+
+// GuardedAccountHandler -
+func (bcs *BootstrapComponentsStub) GuardedAccountHandler() process.GuardedAccountHandler {
+	return bcs.GuardedAccountHandlerField
 }
 
 // String -

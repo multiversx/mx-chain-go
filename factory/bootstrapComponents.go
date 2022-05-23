@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/guardedtx"
+	"github.com/ElrondNetwork/elrond-go/process/guardian"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/roundActivation"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -24,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-// BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
+// BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	EpochConfig       config.EpochConfig
@@ -58,6 +60,8 @@ type bootstrapComponents struct {
 	versionedHeaderFactory  factory.VersionedHeaderFactory
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 	roundActivationHandler  process.RoundActivationHandler
+	guardedAccountHandler   process.GuardedAccountHandler
+	guardianSigVerifier     process.GuardianSigVerifier
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -160,6 +164,16 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
+	guardedAccountHandler, err := guardian.NewGuardedAccount(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier())
+	if err != nil {
+		return nil, err
+	}
+
+	guardianSigVerifier, err := bcf.newGuardianSigVerifier(guardedAccountHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -181,6 +195,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
+		GuardianSigVerifier:        guardianSigVerifier,
 	}
 
 	var epochStartBootstrapper EpochStartBootstrapper
@@ -245,7 +260,21 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
 		roundActivationHandler:  roundActivationHandler,
+		guardianSigVerifier:     guardianSigVerifier,
+		guardedAccountHandler:   guardedAccountHandler,
 	}, nil
+}
+
+func (bcf *bootstrapComponentsFactory) newGuardianSigVerifier(guardedAccountHandler process.GuardedAccountHandler) (process.GuardianSigVerifier, error) {
+	argGuardianSigVerifier := guardedtx.GuardedTxSigVerifierArgs{
+		SigVerifier:     bcf.cryptoComponents.TxSingleSigner(),
+		GuardianChecker: guardedAccountHandler,
+		PubKeyConverter: bcf.coreComponents.AddressPubKeyConverter(),
+		Marshaller:      bcf.coreComponents.InternalMarshalizer(),
+		KeyGen:          bcf.cryptoComponents.TxSignKeyGen(),
+	}
+
+	return guardedtx.NewGuardedTxSigVerifier(argGuardianSigVerifier)
 }
 
 func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler factory.HeaderVersionHandler, shardID uint32) (factory.VersionedHeaderFactory, error) {

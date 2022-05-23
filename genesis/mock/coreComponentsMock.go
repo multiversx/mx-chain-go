@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // CoreComponentsMock -
@@ -18,6 +19,7 @@ type CoreComponentsMock struct {
 	Chain               string
 	MinTxVersion        uint32
 	StatHandler         core.AppStatusHandler
+	TxVersionCheck      process.TxVersionCheckerHandler
 }
 
 // InternalMarshalizer -
@@ -58,6 +60,11 @@ func (ccm *CoreComponentsMock) ChainID() string {
 // MinTransactionVersion -
 func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 	return ccm.MinTxVersion
+}
+
+// TxVersionChecker -
+func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
+	return ccm.TxVersionCheck
 }
 
 // IsInterfaceNil -

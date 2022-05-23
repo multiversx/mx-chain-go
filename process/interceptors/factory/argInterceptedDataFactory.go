@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -39,16 +40,17 @@ type interceptedDataCryptoComponentsHolder interface {
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	CoreComponents            interceptedDataCoreComponentsHolder
-	CryptoComponents          interceptedDataCryptoComponentsHolder
-	ShardCoordinator          sharding.Coordinator
-	NodesCoordinator          sharding.NodesCoordinator
-	FeeHandler                process.FeeHandler
-	WhiteListerVerifiedTxs    process.WhiteListHandler
-	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
-	ValidityAttester          process.ValidityAttester
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	EpochStartTrigger         process.EpochStartTriggerHandler
-	ArgsParser                process.ArgumentsParser
-	EnableSignTxWithHashEpoch uint32
+	CoreComponents          interceptedDataCoreComponentsHolder
+	CryptoComponents        interceptedDataCryptoComponentsHolder
+	ShardCoordinator        sharding.Coordinator
+	NodesCoordinator        sharding.NodesCoordinator
+	FeeHandler              process.FeeHandler
+	WhiteListerVerifiedTxs  process.WhiteListHandler
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	ValidityAttester        process.ValidityAttester
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	EpochStartTrigger       process.EpochStartTriggerHandler
+	ArgsParser              process.ArgumentsParser
+	EnableEpochs            config.EnableEpochs
+	GuardianSigVerifier     process.GuardianSigVerifier
 }

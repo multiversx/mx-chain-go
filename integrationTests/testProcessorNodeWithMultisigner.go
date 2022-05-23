@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
@@ -68,6 +69,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
 		Bootstrapper:            mock.NewTestBootstrapperMock(),
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
@@ -254,6 +256,7 @@ func CreateNodeWithBLSAndTxKeys(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)

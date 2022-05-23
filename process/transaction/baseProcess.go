@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type baseTxProcessor struct {
@@ -25,6 +26,8 @@ type baseTxProcessor struct {
 	marshalizer             marshal.Marshalizer
 	scProcessor             process.SmartContractProcessor
 	flagPenalizedTooMuchGas atomic.Flag
+	txVersionChecker        process.TxVersionCheckerHandler
+	guardianChecker         process.GuardianChecker
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -202,7 +205,7 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 }
 
 // VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error {
+func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
@@ -213,4 +216,33 @@ func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error 
 	}
 
 	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
+}
+
+func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
+	if check.IfNil(account) {
+		return nil
+	}
+	if !account.IsFrozen() {
+		return nil
+	}
+
+	if !txProc.txVersionChecker.IsGuardedTransaction(tx) {
+		return nil
+	}
+
+	acc, ok := account.(vmcommon.UserAccountHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	guardian, err := txProc.guardianChecker.GetActiveGuardian(acc)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(guardian, tx.GuardianAddr) {
+		return process.ErrTransactionAndAccountGuardianMismatch
+	}
+
+	return nil
 }

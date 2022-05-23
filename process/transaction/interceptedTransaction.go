@@ -42,6 +42,7 @@ type InterceptedTransaction struct {
 	sndShard               uint32
 	isForCurrentShard      bool
 	enableSignedTxWithHash bool
+	guardianPubKey         []byte
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction

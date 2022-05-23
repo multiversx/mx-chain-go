@@ -50,34 +50,36 @@ type ApiResolverArgs struct {
 }
 
 type scQueryServiceArgs struct {
-	generalConfig       *config.Config
-	epochConfig         *config.EpochConfig
-	coreComponents      CoreComponentsHolder
-	stateComponents     StateComponentsHolder
-	dataComponents      DataComponentsHolder
-	processComponents   ProcessComponentsHolder
-	gasScheduleNotifier core.GasScheduleNotifier
-	messageSigVerifier  vm.MessageSignVerifier
-	systemSCConfig      *config.SystemSmartContractsConfig
-	bootstrapper        process.Bootstrapper
-	allowVMQueriesChan  chan struct{}
-	workingDir          string
+	generalConfig         *config.Config
+	epochConfig           *config.EpochConfig
+	coreComponents        CoreComponentsHolder
+	stateComponents       StateComponentsHolder
+	dataComponents        DataComponentsHolder
+	processComponents     ProcessComponentsHolder
+	gasScheduleNotifier   core.GasScheduleNotifier
+	messageSigVerifier    vm.MessageSignVerifier
+	systemSCConfig        *config.SystemSmartContractsConfig
+	bootstrapper          process.Bootstrapper
+	guardedAccountHandler process.GuardedAccountHandler
+	allowVMQueriesChan    chan struct{}
+	workingDir            string
 }
 
 type scQueryElementArgs struct {
-	generalConfig       *config.Config
-	epochConfig         *config.EpochConfig
-	coreComponents      CoreComponentsHolder
-	stateComponents     StateComponentsHolder
-	dataComponents      DataComponentsHolder
-	processComponents   ProcessComponentsHolder
-	gasScheduleNotifier core.GasScheduleNotifier
-	messageSigVerifier  vm.MessageSignVerifier
-	systemSCConfig      *config.SystemSmartContractsConfig
-	bootstrapper        process.Bootstrapper
-	allowVMQueriesChan  chan struct{}
-	workingDir          string
-	index               int
+	generalConfig         *config.Config
+	epochConfig           *config.EpochConfig
+	coreComponents        CoreComponentsHolder
+	stateComponents       StateComponentsHolder
+	dataComponents        DataComponentsHolder
+	processComponents     ProcessComponentsHolder
+	gasScheduleNotifier   core.GasScheduleNotifier
+	messageSigVerifier    vm.MessageSignVerifier
+	systemSCConfig        *config.SystemSmartContractsConfig
+	bootstrapper          process.Bootstrapper
+	guardedAccountHandler process.GuardedAccountHandler
+	allowVMQueriesChan    chan struct{}
+	workingDir            string
+	index                 int
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -85,18 +87,19 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
-		generalConfig:       args.Configs.GeneralConfig,
-		epochConfig:         args.Configs.EpochConfig,
-		coreComponents:      args.CoreComponents,
-		dataComponents:      args.DataComponents,
-		stateComponents:     args.StateComponents,
-		processComponents:   args.ProcessComponents,
-		gasScheduleNotifier: args.GasScheduleNotifier,
-		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
-		systemSCConfig:      args.Configs.SystemSCConfig,
-		bootstrapper:        args.Bootstrapper,
-		allowVMQueriesChan:  args.AllowVMQueriesChan,
-		workingDir:          apiWorkingDir,
+		generalConfig:         args.Configs.GeneralConfig,
+		epochConfig:           args.Configs.EpochConfig,
+		coreComponents:        args.CoreComponents,
+		dataComponents:        args.DataComponents,
+		stateComponents:       args.StateComponents,
+		processComponents:     args.ProcessComponents,
+		gasScheduleNotifier:   args.GasScheduleNotifier,
+		messageSigVerifier:    args.CryptoComponents.MessageSignVerifier(),
+		systemSCConfig:        args.Configs.SystemSCConfig,
+		bootstrapper:          args.Bootstrapper,
+		guardedAccountHandler: args.BootstrapComponents.GuardedAccountHandler(),
+		allowVMQueriesChan:    args.AllowVMQueriesChan,
+		workingDir:            apiWorkingDir,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -110,6 +113,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.StateComponents.AccountsAdapterAPI(),
 		args.BootstrapComponents.ShardCoordinator(),
 		args.CoreComponents.EpochNotifier(),
+		args.BootstrapComponents.GuardedAccountHandler(),
 		args.Configs.EpochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.Configs.EpochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
@@ -220,19 +224,20 @@ func createScQueryService(
 	}
 
 	argsQueryElem := &scQueryElementArgs{
-		generalConfig:       args.generalConfig,
-		epochConfig:         args.epochConfig,
-		coreComponents:      args.coreComponents,
-		dataComponents:      args.dataComponents,
-		stateComponents:     args.stateComponents,
-		processComponents:   args.processComponents,
-		gasScheduleNotifier: args.gasScheduleNotifier,
-		messageSigVerifier:  args.messageSigVerifier,
-		systemSCConfig:      args.systemSCConfig,
-		workingDir:          args.workingDir,
-		bootstrapper:        args.bootstrapper,
-		allowVMQueriesChan:  args.allowVMQueriesChan,
-		index:               0,
+		generalConfig:         args.generalConfig,
+		epochConfig:           args.epochConfig,
+		coreComponents:        args.coreComponents,
+		dataComponents:        args.dataComponents,
+		stateComponents:       args.stateComponents,
+		processComponents:     args.processComponents,
+		gasScheduleNotifier:   args.gasScheduleNotifier,
+		messageSigVerifier:    args.messageSigVerifier,
+		systemSCConfig:        args.systemSCConfig,
+		workingDir:            args.workingDir,
+		bootstrapper:          args.bootstrapper,
+		guardedAccountHandler: args.guardedAccountHandler,
+		allowVMQueriesChan:    args.allowVMQueriesChan,
+		index:                 0,
 	}
 
 	var err error
@@ -269,6 +274,7 @@ func createScQueryElement(
 		args.stateComponents.AccountsAdapterAPI(),
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
+		args.guardedAccountHandler,
 		args.epochConfig.EnableEpochs.ESDTMultiTransferEnableEpoch,
 		args.epochConfig.EnableEpochs.GlobalMintBurnDisableEpoch,
 		args.epochConfig.EnableEpochs.ESDTTransferRoleEnableEpoch,
@@ -395,6 +401,7 @@ func createBuiltinFuncs(
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
+	guardedAccountHandler vmcommon.GuardedAccountHandler,
 	esdtMultiTransferEnableEpoch uint32,
 	esdtGlobalMintBurnDisableEpoch uint32,
 	esdtTransferRoleEnableEpoch uint32,
@@ -413,6 +420,7 @@ func createBuiltinFuncs(
 		GlobalMintBurnDisableEpoch:   esdtGlobalMintBurnDisableEpoch,
 		ESDTTransferMetaEnableEpoch:  transferToMetaEnableEpoch,
 		OptimizeNFTStoreEnableEpoch:  optimizeNFTStoreEnableEpoch,
+		GuardedAccountHandler:        guardedAccountHandler,
 	}
 	return builtInFunctions.CreateBuiltInFuncContainerAndNFTStorageHandler(argsBuiltIn)
 }

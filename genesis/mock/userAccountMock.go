@@ -139,3 +139,8 @@ func (uam *UserAccountMock) SetUserName(_ []byte) {
 func (uam *UserAccountMock) GetUserName() []byte {
 	return nil
 }
+
+// IsFrozen -
+func (uam *UserAccountMock) IsFrozen() bool {
+	return false
+}

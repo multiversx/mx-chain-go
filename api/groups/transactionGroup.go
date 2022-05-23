@@ -36,7 +36,7 @@ const (
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
 type transactionFacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32, guardian string, guardianSigHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
@@ -138,19 +138,21 @@ type MultipleTxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	Sender           string `form:"sender" json:"sender"`
-	Receiver         string `form:"receiver" json:"receiver"`
-	SenderUsername   []byte `json:"senderUsername,omitempty"`
-	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
-	Value            string `form:"value" json:"value"`
-	Data             []byte `form:"data" json:"data"`
-	Nonce            uint64 `form:"nonce" json:"nonce"`
-	GasPrice         uint64 `form:"gasPrice" json:"gasPrice"`
-	GasLimit         uint64 `form:"gasLimit" json:"gasLimit"`
-	Signature        string `form:"signature" json:"signature"`
-	ChainID          string `form:"chainID" json:"chainID"`
-	Version          uint32 `form:"version" json:"version"`
-	Options          uint32 `json:"options,omitempty"`
+	Sender            string `form:"sender" json:"sender"`
+	Receiver          string `form:"receiver" json:"receiver"`
+	SenderUsername    []byte `json:"senderUsername,omitempty"`
+	ReceiverUsername  []byte `json:"receiverUsername,omitempty"`
+	Value             string `form:"value" json:"value"`
+	Data              []byte `form:"data" json:"data"`
+	Nonce             uint64 `form:"nonce" json:"nonce"`
+	GasPrice          uint64 `form:"gasPrice" json:"gasPrice"`
+	GasLimit          uint64 `form:"gasLimit" json:"gasLimit"`
+	Signature         string `form:"signature" json:"signature"`
+	ChainID           string `form:"chainID" json:"chainID"`
+	Version           uint32 `form:"version" json:"version"`
+	Options           uint32 `json:"options,omitempty"`
+	GuardianAddr      string `json:"guardian,omitempty"`
+	GuardianSignature string `json:"guardianSignature,omitempty"`
 }
 
 // TxResponse represents the structure on which the response will be validated against
@@ -206,6 +208,8 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		gtx.ChainID,
 		gtx.Version,
 		gtx.Options,
+		gtx.GuardianAddr,
+		gtx.GuardianSignature,
 	)
 	if err != nil {
 		c.JSON(
@@ -286,6 +290,8 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		gtx.ChainID,
 		gtx.Version,
 		gtx.Options,
+		gtx.GuardianAddr,
+		gtx.GuardianSignature,
 	)
 	if err != nil {
 		c.JSON(
@@ -374,6 +380,8 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 			receivedTx.ChainID,
 			receivedTx.Version,
 			receivedTx.Options,
+			receivedTx.GuardianAddr,
+			receivedTx.GuardianSignature,
 		)
 		if err != nil {
 			continue
@@ -495,6 +503,8 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		gtx.ChainID,
 		gtx.Version,
 		gtx.Options,
+		gtx.GuardianAddr,
+		gtx.GuardianSignature,
 	)
 	if err != nil {
 		c.JSON(

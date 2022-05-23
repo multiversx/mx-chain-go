@@ -604,14 +604,17 @@ func (n *Node) commonTransactionValidation(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	whiteListRequest process.WhiteListHandler,
 	checkSignature bool,
-) (process.TxValidator, process.TxValidatorHandler, error) {
+) (process.TxValidator, process.InterceptedTransactionHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.stateComponents.AccountsAdapterAPI(),
 		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
+		n.bootstrapComponents.GuardianSigVerifier(),
+		n.coreComponents.TxVersionChecker(),
 		common.MaxTxNonceDeltaAllowed,
 	)
+
 	if err != nil {
 		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
 			"error", err)
@@ -687,6 +690,8 @@ func (n *Node) CreateTransaction(
 	chainID string,
 	version uint32,
 	options uint32,
+	guardian string,
+	guardianSigHex string,
 ) (*transaction.Transaction, []byte, error) {
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
@@ -704,11 +709,18 @@ func (n *Node) CreateTransaction(
 	if len(signatureHex) > n.addressSignatureHexSize {
 		return nil, nil, ErrInvalidSignatureLength
 	}
+	if len(guardianSigHex) > n.addressSignatureHexSize {
+		return nil, nil, fmt.Errorf("%w for guardian signature", ErrInvalidSignatureLength)
+	}
+
 	if uint32(len(receiver)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
 	}
 	if uint32(len(sender)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
+	}
+	if uint32(len(guardian)) > n.coreComponents.EncodedAddressLen() {
+		return nil, nil, fmt.Errorf("%w for guardian", ErrInvalidAddressLength)
 	}
 	if len(senderUsername) > core.MaxUserNameLength {
 		return nil, nil, ErrInvalidSenderUsernameLength
@@ -760,6 +772,13 @@ func (n *Node) CreateTransaction(
 		Options:     options,
 	}
 
+	if len(guardian) > 0 {
+		err = n.setTxGuardianData(guardian, guardianSigHex, tx)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	var txHash []byte
 	txHash, err = core.CalculateHash(n.coreComponents.InternalMarshalizer(), n.coreComponents.Hasher(), tx)
 	if err != nil {
@@ -767,6 +786,26 @@ func (n *Node) CreateTransaction(
 	}
 
 	return tx, txHash, nil
+}
+
+func (n *Node) setTxGuardianData(guardian string, guardianSigHex string, tx *transaction.Transaction) error {
+	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	guardianAddress, err := addrPubKeyConverter.Decode(guardian)
+	if err != nil {
+		return errors.New("could not create guardian address from provided param")
+	}
+	guardianSigBytes, err := hex.DecodeString(guardianSigHex)
+	if err != nil {
+		return errors.New("could not fetch guardian signature bytes")
+	}
+	if !tx.HasOptionGuardianSet() {
+		return errors.New("transaction has guardian but guardian option not set")
+	}
+
+	tx.GuardianAddr = guardianAddress
+	tx.GuardianSignature = guardianSigBytes
+
+	return nil
 }
 
 // GetAccount will return account details for a given address

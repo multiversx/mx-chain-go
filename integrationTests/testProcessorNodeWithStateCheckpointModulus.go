@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 )
 
 // NewTestProcessorNodeWithStateCheckpointModulus creates a new testNodeProcessor with custom state checkpoint modulus
@@ -78,6 +79,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor: logsProcessor,
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	tpn.NodesSetup = nodesSetup
 

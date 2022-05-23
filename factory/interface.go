@@ -425,6 +425,8 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	GuardianSigVerifier() process.GuardianSigVerifier
+	GuardedAccountHandler() process.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 

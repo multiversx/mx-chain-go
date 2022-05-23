@@ -24,22 +24,23 @@ const timeSpanForBadHeaders = time.Minute
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
-	CoreComponents            process.CoreComponentsHolder
-	CryptoComponents          process.CryptoComponentsHolder
-	Config                    config.Config
-	ShardCoordinator          sharding.Coordinator
-	Messenger                 process.TopicHandler
-	DataPool                  dataRetriever.PoolsHolder
-	WhiteListHandler          update.WhiteListHandler
-	WhiteListerVerifiedTxs    update.WhiteListHandler
-	AddressPubkeyConv         core.PubkeyConverter
-	NonceConverter            typeConverters.Uint64ByteSliceConverter
-	ChainID                   []byte
-	ArgumentsParser           process.ArgumentsParser
-	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
-	EnableSignTxWithHashEpoch uint32
-	EpochNotifier             process.EpochNotifier
-	RequestHandler            process.RequestHandler
+	CoreComponents          process.CoreComponentsHolder
+	CryptoComponents        process.CryptoComponentsHolder
+	Config                  config.Config
+	ShardCoordinator        sharding.Coordinator
+	Messenger               process.TopicHandler
+	DataPool                dataRetriever.PoolsHolder
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	AddressPubkeyConv       core.PubkeyConverter
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ChainID                 []byte
+	ArgumentsParser         process.ArgumentsParser
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	EnableEpochs            config.EnableEpochs
+	EpochNotifier           process.EpochNotifier
+	RequestHandler          process.RequestHandler
+	GuardianSigVerifier     process.GuardianSigVerifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -50,9 +51,11 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	if check.IfNil(args.CryptoComponents) {
 		return nil, epochStart.ErrNilCryptoComponentsHolder
 	}
-
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.GuardianSigVerifier) {
+		return nil, epochStart.ErrNilGuardianSigVerifier
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
@@ -73,29 +76,30 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:            args.CoreComponents,
-		CryptoComponents:          cryptoComponents,
-		ShardCoordinator:          args.ShardCoordinator,
-		NodesCoordinator:          nodesCoordinator,
-		Messenger:                 args.Messenger,
-		Store:                     storer,
-		DataPool:                  args.DataPool,
-		Accounts:                  accountsAdapter,
-		MaxTxNonceDeltaAllowed:    common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:              feeHandler,
-		BlockBlackList:            blackListHandler,
-		HeaderSigVerifier:         headerSigVerifier,
-		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		SizeCheckDelta:            uint32(sizeCheckDelta),
-		ValidityAttester:          validityAttester,
-		EpochStartTrigger:         epochStartTrigger,
-		WhiteListHandler:          args.WhiteListHandler,
-		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
-		AntifloodHandler:          antiFloodHandler,
-		ArgumentsParser:           args.ArgumentsParser,
-		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		PreferredPeersHolder:      disabled.NewPreferredPeersHolder(),
-		RequestHandler:            args.RequestHandler,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        cryptoComponents,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               args.Messenger,
+		Store:                   storer,
+		DataPool:                args.DataPool,
+		Accounts:                accountsAdapter,
+		MaxTxNonceDeltaAllowed:  common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            feeHandler,
+		BlockBlackList:          blackListHandler,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		SizeCheckDelta:          uint32(sizeCheckDelta),
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        args.WhiteListHandler,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		AntifloodHandler:        antiFloodHandler,
+		ArgumentsParser:         args.ArgumentsParser,
+		EnableEpochs:            args.EnableEpochs,
+		PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
+		RequestHandler:          args.RequestHandler,
+		GuardianSigVerifier:     args.GuardianSigVerifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

@@ -63,7 +63,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	CheckTxValidity(txHandler TxValidatorHandler) error
+	CheckTxValidity(interceptedTx InterceptedTransactionHandler) error
 	CheckTxWhiteList(data InterceptedData) error
 	IsInterfaceNil() bool
 }
@@ -77,8 +77,20 @@ type TxValidatorHandler interface {
 	Fee() *big.Int
 }
 
+// InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
+// receiver and sender shard getters
+type InterceptedTransactionHandler interface {
+	SenderShardId() uint32
+	ReceiverShardId() uint32
+	Nonce() uint64
+	SenderAddress() []byte
+	Fee() *big.Int
+	Transaction() data.TransactionHandler
+}
+
 // TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
 type TxVersionCheckerHandler interface {
+	IsGuardedTransaction(tx *transaction.Transaction) bool
 	IsSignedWithHash(tx *transaction.Transaction) bool
 	CheckTxVersion(tx *transaction.Transaction) error
 	IsInterfaceNil() bool
@@ -497,7 +509,7 @@ type BlockChainHookHandler interface {
 	RevertToSnapshot(snapshot int) error
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
-	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsInterfaceNil() bool
 }
 
@@ -1184,6 +1196,30 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
 	IsMiniBlockExecuted(mbHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// ShardedPool is a perspective of the sharded data pool
+type ShardedPool interface {
+	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
+}
+
+// GuardianSigVerifier allows the verification of the guardian signatures for guarded transactions
+type GuardianSigVerifier interface {
+	VerifyGuardianSignature(account vmcommon.UserAccountHandler, inTx InterceptedTransactionHandler) error
+	IsInterfaceNil() bool
+}
+
+// GuardianChecker can check an account guardian
+type GuardianChecker interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// GuardedAccountHandler allows setting and getting the configured account guardian
+type GuardedAccountHandler interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error
 	IsInterfaceNil() bool
 }
 

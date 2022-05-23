@@ -56,6 +56,7 @@ func checkBaseParams(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	preferredPeersHolder process.PreferredPeersHolderHandler,
 	requestHandler process.RequestHandler,
+	guardianSigVerifier process.GuardianSigVerifier,
 ) error {
 	if check.IfNil(coreComponents) {
 		return process.ErrNilCoreComponentsHolder
@@ -138,6 +139,9 @@ func checkBaseParams(
 	if check.IfNil(requestHandler) {
 		return process.ErrNilRequestHandler
 	}
+	if check.IfNil(guardianSigVerifier) {
+		return process.ErrNilGuardianSigVerifier
+	}
 
 	return nil
 }
@@ -207,6 +211,8 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		bicf.shardCoordinator,
 		bicf.whiteListHandler,
 		addrPubKeyConverter,
+		bicf.argInterceptorFactory.GuardianSigVerifier,
+		bicf.argInterceptorFactory.CoreComponents.TxVersionChecker(),
 		bicf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {

@@ -1076,3 +1076,27 @@ var ErrNilDoubleTransactionsDetector = errors.New("nil double transactions detec
 
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
+
+// ErrNilGuardianChecker signals that a nil guardian checker was provided
+var ErrNilGuardianChecker = errors.New("nil guardian checker")
+
+// ErrNilGuardianPublicKey signals that a nil guardian public key was provided
+var ErrNilGuardianPublicKey = errors.New("nil guardian public key")
+
+// ErrNilGuardianSigVerifier signals that a nil signature verifier was provided
+var ErrNilGuardianSigVerifier = errors.New("nil guardian signature verifier")
+
+// ErrAccountHasNoGuardianSet signals that the account has no guardians set
+var ErrAccountHasNoGuardianSet = errors.New("account has no guardian set")
+
+// ErrActiveHasNoActiveGuardian signals that the account has no active guardian
+var ErrActiveHasNoActiveGuardian = errors.New("account has no active guardian")
+
+// ErrNilGuardedAccountHandler signals that a nil guarded account handler was provided
+var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")
+
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrTransactionAndAccountGuardianMismatch signals a mismatch between the guardian on the account and the one on the transaction
+var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between transaction guardian and configured account guardian")

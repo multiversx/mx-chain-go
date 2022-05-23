@@ -78,6 +78,8 @@ type ArgsNewTxProcessor struct {
 	MetaProtectionEnableEpoch             uint32
 	AddFailedRelayedToInvalidDisableEpoch uint32
 	EpochNotifier                         process.EpochNotifier
+	TxVersionChecker                      process.TxVersionCheckerHandler
+	GuardianChecker                       process.GuardianChecker
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -127,6 +129,12 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:         args.Accounts,
@@ -136,6 +144,8 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		scProcessor:      args.ScProcessor,
+		txVersionChecker: args.TxVersionChecker,
+		guardianChecker:  args.GuardianChecker,
 	}
 
 	txProc := &txProcessor{
@@ -171,6 +181,11 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	}
 
 	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	err = txProc.verifyGuardian(tx, acntSnd)
 	if err != nil {
 		return 0, err
 	}

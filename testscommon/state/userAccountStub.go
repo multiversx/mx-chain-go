@@ -15,6 +15,7 @@ type UserAccountStub struct {
 	Balance               *big.Int
 	AddToBalanceCalled    func(value *big.Int) error
 	DataTrieTrackerCalled func() state.DataTrieTracker
+	IsFrozenCalled        func() bool
 }
 
 // HasNewCode -
@@ -148,6 +149,14 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 		return u.DataTrieTrackerCalled()
 	}
 	return nil
+}
+
+// IsFrozen -
+func (u *UserAccountStub) IsFrozen() bool {
+	if u.IsFrozenCalled != nil {
+		return u.IsFrozenCalled()
+	}
+	return false
 }
 
 // IsInterfaceNil -

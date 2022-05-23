@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	disabledGuardian "github.com/ElrondNetwork/elrond-go/process/guardian/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	syncDisabled "github.com/ElrondNetwork/elrond-go/process/sync/disabled"
@@ -427,6 +428,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ESDTEnableEpoch:                       enableEpochs.ESDTEnableEpoch,
 		BuiltInFunctionOnMetachainEnableEpoch: enableEpochs.BuiltInFunctionOnMetaEnableEpoch,
 		EpochNotifier:                         epochNotifier,
+		TxVersionChecker:                      disabled.NewDisabledTxVersionChecker(),
+		GuardianChecker:                       disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {

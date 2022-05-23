@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
@@ -19,13 +20,14 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:          gasScheduleNotifier,
-		MapDNSAddresses:      make(map[string]struct{}),
-		EnableUserNameChange: false,
-		Marshalizer:          &mock.MarshalizerMock{},
-		Accounts:             &stateMock.AccountsStub{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
-		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		GasSchedule:           gasScheduleNotifier,
+		MapDNSAddresses:       make(map[string]struct{}),
+		EnableUserNameChange:  false,
+		Marshalizer:           &mock.MarshalizerMock{},
+		Accounts:              &stateMock.AccountsStub{},
+		ShardCoordinator:      mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return args
@@ -74,6 +76,8 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTAddUri"] = value
 	gasMap["ESDTNFTUpdateAttributes"] = value
 	gasMap["ESDTNFTMultiTransfer"] = value
+	gasMap["SetGuardian"] = value
+	gasMap["FreezeAccount"] = value
 
 	return gasMap
 }
@@ -96,7 +100,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, nftStorageHandler, err := CreateBuiltInFuncContainerAndNFTStorageHandler(args)
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 25)
+	assert.Equal(t, len(container.Keys()), 28)
 
 	err = vmcommonBuiltInFunctions.SetPayableHandler(container, &testscommon.BlockChainHookStub{})
 	assert.Nil(t, err)

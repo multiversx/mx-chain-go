@@ -28,7 +28,7 @@ type FacadeStub struct {
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32, guardian string, guardianSigHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
@@ -245,8 +245,10 @@ func (f *FacadeStub) CreateTransaction(
 	chainID string,
 	version uint32,
 	options uint32,
+	guardian string,
+	guardianSigHex string,
 ) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+	return f.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options, guardian, guardianSigHex)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method

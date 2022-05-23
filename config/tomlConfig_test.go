@@ -641,6 +641,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 52
 
+	# FreezeAccountFeatureEnableEpoch represents the epoch when freeze account feature is enabled
+	FreezeAccountFeatureEnableEpoch = 10
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -720,6 +723,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			StorageAPICostOptimizationEnableEpoch:       50,
 			TransformToMultiShardCreateEnableEpoch:      51,
 			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
+			FreezeAccountFeatureEnableEpoch:             10,
 		},
 		GasSchedule: GasScheduleConfig{
 			GasScheduleByEpochs: []GasScheduleByEpochs{

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon/guardianMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
 	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
@@ -577,5 +578,6 @@ func getArgumentsMeta(
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		RequestHandler:          &testscommon.RequestHandlerStub{},
+		GuardianSigVerifier:     &guardianMocks.GuardianSigVerifierStub{},
 	}
 }

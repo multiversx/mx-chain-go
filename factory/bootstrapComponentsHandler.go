@@ -117,6 +117,30 @@ func (mbf *managedBootstrapComponents) RoundActivationHandler() process.RoundAct
 	return mbf.bootstrapComponents.roundActivationHandler
 }
 
+// GuardianSigVerifier returns the guardian signature verifier
+func (mbf *managedBootstrapComponents) GuardianSigVerifier() process.GuardianSigVerifier {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.bootstrapComponents == nil {
+		return nil
+	}
+
+	return mbf.bootstrapComponents.guardianSigVerifier
+}
+
+// GuardedAccountHandler returns the guarded account handler
+func (mbf *managedBootstrapComponents) GuardedAccountHandler() process.GuardedAccountHandler {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.bootstrapComponents == nil {
+		return nil
+	}
+
+	return mbf.bootstrapComponents.guardedAccountHandler
+}
+
 // IsInterfaceNil returns true if the underlying object is nil
 func (mbf *managedBootstrapComponents) IsInterfaceNil() bool {
 	return mbf == nil
