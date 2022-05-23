@@ -26,7 +26,7 @@ type auctionListSelector struct {
 	nodesConfigProvider epochStart.MaxNodesChangeConfigProvider
 }
 
-// AuctionListSelectorArgs is a struct placeholder for all arguments required to create a NewAuctionListSelector
+// AuctionListSelectorArgs is a struct placeholder for all arguments required to create a auctionListSelector
 type AuctionListSelectorArgs struct {
 	ShardCoordinator             sharding.Coordinator
 	StakingDataProvider          epochStart.StakingDataProvider
@@ -68,9 +68,6 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return process.ErrNilRandSeed
 	}
 
-	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
-	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
-
 	ownersData, auctionListSize, currNumOfValidators, err := als.getAuctionDataAndNumOfValidators(validatorsInfoMap, unqualifiedOwners)
 	if err != nil {
 		return err
@@ -80,6 +77,8 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return nil
 	}
 
+	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
+	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("%v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
@@ -107,7 +106,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		"num of nodes which will be shuffled out", numOfShuffledNodes,
 		"num of validators after shuffling", numOfValidatorsAfterShuffling,
 		"auction list size", auctionListSize,
-		fmt.Sprintf("available slots (%v -%v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
+		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
 	als.displayOwnersConfig(ownersData)
