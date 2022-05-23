@@ -8,7 +8,6 @@ import (
 	"math"
 	"math/big"
 	"os"
-	"strings"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/v1_4/config"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -851,6 +851,14 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	stakingSCProvider, _ := NewStakingDataProvider(argsStakingDataProvider)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(en, nil)
+	argsAuctionListSelector := AuctionListSelectorArgs{
+		ShardCoordinator:             shardCoordinator,
+		StakingDataProvider:          stakingSCProvider,
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
+	}
+	als, _ := NewAuctionListSelector(argsAuctionListSelector)
+
 	args := ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
 		UserAccountsDB:          userAccountsDB,
@@ -864,6 +872,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		EpochNotifier:           en,
 		GenesisNodesConfig:      nodesSetup,
 		StakingDataProvider:     stakingSCProvider,
+		AuctionListSelector:     als,
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
@@ -882,6 +891,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				StakingV4EnableEpoch:     445,
 			},
 		},
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -1024,7 +1034,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 0, MaxNumNodes: 10}}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{EpochEnable: 0, MaxNumNodes: 10}})
+	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1072,8 +1083,9 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(10, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}})
 	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 10
+	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1783,81 +1795,18 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 	require.Equal(t, errProcessStakingData, err)
 }
 
-func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledErrSortingAuctionList(t *testing.T) {
-	t.Parallel()
-
-	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
-
-	errGetNodeTopUp := errors.New("error getting top up per node")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			switch string(blsKey) {
-			case "pubKey0", "pubKey1":
-				return nil, errGetNodeTopUp
-			default:
-				require.Fail(t, "should not call this func with other params")
-				return nil, nil
-			}
-		},
-	}
-
-	owner := []byte("owner")
-	ownerStakedKeys := [][]byte{[]byte("pubKey0"), []byte("pubKey1")}
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner, owner, ownerStakedKeys, big.NewInt(2000), args.Marshalizer)
-
-	validatorsInfo := state.NewShardValidatorsInfoMap()
-	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[0], common.AuctionList, owner, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(ownerStakedKeys[1], common.AuctionList, owner, 0))
-
-	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
-
-	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-	require.Error(t, err)
-	require.True(t, strings.Contains(err.Error(), errGetNodeTopUp.Error()))
-	require.True(t, strings.Contains(err.Error(), epochStart.ErrSortAuctionList.Error()))
-}
-
-func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4NotEnoughSlotsForAuctionNodes(t *testing.T) {
-	t.Parallel()
-
-	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 1}}
-
-	owner1 := []byte("owner1")
-	owner2 := []byte("owner2")
-
-	owner1StakedKeys := [][]byte{[]byte("pubKey0")}
-	owner2StakedKeys := [][]byte{[]byte("pubKey1")}
-
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(2000), args.Marshalizer)
-	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(2000), args.Marshalizer)
-
-	validatorsInfo := state.NewShardValidatorsInfoMap()
-
-	_ = validatorsInfo.Add(createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0))
-	_ = validatorsInfo.Add(createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0))
-
-	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
-	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-	require.Nil(t, err)
-
-	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
-		0: {
-			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
-			createValidatorInfo(owner2StakedKeys[0], common.AuctionList, owner2, 0),
-		},
-	}
-	require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
-}
-
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{MaxNumNodes: 6}}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 6}})
+	argsAuctionListSelector := AuctionListSelectorArgs{
+		ShardCoordinator:             args.ShardCoordinator,
+		StakingDataProvider:          args.StakingDataProvider,
+		MaxNodesChangeConfigProvider: nodesConfigProvider,
+	}
+	als, _ := NewAuctionListSelector(argsAuctionListSelector)
+	args.AuctionListSelector = als
 
 	owner1 := []byte("owner1")
 	owner2 := []byte("owner2")
@@ -1890,7 +1839,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	_ = validatorsInfo.Add(createValidatorInfo(owner4StakedKeys[1], common.AuctionList, owner4, 1))
 
 	s, _ := NewSystemSCProcessor(args)
-	s.EpochConfirmed(args.EpochConfig.EnableEpochs.StakingV4EnableEpoch, 0)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: args.EpochConfig.EnableEpochs.StakingV4EnableEpoch})
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{PrevRandSeed: []byte("pubKey7")})
 	require.Nil(t, err)
 
@@ -1965,80 +1914,74 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 		MaxNumNodes:            48,
 		NodesToShufflePerShard: 1,
 	}
-
-	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{
-		nodesConfigEpoch0,
-		nodesConfigEpoch1,
-		nodesConfigEpoch6,
-	}
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(
+		args.EpochNotifier,
+		[]config.MaxNodesChangeConfig{
+			nodesConfigEpoch0,
+			nodesConfigEpoch1,
+			nodesConfigEpoch6,
+		})
+	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 
 	validatorsInfoMap := state.NewShardValidatorsInfoMap()
 	s, _ := NewSystemSCProcessor(args)
 
-	s.EpochConfirmed(0, 0)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0, Nonce: 0})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err := s.processLegacy(validatorsInfoMap, 0, 0)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch0, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch0.MaxNumNodes, s.maxNodes)
 
-	s.EpochConfirmed(1, 1)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1, Nonce: 1})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 1, 1)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch1, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 
 	for epoch := uint32(2); epoch <= 5; epoch++ {
-		s.EpochConfirmed(epoch, uint64(epoch))
+		args.EpochNotifier.CheckEpoch(&block.Header{Epoch: epoch, Nonce: uint64(epoch)})
 		require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 		err = s.processLegacy(validatorsInfoMap, uint64(epoch), epoch)
 		require.Nil(t, err)
-		require.Equal(t, nodesConfigEpoch1, s.currentNodesEnableConfig)
 		require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 	}
 
 	// simulate restart
-	s.EpochConfirmed(0, 0)
-	s.EpochConfirmed(5, 5)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0, Nonce: 0})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 5, Nonce: 5})
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 5, 5)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch1, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch1.MaxNumNodes, s.maxNodes)
 
-	s.EpochConfirmed(6, 6)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
 	// simulate restart
-	s.EpochConfirmed(0, 0)
-	s.EpochConfirmed(6, 6)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 0, Nonce: 0})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
 	for epoch := uint32(7); epoch <= 20; epoch++ {
-		s.EpochConfirmed(epoch, uint64(epoch))
+		args.EpochNotifier.CheckEpoch(&block.Header{Epoch: epoch, Nonce: uint64(epoch)})
 		require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 		err = s.processLegacy(validatorsInfoMap, uint64(epoch), epoch)
 		require.Nil(t, err)
-		require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 		require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 	}
 
 	// simulate restart
-	s.EpochConfirmed(1, 1)
-	s.EpochConfirmed(21, 21)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1, Nonce: 1})
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 21, Nonce: 21})
 	require.False(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 21, 21)
 	require.Nil(t, err)
-	require.Equal(t, nodesConfigEpoch6, s.currentNodesEnableConfig)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 }
 

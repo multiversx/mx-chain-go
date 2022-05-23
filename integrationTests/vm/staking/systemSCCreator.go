@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	epochStartMock "github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -36,6 +37,17 @@ func createSystemSCProcessor(
 	systemVM vmcommon.VMExecutionHandler,
 	stakingDataProvider epochStart.StakingDataProvider,
 ) process.EpochStartSystemSCProcessor {
+	maxNodesChangeConfigProvider, _ := notifier.NewNodesConfigProvider(
+		coreComponents.EpochNotifier(),
+		maxNodesConfig,
+	)
+	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
+		ShardCoordinator:             shardCoordinator,
+		StakingDataProvider:          stakingDataProvider,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+	}
+	auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
+
 	args := metachain.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
 		UserAccountsDB:          stateComponents.AccountsAdapter(),
@@ -59,7 +71,8 @@ func createSystemSCProcessor(
 				MaxNodesChangeEnableEpoch: maxNodesConfig,
 			},
 		},
-		MaxNodesEnableConfig: maxNodesConfig,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		AuctionListSelector:          auctionListSelector,
 	}
 
 	systemSCProcessor, _ := metachain.NewSystemSCProcessor(args)

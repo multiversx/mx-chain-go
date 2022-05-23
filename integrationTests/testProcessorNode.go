@@ -2188,22 +2188,36 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+
+		maxNodesChangeConfigProvider, _ := notifier.NewNodesConfigProvider(
+			tpn.EpochNotifier,
+			nil,
+		)
+		argsAuctionListSelector := metachain.AuctionListSelectorArgs{
+			ShardCoordinator:             tpn.ShardCoordinator,
+			StakingDataProvider:          stakingDataProvider,
+			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		}
+		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
+
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
-			SystemVM:                systemVM,
-			UserAccountsDB:          tpn.AccntState,
-			PeerAccountsDB:          tpn.PeerState,
-			Marshalizer:             TestMarshalizer,
-			StartRating:             tpn.RatingsData.StartRating(),
-			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
-			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
-			StakingSCAddress:        vm.StakingSCAddress,
-			ChanceComputer:          tpn.NodesCoordinator,
-			EpochNotifier:           tpn.EpochNotifier,
-			GenesisNodesConfig:      tpn.NodesSetup,
-			StakingDataProvider:     stakingDataProvider,
-			NodesConfigProvider:     tpn.NodesCoordinator,
-			ShardCoordinator:        tpn.ShardCoordinator,
-			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
+			SystemVM:                     systemVM,
+			UserAccountsDB:               tpn.AccntState,
+			PeerAccountsDB:               tpn.PeerState,
+			Marshalizer:                  TestMarshalizer,
+			StartRating:                  tpn.RatingsData.StartRating(),
+			ValidatorInfoCreator:         tpn.ValidatorStatisticsProcessor,
+			EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+			StakingSCAddress:             vm.StakingSCAddress,
+			ChanceComputer:               tpn.NodesCoordinator,
+			EpochNotifier:                tpn.EpochNotifier,
+			GenesisNodesConfig:           tpn.NodesSetup,
+			StakingDataProvider:          stakingDataProvider,
+			NodesConfigProvider:          tpn.NodesCoordinator,
+			ShardCoordinator:             tpn.ShardCoordinator,
+			ESDTOwnerAddressBytes:        vm.EndOfEpochAddress,
+			AuctionListSelector:          auctionListSelector,
+			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 			EpochConfig: config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					StakingV2EnableEpoch:     StakingV2Epoch,

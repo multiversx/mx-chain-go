@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -803,25 +804,45 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			"in processComponentsFactory.newMetaBlockProcessor", err)
 	}
 
-	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
-		SystemVM:                systemVM,
-		UserAccountsDB:          pcf.state.AccountsAdapter(),
-		PeerAccountsDB:          pcf.state.PeerAccounts(),
-		Marshalizer:             pcf.coreData.InternalMarshalizer(),
-		StartRating:             pcf.coreData.RatingsData().StartRating(),
-		ValidatorInfoCreator:    validatorStatisticsProcessor,
-		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
-		StakingSCAddress:        vm.StakingSCAddress,
-		ChanceComputer:          pcf.coreData.Rater(),
-		EpochNotifier:           pcf.coreData.EpochNotifier(),
-		GenesisNodesConfig:      pcf.coreData.GenesisNodesSetup(),
-		MaxNodesEnableConfig:    enableEpochs.MaxNodesChangeEnableEpoch,
-		StakingDataProvider:     stakingDataProvider,
-		NodesConfigProvider:     pcf.nodesCoordinator,
-		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
-		ESDTOwnerAddressBytes:   esdtOwnerAddress,
-		EpochConfig:             pcf.epochConfig,
+	maxNodesChangeConfigProvider, err := notifier.NewNodesConfigProvider(
+		pcf.epochNotifier,
+		enableEpochs.MaxNodesChangeEnableEpoch,
+	)
+	if err != nil {
+		return nil, err
 	}
+
+	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		StakingDataProvider:          stakingDataProvider,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+	}
+	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
+		SystemVM:                     systemVM,
+		UserAccountsDB:               pcf.state.AccountsAdapter(),
+		PeerAccountsDB:               pcf.state.PeerAccounts(),
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		StartRating:                  pcf.coreData.RatingsData().StartRating(),
+		ValidatorInfoCreator:         validatorStatisticsProcessor,
+		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+		StakingSCAddress:             vm.StakingSCAddress,
+		ChanceComputer:               pcf.coreData.Rater(),
+		EpochNotifier:                pcf.coreData.EpochNotifier(),
+		GenesisNodesConfig:           pcf.coreData.GenesisNodesSetup(),
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		StakingDataProvider:          stakingDataProvider,
+		NodesConfigProvider:          pcf.nodesCoordinator,
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		ESDTOwnerAddressBytes:        esdtOwnerAddress,
+		EpochConfig:                  pcf.epochConfig,
+		AuctionListSelector:          auctionListSelector,
+	}
+
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
 		return nil, err
