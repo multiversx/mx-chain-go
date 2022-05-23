@@ -94,7 +94,7 @@ func (als *auctionListSelector) displayOwnersConfig(ownersData map[string]*owner
 	log.Info(message)
 }
 
-func (als *auctionListSelector) displayOwnersSelectedConfig(ownersData2 map[string]*ownerData, randomness []byte) {
+func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData2 map[string]*ownerData) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -138,7 +138,7 @@ func (als *auctionListSelector) displayOwnersSelectedConfig(ownersData2 map[stri
 	log.Info(message)
 }
 
-func (als *auctionListSelector) displayAuctionListV2(auctionList []state.ValidatorInfoHandler, ownersData map[string]*ownerData, numOfSelectedNodes uint32) {
+func (als *auctionListSelector) displayAuctionList(auctionList []state.ValidatorInfoHandler, ownersData map[string]*ownerData, numOfSelectedNodes uint32) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}

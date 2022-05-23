@@ -18,7 +18,7 @@ import (
 
 const oneEGLD = 1000000000000000000 // with 18 decimals = 1 EGLD
 const minEGLD = 1                   // with 18 decimals = 0.00...01 egld
-const maxEGLD = 21000000            // without 18 decimals
+const allEGLD = 21000000            // without 18 decimals
 
 type auctionListSelector struct {
 	shardCoordinator    sharding.Coordinator
@@ -71,9 +71,13 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
 	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 
-	auctionList, ownersData, currNumOfValidators, err := als.getAuctionListAndNumOfValidators(validatorsInfoMap, unqualifiedOwners)
+	ownersData, auctionListSize, currNumOfValidators, err := als.getAuctionDataAndNumOfValidators(validatorsInfoMap, unqualifiedOwners)
 	if err != nil {
 		return err
+	}
+	if auctionListSize == 0 {
+		log.Debug("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
+		return nil
 	}
 
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
@@ -97,7 +101,6 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return nil
 	}
 
-	auctionListSize := uint32(len(auctionList))
 	log.Info("systemSCProcessor.SelectNodesFromAuctionList",
 		"max nodes", maxNumNodes,
 		"current number of validators", currNumOfValidators,
@@ -107,19 +110,17 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		fmt.Sprintf("available slots (%v -%v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	if auctionListSize == 0 {
-		log.Debug("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
-		return nil
-	}
-
 	als.displayOwnersConfig(ownersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
-	err = als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	sw := core.NewStopWatch()
+	sw.Start("auctionListSelector.sortAuctionList")
+	defer func() {
+		sw.Stop("auctionListSelector.sortAuctionList")
+		log.Info("time measurements", sw.GetMeasurements()...)
+	}()
+
+	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
 // TODO: Move this in elrond-go-core
@@ -130,18 +131,18 @@ func safeSub(a, b uint32) (uint32, error) {
 	return a - b, nil
 }
 
-func (als *auctionListSelector) getAuctionListAndNumOfValidators(
+func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	unqualifiedOwners map[string]struct{},
-) ([]state.ValidatorInfoHandler, map[string]*ownerData, uint32, error) {
+) (map[string]*ownerData, uint32, uint32, error) {
 	ownersData := make(map[string]*ownerData)
-	auctionList := make([]state.ValidatorInfoHandler, 0)
 	numOfValidators := uint32(0)
+	numOfNodesInAuction := uint32(0)
 
 	for _, validator := range validatorsInfoMap.GetAllValidatorsInfo() {
 		owner, err := als.stakingDataProvider.GetBlsKeyOwner(validator.GetPublicKey())
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, 0, 0, err
 		}
 
 		if isInAuction(validator) {
@@ -156,10 +157,10 @@ func (als *auctionListSelector) getAuctionListAndNumOfValidators(
 
 			err = als.addOwnerData(validator, ownersData)
 			if err != nil {
-				return nil, nil, 0, err
+				return nil, 0, 0, err
 			}
 
-			auctionList = append(auctionList, validator)
+			numOfNodesInAuction++
 			continue
 		}
 		if isValidator(validator) {
@@ -167,7 +168,7 @@ func (als *auctionListSelector) getAuctionListAndNumOfValidators(
 		}
 	}
 
-	return auctionList, ownersData, numOfValidators, nil
+	return ownersData, numOfNodesInAuction, numOfValidators, nil
 }
 
 func isInAuction(validator state.ValidatorInfoHandler) bool {
@@ -256,7 +257,7 @@ func copyOwnersData(ownersData map[string]*ownerData) map[string]*ownerData {
 }
 
 func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.Int) {
-	min := big.NewInt(0).Mul(big.NewInt(oneEGLD), big.NewInt(maxEGLD))
+	min := big.NewInt(0).Mul(big.NewInt(oneEGLD), big.NewInt(allEGLD))
 	max := big.NewInt(0)
 
 	for _, owner := range ownersData {
@@ -290,9 +291,9 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 	)
 
 	step := big.NewInt(10) // todo: granulate step if max- min < step???? + 10 egld for real
-	previousConfig := copyOwnersData(ownersData)
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
 
+	previousConfig := copyOwnersData(ownersData)
 	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, step) {
 		numNodesQualifyingForTopUp := int64(0)
 		previousConfig = copyOwnersData(ownersData)
@@ -323,6 +324,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		}
 
 	}
+
 	displayRequiredTopUp(topUp, maxTopUp, minTopUp, step)
 	return previousConfig, nil
 }
@@ -335,17 +337,28 @@ func (als *auctionListSelector) selectNodes(
 	selectedFromAuction := make([]state.ValidatorInfoHandler, 0)
 	validatorTopUpMap := make(map[string]*big.Int)
 
+	pubKeyLen := getPubKeyLen(ownersData)
+	normRand := calcNormRand(randomness, pubKeyLen)
+
 	for _, owner := range ownersData {
-		sortListByXORWithRand(owner.auctionList, randomness)
+		sortListByXORWithRand(owner.auctionList, normRand)
 		addQualifiedValidatorsTopUpInMap(owner, validatorTopUpMap)
 		selectedFromAuction = append(selectedFromAuction, owner.auctionList[:owner.numQualifiedAuctionNodes]...)
 	}
 
-	als.displayOwnersSelectedConfig(ownersData, randomness)
-	als.sortValidators(selectedFromAuction, validatorTopUpMap, randomness)
-	als.displayAuctionListV2(selectedFromAuction, ownersData, numAvailableSlots)
+	als.displayOwnersSelectedNodes(ownersData)
+	als.sortValidators(selectedFromAuction, validatorTopUpMap, normRand)
+	als.displayAuctionList(selectedFromAuction, ownersData, numAvailableSlots)
 
 	return selectedFromAuction[:numAvailableSlots]
+}
+
+func getPubKeyLen(ownersData map[string]*ownerData) int {
+	for _, owner := range ownersData {
+		return len(owner.auctionList[0].GetPublicKey())
+	}
+
+	return 0
 }
 
 func addQualifiedValidatorsTopUpInMap(owner *ownerData, validatorTopUpMap map[string]*big.Int) {
@@ -356,14 +369,11 @@ func addQualifiedValidatorsTopUpInMap(owner *ownerData, validatorTopUpMap map[st
 }
 
 func sortListByXORWithRand(list []state.ValidatorInfoHandler, randomness []byte) {
-	pubKeyLen := len(list[0].GetPublicKey())
-	normRandomness := calcNormRand(randomness, pubKeyLen)
-
 	sort.SliceStable(list, func(i, j int) bool {
 		pubKey1 := list[i].GetPublicKey()
 		pubKey2 := list[j].GetPublicKey()
 
-		return compareByXORWithRandomness(pubKey1, pubKey2, normRandomness)
+		return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
 	})
 }
 
@@ -390,13 +400,13 @@ func (als *auctionListSelector) sortAuctionList(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	randomness []byte,
 ) error {
-	// TODO: Here add a stopwatch to measure execution time
 	softAuctionNodesConfig, err := als.calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
 	if err != nil {
 		return err
 	}
 
 	selectedNodes := als.selectNodes(softAuctionNodesConfig, numOfAvailableNodeSlots, randomness)
+
 	err = markAuctionNodesAsSelected(selectedNodes, validatorsInfoMap)
 	if err != nil {
 		return err
@@ -410,8 +420,6 @@ func (als *auctionListSelector) sortValidators(
 	validatorTopUpMap map[string]*big.Int,
 	randomness []byte,
 ) {
-	pubKeyLen := len(auctionList[0].GetPublicKey())
-	normRandomness := calcNormRand(randomness, pubKeyLen)
 	sort.SliceStable(auctionList, func(i, j int) bool {
 		pubKey1 := auctionList[i].GetPublicKey()
 		pubKey2 := auctionList[j].GetPublicKey()
@@ -420,7 +428,7 @@ func (als *auctionListSelector) sortValidators(
 		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]
 
 		if nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) == 0 {
-			return compareByXORWithRandomness(pubKey1, pubKey2, normRandomness)
+			return compareByXORWithRandomness(pubKey1, pubKey2, randomness)
 		}
 
 		return nodeTopUpPubKey1.Cmp(nodeTopUpPubKey2) > 0
