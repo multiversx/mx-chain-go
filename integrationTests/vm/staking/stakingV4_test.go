@@ -73,12 +73,13 @@ func requireMapDoesNotContain(t *testing.T, m map[uint32][][]byte, s [][]byte) {
 	}
 }
 
-func remove(s [][]byte, elem []byte) [][]byte {
-	ret := s
-	for i, e := range s {
+// remove will remove the item from slice without keeping the order of the original slice
+func remove(slice [][]byte, elem []byte) [][]byte {
+	ret := slice
+	for i, e := range slice {
 		if bytes.Equal(elem, e) {
-			ret[i] = ret[len(s)-1]
-			return ret[:len(s)-1]
+			ret[i] = ret[len(slice)-1]
+			return ret[:len(slice)-1]
 		}
 	}
 
@@ -403,7 +404,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 
 	// Owner3 will unStake EGLD => he will have negative top-up at the selection time => one of his nodes will be unStaked.
 	// His other node should not have been selected => remains in auction.
-	// Meanwhile, owner4 had never unStaked EGLD => his node from auction list node will be distributed to waiting
+	// Meanwhile, owner4 had never unStaked EGLD => his node from auction list will be distributed to waiting
 	unStake(t, []byte(owner3), node.AccountsAdapter, node.Marshaller, big.NewInt(2*nodePrice))
 
 	// 4. Check config in epoch = staking v4 distribute auction to waiting
