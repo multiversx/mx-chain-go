@@ -198,6 +198,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		StorageService:           tpn.Storage,
 		DataPool:                 tpn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
+		TxTypeHandler:            txTypeHandler,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)

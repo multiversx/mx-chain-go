@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txstatus"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -34,6 +35,7 @@ type apiTransactionProcessor struct {
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	txUnmarshaller              *txUnmarshaller
 	transactionResultsProcessor *apiTransactionResultsProcessor
+	txTypeHandler               process.TxTypeHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -65,6 +67,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
+		txTypeHandler:               args.TxTypeHandler,
 	}, nil
 }
 
@@ -76,6 +79,17 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		return nil, err
 	}
 
+	tx, err := atp.doGetTransaction(hash, withResults)
+	if err != nil {
+		return nil, err
+	}
+
+	atp.populateProcessingTypeFields(tx)
+
+	return tx, nil
+}
+
+func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	tx, err := atp.optionallyGetTransactionFromPool(hash)
 	if err != nil {
 		return nil, err
@@ -89,6 +103,12 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	return atp.getTransactionFromStorage(hash)
+}
+
+func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction.ApiTransactionResult) {
+	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	tx.ProcessingTypeOnSource = typeOnSource.String()
+	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
@@ -328,7 +348,14 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
 func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	return atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	if err != nil {
+		return nil, err
+	}
+
+	atp.populateProcessingTypeFields(tx)
+
+	return tx, nil
 }
 
 // UnmarshalReceipt will try to unmarshal the provided receipts bytes

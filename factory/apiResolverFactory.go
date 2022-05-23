@@ -189,6 +189,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		StorageService:           args.DataComponents.StorageService(),
 		DataPool:                 args.DataComponents.Datapool(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		TxTypeHandler:            txTypeHandler,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
