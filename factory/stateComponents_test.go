@@ -231,6 +231,10 @@ func getGeneralConfig() config.Config {
 			Type:     "LRU",
 			Shards:   1,
 		},
+		PeersRatingConfig: config.PeersRatingConfig{
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
+		},
 	}
 }
 

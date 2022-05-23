@@ -1,12 +1,27 @@
 package mock
 
-import "time"
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
 
 // TimeCacheStub -
 type TimeCacheStub struct {
-	UpsertCalled func(key string, span time.Duration) error
-	HasCalled    func(key string) bool
-	SweepCalled  func()
+	AddCalled                     func(key string) error
+	UpsertCalled                  func(key string, span time.Duration) error
+	HasCalled                     func(key string) bool
+	SweepCalled                   func()
+	RegisterEvictionHandlerCalled func(handler storage.EvictionHandler)
+}
+
+// Add -
+func (tcs *TimeCacheStub) Add(key string) error {
+	if tcs.AddCalled != nil {
+		return tcs.AddCalled(key)
+	}
+
+	return nil
 }
 
 // Upsert -
@@ -31,6 +46,13 @@ func (tcs *TimeCacheStub) Has(key string) bool {
 func (tcs *TimeCacheStub) Sweep() {
 	if tcs.SweepCalled != nil {
 		tcs.SweepCalled()
+	}
+}
+
+// RegisterEvictionHandler -
+func (tcs *TimeCacheStub) RegisterEvictionHandler(handler storage.EvictionHandler) {
+	if tcs.RegisterEvictionHandlerCalled != nil {
+		tcs.RegisterEvictionHandlerCalled(handler)
 	}
 }
 

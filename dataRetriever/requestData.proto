@@ -19,6 +19,8 @@ enum RequestDataType {
 	NonceType      = 3;
 	// EpochType indicates that the request data object is of type epoch
 	EpochType      = 4;
+	// ChunkType indicates that the request data object is of type chunk
+	ChunkType      = 5;
 }
 
 // RequestData holds the requested data
