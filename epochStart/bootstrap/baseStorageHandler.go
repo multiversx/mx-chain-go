@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -134,4 +136,27 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 	}
 
 	return nil
+}
+
+func (bsh *baseStorageHandler) savePendingMiniblocks(pendingMiniblocks map[string]*block.MiniBlock) {
+	hashes := make([]string, 0, len(pendingMiniblocks))
+	for hash, mb := range pendingMiniblocks {
+		errNotCritical := bsh.saveMiniblock([]byte(hash), mb)
+		if errNotCritical != nil {
+			log.Warn("baseStorageHandler.savePendingMiniblocks - not a critical error", "error", errNotCritical)
+		}
+
+		hashes = append(hashes, hex.EncodeToString([]byte(hash)))
+	}
+
+	log.Debug("baseStorageHandler.savePendingMiniblocks", "saved miniblocks", strings.Join(hashes, ", "))
+}
+
+func (bsh *baseStorageHandler) saveMiniblock(hash []byte, mb *block.MiniBlock) error {
+	mbBytes, err := bsh.marshalizer.Marshal(mb)
+	if err != nil {
+		return err
+	}
+
+	return bsh.storageService.Put(dataRetriever.MiniBlockUnit, hash, mbBytes)
 }

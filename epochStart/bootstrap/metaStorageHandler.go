@@ -101,6 +101,8 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	msh.savePendingMiniblocks(components.PendingMiniBlocks)
+
 	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
 	if err != nil {
 		return err

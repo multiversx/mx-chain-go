@@ -94,6 +94,8 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	ssh.savePendingMiniblocks(components.PendingMiniBlocks)
+
 	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, notarizedShardHeader, withScheduled)
 	if err != nil {
 		return err
