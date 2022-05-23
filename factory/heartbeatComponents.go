@@ -211,8 +211,6 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		HeartbeatRefreshIntervalInSec:      hcf.config.Heartbeat.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: hcf.config.Heartbeat.HideInactiveValidatorIntervalInSec,
 		AppStatusHandler:                   hcf.coreComponents.StatusHandler(),
-		EpochNotifier:                      hcf.coreComponents.EpochNotifier(),
-		HeartbeatDisableEpoch:              hcf.heartbeatDisableEpoch,
 	}
 	hbc.monitor, err = heartbeatProcess.NewMonitor(argMonitor)
 	if err != nil {

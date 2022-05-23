@@ -399,8 +399,6 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 		AppStatusHandler:                   &statusHandlerMock.AppStatusHandlerStub{},
-		EpochNotifier:                      &epochNotifier.EpochNotifierStub{},
-		HeartbeatDisableEpoch:              providedEpoch,
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)
