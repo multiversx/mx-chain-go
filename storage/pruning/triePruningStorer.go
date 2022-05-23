@@ -11,7 +11,7 @@ import (
 
 const (
 	currentEpochIndex          = 0
-	minNumOfActiveDBsNecessary = 2
+	minNumOfActiveDBsNecessary = 1
 )
 
 type triePruningStorer struct {

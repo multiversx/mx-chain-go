@@ -210,6 +210,20 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	return clonedMap
 }
 
+func markStorerAsSyncedAndActive(mainTrie common.Trie) {
+	trieStorageManager := mainTrie.GetStorageManager()
+
+	err := trieStorageManager.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal))
+	if err != nil {
+		log.Error("error while putting trieSynced value into main storer after sync", "error", err)
+	}
+
+	err = trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+	if err != nil {
+		log.Error("error while putting activeDB value into main storer after sync", "error", err)
+	}
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (b *baseAccountsSyncer) IsInterfaceNil() bool {
 	return b == nil

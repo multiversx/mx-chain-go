@@ -134,14 +134,25 @@ func getAccountsDbFromArgs(args ArgsAccountsDB) *AccountsDB {
 
 func startSnapshotIfNeeded(adb accountsAdapterWithStorageAccess) {
 	trieStorageManager := adb.getStorageManager()
-	val, err := getFromLastEpoch(trieStorageManager, []byte(common.ActiveDBKey))
+	epoch, err := trieStorageManager.GetLatestStorageEpoch()
+	if err != nil {
+		log.Error("could not get latest storage epoch")
+	}
+	if epoch == 0 {
+		err = trieStorageManager.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
+		handleLoggingWhenError("error while putting active DB value into main storer", err)
+		return
+	}
+
+	lastEpoch := epoch - 1
+	val, err := trieStorageManager.GetFromEpoch([]byte(common.ActiveDBKey), lastEpoch)
 	if shouldSnapshotAfterRestart(err, val) {
 		startSnapshotAfterRestart(adb, trieStorageManager)
 	}
 }
 
 func shouldSnapshotAfterRestart(err error, val []byte) bool {
-	if err == ErrInvalidLastEpoch || err == nil {
+	if err == nil {
 		return false
 	}
 
@@ -188,20 +199,6 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager) {
 
 	log.Debug("snapshot hash after restart", "hash", rootHash)
 	adb.SnapshotState(rootHash)
-}
-
-func getFromLastEpoch(trieStorageManager common.StorageManager, key []byte) ([]byte, error) {
-	epoch, err := trieStorageManager.GetLatestStorageEpoch()
-	if err != nil {
-		return nil, err
-	}
-
-	if epoch == 0 {
-		return nil, ErrInvalidLastEpoch
-	}
-	lastEpoch := epoch - 1
-
-	return trieStorageManager.GetFromEpoch(key, lastEpoch)
 }
 
 func handleLoggingWhenError(message string, err error, extraArguments ...interface{}) {
