@@ -35,6 +35,7 @@ type apiTransactionProcessor struct {
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	txUnmarshaller              *txUnmarshaller
 	transactionResultsProcessor *apiTransactionResultsProcessor
+	economicsData               process.EconomicsDataHandler
 	txTypeHandler               process.TxTypeHandler
 }
 
@@ -67,6 +68,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
+		economicsData:               args.EconomicsData,
 		txTypeHandler:               args.TxTypeHandler,
 	}, nil
 }
@@ -85,6 +87,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	atp.populateProcessingTypeFields(tx)
+	atp.populateInitiallyPaidFee(tx)
 
 	return tx, nil
 }
@@ -109,6 +112,10 @@ func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction
 	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
+}
+
+func (atp *apiTransactionProcessor) populateInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
+	tx.InitiallyPaidFee = atp.economicsData.ComputeTxFee(tx.Tx).String()
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
@@ -354,6 +361,7 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 	}
 
 	atp.populateProcessingTypeFields(tx)
+	atp.populateInitiallyPaidFee(tx)
 
 	return tx, nil
 }

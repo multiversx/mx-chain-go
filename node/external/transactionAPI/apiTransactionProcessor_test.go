@@ -44,6 +44,7 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		StorageService:           &mock.ChainStorerMock{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		EconomicsData:            &mock.EconomicsHandlerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 }
@@ -128,7 +129,17 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		require.Equal(t, process.ErrNilUint64Converter, err)
 	})
 
-	t.Run("NilTxTypeHandler", func(t *testing.T) {
+	t.Run("NilTxEconomicsData", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPIBlockProcessor()
+		arguments.EconomicsData = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilEconomicsData, err)
+	})
+
+	t.Run("NilTypeHandler", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockArgAPIBlockProcessor()
@@ -368,6 +379,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		StorageService:           chainStorer,
 		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		EconomicsData:            &mock.EconomicsHandlerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
@@ -631,6 +643,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		StorageService:           chainStorer,
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		EconomicsData:            &mock.EconomicsHandlerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
@@ -753,8 +766,15 @@ func getTime(t *testing.T, timestamp string) time.Time {
 	return tm
 }
 
-func TestApiTransactionProcessor_GetTransactionPopulatesProcessingTypeFields(t *testing.T) {
+func TestApiTransactionProcessor_GetTransactionPopulatesFieldsProcessingTypeAndInitiallyPaidFee(t *testing.T) {
 	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+
+	economicsData := &mock.EconomicsHandlerStub{
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(42)
+		},
+	}
+
 	txTypeHandler := &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.SCDeployment
@@ -763,28 +783,28 @@ func TestApiTransactionProcessor_GetTransactionPopulatesProcessingTypeFields(t *
 
 	arguments := createMockArgAPIBlockProcessor()
 	arguments.DataPool = dataPool
+	arguments.EconomicsData = economicsData
 	arguments.TxTypeHandler = txTypeHandler
 
 	processor, err := NewAPITransactionProcessor(arguments)
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	// Normal transaction
 	dataPool.Transactions().AddData([]byte{0, 0}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
-	firstTx, err := processor.GetTransaction("0000", true)
+	tx, err := processor.GetTransaction("0000", true)
 	require.Nil(t, err)
-	require.Equal(t, process.MoveBalance.String(), firstTx.ProcessingTypeOnSource)
-	require.Equal(t, process.SCDeployment.String(), firstTx.ProcessingTypeOnDestination)
-
-	// Unsigned transaction
-	dataPool.UnsignedTransactions().AddData([]byte{0, 1}, &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "foo")
-	secondTx, err := processor.GetTransaction("0001", true)
-	require.Nil(t, err)
-	require.Equal(t, process.MoveBalance.String(), secondTx.ProcessingTypeOnSource)
-	require.Equal(t, process.SCDeployment.String(), secondTx.ProcessingTypeOnDestination)
+	require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+	require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
+	require.Equal(t, "42", tx.InitiallyPaidFee)
 }
 
-func TestApiTransactionProcessor_UnmarshalTransactionPopulatesProcessingTypeFields(t *testing.T) {
+func TestApiTransactionProcessor_UnmarshalTransactionPopulatesFieldsProcessingTypeAndInitiallyPaidFee(t *testing.T) {
+	economicsData := &mock.EconomicsHandlerStub{
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(42)
+		},
+	}
+
 	txTypeHandler := &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.SCInvoking
@@ -793,6 +813,7 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesProcessingTypeFiel
 
 	arguments := createMockArgAPIBlockProcessor()
 	arguments.Marshalizer, _ = marshalizerFactory.NewMarshalizer("gogo protobuf")
+	arguments.EconomicsData = economicsData
 	arguments.TxTypeHandler = txTypeHandler
 
 	processor, err := NewAPITransactionProcessor(arguments)
@@ -807,4 +828,5 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesProcessingTypeFiel
 	require.NotNil(t, tx)
 	require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
 	require.Equal(t, process.SCInvoking.String(), tx.ProcessingTypeOnDestination)
+	require.Equal(t, "42", tx.InitiallyPaidFee)
 }

@@ -30,6 +30,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.Uint64ByteSliceConverter) {
 		return process.ErrNilUint64Converter
 	}
+	if check.IfNil(arg.EconomicsData) {
+		return process.ErrNilEconomicsData
+	}
 	if check.IfNil(arg.TxTypeHandler) {
 		return process.ErrNilTxTypeHandler
 	}
