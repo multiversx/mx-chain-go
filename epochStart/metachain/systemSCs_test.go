@@ -1277,23 +1277,23 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
 	_ = scContainer.Add(delegationAddr, contract)
 
-	prepareStakingContractWithData(
+	stakingcommon.AddStakingData(
 		args.UserAccountsDB,
-		[]byte("stakedPubKey0"),
-		[]byte("waitingPubKey"),
-		args.Marshalizer,
-		delegationAddr,
-		delegationAddr,
-	)
-
-	stakingcommon.AddStakingData(args.UserAccountsDB,
 		delegationAddr,
 		delegationAddr,
 		[][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")},
 		args.Marshalizer,
 	)
 	allKeys := [][]byte{[]byte("stakedPubKey0"), []byte("waitingPubKey"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")}
-	stakingcommon.AddValidatorData(args.UserAccountsDB, delegationAddr, allKeys, big.NewInt(3000), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(
+		args.UserAccountsDB,
+		delegationAddr,
+		delegationAddr,
+		allKeys,
+		big.NewInt(3000),
+		args.Marshalizer,
+	)
+
 	addDelegationData(args.UserAccountsDB, delegationAddr, allKeys, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
@@ -1369,20 +1369,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
 	_ = scContainer.Add(delegationAddr, contract)
 
-	prepareStakingContractWithData(
-		args.UserAccountsDB,
-		[]byte("stakedPubKey0"),
-		[]byte("waitingPubKey"),
-		args.Marshalizer,
-		delegationAddr,
-		delegationAddr,
-	)
+	listOfKeysInWaiting := [][]byte{[]byte("waitingPubKey"), []byte("waitingPubKe1"), []byte("waitingPubKe2"), []byte("waitingPubKe3"), []byte("waitingPubKe4")}
+	allStakedKeys := append(listOfKeysInWaiting, []byte("stakedPubKey0"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3"))
 
-	stakingcommon.AddStakingData(args.UserAccountsDB, delegationAddr, delegationAddr, [][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")}, args.Marshalizer)
-	listOfKeysInWaiting := [][]byte{[]byte("waitingPubKe1"), []byte("waitingPubKe2"), []byte("waitingPubKe3"), []byte("waitingPubKe4")}
-	allStakedKeys := append(listOfKeysInWaiting, []byte("waitingPubKey"), []byte("stakedPubKey0"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3"))
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, delegationAddr, delegationAddr, allStakedKeys, big.NewInt(4000), args.Marshalizer)
 	stakingcommon.AddKeysToWaitingList(args.UserAccountsDB, listOfKeysInWaiting, args.Marshalizer, delegationAddr, delegationAddr)
-	stakingcommon.AddValidatorData(args.UserAccountsDB, delegationAddr, allStakedKeys, big.NewInt(4000), args.Marshalizer)
 	addDelegationData(args.UserAccountsDB, delegationAddr, allStakedKeys, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
@@ -1712,7 +1703,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 
 	owner1ListPubKeysWaiting := [][]byte{[]byte("waitingPubKe0"), []byte("waitingPubKe1"), []byte("waitingPubKe2")}
 	owner1ListPubKeysStaked := [][]byte{[]byte("stakedPubKey0"), []byte("stakedPubKey1")}
-	owner1AllPubKeys := append(owner1ListPubKeysWaiting, owner1ListPubKeysWaiting...)
+	owner1AllPubKeys := append(owner1ListPubKeysWaiting, owner1ListPubKeysStaked...)
 
 	owner2ListPubKeysWaiting := [][]byte{[]byte("waitingPubKe3"), []byte("waitingPubKe4")}
 	owner2ListPubKeysStaked := [][]byte{[]byte("stakedPubKey2")}
@@ -1720,29 +1711,20 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 
 	owner3ListPubKeysWaiting := [][]byte{[]byte("waitingPubKe5"), []byte("waitingPubKe6")}
 
-	prepareStakingContractWithData(
-		args.UserAccountsDB,
-		owner1ListPubKeysStaked[0],
-		owner1ListPubKeysWaiting[0],
-		args.Marshalizer,
-		owner1,
-		owner1,
-	)
-
 	// Owner1 has 2 staked nodes (one eligible, one waiting) in shard0 + 3 nodes in staking queue.
 	// It has enough stake so that all his staking queue nodes will be selected in the auction list
-	stakingcommon.AddKeysToWaitingList(args.UserAccountsDB, owner1ListPubKeysWaiting[1:], args.Marshalizer, owner1, owner1)
-	stakingcommon.AddValidatorData(args.UserAccountsDB, owner1, owner1AllPubKeys[1:], big.NewInt(5000), args.Marshalizer)
+	stakingcommon.AddKeysToWaitingList(args.UserAccountsDB, owner1ListPubKeysWaiting, args.Marshalizer, owner1, owner1)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner1, owner1, owner1AllPubKeys, big.NewInt(5000), args.Marshalizer)
 
 	// Owner2 has 1 staked node (eligible) in shard1 + 2 nodes in staking queue.
 	// It has enough stake for only ONE node from staking queue to be selected in the auction list
 	stakingcommon.AddKeysToWaitingList(args.UserAccountsDB, owner2ListPubKeysWaiting, args.Marshalizer, owner2, owner2)
-	stakingcommon.AddValidatorData(args.UserAccountsDB, owner2, owner2AllPubKeys, big.NewInt(1500), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner2, owner2, owner2AllPubKeys, big.NewInt(2500), args.Marshalizer)
 
 	// Owner3 has 0 staked node + 2 nodes in staking queue.
 	// It has enough stake so that all his staking queue nodes will be selected in the auction list
 	stakingcommon.AddKeysToWaitingList(args.UserAccountsDB, owner3ListPubKeysWaiting, args.Marshalizer, owner3, owner3)
-	stakingcommon.AddValidatorData(args.UserAccountsDB, owner3, owner3ListPubKeysWaiting, big.NewInt(2000), args.Marshalizer)
+	stakingcommon.RegisterValidatorKeys(args.UserAccountsDB, owner3, owner3, owner3ListPubKeysWaiting, big.NewInt(2000), args.Marshalizer)
 
 	validatorsInfo := state.NewShardValidatorsInfoMap()
 	_ = validatorsInfo.Add(createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, owner1, 0))

@@ -35,8 +35,9 @@ func createStakingQueue(
 		owner,
 	)
 
-	stakingcommon.AddValidatorData(
+	stakingcommon.RegisterValidatorKeys(
 		accountsAdapter,
+		owner,
 		owner,
 		ownerWaitingNodes,
 		big.NewInt(int64(2*nodePrice*numOfNodesInStakingQueue)),
@@ -44,6 +45,37 @@ func createStakingQueue(
 	)
 
 	return ownerWaitingNodes
+}
+
+func createStakingQueueCustomNodes(
+	owners map[string]*OwnerStats,
+	marshaller marshal.Marshalizer,
+	accountsAdapter state.AccountsAdapter,
+) [][]byte {
+	queue := make([][]byte, 0)
+
+	for owner, ownerStats := range owners {
+		stakingcommon.AddKeysToWaitingList(
+			accountsAdapter,
+			ownerStats.StakingQueueKeys,
+			marshaller,
+			[]byte(owner),
+			[]byte(owner),
+		)
+
+		stakingcommon.RegisterValidatorKeys(
+			accountsAdapter,
+			[]byte(owner),
+			[]byte(owner),
+			ownerStats.StakingQueueKeys,
+			ownerStats.TotalStake,
+			marshaller,
+		)
+
+		queue = append(queue, ownerStats.StakingQueueKeys...)
+	}
+
+	return queue
 }
 
 func (tmp *TestMetaProcessor) getWaitingListKeys() [][]byte {
