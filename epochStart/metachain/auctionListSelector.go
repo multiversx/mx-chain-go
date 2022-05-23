@@ -126,7 +126,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 // TODO: Move this in elrond-go-core
 func safeSub(a, b uint32) (uint32, error) {
 	if a < b {
-		return 0, core.ErrSubtractionOverflow
+		return 0, epochStart.ErrUint32SubtractionOverflow
 	}
 	return a - b, nil
 }
@@ -338,7 +338,7 @@ func (als *auctionListSelector) selectNodes(
 	validatorTopUpMap := make(map[string]*big.Int)
 
 	pubKeyLen := getPubKeyLen(ownersData)
-	normRand := calcNormRand(randomness, pubKeyLen)
+	normRand := calcNormalizedRandomness(randomness, pubKeyLen)
 
 	for _, owner := range ownersData {
 		sortListByXORWithRand(owner.auctionList, normRand)
@@ -435,7 +435,7 @@ func (als *auctionListSelector) sortValidators(
 	})
 }
 
-func calcNormRand(randomness []byte, expectedLen int) []byte {
+func calcNormalizedRandomness(randomness []byte, expectedLen int) []byte {
 	rand := randomness
 	randLen := len(rand)
 

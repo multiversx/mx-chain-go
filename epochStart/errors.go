@@ -337,3 +337,6 @@ var ErrNilAuctionListSelector = errors.New("nil auction list selector has been p
 
 // ErrOwnerHasNoStakedNode signals that an owner has no staked node
 var ErrOwnerHasNoStakedNode = errors.New("owner has no staked node")
+
+// ErrUint32SubtractionOverflow signals uint32 subtraction overflowed
+var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
