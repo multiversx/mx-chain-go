@@ -327,7 +327,7 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 			NumIntraShardPeers:  2,
 			NumFullHistoryPeers: 3,
 		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:                   &p2pmocks.PeersRatingHandlerStub{},
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		MaxNumOfPeerAuthenticationInResponse: 5,
 		PeerShardMapper:                      &p2pmocks.NetworkShardingCollectorStub{},

@@ -1772,8 +1772,8 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 				Type:                    "NilListSharder",
 			},
 		},
-		SyncTimer:          &mock.SyncTimerStub{},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		SyncTimer:            &mock.SyncTimerStub{},
+		PeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 

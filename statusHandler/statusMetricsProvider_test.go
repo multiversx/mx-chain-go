@@ -332,7 +332,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 				common.MetricNodesToShufflePerShard: uint64(5),
 			},
 		},
-		common.MetricHeartbeatDisableEpoch:                       uint64(5),
+		common.MetricHeartbeatDisableEpoch: uint64(5),
 	}
 
 	epochsMetrics, _ := sm.EnableEpochsMetrics()
