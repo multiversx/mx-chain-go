@@ -26,7 +26,7 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	connectNodes(nodes, interactingNodes)
 
 	// Wait for messages to broadcast
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 15)
 
 	for i := 0; i < len(nodes); i++ {
 		nodes[i].Close()
@@ -53,7 +53,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	connectNodes(nodes, interactingNodes)
 
 	// Wait for messages to broadcast
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 15)
 
 	// Check sent messages
 	maxMessageAgeAllowed := time.Second * 5
@@ -64,7 +64,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	nodes = append(nodes, delayedNode)
 	connectNodes(nodes, len(nodes))
 	// Wait for messages to broadcast and requests to finish
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 15)
 
 	for i := 0; i < len(nodes); i++ {
 		nodes[i].Close()
