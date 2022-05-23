@@ -3,6 +3,7 @@ package transactionAPI
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -115,7 +116,12 @@ func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction
 }
 
 func (atp *apiTransactionProcessor) populateInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
-	tx.InitiallyPaidFee = atp.economicsData.ComputeTxFee(tx.Tx).String()
+	initiallyPaidFee := atp.economicsData.ComputeTxFee(tx.Tx)
+	isZero := initiallyPaidFee.Cmp(big.NewInt(0)) == 0
+
+	if !isZero {
+		tx.InitiallyPaidFee = initiallyPaidFee.String()
+	}
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
