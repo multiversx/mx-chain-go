@@ -11,7 +11,7 @@ import (
 )
 
 type nodesConfigProvider struct {
-	mutex              sync.Mutex
+	mutex              sync.RWMutex
 	currentNodesConfig config.MaxNodesChangeConfig
 	allNodesConfigs    []config.MaxNodesChangeConfig
 }
@@ -47,16 +47,16 @@ func (ncp *nodesConfigProvider) sortConfigs() {
 
 // GetAllNodesConfig returns all config.MaxNodesChangeConfig
 func (ncp *nodesConfigProvider) GetAllNodesConfig() []config.MaxNodesChangeConfig {
-	ncp.mutex.Lock()
-	defer ncp.mutex.Unlock()
+	ncp.mutex.RLock()
+	defer ncp.mutex.RUnlock()
 
 	return ncp.allNodesConfigs
 }
 
 // GetCurrentNodesConfig returns the current config.MaxNodesChangeConfig, based on epoch
 func (ncp *nodesConfigProvider) GetCurrentNodesConfig() config.MaxNodesChangeConfig {
-	ncp.mutex.Lock()
-	defer ncp.mutex.Unlock()
+	ncp.mutex.RLock()
+	defer ncp.mutex.RUnlock()
 
 	return ncp.currentNodesConfig
 }
