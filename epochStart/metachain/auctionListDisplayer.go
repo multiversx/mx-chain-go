@@ -11,7 +11,7 @@ import (
 
 const maxPubKeyDisplayableLen = 20
 
-func displayRequiredTopUp(topUp *big.Int, max *big.Int, min *big.Int, step *big.Int) {
+func displayRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
