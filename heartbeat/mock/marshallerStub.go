@@ -1,13 +1,13 @@
 package mock
 
-// MarshalizerStub -
-type MarshalizerStub struct {
+// MarshallerStub -
+type MarshallerStub struct {
 	MarshalHandler   func(obj interface{}) ([]byte, error)
 	UnmarshalHandler func(obj interface{}, buff []byte) error
 }
 
 // Marshal -
-func (ms MarshalizerStub) Marshal(obj interface{}) ([]byte, error) {
+func (ms MarshallerStub) Marshal(obj interface{}) ([]byte, error) {
 	if ms.MarshalHandler != nil {
 		return ms.MarshalHandler(obj)
 	}
@@ -15,7 +15,7 @@ func (ms MarshalizerStub) Marshal(obj interface{}) ([]byte, error) {
 }
 
 // Unmarshal -
-func (ms MarshalizerStub) Unmarshal(obj interface{}, buff []byte) error {
+func (ms MarshallerStub) Unmarshal(obj interface{}, buff []byte) error {
 	if ms.UnmarshalHandler != nil {
 		return ms.UnmarshalHandler(obj, buff)
 	}
@@ -23,6 +23,6 @@ func (ms MarshalizerStub) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ms *MarshalizerStub) IsInterfaceNil() bool {
+func (ms *MarshallerStub) IsInterfaceNil() bool {
 	return ms == nil
 }

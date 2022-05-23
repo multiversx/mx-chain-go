@@ -545,6 +545,18 @@ func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
 	return m.processComponents.txsSender
 }
 
+// HardforkTrigger returns the hardfork trigger
+func (m *managedProcessComponents) HardforkTrigger() HardforkTrigger {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.hardforkTrigger
+}
+
 // ProcessedMiniBlocksTracker returns the processed mini blocks tracker
 func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	m.mutProcessComponents.RLock()
@@ -564,5 +576,5 @@ func (m *managedProcessComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (m *managedProcessComponents) String() string {
-	return "managedProcessComponents"
+	return processComponentsName
 }

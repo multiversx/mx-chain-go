@@ -36,26 +36,29 @@ func NewMetaResolversContainerFactory(
 
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                   container,
-		shardCoordinator:            args.ShardCoordinator,
-		messenger:                   args.Messenger,
-		store:                       args.Store,
-		marshalizer:                 args.Marshalizer,
-		dataPools:                   args.DataPools,
-		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
-		intRandomizer:               &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:                  args.DataPacker,
-		triesContainer:              args.TriesContainer,
-		inputAntifloodHandler:       args.InputAntifloodHandler,
-		outputAntifloodHandler:      args.OutputAntifloodHandler,
-		throttler:                   thr,
-		isFullHistoryNode:           args.IsFullHistoryNode,
-		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
-		preferredPeersHolder:        args.PreferredPeersHolder,
-		peersRatingHandler:          args.PeersRatingHandler,
-		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
-		numIntraShardPeers:          int(args.ResolverConfig.NumIntraShardPeers),
-		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
+		container:                            container,
+		shardCoordinator:                     args.ShardCoordinator,
+		messenger:                            args.Messenger,
+		store:                                args.Store,
+		marshalizer:                          args.Marshalizer,
+		dataPools:                            args.DataPools,
+		uint64ByteSliceConverter:             args.Uint64ByteSliceConverter,
+		intRandomizer:                        &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:                           args.DataPacker,
+		triesContainer:                       args.TriesContainer,
+		inputAntifloodHandler:                args.InputAntifloodHandler,
+		outputAntifloodHandler:               args.OutputAntifloodHandler,
+		throttler:                            thr,
+		isFullHistoryNode:                    args.IsFullHistoryNode,
+		currentNetworkEpochProvider:          args.CurrentNetworkEpochProvider,
+		preferredPeersHolder:                 args.PreferredPeersHolder,
+		peersRatingHandler:                   args.PeersRatingHandler,
+		numCrossShardPeers:                   int(args.ResolverConfig.NumCrossShardPeers),
+		numIntraShardPeers:                   int(args.ResolverConfig.NumIntraShardPeers),
+		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
+		nodesCoordinator:                     args.NodesCoordinator,
+		maxNumOfPeerAuthenticationInResponse: args.MaxNumOfPeerAuthenticationInResponse,
+		peerShardMapper:                      args.PeerShardMapper,
 	}
 
 	err = base.checkParams()
@@ -116,6 +119,11 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateTrieNodesResolvers()
+	if err != nil {
+		return nil, err
+	}
+
+	err = mrcf.generatePeerAuthenticationResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -197,15 +205,17 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardID)
 	hdrNonceStore := mrcf.store.GetStorer(hdrNonceHashDataUnit)
 	arg := resolvers.ArgHeaderResolver{
-		SenderResolver:       resolverSender,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       mrcf.marshalizer,
+			AntifloodHandler: mrcf.inputAntifloodHandler,
+			Throttler:        mrcf.throttler,
+		},
 		Headers:              mrcf.dataPools.Headers(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
-		Marshalizer:          mrcf.marshalizer,
 		NonceConverter:       mrcf.uint64ByteSliceConverter,
 		ShardCoordinator:     mrcf.shardCoordinator,
-		AntifloodHandler:     mrcf.inputAntifloodHandler,
-		Throttler:            mrcf.throttler,
 		IsFullHistoryNode:    mrcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)
@@ -246,15 +256,17 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 
 	hdrNonceStore := mrcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	arg := resolvers.ArgHeaderResolver{
-		SenderResolver:       resolverSender,
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       mrcf.marshalizer,
+			AntifloodHandler: mrcf.inputAntifloodHandler,
+			Throttler:        mrcf.throttler,
+		},
 		Headers:              mrcf.dataPools.Headers(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
-		Marshalizer:          mrcf.marshalizer,
 		NonceConverter:       mrcf.uint64ByteSliceConverter,
 		ShardCoordinator:     mrcf.shardCoordinator,
-		AntifloodHandler:     mrcf.inputAntifloodHandler,
-		Throttler:            mrcf.throttler,
 		IsFullHistoryNode:    mrcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)

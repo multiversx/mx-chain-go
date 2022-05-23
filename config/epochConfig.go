@@ -77,6 +77,7 @@ type EnableEpochs struct {
 	SCRSizeInvariantOnBuiltInResultEnableEpoch        uint32
 	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
+	HeartbeatDisableEpoch                             uint32
 	MiniBlockPartialExecutionEnableEpoch              uint32
 }
 
