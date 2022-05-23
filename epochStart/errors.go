@@ -284,6 +284,9 @@ var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
 // ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
 var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")
 
+// ErrOwnerDoesntHaveNodesInEpoch signals that the owner has no nodes in epoch
+var ErrOwnerDoesntHaveNodesInEpoch = errors.New("owner has no nodes in epoch")
+
 // ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
 var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
 

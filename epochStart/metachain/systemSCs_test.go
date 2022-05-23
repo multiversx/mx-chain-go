@@ -1867,38 +1867,61 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	require.Nil(t, err)
 
 	/*
-		- MaxNumNodes = 6
-		- EligibleBlsKeys = 3 (pubKey0, pubKey1, pubKey3)
-		- AuctionBlsKeys = 5
-		We can only select (MaxNumNodes - EligibleBlsKeys = 3) bls keys from AuctionList to be added to NewList
+			- owner5 does not have enough stake for 2 nodes=> his auction node (pubKe13) will be unStaked at the end of the epoch =>
+		      will not participate in auction selection
+		    - owner6 does not have enough stake for 2 nodes => one of his auction nodes(pubKey14) will be unStaked at the end of the epoch =>
+		      his other auction node(pubKey15) will not participate in auction selection
+			- MaxNumNodes = 8
+			- EligibleBlsKeys = 5 (pubKey0, pubKey1, pubKey3, pubKe13, pubKey17)
+			- QualifiedAuctionBlsKeys = 7 (pubKey2, pubKey4, pubKey5, pubKey7, pubKey9, pubKey10, pubKey11)
+			We can only select (MaxNumNodes - EligibleBlsKeys = 3) bls keys from AuctionList to be added to NewList
 
-		Auction list is:
-		+--------+----------------+----------------+
-		| Owner  | Registered key | TopUp per node |
-		+--------+----------------+----------------+
-		| owner1 | pubKey2        | 1000           |
-		| owner4 | pubKey9        | 500            |
-		| owner2 | pubKey4        | 0              |
-		+--------+----------------+----------------+
-		| owner2 | pubKey5        | 0              |
-		| owner3 | pubKey7        | 0              |
-		+--------+----------------+----------------+
-		The following have 0 top up per node:
-		- owner2 with 2 bls keys = pubKey4, pubKey5
-		- owner3 with 1 bls key  = pubKey7
+			-> Initial nodes config in auction list is:
+		+--------+------------------+------------------+-------------------+--------------+-----------------+---------------------------+
+		| Owner  | Num staked nodes | Num active nodes | Num auction nodes | Total top up | Top up per node | Auction list nodes        |
+		+--------+------------------+------------------+-------------------+--------------+-----------------+---------------------------+
+		| owner3 | 2                | 1                | 1                 | 2444         | 1222            | pubKey7                   |
+		| owner4 | 4                | 1                | 3                 | 2666         | 666             | pubKey9, pubKe10, pubKe11 |
+		| owner1 | 3                | 2                | 1                 | 3666         | 1222            | pubKey2                   |
+		| owner2 | 3                | 1                | 2                 | 2555         | 851             | pubKey4, pubKey5          |
+		+--------+------------------+------------------+-------------------+--------------+-----------------+---------------------------+
+		  	-> Min possible topUp = 666; max possible topUp = 1333, min required topUp = 1216
+			-> Selected nodes config in auction list
+		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
+		| Owner  | Num staked nodes | TopUp per node | Total top up | Num auction nodes | Num qualified auction nodes | Num active nodes | Qualified top up per node | Selected auction list nodes |
+		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
+		| owner1 | 3                | 1222           | 3666         | 1                 | 1                           | 2                | 1222                      | pubKey2                     |
+		| owner2 | 3                | 851            | 2555         | 2                 | 1                           | 1                | 1277                      | pubKey4                     |
+		| owner3 | 2                | 1222           | 2444         | 1                 | 1                           | 1                | 1222                      | pubKey7                     |
+		| owner4 | 4                | 666            | 2666         | 3                 | 1                           | 1                | 1333                      | pubKe10                     |
+		+--------+------------------+----------------+--------------+-------------------+-----------------------------+------------------+---------------------------+-----------------------------+
+			-> Final selected nodes from auction list
+		+--------+----------------+--------------------------+
+		| Owner  | Registered key | Qualified TopUp per node |
+		+--------+----------------+--------------------------+
+		| owner4 | pubKe10        | 1333                     |
+		| owner2 | pubKey4        | 1277                     |
+		| owner1 | pubKey2        | 1222                     |
+		+--------+----------------+--------------------------+
+		| owner3 | pubKey7        | 1222                     |
+		+--------+----------------+--------------------------+
 
-		Since randomness = []byte("pubKey7"), nodes will be sorted based on blsKey XOR randomness, therefore:
-		-  XOR1 = []byte("pubKey4") XOR []byte("pubKey7") = [0 0 0 0 0 0 3]
-		-  XOR2 = []byte("pubKey5") XOR []byte("pubKey7") = [0 0 0 0 0 0 2]
-		-  XOR3 = []byte("pubKey7") XOR []byte("pubKey7") = [0 0 0 0 0 0 0]
+			The following have 1222 top up per node:
+			- owner1 with 1 bls keys = pubKey2
+			- owner3 with 1 bls key  = pubKey7
+
+			Since randomness = []byte("pubKey7"), nodes will be sorted based on blsKey XOR randomness, therefore:
+			-  XOR1 = []byte("pubKey2") XOR []byte("pubKey7") = [0 0 0 0 0 0 5]
+			-  XOR3 = []byte("pubKey7") XOR []byte("pubKey7") = [0 0 0 0 0 0 0]
 	*/
 	requireTopUpPerNodes(t, s.stakingDataProvider, owner1StakedKeys, big.NewInt(1222))
 	requireTopUpPerNodes(t, s.stakingDataProvider, owner2StakedKeys, big.NewInt(851))
 	requireTopUpPerNodes(t, s.stakingDataProvider, owner3StakedKeys, big.NewInt(1222))
 	requireTopUpPerNodes(t, s.stakingDataProvider, owner4StakedKeys, big.NewInt(666))
 	requireTopUpPerNodes(t, s.stakingDataProvider, owner5StakedKeys, big.NewInt(0))
+	requireTopUpPerNodes(t, s.stakingDataProvider, owner6StakedKeys, big.NewInt(0))
+	requireTopUpPerNodes(t, s.stakingDataProvider, owner7StakedKeys, big.NewInt(0))
 
-	// selected = 10, 4, 2
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
 		0: {
 			createValidatorInfo(owner1StakedKeys[0], common.EligibleList, owner1, 0),
@@ -2024,20 +2047,16 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 }
 
 func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, stakedPubKeys [][]byte, topUp *big.Int) {
-	owner, err := s.GetBlsKeyOwner(stakedPubKeys[0])
-	require.Nil(t, err)
+	for _, pubKey := range stakedPubKeys {
+		owner, err := s.GetBlsKeyOwner(pubKey)
+		require.Nil(t, err)
 
-	totalTopUp, err := s.GetTotalTopUp([]byte(owner))
-	require.Nil(t, err)
+		totalTopUp, err := s.GetTotalTopUp([]byte(owner))
+		require.Nil(t, err)
 
-	topUpPerNode := big.NewInt(0).Div(totalTopUp, big.NewInt(int64(len(stakedPubKeys))))
-	require.Equal(t, topUp, topUpPerNode)
-
-	//for _, pubKey := range stakedPubKeys {
-	//	topUpPerNode, err := s.GetNodeStakedTopUp(pubKey)
-	//	require.Nil(t, err)
-	//	require.Equal(t, topUpPerNode, topUp)
-	//}
+		topUpPerNode := big.NewInt(0).Div(totalTopUp, big.NewInt(int64(len(stakedPubKeys))))
+		require.Equal(t, topUp, topUpPerNode)
+	}
 }
 
 // This func sets rating and temp rating with the start rating value used in createFullArgumentsForSystemSCProcessing

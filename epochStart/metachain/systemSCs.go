@@ -131,7 +131,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	}
 
 	if s.flagStakingV4Enabled.IsSet() {
-		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap) // s.stakingDataProvider.PrepareStakingDataForStakingV4(validatorsInfoMap)
+		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
 		}
@@ -196,8 +196,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 
 func copyOwnerKeysInMap(mapOwnersKeys map[string][][]byte) map[string]struct{} {
 	ret := make(map[string]struct{})
-
-	for owner, _ := range mapOwnersKeys {
+	for owner := range mapOwnersKeys {
 		ret[owner] = struct{}{}
 	}
 

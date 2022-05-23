@@ -67,7 +67,6 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 // SelectNodesFromAuctionList will select nodes from validatorsInfoMap based on their top up. If two or more validators
 // have the same top-up, then sorting will be done based on blsKey XOR randomness. Selected nodes will have their list set
 // to common.SelectNodesFromAuctionList
-// Depends that dat is filled in staking data provider
 func (als *auctionListSelector) SelectNodesFromAuctionList(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	unqualifiedOwners map[string]struct{},
@@ -118,7 +117,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	als.displayOwnersConfig(ownersData)
+	als.displayOwnersData(ownersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 
 	sw := core.NewStopWatch()
@@ -191,7 +190,7 @@ func (als *auctionListSelector) addOwnerData(
 		return err
 	}
 	if stakedNodes == 0 {
-		return fmt.Errorf("auctionListSelector.getOwnersDat: error: %w, owner: %s, node: %s",
+		return fmt.Errorf("auctionListSelector.addOwnerData: error: %w, owner: %s, node: %s",
 			epochStart.ErrOwnerHasNoStakedNode,
 			hex.EncodeToString(ownerPubKey),
 			hex.EncodeToString(validatorPubKey),
@@ -295,7 +294,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 
 	}
 
-	displayRequiredTopUp(topUp, minTopUp, step)
+	displayMinRequiredTopUp(topUp, minTopUp, step)
 	return previousConfig, nil
 }
 

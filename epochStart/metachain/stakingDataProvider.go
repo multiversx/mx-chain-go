@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -21,7 +20,6 @@ import (
 type ownerStats struct {
 	numEligible        int
 	numStakedNodes     int64
-	numAuctionNodes    int64
 	topUpValue         *big.Int
 	totalStaked        *big.Int
 	eligibleBaseStake  *big.Int
@@ -122,19 +120,21 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 	return ownerInfo.topUpPerNode, nil
 }
 
+// GetNumStakedNodes returns the total number of owner's staked nodes
 func (sdp *stakingDataProvider) GetNumStakedNodes(owner []byte) (int64, error) {
 	ownerInfo, ok := sdp.cache[string(owner)]
 	if !ok {
-		return 0, epochStart.ErrOwnerDoesntHaveEligibleNodesInEpoch
+		return 0, epochStart.ErrOwnerDoesntHaveNodesInEpoch
 	}
 
 	return ownerInfo.numStakedNodes, nil
 }
 
+// GetTotalTopUp returns owner's total top up
 func (sdp *stakingDataProvider) GetTotalTopUp(owner []byte) (*big.Int, error) {
 	ownerInfo, ok := sdp.cache[string(owner)]
 	if !ok {
-		return nil, epochStart.ErrOwnerDoesntHaveEligibleNodesInEpoch
+		return nil, epochStart.ErrOwnerDoesntHaveNodesInEpoch
 	}
 
 	return ownerInfo.topUpValue, nil
@@ -150,21 +150,6 @@ func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) err
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	sdp.processStakingData()
-
-	return nil
-}
-
-func (sdp *stakingDataProvider) PrepareStakingDataForStakingV4(validatorsMap state.ShardValidatorsInfoMapHandler) error {
-	sdp.Clean()
-
-	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
-		err := sdp.loadDataForValidatorWithStakingV4(validator)
-		if err != nil {
-			return err
 		}
 	}
 
@@ -226,28 +211,6 @@ func (sdp *stakingDataProvider) getAndFillOwnerStatsFromSC(blsKey []byte) (*owne
 	}
 
 	return ownerData, nil
-}
-
-// loadDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
-// staking data can be recovered from the staking system smart contracts.
-// The function will error if something went wrong. It does change the inner state of the called instance.
-func (sdp *stakingDataProvider) loadDataForValidatorWithStakingV4(validator state.ValidatorInfoHandler) error {
-	sdp.mutStakingData.Lock()
-	defer sdp.mutStakingData.Unlock()
-
-	ownerData, err := sdp.getAndFillOwnerStatsFromSC(validator.GetPublicKey())
-	if err != nil {
-		log.Debug("error computing rewards for bls key", "step", "get owner data", "key", hex.EncodeToString(validator.GetPublicKey()), "error", err)
-		return err
-	}
-
-	if validatorInfo.WasEligibleInCurrentEpoch(validator) {
-		ownerData.numEligible++
-	} else if validator.GetList() == string(common.AuctionList) {
-		ownerData.numAuctionNodes++
-	}
-
-	return nil
 }
 
 // loadDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the

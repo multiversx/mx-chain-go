@@ -78,19 +78,19 @@ func compareByXORWithRandomness(pubKey1, pubKey2, randomness []byte) bool {
 
 func addQualifiedValidatorsTopUpInMap(owner *ownerData, validatorTopUpMap map[string]*big.Int) {
 	for i := int64(0); i < owner.numQualifiedAuctionNodes; i++ {
-		validatorPubKey := owner.auctionList[i].GetPublicKey()
-		validatorTopUpMap[string(validatorPubKey)] = big.NewInt(0).SetBytes(owner.qualifiedTopUpPerNode.Bytes())
+		validatorPubKey := string(owner.auctionList[i].GetPublicKey())
+		validatorTopUpMap[validatorPubKey] = big.NewInt(0).SetBytes(owner.qualifiedTopUpPerNode.Bytes())
 	}
 }
 
 func (als *auctionListSelector) sortValidators(
-	auctionList []state.ValidatorInfoHandler,
+	list []state.ValidatorInfoHandler,
 	validatorTopUpMap map[string]*big.Int,
 	randomness []byte,
 ) {
-	sort.SliceStable(auctionList, func(i, j int) bool {
-		pubKey1 := auctionList[i].GetPublicKey()
-		pubKey2 := auctionList[j].GetPublicKey()
+	sort.SliceStable(list, func(i, j int) bool {
+		pubKey1 := list[i].GetPublicKey()
+		pubKey2 := list[j].GetPublicKey()
 
 		nodeTopUpPubKey1 := validatorTopUpMap[string(pubKey1)]
 		nodeTopUpPubKey2 := validatorTopUpMap[string(pubKey2)]

@@ -11,7 +11,7 @@ import (
 
 const maxPubKeyDisplayableLen = 20
 
-func displayRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
+func displayMinRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -21,8 +21,8 @@ func displayRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
 		topUp = big.NewInt(0).Sub(topUp, step)
 	}
 
-	valToIterate := big.NewInt(0).Sub(topUp, min)
-	iterations := big.NewInt(0).Div(valToIterate, step)
+	iteratedValues := big.NewInt(0).Sub(topUp, min)
+	iterations := big.NewInt(0).Div(iteratedValues, step)
 
 	log.Info("auctionListSelector: found min required",
 		"topUp", topUp.String(),
@@ -30,22 +30,24 @@ func displayRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
 	)
 }
 
+func getShortKey(pubKey []byte) string {
+	displayablePubKey := pubKey
+	pubKeyLen := len(pubKey)
+	if pubKeyLen > maxPubKeyDisplayableLen {
+		displayablePubKey = make([]byte, 0)
+		displayablePubKey = append(displayablePubKey, pubKey[:maxPubKeyDisplayableLen/2]...)
+		displayablePubKey = append(displayablePubKey, []byte("...")...)
+		displayablePubKey = append(displayablePubKey, pubKey[pubKeyLen-maxPubKeyDisplayableLen/2:]...)
+	}
+
+	return string(displayablePubKey)
+}
+
 func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
 	pubKeys := ""
 
 	for idx, validator := range list {
-		pubKey := validator.GetPublicKey()
-		displayablePubKey := pubKey
-
-		pubKeyLen := len(pubKey)
-		if pubKeyLen > maxPubKeyDisplayableLen {
-			displayablePubKey = make([]byte, 0)
-			displayablePubKey = append(displayablePubKey, pubKey[:maxPubKeyDisplayableLen/2]...)
-			displayablePubKey = append(displayablePubKey, []byte("...")...)
-			displayablePubKey = append(displayablePubKey, pubKey[pubKeyLen-maxPubKeyDisplayableLen/2:]...)
-		}
-
-		pubKeys += string(displayablePubKey) // todo: hex here
+		pubKeys += getShortKey(validator.GetPublicKey()) // todo: hex here
 		addDelimiter := idx != len(list)-1
 		if addDelimiter {
 			pubKeys += ", "
@@ -55,7 +57,7 @@ func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
 	return pubKeys
 }
 
-func (als *auctionListSelector) displayOwnersConfig(ownersData map[string]*ownerData) {
+func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerData) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -84,14 +86,7 @@ func (als *auctionListSelector) displayOwnersConfig(ownersData map[string]*owner
 		lines = append(lines, display.NewLineData(false, line))
 	}
 
-	table, err := display.CreateTableString(tableHeader, lines)
-	if err != nil {
-		log.Error("could not create table", "error", err)
-		return
-	}
-
-	message := fmt.Sprintf("Initial nodes config in auction list\n%s", table)
-	log.Info(message)
+	displayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
 func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData2 map[string]*ownerData) {
@@ -112,8 +107,6 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData2 map[strin
 	}
 	lines := make([]*display.LineData, 0, len(ownersData))
 	for ownerPubKey, owner := range ownersData {
-		selectedFromAuction := owner.auctionList[:owner.numQualifiedAuctionNodes]
-
 		line := []string{
 			(ownerPubKey),
 			strconv.Itoa(int(owner.numStakedNodes)),
@@ -123,22 +116,19 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData2 map[strin
 			strconv.Itoa(int(owner.numQualifiedAuctionNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
 			owner.qualifiedTopUpPerNode.String(),
-			getShortDisplayableBlsKeys(selectedFromAuction),
+			getShortDisplayableBlsKeys(owner.auctionList[:owner.numQualifiedAuctionNodes]),
 		}
 		lines = append(lines, display.NewLineData(false, line))
 	}
 
-	table, err := display.CreateTableString(tableHeader, lines)
-	if err != nil {
-		log.Error("could not create table", "error", err)
-		return
-	}
-
-	message := fmt.Sprintf("Selected nodes config in auction list\n%s", table)
-	log.Info(message)
+	displayTable(tableHeader, lines, "Selected nodes config from auction list")
 }
 
-func (als *auctionListSelector) displayAuctionList(auctionList []state.ValidatorInfoHandler, ownersData map[string]*ownerData, numOfSelectedNodes uint32) {
+func (als *auctionListSelector) displayAuctionList(
+	auctionList []state.ValidatorInfoHandler,
+	ownersData map[string]*ownerData,
+	numOfSelectedNodes uint32,
+) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -150,10 +140,12 @@ func (als *auctionListSelector) displayAuctionList(auctionList []state.Validator
 		pubKey := validator.GetPublicKey()
 
 		owner, err := als.stakingDataProvider.GetBlsKeyOwner(pubKey)
-		log.LogIfError(err)
+		if err != nil {
+			log.Error("auctionListSelector.displayAuctionList", "error", err)
+			continue
+		}
 
 		topUp := ownersData[owner].qualifiedTopUpPerNode
-		log.LogIfError(err)
 
 		horizontalLine = uint32(idx) == numOfSelectedNodes-1
 		line := display.NewLineData(horizontalLine, []string{
@@ -164,12 +156,16 @@ func (als *auctionListSelector) displayAuctionList(auctionList []state.Validator
 		lines = append(lines, line)
 	}
 
+	displayTable(tableHeader, lines, "Final selected nodes from auction list")
+}
+
+func displayTable(tableHeader []string, lines []*display.LineData, message string) {
 	table, err := display.CreateTableString(tableHeader, lines)
 	if err != nil {
 		log.Error("could not create table", "error", err)
 		return
 	}
 
-	message := fmt.Sprintf("Final selected nodes from auction list\n%s", table)
-	log.Info(message)
+	msg := fmt.Sprintf("%s\n%s", message, table)
+	log.Info(msg)
 }
