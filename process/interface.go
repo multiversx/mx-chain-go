@@ -183,7 +183,7 @@ type IntermediateTransactionHandler interface {
 
 // DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
 type DataMarshalizer interface {
-	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
+	CreateMarshalledData(txHashes [][]byte) ([][]byte, error)
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed

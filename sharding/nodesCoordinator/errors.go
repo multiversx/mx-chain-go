@@ -111,3 +111,6 @@ var ErrValidatorCannotBeFullArchive = errors.New("validator cannot be a full arc
 
 // ErrNilNodeTypeProvider signals that a nil node type provider has been given
 var ErrNilNodeTypeProvider = errors.New("nil node type provider")
+
+// ErrNilPoolsHolder signals that a nil validator info cacher has been provided
+var ErrNilValidatorInfoCacher = errors.New("nil validator info cacher")

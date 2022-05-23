@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,6 +157,7 @@ func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {
 
 	arguments := createArguments()
 
+	arguments.ValidatorInfoCacher = dataPool.NewCurrentBlockValidatorInfoPool()
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
@@ -163,7 +165,7 @@ func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {
 	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
 
 	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
-	validatorsInfo, _ := createValidatorInfoFromBody(body, arguments.Marshalizer, 10)
+	validatorsInfo, _ := createValidatorInfoFromBody(body, 10, arguments.ValidatorInfoCacher)
 
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, []byte{}, validatorsInfo)
 	require.Nil(t, err)

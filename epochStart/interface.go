@@ -157,6 +157,7 @@ type TransactionCacher interface {
 // ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current block
 type ValidatorInfoCacher interface {
 	GetValidatorInfo(validatorInfoHash []byte) (*state.ShardValidatorInfo, error)
+	AddValidatorInfo(validatorInfoHash []byte, validatorInfo *state.ShardValidatorInfo)
 	IsInterfaceNil() bool
 }
 

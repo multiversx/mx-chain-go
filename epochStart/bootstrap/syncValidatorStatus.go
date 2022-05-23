@@ -111,6 +111,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ChanStopNode:               args.ChanNodeStop,
 		NodeTypeProvider:           args.NodeTypeProvider,
 		IsFullArchive:              args.IsFullArchive,
+		ValidatorInfoCacher:        args.DataPool.CurrentBlockValidatorInfo(),
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

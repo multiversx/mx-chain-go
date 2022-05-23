@@ -329,6 +329,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedDataComponents.Datapool().CurrentBlockValidatorInfo(),
 	)
 	if err != nil {
 		return true, err

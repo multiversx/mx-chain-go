@@ -143,7 +143,7 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 	)
 
 	hash := make([][]byte, 0)
-	res, err := rtp.CreateMarshalizedData(hash)
+	res, err := rtp.CreateMarshalledData(hash)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(res))

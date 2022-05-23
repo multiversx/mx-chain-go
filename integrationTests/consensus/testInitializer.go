@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -509,6 +510,7 @@ func createNodes(
 		epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
+		validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:    consensusSize,
@@ -528,6 +530,7 @@ func createNodes(
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
+			ValidatorInfoCacher:        validatorInfoCacher,
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

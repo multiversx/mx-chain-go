@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/state"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -93,6 +94,7 @@ type indexHashedNodesCoordinator struct {
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
 	nodeTypeProvider              NodeTypeProviderHandler
+	validatorInfoCacher           epochStart.ValidatorInfoCacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -137,6 +139,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		chanStopNode:                  arguments.ChanStopNode,
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
+		validatorInfoCacher:           arguments.ValidatorInfoCacher,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
 
@@ -213,6 +216,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
+	}
+	if check.IfNil(arguments.ValidatorInfoCacher) {
+		return ErrNilValidatorInfoCacher
 	}
 
 	return nil
@@ -555,9 +561,9 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.marshalizer, ihnc.numTotalEligible)
+	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.numTotalEligible, ihnc.validatorInfoCacher)
 	if err != nil {
-		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
+		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
 		return
 	}
 
@@ -1160,8 +1166,8 @@ func selectValidators(
 // createValidatorInfoFromBody unmarshalls body data to create validator info
 func createValidatorInfoFromBody(
 	body data.BodyHandler,
-	marshalizer marshal.Marshalizer,
 	previousTotal uint64,
+	validatorInfoCacher epochStart.ValidatorInfoCacher,
 ) ([]*state.ShardValidatorInfo, error) {
 	if check.IfNil(body) {
 		return nil, ErrNilBlockBody
@@ -1179,13 +1185,12 @@ func createValidatorInfoFromBody(
 		}
 
 		for _, txHash := range peerMiniBlock.TxHashes {
-			vid := &state.ShardValidatorInfo{}
-			err := marshalizer.Unmarshal(vid, txHash)
+			shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
 			if err != nil {
 				return nil, err
 			}
 
-			allValidatorInfo = append(allValidatorInfo, vid)
+			allValidatorInfo = append(allValidatorInfo, shardValidatorInfo)
 		}
 	}
 

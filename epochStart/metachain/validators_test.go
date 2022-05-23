@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data/block"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/state"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacherMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -122,6 +124,9 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 				return &testscommon.CacherStub{
 					RemoveCalled: func(key []byte) {},
 				}
+			},
+			CurrBlockValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 			},
 		},
 	}

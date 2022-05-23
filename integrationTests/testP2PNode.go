@@ -15,6 +15,7 @@ import (
 	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
@@ -329,6 +330,8 @@ func CreateNodesWithTestP2PNodes(
 	nodesMap := make(map[uint32][]*TestP2PNode)
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg)
+	validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
+
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:    shardConsensusGroupSize,
@@ -350,6 +353,7 @@ func CreateNodesWithTestP2PNodes(
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
+			ValidatorInfoCacher:        validatorInfoCacher,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -395,6 +399,7 @@ func CreateNodesWithTestP2PNodes(
 				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:              false,
+				ValidatorInfoCacher:        validatorInfoCacher,
 			}
 			nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

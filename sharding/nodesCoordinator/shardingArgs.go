@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go-core/hashing"
 	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -29,4 +30,5 @@ type ArgNodesCoordinator struct {
 	ChanStopNode               chan endProcess.ArgEndProcess
 	NodeTypeProvider           NodeTypeProviderHandler
 	IsFullArchive              bool
+	ValidatorInfoCacher        epochStart.ValidatorInfoCacher
 }

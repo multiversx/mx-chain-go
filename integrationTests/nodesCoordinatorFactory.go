@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacherMock"
 )
 
 // ArgIndexHashedNodesCoordinatorFactory -
@@ -70,6 +71,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -122,6 +124,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

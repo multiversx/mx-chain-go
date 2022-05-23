@@ -65,6 +65,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
+		managedDataComponents.Datapool().CurrentBlockValidatorInfo(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(

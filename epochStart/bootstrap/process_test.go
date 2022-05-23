@@ -41,6 +41,7 @@ import (
 	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
 	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacherMock"
 	"github.com/ElrondNetwork/elrond-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1735,6 +1736,9 @@ func TestRequestAndProcessing(t *testing.T) {
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
 			},
+			CurrBlockValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
+			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
@@ -1801,6 +1805,9 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
+			},
+			CurrBlockValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
@@ -1956,6 +1963,9 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 		},
 		TrieNodesCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
+		},
+		CurrBlockValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}

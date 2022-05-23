@@ -15,9 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacherMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,6 +94,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -187,6 +189,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -260,6 +263,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
@@ -333,6 +337,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -385,6 +390,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -451,6 +457,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -534,6 +541,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -838,6 +846,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
+		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)

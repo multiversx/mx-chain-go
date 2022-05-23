@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
 	multisig2 "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	p2pRating "github.com/ElrondNetwork/elrond-go/p2p/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -61,6 +62,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
+	validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 
 	cpWaiting := CreateCryptoParams(1, 1, nbShards)
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
@@ -94,6 +96,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				WaitingListFixEnabledEpoch: 0,
 				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:              false,
+				ValidatorInfoCacher:        validatorInfoCacher,
 			}
 
 			nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

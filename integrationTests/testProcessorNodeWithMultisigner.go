@@ -19,6 +19,7 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/common/forking"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -486,6 +487,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
+	validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
@@ -528,6 +530,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
+			ValidatorInfoCacher:        validatorInfoCacher,
 		}
 		nodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -588,6 +591,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
+	validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 
 	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
@@ -627,6 +631,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
+			ValidatorInfoCacher:        validatorInfoCacher,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
