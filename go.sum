@@ -15,8 +15,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.40-0.20220504105425-401b8e5aeef8 h1:
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.40-0.20220504105425-401b8e5aeef8/go.mod h1:9ogeDdzBF++dDn2PcDa9eelh6VcoT3g1c//v5KHJq/A=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.40-0.20220504105847-b2c38e7350c5 h1:UXQXZjzrWdQ8YQYlICxuDb2iZTCixQJD0hkwipzWs/I=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.40-0.20220504105847-b2c38e7350c5/go.mod h1:Tro83HlV3mhyAhx/ZmSY2BthjxPeeuUR5kKzhT7s32M=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.51-0.20220512100929-344c39107e7b h1:U0sE4Hg9xV74Gi6eJsMDX+NOXnrXiJhLEtLWowLzebw=
-github.com/ElrondNetwork/arwen-wasm-vm v1.4.51-0.20220512100929-344c39107e7b/go.mod h1:oorQrV0MrlPztDFK1MlXdF1Gr4kkANb1ooSiKWh98QY=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.51-0.20220523063642-ba8a7490f524 h1:dR1zja48ToeGijVWYqVkim0ITT4cZNEL5NlHtXvEgs4=
+github.com/ElrondNetwork/arwen-wasm-vm v1.4.51-0.20220523063642-ba8a7490f524/go.mod h1:SuKAuneyXD3XAFC2Q7Ot+jZXUKAMmzx8kGcf21r5IHc=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -978,8 +978,9 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
+github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
 github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965 h1:1oFLiOyVl+W7bnBzGhf7BbIv9loSFQcieWWYIjLqcAw=
 github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965/go.mod h1:9OrXJhf154huy1nPWmuSrkgjPUtUNhA+Zmy+6AESzuA=

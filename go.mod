@@ -39,7 +39,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.5
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
@@ -56,4 +56,4 @@ replace github.com/ElrondNetwork/arwen-wasm-vm/v1_2 v1.2.39 => github.com/Elrond
 
 replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.39 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.40-0.20220504105847-b2c38e7350c5
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.49 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.51-0.20220512100929-344c39107e7b
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_4 v1.4.49 => github.com/ElrondNetwork/arwen-wasm-vm v1.4.51-0.20220523063642-ba8a7490f524
