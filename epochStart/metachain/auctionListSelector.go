@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"math/big"
 	"sort"
 
@@ -16,6 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/state"
 )
+
+const oneEGLD = 1000000000000000000 // with 18 decimals = 1 EGLD
+const minEGLD = 1                   // with 18 decimals = 0.00...01 egld
+const maxEGLD = 21000000            // without 18 decimals
 
 type auctionListSelector struct {
 	shardCoordinator    sharding.Coordinator
@@ -104,7 +107,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		fmt.Sprintf("available slots (%v -%v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	if len(auctionList) == 0 {
+	if auctionListSize == 0 {
 		log.Debug("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
 		return nil
 	}
@@ -116,7 +119,6 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return err
 	}
 
-	als.displayAuctionList(auctionList, numOfAvailableNodeSlots)
 	return nil
 }
 
@@ -254,7 +256,7 @@ func copyOwnersData(ownersData map[string]*ownerData) map[string]*ownerData {
 }
 
 func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.Int) {
-	min := big.NewInt(math.MaxInt64)
+	min := big.NewInt(0).Mul(big.NewInt(oneEGLD), big.NewInt(maxEGLD))
 	max := big.NewInt(0)
 
 	for _, owner := range ownersData {
@@ -268,8 +270,10 @@ func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.In
 			max = big.NewInt(0).SetBytes(maxPossibleTopUpForOwner.Bytes())
 		}
 	}
-	if min.Cmp(big.NewInt(1)) < 0 {
-		min = big.NewInt(1)
+
+	minPossible := big.NewInt(minEGLD)
+	if min.Cmp(minPossible) < 0 {
+		min = minPossible
 	}
 
 	return min, max
@@ -278,20 +282,18 @@ func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.In
 func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 	ownersData map[string]*ownerData,
 	numAvailableSlots uint32,
-) (map[string]*ownerData, *big.Int, error) {
+) (map[string]*ownerData, error) {
 	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData) // TODO: What happens if min>max or MIN = MAX?
-	log.Debug("auctionListSelector: calc min and max possible top up",
+	log.Info("auctionListSelector: calc min and max possible top up",
 		"min top up", minTopUp.String(),
 		"max top up", maxTopUp.String(),
 	)
 
-	step := big.NewInt(10) // todo: granulate step if max- min < step????
-	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^MIN TOP UP: ", minTopUp.Int64(), "MAX TOP UP", maxTopUp.Int64())
-
+	step := big.NewInt(10) // todo: granulate step if max- min < step???? + 10 egld for real
 	previousConfig := copyOwnersData(ownersData)
-	minRequiredTopUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
+	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
 
-	for topUp := big.NewInt(0).SetBytes(minTopUp.Bytes()); topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, step) {
+	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, step) {
 		numNodesQualifyingForTopUp := int64(0)
 		previousConfig = copyOwnersData(ownersData)
 
@@ -317,15 +319,12 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		}
 
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
-			if !(topUp.Cmp(minTopUp) == 0) {
-				minRequiredTopUp = big.NewInt(0).Sub(topUp, step)
-			}
 			break
 		}
 
 	}
-
-	return previousConfig, minRequiredTopUp, nil
+	displayRequiredTopUp(topUp, maxTopUp, minTopUp, step)
+	return previousConfig, nil
 }
 
 func (als *auctionListSelector) selectNodes(
@@ -342,7 +341,10 @@ func (als *auctionListSelector) selectNodes(
 		selectedFromAuction = append(selectedFromAuction, owner.auctionList[:owner.numQualifiedAuctionNodes]...)
 	}
 
+	als.displayOwnersSelectedConfig(ownersData, randomness)
 	als.sortValidators(selectedFromAuction, validatorTopUpMap, randomness)
+	als.displayAuctionListV2(selectedFromAuction, ownersData, numAvailableSlots)
+
 	return selectedFromAuction[:numAvailableSlots]
 }
 
@@ -388,7 +390,8 @@ func (als *auctionListSelector) sortAuctionList(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	randomness []byte,
 ) error {
-	softAuctionNodesConfig, minTopUp, err := als.calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
+	// TODO: Here add a stopwatch to measure execution time
+	softAuctionNodesConfig, err := als.calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
 	if err != nil {
 		return err
 	}
@@ -399,7 +402,6 @@ func (als *auctionListSelector) sortAuctionList(
 		return err
 	}
 
-	_ = minTopUp
 	return nil
 }
 
