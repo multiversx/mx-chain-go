@@ -138,18 +138,18 @@ func TestPidQueue_RemoveShouldWork(t *testing.T) {
 	assert.Equal(t, 1, pq.indexOf(pid2))
 }
 
-func TestPidQueue_Size(t *testing.T) {
+func TestPidQueue_dataSizeInBytes(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	assert.Equal(t, 0, pq.size())
+	assert.Equal(t, 0, pq.dataSizeInBytes())
 
 	pq.push("pid 0")
-	assert.Equal(t, 5, pq.size())
+	assert.Equal(t, 5, pq.dataSizeInBytes())
 
 	pq.push("pid 1")
-	assert.Equal(t, 10, pq.size())
+	assert.Equal(t, 10, pq.dataSizeInBytes())
 
 	pq.push("0")
-	assert.Equal(t, 11, pq.size())
+	assert.Equal(t, 11, pq.dataSizeInBytes())
 }

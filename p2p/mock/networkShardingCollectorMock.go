@@ -49,8 +49,8 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIDInfo(pid core.PeerID, pk [
 	nscm.mutFallbackPidShardMap.Unlock()
 }
 
-// UpdatePeerIdSubType -
-func (nscm *networkShardingCollectorMock) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+// PutPeerIdSubType -
+func (nscm *networkShardingCollectorMock) PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 	nscm.mutPeerIdSubType.Lock()
 	nscm.peerIdSubType[pid] = uint32(peerSubType)
 	nscm.mutPeerIdSubType.Unlock()

@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/core/check"
 	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
@@ -19,22 +18,19 @@ var _ dataRetriever.HeaderResolver = (*HeaderResolver)(nil)
 
 // ArgHeaderResolver is the argument structure used to create new HeaderResolver instance
 type ArgHeaderResolver struct {
-	SenderResolver       dataRetriever.TopicResolverSender
+	ArgBaseResolver
 	Headers              dataRetriever.HeadersPool
 	HdrStorage           storage.Storer
 	HeadersNoncesStorage storage.Storer
-	Marshalizer          marshal.Marshalizer
 	NonceConverter       typeConverters.Uint64ByteSliceConverter
 	ShardCoordinator     sharding.Coordinator
-	AntifloodHandler     dataRetriever.P2PAntifloodHandler
-	Throttler            dataRetriever.ResolverThrottler
 	IsFullHistoryNode    bool
 }
 
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
+	*baseResolver
 	baseStorageResolver
-	dataRetriever.TopicResolverSender
 	messageProcessor
 	headers          dataRetriever.HeadersPool
 	hdrNoncesStorage storage.Storer
@@ -45,37 +41,16 @@ type HeaderResolver struct {
 
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
-	if check.IfNil(arg.SenderResolver) {
-		return nil, dataRetriever.ErrNilResolverSender
-	}
-	if check.IfNil(arg.Headers) {
-		return nil, dataRetriever.ErrNilHeadersDataPool
-	}
-	if check.IfNil(arg.HdrStorage) {
-		return nil, dataRetriever.ErrNilHeadersStorage
-	}
-	if check.IfNil(arg.HeadersNoncesStorage) {
-		return nil, dataRetriever.ErrNilHeadersNoncesStorage
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, dataRetriever.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.NonceConverter) {
-		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
-	}
-	if check.IfNil(arg.ShardCoordinator) {
-		return nil, dataRetriever.ErrNilShardCoordinator
-	}
-	if check.IfNil(arg.AntifloodHandler) {
-		return nil, dataRetriever.ErrNilAntifloodHandler
-	}
-	if check.IfNil(arg.Throttler) {
-		return nil, dataRetriever.ErrNilThrottler
+	err := checkArgHeaderResolver(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	epochHandler := disabled.NewEpochHandler()
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender: arg.SenderResolver,
+		baseResolver: &baseResolver{
+			TopicResolverSender: arg.SenderResolver,
+		},
 		headers:             arg.Headers,
 		baseStorageResolver: createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
 		hdrNoncesStorage:    arg.HeadersNoncesStorage,
@@ -83,7 +58,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 		epochHandler:        epochHandler,
 		shardCoordinator:    arg.ShardCoordinator,
 		messageProcessor: messageProcessor{
-			marshalizer:      arg.Marshalizer,
+			marshalizer:      arg.Marshaller,
 			antifloodHandler: arg.AntifloodHandler,
 			topic:            arg.SenderResolver.RequestTopic(),
 			throttler:        arg.Throttler,
@@ -91,6 +66,29 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 	}
 
 	return hdrResolver, nil
+}
+
+func checkArgHeaderResolver(arg ArgHeaderResolver) error {
+	err := checkArgBase(arg.ArgBaseResolver)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(arg.Headers) {
+		return dataRetriever.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arg.HdrStorage) {
+		return dataRetriever.ErrNilHeadersStorage
+	}
+	if check.IfNil(arg.HeadersNoncesStorage) {
+		return dataRetriever.ErrNilHeadersNoncesStorage
+	}
+	if check.IfNil(arg.NonceConverter) {
+		return dataRetriever.ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(arg.ShardCoordinator) {
+		return dataRetriever.ErrNilShardCoordinator
+	}
+	return nil
 }
 
 // SetEpochHandler sets the epoch handler for this component
@@ -262,26 +260,6 @@ func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
 		},
 		[][]byte{identifier},
 	)
-}
-
-// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
-func (hdrRes *HeaderResolver) SetNumPeersToQuery(intra int, cross int) {
-	hdrRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
-}
-
-// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (hdrRes *HeaderResolver) NumPeersToQuery() (int, int) {
-	return hdrRes.TopicResolverSender.NumPeersToQuery()
-}
-
-// SetResolverDebugHandler will set a resolver debug handler
-func (hdrRes *HeaderResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	return hdrRes.TopicResolverSender.SetResolverDebugHandler(handler)
-}
-
-// Close returns nil
-func (hdrRes *HeaderResolver) Close() error {
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

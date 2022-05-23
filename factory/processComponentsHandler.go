@@ -547,6 +547,18 @@ func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
 	return m.processComponents.txsSender
 }
 
+// HardforkTrigger returns the hardfork trigger
+func (m *managedProcessComponents) HardforkTrigger() HardforkTrigger {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.hardforkTrigger
+}
+
 // ESDTDataStorageHandlerForAPI returns the esdt data storage handler to be used for API calls
 func (m *managedProcessComponents) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
 	m.mutProcessComponents.RLock()
@@ -566,5 +578,5 @@ func (m *managedProcessComponents) IsInterfaceNil() bool {
 
 // String returns the name of the component
 func (m *managedProcessComponents) String() string {
-	return "managedProcessComponents"
+	return processComponentsName
 }
