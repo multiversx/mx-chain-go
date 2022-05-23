@@ -119,7 +119,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(validatorsInfoMap sta
 // TODO: Move this in elrond-go-core
 func safeSub(a, b uint32) (uint32, error) {
 	if a < b {
-		return 0, core.ErrSubtractionOverflow
+		return 0, epochStart.ErrUint32SubtractionOverflow
 	}
 	return a - b, nil
 }
@@ -152,7 +152,7 @@ func (als *auctionListSelector) sortAuctionList(auctionList []state.ValidatorInf
 	}
 
 	pubKeyLen := len(auctionList[0].GetPublicKey())
-	normRandomness := calcNormRand(randomness, pubKeyLen)
+	normRandomness := calcNormalizedRandomness(randomness, pubKeyLen)
 	sort.SliceStable(auctionList, func(i, j int) bool {
 		pubKey1 := auctionList[i].GetPublicKey()
 		pubKey2 := auctionList[j].GetPublicKey()
@@ -186,7 +186,7 @@ func (als *auctionListSelector) getValidatorTopUpMap(validators []state.Validato
 	return ret, nil
 }
 
-func calcNormRand(randomness []byte, expectedLen int) []byte {
+func calcNormalizedRandomness(randomness []byte, expectedLen int) []byte {
 	rand := randomness
 	randLen := len(rand)
 

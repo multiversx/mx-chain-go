@@ -334,3 +334,6 @@ var ErrNilMaxNodesChangeConfigProvider = errors.New("nil nodes config provider h
 
 // ErrNilAuctionListSelector signals that a nil auction list selector has been provided
 var ErrNilAuctionListSelector = errors.New("nil auction list selector has been provided")
+
+// ErrUint32SubtractionOverflow signals uint32 subtraction overflowed
+var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
