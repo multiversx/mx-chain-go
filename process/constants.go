@@ -42,7 +42,6 @@ const (
 	InvalidTransaction
 )
 
-// Question for review: perhaps move this and the enum definition (above) to a new file, process/transactionType.go?
 func (transactionType TransactionType) String() string {
 	switch transactionType {
 	case MoveBalance:

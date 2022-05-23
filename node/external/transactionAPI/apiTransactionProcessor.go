@@ -106,17 +106,6 @@ func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bo
 }
 
 func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction.ApiTransactionResult) {
-	// Question for review: is it all right to populate "processingTypeOnSource" & "processingTypeOnDestination" for unsigned transactions, as well?
-	// If not, we can enable this commented code, as well.
-
-	// shouldSkip := tx.Type != string(transaction.TxTypeNormal) &&
-	// 	tx.Type != string(transaction.TxTypeReward) &&
-	// 	tx.Type != string(transaction.TxTypeInvalid)
-
-	// if shouldSkip {
-	// 	return
-	// }
-
 	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
