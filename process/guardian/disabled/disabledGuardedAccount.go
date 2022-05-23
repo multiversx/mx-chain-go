@@ -17,7 +17,7 @@ func (dga *disabledGuardedAccount) GetActiveGuardian(_ vmcommon.UserAccountHandl
 }
 
 // SetGuardian returns nil as this is a disabled implementation
-func (dga *disabledGuardedAccount) SetGuardian(_ vmcommon.UserAccountHandler, _ []byte) error {
+func (dga *disabledGuardedAccount) SetGuardian(_ vmcommon.UserAccountHandler, _ []byte, _ []byte) error {
 	return nil
 }
 

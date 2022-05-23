@@ -1,6 +1,7 @@
 package guardian
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -69,15 +70,19 @@ func (agc *guardedAccount) GetActiveGuardian(uah vmcommon.UserAccountHandler) ([
 }
 
 // SetGuardian sets a guardian for an account
-func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error {
-	guardian := &guardians.Guardian{
-		Address:         guardianAddress,
-		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochs,
-	}
-
+func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error {
 	stateUserAccount, ok := uah.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	if len(txGuardianAddress) > 0 {
+		return agc.instantSetGuardian(stateUserAccount, guardianAddress, txGuardianAddress)
+	}
+
+	guardian := &guardians.Guardian{
+		Address:         guardianAddress,
+		ActivationEpoch: agc.currentEpoch + agc.guardianActivationEpochs,
 	}
 
 	return agc.setAccountGuardian(stateUserAccount, guardian)
@@ -88,6 +93,7 @@ func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guar
 	if err != nil {
 		return err
 	}
+
 	newGuardians, err := agc.updateGuardians(guardian, configuredGuardians)
 	if err != nil {
 		return err
@@ -99,6 +105,40 @@ func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guar
 	}
 
 	return agc.saveAccountGuardians(accHandler, newGuardians)
+}
+
+func (agc *guardedAccount) instantSetGuardian(
+	uah state.UserAccountHandler,
+	guardianAddress []byte,
+	txGuardianAddress []byte,
+) error {
+	accountGuardians, err := agc.getConfiguredGuardians(uah)
+	if err != nil {
+		return err
+	}
+
+	activeGuardian, err := agc.getActiveGuardian(accountGuardians)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(activeGuardian.Address, txGuardianAddress) {
+		return process.ErrTransactionAndAccountGuardianMismatch
+	}
+
+	// immediately set the new guardian
+	guardian := &guardians.Guardian{
+		Address:         guardianAddress,
+		ActivationEpoch: agc.currentEpoch,
+	}
+
+	accountGuardians.Slice = []*guardians.Guardian{guardian}
+	accHandler, ok := uah.(vmcommon.UserAccountHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	return agc.saveAccountGuardians(accHandler, accountGuardians)
 }
 
 func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, accountGuardians *guardians.Guardians) (*guardians.Guardians, error) {

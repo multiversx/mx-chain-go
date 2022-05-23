@@ -7,7 +7,7 @@ import (
 // GuardedAccountHandlerStub -
 type GuardedAccountHandlerStub struct {
 	GetActiveGuardianCalled func(handler vmcommon.UserAccountHandler) ([]byte, error)
-	SetGuardianCalled       func(uah vmcommon.UserAccountHandler, guardianAddress []byte) error
+	SetGuardianCalled       func(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
 }
 
 // GetActiveGuardian -
@@ -19,9 +19,9 @@ func (gahs *GuardedAccountHandlerStub) GetActiveGuardian(handler vmcommon.UserAc
 }
 
 // SetGuardian -
-func (gahs *GuardedAccountHandlerStub) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error {
+func (gahs *GuardedAccountHandlerStub) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error {
 	if gahs.SetGuardianCalled != nil {
-		return gahs.SetGuardianCalled(uah, guardianAddress)
+		return gahs.SetGuardianCalled(uah, guardianAddress, txGuardianAddress)
 	}
 	return nil
 }
