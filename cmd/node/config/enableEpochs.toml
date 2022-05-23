@@ -199,6 +199,9 @@
         { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
     ]
 
+    # HeartbeatDisableEpoch represents the epoch when heartbeat v1 messages stop being sent and processed
+    HeartbeatDisableEpoch = 2
+
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
     MiniBlockPartialExecutionEnableEpoch = 3
 
