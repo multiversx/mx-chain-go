@@ -34,10 +34,11 @@ type apiTransactionProcessor struct {
 	storageService              dataRetriever.StorageService
 	dataPool                    dataRetriever.PoolsHolder
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
-	txUnmarshaller              *txUnmarshaller
-	transactionResultsProcessor *apiTransactionResultsProcessor
 	economicsData               process.EconomicsDataHandler
 	txTypeHandler               process.TxTypeHandler
+	txUnmarshaller              *txUnmarshaller
+	transactionResultsProcessor *apiTransactionResultsProcessor
+	refundDetector              *refundDetector
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -48,6 +49,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	}
 
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter)
+
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -56,6 +58,8 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txUnmarshalerAndPreparer,
 		args.ShardCoordinator.SelfId(),
 	)
+
+	refundDetector := newRefundDetector()
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
@@ -67,10 +71,11 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		storageService:              args.StorageService,
 		dataPool:                    args.DataPool,
 		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
-		txUnmarshaller:              txUnmarshalerAndPreparer,
-		transactionResultsProcessor: txResultsProc,
 		economicsData:               args.EconomicsData,
 		txTypeHandler:               args.TxTypeHandler,
+		txUnmarshaller:              txUnmarshalerAndPreparer,
+		transactionResultsProcessor: txResultsProc,
+		refundDetector:              refundDetector,
 	}, nil
 }
 
@@ -89,6 +94,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 
 	atp.populateProcessingTypeFields(tx)
 	atp.populateInitiallyPaidFee(tx)
+	atp.populateIsRefund(tx)
 
 	return tx, nil
 }
@@ -122,6 +128,19 @@ func (atp *apiTransactionProcessor) populateInitiallyPaidFee(tx *transaction.Api
 	if !isZero {
 		tx.InitiallyPaidFee = initiallyPaidFee.String()
 	}
+}
+
+func (atp *apiTransactionProcessor) populateIsRefund(tx *transaction.ApiTransactionResult) {
+	if tx.Type != string(transaction.TxTypeUnsigned) {
+		return
+	}
+
+	tx.IsRefund = atp.refundDetector.isRefund(refundDetectorInput{
+		Value:         tx.Value,
+		Data:          tx.Data,
+		ReturnMessage: tx.ReturnMessage,
+		GasLimit:      tx.GasLimit,
+	})
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
@@ -368,6 +387,7 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 
 	atp.populateProcessingTypeFields(tx)
 	atp.populateInitiallyPaidFee(tx)
+	atp.populateIsRefund(tx)
 
 	return tx, nil
 }
