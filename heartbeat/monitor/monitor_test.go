@@ -185,9 +185,13 @@ func TestHeartbeatV2Monitor_parseMessage(t *testing.T) {
 		numInstances := make(map[string]uint64)
 		message := createHeartbeatMessage(true)
 		providedPid := core.PeerID("pid")
+		providedMap := map[string]struct{}{
+			providedPid.Pretty(): {},
+		}
 		hb, err := monitor.parseMessage(providedPid, message, numInstances)
 		assert.Nil(t, err)
-		checkResults(t, *message, hb, true, providedPid, 0)
+		checkResults(t, *message, hb, true, providedMap, 0)
+		assert.Equal(t, 0, len(providedMap))
 		pid := args.PubKeyConverter.Encode(providedPkBytes)
 		entries, ok := numInstances[pid]
 		assert.True(t, ok)
@@ -257,13 +261,14 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		}
 		providedStatuses := []bool{true, true, false}
 		numOfMessages := len(providedStatuses)
-		providedPids := make([]core.PeerID, numOfMessages)
+		providedPids := make(map[string]struct{}, numOfMessages)
 		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
 		for i := 0; i < numOfMessages; i++ {
-			providedPids[i] = core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			providedPids[pid.Pretty()] = struct{}{}
 			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
 
-			args.Cache.Put(providedPids[i].Bytes(), providedMessages[i], providedMessages[i].Size())
+			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
 		}
 
 		monitor, _ := NewHeartbeatV2Monitor(args)
@@ -272,27 +277,30 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 		heartbeats := monitor.GetHeartbeats()
 		assert.Equal(t, args.Cache.Len()-1, len(heartbeats))
 		for i := 0; i < len(heartbeats); i++ {
-			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids[i], 1)
+			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, 1)
 		}
+		assert.Equal(t, 1, len(providedPids)) // one message is skipped
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		args := createMockHeartbeatV2MonitorArgs()
 		providedStatuses := []bool{true, true, true}
 		numOfMessages := len(providedStatuses)
-		providedPids := make([]core.PeerID, numOfMessages)
+		providedPids := make(map[string]struct{}, numOfMessages)
 		providedMessages := make([]*heartbeat.HeartbeatV2, numOfMessages)
 		for i := 0; i < numOfMessages; i++ {
-			providedPids[i] = core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			pid := core.PeerID(fmt.Sprintf("%s%d", "pid", i))
+			providedPids[pid.Pretty()] = struct{}{}
 			providedMessages[i] = createHeartbeatMessage(providedStatuses[i])
 
-			args.Cache.Put(providedPids[i].Bytes(), providedMessages[i], providedMessages[i].Size())
+			args.Cache.Put(pid.Bytes(), providedMessages[i], providedMessages[i].Size())
 		}
+		counter := 0
 		args.PeerShardMapper = &processMocks.PeerShardMapperStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 				// Only first entry is unique, then all should have same pk
 				var info core.P2PPeerInfo
-				if pid == providedPids[0] {
+				if counter == 0 {
 					info = core.P2PPeerInfo{
 						PkBytes: pid.Bytes(),
 					}
@@ -301,7 +309,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 						PkBytes: []byte("same pk"),
 					}
 				}
-
+				counter++
 				return info
 			},
 		}
@@ -316,12 +324,13 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 			if i > 0 {
 				numInstances = 2
 			}
-			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids[i], numInstances)
+			checkResults(t, *providedMessages[i], heartbeats[i], providedStatuses[i], providedPids, numInstances)
 		}
+		assert.Equal(t, 0, len(providedPids))
 	})
 }
 
-func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHeartbeat, isActive bool, pid core.PeerID, numInstances uint64) {
+func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHeartbeat, isActive bool, providedPids map[string]struct{}, numInstances uint64) {
 	assert.Equal(t, isActive, hb.IsActive)
 	assert.Equal(t, message.VersionNumber, hb.VersionNumber)
 	assert.Equal(t, message.NodeDisplayName, hb.NodeDisplayName)
@@ -329,5 +338,7 @@ func checkResults(t *testing.T, message heartbeat.HeartbeatV2, hb data.PubKeyHea
 	assert.Equal(t, message.Nonce, hb.Nonce)
 	assert.Equal(t, message.PeerSubType, hb.PeerSubType)
 	assert.Equal(t, numInstances, hb.NumInstances)
-	assert.Equal(t, pid.Pretty(), hb.PidString)
+	_, ok := providedPids[hb.PidString]
+	assert.True(t, ok)
+	delete(providedPids, hb.PidString)
 }
