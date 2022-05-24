@@ -44,7 +44,7 @@ func createMockArgAPIBlockProcessor() *ArgAPITransactionProcessor {
 		StorageService:           &mock.ChainStorerMock{},
 		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
-		EconomicsData:            &mock.EconomicsHandlerStub{},
+		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 }
@@ -129,14 +129,14 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		require.Equal(t, process.ErrNilUint64Converter, err)
 	})
 
-	t.Run("NilTxEconomicsData", func(t *testing.T) {
+	t.Run("NilTxFeeComputer", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockArgAPIBlockProcessor()
-		arguments.EconomicsData = nil
+		arguments.FeeComputer = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
-		require.Equal(t, process.ErrNilEconomicsData, err)
+		require.Equal(t, ErrNilFeeComputer, err)
 	})
 
 	t.Run("NilTypeHandler", func(t *testing.T) {
@@ -379,7 +379,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		StorageService:           chainStorer,
 		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
-		EconomicsData:            &mock.EconomicsHandlerStub{},
+		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
@@ -643,7 +643,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		StorageService:           chainStorer,
 		DataPool:                 dataPool,
 		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
-		EconomicsData:            &mock.EconomicsHandlerStub{},
+		FeeComputer:              &testscommon.FeeComputerStub{},
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
@@ -768,12 +768,12 @@ func getTime(t *testing.T, timestamp string) time.Time {
 
 func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testing.T) {
 	dataPool := dataRetrieverMock.NewPoolsHolderMock()
-	economicsData := &mock.EconomicsHandlerStub{}
+	feeComputer := &testscommon.FeeComputerStub{}
 	txTypeHandler := &testscommon.TxTypeHandlerMock{}
 
 	arguments := createMockArgAPIBlockProcessor()
 	arguments.DataPool = dataPool
-	arguments.EconomicsData = economicsData
+	arguments.FeeComputer = feeComputer
 	arguments.TxTypeHandler = txTypeHandler
 
 	processor, err := NewAPITransactionProcessor(arguments)
@@ -781,8 +781,8 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	require.NotNil(t, processor)
 
 	t.Run("InitiallyPaidFee", func(t *testing.T) {
-		economicsData.ComputeTxFeeCalled = func(tx data.TransactionWithFeeHandler) *big.Int {
-			return big.NewInt(1000)
+		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) (*big.Int, error) {
+			return big.NewInt(1000), nil
 		}
 
 		dataPool.Transactions().AddData([]byte{0, 0}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
@@ -825,12 +825,12 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 }
 
 func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *testing.T) {
-	economicsData := &mock.EconomicsHandlerStub{}
+	feeComputer := &testscommon.FeeComputerStub{}
 	txTypeHandler := &testscommon.TxTypeHandlerMock{}
 
 	arguments := createMockArgAPIBlockProcessor()
 	arguments.Marshalizer, _ = marshalizerFactory.NewMarshalizer("gogo protobuf")
-	arguments.EconomicsData = economicsData
+	arguments.FeeComputer = feeComputer
 	arguments.TxTypeHandler = txTypeHandler
 
 	processor, err := NewAPITransactionProcessor(arguments)
@@ -838,8 +838,8 @@ func TestApiTransactionProcessor_UnmarshalTransactionPopulatesComputedFields(t *
 	require.NotNil(t, processor)
 
 	t.Run("InitiallyPaidFee", func(t *testing.T) {
-		economicsData.ComputeTxFeeCalled = func(tx data.TransactionWithFeeHandler) *big.Int {
-			return big.NewInt(1000)
+		feeComputer.ComputeTransactionFeeCalled = func(tx data.TransactionWithFeeHandler, epoch int) (*big.Int, error) {
+			return big.NewInt(1000), nil
 		}
 
 		txBytes, err := hex.DecodeString("08061209000de0b6b3a76400001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340a08d06520d6c6f63616c2d746573746e657458016240e011a7ab7788e40e61348445e2ccb55b0c61ab81d2ba88fda9d2d23b0a7512a627e2dc9b88bebcfdc4c49e9eaa2f65c016bc62ec3155dc3f60628cc7260e150d")

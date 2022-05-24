@@ -185,6 +185,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ArgsParser:  smartContract.NewArgumentParser(),
 		GasSchedule: args.GasScheduleNotifier,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	feeComputer := timemachine.NewFeeComputer(timemachine.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler:    builtInCostHandler,
