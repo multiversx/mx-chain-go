@@ -188,7 +188,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 	}
 	err = s.updateDelegationContracts(mapOwnersKeys)
 	if err != nil {
-
+		return nil, err
 	}
 
 	return copyOwnerKeysInMap(mapOwnersKeys), nil

@@ -1907,8 +1907,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		+--------+----------------+--------------------------+
 
 			The following have 1222 top up per node:
-			- owner1 with 1 bls keys = pubKey2
-			- owner3 with 1 bls key  = pubKey7
+			- owner1 with 1 bls key = pubKey2
+			- owner3 with 1 bls key = pubKey7
 
 			Since randomness = []byte("pubKey7"), nodes will be sorted based on blsKey XOR randomness, therefore:
 			-  XOR1 = []byte("pubKey2") XOR []byte("pubKey7") = [0 0 0 0 0 0 5]

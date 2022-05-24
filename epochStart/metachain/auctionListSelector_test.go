@@ -145,6 +145,265 @@ func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughNodesInAuctionTo
 	}
 	require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
 }
+func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	randomness := []byte("pk0")
+
+	t.Run("two validators, both have zero top up", func(t *testing.T) {
+		t.Parallel()
+
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+
+		owner1 := "owner1"
+		owner2 := "owner2"
+		ownersData := map[string]*ownerData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(0),
+				topUpPerNode:             big.NewInt(0),
+				qualifiedTopUpPerNode:    big.NewInt(0),
+				auctionList:              []state.ValidatorInfoHandler{v1},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(0),
+				topUpPerNode:             big.NewInt(0),
+				qualifiedTopUpPerNode:    big.NewInt(0),
+				auctionList:              []state.ValidatorInfoHandler{v2},
+			},
+		}
+
+		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, big.NewInt(1), minTopUp)
+		require.Equal(t, big.NewInt(0), maxTopUp)
+
+		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 2)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
+	})
+
+	t.Run("one validator with zero top up, one with min top up, one with top up", func(t *testing.T) {
+		t.Parallel()
+
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+		v3 := &state.ValidatorInfo{PublicKey: []byte("pk3")}
+
+		owner1 := "owner1"
+		owner2 := "owner2"
+		owner3 := "owner3"
+		ownersData := map[string]*ownerData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(0),
+				topUpPerNode:             big.NewInt(0),
+				qualifiedTopUpPerNode:    big.NewInt(0),
+				auctionList:              []state.ValidatorInfoHandler{v1},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(1),
+				topUpPerNode:             big.NewInt(1),
+				qualifiedTopUpPerNode:    big.NewInt(1),
+				auctionList:              []state.ValidatorInfoHandler{v2},
+			},
+			owner3: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(1000),
+				topUpPerNode:             big.NewInt(1000),
+				qualifiedTopUpPerNode:    big.NewInt(1000),
+				auctionList:              []state.ValidatorInfoHandler{v3},
+			},
+		}
+
+		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, big.NewInt(1), minTopUp)
+		require.Equal(t, big.NewInt(1000), maxTopUp)
+
+		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 3)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selectNodes(softAuctionConfig, 3, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v3, v2, v1}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 2)
+		expectedSoftAuctionConfig := copyOwnersData(softAuctionConfig)
+		delete(expectedSoftAuctionConfig, owner1)
+		require.Equal(t, expectedSoftAuctionConfig, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v3, v2}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		delete(expectedSoftAuctionConfig, owner2)
+		require.Equal(t, expectedSoftAuctionConfig, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v3}, selectedNodes)
+	})
+
+	t.Run("two validators, both have same top up", func(t *testing.T) {
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+
+		owner1 := "owner1"
+		owner2 := "owner2"
+		ownersData := map[string]*ownerData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(1000),
+				topUpPerNode:             big.NewInt(1000),
+				qualifiedTopUpPerNode:    big.NewInt(1000),
+				auctionList:              []state.ValidatorInfoHandler{v1},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(1000),
+				topUpPerNode:             big.NewInt(1000),
+				qualifiedTopUpPerNode:    big.NewInt(1000),
+				auctionList:              []state.ValidatorInfoHandler{v2},
+			},
+		}
+
+		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, big.NewInt(1000), minTopUp)
+		require.Equal(t, big.NewInt(1000), maxTopUp)
+
+		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 2)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
+	})
+
+	t.Run("two validators, top up difference less than step", func(t *testing.T) {
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+
+		owner1 := "owner1"
+		owner2 := "owner2"
+		ownersData := map[string]*ownerData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(1000),
+				topUpPerNode:             big.NewInt(1000),
+				qualifiedTopUpPerNode:    big.NewInt(1000),
+				auctionList:              []state.ValidatorInfoHandler{v1},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(995),
+				topUpPerNode:             big.NewInt(995),
+				qualifiedTopUpPerNode:    big.NewInt(995),
+				auctionList:              []state.ValidatorInfoHandler{v2},
+			},
+		}
+
+		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, big.NewInt(995), minTopUp)
+		require.Equal(t, big.NewInt(1000), maxTopUp)
+
+		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 2)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v1, v2}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v1}, selectedNodes)
+	})
+
+	t.Run("three validators, top up difference equal to step", func(t *testing.T) {
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+		v0 := &state.ValidatorInfo{PublicKey: []byte("pk0")}
+
+		owner1 := "owner1"
+		owner2 := "owner2"
+		ownersData := map[string]*ownerData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               big.NewInt(1000),
+				topUpPerNode:             big.NewInt(1000),
+				qualifiedTopUpPerNode:    big.NewInt(1000),
+				auctionList:              []state.ValidatorInfoHandler{v1},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          2,
+				numQualifiedAuctionNodes: 2,
+				numStakedNodes:           2,
+				totalTopUp:               big.NewInt(2000),
+				topUpPerNode:             big.NewInt(1000),
+				qualifiedTopUpPerNode:    big.NewInt(1000),
+				auctionList:              []state.ValidatorInfoHandler{v2, v0},
+			},
+		}
+
+		minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, big.NewInt(1000), minTopUp)
+		require.Equal(t, big.NewInt(2000), maxTopUp)
+
+		softAuctionConfig := calcSoftAuctionNodesConfig(ownersData, 3)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selectNodes(softAuctionConfig, 3, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2, v1, v0}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 2)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2, v1}, selectedNodes)
+
+		softAuctionConfig = calcSoftAuctionNodesConfig(ownersData, 1)
+		expectedSoftAuction := copyOwnersData(ownersData)
+		delete(expectedSoftAuction, owner1)
+		expectedSoftAuction[owner2].numQualifiedAuctionNodes = 1
+		expectedSoftAuction[owner2].qualifiedTopUpPerNode = big.NewInt(2000)
+		require.Equal(t, expectedSoftAuction, softAuctionConfig)
+		selectedNodes = selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
+	})
+}
 
 func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
 	t.Parallel()

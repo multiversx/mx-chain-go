@@ -250,13 +250,13 @@ func calcSoftAuctionNodesConfig(
 	numAvailableSlots uint32,
 ) map[string]*ownerData {
 	ownersData := copyOwnersData(data)
-	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData) // TODO: What happens if min>max or MIN = MAX?
+	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
 	log.Info("auctionListSelector: calc min and max possible top up",
 		"min top up per node", minTopUp.String(),
 		"max top up per node", maxTopUp.String(),
 	)
 
-	step := big.NewInt(10) // todo: granulate step if max- min < step???? + 10 egld for real
+	step := big.NewInt(10) // todo: 10 egld for real
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
 
 	previousConfig := copyOwnersData(ownersData)
