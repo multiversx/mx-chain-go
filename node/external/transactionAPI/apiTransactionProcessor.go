@@ -34,7 +34,7 @@ type apiTransactionProcessor struct {
 	storageService              dataRetriever.StorageService
 	dataPool                    dataRetriever.PoolsHolder
 	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
-	economicsData               process.EconomicsDataHandler
+	feeComputer                 feeComputer
 	txTypeHandler               process.TxTypeHandler
 	txUnmarshaller              *txUnmarshaller
 	transactionResultsProcessor *apiTransactionResultsProcessor
@@ -71,7 +71,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		storageService:              args.StorageService,
 		dataPool:                    args.DataPool,
 		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
-		economicsData:               args.EconomicsData,
+		feeComputer:                 args.FeeComputer,
 		txTypeHandler:               args.TxTypeHandler,
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
@@ -122,9 +122,13 @@ func (atp *apiTransactionProcessor) populateProcessingTypeFields(tx *transaction
 }
 
 func (atp *apiTransactionProcessor) populateInitiallyPaidFee(tx *transaction.ApiTransactionResult) {
-	initiallyPaidFee := atp.economicsData.ComputeTxFee(tx.Tx)
-	isZero := initiallyPaidFee.Cmp(big.NewInt(0)) == 0
+	initiallyPaidFee, err := atp.feeComputer.ComputeTransactionFee(tx.Tx, int(tx.Epoch))
+	if err != nil {
+		log.Warn("populateInitiallyPaidFee(): unexpected condition, cannot compute fee", "tx", tx.Hash)
+		return
+	}
 
+	isZero := initiallyPaidFee.Cmp(big.NewInt(0)) == 0
 	if !isZero {
 		tx.InitiallyPaidFee = initiallyPaidFee.String()
 	}

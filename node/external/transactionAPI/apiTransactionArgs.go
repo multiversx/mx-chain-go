@@ -23,6 +23,6 @@ type ArgAPITransactionProcessor struct {
 	StorageService           dataRetriever.StorageService
 	DataPool                 dataRetriever.PoolsHolder
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	EconomicsData            process.EconomicsDataHandler
+	FeeComputer              feeComputer
 	TxTypeHandler            process.TxTypeHandler
 }

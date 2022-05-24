@@ -13,11 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
+	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
 	"github.com/ElrondNetwork/elrond-go/node/external/transactionAPI"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
 	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -179,6 +181,18 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: args.GasScheduleNotifier,
+	})
+
+	feeComputer := timemachine.NewFeeComputer(timemachine.ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler:    builtInCostHandler,
+		EconomicsConfig:                args.Configs.EconomicsConfig,
+		PenalizedTooMuchGasEnableEpoch: args.Configs.EpochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
+		GasPriceModifierEnableEpoch:    args.Configs.EpochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
+	})
+
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		GenesisTime:              args.CoreComponents.GenesisTime(),
@@ -189,7 +203,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		StorageService:           args.DataComponents.StorageService(),
 		DataPool:                 args.DataComponents.Datapool(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
-		EconomicsData:            args.CoreComponents.EconomicsData(),
+		FeeComputer:              feeComputer,
 		TxTypeHandler:            txTypeHandler,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
