@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	factoryMock "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	nodeMockFactory "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -1240,7 +1241,24 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 
 	coreComponents.AddrPubKeyConv = nil
 	chainID := coreComponents.ChainID()
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -1280,23 +1298,24 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	stateComponents.AccountsAPI = nil
 
-	tx, txHash, err := n.CreateTransaction(
-		nonce,
-		value.String(),
-		receiver,
-		nil,
-		sender,
-		nil,
-		gasPrice,
-		gasLimit,
-		txData,
-		signature,
-		coreComponents.ChainID(),
-		1,
-		0,
-		"",
-		"",
-	)
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          coreComponents.ChainID(),
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -1333,7 +1352,24 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "chainID", 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          "chainID",
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -1385,17 +1421,68 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 	signature := hex.EncodeToString([]byte(strings.Repeat("s", 10)))
 
 	emptyChainID := ""
-	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, emptyChainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          emptyChainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	_, _, err := n.CreateTransaction(txArgs)
 	assert.Equal(t, node.ErrInvalidChainIDInTransaction, err)
 
 	for i := 1; i < len(chainID); i++ {
 		newChainID := strings.Repeat("c", i)
-		_, _, err = n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, newChainID, 1, 0, "", "")
+		txArgs := &external.ArgsCreateTransaction{
+			Nonce:            nonce,
+			Value:            value.String(),
+			Receiver:         receiver,
+			ReceiverUsername: nil,
+			Sender:           sender,
+			SenderUsername:   nil,
+			GasPrice:         gasPrice,
+			GasLimit:         gasLimit,
+			DataField:        txData,
+			SignatureHex:     signature,
+			ChainID:          newChainID,
+			Version:          1,
+			Options:          0,
+			Guardian:         "",
+			GuardianSigHex:   "",
+		}
+		_, _, err = n.CreateTransaction(txArgs)
 		assert.NoError(t, err)
 	}
 
 	newChainID := chainID + "additional text"
-	_, _, err = n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, newChainID, 1, 0, "", "")
+	txArgs = &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          newChainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	_, _, err = n.CreateTransaction(txArgs)
 	assert.Equal(t, node.ErrInvalidChainIDInTransaction, err)
 }
 
@@ -1439,7 +1526,25 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := []byte("-")
 	signature := "617eff4f"
-	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "", 0, 0, "", "")
+
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          "",
+		Version:          0,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	_, _, err := n.CreateTransaction(txArgs)
 	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
 }
 
@@ -1517,7 +1622,24 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	txData := []byte("-")
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          string(chainID),
+		Version:          version,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -1582,14 +1704,48 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	for i := 0; i <= signatureLength; i++ {
 		signatureBytes := []byte(strings.Repeat("a", i))
 		signatureHex := hex.EncodeToString(signatureBytes)
-		tx, _, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signatureHex, chainID, 1, 0, "", "")
+		txArgs := &external.ArgsCreateTransaction{
+			Nonce:            nonce,
+			Value:            value,
+			Receiver:         receiver,
+			ReceiverUsername: []byte("rcvrUsername"),
+			Sender:           sender,
+			SenderUsername:   []byte("sndrUsername"),
+			GasPrice:         gasPrice,
+			GasLimit:         gasLimit,
+			DataField:        txData,
+			SignatureHex:     signatureHex,
+			ChainID:          chainID,
+			Version:          1,
+			Options:          0,
+			Guardian:         "",
+			GuardianSigHex:   "",
+		}
+		tx, _, err := n.CreateTransaction(txArgs)
 		assert.NotNil(t, tx)
 		assert.NoError(t, err)
 		assert.Equal(t, signatureBytes, tx.Signature)
 	}
 
 	signature := hex.EncodeToString([]byte(strings.Repeat("a", signatureLength+1)))
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: []byte("rcvrUsername"),
+		Sender:           sender,
+		SenderUsername:   []byte("sndrUsername"),
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Equal(t, node.ErrInvalidSignatureLength, err)
@@ -1647,12 +1803,46 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 
 	for i := 0; i <= encodedAddressLen; i++ {
 		sender := strings.Repeat("s", i)
-		_, _, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+		txArgs := &external.ArgsCreateTransaction{
+			Nonce:            nonce,
+			Value:            value,
+			Receiver:         receiver,
+			ReceiverUsername: []byte("rcvrUsername"),
+			Sender:           sender,
+			SenderUsername:   []byte("sndrUsername"),
+			GasPrice:         gasPrice,
+			GasLimit:         gasLimit,
+			DataField:        txData,
+			SignatureHex:     signature,
+			ChainID:          chainID,
+			Version:          1,
+			Options:          0,
+			Guardian:         "",
+			GuardianSigHex:   "",
+		}
+		_, _, err := n.CreateTransaction(txArgs)
 		assert.NoError(t, err)
 	}
 
 	sender := strings.Repeat("s", encodedAddressLen) + "additional"
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: []byte("rcvrUsername"),
+		Sender:           sender,
+		SenderUsername:   []byte("sndrUsername"),
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -1711,12 +1901,46 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 
 	for i := 0; i <= encodedAddressLen; i++ {
 		receiver := strings.Repeat("r", i)
-		_, _, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+		txArgs := &external.ArgsCreateTransaction{
+			Nonce:            nonce,
+			Value:            value,
+			Receiver:         receiver,
+			ReceiverUsername: []byte("rcvrUsername"),
+			Sender:           sender,
+			SenderUsername:   []byte("sndrUsername"),
+			GasPrice:         gasPrice,
+			GasLimit:         gasLimit,
+			DataField:        txData,
+			SignatureHex:     signature,
+			ChainID:          chainID,
+			Version:          1,
+			Options:          0,
+			Guardian:         "",
+			GuardianSigHex:   "",
+		}
+		_, _, err := n.CreateTransaction(txArgs)
 		assert.NoError(t, err)
 	}
 
 	receiver := strings.Repeat("r", encodedAddressLen) + "additional"
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: []byte("rcvrUsername"),
+		Sender:           sender,
+		SenderUsername:   []byte("sndrUsername"),
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -1775,7 +1999,24 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 
 	senderUsername := bytes.Repeat([]byte{0}, core.MaxUserNameLength+1)
 
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, senderUsername, gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: []byte("rcvrUsername"),
+		Sender:           sender,
+		SenderUsername:   senderUsername,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -1834,7 +2075,24 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 
 	receiverUsername := bytes.Repeat([]byte{0}, core.MaxUserNameLength+1)
 
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, receiverUsername, sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: receiverUsername,
+		Sender:           sender,
+		SenderUsername:   []byte("sndrUsername"),
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -1890,7 +2148,24 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 	txData := bytes.Repeat([]byte{0}, core.MegabyteSize+1)
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: []byte("rcvrUsername"),
+		Sender:           sender,
+		SenderUsername:   []byte("sndrUsername"),
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -1947,7 +2222,24 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: []byte("rcvrUsername"),
+		Sender:           sender,
+		SenderUsername:   []byte("sndrUsername"),
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          1,
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -2018,10 +2310,24 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	tx, txHash, err := n.CreateTransaction(
-		nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData,
-		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(), 0, "", "",
-	)
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          coreComponents.ChainID(),
+		Version:          coreComponents.MinTransactionVersion(),
+		Options:          0,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -2121,7 +2427,24 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := transaction.MaskSignedWithHash
-	tx, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version, options, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          version,
+		Options:          options,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, _, err := n.CreateTransaction(txArgs)
 	require.Nil(t, err)
 	err = n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
@@ -2222,7 +2545,24 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := transaction.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version+1, options, "", "")
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value.String(),
+		Receiver:         receiver,
+		ReceiverUsername: nil,
+		Sender:           sender,
+		SenderUsername:   nil,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signature,
+		ChainID:          chainID,
+		Version:          version + 1,
+		Options:          options,
+		Guardian:         "",
+		GuardianSigHex:   "",
+	}
+	tx, _, _ := n.CreateTransaction(txArgs)
 
 	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)

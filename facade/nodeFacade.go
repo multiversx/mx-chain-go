@@ -234,8 +234,24 @@ func (nf *nodeFacade) CreateTransaction(
 	guardian string,
 	guardianSigHex string,
 ) (*transaction.Transaction, []byte, error) {
-
-	return nf.node.CreateTransaction(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, txData, signatureHex, chainID, version, options, guardian, guardianSigHex)
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            nonce,
+		Value:            value,
+		Receiver:         receiver,
+		ReceiverUsername: receiverUsername,
+		Sender:           sender,
+		SenderUsername:   senderUsername,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		DataField:        txData,
+		SignatureHex:     signatureHex,
+		ChainID:          chainID,
+		Version:          version,
+		Options:          options,
+		Guardian:         guardian,
+		GuardianSigHex:   guardianSigHex,
+	}
+	return nf.node.CreateTransaction(txArgs)
 }
 
 // ValidateTransaction will validate a transaction

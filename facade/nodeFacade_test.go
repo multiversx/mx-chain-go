@@ -489,7 +489,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 
 	nodeCreateTxWasCalled := false
 	node := &mock.NodeStub{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ []byte, _ string, _ []byte, _ uint64, _ uint64, _ []byte, _ string, _ string, _, _ uint32, _ string, _ string) (*transaction.Transaction, []byte, error) {
+		CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
 			return nil, nil, nil
 		},
