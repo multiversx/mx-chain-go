@@ -47,6 +47,7 @@ type ProcessComponentsStub struct {
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
+	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 }
 
 // Create -
@@ -232,6 +233,11 @@ func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
 // HardforkTrigger -
 func (pcs *ProcessComponentsStub) HardforkTrigger() factory.HardforkTrigger {
 	return pcs.HardforkTriggerField
+}
+
+// ProcessedMiniBlocksTracker -
+func (pcs *ProcessComponentsStub) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return pcs.ProcessedMiniBlocksTrackerInternal
 }
 
 // IsInterfaceNil -

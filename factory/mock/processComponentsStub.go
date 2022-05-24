@@ -47,6 +47,7 @@ type ProcessComponentsMock struct {
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
+	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 }
 
 // Create -
@@ -232,6 +233,11 @@ func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
 // HardforkTrigger -
 func (pcm *ProcessComponentsMock) HardforkTrigger() factory.HardforkTrigger {
 	return pcm.HardforkTriggerField
+}
+
+// ProcessedMiniBlocksTracker -
+func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	return pcm.ProcessedMiniBlocksTrackerInternal
 }
 
 // IsInterfaceNil -

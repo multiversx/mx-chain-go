@@ -78,6 +78,7 @@ type EnableEpochs struct {
 	CheckCorrectTokenIDForTransferRoleEnableEpoch     uint32
 	FailExecutionOnEveryAPIErrorEnableEpoch           uint32
 	HeartbeatDisableEpoch                             uint32
+	MiniBlockPartialExecutionEnableEpoch              uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
