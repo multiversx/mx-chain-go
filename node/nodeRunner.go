@@ -177,6 +177,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("scr size invariant check on built in"), "epoch", enableEpochs.SCRSizeInvariantOnBuiltInResultEnableEpoch)
 	log.Debug(readEpochFor("correct check on tokenID for transfer role"), "epoch", enableEpochs.CheckCorrectTokenIDForTransferRoleEnableEpoch)
 	log.Debug(readEpochFor("fail execution on every wrong API call"), "epoch", enableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch)
+	log.Debug(readEpochFor("managed crypto API in wasm vm"), "epoch", enableEpochs.ManagedCryptoAPIsEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -313,7 +314,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating nodes coordinator")
-	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+	nodesCoord, err := mainFactory.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -342,7 +343,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents,
 		managedDataComponents,
 		managedStateComponents,
-		nodesCoordinator,
+		nodesCoord,
 		configs.ImportDbConfig.IsImportDBMode,
 	)
 	if err != nil {
@@ -370,7 +371,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		gasScheduleNotifier,
-		nodesCoordinator,
+		nodesCoord,
 	)
 	if err != nil {
 		return true, err
@@ -393,7 +394,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedStatusComponents,
 		managedProcessComponents,
-		nodesCoordinator,
+		nodesCoord,
 		nodesShufflerOut,
 	)
 	if err != nil {
@@ -436,10 +437,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		log.Debug("activating nodesCoordinator's validators indexing")
+		log.Debug("activating nodesCoord's validators indexing")
 		indexValidatorsListIfNeeded(
 			managedStatusComponents.OutportHandler(),
-			nodesCoordinator,
+			nodesCoord,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
 		)
 	}
