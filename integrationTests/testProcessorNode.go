@@ -1395,7 +1395,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		ResolverConfig: config.ResolverConfig{
 			NumCrossShardPeers:  2,
-			NumIntraShardPeers:  1,
+			NumIntraShardPeers:  3,
 			NumFullHistoryPeers: 3,
 		},
 		PeersRatingHandler:                   tpn.PeersRatingHandler,

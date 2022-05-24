@@ -394,7 +394,7 @@ func GetGeneralConfig() config.Config {
 		},
 		Resolvers: config.ResolverConfig{
 			NumCrossShardPeers:  2,
-			NumIntraShardPeers:  1,
+			NumIntraShardPeers:  3,
 			NumFullHistoryPeers: 3,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
