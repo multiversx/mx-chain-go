@@ -50,7 +50,7 @@ import (
 
 const (
 	defaultNodeName           = "heartbeatNode"
-	timeBetweenPeerAuths      = 15 * time.Second
+	timeBetweenPeerAuths      = 10 * time.Second
 	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
 	thresholdBetweenSends     = 0.2
