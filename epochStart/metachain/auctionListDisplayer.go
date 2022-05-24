@@ -122,7 +122,18 @@ func displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
 	displayTable(tableHeader, lines, "Selected nodes config from auction list")
 }
 
-func (als *auctionListSelector) displayAuctionList(
+func getBlsKeyOwnerMap(ownersData map[string]*ownerData) map[string]string {
+	ret := make(map[string]string)
+	for ownerPubKey, owner := range ownersData {
+		for _, blsKey := range owner.auctionList {
+			ret[string(blsKey.GetPublicKey())] = ownerPubKey
+		}
+	}
+
+	return ret
+}
+
+func displayAuctionList(
 	auctionList []state.ValidatorInfoHandler,
 	ownersData map[string]*ownerData,
 	numOfSelectedNodes uint32,
@@ -134,12 +145,14 @@ func (als *auctionListSelector) displayAuctionList(
 	tableHeader := []string{"Owner", "Registered key", "Qualified TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))
 	horizontalLine := false
+	blsKeysOwnerMap := getBlsKeyOwnerMap(ownersData)
 	for idx, validator := range auctionList {
 		pubKey := validator.GetPublicKey()
 
-		owner, err := als.stakingDataProvider.GetBlsKeyOwner(pubKey)
-		if err != nil {
-			log.Error("auctionListSelector.displayAuctionList", "error", err)
+		owner, found := blsKeysOwnerMap[string(pubKey)]
+		if !found {
+			log.Error("auctionListSelector.displayAuctionList could not find owner for",
+				"bls key", string(pubKey)) //todo: hex here
 			continue
 		}
 

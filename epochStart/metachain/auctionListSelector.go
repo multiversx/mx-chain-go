@@ -127,7 +127,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		log.Info("time measurements", sw.GetMeasurements()...)
 	}()
 
-	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
+	return sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
 func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
@@ -149,7 +149,7 @@ func (als *auctionListSelector) getAuctionDataAndNumOfValidators(
 			if isUnqualified {
 				log.Debug("auctionListSelector: found node in auction with unqualified owner, do not add it to selection",
 					"owner", owner,
-					"bls key", string(validator.GetPublicKey()),
+					"bls key", string(validator.GetPublicKey()), //todo: hex
 				)
 				continue
 			}
@@ -234,25 +234,21 @@ func safeSub(a, b uint32) (uint32, error) {
 	return a - b, nil
 }
 
-func (als *auctionListSelector) sortAuctionList(
+func sortAuctionList(
 	ownersData map[string]*ownerData,
 	numOfAvailableNodeSlots uint32,
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	randomness []byte,
 ) error {
-	softAuctionNodesConfig, err := calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
-	if err != nil {
-		return err
-	}
-
-	selectedNodes := als.selectNodes(softAuctionNodesConfig, numOfAvailableNodeSlots, randomness)
+	softAuctionNodesConfig := calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
+	selectedNodes := selectNodes(softAuctionNodesConfig, numOfAvailableNodeSlots, randomness)
 	return markAuctionNodesAsSelected(selectedNodes, validatorsInfoMap)
 }
 
 func calcSoftAuctionNodesConfig(
 	data map[string]*ownerData,
 	numAvailableSlots uint32,
-) (map[string]*ownerData, error) {
+) map[string]*ownerData {
 	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData) // TODO: What happens if min>max or MIN = MAX?
 	log.Info("auctionListSelector: calc min and max possible top up",
@@ -295,7 +291,7 @@ func calcSoftAuctionNodesConfig(
 	}
 
 	displayMinRequiredTopUp(topUp, minTopUp, step)
-	return previousConfig, nil
+	return previousConfig
 }
 
 func getMinMaxPossibleTopUp(ownersData map[string]*ownerData) (*big.Int, *big.Int) {

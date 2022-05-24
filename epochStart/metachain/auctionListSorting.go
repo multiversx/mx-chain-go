@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/state"
 )
 
-func (als *auctionListSelector) selectNodes(
+func selectNodes(
 	ownersData map[string]*ownerData,
 	numAvailableSlots uint32,
 	randomness []byte,
@@ -26,8 +26,8 @@ func (als *auctionListSelector) selectNodes(
 	}
 
 	displayOwnersSelectedNodes(ownersData)
-	als.sortValidators(selectedFromAuction, validatorTopUpMap, normRand)
-	als.displayAuctionList(selectedFromAuction, ownersData, numAvailableSlots)
+	sortValidators(selectedFromAuction, validatorTopUpMap, normRand)
+	displayAuctionList(selectedFromAuction, ownersData, numAvailableSlots)
 
 	return selectedFromAuction[:numAvailableSlots]
 }
@@ -83,7 +83,7 @@ func addQualifiedValidatorsTopUpInMap(owner *ownerData, validatorTopUpMap map[st
 	}
 }
 
-func (als *auctionListSelector) sortValidators(
+func sortValidators(
 	list []state.ValidatorInfoHandler,
 	validatorTopUpMap map[string]*big.Int,
 	randomness []byte,
