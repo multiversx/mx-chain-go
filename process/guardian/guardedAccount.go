@@ -16,29 +16,35 @@ import (
 
 var guardianKey = []byte(core.ElrondProtectedKeyPrefix + core.GuardiansKeyIdentifier)
 
-const epochsForActivation = 10 // TODO: take from config
-
 type guardedAccount struct {
 	marshaller               marshal.Marshalizer
 	epochNotifier            vmcommon.EpochNotifier
 	mutEpoch                 sync.RWMutex
-	currentEpoch             uint32
 	guardianActivationEpochs uint32
+	currentEpoch             uint32
+	epochsForActivation      uint32
 }
 
 // NewGuardedAccount creates a new guarded account
-func NewGuardedAccount(marshaller marshal.Marshalizer, epochNotifier vmcommon.EpochNotifier) (*guardedAccount, error) {
+func NewGuardedAccount(
+	marshaller marshal.Marshalizer,
+	epochNotifier vmcommon.EpochNotifier,
+	setGuardianEpochsDelay uint32,
+) (*guardedAccount, error) {
 	if check.IfNil(marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(epochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if setGuardianEpochsDelay == 0 {
+		return nil, process.ErrInvalidSetGuardianEpochsDelay
+	}
 
 	agc := &guardedAccount{
 		marshaller:               marshaller,
 		epochNotifier:            epochNotifier,
-		guardianActivationEpochs: epochsForActivation,
+		guardianActivationEpochs: setGuardianEpochsDelay,
 	}
 
 	epochNotifier.RegisterNotifyHandler(agc)
@@ -141,6 +147,9 @@ func (agc *guardedAccount) instantSetGuardian(
 	return agc.saveAccountGuardians(accHandler, accountGuardians)
 }
 
+// TODO: add constraints on not co-signed txs on interceptor, for setGuardian
+// 1. Gas price cannot exceed a preconfigured limit
+// 2. If there is already one guardian pending, do not allow setting another one
 func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, accountGuardians *guardians.Guardians) (*guardians.Guardians, error) {
 	numSetGuardians := len(accountGuardians.Slice)
 
@@ -155,7 +164,7 @@ func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, acco
 		return nil, fmt.Errorf("%w in updateGuardians, with %d configured guardians", err, numSetGuardians)
 	}
 
-	if activeGuardian.Equal(newGuardian) {
+	if bytes.Equal(activeGuardian.Address, newGuardian.Address) {
 		accountGuardians.Slice = []*guardians.Guardian{activeGuardian}
 	} else {
 		accountGuardians.Slice = []*guardians.Guardian{activeGuardian, newGuardian}
@@ -215,7 +224,7 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 	}
 
 	if selectedGuardian == nil {
-		return nil, process.ErrActiveHasNoActiveGuardian
+		return nil, process.ErrAccountHasNoActiveGuardian
 	}
 
 	return selectedGuardian, nil

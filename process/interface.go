@@ -1219,7 +1219,7 @@ type GuardianChecker interface {
 // GuardedAccountHandler allows setting and getting the configured account guardian
 type GuardedAccountHandler interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
-	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte) error
+	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte) error
 	IsInterfaceNil() bool
 }
 

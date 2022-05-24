@@ -28,6 +28,10 @@
    # than this value, then the validators rating decrease should stop so they won't get jailed
    MaxConsecutiveRoundsOfRatingDecrease = 600
 
+   # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
+   # the activation of the configured guardian
+   SetGuardianEpochsDelay = 20
+
 [Versions]
    DefaultVersion = "default"
    VersionsByEpochs = [
@@ -65,6 +69,7 @@
    # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
    # it is a good idea to increase the maximum number of opened files allowed by the operating system
    FullArchiveNumActivePersisters = 10
+
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]

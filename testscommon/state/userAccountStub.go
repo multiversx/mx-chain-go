@@ -12,10 +12,11 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance               *big.Int
-	AddToBalanceCalled    func(value *big.Int) error
-	DataTrieTrackerCalled func() state.DataTrieTracker
-	IsFrozenCalled        func() bool
+	Balance                                *big.Int
+	AddToBalanceCalled                     func(value *big.Int) error
+	DataTrieTrackerCalled                  func() state.DataTrieTracker
+	IsFrozenCalled                         func() bool
+	RetrieveValueFromDataTrieTrackerCalled func(key []byte) ([]byte, error)
 }
 
 // HasNewCode -
@@ -139,7 +140,10 @@ func (u *UserAccountStub) DataTrie() common.Trie {
 }
 
 // RetrieveValueFromDataTrieTracker -
-func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(_ []byte) ([]byte, error) {
+func (u *UserAccountStub) RetrieveValueFromDataTrieTracker(key []byte) ([]byte, error) {
+	if u.RetrieveValueFromDataTrieTrackerCalled != nil {
+		return u.RetrieveValueFromDataTrieTrackerCalled(key)
+	}
 	return nil, nil
 }
 

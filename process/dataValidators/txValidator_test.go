@@ -848,6 +848,6 @@ func getDefaultInterceptedTx() *mock.InterceptedTxHandlerStub {
 func createDummyFrozenAccount() state.UserAccountHandler {
 	acc := state.NewEmptyUserAccount()
 	metadata := &vmcommon.CodeMetadata{Frozen: true}
-	acc.SetCodeMetadata( metadata.ToBytes())
+	acc.SetCodeMetadata(metadata.ToBytes())
 	return acc
 }
