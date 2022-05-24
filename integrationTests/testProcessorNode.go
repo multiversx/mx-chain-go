@@ -1229,6 +1229,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Marshalizer:        TestMarshalizer,
 			Hasher:             TestHasher,
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           tpn.DataPool,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2050,6 +2051,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Marshalizer:        TestMarshalizer,
 			Hasher:             TestHasher,
 			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           tpn.DataPool,
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -2499,9 +2501,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	for _, mb := range shardBlockBody.MiniBlocks {
-		if mb.Type == dataBlock.PeerBlock {
-			continue
-		}
+		//if mb.Type == dataBlock.PeerBlock {
+		//	continue
+		//}
 		for _, hash := range mb.TxHashes {
 			copiedHash := make([]byte, len(hash))
 			copy(copiedHash, hash)

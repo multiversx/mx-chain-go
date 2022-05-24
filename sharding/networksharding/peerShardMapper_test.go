@@ -497,11 +497,12 @@ func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
 	}()
 
 	psm := createPeerShardMapper()
-	psm.EpochStartPrepare(nil, nil)
+	psm.EpochStartPrepare(nil, nil, nil)
 	psm.EpochStartPrepare(
 		&testscommon.HeaderHandlerStub{
 			EpochField: 0,
 		},
+		nil,
 		nil,
 	)
 }

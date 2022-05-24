@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"sync"
 	"time"
 
@@ -302,7 +303,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do initialisation on this event
-func (sr *subroundStartRound) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+func (sr *subroundStartRound) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler, _ epochStart.ValidatorInfoCacher) {
 	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHdr.GetEpoch()))
 }
 

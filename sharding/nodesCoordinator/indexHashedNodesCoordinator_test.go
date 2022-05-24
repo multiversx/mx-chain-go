@@ -27,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacherMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,7 +94,6 @@ func createArguments() ArgNodesCoordinator {
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
-	validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -115,7 +113,6 @@ func createArguments() ArgNodesCoordinator {
 		IsFullArchive:              false,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        validatorInfoCacher,
 	}
 	return arguments
 }
@@ -264,7 +261,6 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -323,7 +319,6 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -396,7 +391,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -455,7 +449,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -542,7 +535,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -612,7 +604,6 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -675,7 +666,6 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -747,7 +737,6 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -796,7 +785,6 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -935,7 +923,6 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -1018,7 +1005,6 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1096,7 +1082,6 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        &validatorInfoCacherMock.ValidatorInfoCacherMock{},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1106,16 +1091,16 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	require.Nil(t, err)
 }
 
-func createBlockBodyFromNodesCoordinator(ihnc *indexHashedNodesCoordinator, epoch uint32) *block.Body {
+func createBlockBodyFromNodesCoordinator(ihnc *indexHashedNodesCoordinator, epoch uint32, validatorInfoCacher epochStart.ValidatorInfoCacher) *block.Body {
 	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 
-	mbs := createMiniBlocksForNodesMap(ihnc.nodesConfig[epoch].eligibleMap, string(common.EligibleList), ihnc.marshalizer, ihnc.hasher, ihnc.validatorInfoCacher)
+	mbs := createMiniBlocksForNodesMap(ihnc.nodesConfig[epoch].eligibleMap, string(common.EligibleList), ihnc.marshalizer, ihnc.hasher, validatorInfoCacher)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
-	mbs = createMiniBlocksForNodesMap(ihnc.nodesConfig[epoch].waitingMap, string(common.WaitingList), ihnc.marshalizer, ihnc.hasher, ihnc.validatorInfoCacher)
+	mbs = createMiniBlocksForNodesMap(ihnc.nodesConfig[epoch].waitingMap, string(common.WaitingList), ihnc.marshalizer, ihnc.hasher, validatorInfoCacher)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
-	mbs = createMiniBlocksForNodesMap(ihnc.nodesConfig[epoch].leavingMap, string(common.LeavingList), ihnc.marshalizer, ihnc.hasher, ihnc.validatorInfoCacher)
+	mbs = createMiniBlocksForNodesMap(ihnc.nodesConfig[epoch].leavingMap, string(common.LeavingList), ihnc.marshalizer, ihnc.hasher, validatorInfoCacher)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
 	return body
@@ -1168,8 +1153,9 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 
 	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
 
-	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	validators, err := ihnc.GetAllEligibleValidatorsPublicKeys(epoch)
@@ -1322,8 +1308,9 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 			},
 		},
 	}
-	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	computedShardId, isValidator := ihnc.computeShardForSelfPublicKey(ihnc.nodesConfig[epoch])
@@ -1357,8 +1344,9 @@ func TestIndexHashedNodesCoordinator_EpochStartInWaiting(t *testing.T) {
 			},
 		},
 	}
-	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	computedShardId, isValidator := ihnc.computeShardForSelfPublicKey(ihnc.nodesConfig[epoch])
@@ -1396,8 +1384,9 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 			},
 		},
 	}
-	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	computedShardId, isValidator := ihnc.computeShardForSelfPublicKey(ihnc.nodesConfig[epoch])
@@ -1433,7 +1422,6 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
-	validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize:    1,
@@ -1452,7 +1440,6 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               make(chan endProcess.ArgEndProcess),
 		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ValidatorInfoCacher:        validatorInfoCacher,
 	}
 
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -1467,8 +1454,9 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 
 	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
 
-	body := createBlockBodyFromNodesCoordinator(ihnc, epoch)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 
 	newNodesConfig := ihnc.nodesConfig[1]
 
@@ -1558,8 +1546,9 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
 		Epoch:        1,
 	}
 
-	body := createBlockBodyFromNodesCoordinator(ihnc, 0)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, 0, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	key := ihnc.GetSavedStateKey()
@@ -1642,8 +1631,9 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 		Epoch:        1,
 	}
 
-	body := createBlockBodyFromNodesCoordinator(ihnc, 0)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+	body := createBlockBodyFromNodesCoordinator(ihnc, 0, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	nodesPrevEpoch, err := ihnc.GetAllEligibleValidatorsPublicKeys(0)
@@ -1683,35 +1673,37 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		Epoch:        1,
 	}
 
-	body := createBlockBodyFromNodesCoordinator(ihnc, 0)
-	ihnc.EpochStartPrepare(header, body)
+	validatorInfoCacher := dataPool.NewCurrentEpochValidatorInfoPool()
+
+	body := createBlockBodyFromNodesCoordinator(ihnc, 0, validatorInfoCacher)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
-	body = createBlockBodyFromNodesCoordinator(ihnc, 1)
+	body = createBlockBodyFromNodesCoordinator(ihnc, 1, validatorInfoCacher)
 	header = &block.MetaBlock{
 		PrevRandSeed: []byte("rand seed"),
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        2,
 	}
-	ihnc.EpochStartPrepare(header, body)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
-	body = createBlockBodyFromNodesCoordinator(ihnc, 2)
+	body = createBlockBodyFromNodesCoordinator(ihnc, 2, validatorInfoCacher)
 	header = &block.MetaBlock{
 		PrevRandSeed: []byte("rand seed"),
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        3,
 	}
-	ihnc.EpochStartPrepare(header, body)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
-	body = createBlockBodyFromNodesCoordinator(ihnc, 3)
+	body = createBlockBodyFromNodesCoordinator(ihnc, 3, validatorInfoCacher)
 	header = &block.MetaBlock{
 		PrevRandSeed: []byte("rand seed"),
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        4,
 	}
-	ihnc.EpochStartPrepare(header, body)
+	ihnc.EpochStartPrepare(header, body, validatorInfoCacher)
 	ihnc.EpochStartAction(header)
 
 	nodesEpoch1, err := ihnc.GetAllEligibleValidatorsPublicKeys(1)

@@ -7,12 +7,12 @@ import (
 	"testing"
 )
 
-func TestCurrentBlockValidatorInfoPool_AddGetCleanTx(t *testing.T) {
+func TestCurrentEpochValidatorInfoPool_AddGetCleanTx(t *testing.T) {
 	t.Parallel()
 
 	validatorInfoHash := []byte("hash")
 	validatorInfo := &state.ShardValidatorInfo{}
-	currentValidatorInfoPool := NewCurrentBlockValidatorInfoPool()
+	currentValidatorInfoPool := NewCurrentEpochValidatorInfoPool()
 	require.False(t, currentValidatorInfoPool.IsInterfaceNil())
 
 	currentValidatorInfoPool.AddValidatorInfo(validatorInfoHash, validatorInfo)
@@ -20,7 +20,7 @@ func TestCurrentBlockValidatorInfoPool_AddGetCleanTx(t *testing.T) {
 
 	validatorInfoFromPool, err := currentValidatorInfoPool.GetValidatorInfo([]byte("wrong hash"))
 	require.Nil(t, validatorInfoFromPool)
-	require.Equal(t, dataRetriever.ErrValidatorInfoNotFoundInBlockPool, err)
+	require.Equal(t, dataRetriever.ErrValidatorInfoNotFoundInEpochPool, err)
 
 	validatorInfoFromPool, err = currentValidatorInfoPool.GetValidatorInfo(validatorInfoHash)
 	require.Nil(t, err)
@@ -29,5 +29,5 @@ func TestCurrentBlockValidatorInfoPool_AddGetCleanTx(t *testing.T) {
 	currentValidatorInfoPool.Clean()
 	validatorInfoFromPool, err = currentValidatorInfoPool.GetValidatorInfo(validatorInfoHash)
 	require.Nil(t, validatorInfoFromPool)
-	require.Equal(t, dataRetriever.ErrValidatorInfoNotFoundInBlockPool, err)
+	require.Equal(t, dataRetriever.ErrValidatorInfoNotFoundInEpochPool, err)
 }

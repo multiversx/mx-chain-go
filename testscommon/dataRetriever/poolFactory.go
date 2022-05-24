@@ -120,7 +120,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
-	currentBlockValidatorInfo := dataPool.NewCurrentBlockValidatorInfoPool()
+	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
 		UnsignedTransactions:      unsignedTxPool,
@@ -131,7 +131,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		TrieNodes:                 adaptedTrieNodesStorage,
 		TrieNodesChunks:           trieNodesChunks,
 		CurrentBlockTransactions:  currentBlockTransactions,
-		CurrentBlockValidatorInfo: currentBlockValidatorInfo,
+		CurrentEpochValidatorInfo: currentEpochValidatorInfo,
 		SmartContracts:            smartContracts,
 		ValidatorsInfo:            validatorsInfo,
 	}
@@ -192,7 +192,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
-	currentBlockValidatorInfo := dataPool.NewCurrentBlockValidatorInfoPool()
+	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
 		UnsignedTransactions:      unsignedTxPool,
@@ -203,7 +203,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		TrieNodes:                 trieNodes,
 		TrieNodesChunks:           trieNodesChunks,
 		CurrentBlockTransactions:  currentBlockTransactions,
-		CurrentBlockValidatorInfo: currentBlockValidatorInfo,
+		CurrentEpochValidatorInfo: currentEpochValidatorInfo,
 		SmartContracts:            smartContracts,
 		ValidatorsInfo:            validatorsInfo,
 	}

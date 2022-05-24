@@ -111,7 +111,6 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ChanStopNode:               args.ChanNodeStop,
 		NodeTypeProvider:           args.NodeTypeProvider,
 		IsFullArchive:              args.IsFullArchive,
-		ValidatorInfoCacher:        args.DataPool.CurrentBlockValidatorInfo(),
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -170,7 +169,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 	if err != nil {
 		return err
 	}
-	s.nodeCoordinator.EpochStartPrepare(metaBlock, blockBody)
+	s.nodeCoordinator.EpochStartPrepare(metaBlock, blockBody, s.dataPool.CurrentEpochValidatorInfo())
 
 	return nil
 }

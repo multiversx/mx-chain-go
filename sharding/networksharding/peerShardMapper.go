@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -359,7 +360,7 @@ func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
 }
 
 // EpochStartPrepare is the method called whenever an action needs to be undertaken in respect to the epoch preparation change
-func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler, _ epochStart.ValidatorInfoCacher) {
 	if check.IfNil(metaHdr) {
 		log.Warn("nil header on PeerShardMapper.EpochStartPrepare")
 		return

@@ -94,7 +94,6 @@ type indexHashedNodesCoordinator struct {
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
 	nodeTypeProvider              NodeTypeProviderHandler
-	validatorInfoCacher           epochStart.ValidatorInfoCacher
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -139,7 +138,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		chanStopNode:                  arguments.ChanStopNode,
 		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
-		validatorInfoCacher:           arguments.ValidatorInfoCacher,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihnc.waitingListFixEnableEpoch)
 
@@ -216,9 +214,6 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
-	}
-	if check.IfNil(arguments.ValidatorInfoCacher) {
-		return ErrNilValidatorInfoCacher
 	}
 
 	return nil
@@ -542,7 +537,7 @@ func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 
 // EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
-func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher) {
 	if !metaHdr.IsStartOfEpochBlock() {
 		log.Error("could not process EpochStartPrepare on nodesCoordinator - not epoch start block")
 		return
@@ -561,7 +556,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.numTotalEligible, ihnc.validatorInfoCacher)
+	allValidatorInfo, err := createValidatorInfoFromBody(body, ihnc.numTotalEligible, validatorInfoCacher)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
 		return

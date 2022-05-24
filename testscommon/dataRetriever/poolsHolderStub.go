@@ -15,7 +15,7 @@ type PoolsHolderStub struct {
 	MiniBlocksCalled             func() storage.Cacher
 	MetaBlocksCalled             func() storage.Cacher
 	CurrBlockTxsCalled           func() dataRetriever.TransactionCacher
-	CurrBlockValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
+	CurrEpochValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
 	TrieNodesCalled              func() storage.Cacher
 	TrieNodesChunksCalled        func() storage.Cacher
 	PeerChangesBlocksCalled      func() storage.Cacher
@@ -91,10 +91,10 @@ func (holder *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher
 	return nil
 }
 
-// CurrentBlockValidatorInfo -
-func (holder *PoolsHolderStub) CurrentBlockValidatorInfo() dataRetriever.ValidatorInfoCacher {
-	if holder.CurrBlockValidatorInfoCalled != nil {
-		return holder.CurrBlockValidatorInfoCalled()
+// CurrentEpochValidatorInfo -
+func (holder *PoolsHolderStub) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	if holder.CurrEpochValidatorInfoCalled != nil {
+		return holder.CurrEpochValidatorInfoCalled()
 	}
 
 	return nil

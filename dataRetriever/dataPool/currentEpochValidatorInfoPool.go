@@ -12,21 +12,21 @@ var _ dataRetriever.ValidatorInfoCacher = (*validatorInfoMapCacher)(nil)
 
 type validatorInfoMapCacher struct {
 	mutValidatorInfo      sync.RWMutex
-	validatorInfoForBlock map[string]*state.ShardValidatorInfo
+	validatorInfoForEpoch map[string]*state.ShardValidatorInfo
 }
 
-// NewCurrentBlockValidatorInfoPool returns a new validator info pool to be used for the current block
-func NewCurrentBlockValidatorInfoPool() *validatorInfoMapCacher {
+// NewCurrentEpochValidatorInfoPool returns a new validator info pool to be used for the current epoch
+func NewCurrentEpochValidatorInfoPool() *validatorInfoMapCacher {
 	return &validatorInfoMapCacher{
 		mutValidatorInfo:      sync.RWMutex{},
-		validatorInfoForBlock: make(map[string]*state.ShardValidatorInfo),
+		validatorInfoForEpoch: make(map[string]*state.ShardValidatorInfo),
 	}
 }
 
 // Clean creates a new validator info pool
 func (vimc *validatorInfoMapCacher) Clean() {
 	vimc.mutValidatorInfo.Lock()
-	vimc.validatorInfoForBlock = make(map[string]*state.ShardValidatorInfo)
+	vimc.validatorInfoForEpoch = make(map[string]*state.ShardValidatorInfo)
 	vimc.mutValidatorInfo.Unlock()
 }
 
@@ -35,9 +35,9 @@ func (vimc *validatorInfoMapCacher) GetValidatorInfo(validatorInfoHash []byte) (
 	vimc.mutValidatorInfo.RLock()
 	defer vimc.mutValidatorInfo.RUnlock()
 
-	validatorInfo, ok := vimc.validatorInfoForBlock[string(validatorInfoHash)]
+	validatorInfo, ok := vimc.validatorInfoForEpoch[string(validatorInfoHash)]
 	if !ok {
-		return nil, dataRetriever.ErrValidatorInfoNotFoundInBlockPool
+		return nil, dataRetriever.ErrValidatorInfoNotFoundInEpochPool
 	}
 
 	return validatorInfo, nil
@@ -50,7 +50,7 @@ func (vimc *validatorInfoMapCacher) AddValidatorInfo(validatorInfoHash []byte, v
 	}
 
 	vimc.mutValidatorInfo.Lock()
-	vimc.validatorInfoForBlock[string(validatorInfoHash)] = validatorInfo
+	vimc.validatorInfoForEpoch[string(validatorInfoHash)] = validatorInfo
 	vimc.mutValidatorInfo.Unlock()
 }
 

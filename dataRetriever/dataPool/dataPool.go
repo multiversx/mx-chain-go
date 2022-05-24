@@ -18,7 +18,7 @@ type dataPool struct {
 	trieNodes              storage.Cacher
 	trieNodesChunks        storage.Cacher
 	currBlockTxs           dataRetriever.TransactionCacher
-	currBlockValidatorInfo dataRetriever.ValidatorInfoCacher
+	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
 	smartContracts         storage.Cacher
 	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
 }
@@ -34,7 +34,7 @@ type DataPoolArgs struct {
 	TrieNodes                 storage.Cacher
 	TrieNodesChunks           storage.Cacher
 	CurrentBlockTransactions  dataRetriever.TransactionCacher
-	CurrentBlockValidatorInfo dataRetriever.ValidatorInfoCacher
+	CurrentEpochValidatorInfo dataRetriever.ValidatorInfoCacher
 	SmartContracts            storage.Cacher
 	ValidatorsInfo            dataRetriever.ShardedDataCacherNotifier
 }
@@ -62,8 +62,8 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.CurrentBlockTransactions) {
 		return nil, dataRetriever.ErrNilCurrBlockTxs
 	}
-	if check.IfNil(args.CurrentBlockValidatorInfo) {
-		return nil, dataRetriever.ErrNilCurrBlockValidatorInfo
+	if check.IfNil(args.CurrentEpochValidatorInfo) {
+		return nil, dataRetriever.ErrNilCurrEpochValidatorInfo
 	}
 	if check.IfNil(args.TrieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool
@@ -88,7 +88,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		trieNodes:              args.TrieNodes,
 		trieNodesChunks:        args.TrieNodesChunks,
 		currBlockTxs:           args.CurrentBlockTransactions,
-		currBlockValidatorInfo: args.CurrentBlockValidatorInfo,
+		currEpochValidatorInfo: args.CurrentEpochValidatorInfo,
 		smartContracts:         args.SmartContracts,
 		validatorsInfo:         args.ValidatorsInfo,
 	}, nil
@@ -99,9 +99,9 @@ func (dp *dataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return dp.currBlockTxs
 }
 
-// CurrentBlockValidatorInfo returns the holder for current block validator info
-func (dp *dataPool) CurrentBlockValidatorInfo() dataRetriever.ValidatorInfoCacher {
-	return dp.currBlockValidatorInfo
+// CurrentEpochValidatorInfo returns the holder for current epoch validator info
+func (dp *dataPool) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	return dp.currEpochValidatorInfo
 }
 
 // Transactions returns the holder for transactions

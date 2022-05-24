@@ -24,7 +24,7 @@ type PoolsHolderMock struct {
 	trieNodesChunks        storage.Cacher
 	smartContracts         storage.Cacher
 	currBlockTxs           dataRetriever.TransactionCacher
-	currBlockValidatorInfo dataRetriever.ValidatorInfoCacher
+	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
 	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
 }
 
@@ -76,7 +76,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.currBlockTxs = dataPool.NewCurrentBlockTransactionsPool()
-	holder.currBlockValidatorInfo = dataPool.NewCurrentBlockValidatorInfoPool()
+	holder.currEpochValidatorInfo = dataPool.NewCurrentEpochValidatorInfoPool()
 
 	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.SizeLRUCache, Capacity: 900000, Shards: 1, SizeInBytes: 314572800})
 	panicIfError("NewPoolsHolderMock", err)
@@ -102,9 +102,9 @@ func (holder *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher
 	return holder.currBlockTxs
 }
 
-// CurrentBlockValidatorInfo -
-func (holder *PoolsHolderMock) CurrentBlockValidatorInfo() dataRetriever.ValidatorInfoCacher {
-	return holder.currBlockValidatorInfo
+// CurrentEpochValidatorInfo -
+func (holder *PoolsHolderMock) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCacher {
+	return holder.currEpochValidatorInfo
 }
 
 // Transactions -

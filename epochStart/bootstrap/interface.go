@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/ElrondNetwork/elrond-go-core/data"
@@ -24,7 +25,7 @@ type EpochStartMetaBlockInterceptorProcessor interface {
 
 // StartInEpochNodesCoordinator defines the methods to process and save nodesCoordinator information to storage
 type StartInEpochNodesCoordinator interface {
-	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher epochStart.ValidatorInfoCacher)
 	NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool

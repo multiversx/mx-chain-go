@@ -711,6 +711,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
 			Hasher:             pcf.coreData.Hasher(),
 			AppStatusHandler:   pcf.coreData.StatusHandler(),
+			DataPool:           pcf.data.Datapool(),
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

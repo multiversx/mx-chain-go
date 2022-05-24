@@ -16,8 +16,8 @@ var ErrNilValue = errors.New("nil value")
 // ErrTxNotFoundInBlockPool signals that transaction was not found in the current block pool
 var ErrTxNotFoundInBlockPool = errors.New("transaction was not found in the current block pool")
 
-// ErrValidatorInfoNotFoundInBlockPool signals that validator info was not found in the current block pool
-var ErrValidatorInfoNotFoundInBlockPool = errors.New("validator info was not found in the current block pool")
+// ErrValidatorInfoNotFoundInEpochPool signals that validator info was not found in the current epoch pool
+var ErrValidatorInfoNotFoundInEpochPool = errors.New("validator info was not found in the current epoch pool")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -152,8 +152,8 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 // ErrNilCurrBlockTxs signals that nil current block txs holder was provided
 var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
 
-// ErrNilCurrBlockValidatorInfo signals that nil current block validator info holder was provided
-var ErrNilCurrBlockValidatorInfo = errors.New("nil current block validator info holder")
+// ErrNilCurrEpochValidatorInfo signals that nil current epoch validator info holder was provided
+var ErrNilCurrEpochValidatorInfo = errors.New("nil current epoch validator info holder")
 
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")

@@ -3,6 +3,7 @@ package shardchain
 import (
 	"bytes"
 	"fmt"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-core/core"
@@ -38,6 +39,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			},
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 			},
 		},
 		Storage: &mock.ChainStorerStub{
@@ -396,6 +400,9 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 					return nil, false
 				},
 			}
+		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{

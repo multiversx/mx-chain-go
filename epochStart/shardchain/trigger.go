@@ -78,6 +78,7 @@ type trigger struct {
 
 	headersPool         dataRetriever.HeadersPool
 	miniBlocksPool      storage.Cacher
+	validatorInfoPool   epochStart.ValidatorInfoCacher
 	shardHdrStorage     storage.Storer
 	metaHdrStorage      storage.Storer
 	triggerStorage      storage.Storer
@@ -161,6 +162,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
 	}
+	if check.IfNil(args.DataPool.MiniBlocks()) {
+		return nil, epochStart.ErrNilMiniBlockPool
+	}
+	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
+		return nil, epochStart.ErrNilValidatorInfo
+	}
 	if check.IfNil(args.PeerMiniBlocksSyncer) {
 		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
@@ -217,6 +224,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapFinalizedEpochs:          make(map[uint32]string),
 		headersPool:                 args.DataPool.Headers(),
 		miniBlocksPool:              args.DataPool.MiniBlocks(),
+		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
 		metaHdrStorage:              metaHdrStorage,
 		shardHdrStorage:             shardHdrStorage,
 		triggerStorage:              triggerStorage,
@@ -651,7 +659,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
-	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody, t.validatorInfoPool)
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound

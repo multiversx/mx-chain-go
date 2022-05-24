@@ -316,7 +316,7 @@ type TransactionCacher interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current block
+// ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current epoch
 type ValidatorInfoCacher interface {
 	Clean()
 	GetValidatorInfo(validatorInfoHash []byte) (*state.ShardValidatorInfo, error)
@@ -336,7 +336,7 @@ type PoolsHolder interface {
 	TrieNodesChunks() storage.Cacher
 	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
-	CurrentBlockValidatorInfo() ValidatorInfoCacher
+	CurrentEpochValidatorInfo() ValidatorInfoCacher
 	ValidatorsInfo() ShardedDataCacherNotifier
 	IsInterfaceNil() bool
 }

@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -334,6 +333,8 @@ func createConsensusOnlyNode(
 		syncer,
 		0)
 
+	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
+
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(startTime, 0),
 		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
@@ -346,6 +347,7 @@ func createConsensusOnlyNode(
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+		DataPool:         dataPool,
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
@@ -440,7 +442,7 @@ func createConsensusOnlyNode(
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
-	dataComponents.DataPool = dataRetrieverMock.CreatePoolsHolder(1, 0)
+	dataComponents.DataPool = dataPool
 	dataComponents.Store = createTestStore()
 
 	stateComponents := integrationTests.GetDefaultStateComponents()
@@ -510,7 +512,6 @@ func createNodes(
 		epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
-		validatorInfoCacher := dataPool.NewCurrentBlockValidatorInfoPool()
 
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 			ShardConsensusGroupSize:    consensusSize,
@@ -530,7 +531,6 @@ func createNodes(
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
-			ValidatorInfoCacher:        validatorInfoCacher,
 		}
 		nodesCoord, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

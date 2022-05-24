@@ -130,7 +130,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
-	currBlockValidatorInfo := dataPool.NewCurrentBlockValidatorInfoPool()
+	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
 		UnsignedTransactions:      uTxPool,
@@ -141,7 +141,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		TrieNodes:                 adaptedTrieNodesStorage,
 		TrieNodesChunks:           trieNodesChunks,
 		CurrentBlockTransactions:  currBlockTransactions,
-		CurrentBlockValidatorInfo: currBlockValidatorInfo,
+		CurrentEpochValidatorInfo: currEpochValidatorInfo,
 		SmartContracts:            smartContracts,
 		ValidatorsInfo:            validatorsInfo,
 	}

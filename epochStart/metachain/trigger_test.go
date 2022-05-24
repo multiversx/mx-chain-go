@@ -2,6 +2,8 @@ package metachain
 
 import (
 	"errors"
+	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	validatorInfoCacherMock "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
 	"math"
 	"math/big"
 	"testing"
@@ -50,6 +52,11 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 						return []byte("hash"), nil
 					},
 				}
+			},
+		},
+		DataPool: &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherMock.ValidatorInfoCacherMock{}
 			},
 		},
 	}

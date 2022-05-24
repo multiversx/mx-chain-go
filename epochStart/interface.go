@@ -65,7 +65,7 @@ type RequestHandler interface {
 // ActionHandler defines the action taken on epoch start event
 type ActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher ValidatorInfoCacher)
 	NotifyOrder() uint32
 }
 
@@ -79,7 +79,7 @@ type RegistrationHandler interface {
 // Notifier defines which actions should be done for handling new epoch's events
 type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler, validatorInfoCacher ValidatorInfoCacher)
 	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
@@ -154,7 +154,7 @@ type TransactionCacher interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current block
+// ValidatorInfoCacher defines the methods for the local validator info cacher, needed for the current epoch
 type ValidatorInfoCacher interface {
 	GetValidatorInfo(validatorInfoHash []byte) (*state.ShardValidatorInfo, error)
 	AddValidatorInfo(validatorInfoHash []byte, validatorInfo *state.ShardValidatorInfo)
