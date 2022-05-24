@@ -223,12 +223,26 @@ func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing
 func TestNewShardResolversContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
-	args.ResolverConfig.NumTotalPeers = 0
-	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+		args := getArgumentsShard()
+		args.ResolverConfig.NumTotalPeers = 0
+		rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+		assert.Nil(t, rcf)
+		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	})
+	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArgumentsShard()
+		args.ResolverConfig.NumTotalPeers = args.ResolverConfig.NumCrossShardPeers
+		rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+		assert.Nil(t, rcf)
+		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	})
 }
 
 func TestNewShardResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {

@@ -32,6 +32,7 @@ func NewShardResolversContainerFactory(
 		return nil, err
 	}
 
+	numIntraShardPeers := args.ResolverConfig.NumTotalPeers - args.ResolverConfig.NumCrossShardPeers
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
 		container:                            container,
@@ -52,6 +53,7 @@ func NewShardResolversContainerFactory(
 		preferredPeersHolder:                 args.PreferredPeersHolder,
 		peersRatingHandler:                   args.PeersRatingHandler,
 		numCrossShardPeers:                   int(args.ResolverConfig.NumCrossShardPeers),
+		numIntraShardPeers:                   int(numIntraShardPeers),
 		numTotalPeers:                        int(args.ResolverConfig.NumTotalPeers),
 		numFullHistoryPeers:                  int(args.ResolverConfig.NumFullHistoryPeers),
 		nodesCoordinator:                     args.NodesCoordinator,
@@ -137,9 +139,8 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	// only one shard header topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	numIntraShardPeers := srcf.numTotalPeers - srcf.numCrossShardPeers
 	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId(), srcf.numCrossShardPeers, numIntraShardPeers)
+	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId(), srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -181,8 +182,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	numIntraShardPeers := srcf.numTotalPeers - srcf.numCrossShardPeers
-	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId, srcf.numCrossShardPeers, numIntraShardPeers)
+	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -252,8 +252,7 @@ func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	numIntraShardPeers := srcf.numTotalPeers - srcf.numCrossShardPeers
-	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool, core.MetachainShardId, srcf.numCrossShardPeers, numIntraShardPeers)
+	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}

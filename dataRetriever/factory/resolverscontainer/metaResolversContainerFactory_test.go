@@ -261,12 +261,22 @@ func TestNewMetaResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *
 func TestNewMetaResolversContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.ResolverConfig.NumTotalPeers = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
+		args := getArgumentsMeta()
+		args.ResolverConfig.NumTotalPeers = 0
+		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
 
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+		assert.Nil(t, rcf)
+		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	})
+	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
+		args := getArgumentsMeta()
+		args.ResolverConfig.NumTotalPeers = args.ResolverConfig.NumCrossShardPeers
+		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+		assert.Nil(t, rcf)
+		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+	})
 }
 
 func TestNewMetaResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
