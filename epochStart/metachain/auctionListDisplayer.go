@@ -16,8 +16,7 @@ func displayMinRequiredTopUp(topUp *big.Int, min *big.Int, step *big.Int) {
 	//	return
 	//}
 
-	minPossible := big.NewInt(minEGLD)
-	if !(topUp.Cmp(minPossible) == 0) {
+	if !(topUp.Cmp(min) == 0) {
 		topUp = big.NewInt(0).Sub(topUp, step)
 	}
 
@@ -57,7 +56,7 @@ func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
 	return pubKeys
 }
 
-func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerData) {
+func displayOwnersData(ownersData map[string]*ownerData) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
@@ -89,11 +88,10 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerDa
 	displayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
-func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData2 map[string]*ownerData) {
+func displayOwnersSelectedNodes(ownersData map[string]*ownerData) {
 	//if log.GetLevel() > logger.LogDebug {
 	//	return
 	//}
-	ownersData := copyOwnersData(ownersData2)
 	tableHeader := []string{
 		"Owner",
 		"Num staked nodes",

@@ -36,12 +36,19 @@ func createFullAuctionListSelectorArgs(config []config.MaxNodesChangeConfig) (Au
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(epochNotifier, config)
 
 	argsSystemSC, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
 	return AuctionListSelectorArgs{
-		ShardCoordinator:             shardCoordinator,
+		ShardCoordinator:             argsSystemSC.ShardCoordinator,
 		StakingDataProvider:          argsSystemSC.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 	}, argsSystemSC
+}
+
+func fillValidatorsInfo(t *testing.T, validatorsMap state.ShardValidatorsInfoMapHandler, sdp epochStart.StakingDataProvider) {
+	for _, validator := range validatorsMap.GetAllValidatorsInfo() {
+		err := sdp.FillValidatorInfo(validator.GetPublicKey())
+		require.Nil(t, err)
+	}
 }
 
 func TestNewAuctionListSelector(t *testing.T) {
@@ -99,14 +106,10 @@ func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughSlotsForAuctionN
 
 	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner1, owner1, owner1StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
 	stakingcommon.RegisterValidatorKeys(argsSystemSC.UserAccountsDB, owner2, owner2, owner2StakedKeys, big.NewInt(1000), argsSystemSC.Marshalizer)
-
-	err := args.StakingDataProvider.FillValidatorInfo(owner1StakedKeys[0])
-	require.Nil(t, err)
-	err = args.StakingDataProvider.FillValidatorInfo(owner2StakedKeys[0])
-	require.Nil(t, err)
+	fillValidatorsInfo(t, validatorsInfo, argsSystemSC.StakingDataProvider)
 
 	als, _ := NewAuctionListSelector(args)
-	err = als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
+	err := als.SelectNodesFromAuctionList(validatorsInfo, nil, []byte("rnd"))
 	require.Nil(t, err)
 
 	expectedValidatorsInfo := map[uint32][]state.ValidatorInfoHandler{
@@ -116,6 +119,147 @@ func TestAuctionListSelector_SelectNodesFromAuctionListNotEnoughSlotsForAuctionN
 		},
 	}
 	require.Equal(t, expectedValidatorsInfo, validatorsInfo.GetShardValidatorsInfoMap())
+}
+
+func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
+	t.Parallel()
+
+	v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+	v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+	v3 := &state.ValidatorInfo{PublicKey: []byte("pk3")}
+	v4 := &state.ValidatorInfo{PublicKey: []byte("pk4")}
+	v5 := &state.ValidatorInfo{PublicKey: []byte("pk5")}
+	v6 := &state.ValidatorInfo{PublicKey: []byte("pk6")}
+	v7 := &state.ValidatorInfo{PublicKey: []byte("pk7")}
+	v8 := &state.ValidatorInfo{PublicKey: []byte("pk8")}
+
+	ownersData := map[string]*ownerData{
+		"owner1": {
+			numActiveNodes:           2,
+			numAuctionNodes:          2,
+			numQualifiedAuctionNodes: 2,
+			numStakedNodes:           4,
+			totalTopUp:               big.NewInt(1500),
+			topUpPerNode:             big.NewInt(375),
+			qualifiedTopUpPerNode:    big.NewInt(375),
+			auctionList:              []state.ValidatorInfoHandler{v1, v2},
+		},
+		"owner2": {
+			numActiveNodes:           0,
+			numAuctionNodes:          3,
+			numQualifiedAuctionNodes: 3,
+			numStakedNodes:           3,
+			totalTopUp:               big.NewInt(3000),
+			topUpPerNode:             big.NewInt(1000),
+			qualifiedTopUpPerNode:    big.NewInt(1000),
+			auctionList:              []state.ValidatorInfoHandler{v3, v4, v5},
+		},
+		"owner3": {
+			numActiveNodes:           1,
+			numAuctionNodes:          2,
+			numQualifiedAuctionNodes: 2,
+			numStakedNodes:           3,
+			totalTopUp:               big.NewInt(1000),
+			topUpPerNode:             big.NewInt(333),
+			qualifiedTopUpPerNode:    big.NewInt(333),
+			auctionList:              []state.ValidatorInfoHandler{v6, v7},
+		},
+		"owner4": {
+			numActiveNodes:           1,
+			numAuctionNodes:          1,
+			numQualifiedAuctionNodes: 1,
+			numStakedNodes:           2,
+			totalTopUp:               big.NewInt(0),
+			topUpPerNode:             big.NewInt(0),
+			qualifiedTopUpPerNode:    big.NewInt(0),
+			auctionList:              []state.ValidatorInfoHandler{v8},
+		},
+	}
+
+	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData)
+	require.Equal(t, big.NewInt(1), minTopUp)    // owner3 having all nodes in auction
+	require.Equal(t, big.NewInt(3000), maxTopUp) // owner2 having only only one node in auction
+
+	softAuctionConfig, err := calcSoftAuctionNodesConfig(ownersData, 10)
+	require.Nil(t, err)
+	require.Equal(t, ownersData, softAuctionConfig) // 7 nodes in auction and 10 available slots; everyone gets selected
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 9)
+	require.Nil(t, err)
+	require.Equal(t, ownersData, softAuctionConfig) // 7 nodes in auction and 10 available slots; everyone gets selected
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 8)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	require.Nil(t, err)
+	require.Equal(t, ownersData, softAuctionConfig) // 7 nodes in auction and 8 available slots; everyone gets selected
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 7)
+	expectedConfig := copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig) // 7 nodes in auction and 7 available slots; everyone gets selected
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 6)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	expectedConfig = copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	expectedConfig["owner3"].numQualifiedAuctionNodes = 1
+	expectedConfig["owner3"].qualifiedTopUpPerNode = big.NewInt(500)
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig)
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 5)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	expectedConfig = copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	expectedConfig["owner3"].numQualifiedAuctionNodes = 1
+	expectedConfig["owner3"].qualifiedTopUpPerNode = big.NewInt(500)
+	expectedConfig["owner1"].numQualifiedAuctionNodes = 1
+	expectedConfig["owner1"].qualifiedTopUpPerNode = big.NewInt(500)
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig)
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 4)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	expectedConfig = copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	expectedConfig["owner3"].numQualifiedAuctionNodes = 1
+	expectedConfig["owner3"].qualifiedTopUpPerNode = big.NewInt(500)
+	expectedConfig["owner1"].numQualifiedAuctionNodes = 1
+	expectedConfig["owner1"].qualifiedTopUpPerNode = big.NewInt(500)
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig)
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 3)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	expectedConfig = copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	delete(expectedConfig, "owner1")
+	delete(expectedConfig, "owner3")
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig)
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 2)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	expectedConfig = copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	delete(expectedConfig, "owner1")
+	delete(expectedConfig, "owner3")
+	expectedConfig["owner2"].numQualifiedAuctionNodes = 2
+	expectedConfig["owner2"].qualifiedTopUpPerNode = big.NewInt(1500)
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig)
+
+	softAuctionConfig, err = calcSoftAuctionNodesConfig(ownersData, 1)
+	displayOwnersSelectedNodes(softAuctionConfig)
+	expectedConfig = copyOwnersData(ownersData)
+	delete(expectedConfig, "owner4")
+	delete(expectedConfig, "owner1")
+	delete(expectedConfig, "owner3")
+	expectedConfig["owner2"].numQualifiedAuctionNodes = 1
+	expectedConfig["owner2"].qualifiedTopUpPerNode = big.NewInt(3000)
+	require.Nil(t, err)
+	require.Equal(t, expectedConfig, softAuctionConfig)
 }
 
 //TODO: probably remove this test

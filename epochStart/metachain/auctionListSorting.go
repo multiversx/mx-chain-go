@@ -25,7 +25,7 @@ func (als *auctionListSelector) selectNodes(
 		selectedFromAuction = append(selectedFromAuction, owner.auctionList[:owner.numQualifiedAuctionNodes]...)
 	}
 
-	als.displayOwnersSelectedNodes(ownersData)
+	displayOwnersSelectedNodes(ownersData)
 	als.sortValidators(selectedFromAuction, validatorTopUpMap, normRand)
 	als.displayAuctionList(selectedFromAuction, ownersData, numAvailableSlots)
 

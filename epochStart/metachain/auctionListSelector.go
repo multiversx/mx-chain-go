@@ -117,7 +117,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	als.displayOwnersData(ownersData)
+	displayOwnersData(ownersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 
 	sw := core.NewStopWatch()
@@ -240,7 +240,7 @@ func (als *auctionListSelector) sortAuctionList(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	randomness []byte,
 ) error {
-	softAuctionNodesConfig, err := als.calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
+	softAuctionNodesConfig, err := calcSoftAuctionNodesConfig(ownersData, numOfAvailableNodeSlots)
 	if err != nil {
 		return err
 	}
@@ -249,14 +249,15 @@ func (als *auctionListSelector) sortAuctionList(
 	return markAuctionNodesAsSelected(selectedNodes, validatorsInfoMap)
 }
 
-func (als *auctionListSelector) calcSoftAuctionNodesConfig(
-	ownersData map[string]*ownerData,
+func calcSoftAuctionNodesConfig(
+	data map[string]*ownerData,
 	numAvailableSlots uint32,
 ) (map[string]*ownerData, error) {
+	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := getMinMaxPossibleTopUp(ownersData) // TODO: What happens if min>max or MIN = MAX?
 	log.Info("auctionListSelector: calc min and max possible top up",
-		"min top up", minTopUp.String(),
-		"max top up", maxTopUp.String(),
+		"min top up per node", minTopUp.String(),
+		"max top up per node", maxTopUp.String(),
 	)
 
 	step := big.NewInt(10) // todo: granulate step if max- min < step???? + 10 egld for real
@@ -291,7 +292,6 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
 			break
 		}
-
 	}
 
 	displayMinRequiredTopUp(topUp, minTopUp, step)

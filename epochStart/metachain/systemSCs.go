@@ -203,11 +203,6 @@ func copyOwnerKeysInMap(mapOwnersKeys map[string][][]byte) map[string]struct{} {
 	return ret
 }
 
-func (s *systemSCProcessor) prepareStakingDataForAllNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
-	allNodes := GetAllNodeKeys(validatorsInfoMap)
-	return s.prepareStakingData(allNodes)
-}
-
 func (s *systemSCProcessor) updateToGovernanceV2() error {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

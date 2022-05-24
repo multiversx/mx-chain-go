@@ -198,7 +198,7 @@ func registerValidators(
 	list common.PeerType,
 ) {
 	for shardID, validatorsInShard := range validators {
-		for _, val := range validatorsInShard {
+		for idx, val := range validatorsInShard {
 			pubKey := val.PubKey()
 			savePeerAcc(stateComponents, pubKey, shardID, list)
 
@@ -207,7 +207,7 @@ func registerValidators(
 				pubKey,
 				pubKey,
 				[][]byte{pubKey},
-				big.NewInt(2*nodePrice),
+				big.NewInt(nodePrice+int64(idx)),
 				marshaller,
 			)
 		}
