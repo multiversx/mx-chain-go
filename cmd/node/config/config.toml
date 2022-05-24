@@ -898,7 +898,7 @@
 
 [Resolvers]
     NumCrossShardPeers  = 2
-    NumIntraShardPeers  = 3
+    NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
