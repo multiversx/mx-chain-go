@@ -2125,25 +2125,14 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	nonce := uint64(0)
 	value := new(big.Int).SetInt64(10)
 	receiver := "rcv"
-	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            uint64(0),
-		Value:            value.String(),
-		Receiver:         "rcv",
-		ReceiverUsername: nil,
-		Sender:           "snd",
-		SenderUsername:   nil,
-		GasPrice:         uint64(10),
-		GasLimit:         uint64(20),
-		DataField:        []byte("-"),
-		SignatureHex:     signature,
-		ChainID:          coreComponents.ChainID(),
-		Version:          coreComponents.MinTransactionVersion(),
-		Options:          0,
-		Guardian:         "",
-		GuardianSigHex:   "",
-	}
+	txArgs := getDefaultTransactionArgs()
+	txArgs.Receiver = receiver
+	txArgs.Nonce = nonce
+	txArgs.Value = value.String()
+	txArgs.ChainID = coreComponents.ChainID()
+	txArgs.Version = coreComponents.MinTransactionVersion()
+
 	tx, txHash, err := n.CreateTransaction(txArgs)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
@@ -2234,33 +2223,13 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		node.WithAddressSignatureSize(10),
 	)
 
-	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
-	receiver := "rcv"
-	sender := "snd"
-	gasPrice := uint64(10)
-	gasLimit := uint64(20)
-	txData := []byte("-")
-	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
-
 	options := transaction.MaskSignedWithHash
-	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            nonce,
-		Value:            value.String(),
-		Receiver:         receiver,
-		ReceiverUsername: nil,
-		Sender:           sender,
-		SenderUsername:   nil,
-		GasPrice:         gasPrice,
-		GasLimit:         gasLimit,
-		DataField:        txData,
-		SignatureHex:     signature,
-		ChainID:          chainID,
-		Version:          version,
-		Options:          options,
-		Guardian:         "",
-		GuardianSigHex:   "",
-	}
+
+	txArgs := getDefaultTransactionArgs()
+	txArgs.ChainID = chainID
+	txArgs.Version = version
+	txArgs.Options = options
+
 	tx, _, err := n.CreateTransaction(txArgs)
 	require.Nil(t, err)
 	err = n.ValidateTransaction(tx)
@@ -2352,33 +2321,13 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		node.WithAddressSignatureSize(10),
 	)
 
-	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
-	receiver := "rcv"
-	sender := "snd"
-	gasPrice := uint64(10)
-	gasLimit := uint64(20)
-	txData := []byte("-")
-	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
-
 	options := transaction.MaskSignedWithHash
-	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            nonce,
-		Value:            value.String(),
-		Receiver:         receiver,
-		ReceiverUsername: nil,
-		Sender:           sender,
-		SenderUsername:   nil,
-		GasPrice:         gasPrice,
-		GasLimit:         gasLimit,
-		DataField:        txData,
-		SignatureHex:     signature,
-		ChainID:          chainID,
-		Version:          version + 1,
-		Options:          options,
-		Guardian:         "",
-		GuardianSigHex:   "",
-	}
+
+	txArgs := getDefaultTransactionArgs()
+	txArgs.ChainID = chainID
+	txArgs.Version = version + 1
+	txArgs.Options = options
+
 	tx, _, _ := n.CreateTransaction(txArgs)
 
 	err := n.ValidateTransaction(tx)
