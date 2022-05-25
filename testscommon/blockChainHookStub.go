@@ -45,6 +45,8 @@ type BlockChainHookStub struct {
 	FilterCodeMetadataForUpgradeCalled   func(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadataCalled     func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	IsBuiltinFunctionNameCalled          func(functionName string)
+	IsPausedCalled                       func(_ []byte) bool
+	IsLimitedTransferCalled              func(_ []byte) bool
 }
 
 // GetCode -
@@ -372,6 +374,24 @@ func (stub *BlockChainHookStub) IsInterfaceNil() bool {
 func (stub *BlockChainHookStub) IsBuiltinFunctionName(functionName string) bool {
 	if stub.IsBuiltinFunctionNameCalled != nil {
 		return stub.IsBuiltinFunctionName(functionName)
+	}
+
+	return false
+}
+
+// IsPaused -
+func (stub *BlockChainHookStub) IsPaused(arg []byte) bool {
+	if stub.IsPausedCalled != nil {
+		return stub.IsPaused(arg)
+	}
+
+	return false
+}
+
+// IsLimitedTransfer -
+func (stub *BlockChainHookStub) IsLimitedTransfer(arg []byte) bool {
+	if stub.IsLimitedTransferCalled != nil {
+		return stub.IsLimitedTransfer(arg)
 	}
 
 	return false

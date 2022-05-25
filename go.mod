@@ -12,7 +12,7 @@ require (
 	github.com/ElrondNetwork/elrond-go-core v1.1.15
 	github.com/ElrondNetwork/elrond-go-crypto v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.7
-	github.com/ElrondNetwork/elrond-vm-common v1.3.3
+	github.com/ElrondNetwork/elrond-vm-common v1.3.4
 	github.com/ElrondNetwork/go-libp2p-pubsub v0.5.5-rc2
 	github.com/ElrondNetwork/notifier-go v1.1.0
 	github.com/beevik/ntp v0.3.0
@@ -40,7 +40,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.5
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
