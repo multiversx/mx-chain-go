@@ -49,9 +49,11 @@ func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testin
 	checkComputedFee(t, "50000000000000", computer, 0, 80000, 1000000000, "", nil)
 	checkComputedFee(t, "57500000000000", computer, 0, 80000, 1000000000, "hello", nil)
 	checkComputedFee(t, "57500000000000", computer, 0, 1000000, 1000000000, "hello", contract)
+	// (for review) >>> the following scenarios pass, as well. Is this all right?
 	checkComputedFee(t, "80000000000000", computer, 124, 80000, 1000000000, "", nil)
 	checkComputedFee(t, "1000000000000000", computer, 124, 1000000, 1000000000, "hello", contract)
 	checkComputedFee(t, "404000000000000", computer, 124, 404000, 1000000000, "ESDTTransfer@464f4f2d653962643235@0a", contract)
+	// <<< (for review)
 	checkComputedFee(t, "57500010000000", computer, 180, 57501, 1000000000, "hello", contract)
 	checkComputedFee(t, "66925000000000", computer, 180, 1000000, 1000000000, "hello", contract)
 	checkComputedFee(t, "66925000000000", computer, 180, 1000000, 1000000000, "hello", contract)

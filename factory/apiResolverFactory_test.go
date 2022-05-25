@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,8 +36,9 @@ func TestCreateApiResolver(t *testing.T) {
 			FlagsConfig: &config.ContextFlagsConfig{
 				WorkingDir: "",
 			},
-			GeneralConfig: &cfg,
-			EpochConfig:   &config.EpochConfig{},
+			GeneralConfig:   &cfg,
+			EpochConfig:     &config.EpochConfig{},
+			EconomicsConfig: testscommon.GetEconomicsConfig(),
 		},
 		CoreComponents:      coreComponents,
 		DataComponents:      dataComponents,
